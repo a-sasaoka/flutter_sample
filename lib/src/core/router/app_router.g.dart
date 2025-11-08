@@ -14,6 +14,7 @@ RouteBase get $homeRoute => GoRouteData.$route(
   routes: [
     GoRouteData.$route(path: 'settings', factory: $SettingsRoute._fromState),
     GoRouteData.$route(path: 'sample', factory: $SampleRoute._fromState),
+    GoRouteData.$route(path: 'users', factory: $UserListRoute._fromState),
   ],
 );
 
@@ -62,6 +63,26 @@ mixin $SampleRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/sample');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $UserListRoute on GoRouteData {
+  static UserListRoute _fromState(GoRouterState state) => const UserListRoute();
+
+  @override
+  String get location => GoRouteData.$location('/users');
 
   @override
   void go(BuildContext context) => context.go(location);

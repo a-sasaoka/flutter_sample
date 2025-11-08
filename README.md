@@ -1,6 +1,6 @@
 # Flutter Sample Project
 
-Flutter開発のベストプラクティスをまとめたサンプルプロジェクトです。\
+Flutter開発のサンプルプロジェクトです。\
 初学者から中級者まで、実践的なアプリ構成や開発環境の整備方法を学ぶことができます。
 
 ---
@@ -129,18 +129,6 @@ chmod +x tool/hooks/pre-commit tool/setup_git_hooks.sh
 `GoRouter` 設定を Riverpod のアノテーション構文（`@riverpod`）で定義。\
 `routerProvider` が自動生成され、明示的な `Provider<GoRouter>` 記述が不要です。
 
-```dart
-@riverpod
-GoRouter router(RouterRef ref) {
-  return GoRouter(
-    routes: $appRoutes,
-    errorBuilder: (context, state) =>
-        NotFoundScreen(unknownPath: state.uri.toString()),
-    debugLogDiagnostics: true,
-  );
-}
-```
-
 ---
 
 ## 🧩 SharedPreferences の永続化設定
@@ -148,43 +136,53 @@ GoRouter router(RouterRef ref) {
 テーマモードなどの設定値を永続化するために、`SharedPreferences` をアプリ全体で共有する仕組みを導入しています。\
 Riverpod のアノテーション構文（`@Riverpod(keepAlive: true)`）を使い、どのプロバイダからでも安全にアクセス可能です。
 
-### プロバイダ定義例
-
-```dart
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-part 'shared_preferences_provider.g.dart';
-
-@Riverpod(keepAlive: true)
-SharedPreferences sharedPreferences(SharedPreferencesRef ref) {
-  throw UnimplementedError(); // 実際のインスタンスは main() で注入
-}
-```
-
-### main.dart での初期化
-
-```dart
-final prefs = await SharedPreferences.getInstance();
-
-runApp(
-  ProviderScope(
-    overrides: [
-      sharedPreferencesProvider.overrideWithValue(prefs),
-    ],
-    child: const MyApp(),
-  ),
-);
-```
-
-### 利用例（他のプロバイダから）
-
-```dart
-final prefs = ref.read(sharedPreferencesProvider);
-final theme = prefs.getString('theme_mode');
-```
-
 この構成により、`SharedPreferences` のインスタンスをアプリ全体で共有し、 I/O を最小化しつつテスト可能な形で永続化処理を行えます。
+
+---
+
+## 🎨 テーマ設定（FlexColorScheme）
+
+アプリ全体のデザインテーマは [FlexColorScheme](https://pub.dev/packages/flex_color_scheme) を利用して構築しています。
+Material 3 対応で、ライト／ダーク／システムモードの切り替えに対応しています。
+
+### 主なファイル構成
+
+```bash
+lib/src/core/config/
+ ├── app_theme.dart           # テーマ定義（FlexColorScheme）
+ └── theme_mode_provider.dart # テーマモードを管理するRiverpodプロバイダ
+```
+
+💡 `SharedPreferences` と連携し、ユーザーが選択したテーマモードを永続化しています。
+アプリ起動時に前回のテーマ設定を自動的に復元します。
+
+---
+
+## 🌐 API通信デモ（UserList）
+
+[Dio](https://pub.dev/packages/dio) と [Riverpod](https://pub.dev/packages/flutter_riverpod) を組み合わせ、
+外部APIからデータを取得してUIに表示する仕組みを実装しています。
+以下は `https://jsonplaceholder.typicode.com/users` を利用したユーザー一覧取得サンプルです。
+
+### 📁 構成例
+
+```bash
+lib/src/features/user/
+  ├── data/
+  │   ├── user_model.dart       # Freezedで定義したユーザーモデル
+  │   └── user_repository.dart  # API呼び出し
+  ├── application/
+  │   └── user_notifier.dart    # 状態管理（ロード中・成功・エラー）
+  └── presentation/
+      └── user_list_screen.dart # 一覧表示画面
+```
+
+### 主なポイント
+
+- `Dio` の共通インスタンスを `apiClientProvider` として提供。
+- `Freezed` + `JsonSerializable` による型安全なモデル変換。
+- `Riverpod` アノテーション（`@riverpod`）を活用した状態管理。
+- 画面では `AsyncValue` による読み込み・エラー・成功表示を制御。
 
 ---
 
@@ -196,51 +194,49 @@ final theme = prefs.getString('theme_mode');
 - custom\_lint
 - riverpod\_lint
 
-`analysis_options.yaml` の主要設定例：
-
-```yaml
-include: package:very_good_analysis/analysis_options.yaml
-
-analyzer:
-  plugins:
-    - custom_lint
-  exclude:
-    - "**/*.g.dart"
-    - "**/*.freezed.dart"
-
-linter:
-  rules:
-    avoid_print: true
-    sort_pub_dependencies: false
-```
-
----
-
-## 💡 VSCode推奨設定
-
-```jsonc
-{
-  "dart.flutterSdkPath": ".fvm/versions/3.35.7",
-  "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.fixAll": "explicit",
-    "source.organizeImports": "explicit"
-  },
-  "dart.lineLength": 80,
-  "dart.showLintNames": true,
-  "dart.previewFlutterUiGuides": true
-}
-```
-
 ---
 
 ## 🧰 コード生成コマンド
+
+### 環境の切り替え、設定値変更
+
+コード生成時に使用する `.env` ファイルを環境ごとに切り替えることができます。以下のコマンドを使用して、対象の環境設定に合わせて生成してください。
+
+#### Local環境
+
+```bash
+fvm dart run build_runner build --delete-conflicting-outputs --define "envied_generator:envied=path=.env.local"
+```
+
+#### Dev環境
+
+```bash
+fvm dart run build_runner build --delete-conflicting-outputs --define "envied_generator:envied=path=.env.dev"
+```
+
+#### Staging環境
+
+```bash
+fvm dart run build_runner build --delete-conflicting-outputs --define "envied_generator:envied=path=.env.stg"
+```
+
+#### Production環境
+
+```bash
+fvm dart run build_runner build --delete-conflicting-outputs --define "envied_generator:envied=path=.env.prod"
+```
+
+---
+
+### 通常のコード生成
+
+#### 都度実行する場合
 
 ```bash
 flutter pub run build_runner build --delete-conflicting-outputs
 ```
 
-監視モードで実行する場合：
+#### 監視モードで実行する場合
 
 ```bash
 flutter pub run build_runner watch --delete-conflicting-outputs
@@ -248,15 +244,16 @@ flutter pub run build_runner watch --delete-conflicting-outputs
 
 ---
 
-## 🧾 備考
+### 💡 補足：再生成が必要なタイミング
 
-- `.gitkeep` ファイルにより空ディレクトリもGitで管理しています。  
-- 全構成は実務レベルで再利用可能。  
-- 今後、Dio通信・FlexColorSchemeサンプルなどを追加予定。
+| 状況 | コード生成の要否 |
+|------|----------------|
+| 環境（.env）を切り替えた | 🔁 Envied再生成が必要 |
+| モデル（Freezed / JsonSerializable）を更新した | ✅ 通常生成のみでOK |
+| `.env` の値を修正した | 🔁 Envied再生成が必要 |
+| コードのみ変更した | 🚫 Envied不要 |
 
----
+**ポイント:**
 
-## 👨‍💻 作者メモ
-
-このプロジェクトはFlutterの学習・検証・ベストプラクティス共有を目的としています。  
-自由にフォークして、自分の環境に合わせたカスタマイズを行ってください。
+- Enviedは環境変数をビルド時に暗号化して生成するため、環境を切り替えた場合や`.env`の値を変更した場合にのみ再生成が必要です。
+- FreezedやJsonなど、通常のコード変更に関しては通常の`build_runner`実行で十分です。

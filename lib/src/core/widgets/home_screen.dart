@@ -2,6 +2,7 @@
 // ホーム画面。各ページへの遷移ボタンを置きます。
 
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/router/app_router.dart';
 import 'package:go_router/go_router.dart';
 
@@ -22,14 +23,24 @@ class HomeScreen extends StatelessWidget {
         children: [
           const Text('👋 ここはホーム画面です。下のボタンから各画面へ移動してみましょう。'),
           const SizedBox(height: 16),
+          Text(
+            '現在の環境: ${AppEnv.environment.toUpperCase()}',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
           FilledButton(
             onPressed: () => const SettingsRoute().push<void>(context),
-            child: const Text('設定画面へ（/settings）'),
+            child: const Text('設定画面へ'),
           ),
           const SizedBox(height: 8),
           FilledButton(
             onPressed: () => const SampleRoute().push<void>(context),
-            child: const Text('サンプル画面へ（/sample）'),
+            child: const Text('サンプル画面へ'),
+          ),
+          const SizedBox(height: 8),
+          FilledButton(
+            onPressed: () => const UserListRoute().push<void>(context),
+            child: const Text('ユーザー一覧画面へ（APIで情報取得）'),
           ),
           const SizedBox(height: 16),
           OutlinedButton(
