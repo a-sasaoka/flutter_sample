@@ -86,6 +86,45 @@ chmod +x setup_project_structure.sh
 
 ---
 
+## 🧩 Git Hooksでコミット前にLintチェックを自動実行
+
+このプロジェクトでは、コミット時に自動で `flutter analyze` と `dart format` チェックを実行する仕組みを導入しています。  
+これにより、Lintエラーやフォーマット漏れを防ぎ、常にクリーンな状態でコードをコミットできます。
+
+### 1️⃣ セットアップ
+
+次のスクリプトを実行してください：
+
+```bash
+chmod +x tool/hooks/pre-commit tool/setup_git_hooks.sh
+./tool/setup_git_hooks.sh
+```
+
+これにより、Gitのフック設定が自動的に更新され、  
+`tool/hooks/pre-commit` がリポジトリ全体で共有されます。
+
+### 2️⃣ 動作内容
+
+- コミット前に以下を自動実行します：
+  - `flutter analyze`（静的解析）
+  - `dart format --set-exit-if-changed`（フォーマット漏れチェック）
+- どちらかに問題がある場合、コミットは中断されます。
+
+### 3️⃣ チェックに通らなかった場合
+
+修正してから再コミットしてください👇
+
+```bash
+fvm dart format .
+fvm flutter analyze
+git add .
+git commit -m "fix: lint and format issues"
+```
+
+これで常にチーム全員が同じLint基準で安全に開発できます 🚀
+
+---
+
 ## 🧩 GoRouterを使ったルーティング設定
 
 本プロジェクトでは [GoRouter](https://pub.dev/packages/go_router) を利用し、アプリ全体の画面遷移を管理しています。  

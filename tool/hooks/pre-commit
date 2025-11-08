@@ -1,0 +1,34 @@
+#!/bin/bash
+# ===============================================
+# Git pre-commit hook
+# - Flutter analyze（静的解析）
+# - Dart format（整形漏れチェック）
+# ===============================================
+
+set -euo pipefail
+
+# --- コマンド解決（FVM優先） ---
+flutter_cmd="flutter"
+dart_cmd="dart"
+if command -v fvm >/dev/null 2>&1; then
+  flutter_cmd="fvm flutter"
+  dart_cmd="fvm dart"
+fi
+
+echo "🔍 Running analyze..."
+# 解析に失敗したらコミット中断
+$flutter_cmd analyze
+
+# 変更ステージ済みの Dart ファイルだけを整形チェック
+staged_dart_files=$(git diff --cached --name-only -- '*.dart' || true)
+
+if [ -n "$staged_dart_files" ]; then
+  echo "🧹 Checking format (staged .dart only)..."
+  # 整形が必要なら非ゼロ終了でコミット中断
+  # （自動整形は行わず、直してから再コミットしてもらう運用）
+  $dart_cmd format --set-exit-if-changed $staged_dart_files
+else
+  echo "ℹ️  Staged .dart files not found. Skipping format check."
+fi
+
+echo "✅ All checks passed. Proceeding with commit..."
