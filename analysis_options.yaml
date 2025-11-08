@@ -1,28 +1,53 @@
-# This file configures the analyzer, which statically analyzes Dart code to
-# check for errors, warnings, and lints.
-#
-# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
-# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
-# invoked from the command line by running `flutter analyze`.
+# ===============================================
+# Flutter Sample Project 用 Lint 設定ファイル
+# very_good_analysis + custom_lint + riverpod_lint 構成
+# ===============================================
 
-# The following line activates a set of recommended lints for Flutter apps,
-# packages, and plugins designed to encourage good coding practices.
-include: package:flutter_lints/flutter.yaml
+# まず、very_good_analysis のルールをベースとして読み込む
+include: package:very_good_analysis/analysis_options.yaml
+
+analyzer:
+  # custom_lint をプラグインとして有効化
+  plugins:
+    - custom_lint
+
+  # 自動生成されたファイルは解析対象から除外
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/*.gen.dart"
+    - "**/generated/**"
+    - "**/build/**"
+
+  # 解析オプション
+  language:
+    strict-casts: true        # 型キャストの安全性を厳しくチェック
+    strict-inference: true    # 型推論を厳しくチェック
+    strict-raw-types: true    # ジェネリクス使用時の型安全性を強化
+
+# custom_lint 関連設定
+custom_lint:
+  rules:
+    # riverpod_lint の主なルール
+    - missing_provider_scope         # ProviderScope を忘れていないか
+    - avoid_manual_providers_as_parameter  # Provider を引数として渡さない
+    - prefer_final_providers         # Provider は final にする
+    - prefer_const_constructors      # 定数コンストラクタの利用を推奨
+    # 必要に応じて独自ルールを追加可能
+    # 例）- my_custom_rule_name
 
 linter:
-  # The lint rules applied to this project can be customized in the
-  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
-  # included above or to enable additional rules. A list of all available lints
-  # and their documentation is published at https://dart.dev/lints.
-  #
-  # Instead of disabling a lint rule for the entire project in the
-  # section below, it can also be suppressed for a single line of code
-  # or a specific dart file by using the `// ignore: name_of_lint` and
-  # `// ignore_for_file: name_of_lint` syntax on the line or in the file
-  # producing the lint.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    # very_good_analysis のルールを継承しつつ、追加カスタマイズ
+    # ここでプロジェクト独自のルールをON/OFFできます。
 
-# Additional information about this file can be found at
-# https://dart.dev/guides/language/analysis-options
+    # --- Flutter開発でおすすめの追加ルール ---
+    avoid_print: true                 # print の使用を禁止（logger を使う）
+    prefer_const_constructors: true   # const コンストラクタを使う
+    prefer_final_locals: true         # ローカル変数は基本的に final
+    always_use_package_imports: true  # 相対importを避けて package import推奨
+    sort_constructors_first: true     # コンストラクタはクラスの先頭に
+    use_super_parameters: true        # superパラメータ構文を使う
+    unnecessary_lambdas: true         # 不要なラムダ式を警告
+    require_trailing_commas: true     # 改行時に末尾カンマを強制
+    sort_pub_dependencies: false      # pubspec.yaml の依存関係をソートしない
