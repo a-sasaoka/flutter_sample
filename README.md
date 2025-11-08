@@ -15,7 +15,7 @@ Flutter開発のベストプラクティスをまとめたサンプルプロジ�
 | 分類 | 使用技術 |
 |------|-----------|
 | 状態管理 | [Riverpod](https://riverpod.dev) + [Flutter Hooks](https://pub.dev/packages/flutter_hooks) |
-| ルーティング | [GoRouter](https://pub.dev/packages/go_router) |
+| ルーティング | [GoRouter](https://pub.dev/packages/go_router) + [go_router_builder](https://pub.dev/packages/go_router_builder) |
 | 通信 | [Dio](https://pub.dev/packages/dio) + [pretty_dio_logger](https://pub.dev/packages/pretty_dio_logger) |
 | モデル生成 | [Freezed](https://pub.dev/packages/freezed) + [json_serializable](https://pub.dev/packages/json_serializable) |
 | 環境変数 | [Envied](https://pub.dev/packages/envied) |
@@ -82,6 +82,43 @@ flutter pub get
 ```bash
 chmod +x setup_project_structure.sh
 ./setup_project_structure.sh
+```
+
+---
+
+## 🧩 GoRouterを使ったルーティング設定
+
+本プロジェクトでは [GoRouter](https://pub.dev/packages/go_router) を利用し、アプリ全体の画面遷移を管理しています。  
+さらに [go_router_builder](https://pub.dev/packages/go_router_builder) を導入し、アノテーションによる**型安全なルーティング定義**を実現しています。
+
+### 主な特徴
+
+- `@TypedGoRoute` アノテーションでルートを定義し、`build_runner` により自動生成。
+- 各画面は `GoRouteData` を継承し、IDE補完で安全に遷移可能。
+- `const SampleRoute().go(context)` のように記述でき、パス文字列を直接書く必要がありません。
+- `routerProvider` により、`Riverpod` 経由で `GoRouter` インスタンスを提供します。
+
+### コード例
+
+```dart
+@TypedGoRoute<HomeRoute>(
+  path: '/',
+  routes: [
+    TypedGoRoute<SettingsRoute>(path: 'settings'),
+    TypedGoRoute<SampleRoute>(path: 'sample'),
+  ],
+)
+class HomeRoute extends GoRouteData with $HomeRoute {
+  const HomeRoute();
+  @override
+  Widget build(BuildContext context, GoRouterState state) => const HomeScreen();
+}
+```
+
+コード生成コマンド：
+
+```bash
+dart run build_runner build --delete-conflicting-outputs
 ```
 
 ---
