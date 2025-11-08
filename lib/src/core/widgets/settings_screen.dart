@@ -12,25 +12,22 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mode = ref.watch(themeModeProvider);
-    final notifier = ref.read(themeModeProvider.notifier);
+    final theme = ref.watch(themeModeProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const Text('🎨 テーマ設定'),
-          const SizedBox(height: 8),
-          // ドロップダウンで system / light / dark を選択
-          Row(
+      body: theme.when(
+        data: (mode) {
+          final notifier = ref.read(themeModeProvider.notifier);
+          return ListView(
+            padding: const EdgeInsets.all(16),
             children: [
-              const Text('テーマモード:'),
-              const SizedBox(width: 12),
+              const Text('🎨 テーマ設定'),
+              const SizedBox(height: 8),
               DropdownButton<ThemeMode>(
                 value: mode,
-                onChanged: (v) {
-                  if (v != null) notifier.set(v);
+                onChanged: (v) async {
+                  if (v != null) await notifier.set(v);
                 },
                 items: const [
                   DropdownMenuItem(
@@ -47,17 +44,18 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              SwitchListTile(
+                title: const Text('ダークモードに切り替える（簡易）'),
+                value: mode == ThemeMode.dark,
+                onChanged: (_) => notifier.toggleLightDark(),
+              ),
             ],
-          ),
-          const SizedBox(height: 16),
-          // 片手で試しやすいトグル（light/darkを行き来）
-          SwitchListTile(
-            title: const Text('ダークモードに切り替える（簡易）'),
-            value: mode == ThemeMode.dark,
-            onChanged: (_) => notifier.toggleLightDark(),
-            subtitle: const Text('※System選択時は簡易トグルでLight/Darkに切替'),
-          ),
-        ],
+          );
+        },
+        loading: () =>
+            const Center(child: CircularProgressIndicator.adaptive()),
+        error: (err, _) => Center(child: Text('Error: $err')),
       ),
     );
   }

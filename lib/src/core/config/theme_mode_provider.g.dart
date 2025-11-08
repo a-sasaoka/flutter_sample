@@ -8,39 +8,15 @@ part of 'theme_mode_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// アプリのテーマモード（ライト・ダーク・システム）を管理するProvider。
-///
-/// 初期状態は `ThemeMode.system`（端末設定に追従）
-///
-/// 利用例:
-/// ```dart
-/// final mode = ref.watch(themeModeNotifierProvider);
-/// ref.read(themeModeNotifierProvider.notifier).toggleLightDark();
-/// ```
+/// テーマモードの状態を管理・保存するプロバイダー
 
 @ProviderFor(ThemeModeNotifier)
 const themeModeProvider = ThemeModeNotifierProvider._();
 
-/// アプリのテーマモード（ライト・ダーク・システム）を管理するProvider。
-///
-/// 初期状態は `ThemeMode.system`（端末設定に追従）
-///
-/// 利用例:
-/// ```dart
-/// final mode = ref.watch(themeModeNotifierProvider);
-/// ref.read(themeModeNotifierProvider.notifier).toggleLightDark();
-/// ```
+/// テーマモードの状態を管理・保存するプロバイダー
 final class ThemeModeNotifierProvider
-    extends $NotifierProvider<ThemeModeNotifier, ThemeMode> {
-  /// アプリのテーマモード（ライト・ダーク・システム）を管理するProvider。
-  ///
-  /// 初期状態は `ThemeMode.system`（端末設定に追従）
-  ///
-  /// 利用例:
-  /// ```dart
-  /// final mode = ref.watch(themeModeNotifierProvider);
-  /// ref.read(themeModeNotifierProvider.notifier).toggleLightDark();
-  /// ```
+    extends $AsyncNotifierProvider<ThemeModeNotifier, ThemeMode> {
+  /// テーマモードの状態を管理・保存するプロバイダー
   const ThemeModeNotifierProvider._()
     : super(
         from: null,
@@ -58,40 +34,24 @@ final class ThemeModeNotifierProvider
   @$internal
   @override
   ThemeModeNotifier create() => ThemeModeNotifier();
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(ThemeMode value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<ThemeMode>(value),
-    );
-  }
 }
 
-String _$themeModeNotifierHash() => r'ea42ab2556c3d78dcf9920eaf3b79cdd47009751';
+String _$themeModeNotifierHash() => r'650e7fe4acf39b6ae3c1d04cd522746fc823ca69';
 
-/// アプリのテーマモード（ライト・ダーク・システム）を管理するProvider。
-///
-/// 初期状態は `ThemeMode.system`（端末設定に追従）
-///
-/// 利用例:
-/// ```dart
-/// final mode = ref.watch(themeModeNotifierProvider);
-/// ref.read(themeModeNotifierProvider.notifier).toggleLightDark();
-/// ```
+/// テーマモードの状態を管理・保存するプロバイダー
 
-abstract class _$ThemeModeNotifier extends $Notifier<ThemeMode> {
-  ThemeMode build();
+abstract class _$ThemeModeNotifier extends $AsyncNotifier<ThemeMode> {
+  FutureOr<ThemeMode> build();
   @$mustCallSuper
   @override
   void runBuild() {
     final created = build();
-    final ref = this.ref as $Ref<ThemeMode, ThemeMode>;
+    final ref = this.ref as $Ref<AsyncValue<ThemeMode>, ThemeMode>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<ThemeMode, ThemeMode>,
-              ThemeMode,
+              AnyNotifier<AsyncValue<ThemeMode>, ThemeMode>,
+              AsyncValue<ThemeMode>,
               Object?,
               Object?
             >;

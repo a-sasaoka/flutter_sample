@@ -1,39 +1,39 @@
 # Flutter Sample Project
 
-Flutter開発のベストプラクティスをまとめたサンプルプロジェクトです。  
+Flutter開発のベストプラクティスをまとめたサンプルプロジェクトです。\
 初学者から中級者まで、実践的なアプリ構成や開発環境の整備方法を学ぶことができます。
 
 ---
 
 ## 🚀 プロジェクト概要
 
-このプロジェクトは、Flutterを用いたアプリ開発で役立つ構成・設定を体系的にまとめたテンプレートです。  
+このプロジェクトは、Flutterを用いたアプリ開発で役立つ構成・設定を体系的にまとめたテンプレートです。\
 特に以下の技術スタックを採用し、実務でも通用する設計を意識しています。
 
 ### 🧠 採用技術
 
-| 分類 | 使用技術 |
-|------|-----------|
-| 状態管理 | [Riverpod](https://riverpod.dev) + [Flutter Hooks](https://pub.dev/packages/flutter_hooks) |
-| ルーティング | [GoRouter](https://pub.dev/packages/go_router) + [go_router_builder](https://pub.dev/packages/go_router_builder) |
-| 通信 | [Dio](https://pub.dev/packages/dio) + [pretty_dio_logger](https://pub.dev/packages/pretty_dio_logger) |
-| モデル生成 | [Freezed](https://pub.dev/packages/freezed) + [json_serializable](https://pub.dev/packages/json_serializable) |
-| 環境変数 | [Envied](https://pub.dev/packages/envied) |
-| テーマ管理 | [Flex Color Scheme](https://pub.dev/packages/flex_color_scheme) |
-| ログ | [Logger](https://pub.dev/packages/logger) |
-| Lint / 静的解析 | [very_good_analysis](https://pub.dev/packages/very_good_analysis), [custom_lint](https://pub.dev/packages/custom_lint), [riverpod_lint](https://pub.dev/packages/riverpod_lint) |
-| Flutterバージョン管理 | [FVM](https://fvm.app) (`3.35.7` 使用) |
+| 分類             | 使用技術                                                                                                                                                                                |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 状態管理           | [Riverpod](https://riverpod.dev) + [Flutter Hooks](https://pub.dev/packages/flutter_hooks)                                                                                          |
+| ルーティング         | [GoRouter](https://pub.dev/packages/go_router) + [go\_router\_builder](https://pub.dev/packages/go_router_builder)                                                                  |
+| 通信             | [Dio](https://pub.dev/packages/dio) + [pretty\_dio\_logger](https://pub.dev/packages/pretty_dio_logger)                                                                             |
+| モデル生成          | [Freezed](https://pub.dev/packages/freezed) + [json\_serializable](https://pub.dev/packages/json_serializable)                                                                      |
+| 環境変数           | [Envied](https://pub.dev/packages/envied)                                                                                                                                           |
+| テーマ管理          | [Flex Color Scheme](https://pub.dev/packages/flex_color_scheme)                                                                                                                     |
+| ログ             | [Logger](https://pub.dev/packages/logger)                                                                                                                                           |
+| Lint / 静的解析    | [very\_good\_analysis](https://pub.dev/packages/very_good_analysis), [custom\_lint](https://pub.dev/packages/custom_lint), [riverpod\_lint](https://pub.dev/packages/riverpod_lint) |
+| Flutterバージョン管理 | [FVM](https://fvm.app) (`3.35.7` 使用)                                                                                                                                                |
 
 ---
 
 ## ⚙️ 開発環境
 
-| 項目 | 内容 |
-|------|------|
-| IDE | Visual Studio Code |
-| Flutter SDK | 管理: FVM / バージョン: 3.35.7 |
-| Dart SDK | 3.9.2 |
-| GitHub管理 | Git（`.gitkeep`で空ディレクトリ管理） |
+| 項目          | 内容                        |
+| ----------- | ------------------------- |
+| IDE         | Visual Studio Code        |
+| Flutter SDK | 管理: FVM / バージョン: 3.35.7   |
+| Dart SDK    | 3.9.2                     |
+| GitHub管理    | Git（`.gitkeep`で空ディレクトリ管理） |
 
 ---
 
@@ -88,47 +88,32 @@ chmod +x setup_project_structure.sh
 
 ## 🧩 Git Hooksでコミット前にLintチェックを自動実行
 
-このプロジェクトでは、コミット時に自動で `flutter analyze` と `dart format` チェックを実行する仕組みを導入しています。  
+このプロジェクトでは、コミット時に自動で `flutter analyze` と `dart format` チェックを実行する仕組みを導入しています。\
 これにより、Lintエラーやフォーマット漏れを防ぎ、常にクリーンな状態でコードをコミットできます。
 
-### 1️⃣ セットアップ
-
-次のスクリプトを実行してください：
+### セットアップ
 
 ```bash
 chmod +x tool/hooks/pre-commit tool/setup_git_hooks.sh
 ./tool/setup_git_hooks.sh
 ```
 
-これにより、Gitのフック設定が自動的に更新され、  
+これにより、Gitのフック設定が自動的に更新され、\
 `tool/hooks/pre-commit` がリポジトリ全体で共有されます。
 
-### 2️⃣ 動作内容
+### 動作内容
 
-- コミット前に以下を自動実行します：
+- コミット前に以下を自動実行：
   - `flutter analyze`（静的解析）
-  - `dart format --set-exit-if-changed`（フォーマット漏れチェック）
+  - `dart format --set-exit-if-changed`（フォーマットチェック）
 - どちらかに問題がある場合、コミットは中断されます。
-
-### 3️⃣ チェックに通らなかった場合
-
-修正してから再コミットしてください👇
-
-```bash
-fvm dart format .
-fvm flutter analyze
-git add .
-git commit -m "fix: lint and format issues"
-```
-
-これで常にチーム全員が同じLint基準で安全に開発できます 🚀
 
 ---
 
 ## 🧩 GoRouterを使ったルーティング設定
 
-本プロジェクトでは [GoRouter](https://pub.dev/packages/go_router) を利用し、アプリ全体の画面遷移を管理しています。  
-さらに [go_router_builder](https://pub.dev/packages/go_router_builder) を導入し、アノテーションによる**型安全なルーティング定義**を実現しています。
+本プロジェクトでは [GoRouter](https://pub.dev/packages/go_router) を利用し、アプリ全体の画面遷移を管理しています。\
+さらに [go\_router\_builder](https://pub.dev/packages/go_router_builder) を導入し、アノテーションによる**型安全なルーティング定義**を実現しています。
 
 ### 主な特徴
 
@@ -137,44 +122,12 @@ git commit -m "fix: lint and format issues"
 - `const SampleRoute().go(context)` のように記述でき、パス文字列を直接書く必要がありません。
 - `routerProvider` により、`Riverpod` 経由で `GoRouter` インスタンスを提供します。
 
-### コード例
-
-```dart
-@TypedGoRoute<HomeRoute>(
-  path: '/',
-  routes: [
-    TypedGoRoute<SettingsRoute>(path: 'settings'),
-    TypedGoRoute<SampleRoute>(path: 'sample'),
-  ],
-)
-class HomeRoute extends GoRouteData with $HomeRoute {
-  const HomeRoute();
-  @override
-  Widget build(BuildContext context, GoRouterState state) => const HomeScreen();
-}
-```
-
-コード生成コマンド：
-
-```bash
-dart run build_runner build --delete-conflicting-outputs
-```
-
 ---
 
 ### 🧩 RiverpodアノテーションによるGoRouter管理
 
-本プロジェクトでは、ルーティング設定自体も Riverpod のアノテーション構文（`@riverpod`）で定義しています。  
-これにより、`routerProvider` が自動生成され、手動で `Provider<GoRouter>` を書く必要がありません。
-
-#### 主なメリット
-
-- `routerProvider` が自動生成され、明示的な Provider 定義が不要  
-- `RouterRef` 型により IDE 補完が効く  
-- コード生成により一貫した型安全な構成が維持される  
-- `GoRouter` と `Riverpod` の連携をシンプルに保てる
-
-#### サンプルコード
+`GoRouter` 設定を Riverpod のアノテーション構文（`@riverpod`）で定義。\
+`routerProvider` が自動生成され、明示的な `Provider<GoRouter>` 記述が不要です。
 
 ```dart
 @riverpod
@@ -188,13 +141,50 @@ GoRouter router(RouterRef ref) {
 }
 ```
 
-コード生成コマンド：
+---
 
-```bash
-dart run build_runner build --delete-conflicting-outputs
+## 🧩 SharedPreferences の永続化設定
+
+テーマモードなどの設定値を永続化するために、`SharedPreferences` をアプリ全体で共有する仕組みを導入しています。\
+Riverpod のアノテーション構文（`@Riverpod(keepAlive: true)`）を使い、どのプロバイダからでも安全にアクセス可能です。
+
+### プロバイダ定義例
+
+```dart
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+part 'shared_preferences_provider.g.dart';
+
+@Riverpod(keepAlive: true)
+SharedPreferences sharedPreferences(SharedPreferencesRef ref) {
+  throw UnimplementedError(); // 実際のインスタンスは main() で注入
+}
 ```
 
-この構成により、ルーティングも Riverpod のスコープ内で安全に管理できるようになっています。
+### main.dart での初期化
+
+```dart
+final prefs = await SharedPreferences.getInstance();
+
+runApp(
+  ProviderScope(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+    ],
+    child: const MyApp(),
+  ),
+);
+```
+
+### 利用例（他のプロバイダから）
+
+```dart
+final prefs = ref.read(sharedPreferencesProvider);
+final theme = prefs.getString('theme_mode');
+```
+
+この構成により、`SharedPreferences` のインスタンスをアプリ全体で共有し、 I/O を最小化しつつテスト可能な形で永続化処理を行えます。
 
 ---
 
@@ -202,9 +192,9 @@ dart run build_runner build --delete-conflicting-outputs
 
 ### 利用パッケージ
 
-- very_good_analysis  
-- custom_lint  
-- riverpod_lint  
+- very\_good\_analysis
+- custom\_lint
+- riverpod\_lint
 
 `analysis_options.yaml` の主要設定例：
 
@@ -228,8 +218,6 @@ linter:
 
 ## 💡 VSCode推奨設定
 
-`.vscode/settings.json` には以下の設定を含めます：
-
 ```jsonc
 {
   "dart.flutterSdkPath": ".fvm/versions/3.35.7",
@@ -238,7 +226,7 @@ linter:
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit"
   },
-  "dart.lineLength": 100,
+  "dart.lineLength": 80,
   "dart.showLintNames": true,
   "dart.previewFlutterUiGuides": true
 }
@@ -248,13 +236,11 @@ linter:
 
 ## 🧰 コード生成コマンド
 
-コード生成（Freezed / Json Serializable / Enviedなど）を行う際は以下を使用します：
-
 ```bash
 flutter pub run build_runner build --delete-conflicting-outputs
 ```
 
-継続監視モードで実行する場合：
+監視モードで実行する場合：
 
 ```bash
 flutter pub run build_runner watch --delete-conflicting-outputs
@@ -265,8 +251,8 @@ flutter pub run build_runner watch --delete-conflicting-outputs
 ## 🧾 備考
 
 - `.gitkeep` ファイルにより空ディレクトリもGitで管理しています。  
-- すべての設定・構成は実務で再利用できるよう設計されています。  
-- 今後、GoRouterやFlexColorSchemeによる画面構築のサンプルを追加予定。
+- 全構成は実務レベルで再利用可能。  
+- 今後、Dio通信・FlexColorSchemeサンプルなどを追加予定。
 
 ---
 

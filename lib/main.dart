@@ -5,12 +5,25 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/core/config/app_theme.dart';
+import 'package:flutter_sample/src/core/config/shared_preferences_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
 import 'package:flutter_sample/src/core/router/app_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
-  runApp(const ProviderScope(child: MyApp()));
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final prefs = await SharedPreferences.getInstance();
+
+  runApp(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 /// アプリ本体のウィジェット
@@ -24,13 +37,25 @@ class MyApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
 
-    return MaterialApp.router(
-      title: 'Flutter Sample',
-      theme: AppTheme.light(), // ライト
-      darkTheme: AppTheme.dark(), // ダーク
-      themeMode: themeMode, // 現在のモード
-      routerConfig: router, // ← これが GoRouter の本体
-      debugShowCheckedModeBanner: false,
+    return themeMode.when(
+      data: (mode) => MaterialApp.router(
+        title: 'Flutter Sample',
+        theme: AppTheme.light(), // ライト
+        darkTheme: AppTheme.dark(), // ダーク
+        themeMode: mode, // 現在のモード
+        routerConfig: router, // ← これが GoRouter の本体
+        debugShowCheckedModeBanner: false,
+      ),
+      loading: () => const MaterialApp(
+        home: Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+      error: (err, _) => MaterialApp(
+        home: Scaffold(
+          body: Center(child: Text('Error: $err')),
+        ),
+      ),
     );
   }
 }
