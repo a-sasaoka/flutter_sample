@@ -162,6 +162,42 @@ dart run build_runner build --delete-conflicting-outputs
 
 ---
 
+### 🧩 RiverpodアノテーションによるGoRouter管理
+
+本プロジェクトでは、ルーティング設定自体も Riverpod のアノテーション構文（`@riverpod`）で定義しています。  
+これにより、`routerProvider` が自動生成され、手動で `Provider<GoRouter>` を書く必要がありません。
+
+#### 主なメリット
+
+- `routerProvider` が自動生成され、明示的な Provider 定義が不要  
+- `RouterRef` 型により IDE 補完が効く  
+- コード生成により一貫した型安全な構成が維持される  
+- `GoRouter` と `Riverpod` の連携をシンプルに保てる
+
+#### サンプルコード
+
+```dart
+@riverpod
+GoRouter router(RouterRef ref) {
+  return GoRouter(
+    routes: $appRoutes,
+    errorBuilder: (context, state) =>
+        NotFoundScreen(unknownPath: state.uri.toString()),
+    debugLogDiagnostics: true,
+  );
+}
+```
+
+コード生成コマンド：
+
+```bash
+dart run build_runner build --delete-conflicting-outputs
+```
+
+この構成により、ルーティングも Riverpod のスコープ内で安全に管理できるようになっています。
+
+---
+
 ## 🧩 Lint設定
 
 ### 利用パッケージ

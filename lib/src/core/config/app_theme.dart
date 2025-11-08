@@ -9,6 +9,9 @@ import 'package:flutter/material.dart';
 class AppTheme {
   AppTheme._();
 
+  // ベースとなる色（お好みでOK）
+  // static const _seed = Color(0xFF4F46E5); // indigo-ish
+
   /// ライトテーマ
   static ThemeData light() {
     return FlexThemeData.light(
