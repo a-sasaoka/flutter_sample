@@ -1,8 +1,11 @@
 // lib/main.dart
 // MaterialApp.router に GoRouter を渡すのがポイントです。
 // Riverpod を使うために最上位に ProviderScope を置きます。
+// theme/darkTheme/themeMode を追加します。
 
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/src/core/config/app_theme.dart';
+import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
 import 'package:flutter_sample/src/core/router/app_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -17,12 +20,15 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // ここで GoRouter を取得
+    // ここで GoRouter とテーマを取得
     final router = ref.watch(routerProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
       title: 'Flutter Sample',
-      // 今後 flex_color_scheme のテーマをここに適用予定
+      theme: AppTheme.light(), // ライト
+      darkTheme: AppTheme.dark(), // ダーク
+      themeMode: themeMode, // 現在のモード
       routerConfig: router, // ← これが GoRouter の本体
       debugShowCheckedModeBanner: false,
     );

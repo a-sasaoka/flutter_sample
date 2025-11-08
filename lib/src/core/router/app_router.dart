@@ -1,10 +1,14 @@
+// lib/src/core/router/app_router.dart
+// Riverpod + GoRouter + アノテーション対応版
+// GoRouterBuilderによる型安全なルーティング + riverpod_generator対応
+
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/core/widgets/home_screen.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
 import 'package:flutter_sample/src/core/widgets/settings_screen.dart';
 import 'package:flutter_sample/src/features/sample_feature/presentation/sample_screen.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'app_router.g.dart';
 
@@ -48,12 +52,16 @@ class SampleRoute extends GoRouteData with $SampleRoute {
   }
 }
 
-/// ❌ ページが見つからない場合
-final routerProvider = Provider<GoRouter>((ref) {
+/// 🌐 GoRouterのインスタンスをRiverpodで提供
+///
+/// 旧: `final routerProvider = Provider<GoRouter>((ref) { ... });`
+/// 新: `@riverpod` アノテーションで自動生成される。
+@riverpod
+GoRouter router(Ref ref) {
   return GoRouter(
-    routes: $appRoutes, // ← 自動生成ルート一覧
+    routes: $appRoutes, // ← go_router_builderが生成
     errorBuilder: (context, state) =>
         NotFoundScreen(unknownPath: state.uri.toString()),
     debugLogDiagnostics: true,
   );
-});
+}
