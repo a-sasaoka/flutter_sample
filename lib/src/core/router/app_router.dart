@@ -7,6 +7,7 @@ import 'package:flutter_sample/src/core/widgets/home_screen.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
 import 'package:flutter_sample/src/core/widgets/settings_screen.dart';
 import 'package:flutter_sample/src/features/sample_feature/presentation/sample_screen.dart';
+import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -18,6 +19,7 @@ part 'app_router.g.dart';
   routes: [
     TypedGoRoute<SettingsRoute>(path: 'settings'),
     TypedGoRoute<SampleRoute>(path: 'sample'),
+    TypedGoRoute<UserListRoute>(path: 'users'),
   ],
 )
 class HomeRoute extends GoRouteData with $HomeRoute {
@@ -49,6 +51,17 @@ class SampleRoute extends GoRouteData with $SampleRoute {
   @override
   Widget build(BuildContext context, GoRouterState state) {
     return const SampleScreen();
+  }
+}
+
+/// 👥 ユーザー一覧画面ルート
+class UserListRoute extends GoRouteData with $UserListRoute {
+  /// コンストラクタ
+  const UserListRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const UserListScreen();
   }
 }
 
