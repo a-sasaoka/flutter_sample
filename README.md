@@ -47,6 +47,10 @@ lib
 ├── main.dart                                       # アプリのエントリーポイント。最初に実行されるファイル
 └── src
     ├── core                                        # アプリ全体で共通的に利用される基盤コード
+    │   ├── auth
+    │   │   ├── auth_repository.dart                # ログイン・リフレッシュ処理
+    │   │   ├── token_interceptor.dart              # DioのInterceptorで自動付与・更新
+    │   │   └── token_storage.dart                  # トークンの永続化（SharedPreferences）
     │   ├── config                                  # 環境設定やテーマ、共有設定など
     │   │   ├── app_env.dart                        # 環境変数を定義するクラス
     │   │   ├── app_theme.dart                      # flex_color_schemeによるテーマ設定
@@ -139,6 +143,16 @@ chmod +x tool/hooks/pre-commit tool/setup_git_hooks.sh
 
 ---
 
+## 🧩 Lint設定
+
+### 利用パッケージ
+
+- very\_good\_analysis
+- custom\_lint
+- riverpod\_lint
+
+---
+
 ## 🧩 GoRouterを使ったルーティング設定
 
 本プロジェクトでは [GoRouter](https://pub.dev/packages/go_router) を利用し、アプリ全体の画面遷移を管理しています。\
@@ -150,6 +164,32 @@ chmod +x tool/hooks/pre-commit tool/setup_git_hooks.sh
 - 各画面は `GoRouteData` を継承し、IDE補完で安全に遷移可能。
 - `const SampleRoute().go(context)` のように記述でき、パス文字列を直接書く必要がありません。
 - `routerProvider` により、`Riverpod` 経由で `GoRouter` インスタンスを提供します。
+
+---
+
+### 📘 TypedGoRouteの使用例
+
+ルートごとにクラスを定義して、型安全な遷移を実現します。
+
+```dart
+// lib/src/core/router/app_router.dart
+
+@TypedGoRoute<HomeRoute>(path: '/')
+class HomeRoute extends GoRouteData {
+  const HomeRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const HomeScreen();
+  }
+}
+
+// 画面遷移例
+const HomeRoute().go(context); // "/" に遷移
+```
+
+これにより、文字列ベースのルーティング記述を避けられ、IDE補完が有効になります。
+IDEでルートクラスを補完することで、タイプミスやパス指定ミスを防げます。
 
 ---
 
@@ -250,6 +290,111 @@ lib/src/core/
 
 ---
 
+## 🔒 トークン認証対応（Bearer Token + 自動リフレッシュ）
+
+このプロジェクトでは、API通信にBearerトークン認証を追加し、トークンの自動付与および自動リフレッシュ処理を実装しています。
+これにより、ログイン後のすべての通信で認証ヘッダーを自動的に付与し、有効期限切れ時に再取得を行います。
+
+---
+
+### 📁 ファイル構成
+
+```plaintext
+lib/src/core/auth/
+ ├── token_storage.dart       # トークンの永続化（SharedPreferences）
+ ├── auth_repository.dart     # ログイン・リフレッシュ処理
+ └── token_interceptor.dart   # DioのInterceptorで自動付与・更新
+```
+
+---
+
+### 🧩 Dioへの組み込み順序（重要）
+
+Interceptorの登録順序は以下の通りにしてください👇
+
+```dart
+dio.interceptors.add(ref.read(tokenInterceptorProvider)); // ① トークン付与・リフレッシュ
+dio.interceptors.add(ref.read(dioInterceptorProvider));   // ② ログ出力・エラーハンドリング
+```
+
+#### 💡 理由
+
+| 順番 | 説明 |
+|------|------|
+| ① tokenInterceptor | リクエスト前に認証ヘッダーを追加・401検知でリフレッシュ |
+| ② dioInterceptor | 通信全体のログ・例外処理を担当（最終層で処理） |
+
+> 順番を逆にすると、ログにトークンが含まれなかったり、401エラー時の自動リフレッシュが動作しないことがあります。
+
+---
+
+### ✅ 動作確認手順
+
+1. `/auth/login` に有効なユーザー情報をPOSTしてログイン  
+2. `SharedPreferences` にトークンが保存されていることを確認  
+3. 他のAPI通信で `Authorization` ヘッダーが自動付与されることを確認  
+4. トークン失効時に `/auth/refresh` が自動呼び出されることを確認  
+
+---
+
+この構成により、アプリ全体で安全かつ自動化された認証フローを実現できます。
+
+---
+
+### 📱 トークン認証の使用例
+
+以下はログイン処理を行うシンプルなUIの例です。
+
+```dart
+// lib/src/features/auth/presentation/login_screen.dart
+
+import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:flutter_sample/src/core/auth/auth_repository.dart';
+
+class LoginScreen extends ConsumerWidget {
+  const LoginScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
+
+    Future<void> handleLogin() async {
+      await ref
+          .read(authRepositoryProvider.notifier)
+          .login(emailController.text, passwordController.text);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ログインしました')),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('ログイン')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(controller: emailController, decoration: const InputDecoration(labelText: 'Email')),
+            TextField(controller: passwordController, decoration: const InputDecoration(labelText: 'Password')),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: handleLogin, child: const Text('ログイン')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+```
+
+### 💡 補足
+
+- `authRepositoryProvider` を通じてログインAPIを呼び出し、トークンを保存します。  
+- 以降のAPI通信では `tokenInterceptorProvider` により自動で認証ヘッダーが付与されます。  
+- トークンの有効期限が切れると自動的にリフレッシュ処理が走ります。
+
+---
+
 ## 💾 APIキャッシュ対応（SharedPreferencesベース）
 
 このプロジェクトでは、APIレスポンスを一定時間キャッシュして再利用することで、通信効率とユーザー体験を向上させています。
@@ -280,13 +425,52 @@ lib/src/features/user/data/
 
 ---
 
-## 🧩 Lint設定
+### 🔄 Pull to Refreshによるキャッシュ更新例
 
-### 利用パッケージ
+以下の例では、`RefreshIndicator` を利用してユーザーがスワイプ操作で最新データを取得します。
 
-- very\_good\_analysis
-- custom\_lint
-- riverpod\_lint
+```dart
+// lib/src/features/user/presentation/user_list_screen.dart
+
+import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:flutter_sample/src/features/user/application/user_notifier.dart';
+
+class UserListScreen extends ConsumerWidget {
+  const UserListScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final users = ref.watch(userNotifierProvider);
+
+    Future<void> onRefresh() async {
+      // APIから再取得してキャッシュを更新
+      await ref.read(userNotifierProvider.notifier).fetchUsers(forceRefresh: true);
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('ユーザー一覧')),
+      body: users.when(
+        data: (list) => RefreshIndicator(
+          onRefresh: onRefresh,
+          child: ListView.builder(
+            itemCount: list.length,
+            itemBuilder: (context, i) => ListTile(title: Text(list[i].name)),
+          ),
+        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('エラー: $e')),
+      ),
+    );
+  }
+}
+```
+
+### 💡 補足
+
+- `fetchUsers(forceRefresh: true)` によってキャッシュをスキップしてAPIを再取得します。  
+- キャッシュ層 (`CacheManager`) に `clear()` を追加してから再保存することで、常に最新データを反映。  
+- オフライン環境では前回キャッシュを自動で使用し、ユーザー体験を損なわずに動作します。
 
 ---
 
@@ -351,3 +535,40 @@ flutter pub run build_runner watch --delete-conflicting-outputs
 
 - Enviedは環境変数をビルド時に暗号化して生成するため、環境を切り替えた場合や`.env`の値を変更した場合にのみ再生成が必要です。
 - FreezedやJsonなど、通常のコード変更に関しては通常の`build_runner`実行で十分です。
+
+---
+
+## 🧭 このプロジェクトで学べること
+
+このサンプルプロジェクトを通して、以下の技術や設計手法を体系的に学ぶことができます。
+
+| 分野 | 学べる内容 |
+|------|-------------|
+| 🧠 状態管理 | Riverpod（アノテーションベース）によるスケーラブルな構成 |
+| 🧭 ルーティング | GoRouter + go_router_builder による型安全なルート設計 |
+| 🌐 通信 | Dio + Interceptorによる共通通信層の設計 |
+| 🔒 認証 | Bearerトークン + 自動リフレッシュ構成 |
+| 💾 データ保持 | SharedPreferencesを用いたキャッシュ・テーマ・トークン永続化 |
+| 🧰 コード生成 | build_runner + Enviedによる環境切替対応 |
+| 🎨 UI | FlexColorSchemeによるテーマ設定と永続化 |
+| 🧩 Lint | very_good_analysis + custom_lint + riverpod_lintの実用設定 |
+| 🚀 開発効率 | FVM + VSCode設定 + Git Hooks で統一開発環境を構築 |
+
+---
+
+## 🔮 今後の拡張案
+
+| カテゴリ | 拡張内容 |
+|-----------|-----------|
+| 💡 認証 | `flutter_secure_storage` を使った安全なトークン保存、OAuth対応 |
+| 🧱 データ | HiveやIsarを使った構造化キャッシュ、DB同期処理 |
+| 📱 UI | エラーハンドリング・リトライUI、スナックバー通知、リフレッシュインジケータ |
+| 🧩 モジュール構成 | Feature単位でのドメイン分割・モジュラリティ対応 |
+| 🧠 テスト | Unit / Widget / Integration テスト導入 |
+| ☁️ API | GraphQL・gRPCなど別通信方式への拡張 |
+| 🧰 CI/CD | GitHub Actionsによる自動テスト・デプロイ |
+
+---
+
+📘 **このREADMEは学習・実務両対応のFlutterアプリ構成ガイドとして活用できます。**  
+チーム開発・教育・個人学習など、目的に応じて自由に拡張してください。
