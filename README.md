@@ -49,20 +49,19 @@ lib
     ├── core                                        # アプリ全体で共通的に利用される基盤コード
     │   ├── config                                  # 環境設定やテーマ、共有設定など
     │   │   ├── app_env.dart                        # 環境変数を定義するクラス
-    │   │   ├── app_env.g.dart                      # enviedによる自動生成ファイル
     │   │   ├── app_theme.dart                      # flex_color_schemeによるテーマ設定
     │   │   ├── shared_preferences_provider.dart    # SharedPreferencesを提供するProvider
-    │   │   ├── shared_preferences_provider.g.dart  # 上記の生成ファイル
-    │   │   ├── theme_mode_provider.dart            # ダークモードなどテーマ切替の状態管理
-    │   │   └── theme_mode_provider.g.dart          # 上記の生成ファイル
+    │   │   └── theme_mode_provider.dart            # ダークモードなどテーマ切替の状態管理
     │   ├── exceptions                              # 共通の例外クラス定義
     │   │   └── app_exception.dart                  # APIエラーなどをまとめて扱う例外クラス
     │   ├── network                                 # 通信関連の設定やロギング
     │   │   ├── dio_interceptor.dart                # Dioの通信を監視するInterceptor
     │   │   └── logger_provider.dart                # loggerパッケージによるログ出力設定
     │   ├── router                                  # ルーティング（GoRouter）関連
-    │   │   ├── app_router.dart                     # ルート定義（画面遷移の設定）
-    │   │   └── app_router.g.dart                   # 自動生成されたルーティングファイル
+    │   │   └── app_router.dart                     # ルート定義（画面遷移の設定）
+    │   ├── storage
+    │   │   ├── cache_manager.dart                  # キャッシュ共通クラス
+    │   │   └── cache_provider.dart                 # Riverpodで提供
     │   ├── utils                                   # 共通のユーティリティ関数群（未実装 or 今後追加）
     │   └── widgets                                 # 汎用UI部品や画面
     │       ├── home_screen.dart                    # ホーム画面
@@ -70,8 +69,7 @@ lib
     │       └── settings_screen.dart                # 設定画面
     ├── data                                        # データ層：APIやリポジトリの定義
     │   ├── datasource                              # API通信やデータ取得関連
-    │   │   ├── api_client.dart                     # Dioを使ったAPIクライアント
-    │   │   └── api_client.g.dart                   # 上記の生成ファイル
+    │   │   └── api_client.dart                     # Dioを使ったAPIクライアント
     │   ├── models                                  # 共通モデル定義（未実装 or 今後追加）
     │   └── repository                              # 共通リポジトリ定義（未実装 or 今後追加）
     └── features                                    # 各機能（画面単位）ごとのモジュール
@@ -83,17 +81,11 @@ lib
         │       └── sample_screen.dart              # サンプル画面のUI
         └── user                                    # ユーザー関連機能
             ├── application                         # 状態管理やNotifier
-            │   ├── user_notifier.dart              # ユーザーリスト管理のNotifier
-            │   └── user_notifier.g.dart            # 上記の生成ファイル
+            │   └── user_notifier.dart              # ユーザーリスト管理のNotifier
             ├── data                                # データ層（モデルやリポジトリ）
             │   ├── address.dart                    # 住所モデル
-            │   ├── address.freezed.dart            # freezedによる生成ファイル
-            │   ├── address.g.dart                  # json_serializableによる生成ファイル
             │   ├── user_model.dart                 # ユーザーモデル
-            │   ├── user_model.freezed.dart         # freezed生成ファイル
-            │   ├── user_model.g.dart               # json_serializable生成ファイル
-            │   ├── user_repository.dart            # ユーザー情報を扱うリポジトリ
-            │   └── user_repository.g.dart          # 上記の生成ファイル
+            │   └── user_repository.dart            # ユーザー情報を扱うリポジトリ
             └── presentation
                 └── user_list_screen.dart           # ユーザー一覧画面のUI
 ```
@@ -220,6 +212,71 @@ lib/src/features/user/
 - `Freezed` + `JsonSerializable` による型安全なモデル変換。
 - `Riverpod` アノテーション（`@riverpod`）を活用した状態管理。
 - 画面では `AsyncValue` による読み込み・エラー・成功表示を制御。
+
+---
+
+## ⚙️ 通信エラーとロギング改善
+
+このプロジェクトでは、Dioを利用した通信基盤に共通エラーハンドリングとロギング処理を追加しています。
+これにより、すべてのAPI通信で統一的にエラー管理とログ出力が可能になります。
+
+---
+
+### 📁 追加ファイル構成
+
+```plaintext
+lib/src/core/
+ ├── exceptions/
+ │    └── app_exception.dart        # 共通例外クラス
+ └── network/
+      ├── dio_interceptor.dart      # 共通Dioインターセプタ
+      └── logger_provider.dart      # 環境別ログ出力用Loggerプロバイダ
+```
+
+---
+
+### ✅ メリット
+
+| 項目 | 内容 |
+|------|------|
+| 安定性 | すべてのAPIエラーを共通で処理 |
+| デバッグ効率 | 環境別ログ制御でノイズを削減 |
+| 拡張性 | トークン更新やリトライ機能の追加が容易 |
+| テスト容易性 | AppExceptionを使ったモックが可能 |
+
+---
+
+この改善により、通信処理の信頼性とデバッグ性が大幅に向上します。
+
+---
+
+## 💾 APIキャッシュ対応（SharedPreferencesベース）
+
+このプロジェクトでは、APIレスポンスを一定時間キャッシュして再利用することで、通信効率とユーザー体験を向上させています。
+キャッシュは `SharedPreferences` を用いて実現しており、外部パッケージを追加せずに軽量に動作します。
+
+---
+
+### 📁 追加ファイル構成
+
+```plaintext
+lib/src/core/storage/
+ ├── cache_manager.dart        # キャッシュ共通クラス
+ └── cache_provider.dart       # Riverpodプロバイダ
+
+lib/src/features/user/data/
+ └── user_repository.dart      # fetchUsersをキャッシュ対応化
+```
+
+---
+
+### ✅ メリット
+
+| 項目 | 内容 |
+|------|------|
+| 高速化 | 2回目以降はAPI通信なしで即表示 |
+| オフライン対応 | ネットワーク切断時でも前回データを利用可能 |
+| シンプル | パッケージ追加不要・メンテナンス性が高い |
 
 ---
 
