@@ -2,7 +2,7 @@
 // APIクライアント経由でユーザー一覧を取得
 
 import 'package:flutter_sample/src/data/datasource/api_client.dart';
-import 'package:flutter_sample/src/features/user/date/user_model.dart';
+import 'package:flutter_sample/src/features/user/data/user_model.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'user_repository.g.dart';
