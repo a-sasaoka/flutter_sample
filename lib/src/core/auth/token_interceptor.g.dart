@@ -8,9 +8,12 @@ part of 'token_interceptor.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// トークンを自動で付与・更新するDioのインターセプター
 
 @ProviderFor(tokenInterceptor)
 const tokenInterceptorProvider = TokenInterceptorProvider._();
+
+/// トークンを自動で付与・更新するDioのインターセプター
 
 final class TokenInterceptorProvider
     extends
@@ -20,6 +23,7 @@ final class TokenInterceptorProvider
           InterceptorsWrapper
         >
     with $Provider<InterceptorsWrapper> {
+  /// トークンを自動で付与・更新するDioのインターセプター
   const TokenInterceptorProvider._()
     : super(
         from: null,
@@ -54,4 +58,4 @@ final class TokenInterceptorProvider
   }
 }
 
-String _$tokenInterceptorHash() => r'0e38a1fbeb7cb1c76137c26af0dc8ed03b07e6db';
+String _$tokenInterceptorHash() => r'f90e82057b059d0ea958e29184c724f4e63d2e81';

@@ -47,8 +47,10 @@ lib
 ├── main.dart                                       # アプリのエントリーポイント。最初に実行されるファイル
 └── src
     ├── core                                        # アプリ全体で共通的に利用される基盤コード
-    │   ├── auth
+    │   ├── auth                                    # 認証関連（トークン管理・リフレッシュなど）
+    │   │   ├── auth_guard.dart                     # GoRouter用ガード関数
     │   │   ├── auth_repository.dart                # ログイン・リフレッシュ処理
+    │   │   ├── auth_state_notifier.dart            # ログイン状態を監視するProvider
     │   │   ├── token_interceptor.dart              # DioのInterceptorで自動付与・更新
     │   │   └── token_storage.dart                  # トークンの永続化（SharedPreferences）
     │   ├── config                                  # 環境設定やテーマ、共有設定など
@@ -63,10 +65,10 @@ lib
     │   │   └── logger_provider.dart                # loggerパッケージによるログ出力設定
     │   ├── router                                  # ルーティング（GoRouter）関連
     │   │   └── app_router.dart                     # ルート定義（画面遷移の設定）
-    │   ├── storage
+    │   ├── storage                                 # 永続化関連（SharedPreferencesベースのキャッシュなど）
     │   │   ├── cache_manager.dart                  # キャッシュ共通クラス
     │   │   └── cache_provider.dart                 # Riverpodで提供
-    │   ├── ui
+    │   ├── ui                                      # 共通UI関連（エラーハンドリングなど）
     │   │   └── error_handler.dart                  # グローバルなエラーハンドリングUI
     │   ├── utils                                   # 共通のユーティリティ関数群（未実装 or 今後追加）
     │   └── widgets                                 # 汎用UI部品や画面
@@ -79,12 +81,18 @@ lib
     │   ├── models                                  # 共通モデル定義（未実装 or 今後追加）
     │   └── repository                              # 共通リポジトリ定義（未実装 or 今後追加）
     └── features                                    # 各機能（画面単位）ごとのモジュール
+        ├── auth                                    # 認証関連機能
+        │   └── presentation                        # 画面(UI)層
+        │       └── login_screen.dart               # ログイン画面のUI
         ├── sample_feature                          # サンプル用の機能
         │   ├── application                         # 状態管理・ビジネスロジック
         │   ├── data                                # データ取得処理（APIやDBアクセス）
         │   ├── domain                              # ドメインモデル・エンティティ定義
         │   └── presentation                        # 画面(UI)層
         │       └── sample_screen.dart              # サンプル画面のUI
+        ├── splash                                  # スプラッシュ画面関連機能
+        │   └── presentation                        # 画面(UI)層
+        │       └── splash_screen.dart              # スプラッシュ画面のUI
         └── user                                    # ユーザー関連機能
             ├── application                         # 状態管理やNotifier
             │   └── user_notifier.dart              # ユーザーリスト管理のNotifier
@@ -92,7 +100,7 @@ lib
             │   ├── address.dart                    # 住所モデル
             │   ├── user_model.dart                 # ユーザーモデル
             │   └── user_repository.dart            # ユーザー情報を扱うリポジトリ
-            └── presentation
+            └── presentation                        # 画面(UI)層
                 └── user_list_screen.dart           # ユーザー一覧画面のUI
 ```
 
@@ -390,57 +398,69 @@ dio.interceptors.add(ref.read(dioInterceptorProvider));   // ② ログ出力・
 
 ---
 
-### 📱 トークン認証の使用例
-
-以下はログイン処理を行うシンプルなUIの例です。
-
-```dart
-// lib/src/features/auth/presentation/login_screen.dart
-
-import 'package:flutter/material.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:flutter_sample/src/core/auth/auth_repository.dart';
-
-class LoginScreen extends ConsumerWidget {
-  const LoginScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final emailController = TextEditingController();
-    final passwordController = TextEditingController();
-
-    Future<void> handleLogin() async {
-      await ref
-          .read(authRepositoryProvider.notifier)
-          .login(emailController.text, passwordController.text);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ログインしました')),
-      );
-    }
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('ログイン')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(controller: emailController, decoration: const InputDecoration(labelText: 'Email')),
-            TextField(controller: passwordController, decoration: const InputDecoration(labelText: 'Password')),
-            const SizedBox(height: 16),
-            ElevatedButton(onPressed: handleLogin, child: const Text('ログイン')),
-          ],
-        ),
-      ),
-    );
-  }
-}
-```
-
 ### 💡 補足
 
 - `authRepositoryProvider` を通じてログインAPIを呼び出し、トークンを保存します。  
 - 以降のAPI通信では `tokenInterceptorProvider` により自動で認証ヘッダーが付与されます。  
 - トークンの有効期限が切れると自動的にリフレッシュ処理が走ります。
+
+---
+
+## 🔑 認証状態管理とルーティング制御（AuthGuard + SplashScreen）
+
+このプロジェクトでは、`AuthStateNotifier` と `GoRouter` の `redirect` 機能を組み合わせ、  
+ログイン状態に応じて画面遷移を自動制御しています。  
+さらに、状態判定中のチラつきを防ぐために `SplashScreen` を導入しています。
+
+---
+
+### 📁 追加ファイル構成
+
+```plaintext
+lib/src/core/auth/
+ ├── auth_state_notifier.dart   # ログイン状態を監視するProvider
+ ├── auth_guard.dart            # GoRouter用ガード関数
+ └── token_storage.dart         # トークン保存クラス（既存）
+
+lib/src/features/splash/
+ └── presentation/
+     └── splash_screen.dart     # 起動時のローディング画面
+```
+
+---
+
+💡  
+`SplashScreen` はアプリ起動直後に一瞬だけ表示され、  
+認証状態の判定が終わるまでルーティングのチラつきを防ぎます。
+
+---
+
+### 🧪 動作フロー
+
+```plaintext
+アプリ起動
+   ↓
+SplashScreen表示（認証状態チェック）
+   ↓
+トークン保持あり → HomeRoute("/")へ
+トークンなし → LoginRoute("/login")へ
+```
+
+---
+
+### ✅ メリット
+
+| 項目 | 内容 |
+|------|------|
+| 状態管理 | Riverpodでログイン状態を明示的に管理 |
+| 自動遷移 | GoRouterの`redirect`で状態に応じてルート切替 |
+| UX | SplashScreenでチラつきのない自然な遷移 |
+| 再利用性 | どのアプリでも流用可能な汎用的構成 |
+
+---
+
+この構成により、ログイン状態を常に監視し、  
+起動時・ログイン時・ログアウト時の画面遷移を自動化できます。
 
 ---
 
