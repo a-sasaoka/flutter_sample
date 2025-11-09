@@ -66,6 +66,8 @@ lib
     │   ├── storage
     │   │   ├── cache_manager.dart                  # キャッシュ共通クラス
     │   │   └── cache_provider.dart                 # Riverpodで提供
+    │   ├── ui
+    │   │   └── error_handler.dart                  # グローバルなエラーハンドリングUI
     │   ├── utils                                   # 共通のユーティリティ関数群（未実装 or 今後追加）
     │   └── widgets                                 # 汎用UI部品や画面
     │       ├── home_screen.dart                    # ホーム画面
@@ -287,6 +289,53 @@ lib/src/core/
 ---
 
 この改善により、通信処理の信頼性とデバッグ性が大幅に向上します。
+
+---
+
+## ⚠️ 共通エラーハンドリング（Snackbar & Dialog）
+
+アプリ全体で例外を統一的に処理するために、`ErrorHandler` クラスを追加します。  
+これにより、軽いエラーは **Snackbar**、致命的なエラーは **Dialog** で表示できます。
+
+---
+
+### 📁 ファイル構成
+
+```plaintext
+lib/src/core/ui/
+ └── error_handler.dart
+```
+
+---
+
+### 💡 使い分け例
+
+#### 軽い通信エラー（Snackbar）
+
+```dart
+ErrorHandler.showSnackBar(context, e);
+```
+
+#### 致命的なエラー（Dialog）
+
+```dart
+await ErrorHandler.showDialogError(context, e);
+```
+
+---
+
+### ✅ メリット
+
+| 項目 | 内容 |
+|------|------|
+| 柔軟性 | 状況に応じてSnackbarとDialogを使い分け可能 |
+| 再利用性 | どの画面からも `ErrorHandler` 経由で統一的に呼び出せる |
+| メンテナンス性 | メッセージロジックを一元管理 |
+| UX向上 | アプリ全体で一貫したエラー体験を提供 |
+
+---
+
+これで、すべての画面で例外を安全かつ一貫してユーザーに伝えられるようになります。
 
 ---
 

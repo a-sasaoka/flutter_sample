@@ -2,6 +2,7 @@
 // ユーザー一覧を表示する画面
 
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/features/user/application/user_notifier.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -33,7 +34,11 @@ class UserListScreen extends ConsumerWidget {
           ),
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('エラーが発生しました: $e')),
+        error: (e, _) {
+          // 共通関数でSnackbar表示
+          ErrorHandler.showSnackBar(context, e);
+          return const Center(child: Text('エラーが発生しました'));
+        },
       ),
     );
   }
