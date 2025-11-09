@@ -3,10 +3,13 @@
 // GoRouterBuilderによる型安全なルーティング + riverpod_generator対応
 
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/src/core/auth/auth_guard.dart';
 import 'package:flutter_sample/src/core/widgets/home_screen.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
 import 'package:flutter_sample/src/core/widgets/settings_screen.dart';
+import 'package:flutter_sample/src/features/auth/presentation/login_screen.dart';
 import 'package:flutter_sample/src/features/sample_feature/presentation/sample_screen.dart';
+import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -65,6 +68,30 @@ class UserListRoute extends GoRouteData with $UserListRoute {
   }
 }
 
+/// 🔐 ログイン画面ルート
+@TypedGoRoute<LoginRoute>(path: '/login')
+class LoginRoute extends GoRouteData with $LoginRoute {
+  /// コンストラクタ
+  const LoginRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const LoginScreen();
+  }
+}
+
+/// スプラッシュ画面ルート
+@TypedGoRoute<SplashRoute>(path: '/splash')
+class SplashRoute extends GoRouteData with $SplashRoute {
+  /// コンストラクタ
+  const SplashRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const SplashScreen();
+  }
+}
+
 /// 🌐 GoRouterのインスタンスをRiverpodで提供
 ///
 /// 旧: `final routerProvider = Provider<GoRouter>((ref) { ... });`
@@ -72,7 +99,8 @@ class UserListRoute extends GoRouteData with $UserListRoute {
 @riverpod
 GoRouter router(Ref ref) {
   return GoRouter(
-    routes: $appRoutes, // ← go_router_builderが生成
+    routes: $appRoutes,
+    redirect: (context, state) => authGuard(ref, state),
     errorBuilder: (context, state) =>
         NotFoundScreen(unknownPath: state.uri.toString()),
     debugLogDiagnostics: true,

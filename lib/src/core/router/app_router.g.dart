@@ -6,7 +6,7 @@ part of 'app_router.dart';
 // GoRouterGenerator
 // **************************************************************************
 
-List<RouteBase> get $appRoutes => [$homeRoute];
+List<RouteBase> get $appRoutes => [$homeRoute, $loginRoute, $splashRoute];
 
 RouteBase get $homeRoute => GoRouteData.$route(
   path: '/',
@@ -98,6 +98,52 @@ mixin $UserListRoute on GoRouteData {
   void replace(BuildContext context) => context.replace(location);
 }
 
+RouteBase get $loginRoute =>
+    GoRouteData.$route(path: '/login', factory: $LoginRoute._fromState);
+
+mixin $LoginRoute on GoRouteData {
+  static LoginRoute _fromState(GoRouterState state) => const LoginRoute();
+
+  @override
+  String get location => GoRouteData.$location('/login');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $splashRoute =>
+    GoRouteData.$route(path: '/splash', factory: $SplashRoute._fromState);
+
+mixin $SplashRoute on GoRouteData {
+  static SplashRoute _fromState(GoRouterState state) => const SplashRoute();
+
+  @override
+  String get location => GoRouteData.$location('/splash');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
@@ -157,4 +203,4 @@ final class RouterProvider
   }
 }
 
-String _$routerHash() => r'51d215882c2b91f87e727ba03f2a39700a655e8c';
+String _$routerHash() => r'1705de0f10f2ef05e58463fee704948013e85490';

@@ -8,12 +8,15 @@ part of 'auth_repository.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// 認証リポジトリ
 
 @ProviderFor(AuthRepository)
 const authRepositoryProvider = AuthRepositoryProvider._();
 
+/// 認証リポジトリ
 final class AuthRepositoryProvider
     extends $NotifierProvider<AuthRepository, void> {
+  /// 認証リポジトリ
   const AuthRepositoryProvider._()
     : super(
         from: null,
@@ -41,7 +44,9 @@ final class AuthRepositoryProvider
   }
 }
 
-String _$authRepositoryHash() => r'f7c24d277e2349a9d2424476ac56b2f628ebf6bf';
+String _$authRepositoryHash() => r'8bc5e66628ce53fca9a0756fbcaf910b689ff234';
+
+/// 認証リポジトリ
 
 abstract class _$AuthRepository extends $Notifier<void> {
   void build();
