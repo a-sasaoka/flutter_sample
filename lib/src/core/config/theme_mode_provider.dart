@@ -4,7 +4,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/core/config/shared_preferences_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 part 'theme_mode_provider.g.dart';
 
@@ -32,7 +31,7 @@ class ThemeModeNotifier extends _$ThemeModeNotifier {
   /// モードを変更して保存
   Future<void> set(ThemeMode mode) async {
     state = AsyncData(mode); // 即時反映
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString(_key, _modeToString(mode));
   }
 

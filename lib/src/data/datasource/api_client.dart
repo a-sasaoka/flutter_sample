@@ -3,6 +3,7 @@
 // API通信の共通設定を行うクライアントクラス
 
 import 'package:dio/dio.dart';
+import 'package:flutter_sample/src/core/auth/token_interceptor.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
@@ -29,6 +30,10 @@ Dio dio(Ref ref) {
     ),
   );
 
+  // トークン付与・更新
+  dio.interceptors.add(ref.read(tokenInterceptorProvider));
+
+  // ログ出力・例外処理
   dio.interceptors.add(ref.read(dioInterceptorProvider));
 
   // 開発時のみリクエスト・レスポンスログを出力
