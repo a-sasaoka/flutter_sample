@@ -4,6 +4,7 @@
 
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
+import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -27,6 +28,8 @@ Dio dio(Ref ref) {
       },
     ),
   );
+
+  dio.interceptors.add(ref.read(dioInterceptorProvider));
 
   // 開発時のみリクエスト・レスポンスログを出力
   dio.interceptors.add(
