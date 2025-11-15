@@ -1,4 +1,3 @@
-// lib/src/data/datasource/api_client.dart
 // Dio + pretty_dio_logger + Riverpod構成
 // API通信の共通設定を行うクライアントクラス
 
@@ -52,7 +51,7 @@ Dio dio(Ref ref) {
 /// 各リポジトリやデータソース層から利用します。
 class ApiClient {
   /// コンストラクタ
-  ApiClient(this._dio);
+  ApiClient._(this._dio);
 
   final Dio _dio;
 
@@ -95,5 +94,5 @@ class ApiClient {
 @Riverpod(keepAlive: true)
 ApiClient apiClient(Ref ref) {
   final dioInstance = ref.watch(dioProvider);
-  return ApiClient(dioInstance);
+  return ApiClient._(dioInstance);
 }

@@ -1,4 +1,3 @@
-// lib/src/features/sample_feature/presentation/sample_screen.dart
 // 「機能（feature）」配下の画面サンプル。
 // 後で Riverpod の Provider や API 通信をここに繋げていきます。
 

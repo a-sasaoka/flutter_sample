@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'cache_provider.dart';
+part of 'cache_manager.dart';
 
 // **************************************************************************
 // RiverpodGenerator
@@ -52,4 +52,4 @@ final class CacheManagerProvider
   }
 }
 
-String _$cacheManagerHash() => r'e5f34a618c16dde83f19d43cc3b4e3f64f57ec1f';
+String _$cacheManagerHash() => r'769c036f0d76cfd9dc41b17733514438e611e893';

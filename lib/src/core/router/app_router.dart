@@ -1,4 +1,3 @@
-// lib/src/core/router/app_router.dart
 // Riverpod + GoRouter + アノテーション対応版
 // GoRouterBuilderによる型安全なルーティング + riverpod_generator対応
 
@@ -93,9 +92,6 @@ class SplashRoute extends GoRouteData with $SplashRoute {
 }
 
 /// 🌐 GoRouterのインスタンスをRiverpodで提供
-///
-/// 旧: `final routerProvider = Provider<GoRouter>((ref) { ... });`
-/// 新: `@riverpod` アノテーションで自動生成される。
 @riverpod
 GoRouter router(Ref ref) {
   return GoRouter(

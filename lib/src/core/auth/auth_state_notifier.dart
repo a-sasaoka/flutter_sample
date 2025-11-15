@@ -1,5 +1,3 @@
-// lib/src/core/auth/auth_state_notifier.dart
-
 import 'package:flutter_sample/src/core/auth/token_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -10,22 +8,26 @@ part 'auth_state_notifier.g.dart';
 class AuthStateNotifier extends _$AuthStateNotifier {
   @override
   Future<bool> build() async {
-    final token = await TokenStorage(ref).getAccessToken();
+    final token = await ref
+        .read(tokenStorageProvider.notifier)
+        .getAccessToken();
     return token != null; // トークンがあればログイン状態
   }
 
-  /// ログイン処理
+  /// ログイン状態にする
   Future<void> login(String accessToken, String refreshToken) async {
-    await TokenStorage(ref).saveTokens(
-      accessToken: accessToken,
-      refreshToken: refreshToken,
-    );
+    await ref
+        .read(tokenStorageProvider.notifier)
+        .saveTokens(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+        );
     state = const AsyncData(true);
   }
 
-  /// ログアウト処理
+  /// ログアウト状態にする
   Future<void> logout() async {
-    await TokenStorage(ref).clear();
+    await ref.read(tokenStorageProvider.notifier).clear();
     state = const AsyncData(false);
   }
 }

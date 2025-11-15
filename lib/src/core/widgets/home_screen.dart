@@ -1,4 +1,3 @@
-// lib/src/core/widgets/home_screen.dart
 // ホーム画面。各ページへの遷移ボタンを置きます。
 
 import 'package:flutter/material.dart';

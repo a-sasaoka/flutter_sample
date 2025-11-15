@@ -151,25 +151,16 @@ mixin $SplashRoute on GoRouteData {
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 /// 🌐 GoRouterのインスタンスをRiverpodで提供
-///
-/// 旧: `final routerProvider = Provider<GoRouter>((ref) { ... });`
-/// 新: `@riverpod` アノテーションで自動生成される。
 
 @ProviderFor(router)
 const routerProvider = RouterProvider._();
 
 /// 🌐 GoRouterのインスタンスをRiverpodで提供
-///
-/// 旧: `final routerProvider = Provider<GoRouter>((ref) { ... });`
-/// 新: `@riverpod` アノテーションで自動生成される。
 
 final class RouterProvider
     extends $FunctionalProvider<GoRouter, GoRouter, GoRouter>
     with $Provider<GoRouter> {
   /// 🌐 GoRouterのインスタンスをRiverpodで提供
-  ///
-  /// 旧: `final routerProvider = Provider<GoRouter>((ref) { ... });`
-  /// 新: `@riverpod` アノテーションで自動生成される。
   const RouterProvider._()
     : super(
         from: null,

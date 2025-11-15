@@ -1,4 +1,3 @@
-// lib/src/core/network/dio_interceptor.dart
 // 共通のDioインターセプタを定義
 
 import 'package:dio/dio.dart';
@@ -29,19 +28,19 @@ InterceptorsWrapper dioInterceptor(Ref ref) {
       AppException exception;
 
       switch (e.type) {
-        case DioExceptionType.connectionTimeout:
-        case DioExceptionType.receiveTimeout:
-        case DioExceptionType.sendTimeout:
+        case DioExceptionType.connectionTimeout ||
+            DioExceptionType.receiveTimeout ||
+            DioExceptionType.sendTimeout:
           exception = const TimeoutException();
         case DioExceptionType.badResponse:
           exception = NetworkException(
             'サーバーエラーが発生しました',
             code: e.response?.statusCode,
           );
-        case DioExceptionType.badCertificate:
-        case DioExceptionType.cancel:
-        case DioExceptionType.connectionError:
-        case DioExceptionType.unknown:
+        case DioExceptionType.badCertificate ||
+            DioExceptionType.cancel ||
+            DioExceptionType.connectionError ||
+            DioExceptionType.unknown:
           exception = UnknownException(e.message ?? '');
       }
 

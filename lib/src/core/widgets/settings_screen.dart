@@ -1,4 +1,3 @@
-// lib/src/core/widgets/settings_screen.dart
 // テーマモードの切り替えUI（ドロップダウン + ダークモードの簡易スイッチ）
 
 import 'package:flutter/material.dart';

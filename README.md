@@ -67,7 +67,7 @@ lib
     │   │   └── app_router.dart                     # ルート定義（画面遷移の設定）
     │   ├── storage                                 # 永続化関連（SharedPreferencesベースのキャッシュなど）
     │   │   ├── cache_manager.dart                  # キャッシュ共通クラス
-    │   │   └── cache_provider.dart                 # Riverpodで提供
+    │   │   └── shared_preferences_provider.dart    # SharedPreferencesプロバイダ
     │   ├── ui                                      # 共通UI関連（エラーハンドリングなど）
     │   │   └── error_handler.dart                  # グローバルなエラーハンドリングUI
     │   ├── utils                                   # 共通のユーティリティ関数群（未実装 or 今後追加）
@@ -118,13 +118,6 @@ fvm use 3.35.7
 
 ```bash
 flutter pub get
-```
-
-### 3️⃣ ディレクトリ構成を自動生成（スクリプト実行）
-
-```bash
-chmod +x setup_project_structure.sh
-./setup_project_structure.sh
 ```
 
 ---
@@ -185,7 +178,7 @@ chmod +x tool/hooks/pre-commit tool/setup_git_hooks.sh
 // lib/src/core/router/app_router.dart
 
 @TypedGoRoute<HomeRoute>(path: '/')
-class HomeRoute extends GoRouteData {
+class HomeRoute extends GoRouteData with $HomeRoute {
   const HomeRoute();
 
   @override

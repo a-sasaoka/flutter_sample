@@ -1,27 +1,19 @@
-// lib/main.dart
 // MaterialApp.router に GoRouter を渡すのがポイントです。
 // Riverpod を使うために最上位に ProviderScope を置きます。
 // theme/darkTheme/themeMode を追加します。
 
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/core/config/app_theme.dart';
-import 'package:flutter_sample/src/core/config/shared_preferences_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
 import 'package:flutter_sample/src/core/router/app_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final prefs = await SharedPreferences.getInstance();
-
   runApp(
-    ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-      ],
-      child: const MyApp(),
+    const ProviderScope(
+      child: MyApp(),
     ),
   );
 }

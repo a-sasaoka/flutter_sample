@@ -58,4 +58,4 @@ final class DioInterceptorProvider
   }
 }
 
-String _$dioInterceptorHash() => r'08abd20080d5e80e13c461687169b31afa05916a';
+String _$dioInterceptorHash() => r'64385007b53613f601d394bd549b22e43028981c';
