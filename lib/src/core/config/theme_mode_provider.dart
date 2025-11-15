@@ -1,8 +1,7 @@
-// lib/src/core/config/theme_mode_provider.dart
-// SharedPreferences を使ってテーマモードを永続化するアノテーション版。
+// SharedPreferences を使ってテーマモードを永続化する。
 
 import 'package:flutter/material.dart';
-import 'package:flutter_sample/src/core/config/shared_preferences_provider.dart';
+import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'theme_mode_provider.g.dart';
@@ -15,24 +14,22 @@ class ThemeModeNotifier extends _$ThemeModeNotifier {
   @override
   Future<ThemeMode> build() async {
     // SharedPreferencesから設定を取得
-    final prefs = ref.read(sharedPreferencesProvider);
-    final value = prefs.getString(_key);
+    final prefs = await ref.read(sharedPreferencesProvider.future);
+    final value = await prefs.getString(_key);
 
-    switch (value) {
-      case 'light':
-        return ThemeMode.light;
-      case 'dark':
-        return ThemeMode.dark;
-      default:
-        return ThemeMode.system;
+    // 保存されていなければシステム設定を返す
+    if (value == null) {
+      return ThemeMode.system;
     }
+
+    return value.toThemeMode();
   }
 
   /// モードを変更して保存
   Future<void> set(ThemeMode mode) async {
     state = AsyncData(mode); // 即時反映
-    final prefs = ref.read(sharedPreferencesProvider);
-    await prefs.setString(_key, _modeToString(mode));
+    final prefs = await ref.read(sharedPreferencesProvider.future);
+    await prefs.setString(_key, mode.valeu);
   }
 
   /// トグル切り替え
@@ -41,16 +38,31 @@ class ThemeModeNotifier extends _$ThemeModeNotifier {
     final next = current == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
     await set(next);
   }
+}
 
-  /// 内部的に ThemeMode ⇄ String を変換
-  String _modeToString(ThemeMode mode) {
-    switch (mode) {
-      case ThemeMode.light:
-        return 'light';
-      case ThemeMode.dark:
-        return 'dark';
-      case ThemeMode.system:
-        return 'system';
+/// ThemeMode 拡張メソッド
+extension _ThemeModeExt on ThemeMode {
+  /// 文字列を取得
+  String get valeu => {
+    ThemeMode.light: 'light',
+    ThemeMode.dark: 'dark',
+    ThemeMode.system: 'system',
+  }[this]!;
+}
+
+/// String 拡張メソッド
+extension _ThemeModeFromString on String {
+  /// 文字列から ThemeMode に変換
+  ThemeMode toThemeMode() {
+    switch (this) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      case 'system':
+        return ThemeMode.system;
+      default:
+        throw Exception('Invalid theme: $this');
     }
   }
 }

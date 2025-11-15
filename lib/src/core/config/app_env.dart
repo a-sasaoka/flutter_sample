@@ -1,4 +1,3 @@
-// lib/src/core/config/app_env.dart
 // Enviedを使って環境ごとに設定値を安全に読み込む仕組み。
 
 import 'package:envied/envied.dart';

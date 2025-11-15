@@ -1,4 +1,3 @@
-// lib/src/core/exceptions/app_exception.dart
 // API・通信系の共通例外クラス
 
 /// 例外の種類を明示的に表す列挙型

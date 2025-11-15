@@ -1,4 +1,3 @@
-// lib/src/features/user/presentation/user_list_screen.dart
 // ユーザー一覧を表示する画面
 
 import 'package:flutter/material.dart';

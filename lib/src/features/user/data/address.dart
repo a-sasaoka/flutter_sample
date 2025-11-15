@@ -1,4 +1,3 @@
-// lib/src/features/user/data/user_model.dart
 // Freezedで住所モデルを定義（JSONと自動変換）
 
 import 'package:freezed_annotation/freezed_annotation.dart';

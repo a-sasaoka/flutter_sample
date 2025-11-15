@@ -1,5 +1,3 @@
-// lib/src/core/auth/token_interceptor.dart
-
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/auth/auth_repository.dart';
 import 'package:flutter_sample/src/core/auth/token_storage.dart';
@@ -10,7 +8,7 @@ part 'token_interceptor.g.dart';
 /// トークンを自動で付与・更新するDioのインターセプター
 @Riverpod(keepAlive: true)
 InterceptorsWrapper tokenInterceptor(Ref ref) {
-  final storage = TokenStorage(ref);
+  final storage = ref.read(tokenStorageProvider.notifier);
 
   return InterceptorsWrapper(
     onRequest: (options, handler) async {

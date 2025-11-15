@@ -1,4 +1,3 @@
-// lib/src/core/widgets/not_found_screen.dart
 // 不正なURLにアクセスしたときの画面。
 // 初心者向けメモ：実アプリでは「トップへ戻る」などの導線を置くのが定番です。
 

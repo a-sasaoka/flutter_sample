@@ -1,7 +1,6 @@
-// lib/src/features/user/data/user_repository.dart
 // APIクライアント経由でユーザー一覧を取得
 
-import 'package:flutter_sample/src/core/storage/cache_provider.dart';
+import 'package:flutter_sample/src/core/storage/cache_manager.dart';
 import 'package:flutter_sample/src/data/datasource/api_client.dart';
 import 'package:flutter_sample/src/features/user/data/user_model.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';

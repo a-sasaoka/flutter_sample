@@ -1,4 +1,3 @@
-// lib/src/features/user/data/user_model.dart
 // Freezedでユーザーモデルを定義（JSONと自動変換）
 
 import 'package:flutter_sample/src/features/user/data/address.dart';

@@ -36,7 +36,7 @@ final class ThemeModeNotifierProvider
   ThemeModeNotifier create() => ThemeModeNotifier();
 }
 
-String _$themeModeNotifierHash() => r'a487690800acef9fa2865f2125f72b9e48d055d1';
+String _$themeModeNotifierHash() => r'4c9e1fc9f4013a24b7577de7bdd53aab14827cbe';
 
 /// テーマモードの状態を管理・保存するプロバイダー
 

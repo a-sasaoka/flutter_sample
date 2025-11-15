@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'auth_repository.dart';
+part of 'token_storage.dart';
 
 // **************************************************************************
 // RiverpodGenerator
@@ -8,32 +8,31 @@ part of 'auth_repository.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// 認証リポジトリ
+/// トークンストレージクラス
 
-@ProviderFor(AuthRepository)
-const authRepositoryProvider = AuthRepositoryProvider._();
+@ProviderFor(TokenStorage)
+const tokenStorageProvider = TokenStorageProvider._();
 
-/// 認証リポジトリ
-final class AuthRepositoryProvider
-    extends $NotifierProvider<AuthRepository, void> {
-  /// 認証リポジトリ
-  const AuthRepositoryProvider._()
+/// トークンストレージクラス
+final class TokenStorageProvider extends $NotifierProvider<TokenStorage, void> {
+  /// トークンストレージクラス
+  const TokenStorageProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'authRepositoryProvider',
+        name: r'tokenStorageProvider',
         isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$authRepositoryHash();
+  String debugGetCreateSourceHash() => _$tokenStorageHash();
 
   @$internal
   @override
-  AuthRepository create() => AuthRepository();
+  TokenStorage create() => TokenStorage();
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(void value) {
@@ -44,11 +43,11 @@ final class AuthRepositoryProvider
   }
 }
 
-String _$authRepositoryHash() => r'895f21aeeb58d83bfe040089be010d9d7a4fd7df';
+String _$tokenStorageHash() => r'7c8d4eb8dce70b8cee30f42b3c3fc7254fdcb55f';
 
-/// 認証リポジトリ
+/// トークンストレージクラス
 
-abstract class _$AuthRepository extends $Notifier<void> {
+abstract class _$TokenStorage extends $Notifier<void> {
   void build();
   @$mustCallSuper
   @override

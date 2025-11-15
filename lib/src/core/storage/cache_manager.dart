@@ -1,15 +1,22 @@
-// lib/src/core/storage/cache_manager.dart
 // APIレスポンスなどを簡易的にキャッシュする仕組み
 
 import 'dart:convert';
 
-import 'package:flutter_sample/src/core/config/shared_preferences_provider.dart';
+import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'cache_manager.g.dart';
+
+/// キャッシュマネージャープロバイダー
+@Riverpod(keepAlive: true)
+CacheManager cacheManager(Ref ref) {
+  return CacheManager._(ref);
+}
 
 /// キャッシュマネージャー
 class CacheManager {
   /// コンストラクタ
-  CacheManager(this.ref);
+  CacheManager._(this.ref);
 
   static const _cacheDuration = Duration(minutes: 10);
 
@@ -18,7 +25,7 @@ class CacheManager {
 
   /// キャッシュを保存
   Future<void> save(String key, dynamic value) async {
-    final prefs = ref.read(sharedPreferencesProvider);
+    final prefs = await ref.read(sharedPreferencesProvider.future);
     final data = {
       'timestamp': DateTime.now().millisecondsSinceEpoch,
       'data': value,
@@ -28,8 +35,8 @@ class CacheManager {
 
   /// キャッシュを取得（期限切れならnull）
   Future<dynamic> get(String key) async {
-    final prefs = ref.read(sharedPreferencesProvider);
-    final raw = prefs.getString(key);
+    final prefs = await ref.read(sharedPreferencesProvider.future);
+    final raw = await prefs.getString(key);
     if (raw == null) return null;
 
     final decoded = jsonDecode(raw) as Map<String, dynamic>;
@@ -45,7 +52,7 @@ class CacheManager {
 
   /// キャッシュを削除
   Future<void> clear(String key) async {
-    final prefs = ref.read(sharedPreferencesProvider);
+    final prefs = await ref.read(sharedPreferencesProvider.future);
     await prefs.remove(key);
   }
 }

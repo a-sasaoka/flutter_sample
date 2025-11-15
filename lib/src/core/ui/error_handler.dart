@@ -1,4 +1,3 @@
-// lib/src/core/ui/error_handler.dart
 // 共通エラーメッセージをUIで表示するためのヘルパー関数
 // Snackbar と Dialog の両方を用意しています。
 

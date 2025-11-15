@@ -1,6 +1,3 @@
-// lib/src/core/auth/auth_repository.dart
-// ログイン・リフレッシュAPIを管理するリポジトリ
-
 import 'package:flutter_sample/src/core/auth/token_storage.dart';
 import 'package:flutter_sample/src/data/datasource/api_client.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -27,15 +24,19 @@ class AuthRepository extends _$AuthRepository {
     final access = response.data?['access_token'] as String;
     final refresh = response.data?['refresh_token'] as String;
 
-    await TokenStorage(ref).saveTokens(
-      accessToken: access,
-      refreshToken: refresh,
-    );
+    await ref
+        .read(tokenStorageProvider.notifier)
+        .saveTokens(
+          accessToken: access,
+          refreshToken: refresh,
+        );
   }
 
   /// リフレッシュトークンAPIを呼び出し、アクセストークンを更新する
   Future<bool> refreshToken() async {
-    final refresh = await TokenStorage(ref).getRefreshToken();
+    final refresh = await ref
+        .read(tokenStorageProvider.notifier)
+        .getRefreshToken();
     if (refresh == null) return false;
 
     final api = ref.read(apiClientProvider);
@@ -47,10 +48,12 @@ class AuthRepository extends _$AuthRepository {
     final access = response.data?['access_token'];
     if (access == null) return false;
 
-    await TokenStorage(ref).saveTokens(
-      accessToken: access as String,
-      refreshToken: refresh,
-    );
+    await ref
+        .read(tokenStorageProvider.notifier)
+        .saveTokens(
+          accessToken: access as String,
+          refreshToken: refresh,
+        );
     return true;
   }
 }

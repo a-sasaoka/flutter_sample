@@ -58,4 +58,4 @@ final class TokenInterceptorProvider
   }
 }
 
-String _$tokenInterceptorHash() => r'f90e82057b059d0ea958e29184c724f4e63d2e81';
+String _$tokenInterceptorHash() => r'6dde44edabe83b1673a3d14eb83079a866679e8d';
