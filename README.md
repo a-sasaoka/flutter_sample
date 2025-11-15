@@ -584,6 +584,20 @@ flutter pub run build_runner watch --delete-conflicting-outputs
 
 ---
 
+### ネイティブ部分の環境による切り替え
+
+## iOS
+
+`ios/scripts/extract_dart_defines.sh` をPreActionsとして実行することで `.env` ファイルから値を取得します。  
+取得した値は `ios/Runner/Info.plist` や `ios/Runner.xcodeproj/project.pbxproj` 内で `$(APP_NAME)` のように参照できます。
+
+### Android
+
+`android/app/build.gradle.kts` 内で `.env` ファイルから値を取得し、`dartDefines["APP_NAME"]` のように参照できます。  
+`resValue("string", "app_name", dartDefines["APP_NAME"] ?: "Flutter Sample")` のようにすることで、`android/app/src/main/AndroidManifest.xml` 内で `@string/app_name` のように参照できます。
+
+---
+
 ### 💡 補足：再生成が必要なタイミング
 
 | 状況 | コード生成の要否 |

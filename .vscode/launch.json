@@ -2,32 +2,44 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Flutter Local",
+      "name": "Local",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
-      "args": ["--dart-define=FLUTTER_ENV=local"]
+      "args": [
+        "--dart-define=FLUTTER_ENV=local",
+        "--dart-define-from-file=.env.local"
+      ]
     },
     {
-      "name": "Flutter Dev",
+      "name": "Dev",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
-      "args": ["--dart-define=FLUTTER_ENV=dev"]
+      "args": [
+        "--dart-define=FLUTTER_ENV=dev",
+        "--dart-define-from-file=.env.dev"
+      ]
     },
     {
-      "name": "Flutter Staging",
+      "name": "Staging",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
-      "args": ["--dart-define=FLUTTER_ENV=stg"]
+      "args": [
+        "--dart-define=FLUTTER_ENV=stg",
+        "--dart-define-from-file=.env.stg"
+      ]
     },
     {
-      "name": "Flutter Prod",
+      "name": "Prod",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
-      "args": ["--dart-define=FLUTTER_ENV=prod"]
+      "args": [
+        "--dart-define=FLUTTER_ENV=prod",
+        "--dart-define-from-file=.env.prod"
+      ]
     }
   ]
 }

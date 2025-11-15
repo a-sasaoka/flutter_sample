@@ -4,11 +4,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/router/app_router.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 /// ホーム画面のウィジェット
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   /// コンストラクタ
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String appName = '';
+  String bundleId = '';
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +55,20 @@ class HomeScreen extends StatelessWidget {
             onPressed: () => context.go('/undefined/path'),
             child: const Text('存在しないパスに遷移（NotFoundの動作確認）'),
           ),
+          const SizedBox(height: 16),
+          OutlinedButton(
+            onPressed: () async {
+              final info = await PackageInfo.fromPlatform();
+              setState(() {
+                appName = info.appName;
+                bundleId = info
+                    .packageName; // ← Android: applicationId / iOS: bundleIdentifier
+              });
+            },
+            child: const Text('アプリ情報取得'),
+          ),
+          Text('アプリ名: $appName'),
+          Text('バンドルID: $bundleId'),
         ],
       ),
     );
