@@ -12,10 +12,16 @@ part 'app_config_provider.g.dart';
 Future<({GoRouter router, ThemeMode theme, Locale? locale})> appConfig(
   Ref ref,
 ) async {
+  // 同期プロバイダ → 即取得
   final router = ref.watch(routerProvider);
-  final theme = await ref.watch(themeModeProvider.future);
-  final locale = await ref.watch(localeProvider.future);
 
+  // 2つの Future を並列で処理
+  final (theme, locale) = await (
+    ref.watch(themeModeProvider.future),
+    ref.watch(localeProvider.future),
+  ).wait;
+
+  // 名前付き Record を返す
   return (
     router: router,
     theme: theme,
