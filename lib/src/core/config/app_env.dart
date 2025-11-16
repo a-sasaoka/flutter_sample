@@ -13,6 +13,18 @@ part 'app_env.g.dart';
   obfuscate: true, // 値を暗号化してコードに埋め込む
 )
 abstract class AppEnv {
+  /// FLAVOR
+  @EnviedField(varName: 'FLAVOR')
+  static final String flavor = _AppEnv.flavor;
+
+  /// アプリケーション名
+  @EnviedField(varName: 'APP_NAME')
+  static final String appName = _AppEnv.appName;
+
+  /// アプリケーションID
+  @EnviedField(varName: 'APP_ID')
+  static final String appId = _AppEnv.appId;
+
   /// ベースURL
   @EnviedField(varName: 'BASE_URL')
   static final String baseUrl = _AppEnv.baseUrl;
