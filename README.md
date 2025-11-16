@@ -57,9 +57,10 @@ lib
     │   │   ├── token_interceptor.dart              # DioのInterceptorで自動付与・更新
     │   │   └── token_storage.dart                  # トークンの永続化（SharedPreferences）
     │   ├── config                                  # 環境設定やテーマ、共有設定など
+    │   │   ├── app_config_provider.dart            # アプリ全体の設定をまとめて取得するプロバイダ
     │   │   ├── app_env.dart                        # 環境変数を定義するクラス
     │   │   ├── app_theme.dart                      # flex_color_schemeによるテーマ設定
-    │   │   ├── shared_preferences_provider.dart    # SharedPreferencesを提供するProvider
+    │   │   ├── locale_provider.dart                # アプリ全体のロケールを管理するプロバイダ
     │   │   └── theme_mode_provider.dart            # ダークモードなどテーマ切替の状態管理
     │   ├── exceptions                              # 共通の例外クラス定義
     │   │   └── app_exception.dart                  # APIエラーなどをまとめて扱う例外クラス
@@ -120,7 +121,7 @@ fvm use 3.35.7
 ### 2️⃣ 依存パッケージのインストール
 
 ```bash
-flutter pub get
+fvm flutter pub get
 ```
 
 ---
@@ -648,13 +649,13 @@ fvm dart run build_runner build --delete-conflicting-outputs --define "envied_ge
 #### 都度実行する場合
 
 ```bash
-flutter pub run build_runner build --delete-conflicting-outputs
+fvm dart run build_runner build --delete-conflicting-outputs
 ```
 
 #### 監視モードで実行する場合
 
 ```bash
-flutter pub run build_runner watch --delete-conflicting-outputs
+fvm dart run build_runner watch --delete-conflicting-outputs
 ```
 
 ---
