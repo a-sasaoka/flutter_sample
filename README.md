@@ -45,6 +45,9 @@ Flutter開発のサンプルプロジェクトです。\
 ```plaintext
 lib
 ├── main.dart                                       # アプリのエントリーポイント。最初に実行されるファイル
+├── l10n                                            # 多言語対応用のARBファイルを格納するディレクトリ
+│   ├── app_en.arb                                  # 英語翻訳ファイル　
+│   └── app_ja.arb                                  # 日本語翻訳ファイル
 └── src
     ├── core                                        # アプリ全体で共通的に利用される基盤コード
     │   ├── auth                                    # 認証関連（トークン管理・リフレッシュなど）
@@ -227,6 +230,78 @@ lib/src/core/config/
 
 💡 `SharedPreferences` と連携し、ユーザーが選択したテーマモードを永続化しています。
 アプリ起動時に前回のテーマ設定を自動的に復元します。
+
+---
+
+## 🌍 多言語対応（Localization）
+
+本プロジェクトでは Flutter の公式ローカライズ機能（gen-l10n）を利用し、**lib/l10n + l10n.yaml** を用いた安定した多言語対応を実現しています。
+
+### 📁 ディレクトリ構成
+
+```plaintext
+lib/
+ └── l10n/
+      ├── app_en.arb
+      └── app_ja.arb
+l10n.yaml
+```
+
+### 📝 l10n.yaml（プロジェクトルート）
+
+```plaintext
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+```
+
+### 🌐 ARB ファイル例
+
+```json
+app_en.arb:
+{
+  "@@locale": "en",
+  "hello": "Hello",
+  "login": "Login",
+  "logout": "Logout"
+}
+```
+
+```json
+app_ja.arb:
+{
+  "@@locale": "ja",
+  "hello": "こんにちは",
+  "login": "ログイン",
+  "logout": "ログアウト"
+}
+```
+
+### ⚙️ コード生成
+
+`fvm flutter gen-l10n`
+
+ARB を編集した場合は再度コード生成が必要です。
+ホットリロードでは翻訳が更新されないため、
+アプリを一度完全に停止して再起動してください。
+
+### 🏗 MaterialApp への組み込み
+
+```dart
+MaterialApp.router(
+  routerConfig: router,
+  localizationsDelegates: AppLocalizations.localizationsDelegates,
+  supportedLocales: AppLocalizations.supportedLocales,
+)
+```
+
+### 🧩 翻訳の利用例
+
+```dart
+final t = AppLocalizations.of(context)!;
+Text(t.hello);
+```
 
 ---
 

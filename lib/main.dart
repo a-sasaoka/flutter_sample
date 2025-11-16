@@ -3,6 +3,7 @@
 // theme/darkTheme/themeMode を追加します。
 
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
 import 'package:flutter_sample/src/core/router/app_router.dart';
@@ -37,6 +38,8 @@ class MyApp extends ConsumerWidget {
         themeMode: mode, // 現在のモード
         routerConfig: router, // ← これが GoRouter の本体
         debugShowCheckedModeBanner: false,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
       ),
       loading: () => const MaterialApp(
         home: Scaffold(

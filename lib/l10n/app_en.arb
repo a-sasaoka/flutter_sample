@@ -1,0 +1,7 @@
+{
+  "@@locale": "en",
+  "appTitle": "Flutter Sample",
+  "hello": "Hello",
+  "login": "Login",
+  "logout": "Logout"
+}
