@@ -2,6 +2,7 @@
 // 後で Riverpod の Provider や API 通信をここに繋げていきます。
 
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/l10n/app_localizations.dart';
 
 /// SampleScreen ウィジェット
 class SampleScreen extends StatelessWidget {
@@ -11,9 +12,9 @@ class SampleScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sample Feature')),
-      body: const Center(
-        child: Text('サンプル機能の画面です。ここにUIや状態管理を追加します。'),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.sampleTitle)),
+      body: Center(
+        child: Text(AppLocalizations.of(context)!.sampleDescription),
       ),
     );
   }

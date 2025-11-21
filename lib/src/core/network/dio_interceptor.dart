@@ -34,14 +34,13 @@ InterceptorsWrapper dioInterceptor(Ref ref) {
           exception = const TimeoutException();
         case DioExceptionType.badResponse:
           exception = NetworkException(
-            'サーバーエラーが発生しました',
-            code: e.response?.statusCode,
+            statusCode: e.response?.statusCode,
           );
         case DioExceptionType.badCertificate ||
             DioExceptionType.cancel ||
             DioExceptionType.connectionError ||
             DioExceptionType.unknown:
-          exception = UnknownException(e.message ?? '');
+          exception = UnknownException(message: e.message);
       }
 
       return handler.reject(

@@ -20,7 +20,7 @@ class SettingsScreen extends ConsumerWidget {
     final localizations = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.settingsTitle)),
       body: configAsync.when(
         data: (tuple) {
           final themeModeNotifier = ref.read(themeModeProvider.notifier);
@@ -31,52 +31,60 @@ class SettingsScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              const Text('🎨 テーマ設定'),
+              Text(AppLocalizations.of(context)!.settingsThemeSection),
               const SizedBox(height: 8),
               DropdownButton<ThemeMode>(
                 value: mode,
                 onChanged: (v) async {
                   if (v != null) await themeModeNotifier.set(v);
                 },
-                items: const [
+                items: [
                   DropdownMenuItem(
                     value: ThemeMode.system,
-                    child: Text('System（端末に合わせる）'),
+                    child: Text(
+                      AppLocalizations.of(context)!.settingsThemeSystem,
+                    ),
                   ),
                   DropdownMenuItem(
                     value: ThemeMode.light,
-                    child: Text('Light（明るい）'),
+                    child: Text(
+                      AppLocalizations.of(context)!.settingsThemeLight,
+                    ),
                   ),
                   DropdownMenuItem(
                     value: ThemeMode.dark,
-                    child: Text('Dark（暗い）'),
+                    child: Text(
+                      AppLocalizations.of(context)!.settingsThemeDark,
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
               SwitchListTile(
-                title: const Text('ダークモードに切り替える（簡易）'),
+                title: Text(AppLocalizations.of(context)!.settingsThemeToggle),
                 value: mode == ThemeMode.dark,
                 onChanged: (_) => themeModeNotifier.toggleLightDark(),
               ),
               const SizedBox(height: 32),
-              const Text('🌐 ロケール設定'),
+              Text(AppLocalizations.of(context)!.settingsLocaleSection),
               DropdownButton<String>(
                 value: locale?.languageCode,
                 onChanged: (v) async {
                   await localeNotifier.setLocale(v);
                 },
-                items: const [
+                items: [
                   DropdownMenuItem(
-                    child: Text('System（端末に合わせる）'),
+                    child: Text(
+                      AppLocalizations.of(context)!.settingsLocaleSystem,
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'ja',
-                    child: Text('日本語（ja）'),
+                    child: Text(AppLocalizations.of(context)!.settingsLocaleJa),
                   ),
                   DropdownMenuItem(
                     value: 'en',
-                    child: Text('英語（en）'),
+                    child: Text(AppLocalizations.of(context)!.settingsLocaleEn),
                   ),
                 ],
               ),

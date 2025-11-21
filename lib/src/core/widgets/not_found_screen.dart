@@ -2,6 +2,7 @@
 // 初心者向けメモ：実アプリでは「トップへ戻る」などの導線を置くのが定番です。
 
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 /// NotFoundScreen ウィジェット
@@ -15,12 +16,12 @@ class NotFoundScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Page Not Found')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.notFoundTitle)),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('ページが見つかりませんでした。'),
+            Text(AppLocalizations.of(context)!.notFoundMessage),
             if (unknownPath != null) ...[
               const SizedBox(height: 8),
               Text('path: $unknownPath'),
@@ -28,7 +29,7 @@ class NotFoundScreen extends StatelessWidget {
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => context.go('/'),
-              child: const Text('ホームへ戻る'),
+              child: Text(AppLocalizations.of(context)!.notFoundBackToHome),
             ),
           ],
         ),
