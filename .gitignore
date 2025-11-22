@@ -52,3 +52,7 @@ app.*.map.json
 .env.*
 !env.example
 **/ios/Flutter/Dart-Defines.xcconfig
+
+# Firebase config (ignored)
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
