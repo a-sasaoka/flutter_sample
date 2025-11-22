@@ -9,25 +9,28 @@ import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 class ErrorHandler {
   /// 共通メッセージ変換
   static String message(BuildContext context, Object error) {
-    final t = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context)!;
     return switch (error) {
-      NetworkException(:final messageKey) => _localizeErrorKey(t, messageKey),
-      TimeoutException() => t.errorTimeout,
-      UnknownException(:final message) => message ?? t.errorUnknown,
-      Object() => t.errorUnknown,
+      NetworkException(:final messageKey) => _localizeErrorKey(
+        l10n,
+        messageKey,
+      ),
+      TimeoutException() => l10n.errorTimeout,
+      UnknownException(:final message) => message ?? l10n.errorUnknown,
+      Object() => l10n.errorUnknown,
     };
   }
 
-  static String _localizeErrorKey(AppLocalizations t, String key) {
+  static String _localizeErrorKey(AppLocalizations l10n, String key) {
     switch (key) {
       case 'errorNetwork':
-        return t.errorNetwork;
+        return l10n.errorNetwork;
       case 'errorTimeout':
-        return t.errorTimeout;
+        return l10n.errorTimeout;
       case 'errorUnknown':
-        return t.errorUnknown;
+        return l10n.errorUnknown;
       case 'errorServer':
-        return t.errorServer;
+        return l10n.errorServer;
       default:
         return key;
     }
@@ -59,7 +62,7 @@ class ErrorHandler {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: Text(AppLocalizations.of(context)!.ok),
           ),
         ],
       ),

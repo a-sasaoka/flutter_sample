@@ -27,6 +27,7 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // アプリ全体の設定をまとめて取得
     final configAsync = ref.watch(appConfigProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return configAsync.when(
       data: (tuple) {
@@ -35,7 +36,7 @@ class MyApp extends ConsumerWidget {
         final locale = tuple.locale;
 
         return MaterialApp.router(
-          title: 'Flutter Sample',
+          title: l10n.appTitle,
           theme: AppTheme.light(), // ライト
           darkTheme: AppTheme.dark(), // ダーク
           themeMode: themeMode, // 現在のモード
@@ -53,7 +54,9 @@ class MyApp extends ConsumerWidget {
       ),
       error: (err, _) => MaterialApp(
         home: Scaffold(
-          body: Center(child: Text('Error: $err')),
+          body: Center(
+            child: Text('${l10n.errorOccurred}: $err'),
+          ),
         ),
       ),
     );

@@ -122,6 +122,12 @@ abstract class AppLocalizations {
   /// **'Logout'**
   String get logout;
 
+  /// No description provided for @ok.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get ok;
+
   /// No description provided for @errorNetwork.
   ///
   /// In en, this message translates to:
@@ -139,6 +145,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'An unexpected error occurred.'**
   String get errorUnknown;
+
+  /// No description provided for @errorOccurred.
+  ///
+  /// In en, this message translates to:
+  /// **'An error has occurred.'**
+  String get errorOccurred;
 
   /// No description provided for @errorServer.
   ///

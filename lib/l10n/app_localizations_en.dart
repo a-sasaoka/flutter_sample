@@ -21,6 +21,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get logout => 'Logout';
 
   @override
+  String get ok => 'OK';
+
+  @override
   String get errorNetwork => 'A network error has occurred.';
 
   @override
@@ -28,6 +31,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorUnknown => 'An unexpected error occurred.';
+
+  @override
+  String get errorOccurred => 'An error has occurred.';
 
   @override
   String get errorServer => 'A server error occurred.';
