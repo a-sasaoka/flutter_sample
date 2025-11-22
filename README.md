@@ -323,8 +323,8 @@ MaterialApp.router(
 ### 🧩 翻訳の利用例
 
 ```dart
-final t = AppLocalizations.of(context)!;
-Text(t.hello);
+final l10n = AppLocalizations.of(context)!;
+Text(l10n.hello);
 ```
 
 ---
@@ -604,7 +604,7 @@ class UserListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final users = ref.watch(userNotifierProvider);
-    final t = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context)!;
 
     Future<void> onRefresh() async {
       // API再取得（キャッシュ無視）
@@ -614,7 +614,7 @@ class UserListScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(t.userListTitle)),
+      appBar: AppBar(title: Text(l10n.userListTitle)),
       body: users.when(
         data: (list) => RefreshIndicator(
           onRefresh: onRefresh,
@@ -625,7 +625,7 @@ class UserListScreen extends ConsumerWidget {
           ),
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(t.errorUnknown)),
+        error: (e, _) => Center(child: Text(l10n.errorUnknown)),
       ),
     );
   }
