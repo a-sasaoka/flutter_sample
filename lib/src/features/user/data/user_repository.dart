@@ -38,4 +38,24 @@ class UserRepository extends _$UserRepository {
 
     return users;
   }
+
+  ///ユーザー一覧を強制的に更新
+  Future<List<UserModel>> fetchUsersForceRefresh() async {
+    const cacheKey = 'users';
+    final cache = ref.read(cacheManagerProvider);
+
+    // clear cache
+    await cache.clear(cacheKey);
+
+    // get the data from API
+    final api = ref.read(apiClientProvider);
+    final response = await api.get<List<dynamic>>('/users');
+    final users = response.data!
+        .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
+        .toList(growable: false);
+
+    // save in new cache
+    await cache.save(cacheKey, response.data);
+    return users;
+  }
 }
