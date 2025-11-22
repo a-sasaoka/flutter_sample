@@ -5,12 +5,35 @@ Flutter開発のサンプルプロジェクトです。\
 
 ---
 
-## 🚀 プロジェクト概要
+## 目次 (Table of Contents)
+
+- [プロジェクト概要](#プロジェクト概要)
+- [採用技術](#採用技術)
+- [開発環境](#開発環境)
+- [ディレクトリ構成](#ディレクトリ構成)
+- [初期セットアップ](#初期セットアップ)
+- [Git Hooks（コミット時 Lint 実行）](#git-hooksでコミット前にlintチェックを自動実行)
+- [Lint設定](#lint設定)
+- [GoRouter（型安全ルーティング）](#gorouterを使ったルーティング設定)
+- [SharedPreferences 永続化](#sharedpreferences-の永続化設定)
+- [テーマ設定（FlexColorScheme）](#テーマ設定flexcolorscheme)
+- [多言語対応（Localization）](#多言語対応localization)
+- [API通信デモ](#api通信デモuserlist)
+- [通信エラーとロギング](#通信エラーとロギング改善)
+- [共通エラーハンドリング](#共通エラーハンドリングsnackbar--dialog)
+- [トークン認証（Bearer + Refresh）](#トークン認証対応bearer-token--自動リフレッシュ)
+- [認証状態管理とルーティング制御](#認証状態管理とルーティング制御authguard--splashscreen)
+- [APIキャッシュ対応](#apiキャッシュ対応sharedpreferencesベース)
+- [コード生成コマンド](#コード生成コマンド)
+- [このプロジェクトで学べること](#このプロジェクトで学べること)
+- [今後の拡張案](#今後の拡張案)
+
+## プロジェクト概要
 
 このプロジェクトは、Flutterを用いたアプリ開発で役立つ構成・設定を体系的にまとめたテンプレートです。\
 特に以下の技術スタックを採用し、実務でも通用する設計を意識しています。
 
-### 🧠 採用技術
+### 採用技術
 
 | 分類             | 使用技術                                                                                                                                                                                |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -26,7 +49,7 @@ Flutter開発のサンプルプロジェクトです。\
 
 ---
 
-## ⚙️ 開発環境
+## 開発環境
 
 | 項目          | 内容                        |
 | ----------- | ------------------------- |
@@ -37,7 +60,7 @@ Flutter開発のサンプルプロジェクトです。\
 
 ---
 
-## 📁 ディレクトリ構成
+## ディレクトリ構成
 
 以下は `lib` 以下のディレクトリと主要ファイル構成です。  
 それぞれの役割をコメントで補足しています。
@@ -45,6 +68,9 @@ Flutter開発のサンプルプロジェクトです。\
 ```plaintext
 lib
 ├── main.dart                                       # アプリのエントリーポイント。最初に実行されるファイル
+├── l10n                                            # 多言語対応用のARBファイルを格納するディレクトリ
+│   ├── app_en.arb                                  # 英語翻訳ファイル　
+│   └── app_ja.arb                                  # 日本語翻訳ファイル
 └── src
     ├── core                                        # アプリ全体で共通的に利用される基盤コード
     │   ├── auth                                    # 認証関連（トークン管理・リフレッシュなど）
@@ -54,9 +80,10 @@ lib
     │   │   ├── token_interceptor.dart              # DioのInterceptorで自動付与・更新
     │   │   └── token_storage.dart                  # トークンの永続化（SharedPreferences）
     │   ├── config                                  # 環境設定やテーマ、共有設定など
+    │   │   ├── app_config_provider.dart            # アプリ全体の設定をまとめて取得するプロバイダ
     │   │   ├── app_env.dart                        # 環境変数を定義するクラス
     │   │   ├── app_theme.dart                      # flex_color_schemeによるテーマ設定
-    │   │   ├── shared_preferences_provider.dart    # SharedPreferencesを提供するProvider
+    │   │   ├── locale_provider.dart                # アプリ全体のロケールを管理するプロバイダ
     │   │   └── theme_mode_provider.dart            # ダークモードなどテーマ切替の状態管理
     │   ├── exceptions                              # 共通の例外クラス定義
     │   │   └── app_exception.dart                  # APIエラーなどをまとめて扱う例外クラス
@@ -106,7 +133,7 @@ lib
 
 ---
 
-## 🧱 初期セットアップ
+## 初期セットアップ
 
 ### 1️⃣ FVMによるFlutterバージョン指定
 
@@ -117,12 +144,12 @@ fvm use 3.35.7
 ### 2️⃣ 依存パッケージのインストール
 
 ```bash
-flutter pub get
+fvm flutter pub get
 ```
 
 ---
 
-## 🧩 Git Hooksでコミット前にLintチェックを自動実行
+## Git Hooksでコミット前にLintチェックを自動実行
 
 このプロジェクトでは、コミット時に自動で `flutter analyze` と `dart format` チェックを実行する仕組みを導入しています。\
 これにより、Lintエラーやフォーマット漏れを防ぎ、常にクリーンな状態でコードをコミットできます。
@@ -146,7 +173,7 @@ chmod +x tool/hooks/pre-commit tool/setup_git_hooks.sh
 
 ---
 
-## 🧩 Lint設定
+## Lint設定
 
 ### 利用パッケージ
 
@@ -156,7 +183,7 @@ chmod +x tool/hooks/pre-commit tool/setup_git_hooks.sh
 
 ---
 
-## 🧩 GoRouterを使ったルーティング設定
+## GoRouterを使ったルーティング設定
 
 本プロジェクトでは [GoRouter](https://pub.dev/packages/go_router) を利用し、アプリ全体の画面遷移を管理しています。\
 さらに [go\_router\_builder](https://pub.dev/packages/go_router_builder) を導入し、アノテーションによる**型安全なルーティング定義**を実現しています。
@@ -203,7 +230,7 @@ IDEでルートクラスを補完することで、タイプミスやパス指�
 
 ---
 
-## 🧩 SharedPreferences の永続化設定
+## SharedPreferences の永続化設定
 
 テーマモードなどの設定値を永続化するために、`SharedPreferences` をアプリ全体で共有する仕組みを導入しています。\
 Riverpod のアノテーション構文（`@Riverpod(keepAlive: true)`）を使い、どのプロバイダからでも安全にアクセス可能です。
@@ -212,7 +239,7 @@ Riverpod のアノテーション構文（`@Riverpod(keepAlive: true)`）を使�
 
 ---
 
-## 🎨 テーマ設定（FlexColorScheme）
+## テーマ設定（FlexColorScheme）
 
 アプリ全体のデザインテーマは [FlexColorScheme](https://pub.dev/packages/flex_color_scheme) を利用して構築しています。
 Material 3 対応で、ライト／ダーク／システムモードの切り替えに対応しています。
@@ -230,7 +257,79 @@ lib/src/core/config/
 
 ---
 
-## 🌐 API通信デモ（UserList）
+## 多言語対応（Localization）
+
+本プロジェクトでは Flutter の公式ローカライズ機能（gen-l10n）を利用し、**lib/l10n + l10n.yaml** を用いた安定した多言語対応を実現しています。
+
+### 📁 ディレクトリ構成
+
+```plaintext
+lib/
+ └── l10n/
+      ├── app_en.arb
+      └── app_ja.arb
+l10n.yaml
+```
+
+### 📝 l10n.yaml（プロジェクトルート）
+
+```plaintext
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+```
+
+### 🌐 ARB ファイル例
+
+```json
+app_en.arb:
+{
+  "@@locale": "en",
+  "hello": "Hello",
+  "login": "Login",
+  "logout": "Logout"
+}
+```
+
+```json
+app_ja.arb:
+{
+  "@@locale": "ja",
+  "hello": "こんにちは",
+  "login": "ログイン",
+  "logout": "ログアウト"
+}
+```
+
+### ⚙️ コード生成
+
+`fvm flutter gen-l10n`
+
+ARB を編集した場合は再度コード生成が必要です。
+ホットリロードでは翻訳が更新されないため、
+アプリを一度完全に停止して再起動してください。
+
+### 🏗 MaterialApp への組み込み
+
+```dart
+MaterialApp.router(
+  routerConfig: router,
+  localizationsDelegates: AppLocalizations.localizationsDelegates,
+  supportedLocales: AppLocalizations.supportedLocales,
+)
+```
+
+### 🧩 翻訳の利用例
+
+```dart
+final l10n = AppLocalizations.of(context)!;
+Text(l10n.hello);
+```
+
+---
+
+## API通信デモ（UserList）
 
 [Dio](https://pub.dev/packages/dio) と [Riverpod](https://pub.dev/packages/flutter_riverpod) を組み合わせ、
 外部APIからデータを取得してUIに表示する仕組みを実装しています。
@@ -258,7 +357,7 @@ lib/src/features/user/
 
 ---
 
-## ⚙️ 通信エラーとロギング改善
+## 通信エラーとロギング改善
 
 このプロジェクトでは、Dioを利用した通信基盤に共通エラーハンドリングとロギング処理を追加しています。
 これにより、すべてのAPI通信で統一的にエラー管理とログ出力が可能になります。
@@ -293,7 +392,7 @@ lib/src/core/
 
 ---
 
-## ⚠️ 共通エラーハンドリング（Snackbar & Dialog）
+## 共通エラーハンドリング（Snackbar & Dialog）
 
 アプリ全体で例外を統一的に処理するために、`ErrorHandler` クラスを追加します。  
 これにより、軽いエラーは **Snackbar**、致命的なエラーは **Dialog** で表示できます。
@@ -340,7 +439,7 @@ await ErrorHandler.showDialogError(context, e);
 
 ---
 
-## 🔒 トークン認証対応（Bearer Token + 自動リフレッシュ）
+## トークン認証対応（Bearer Token + 自動リフレッシュ）
 
 このプロジェクトでは、API通信にBearerトークン認証を追加し、トークンの自動付与および自動リフレッシュ処理を実装しています。
 これにより、ログイン後のすべての通信で認証ヘッダーを自動的に付与し、有効期限切れ時に再取得を行います。
@@ -399,7 +498,7 @@ dio.interceptors.add(ref.read(dioInterceptorProvider));   // ② ログ出力・
 
 ---
 
-## 🔑 認証状態管理とルーティング制御（AuthGuard + SplashScreen）
+## 認証状態管理とルーティング制御（AuthGuard + SplashScreen）
 
 このプロジェクトでは、`AuthStateNotifier` と `GoRouter` の `redirect` 機能を組み合わせ、  
 ログイン状態に応じて画面遷移を自動制御しています。  
@@ -457,7 +556,7 @@ SplashScreen表示（認証状態チェック）
 
 ---
 
-## 💾 APIキャッシュ対応（SharedPreferencesベース）
+## APIキャッシュ対応（SharedPreferencesベース）
 
 このプロジェクトでは、APIレスポンスを一定時間キャッシュして再利用することで、通信効率とユーザー体験を向上させています。
 キャッシュは `SharedPreferences` を用いて実現しており、外部パッケージを追加せずに軽量に動作します。
@@ -497,6 +596,7 @@ lib/src/features/user/data/
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_sample/src/features/user/application/user_notifier.dart';
+import 'package:flutter_sample/l10n/app_localizations.dart';
 
 class UserListScreen extends ConsumerWidget {
   const UserListScreen({super.key});
@@ -504,24 +604,28 @@ class UserListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final users = ref.watch(userNotifierProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     Future<void> onRefresh() async {
-      // APIから再取得してキャッシュを更新
-      await ref.read(userNotifierProvider.notifier).fetchUsers(forceRefresh: true);
+      // API再取得（キャッシュ無視）
+      await ref
+          .read(userNotifierProvider.notifier)
+          .fetchUsers(forceRefresh: true);
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('ユーザー一覧')),
+      appBar: AppBar(title: Text(l10n.userListTitle)),
       body: users.when(
         data: (list) => RefreshIndicator(
           onRefresh: onRefresh,
           child: ListView.builder(
             itemCount: list.length,
-            itemBuilder: (context, i) => ListTile(title: Text(list[i].name)),
+            itemBuilder: (context, i) =>
+                ListTile(title: Text(list[i].name)),
           ),
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('エラー: $e')),
+        error: (e, _) => Center(child: Text(l10n.errorUnknown)),
       ),
     );
   }
@@ -536,7 +640,7 @@ class UserListScreen extends ConsumerWidget {
 
 ---
 
-## 🧰 コード生成コマンド
+## コード生成コマンド
 
 ### 環境の切り替え、設定値変更
 
@@ -573,13 +677,13 @@ fvm dart run build_runner build --delete-conflicting-outputs --define "envied_ge
 #### 都度実行する場合
 
 ```bash
-flutter pub run build_runner build --delete-conflicting-outputs
+fvm dart run build_runner build --delete-conflicting-outputs
 ```
 
 #### 監視モードで実行する場合
 
 ```bash
-flutter pub run build_runner watch --delete-conflicting-outputs
+fvm dart run build_runner watch --delete-conflicting-outputs
 ```
 
 ---
@@ -614,7 +718,7 @@ flutter pub run build_runner watch --delete-conflicting-outputs
 
 ---
 
-## 🧭 このプロジェクトで学べること
+## このプロジェクトで学べること
 
 このサンプルプロジェクトを通して、以下の技術や設計手法を体系的に学ぶことができます。
 
@@ -632,7 +736,7 @@ flutter pub run build_runner watch --delete-conflicting-outputs
 
 ---
 
-## 🔮 今後の拡張案
+## 今後の拡張案
 
 | カテゴリ | 拡張内容 |
 |-----------|-----------|

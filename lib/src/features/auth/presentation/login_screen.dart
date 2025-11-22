@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/auth/auth_state_notifier.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -24,7 +25,7 @@ class LoginScreen extends ConsumerWidget {
             );
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('ログイン成功！')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.loginSuccess)),
           );
         }
       } on Exception catch (e) {
@@ -35,25 +36,29 @@ class LoginScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('ログイン')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.loginTitle)),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             TextField(
               controller: emailController,
-              decoration: const InputDecoration(labelText: 'メールアドレス'),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.loginEmailLabel,
+              ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: passwordController,
-              decoration: const InputDecoration(labelText: 'パスワード'),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.loginPasswordLabel,
+              ),
               obscureText: true,
             ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: onLogin,
-              child: const Text('ログイン'),
+              child: Text(AppLocalizations.of(context)!.loginButton),
             ),
           ],
         ),

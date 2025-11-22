@@ -1,6 +1,7 @@
 // ユーザー一覧を表示する画面
 
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/features/user/application/user_notifier.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -15,7 +16,7 @@ class UserListScreen extends ConsumerWidget {
     final users = ref.watch(userProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('ユーザー一覧')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.userListTitle)),
       body: users.when(
         data: (list) => RefreshIndicator(
           onRefresh: () => ref.read(userProvider.notifier).refresh(),
@@ -34,9 +35,13 @@ class UserListScreen extends ConsumerWidget {
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) {
-          // 共通関数でSnackbar表示
-          ErrorHandler.showSnackBar(context, e);
-          return const Center(child: Text('エラーが発生しました'));
+          // 画面を表示した後にスナックバーを表示する
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ErrorHandler.showSnackBar(context, e);
+          });
+          return Center(
+            child: Text(AppLocalizations.of(context)!.errorUnknown),
+          );
         },
       ),
     );

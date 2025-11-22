@@ -1,6 +1,9 @@
 // テーマモードの切り替えUI（ドロップダウン + ダークモードの簡易スイッチ）
 
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/config/app_config_provider.dart';
+import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -11,44 +14,82 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = ref.watch(themeModeProvider);
+    // アプリ全体の設定をまとめて取得
+    final configAsync = ref.watch(appConfigProvider);
+
+    final localizations = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: theme.when(
-        data: (mode) {
-          final notifier = ref.read(themeModeProvider.notifier);
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.settingsTitle)),
+      body: configAsync.when(
+        data: (tuple) {
+          final themeModeNotifier = ref.read(themeModeProvider.notifier);
+          final localeNotifier = ref.read(localeProvider.notifier);
+          final mode = tuple.theme;
+          final locale = tuple.locale;
+
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              const Text('🎨 テーマ設定'),
+              Text(AppLocalizations.of(context)!.settingsThemeSection),
               const SizedBox(height: 8),
               DropdownButton<ThemeMode>(
                 value: mode,
                 onChanged: (v) async {
-                  if (v != null) await notifier.set(v);
+                  if (v != null) await themeModeNotifier.set(v);
                 },
-                items: const [
+                items: [
                   DropdownMenuItem(
                     value: ThemeMode.system,
-                    child: Text('System（端末に合わせる）'),
+                    child: Text(
+                      AppLocalizations.of(context)!.settingsThemeSystem,
+                    ),
                   ),
                   DropdownMenuItem(
                     value: ThemeMode.light,
-                    child: Text('Light（明るい）'),
+                    child: Text(
+                      AppLocalizations.of(context)!.settingsThemeLight,
+                    ),
                   ),
                   DropdownMenuItem(
                     value: ThemeMode.dark,
-                    child: Text('Dark（暗い）'),
+                    child: Text(
+                      AppLocalizations.of(context)!.settingsThemeDark,
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
               SwitchListTile(
-                title: const Text('ダークモードに切り替える（簡易）'),
+                title: Text(AppLocalizations.of(context)!.settingsThemeToggle),
                 value: mode == ThemeMode.dark,
-                onChanged: (_) => notifier.toggleLightDark(),
+                onChanged: (_) => themeModeNotifier.toggleLightDark(),
               ),
+              const SizedBox(height: 32),
+              Text(AppLocalizations.of(context)!.settingsLocaleSection),
+              DropdownButton<String>(
+                value: locale?.languageCode,
+                onChanged: (v) async {
+                  await localeNotifier.setLocale(v);
+                },
+                items: [
+                  DropdownMenuItem(
+                    child: Text(
+                      AppLocalizations.of(context)!.settingsLocaleSystem,
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'ja',
+                    child: Text(AppLocalizations.of(context)!.settingsLocaleJa),
+                  ),
+                  DropdownMenuItem(
+                    value: 'en',
+                    child: Text(AppLocalizations.of(context)!.settingsLocaleEn),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(localizations!.hello),
             ],
           );
         },

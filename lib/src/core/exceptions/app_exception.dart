@@ -14,10 +14,7 @@ enum ExceptionType {
 
 /// アプリケーション共通の例外基底クラス
 sealed class AppException implements Exception {
-  const AppException(this.message, this.type, {this.code});
-
-  /// エラーメッセージ
-  final String message;
+  const AppException(this.type, {this.code});
 
   /// 例外の種類
   final ExceptionType type;
@@ -25,26 +22,52 @@ sealed class AppException implements Exception {
   /// エラーコード（任意）
   final int? code;
 
+  /// 多言語化用のメッセージキー
+  String get messageKey {
+    switch (type) {
+      case ExceptionType.network:
+        return 'errorNetwork';
+      case ExceptionType.timeout:
+        return 'errorTimeout';
+      case ExceptionType.unknown:
+        return 'errorUnknown';
+    }
+  }
+
   @override
-  String toString() => '${type.name}: $message';
+  String toString() => type.name;
 }
 
 /// ネットワーク関連の例外
 class NetworkException extends AppException {
   /// コンストラクタ
-  const NetworkException(String message, {int? code})
-    : super(message, ExceptionType.network, code: code);
+  const NetworkException({this.statusCode, int? code})
+    : super(ExceptionType.network, code: code);
+
+  /// ステータスコード（任意）
+  final int? statusCode;
+
+  @override
+  String get messageKey {
+    // 500番台はサーバーエラーとして扱う
+    if (statusCode != null && statusCode! >= 500) {
+      return 'errorServer';
+    }
+    return 'errorNetwork';
+  }
 }
 
 /// タイムアウト
 class TimeoutException extends AppException {
   /// コンストラクタ
-  const TimeoutException() : super('通信がタイムアウトしました', ExceptionType.timeout);
+  const TimeoutException() : super(ExceptionType.timeout);
 }
 
 /// 不明なエラー
 class UnknownException extends AppException {
   /// コンストラクタ
-  const UnknownException([String message = '予期しないエラーが発生しました'])
-    : super(message, ExceptionType.unknown);
+  const UnknownException({this.message}) : super(ExceptionType.unknown);
+
+  /// 任意のメッセージ
+  final String? message;
 }

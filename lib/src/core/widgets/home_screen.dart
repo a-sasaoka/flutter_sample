@@ -1,6 +1,7 @@
 // ホーム画面。各ページへの遷移ボタンを置きます。
 
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/router/app_router.dart';
 import 'package:go_router/go_router.dart';
@@ -25,35 +26,36 @@ class _HomeScreenState extends State<HomeScreen> {
     // - XXXRoute().go(context) で遷移すると履歴を置き換えになります（戻るボタンで戻れない）
     // - XXXRoute().push<void>(context) ならスタックに積む遷移です（戻るボタンで戻れる）
     return Scaffold(
-      appBar: AppBar(title: const Text('Home')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.homeTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text('👋 ここはホーム画面です。下のボタンから各画面へ移動してみましょう。'),
+          Text(AppLocalizations.of(context)!.homeDescription),
           const SizedBox(height: 16),
           Text(
-            '現在の環境: ${AppEnv.environment.toUpperCase()}',
+            '${AppLocalizations.of(context)!.homeCurrentEnv}:'
+            ' ${AppEnv.environment.toUpperCase()}',
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           FilledButton(
             onPressed: () => const SettingsRoute().push<void>(context),
-            child: const Text('設定画面へ'),
+            child: Text(AppLocalizations.of(context)!.homeToSettings),
           ),
           const SizedBox(height: 8),
           FilledButton(
             onPressed: () => const SampleRoute().push<void>(context),
-            child: const Text('サンプル画面へ'),
+            child: Text(AppLocalizations.of(context)!.homeToSample),
           ),
           const SizedBox(height: 8),
           FilledButton(
             onPressed: () => const UserListRoute().push<void>(context),
-            child: const Text('ユーザー一覧画面へ（APIで情報取得）'),
+            child: Text(AppLocalizations.of(context)!.homeToUserList),
           ),
           const SizedBox(height: 16),
           OutlinedButton(
             onPressed: () => context.go('/undefined/path'),
-            child: const Text('存在しないパスに遷移（NotFoundの動作確認）'),
+            child: Text(AppLocalizations.of(context)!.homeToNotFound),
           ),
           const SizedBox(height: 16),
           OutlinedButton(
@@ -65,10 +67,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     .packageName; // ← Android: applicationId / iOS: bundleIdentifier
               });
             },
-            child: const Text('アプリ情報取得'),
+            child: Text(AppLocalizations.of(context)!.homeGetAppInfo),
           ),
-          Text('アプリ名: $appName'),
-          Text('バンドルID: $bundleId'),
+          Text('${AppLocalizations.of(context)!.homeAppName}: $appName'),
+          Text('${AppLocalizations.of(context)!.homeBundleId}: $bundleId'),
         ],
       ),
     );
