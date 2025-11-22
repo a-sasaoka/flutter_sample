@@ -13,7 +13,6 @@
   "errorDialogTitle": "An error has occurred",
   "homeTitle": "Home",
   "homeDescription": "👋 This is the home screen. Use the buttons below to navigate to each page.",
-  "homeCurrentEnv": "現在の環境",
   "homeCurrentEnv": "Current Environment",
   "homeToSettings": "Go to Settings",
   "homeToSample": "Go to Sample Page",

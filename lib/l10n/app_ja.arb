@@ -13,6 +13,7 @@
   "errorDialogTitle": "エラーが発生しました",
   "homeTitle": "ホーム",
   "homeDescription": "👋 ここはホーム画面です。下のボタンから各画面へ移動してみましょう。",
+  "homeCurrentEnv": "現在の環境",
   "homeToSettings": "設定画面へ",
   "homeToSample": "サンプル画面へ",
   "homeToUserList": "ユーザー一覧画面へ（APIで情報取得）",

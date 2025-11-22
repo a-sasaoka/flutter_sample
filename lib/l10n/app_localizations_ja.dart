@@ -48,7 +48,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homeDescription => '👋 ここはホーム画面です。下のボタンから各画面へ移動してみましょう。';
 
   @override
-  String get homeCurrentEnv => 'Current Environment';
+  String get homeCurrentEnv => '現在の環境';
 
   @override
   String get homeToSettings => '設定画面へ';
