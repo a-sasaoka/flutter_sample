@@ -1,5 +1,6 @@
 // ホーム画面。各ページへの遷移ボタンを置きます。
 
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
@@ -71,6 +72,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Text('${AppLocalizations.of(context)!.homeAppName}: $appName'),
           Text('${AppLocalizations.of(context)!.homeBundleId}: $bundleId'),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: () {
+              FirebaseCrashlytics.instance.crash();
+            },
+            child: Text(AppLocalizations.of(context)!.homeCrashTest),
+          ),
         ],
       ),
     );

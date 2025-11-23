@@ -135,4 +135,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get userListTitle => 'User List';
+
+  @override
+  String get homeCrashTest => 'Crash Test';
 }

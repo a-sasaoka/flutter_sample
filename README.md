@@ -7,33 +7,57 @@ Flutter開発のサンプルプロジェクトです。\
 
 ## 目次 (Table of Contents)
 
-- [プロジェクト概要](#プロジェクト概要)
-- [採用技術](#採用技術)
-- [開発環境](#開発環境)
-- [ディレクトリ構成](#ディレクトリ構成)
-- [初期セットアップ](#初期セットアップ)
-- [Git Hooks（コミット時 Lint 実行）](#git-hooksでコミット前にlintチェックを自動実行)
-- [Lint設定](#lint設定)
-- [GoRouter（型安全ルーティング）](#gorouterを使ったルーティング設定)
-- [SharedPreferences 永続化](#sharedpreferences-の永続化設定)
-- [テーマ設定（FlexColorScheme）](#テーマ設定flexcolorscheme)
-- [多言語対応（Localization）](#多言語対応localization)
-- [API通信デモ](#api通信デモuserlist)
-- [通信エラーとロギング](#通信エラーとロギング改善)
-- [共通エラーハンドリング](#共通エラーハンドリングsnackbar--dialog)
-- [トークン認証（Bearer + Refresh）](#トークン認証対応bearer-token--自動リフレッシュ)
-- [認証状態管理とルーティング制御](#認証状態管理とルーティング制御authguard--splashscreen)
-- [APIキャッシュ対応](#apiキャッシュ対応sharedpreferencesベース)
-- [コード生成コマンド](#コード生成コマンド)
-- [このプロジェクトで学べること](#このプロジェクトで学べること)
-- [今後の拡張案](#今後の拡張案)
+### A. 基本情報
 
-## プロジェクト概要
+- [1. プロジェクト概要](#a-1-overview)
+- [1-1. 採用技術](#a-1-1-tech)
+- [2. 開発環境](#a-2-env)
+- [3. ディレクトリ構成](#a-3-structure)
+
+### B. 開発準備
+
+- [4. 初期セットアップ](#b-4-init)
+- [5. Lint設定](#b-5-lint)
+- [6. Git Hooksでコミット前にLintチェックを自動実行](#b-6-githooks)
+
+### C. アプリ基盤
+
+- [7. GoRouter（型安全ルーティング）](#c-7-router)
+- [8. 多言語対応（Localization）](#c-8-i18n)
+- [9. SharedPreferences 永続化](#c-9-sp)
+- [10. テーマ設定（FlexColorScheme）](#c-10-theme)
+
+### D. 機能別実装
+
+- [11. API通信デモ（UserList）](#d-11-api)
+- [12. 通信エラーとロギング](#d-12-error)
+- [13. 共通エラーハンドリング（Snackbar & Dialog）](#d-13-handler)
+- [14. トークン認証（Bearer + Refresh）](#d-14-auth)
+- [15. 認証状態管理とルーティング制御（AuthGuard + SplashScreen）](#d-15-guard)
+- [16. APIキャッシュ対応（SharedPreferencesベース）](#d-16-cache)
+- [17. Firebase Crashlytics](#d-17-crash)
+
+### E. 開発運用
+
+- [18. コード生成コマンド](#e-18-build)
+- [19. このプロジェクトで学べること](#e-19-learn)
+- [20. 今後の拡張案](#e-20-future)
+
+---
+<a id="a-basic"></a>
+
+## A. 基本情報
+
+<a id="a-1-overview"></a>
+
+### 📘 1. プロジェクト概要
 
 このプロジェクトは、Flutterを用いたアプリ開発で役立つ構成・設定を体系的にまとめたテンプレートです。\
 特に以下の技術スタックを採用し、実務でも通用する設計を意識しています。
 
-### 採用技術
+<a id="a-1-1-tech"></a>
+
+### 🧩 1-1. 採用技術
 
 | 分類             | 使用技術                                                                                                                                                                                |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -49,7 +73,9 @@ Flutter開発のサンプルプロジェクトです。\
 
 ---
 
-## 開発環境
+<a id="a-2-env"></a>
+
+### 🛠 2. 開発環境
 
 | 項目          | 内容                        |
 | ----------- | ------------------------- |
@@ -60,7 +86,9 @@ Flutter開発のサンプルプロジェクトです。\
 
 ---
 
-## ディレクトリ構成
+<a id="a-3-structure"></a>
+
+### 📁 3. ディレクトリ構成
 
 以下は `lib` 以下のディレクトリと主要ファイル構成です。  
 それぞれの役割をコメントで補足しています。
@@ -132,8 +160,13 @@ lib
 ```
 
 ---
+<a id="b-setup"></a>
 
-## 初期セットアップ
+## B. 開発準備
+
+<a id="b-4-init"></a>
+
+### 🚀 4. 初期セットアップ
 
 ### 1️⃣ FVMによるFlutterバージョン指定
 
@@ -149,7 +182,21 @@ fvm flutter pub get
 
 ---
 
-## Git Hooksでコミット前にLintチェックを自動実行
+<a id="b-5-lint"></a>
+
+### 🧹 5. Lint設定
+
+### 利用パッケージ
+
+- very\_good\_analysis
+- custom\_lint
+- riverpod\_lint
+
+---
+
+<a id="b-6-githooks"></a>
+
+### 🔗 6. Git Hooksでコミット前にLintチェックを自動実行
 
 このプロジェクトでは、コミット時に自動で `flutter analyze` と `dart format` チェックを実行する仕組みを導入しています。\
 これにより、Lintエラーやフォーマット漏れを防ぎ、常にクリーンな状態でコードをコミットできます。
@@ -172,18 +219,13 @@ chmod +x tool/hooks/pre-commit tool/setup_git_hooks.sh
 - どちらかに問題がある場合、コミットは中断されます。
 
 ---
+<a id="c-foundation"></a>
 
-## Lint設定
+## C. アプリ基盤
 
-### 利用パッケージ
+<a id="c-7-router"></a>
 
-- very\_good\_analysis
-- custom\_lint
-- riverpod\_lint
-
----
-
-## GoRouterを使ったルーティング設定
+### 🧭 7. GoRouterを使ったルーティング設定
 
 本プロジェクトでは [GoRouter](https://pub.dev/packages/go_router) を利用し、アプリ全体の画面遷移を管理しています。\
 さらに [go\_router\_builder](https://pub.dev/packages/go_router_builder) を導入し、アノテーションによる**型安全なルーティング定義**を実現しています。
@@ -230,34 +272,9 @@ IDEでルートクラスを補完することで、タイプミスやパス指�
 
 ---
 
-## SharedPreferences の永続化設定
+<a id="c-8-i18n"></a>
 
-テーマモードなどの設定値を永続化するために、`SharedPreferences` をアプリ全体で共有する仕組みを導入しています。\
-Riverpod のアノテーション構文（`@Riverpod(keepAlive: true)`）を使い、どのプロバイダからでも安全にアクセス可能です。
-
-この構成により、`SharedPreferences` のインスタンスをアプリ全体で共有し、 I/O を最小化しつつテスト可能な形で永続化処理を行えます。
-
----
-
-## テーマ設定（FlexColorScheme）
-
-アプリ全体のデザインテーマは [FlexColorScheme](https://pub.dev/packages/flex_color_scheme) を利用して構築しています。
-Material 3 対応で、ライト／ダーク／システムモードの切り替えに対応しています。
-
-### 主なファイル構成
-
-```plaintext
-lib/src/core/config/
- ├── app_theme.dart           # テーマ定義（FlexColorScheme）
- └── theme_mode_provider.dart # テーマモードを管理するRiverpodプロバイダ
-```
-
-💡 `SharedPreferences` と連携し、ユーザーが選択したテーマモードを永続化しています。
-アプリ起動時に前回のテーマ設定を自動的に復元します。
-
----
-
-## 多言語対応（Localization）
+### 🌐 8. 多言語対応（Localization）
 
 本プロジェクトでは Flutter の公式ローカライズ機能（gen-l10n）を利用し、**lib/l10n + l10n.yaml** を用いた安定した多言語対応を実現しています。
 
@@ -329,7 +346,43 @@ Text(l10n.hello);
 
 ---
 
-## API通信デモ（UserList）
+<a id="c-9-sp"></a>
+
+### 💾 9. SharedPreferences の永続化設定
+
+テーマモードなどの設定値を永続化するために、`SharedPreferences` をアプリ全体で共有する仕組みを導入しています。\
+Riverpod のアノテーション構文（`@Riverpod(keepAlive: true)`）を使い、どのプロバイダからでも安全にアクセス可能です。
+
+この構成により、`SharedPreferences` のインスタンスをアプリ全体で共有し、 I/O を最小化しつつテスト可能な形で永続化処理を行えます。
+
+---
+
+<a id="c-10-theme"></a>
+
+### 🎨 10. テーマ設定（FlexColorScheme）
+
+アプリ全体のデザインテーマは [FlexColorScheme](https://pub.dev/packages/flex_color_scheme) を利用して構築しています。
+Material 3 対応で、ライト／ダーク／システムモードの切り替えに対応しています。
+
+### 主なファイル構成
+
+```plaintext
+lib/src/core/config/
+ ├── app_theme.dart           # テーマ定義（FlexColorScheme）
+ └── theme_mode_provider.dart # テーマモードを管理するRiverpodプロバイダ
+```
+
+💡 `SharedPreferences` と連携し、ユーザーが選択したテーマモードを永続化しています。
+アプリ起動時に前回のテーマ設定を自動的に復元します。
+
+---
+<a id="d-features"></a>
+
+## D. 機能別実装
+
+<a id="d-11-api"></a>
+
+### 🔌 11. API通信デモ（UserList）
 
 [Dio](https://pub.dev/packages/dio) と [Riverpod](https://pub.dev/packages/flutter_riverpod) を組み合わせ、
 外部APIからデータを取得してUIに表示する仕組みを実装しています。
@@ -357,7 +410,9 @@ lib/src/features/user/
 
 ---
 
-## 通信エラーとロギング改善
+<a id="d-12-error"></a>
+
+### ⚠️ 12. 通信エラーとロギング改善
 
 このプロジェクトでは、Dioを利用した通信基盤に共通エラーハンドリングとロギング処理を追加しています。
 これにより、すべてのAPI通信で統一的にエラー管理とログ出力が可能になります。
@@ -392,7 +447,9 @@ lib/src/core/
 
 ---
 
-## 共通エラーハンドリング（Snackbar & Dialog）
+<a id="d-13-handler"></a>
+
+### ❗ 13. 共通エラーハンドリング（Snackbar & Dialog）
 
 アプリ全体で例外を統一的に処理するために、`ErrorHandler` クラスを追加します。  
 これにより、軽いエラーは **Snackbar**、致命的なエラーは **Dialog** で表示できます。
@@ -439,7 +496,9 @@ await ErrorHandler.showDialogError(context, e);
 
 ---
 
-## トークン認証対応（Bearer Token + 自動リフレッシュ）
+<a id="d-14-auth"></a>
+
+### 🔐 14. トークン認証対応（Bearer Token + 自動リフレッシュ）
 
 このプロジェクトでは、API通信にBearerトークン認証を追加し、トークンの自動付与および自動リフレッシュ処理を実装しています。
 これにより、ログイン後のすべての通信で認証ヘッダーを自動的に付与し、有効期限切れ時に再取得を行います。
@@ -498,7 +557,9 @@ dio.interceptors.add(ref.read(dioInterceptorProvider));   // ② ログ出力・
 
 ---
 
-## 認証状態管理とルーティング制御（AuthGuard + SplashScreen）
+<a id="d-15-guard"></a>
+
+### 👮 15. 認証状態管理とルーティング制御（AuthGuard + SplashScreen）
 
 このプロジェクトでは、`AuthStateNotifier` と `GoRouter` の `redirect` 機能を組み合わせ、  
 ログイン状態に応じて画面遷移を自動制御しています。  
@@ -556,7 +617,9 @@ SplashScreen表示（認証状態チェック）
 
 ---
 
-## APIキャッシュ対応（SharedPreferencesベース）
+<a id="d-16-cache"></a>
+
+### 🗂 16. APIキャッシュ対応（SharedPreferencesベース）
 
 このプロジェクトでは、APIレスポンスを一定時間キャッシュして再利用することで、通信効率とユーザー体験を向上させています。
 キャッシュは `SharedPreferences` を用いて実現しており、外部パッケージを追加せずに軽量に動作します。
@@ -640,7 +703,61 @@ class UserListScreen extends ConsumerWidget {
 
 ---
 
-## コード生成コマンド
+<a id="d-17-crash"></a>
+
+### 💥 17. Firebase Crashlytics（クラッシュレポート）
+
+本プロジェクトでは **Firebase Crashlytics** を導入し、アプリのクラッシュを自動収集できるようにしています。
+
+### ⭐ セットアップ内容
+
+- `firebase_core` / `firebase_crashlytics` を追加
+- `flutterfire configure` による iOS / Android アプリ登録
+- `main.dart` に以下のハンドラーを挿入  
+  - Flutter エラー送信  
+  - Dart の未処理例外送信  
+- iOS  
+  - Build Settings → Debug Information Format を **DWARF with dSYM File** に設定  
+- Android  
+  - `build.gradle.kts` に Crashlytics 用設定を追加  
+  - シンボルアップロードを自動有効化済み  
+
+### 🔥 動作確認方法
+
+1. HomeScreen の「クラッシュテスト」ボタンを押す  
+2. アプリが強制終了する  
+3. アプリを再起動すると Crashlytics にログが送信される  
+4. Firebase Console → Crashlytics でクラッシュログが表示される
+
+### 📂 関連ファイル（確認用）
+
+- `lib/main.dart`  
+  - `Firebase.initializeApp` 後に Crashlytics ハンドラーを登録
+
+- `lib/src/core/widgets/home_screen.dart`  
+  - テスト用クラッシュボタン  
+
+    ```dart
+    FirebaseCrashlytics.instance.crash();
+    ```
+
+- `android/app/build.gradle.kts`  
+  - Crashlytics プラグイン  
+  - シンボルアップロード設定
+
+- `ios/Runner`  
+  - dSYM が生成されるよう Xcode の設定済み
+
+Crashlytics を導入することで、アプリの安定性向上・バグ検知が飛躍的に向上します。
+
+---
+<a id="e-ops"></a>
+
+## E. 開発運用
+
+<a id="e-18-build"></a>
+
+### ⚙️ 18. コード生成コマンド
 
 ### 環境の切り替え、設定値変更
 
@@ -718,7 +835,9 @@ fvm dart run build_runner watch --delete-conflicting-outputs
 
 ---
 
-## このプロジェクトで学べること
+<a id="e-19-learn"></a>
+
+### 🎓 19. このプロジェクトで学べること
 
 このサンプルプロジェクトを通して、以下の技術や設計手法を体系的に学ぶことができます。
 
@@ -736,7 +855,9 @@ fvm dart run build_runner watch --delete-conflicting-outputs
 
 ---
 
-## 今後の拡張案
+<a id="e-20-future"></a>
+
+### 🚧 20. 今後の拡張案
 
 | カテゴリ | 拡張内容 |
 |-----------|-----------|

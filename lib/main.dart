@@ -2,7 +2,11 @@
 // Riverpod を使うために最上位に ProviderScope を置きます。
 // theme/darkTheme/themeMode を追加します。
 
+import 'dart:async';
+import 'dart:ui';
+
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/firebase_options.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
@@ -16,6 +20,17 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Crashlytics: Flutterエラーを記録
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+
+  // Crashlytics: Dartの未処理例外を記録
+  PlatformDispatcher.instance.onError = (error, stack) {
+    unawaited(
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true),
+    );
+    return true;
+  };
 
   runApp(
     const ProviderScope(
@@ -33,7 +48,6 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // アプリ全体の設定をまとめて取得
     final configAsync = ref.watch(appConfigProvider);
-    final l10n = AppLocalizations.of(context)!;
 
     return configAsync.when(
       data: (tuple) {
@@ -42,15 +56,29 @@ class MyApp extends ConsumerWidget {
         final locale = tuple.locale;
 
         return MaterialApp.router(
-          title: l10n.appTitle,
-          theme: AppTheme.light(), // ライト
-          darkTheme: AppTheme.dark(), // ダーク
-          themeMode: themeMode, // 現在のモード
-          routerConfig: router, // ← これが GoRouter の本体
-          debugShowCheckedModeBanner: false,
           locale: locale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
+          title: '', // temporary placeholder
+          theme: AppTheme.light(),
+          darkTheme: AppTheme.dark(),
+          themeMode: themeMode,
+          routerConfig: router,
+          debugShowCheckedModeBanner: false,
+          builder: (context, child) {
+            final l10n = AppLocalizations.of(context);
+            if (l10n == null) {
+              return const SizedBox.shrink();
+            }
+            return Title(
+              title: l10n.appTitle,
+              color: Theme.of(context).colorScheme.surface,
+              child: MediaQuery(
+                data: MediaQuery.of(context),
+                child: child!,
+              ),
+            );
+          },
         );
       },
       loading: () => const MaterialApp(
@@ -58,13 +86,16 @@ class MyApp extends ConsumerWidget {
           body: Center(child: CircularProgressIndicator()),
         ),
       ),
-      error: (err, _) => MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: Text('${l10n.errorOccurred}: $err'),
+      error: (err, _) {
+        final l10n = AppLocalizations.of(context)!;
+        return MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: Text('${l10n.errorOccurred}: $err'),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

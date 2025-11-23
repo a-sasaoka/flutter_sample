@@ -41,5 +41,6 @@
   "loginSuccess": "ログイン成功！",
   "sampleTitle": "サンプル機能",
   "sampleDescription": "サンプル機能の画面です。ここにUIや状態管理を追加します。",
-  "userListTitle": "ユーザー一覧"
+  "userListTitle": "ユーザー一覧",
+  "homeCrashTest": "クラッシュテスト"
 }
