@@ -36,12 +36,13 @@ Flutter開発のサンプルプロジェクトです。\
 - [15. 認証状態管理とルーティング制御（AuthGuard + SplashScreen）](#d-15-guard)
 - [16. APIキャッシュ対応（SharedPreferencesベース）](#d-16-cache)
 - [17. Firebase Crashlytics](#d-17-crash)
+- [18. Firebase Analytics](#d-18-analytics)
 
 ### E. 開発運用
 
-- [18. コード生成コマンド](#e-18-build)
-- [19. このプロジェクトで学べること](#e-19-learn)
-- [20. 今後の拡張案](#e-20-future)
+- [19. コード生成コマンド](#e-19-build)
+- [20. このプロジェクトで学べること](#e-20-learn)
+- [21. 今後の拡張案](#e-21-future)
 
 ---
 <a id="a-basic"></a>
@@ -101,6 +102,9 @@ lib
 │   └── app_ja.arb                                  # 日本語翻訳ファイル
 └── src
     ├── core                                        # アプリ全体で共通的に利用される基盤コード
+    │   ├── analytics                               # analytics関連
+    │   │   ├── analytics_event.dart                # analyticsイベント定義
+    │   │   └── analytics_service.dart              # analyticsサービス
     │   ├── auth                                    # 認証関連（トークン管理・リフレッシュなど）
     │   │   ├── auth_guard.dart                     # GoRouter用ガード関数
     │   │   ├── auth_repository.dart                # ログイン・リフレッシュ処理
@@ -751,13 +755,102 @@ class UserListScreen extends ConsumerWidget {
 Crashlytics を導入することで、アプリの安定性向上・バグ検知が飛躍的に向上します。
 
 ---
+
+<a id="d-18-analytics"></a>
+
+### 📊 18. Firebase Analytics（自動画面トラッキング & 共通イベント基盤）
+
+本プロジェクトでは、GoRouter と Firebase Analytics を組み合わせた  
+**自動 screen_view 送信 + 統合イベント管理** を行っています。
+
+---
+
+### 🔍 自動画面トラッキング（GoRouter × TypedRouteAnalyticsObserver）
+
+アプリ内の画面移動を Firebase Analytics に **自動で送信**します。  
+GoRouter の `NavigatorObserver` を利用し、送信する内容をカスタマイズ出来るように改善しました。
+
+### 📌 特徴
+
+- 自動で付与するパラメータを簡単に追加可能
+- DebugView でリアルタイム確認可能  
+
+#### 📁 関連ファイル
+
+```plaintext
+lib/src/core/router/app_router.dart
+```
+
+#### 📌 コード概要
+
+```dart
+GoRouter(
+  observers: [
+    TypedRouteAnalyticsObserver(ref),
+  ],
+);
+```
+
+#### 📌 実際に送信されるデータ例
+
+```plaintext
+screen_view {
+  screen_class: "settings",
+  screen_name: "settings"
+}
+```
+
+---
+
+### 🧩 AnalyticsService（イベント送信の統合管理）
+
+UI 層から FirebaseAnalytics を直接触らないようにするため、  
+**AnalyticsService** を導入し、カスタムイベント送信を統一しています。
+
+### 📁 ファイル構成
+
+```plaintext
+lib/src/core/analytics/analytics_service.dart
+```
+
+#### 📌 主な役割
+
+- 任意イベント（例: ボタンタップ、完了アクションなど）の送信  
+- GoRouter の自動画面トラッキングと組み合わせて  
+  **アプリ全体を Analytics で完全可視化**  
+
+#### 📌 使用例
+
+```dart
+ref.read(analyticsServiceProvider).logEvent(
+  name: 'home_analytics_button_tapped',
+);
+```
+
+必要なイベントを簡潔に記録でき、計測設計がしやすくなります。
+
+---
+
+### ⭐ この構成のメリットまとめ
+
+| 項目 | 内容 |
+|------|------|
+| 保守性 | イベント送信は AnalyticsService に集約 |
+| 拡張性 | 他の Firebase 機能（Perf / A/B Testing）とも連携しやすい |
+
+---
+
+今後のイベント設計や分析設計にも拡張しやすい、  
+実務レベルの Analytics 基盤が完成しています。
+
+---
 <a id="e-ops"></a>
 
 ## E. 開発運用
 
-<a id="e-18-build"></a>
+<a id="e-19-build"></a>
 
-### ⚙️ 18. コード生成コマンド
+### ⚙️ 19. コード生成コマンド
 
 ### 環境の切り替え、設定値変更
 
@@ -835,9 +928,9 @@ fvm dart run build_runner watch --delete-conflicting-outputs
 
 ---
 
-<a id="e-19-learn"></a>
+<a id="e-20-learn"></a>
 
-### 🎓 19. このプロジェクトで学べること
+### 🎓 20. このプロジェクトで学べること
 
 このサンプルプロジェクトを通して、以下の技術や設計手法を体系的に学ぶことができます。
 
@@ -855,9 +948,9 @@ fvm dart run build_runner watch --delete-conflicting-outputs
 
 ---
 
-<a id="e-20-future"></a>
+<a id="e-21-future"></a>
 
-### 🚧 20. 今後の拡張案
+### 🚧 21. 今後の拡張案
 
 | カテゴリ | 拡張内容 |
 |-----------|-----------|

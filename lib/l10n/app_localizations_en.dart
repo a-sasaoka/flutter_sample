@@ -138,4 +138,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeCrashTest => 'Crash Test';
+
+  @override
+  String get homeAnalyticsTest => 'Analytics Test';
 }

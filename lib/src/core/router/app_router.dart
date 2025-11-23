@@ -1,8 +1,12 @@
 // Riverpod + GoRouter + アノテーション対応版
 // GoRouterBuilderによる型安全なルーティング + riverpod_generator対応
 
+import 'dart:async';
+
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/core/auth/auth_guard.dart';
+import 'package:flutter_sample/src/core/network/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/home_screen.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
 import 'package:flutter_sample/src/core/widgets/settings_screen.dart';
@@ -91,6 +95,48 @@ class SplashRoute extends GoRouteData with $SplashRoute {
   }
 }
 
+/// Firebase Analytics の screen_class をカスタマイズして送信するカスタム Observer
+class TypedRouteAnalyticsObserver extends NavigatorObserver {
+  /// コンストラクタ
+  TypedRouteAnalyticsObserver({required this.ref, required this.analytics});
+
+  /// Firebase Analytics インスタンス
+  final FirebaseAnalytics analytics;
+
+  /// Ref
+  final Ref ref;
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _sendScreenView(route);
+    super.didPush(route, previousRoute);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    if (newRoute != null) {
+      _sendScreenView(newRoute);
+    }
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+  }
+
+  void _sendScreenView(Route<dynamic> route) {
+    final settings = route.settings;
+    final runtimeTypeName = settings.name ?? route.runtimeType.toString();
+
+    final screenClass = runtimeTypeName.replaceAll(r'$', '');
+
+    unawaited(
+      analytics.logScreenView(
+        screenClass: screenClass,
+        screenName: screenClass,
+      ),
+    );
+
+    ref.read(loggerProvider).d('📊 screen_view → $screenClass');
+  }
+}
+
 /// 🌐 GoRouterのインスタンスをRiverpodで提供
 @riverpod
 GoRouter router(Ref ref) {
@@ -100,5 +146,11 @@ GoRouter router(Ref ref) {
     errorBuilder: (context, state) =>
         NotFoundScreen(unknownPath: state.uri.toString()),
     debugLogDiagnostics: true,
+    observers: [
+      TypedRouteAnalyticsObserver(
+        ref: ref,
+        analytics: FirebaseAnalytics.instance,
+      ),
+    ],
   );
 }

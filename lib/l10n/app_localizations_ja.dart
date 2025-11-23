@@ -136,4 +136,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get homeCrashTest => 'クラッシュテスト';
+
+  @override
+  String get homeAnalyticsTest => 'アナリティクステスト';
 }

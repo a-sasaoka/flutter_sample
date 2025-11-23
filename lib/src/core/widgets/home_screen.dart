@@ -2,22 +2,26 @@
 
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
+import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
+import 'package:flutter_sample/src/core/network/logger_provider.dart';
 import 'package:flutter_sample/src/core/router/app_router.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// ホーム画面のウィジェット
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   /// コンストラクタ
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   String appName = '';
   String bundleId = '';
 
@@ -54,12 +58,12 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Text(AppLocalizations.of(context)!.homeToUserList),
           ),
           const SizedBox(height: 16),
-          OutlinedButton(
+          FilledButton(
             onPressed: () => context.go('/undefined/path'),
             child: Text(AppLocalizations.of(context)!.homeToNotFound),
           ),
           const SizedBox(height: 16),
-          OutlinedButton(
+          FilledButton(
             onPressed: () async {
               final info = await PackageInfo.fromPlatform();
               setState(() {
@@ -78,6 +82,23 @@ class _HomeScreenState extends State<HomeScreen> {
               FirebaseCrashlytics.instance.crash();
             },
             child: Text(AppLocalizations.of(context)!.homeCrashTest),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: () async {
+              final logger = ref.read(loggerProvider);
+              final analytics = ref.read(analyticsServiceProvider);
+
+              try {
+                await analytics.logEvent(
+                  event: AnalyticsEvent.homeButtonTapped,
+                );
+                logger.d('🎯 logEvent sent via AnalyticsService');
+              } on Exception catch (e, st) {
+                logger.e('❌ AnalyticsService error: $e\n$st');
+              }
+            },
+            child: Text(AppLocalizations.of(context)!.homeAnalyticsTest),
           ),
         ],
       ),

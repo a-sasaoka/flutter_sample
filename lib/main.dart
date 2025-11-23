@@ -10,6 +10,8 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/firebase_options.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
+import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/config/app_config_provider.dart';
 import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -31,6 +33,20 @@ Future<void> main() async {
     );
     return true;
   };
+
+  final container = ProviderContainer();
+  final analytics = container.read(analyticsServiceProvider);
+
+  await analytics.logEvent(
+    event: AnalyticsEvent.appStarted,
+    parameters: {
+      'env': const String.fromEnvironment(
+        'FLUTTER_ENV',
+        defaultValue: 'unknown',
+      ),
+    },
+  );
+  container.dispose();
 
   runApp(
     const ProviderScope(

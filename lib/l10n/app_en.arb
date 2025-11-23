@@ -42,5 +42,6 @@
   "sampleTitle": "Sample Feature",
   "sampleDescription": "This is the sample feature screen. UI and state management will be added here.",
   "userListTitle": "User List",
-  "homeCrashTest": "Crash Test"
+  "homeCrashTest": "Crash Test",
+  "homeAnalyticsTest": "Analytics Test"
 }
