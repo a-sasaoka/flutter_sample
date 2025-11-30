@@ -139,4 +139,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get homeAnalyticsTest => 'アナリティクステスト';
+
+  @override
+  String get errorLoginFailed => 'ログインに失敗しました。';
 }

@@ -43,5 +43,6 @@
   "sampleDescription": "サンプル機能の画面です。ここにUIや状態管理を追加します。",
   "userListTitle": "ユーザー一覧",
   "homeCrashTest": "クラッシュテスト",
-  "homeAnalyticsTest": "アナリティクステスト"
+  "homeAnalyticsTest": "アナリティクステスト",
+  "errorLoginFailed": "ログインに失敗しました。"
 }

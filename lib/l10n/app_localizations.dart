@@ -361,6 +361,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Analytics Test'**
   String get homeAnalyticsTest;
+
+  /// No description provided for @errorLoginFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Login failed.'**
+  String get errorLoginFailed;
 }
 
 class _AppLocalizationsDelegate

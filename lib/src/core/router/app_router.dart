@@ -6,10 +6,13 @@ import 'dart:async';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/core/auth/auth_guard.dart';
+import 'package:flutter_sample/src/core/auth/firebase_auth_guard.dart';
+import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/network/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/home_screen.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
 import 'package:flutter_sample/src/core/widgets/settings_screen.dart';
+import 'package:flutter_sample/src/features/auth/presentation/firebase_login_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/login_screen.dart';
 import 'package:flutter_sample/src/features/sample_feature/presentation/sample_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
@@ -79,6 +82,9 @@ class LoginRoute extends GoRouteData with $LoginRoute {
 
   @override
   Widget build(BuildContext context, GoRouterState state) {
+    if (AppEnv.useFirebaseAuth) {
+      return const FirebaseLoginScreen();
+    }
     return const LoginScreen();
   }
 }
@@ -142,7 +148,12 @@ class TypedRouteAnalyticsObserver extends NavigatorObserver {
 GoRouter router(Ref ref) {
   return GoRouter(
     routes: $appRoutes,
-    redirect: (context, state) => authGuard(ref, state),
+    redirect: (context, state) {
+      if (AppEnv.useFirebaseAuth) {
+        return firebaseAuthGuard(ref, state);
+      }
+      return authGuard(ref, state);
+    },
     errorBuilder: (context, state) =>
         NotFoundScreen(unknownPath: state.uri.toString()),
     debugLogDiagnostics: true,

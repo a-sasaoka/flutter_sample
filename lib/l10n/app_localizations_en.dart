@@ -141,4 +141,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeAnalyticsTest => 'Analytics Test';
+
+  @override
+  String get errorLoginFailed => 'Login failed.';
 }
