@@ -1,4 +1,4 @@
-## GoRouterを使ったルーティング設定
+# GoRouterを使ったルーティング設定
 
 本プロジェクトでは [GoRouter](https://pub.dev/packages/go_router) を利用し、アプリ全体の画面遷移を管理しています。\
 さらに [go_router_builder](https://pub.dev/packages/go_router_builder) を導入し、アノテーションによる**型安全なルーティング定義**を実現しています。

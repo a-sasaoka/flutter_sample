@@ -1,10 +1,10 @@
-## API通信デモ（UserList）
+# API通信デモ（UserList）
 
 [Dio](https://pub.dev/packages/dio) と [Riverpod](https://pub.dev/packages/flutter_riverpod) を組み合わせ、
 外部APIからデータを取得してUIに表示する仕組みを実装しています。
 以下は `https://jsonplaceholder.typicode.com/users` を利用したユーザー一覧取得サンプルです。
 
-### 📁 構成例
+## 📁 構成例
 
 ```plaintext
 lib/src/features/user/
@@ -17,7 +17,7 @@ lib/src/features/user/
       └── user_list_screen.dart # 一覧表示画面
 ```
 
-### 主なポイント
+## 主なポイント
 
 - `Dio` の共通インスタンスを `apiClientProvider` として提供。
 - `Freezed` + `JsonSerializable` による型安全なモデル変換。
@@ -33,7 +33,7 @@ lib/src/features/user/
 
 ---
 
-### 📁 追加ファイル構成
+## 📁 追加ファイル構成
 
 ```plaintext
 lib/src/core/
@@ -46,7 +46,7 @@ lib/src/core/
 
 ---
 
-### ✅ メリット
+## ✅ メリット
 
 | 項目 | 内容 |
 |------|------|
@@ -68,7 +68,7 @@ lib/src/core/
 
 ---
 
-### 📁 ファイル構成
+## 📁 ファイル構成
 
 ```plaintext
 lib/src/core/ui/
@@ -77,15 +77,15 @@ lib/src/core/ui/
 
 ---
 
-### 💡 使い分け例
+## 💡 使い分け例
 
-#### 軽い通信エラー（Snackbar）
+### 軽い通信エラー（Snackbar）
 
 ```dart
 ErrorHandler.showSnackBar(context, e);
 ```
 
-#### 致命的なエラー（Dialog）
+### 致命的なエラー（Dialog）
 
 ```dart
 await ErrorHandler.showDialogError(context, e);
@@ -93,7 +93,7 @@ await ErrorHandler.showDialogError(context, e);
 
 ---
 
-### ✅ メリット
+## ✅ メリット
 
 | 項目 | 内容 |
 |------|------|

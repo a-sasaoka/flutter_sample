@@ -1,11 +1,11 @@
-## APIキャッシュ対応（SharedPreferencesベース）
+# APIキャッシュ対応（SharedPreferencesベース）
 
 このプロジェクトでは、APIレスポンスを一定時間キャッシュして再利用することで、通信効率とユーザー体験を向上させています。
 キャッシュは `SharedPreferences` を用いて実現しており、外部パッケージを追加せずに軽量に動作します。
 
 ---
 
-### 📁 追加ファイル構成
+## 📁 追加ファイル構成
 
 ```plaintext
 lib/src/core/storage/
@@ -18,7 +18,7 @@ lib/src/features/user/data/
 
 ---
 
-### ✅ メリット
+## ✅ メリット
 
 | 項目 | 内容 |
 |------|------|
@@ -28,7 +28,7 @@ lib/src/features/user/data/
 
 ---
 
-### 🔄 Pull to Refreshによるキャッシュ更新例
+## 🔄 Pull to Refreshによるキャッシュ更新例
 
 以下の例では、`RefreshIndicator` を利用してユーザーがスワイプ操作で最新データを取得します。
 
@@ -74,7 +74,7 @@ class UserListScreen extends ConsumerWidget {
 }
 ```
 
-### 💡 補足
+## 💡 補足
 
 - `fetchUsers(forceRefresh: true)` によってキャッシュをスキップしてAPIを再取得します。  
 - キャッシュ層 (`CacheManager`) に `clear()` を追加してから再保存することで、常に最新データを反映。  

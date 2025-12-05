@@ -1,11 +1,11 @@
-## トークン認証対応（Bearer Token + 自動リフレッシュ）
+# トークン認証対応（Bearer Token + 自動リフレッシュ）
 
 このプロジェクトでは、API通信にBearerトークン認証を追加し、トークンの自動付与および自動リフレッシュ処理を実装しています。
 これにより、ログイン後のすべての通信で認証ヘッダーを自動的に付与し、有効期限切れ時に再取得を行います。
 
 ---
 
-### 📁 ファイル構成
+## 📁 ファイル構成
 
 ```plaintext
 lib/src/core/auth/
@@ -16,7 +16,7 @@ lib/src/core/auth/
 
 ---
 
-### 🧩 Dioへの組み込み順序（重要）
+## 🧩 Dioへの組み込み順序（重要）
 
 Interceptorの登録順序は以下の通りにしてください👇
 
@@ -25,7 +25,7 @@ dio.interceptors.add(ref.read(tokenInterceptorProvider)); // ① トークン付
 dio.interceptors.add(ref.read(dioInterceptorProvider));   // ② ログ出力・エラーハンドリング
 ```
 
-#### 💡 理由
+### 💡 理由
 
 | 順番 | 説明 |
 |------|------|
@@ -36,7 +36,7 @@ dio.interceptors.add(ref.read(dioInterceptorProvider));   // ② ログ出力・
 
 ---
 
-### ✅ 動作確認手順
+## ✅ 動作確認手順
 
 1. `/auth/login` に有効なユーザー情報をPOSTしてログイン  
 2. `SharedPreferences` にトークンが保存されていることを確認  
@@ -49,7 +49,7 @@ dio.interceptors.add(ref.read(dioInterceptorProvider));   // ② ログ出力・
 
 ---
 
-### 💡 補足
+## 💡 補足
 
 - `authRepositoryProvider` を通じてログインAPIを呼び出し、トークンを保存します。  
 - 以降のAPI通信では `tokenInterceptorProvider` により自動で認証ヘッダーが付与されます。  

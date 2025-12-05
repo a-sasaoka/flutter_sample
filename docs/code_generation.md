@@ -1,28 +1,28 @@
-## コード生成コマンド
+# コード生成コマンド
 
-### 環境の切り替え、設定値変更
+## 環境の切り替え、設定値変更
 
 コード生成時に使用する `.env` ファイルを環境ごとに切り替えることができます。以下のコマンドを使用して、対象の環境設定に合わせて生成してください。
 
-#### Local環境
+### Local環境
 
 ```bash
 fvm dart run build_runner build --delete-conflicting-outputs --define "envied_generator:envied=path=.env.local"
 ```
 
-#### Dev環境
+### Dev環境
 
 ```bash
 fvm dart run build_runner build --delete-conflicting-outputs --define "envied_generator:envied=path=.env.dev"
 ```
 
-#### Staging環境
+### Staging環境
 
 ```bash
 fvm dart run build_runner build --delete-conflicting-outputs --define "envied_generator:envied=path=.env.stg"
 ```
 
-#### Production環境
+### Production環境
 
 ```bash
 fvm dart run build_runner build --delete-conflicting-outputs --define "envied_generator:envied=path=.env.prod"
@@ -30,15 +30,15 @@ fvm dart run build_runner build --delete-conflicting-outputs --define "envied_ge
 
 ---
 
-### 通常のコード生成
+## 通常のコード生成
 
-#### 都度実行する場合
+### 都度実行する場合
 
 ```bash
 fvm dart run build_runner build --delete-conflicting-outputs
 ```
 
-#### 監視モードで実行する場合
+### 監視モードで実行する場合
 
 ```bash
 fvm dart run build_runner watch --delete-conflicting-outputs
@@ -46,9 +46,9 @@ fvm dart run build_runner watch --delete-conflicting-outputs
 
 ---
 
-### ネイティブ部分の環境による切り替え
+## ネイティブ部分の環境による切り替え
 
-## iOS
+### iOS
 
 `ios/scripts/extract_dart_defines.sh` をPreActionsとして実行することで `.env` ファイルから値を取得します。  
 取得した値は `ios/Runner/Info.plist` や `ios/Runner.xcodeproj/project.pbxproj` 内で `$(APP_NAME)` のように参照できます。
@@ -60,7 +60,7 @@ fvm dart run build_runner watch --delete-conflicting-outputs
 
 ---
 
-### 💡 補足：再生成が必要なタイミング
+## 💡 補足：再生成が必要なタイミング
 
 | 状況 | コード生成の要否 |
 |------|----------------|
