@@ -144,4 +144,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorLoginFailed => 'Login failed.';
+
+  @override
+  String get signUpTitle => 'Sign Up';
+
+  @override
+  String get signUp => 'Create Account';
+
+  @override
+  String get errorSignUpFailed => 'Sign up failed.';
+
+  @override
+  String get loading => 'Loading...';
 }

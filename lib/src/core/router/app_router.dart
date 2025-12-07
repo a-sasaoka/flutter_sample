@@ -13,6 +13,7 @@ import 'package:flutter_sample/src/core/widgets/home_screen.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
 import 'package:flutter_sample/src/core/widgets/settings_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_login_screen.dart';
+import 'package:flutter_sample/src/features/auth/presentation/firebase_sign_up_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/login_screen.dart';
 import 'package:flutter_sample/src/features/sample_feature/presentation/sample_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
@@ -98,6 +99,18 @@ class SplashRoute extends GoRouteData with $SplashRoute {
   @override
   Widget build(BuildContext context, GoRouterState state) {
     return const SplashScreen();
+  }
+}
+
+/// 🧾 サインアップ画面ルート
+@TypedGoRoute<SignUpRoute>(path: '/signup')
+class SignUpRoute extends GoRouteData with $SignUpRoute {
+  /// コンストラクタ
+  const SignUpRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const FirebaseSignUpScreen();
   }
 }
 

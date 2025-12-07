@@ -6,7 +6,12 @@ part of 'app_router.dart';
 // GoRouterGenerator
 // **************************************************************************
 
-List<RouteBase> get $appRoutes => [$homeRoute, $loginRoute, $splashRoute];
+List<RouteBase> get $appRoutes => [
+  $homeRoute,
+  $loginRoute,
+  $splashRoute,
+  $signUpRoute,
+];
 
 RouteBase get $homeRoute => GoRouteData.$route(
   path: '/',
@@ -144,6 +149,29 @@ mixin $SplashRoute on GoRouteData {
   void replace(BuildContext context) => context.replace(location);
 }
 
+RouteBase get $signUpRoute =>
+    GoRouteData.$route(path: '/signup', factory: $SignUpRoute._fromState);
+
+mixin $SignUpRoute on GoRouteData {
+  static SignUpRoute _fromState(GoRouterState state) => const SignUpRoute();
+
+  @override
+  String get location => GoRouteData.$location('/signup');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
@@ -194,4 +222,4 @@ final class RouterProvider
   }
 }
 
-String _$routerHash() => r'b0ee45589595d43f802ea9b7cd753f44346ffe53';
+String _$routerHash() => r'43617d8eb0d0e6996675baf7996aae653b95643f';

@@ -62,6 +62,12 @@ class _FirebaseLoginScreenState extends ConsumerState<FirebaseLoginScreen> {
               },
               child: Text(l10n.login),
             ),
+            const SizedBox(height: 32),
+            // 新規登録画面へ遷移
+            ElevatedButton(
+              onPressed: () => const SignUpRoute().push<void>(context),
+              child: Text(l10n.signUp),
+            ),
           ],
         ),
       ),

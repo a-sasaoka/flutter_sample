@@ -142,4 +142,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get errorLoginFailed => 'ログインに失敗しました。';
+
+  @override
+  String get signUpTitle => '新規登録';
+
+  @override
+  String get signUp => '登録';
+
+  @override
+  String get errorSignUpFailed => '登録に失敗しました';
+
+  @override
+  String get loading => '読み込み中';
 }

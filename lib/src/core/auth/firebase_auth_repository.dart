@@ -19,22 +19,31 @@ class FirebaseAuthRepository extends _$FirebaseAuthRepository {
 
   /// メールアドレスとパスワードでログインする
   Future<void> signIn(String email, String password) async {
-    await _auth.signInWithEmailAndPassword(
+    final userCredential = await _auth.signInWithEmailAndPassword(
       email: email,
       password: password,
     );
+
+    // ログインした情報でstateを更新
+    state = userCredential.user;
   }
 
   /// メールアドレスとパスワードで新規登録する
   Future<void> signUp(String email, String password) async {
-    await _auth.createUserWithEmailAndPassword(
+    final userCredential = await _auth.createUserWithEmailAndPassword(
       email: email,
       password: password,
     );
+
+    // 登録した情報でstateを更新
+    state = userCredential.user;
   }
 
   /// サインアウトする
   Future<void> signOut() async {
     await _auth.signOut();
+
+    // stateをnullで初期化
+    state = null;
   }
 }

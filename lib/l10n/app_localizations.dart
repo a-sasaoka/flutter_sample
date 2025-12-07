@@ -367,6 +367,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Login failed.'**
   String get errorLoginFailed;
+
+  /// No description provided for @signUpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Up'**
+  String get signUpTitle;
+
+  /// No description provided for @signUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Account'**
+  String get signUp;
+
+  /// No description provided for @errorSignUpFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign up failed.'**
+  String get errorSignUpFailed;
+
+  /// No description provided for @loading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading...'**
+  String get loading;
 }
 
 class _AppLocalizationsDelegate

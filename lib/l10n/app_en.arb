@@ -44,5 +44,9 @@
   "userListTitle": "User List",
   "homeCrashTest": "Crash Test",
   "homeAnalyticsTest": "Analytics Test",
-  "errorLoginFailed": "Login failed."
+  "errorLoginFailed": "Login failed.",
+  "signUpTitle": "Sign Up",
+  "signUp": "Create Account",
+  "errorSignUpFailed": "Sign up failed.",
+  "loading": "Loading..."
 }
