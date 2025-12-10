@@ -349,6 +349,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'User List'**
   String get userListTitle;
+
+  /// No description provided for @homeCrashTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Crash Test'**
+  String get homeCrashTest;
+
+  /// No description provided for @homeAnalyticsTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Analytics Test'**
+  String get homeAnalyticsTest;
 }
 
 class _AppLocalizationsDelegate

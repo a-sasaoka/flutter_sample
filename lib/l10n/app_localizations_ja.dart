@@ -133,4 +133,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get userListTitle => 'ユーザー一覧';
+
+  @override
+  String get homeCrashTest => 'クラッシュテスト';
+
+  @override
+  String get homeAnalyticsTest => 'アナリティクステスト';
 }
