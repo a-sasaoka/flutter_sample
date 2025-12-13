@@ -6,10 +6,16 @@ import 'dart:async';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/core/auth/auth_guard.dart';
+import 'package:flutter_sample/src/core/auth/firebase_auth_guard.dart';
+import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/network/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/home_screen.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
 import 'package:flutter_sample/src/core/widgets/settings_screen.dart';
+import 'package:flutter_sample/src/features/auth/presentation/firebase_email_verification_screen.dart';
+import 'package:flutter_sample/src/features/auth/presentation/firebase_login_screen.dart';
+import 'package:flutter_sample/src/features/auth/presentation/firebase_reset_password_screen.dart';
+import 'package:flutter_sample/src/features/auth/presentation/firebase_sign_up_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/login_screen.dart';
 import 'package:flutter_sample/src/features/sample_feature/presentation/sample_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
@@ -79,6 +85,9 @@ class LoginRoute extends GoRouteData with $LoginRoute {
 
   @override
   Widget build(BuildContext context, GoRouterState state) {
+    if (AppEnv.useFirebaseAuth) {
+      return const FirebaseLoginScreen();
+    }
     return const LoginScreen();
   }
 }
@@ -92,6 +101,42 @@ class SplashRoute extends GoRouteData with $SplashRoute {
   @override
   Widget build(BuildContext context, GoRouterState state) {
     return const SplashScreen();
+  }
+}
+
+/// 🧾 サインアップ画面ルート
+@TypedGoRoute<SignUpRoute>(path: '/signup')
+class SignUpRoute extends GoRouteData with $SignUpRoute {
+  /// コンストラクタ
+  const SignUpRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const FirebaseSignUpScreen();
+  }
+}
+
+/// 🔑 パスワードリセット画面ルート
+@TypedGoRoute<ResetPasswordRoute>(path: '/reset-password')
+class ResetPasswordRoute extends GoRouteData with $ResetPasswordRoute {
+  /// コンストラクタ
+  const ResetPasswordRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const FirebaseResetPasswordScreen();
+  }
+}
+
+/// 📧 メールアドレス確認画面ルート
+@TypedGoRoute<EmailVerificationRoute>(path: '/email-verification')
+class EmailVerificationRoute extends GoRouteData with $EmailVerificationRoute {
+  /// コンストラクタ
+  const EmailVerificationRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const FirebaseEmailVerificationScreen();
   }
 }
 
@@ -142,7 +187,12 @@ class TypedRouteAnalyticsObserver extends NavigatorObserver {
 GoRouter router(Ref ref) {
   return GoRouter(
     routes: $appRoutes,
-    redirect: (context, state) => authGuard(ref, state),
+    redirect: (context, state) {
+      if (AppEnv.useFirebaseAuth) {
+        return firebaseAuthGuard(ref, state);
+      }
+      return authGuard(ref, state);
+    },
     errorBuilder: (context, state) =>
         NotFoundScreen(unknownPath: state.uri.toString()),
     debugLogDiagnostics: true,
