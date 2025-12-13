@@ -3,7 +3,7 @@
 本プロジェクトでは [GoRouter](https://pub.dev/packages/go_router) を利用し、アプリ全体の画面遷移を管理しています。\
 さらに [go_router_builder](https://pub.dev/packages/go_router_builder) を導入し、アノテーションによる**型安全なルーティング定義**を実現しています。
 
-### 主な特徴
+## 主な特徴
 
 - `@TypedGoRoute` アノテーションでルートを定義し、`build_runner` により自動生成。
 - 各画面は `GoRouteData` を継承し、IDE補完で安全に遷移可能。
@@ -95,8 +95,6 @@ SplashScreen表示（認証状態チェック）
 | 自動遷移 | GoRouterの`redirect`で状態に応じてルート切替 |
 | UX | SplashScreenでチラつきのない自然な遷移 |
 | 再利用性 | どのアプリでも流用可能な汎用的構成 |
-
----
 
 この構成により、ログイン状態を常に監視し、  
 起動時・ログイン時・ログアウト時の画面遷移を自動化できます。

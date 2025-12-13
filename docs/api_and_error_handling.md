@@ -91,9 +91,7 @@ ErrorHandler.showSnackBar(context, e);
 await ErrorHandler.showDialogError(context, e);
 ```
 
----
-
-## ✅ メリット
+### ✅ メリット
 
 | 項目 | 内容 |
 |------|------|
@@ -101,8 +99,6 @@ await ErrorHandler.showDialogError(context, e);
 | 再利用性 | どの画面からも `ErrorHandler` 経由で統一的に呼び出せる |
 | メンテナンス性 | メッセージロジックを一元管理 |
 | UX向上 | アプリ全体で一貫したエラー体験を提供 |
-
----
 
 これで、すべての画面で例外を安全かつ一貫してユーザーに伝えられるようになります。
 
