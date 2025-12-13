@@ -12,6 +12,11 @@
 | テーマ管理          | [Flex Color Scheme](https://pub.dev/packages/flex_color_scheme)                                                                                                                     |
 | ログ             | [Logger](https://pub.dev/packages/logger)                                                                                                                                           |
 | イベント計測       | [Firebase Analytics](https://pub.dev/packages/firebase_analytics)|
+| クラッシュ収集        | [Firebase Crashlytics](https://pub.dev/packages/firebase_crashlytics)                                                                         |
+| Firebase基盤       | [firebase_core](https://pub.dev/packages/firebase_core)                                                                                       |
+| 多言語対応          | [flutter_localizations](https://pub.dev/packages/flutter_localization) + [intl](https://pub.dev/packages/intl)                                                                       |
+| 端末情報           | [package_info_plus](https://pub.dev/packages/package_info_plus)                                                                               |
+| ローカル保存        | [shared_preferences](https://pub.dev/packages/shared_preferences)                                                                            |
 | Lint / 静的解析    | [very_good_analysis](https://pub.dev/packages/very_good_analysis), [custom_lint](https://pub.dev/packages/custom_lint), [riverpod_lint](https://pub.dev/packages/riverpod_lint) |
 | Flutterバージョン管理 | [FVM](https://fvm.app) (`3.35.7` 使用)                                                                                                                                                |
 
