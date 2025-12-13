@@ -6,9 +6,9 @@
 | --- | --- |
 | Flutterバージョン管理 | [FVM](https://fvm.app)（バージョン: `3.35.7`） |
 | 状態管理 | [Flutter Riverpod](https://pub.dev/packages/flutter_riverpod) + [Hooks Riverpod](https://pub.dev/packages/hooks_riverpod) + [Flutter Hooks](https://pub.dev/packages/flutter_hooks) |
-| ルーティング | [GoRouter](https://pub.dev/packages/go_router) + [GoRouter Builder](https://pub.dev/packages/go_router_builder) |
-| テーマ管理 | [FlexColorScheme](https://pub.dev/packages/flex_color_scheme) |
-| 多言語対応 | [Flutter Localizations](https://pub.dev/packages/flutter_localizations) + [intl](https://pub.dev/packages/intl) |
+| ルーティング | [Go Router](https://pub.dev/packages/go_router) + [Go Router Builder](https://pub.dev/packages/go_router_builder) |
+| テーマ管理 | [Flex Color Scheme](https://pub.dev/packages/flex_color_scheme) |
+| 多言語対応 | [Flutter Localizations](https://pub.dev/packages/flutter_localizations) + [Intl](https://pub.dev/packages/intl) |
 | 通信 | [Dio](https://pub.dev/packages/dio) + [Pretty Dio Logger](https://pub.dev/packages/pretty_dio_logger) |
 | モデル生成 | [Freezed](https://pub.dev/packages/freezed) + [Json Serializable](https://pub.dev/packages/json_serializable) |
 | 環境変数 | [Envied](https://pub.dev/packages/envied) |
@@ -18,7 +18,7 @@
 | クラッシュ収集 | [Firebase Crashlytics](https://pub.dev/packages/firebase_crashlytics) |
 | 端末情報 | [Package Info Plus](https://pub.dev/packages/package_info_plus) |
 | ローカル保存 | [Shared Preferences](https://pub.dev/packages/shared_preferences) |
-| Lint / 静的解析 | [Very Good Analysis](https://pub.dev/packages/very_good_analysis), [custom_lint](https://pub.dev/packages/custom_lint), [riverpod_lint](https://pub.dev/packages/riverpod_lint), [Flutter Lints](https://pub.dev/packages/flutter_lints) |
+| Lint / 静的解析 | [Very Good Analysis](https://pub.dev/packages/very_good_analysis), [Custom Lint](https://pub.dev/packages/custom_lint), [Riverpod Lint](https://pub.dev/packages/riverpod_lint), [Flutter Lints](https://pub.dev/packages/flutter_lints) |
 
 ---
 
