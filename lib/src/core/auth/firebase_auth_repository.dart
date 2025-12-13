@@ -39,6 +39,24 @@ class FirebaseAuthRepository extends _$FirebaseAuthRepository {
     state = userCredential.user;
   }
 
+  /// 未認証ユーザーに確認メールを送信する
+  Future<void> sendEmailVerification() async {
+    final user = _auth.currentUser;
+    if (user != null && !user.emailVerified) {
+      await user.sendEmailVerification();
+    }
+  }
+
+  /// Firebase から現在のユーザー情報を再読み込みする
+  Future<void> reloadCurrentUser() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      await user.reload();
+      // reload後の最新ユーザー情報でstateを更新
+      state = _auth.currentUser;
+    }
+  }
+
   /// サインアウトする
   Future<void> signOut() async {
     await _auth.signOut();

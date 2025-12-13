@@ -156,4 +156,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loading => 'Loading...';
+
+  @override
+  String get emailVerificationTitle => 'Email Verification';
+
+  @override
+  String get emailVerificationDescription =>
+      'A verification email has been sent.';
+
+  @override
+  String get resendVerificationMail => 'Resend verification email';
+
+  @override
+  String get emailVerificationWaiting =>
+      'Once your email is verified, you will be redirected automatically.';
 }

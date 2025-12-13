@@ -391,6 +391,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Loading...'**
   String get loading;
+
+  /// No description provided for @emailVerificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Email Verification'**
+  String get emailVerificationTitle;
+
+  /// No description provided for @emailVerificationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A verification email has been sent.'**
+  String get emailVerificationDescription;
+
+  /// No description provided for @resendVerificationMail.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend verification email'**
+  String get resendVerificationMail;
+
+  /// No description provided for @emailVerificationWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Once your email is verified, you will be redirected automatically.'**
+  String get emailVerificationWaiting;
 }
 
 class _AppLocalizationsDelegate

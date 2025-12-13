@@ -48,5 +48,9 @@
   "signUpTitle": "新規登録",
   "signUp": "登録",
   "errorSignUpFailed": "登録に失敗しました",
-  "loading": "読み込み中"
+  "loading": "読み込み中",
+  "emailVerificationTitle": "メール確認",
+  "emailVerificationDescription": "登録したメールアドレスに確認メールを送信しました。",
+  "resendVerificationMail": "確認メールを再送する",
+  "emailVerificationWaiting": "メールを確認後、この画面に戻ると自動的に次の画面へ進みます。"
 }

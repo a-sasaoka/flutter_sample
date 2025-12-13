@@ -12,6 +12,7 @@ import 'package:flutter_sample/src/core/network/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/home_screen.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
 import 'package:flutter_sample/src/core/widgets/settings_screen.dart';
+import 'package:flutter_sample/src/features/auth/presentation/firebase_email_verification_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_login_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_sign_up_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/login_screen.dart';
@@ -111,6 +112,18 @@ class SignUpRoute extends GoRouteData with $SignUpRoute {
   @override
   Widget build(BuildContext context, GoRouterState state) {
     return const FirebaseSignUpScreen();
+  }
+}
+
+/// 📧 メールアドレス確認画面ルート
+@TypedGoRoute<EmailVerificationRoute>(path: '/email-verification')
+class EmailVerificationRoute extends GoRouteData with $EmailVerificationRoute {
+  /// コンストラクタ
+  const EmailVerificationRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const FirebaseEmailVerificationScreen();
   }
 }
 

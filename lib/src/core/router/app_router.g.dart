@@ -11,6 +11,7 @@ List<RouteBase> get $appRoutes => [
   $loginRoute,
   $splashRoute,
   $signUpRoute,
+  $emailVerificationRoute,
 ];
 
 RouteBase get $homeRoute => GoRouteData.$route(
@@ -157,6 +158,32 @@ mixin $SignUpRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/signup');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $emailVerificationRoute => GoRouteData.$route(
+  path: '/email-verification',
+  factory: $EmailVerificationRoute._fromState,
+);
+
+mixin $EmailVerificationRoute on GoRouteData {
+  static EmailVerificationRoute _fromState(GoRouterState state) =>
+      const EmailVerificationRoute();
+
+  @override
+  String get location => GoRouteData.$location('/email-verification');
 
   @override
   void go(BuildContext context) => context.go(location);

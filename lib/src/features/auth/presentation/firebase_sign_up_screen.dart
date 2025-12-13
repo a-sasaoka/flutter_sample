@@ -20,6 +20,13 @@ class _FirebaseSignUpScreenState extends ConsumerState<FirebaseSignUpScreen> {
   bool isLoading = false;
 
   @override
+  void dispose() {
+    emailCtrl.dispose();
+    passwordCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
@@ -45,16 +52,23 @@ class _FirebaseSignUpScreenState extends ConsumerState<FirebaseSignUpScreen> {
               onPressed: isLoading
                   ? null
                   : () async {
+                      if (!mounted) return;
                       setState(() => isLoading = true);
 
                       try {
+                        // サインアップ
                         await ref
                             .read(firebaseAuthRepositoryProvider.notifier)
                             .signUp(emailCtrl.text, passwordCtrl.text);
 
-                        // 登録成功 → ホーム画面へ遷移
+                        // 確認メール送信
+                        await ref
+                            .read(firebaseAuthRepositoryProvider.notifier)
+                            .sendEmailVerification();
+
+                        // メール認証待ち画面へ遷移
                         if (context.mounted) {
-                          const HomeRoute().go(context);
+                          const EmailVerificationRoute().go(context);
                         }
                       } on Exception catch (_) {
                         if (context.mounted) {
@@ -63,7 +77,9 @@ class _FirebaseSignUpScreenState extends ConsumerState<FirebaseSignUpScreen> {
                           );
                         }
                       } finally {
-                        setState(() => isLoading = false);
+                        if (mounted) {
+                          setState(() => isLoading = false);
+                        }
                       }
                     },
               child: Text(

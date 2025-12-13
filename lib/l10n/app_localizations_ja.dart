@@ -154,4 +154,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get loading => '読み込み中';
+
+  @override
+  String get emailVerificationTitle => 'メール確認';
+
+  @override
+  String get emailVerificationDescription => '登録したメールアドレスに確認メールを送信しました。';
+
+  @override
+  String get resendVerificationMail => '確認メールを再送する';
+
+  @override
+  String get emailVerificationWaiting => 'メールを確認後、この画面に戻ると自動的に次の画面へ進みます。';
 }

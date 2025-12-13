@@ -48,5 +48,9 @@
   "signUpTitle": "Sign Up",
   "signUp": "Create Account",
   "errorSignUpFailed": "Sign up failed.",
-  "loading": "Loading..."
+  "loading": "Loading...",
+  "emailVerificationTitle": "Email Verification",
+  "emailVerificationDescription": "A verification email has been sent.",
+  "resendVerificationMail": "Resend verification email",
+  "emailVerificationWaiting": "Once your email is verified, you will be redirected automatically."
 }
