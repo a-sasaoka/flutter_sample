@@ -90,6 +90,10 @@ abstract class AppEnv {
   @EnviedField(varName: 'FIREBASE_IOS_BUNDLE_ID')
   static final String firebaseIosBundleId = _AppEnv.firebaseIosBundleId;
 
+  /// 認証設定
+  @EnviedField(varName: 'USE_FIREBASE_AUTH')
+  static final bool useFirebaseAuth = _AppEnv.useFirebaseAuth;
+
   /// ================================
   /// 🌎 現在の実行環境（手動設定）
   /// ================================

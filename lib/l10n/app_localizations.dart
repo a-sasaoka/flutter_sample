@@ -200,6 +200,12 @@ abstract class AppLocalizations {
   /// **'Go to User List (API Fetch)'**
   String get homeToUserList;
 
+  /// No description provided for @homeToResetPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Reset Password'**
+  String get homeToResetPassword;
+
   /// No description provided for @homeToNotFound.
   ///
   /// In en, this message translates to:
@@ -361,6 +367,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Analytics Test'**
   String get homeAnalyticsTest;
+
+  /// No description provided for @errorLoginFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Login failed.'**
+  String get errorLoginFailed;
+
+  /// No description provided for @signUpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Up'**
+  String get signUpTitle;
+
+  /// No description provided for @signUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Account'**
+  String get signUp;
+
+  /// No description provided for @errorSignUpFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign up failed.'**
+  String get errorSignUpFailed;
+
+  /// No description provided for @loading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading...'**
+  String get loading;
+
+  /// No description provided for @emailVerificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Email Verification'**
+  String get emailVerificationTitle;
+
+  /// No description provided for @emailVerificationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A verification email has been sent.'**
+  String get emailVerificationDescription;
+
+  /// No description provided for @resendVerificationMail.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend verification email'**
+  String get resendVerificationMail;
+
+  /// No description provided for @emailVerificationWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Once your email is verified, you will be redirected automatically.'**
+  String get emailVerificationWaiting;
+
+  /// No description provided for @resetPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
+  String get resetPassword;
+
+  /// No description provided for @resetPasswordMailSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset email has been sent.'**
+  String get resetPasswordMailSent;
+
+  /// No description provided for @send.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get send;
 }
 
 class _AppLocalizationsDelegate

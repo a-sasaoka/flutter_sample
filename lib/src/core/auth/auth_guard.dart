@@ -1,11 +1,12 @@
 import 'package:flutter_sample/src/core/auth/auth_state_notifier.dart';
+import 'package:flutter_sample/src/core/auth/base_auth_guard.dart';
 import 'package:flutter_sample/src/core/router/app_router.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-/// 認証ガード
+/// 認証状態に応じてリダイレクト先を判定するガード
 String? authGuard(Ref ref, GoRouterState state) {
-  // ログイン状態を取得
+  // 現在のログイン状態を取得（変更を監視）
   final authState = ref.watch(authStateProvider);
 
   // ローディング中はスプラッシュ表示
@@ -14,17 +15,11 @@ String? authGuard(Ref ref, GoRouterState state) {
     return const SplashRoute().location;
   }
 
+  // ユーザーがログイン済みかどうか
   final isLoggedIn = authState.value ?? false;
 
-  // 未ログイン時に /login へ
-  if (!isLoggedIn && state.uri.toString() != '/login') {
-    return const LoginRoute().location;
-  }
-
-  // ログイン済みかつ /login にいる場合 → ホームへ
-  if (isLoggedIn && state.uri.toString() == '/login') {
-    return const HomeRoute().location;
-  }
-
-  return null; // 変更なし
+  return const AuthGuardHelper().redirect(
+    isLoggedIn: isLoggedIn,
+    state: state,
+  );
 }
