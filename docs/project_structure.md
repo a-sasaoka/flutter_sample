@@ -12,7 +12,7 @@ lib
 │   └── app_ja.arb                                  # 日本語翻訳ファイル
 └── src
     ├── core                                        # アプリ全体で共通的に利用される基盤コード
-    ├───┬── analytics                               # イベント計測関連
+    │   ├── analytics                               # イベント計測関連
     │   │   ├── analytics_event.dart                # イベント定義
     │   │   └── analytics_service.dart              # イベント送信サービス
     │   ├── auth                                    # 認証関連（トークン管理・リフレッシュなど）
