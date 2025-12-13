@@ -1,7 +1,8 @@
 # ディレクトリ構成
 
-以下は `lib` 以下のディレクトリと主要ファイル構成です。  
+以下は `lib` 以下のディレクトリと主要ファイル構成です。
 それぞれの役割をコメントで補足しています。
+自動生成ファイルは除外しています。
 
 ```plaintext
 lib
@@ -11,6 +12,9 @@ lib
 │   └── app_ja.arb                                  # 日本語翻訳ファイル
 └── src
     ├── core                                        # アプリ全体で共通的に利用される基盤コード
+    ├───┬── analytics                               # イベント計測関連
+    │   │   ├── analytics_event.dart                # イベント定義
+    │   │   └── analytics_service.dart              # イベント送信サービス
     │   ├── auth                                    # 認証関連（トークン管理・リフレッシュなど）
     │   │   ├── auth_guard.dart                     # GoRouter用ガード関数
     │   │   ├── auth_repository.dart                # ログイン・リフレッシュ処理

@@ -11,6 +11,7 @@
 | 環境変数           | [Envied](https://pub.dev/packages/envied)                                                                                                                                           |
 | テーマ管理          | [Flex Color Scheme](https://pub.dev/packages/flex_color_scheme)                                                                                                                     |
 | ログ             | [Logger](https://pub.dev/packages/logger)                                                                                                                                           |
+| イベント計測       | [Firebase Analytics](https://pub.dev/packages/firebase_analytics)|
 | Lint / 静的解析    | [very_good_analysis](https://pub.dev/packages/very_good_analysis), [custom_lint](https://pub.dev/packages/custom_lint), [riverpod_lint](https://pub.dev/packages/riverpod_lint) |
 | Flutterバージョン管理 | [FVM](https://fvm.app) (`3.35.7` 使用)                                                                                                                                                |
 
