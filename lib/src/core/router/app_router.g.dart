@@ -11,6 +11,7 @@ List<RouteBase> get $appRoutes => [
   $loginRoute,
   $splashRoute,
   $signUpRoute,
+  $resetPasswordRoute,
   $emailVerificationRoute,
 ];
 
@@ -158,6 +159,32 @@ mixin $SignUpRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/signup');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $resetPasswordRoute => GoRouteData.$route(
+  path: '/reset-password',
+  factory: $ResetPasswordRoute._fromState,
+);
+
+mixin $ResetPasswordRoute on GoRouteData {
+  static ResetPasswordRoute _fromState(GoRouterState state) =>
+      const ResetPasswordRoute();
+
+  @override
+  String get location => GoRouteData.$location('/reset-password');
 
   @override
   void go(BuildContext context) => context.go(location);

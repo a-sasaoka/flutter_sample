@@ -200,6 +200,12 @@ abstract class AppLocalizations {
   /// **'Go to User List (API Fetch)'**
   String get homeToUserList;
 
+  /// No description provided for @homeToResetPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Reset Password'**
+  String get homeToResetPassword;
+
   /// No description provided for @homeToNotFound.
   ///
   /// In en, this message translates to:
@@ -415,6 +421,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Once your email is verified, you will be redirected automatically.'**
   String get emailVerificationWaiting;
+
+  /// No description provided for @resetPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
+  String get resetPassword;
+
+  /// No description provided for @resetPasswordMailSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset email has been sent.'**
+  String get resetPasswordMailSent;
+
+  /// No description provided for @send.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get send;
 }
 
 class _AppLocalizationsDelegate

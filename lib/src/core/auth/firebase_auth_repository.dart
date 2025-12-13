@@ -57,6 +57,11 @@ class FirebaseAuthRepository extends _$FirebaseAuthRepository {
     }
   }
 
+  /// パスワードリセットメールを送信する
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _auth.sendPasswordResetEmail(email: email);
+  }
+
   /// サインアウトする
   Future<void> signOut() async {
     await _auth.signOut();

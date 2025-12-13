@@ -17,6 +17,7 @@
   "homeToSettings": "Go to Settings",
   "homeToSample": "Go to Sample Page",
   "homeToUserList": "Go to User List (API Fetch)",
+  "homeToResetPassword": "Go to Reset Password",
   "homeToNotFound": "Navigate to invalid path (NotFound test)",
   "homeGetAppInfo": "Get App Info",
   "homeAppName": "App Name",
@@ -52,5 +53,8 @@
   "emailVerificationTitle": "Email Verification",
   "emailVerificationDescription": "A verification email has been sent.",
   "resendVerificationMail": "Resend verification email",
-  "emailVerificationWaiting": "Once your email is verified, you will be redirected automatically."
+  "emailVerificationWaiting": "Once your email is verified, you will be redirected automatically.",
+  "resetPassword": "Reset Password",
+  "resetPasswordMailSent": "Password reset email has been sent.",
+  "send": "Send"
 }

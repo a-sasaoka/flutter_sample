@@ -61,6 +61,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeToUserList => 'Go to User List (API Fetch)';
 
   @override
+  String get homeToResetPassword => 'Go to Reset Password';
+
+  @override
   String get homeToNotFound => 'Navigate to invalid path (NotFound test)';
 
   @override
@@ -170,4 +173,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get emailVerificationWaiting =>
       'Once your email is verified, you will be redirected automatically.';
+
+  @override
+  String get resetPassword => 'Reset Password';
+
+  @override
+  String get resetPasswordMailSent => 'Password reset email has been sent.';
+
+  @override
+  String get send => 'Send';
 }

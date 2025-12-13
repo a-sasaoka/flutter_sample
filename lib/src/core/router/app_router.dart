@@ -14,6 +14,7 @@ import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
 import 'package:flutter_sample/src/core/widgets/settings_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_email_verification_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_login_screen.dart';
+import 'package:flutter_sample/src/features/auth/presentation/firebase_reset_password_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_sign_up_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/login_screen.dart';
 import 'package:flutter_sample/src/features/sample_feature/presentation/sample_screen.dart';
@@ -112,6 +113,18 @@ class SignUpRoute extends GoRouteData with $SignUpRoute {
   @override
   Widget build(BuildContext context, GoRouterState state) {
     return const FirebaseSignUpScreen();
+  }
+}
+
+/// 🔑 パスワードリセット画面ルート
+@TypedGoRoute<ResetPasswordRoute>(path: '/reset-password')
+class ResetPasswordRoute extends GoRouteData with $ResetPasswordRoute {
+  /// コンストラクタ
+  const ResetPasswordRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const FirebaseResetPasswordScreen();
   }
 }
 

@@ -17,6 +17,7 @@
   "homeToSettings": "設定画面へ",
   "homeToSample": "サンプル画面へ",
   "homeToUserList": "ユーザー一覧画面へ（APIで情報取得）",
+  "homeToResetPassword": "パスワードリセット画面へ",
   "homeToNotFound": "存在しないパスに遷移（NotFoundの動作確認）",
   "homeGetAppInfo": "アプリ情報取得",
   "homeAppName": "アプリ名",
@@ -52,5 +53,8 @@
   "emailVerificationTitle": "メール確認",
   "emailVerificationDescription": "登録したメールアドレスに確認メールを送信しました。",
   "resendVerificationMail": "確認メールを再送する",
-  "emailVerificationWaiting": "メールを確認後、この画面に戻ると自動的に次の画面へ進みます。"
+  "emailVerificationWaiting": "メールを確認後、この画面に戻ると自動的に次の画面へ進みます。",
+  "resetPassword": "パスワード再設定",
+  "resetPasswordMailSent": "再設定メールを送信しました",
+  "send": "送信"
 }
