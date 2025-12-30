@@ -75,11 +75,14 @@ class UserListRoute extends GoRouteData with $UserListRoute {
 @TypedGoRoute<LoginRoute>(path: '/login')
 class LoginRoute extends GoRouteData with $LoginRoute {
   /// コンストラクタ
-  const LoginRoute();
+  const LoginRoute({this.redirectTo});
+
+  /// ログイン後にリダイレクトするパス
+  final String? redirectTo;
 
   @override
   Widget build(BuildContext context, GoRouterState state) {
-    return const LoginScreen();
+    return LoginScreen(redirectTo: redirectTo);
   }
 }
 

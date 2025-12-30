@@ -18,7 +18,8 @@ String? authGuard(Ref ref, GoRouterState state) {
 
   // 未ログイン時に /login へ
   if (!isLoggedIn && state.uri.toString() != '/login') {
-    return const LoginRoute().location;
+    final uri = state.uri.toString();
+    return LoginRoute(redirectTo: uri).location;
   }
 
   // ログイン済みかつ /login にいる場合 → ホームへ

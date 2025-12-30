@@ -3,13 +3,18 @@ import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/auth/auth_state_notifier.dart';
+import 'package:flutter_sample/src/core/router/app_router.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// ログイン画面
 class LoginScreen extends ConsumerWidget {
   /// コンストラクタ
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.redirectTo});
+
+  /// ログイン後にリダイレクトするパス
+  final String? redirectTo;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -29,6 +34,12 @@ class LoginScreen extends ConsumerWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(AppLocalizations.of(context)!.loginSuccess)),
           );
+
+          if (redirectTo != null) {
+            context.go(redirectTo!);
+          } else {
+            const HomeRoute().go(context);
+          }
 
           final analytics = ref.read(analyticsServiceProvider);
           await analytics.logEvent(
