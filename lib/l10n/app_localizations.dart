@@ -386,6 +386,12 @@ abstract class AppLocalizations {
   /// **'Create Account'**
   String get signUp;
 
+  /// No description provided for @googleSignUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Sign In'**
+  String get googleSignUp;
+
   /// No description provided for @errorSignUpFailed.
   ///
   /// In en, this message translates to:

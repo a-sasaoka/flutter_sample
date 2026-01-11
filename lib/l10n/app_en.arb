@@ -48,6 +48,7 @@
   "errorLoginFailed": "Login failed.",
   "signUpTitle": "Sign Up",
   "signUp": "Create Account",
+  "googleSignUp": "Google Sign In",
   "errorSignUpFailed": "Sign up failed.",
   "loading": "Loading...",
   "emailVerificationTitle": "Email Verification",

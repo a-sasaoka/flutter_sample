@@ -153,6 +153,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get signUp => '登録';
 
   @override
+  String get googleSignUp => 'Googleでログイン';
+
+  @override
   String get errorSignUpFailed => '登録に失敗しました';
 
   @override

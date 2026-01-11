@@ -155,6 +155,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signUp => 'Create Account';
 
   @override
+  String get googleSignUp => 'Google Sign In';
+
+  @override
   String get errorSignUpFailed => 'Sign up failed.';
 
   @override
