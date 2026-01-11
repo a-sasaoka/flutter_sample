@@ -68,6 +68,31 @@ class _FirebaseLoginScreenState extends ConsumerState<FirebaseLoginScreen> {
               onPressed: () => const SignUpRoute().push<void>(context),
               child: Text(l10n.signUp),
             ),
+            const SizedBox(height: 32),
+            // Googleでログイン
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  final isSignedIn = await ref
+                      .read(firebaseAuthRepositoryProvider.notifier)
+                      .signInWithGoogle();
+                  if (!isSignedIn) {
+                    return;
+                  }
+
+                  if (context.mounted) {
+                    const HomeRoute().go(context);
+                  }
+                } on Exception catch (_) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.errorLoginFailed)),
+                    );
+                  }
+                }
+              },
+              child: Text(l10n.googleSignUp),
+            ),
           ],
         ),
       ),

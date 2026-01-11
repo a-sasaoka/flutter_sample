@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'firebase_auth_repository.g.dart';
@@ -7,6 +8,19 @@ part 'firebase_auth_repository.g.dart';
 @riverpod
 class FirebaseAuthRepository extends _$FirebaseAuthRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+
+  // Google認証初期化フラグ
+  bool _googleSignInInitialized = false;
+
+  // Google認証を初期化
+  Future<void> _ensureGoogleSignInInitialized() async {
+    if (_googleSignInInitialized) return;
+
+    await _googleSignIn.initialize();
+
+    _googleSignInInitialized = true;
+  }
 
   @override
   User? build() {
@@ -26,6 +40,44 @@ class FirebaseAuthRepository extends _$FirebaseAuthRepository {
 
     // ログインした情報でstateを更新
     state = userCredential.user;
+  }
+
+  /// Googleアカウントでログインする
+  Future<bool> signInWithGoogle() async {
+    await _ensureGoogleSignInInitialized();
+
+    try {
+      final googleUser = await _googleSignIn.authenticate();
+
+      // ID token 取得
+      final googleAuth = googleUser.authentication;
+      final idToken = googleAuth.idToken;
+
+      final authz = await googleUser.authorizationClient.authorizationForScopes(
+        const <String>['https://www.googleapis.com/auth/userinfo.email'],
+      );
+
+      // Access token 取得
+      final accessToken = authz?.accessToken;
+
+      if (idToken == null && accessToken == null) {
+        return false;
+      }
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: accessToken,
+        idToken: idToken,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      // ログインした情報でstateを更新
+      state = userCredential.user;
+      return true;
+    } on Exception {
+      // ユーザーキャンセル等もここに入ることがあります
+      return false;
+    }
   }
 
   /// メールアドレスとパスワードで新規登録する
@@ -65,6 +117,7 @@ class FirebaseAuthRepository extends _$FirebaseAuthRepository {
   /// サインアウトする
   Future<void> signOut() async {
     await _auth.signOut();
+    await _googleSignIn.signOut();
 
     // stateをnullで初期化
     state = null;
