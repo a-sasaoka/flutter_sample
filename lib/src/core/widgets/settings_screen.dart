@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/auth/firebase_auth_repository.dart';
 import 'package:flutter_sample/src/core/config/app_config_provider.dart';
+import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
 import 'package:flutter_sample/src/core/router/app_router.dart';
@@ -93,34 +94,36 @@ class SettingsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               Text(l10n.hello),
-              const SizedBox(height: 32),
-              // 🚪 ログアウト（SignOut）ボタン
-              ElevatedButton.icon(
-                icon: const Icon(Icons.logout),
-                label: Text(l10n.logout),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                ),
-                onPressed: () async {
-                  try {
-                    await ref
-                        .read(firebaseAuthRepositoryProvider.notifier)
-                        .signOut();
+              if (AppEnv.useFirebaseAuth) ...[
+                const SizedBox(height: 32),
+                // 🚪 ログアウト（SignOut）ボタン
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.logout),
+                  label: Text(l10n.logout),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                  ),
+                  onPressed: () async {
+                    try {
+                      await ref
+                          .read(firebaseAuthRepositoryProvider.notifier)
+                          .signOut();
 
-                    // --- ログアウト成功 → ログイン画面へ遷移 ---
-                    if (context.mounted) {
-                      const LoginRoute().go(context);
+                      // --- ログアウト成功 → ログイン画面へ遷移 ---
+                      if (context.mounted) {
+                        const LoginRoute().go(context);
+                      }
+                    } on Exception catch (e) {
+                      if (context.mounted) {
+                        ErrorHandler.showSnackBar(
+                          context,
+                          e,
+                        );
+                      }
                     }
-                  } on Exception catch (e) {
-                    if (context.mounted) {
-                      ErrorHandler.showSnackBar(
-                        context,
-                        e,
-                      );
-                    }
-                  }
-                },
-              ),
+                  },
+                ),
+              ],
             ],
           );
         },
