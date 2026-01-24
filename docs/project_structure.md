@@ -2,18 +2,15 @@
 
 以下は `lib` 以下のディレクトリと主要ファイル構成です。
 それぞれの役割をコメントで補足しています。
-自動生成ファイルは除外しています。
+自動生成ファイルは原則除外しています。
 
 ```plaintext
 lib
-├── firebase_options.dart                           # FlutterFire CLIで生成されたFirebase設定
+├── firebase_options.dart                           # FlutterFire CLI生成をベースにAppEnv参照へ修正（APIキー等を埋め込まず環境変数経由にするため）
 ├── main.dart                                       # アプリのエントリーポイント。最初に実行されるファイル
 ├── l10n                                            # 多言語対応用のARBファイルを格納するディレクトリ
 │   ├── app_en.arb                                  # 英語翻訳ファイル　
-│   ├── app_ja.arb                                  # 日本語翻訳ファイル
-│   ├── app_localizations.dart                      # gen-l10nで生成される多言語ラッパー
-│   ├── app_localizations_en.dart                   # 英語向け生成コード
-│   └── app_localizations_ja.dart                   # 日本語向け生成コード
+│   └── app_ja.arb                                  # 日本語翻訳ファイル
 └── src
     ├── core                                        # アプリ全体で共通的に利用される基盤コード
     │   ├── analytics                               # イベント計測関連
