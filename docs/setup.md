@@ -7,7 +7,7 @@
 
 ## 前提条件
 
-- FVM がインストール済み
+- FVM がインストール済み（[インストールガイド](https://fvm.app/documentation/getting-started/installation?utm_source=openai)）
 - Flutter/Dart バージョンは **Flutter 3.35.7 / Dart 3.9.2**
 - Firebase を使う場合は Firebase Console にアクセスできること（この後の手順でプロジェクト作成を行います）
 
