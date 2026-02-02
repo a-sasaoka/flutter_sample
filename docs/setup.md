@@ -137,6 +137,24 @@ fvm dart run build_runner build --delete-conflicting-outputs --define "envied_ge
 
 ---
 
+## ネイティブへの反映（dart-define）
+
+このプロジェクトは `APP_ID` / `APP_NAME` などを **dart-define 経由でネイティブに渡す**設計です。  
+そのため、起動時に `.env` の値を dart-define に反映させる必要があります。
+
+### 反映方法（開発時）
+
+以下のコマンドで起動します（`.env.local` を使う例）:
+
+```bash
+fvm flutter run --dart-define-from-file=.env.local
+```
+
+> `.env` の値を変更した場合は Envied の再生成が必要です。  
+> 詳細な仕組みは [docs/code_generation.md](code_generation.md) を参照してください。
+
+---
+
 ## Firebase の設定
 
 ### 1. Firebase プロジェクトとアプリ登録
@@ -227,8 +245,12 @@ fvm dart run build_runner build --delete-conflicting-outputs
 ## 起動確認
 
 ```bash
-fvm flutter run
+fvm flutter run --dart-define-from-file=.env.local
 ```
+
+> このプロジェクトでは `.env.*` を反映するため、通常は `--dart-define-from-file` を付けて起動します。  
+> 例: `fvm flutter run --dart-define=FLUTTER_ENV=local --dart-define-from-file=.env.local`  
+> VS Code の「Local」構成で起動すると同じ設定が適用されます。
 
 ---
 
