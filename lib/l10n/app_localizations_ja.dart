@@ -60,6 +60,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homeToUserList => 'ユーザー一覧画面へ（APIで情報取得）';
 
   @override
+  String get homeToResetPassword => 'パスワードリセット画面へ';
+
+  @override
   String get homeToNotFound => '存在しないパスに遷移（NotFoundの動作確認）';
 
   @override
@@ -139,4 +142,43 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get homeAnalyticsTest => 'アナリティクステスト';
+
+  @override
+  String get errorLoginFailed => 'ログインに失敗しました。';
+
+  @override
+  String get signUpTitle => '新規登録';
+
+  @override
+  String get signUp => '登録';
+
+  @override
+  String get googleSignUp => 'Googleでログイン';
+
+  @override
+  String get errorSignUpFailed => '登録に失敗しました';
+
+  @override
+  String get loading => '読み込み中';
+
+  @override
+  String get emailVerificationTitle => 'メール確認';
+
+  @override
+  String get emailVerificationDescription => '登録したメールアドレスに確認メールを送信しました。';
+
+  @override
+  String get resendVerificationMail => '確認メールを再送する';
+
+  @override
+  String get emailVerificationWaiting => 'メールを確認後、この画面に戻ると自動的に次の画面へ進みます。';
+
+  @override
+  String get resetPassword => 'パスワード再設定';
+
+  @override
+  String get resetPasswordMailSent => '再設定メールを送信しました';
+
+  @override
+  String get send => '送信';
 }

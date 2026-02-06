@@ -68,6 +68,8 @@ dependencies:
   firebase_core: ^4.2.1
   firebase_crashlytics: ^5.0.5
   firebase_analytics: ^12.0.4
+  firebase_auth: ^6.1.2
+  google_sign_in: ^7.2.0
 
 # -----------------------------------------------
 # 🛠️ 開発時に使用する依存関係（コード生成・Lintなど）
