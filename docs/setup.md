@@ -49,7 +49,7 @@ cp env.example .env.local
 `.env.*` の `USE_FIREBASE_AUTH` で認証方式を切り替えできます。
 
 - `true`: Firebase Authentication（メール/パスワード認証）を使用
-- `false`: 既存のAPIトークン認証フローを使用
+- `false`: APIトークン認証フローを使用
 
 `USE_FIREBASE_AUTH` を変更した場合は、`app_env.g.dart` を更新するために Envied の再生成を実行してください。
 
