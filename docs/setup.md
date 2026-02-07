@@ -8,9 +8,9 @@
 
 - FVM がインストール済み（[インストールガイド](https://fvm.app/documentation/getting-started/installation?utm_source=openai)）
 - Flutter/Dart バージョン: **Flutter 3.35.7 / Dart 3.9.2**
-- Firebase を使う場合は Firebase 設定が完了していること
-
----
+- Firebase は以下の設定ファイルを事前に生成しておくこと
+  - Android: `android/app/google-services.json`
+  - iOS: `ios/Runner/GoogleService-Info.plist`
 
 ## セットアップ
 
@@ -29,18 +29,22 @@ fvm use 3.35.7
 fvm flutter pub get
 ```
 
+- Firebase 設定ファイルを配置します。
+  - Android: `android/app/google-services.json`
+  - iOS: `ios/Runner/GoogleService-Info.plist`
+
 - `.env.local` を作成し編集します。
 
 ```bash
 cp env.example .env.local
 ```
 
-### `.env.local` で最低限変更・確認する項目
+### `.env.local` で変更・確認する項目
 
 - `FLAVOR`: `local` に変更
 - `BASE_URL`: 利用する API のエンドポイントに変更
-- `FIREBASE_*`: `DUMMY` のままにせず、Firebase プロジェクトの実値に変更
-- `APP_ID` と `FIREBASE_IOS_BUNDLE_ID`: iOS/Firebase 側の設定と一致しているか確認
+- `FIREBASE_*`: Firebase プロジェクトの実値に変更
+- `APP_ID` と `FIREBASE_IOS_BUNDLE_ID`: iOS/Firebase 側の設定と一致するよう変更
 
 > 注意: このプロジェクトは起動時に `Firebase.initializeApp(...)` を実行するため、`USE_FIREBASE_AUTH=false` の場合でも `FIREBASE_*` の設定は必要です。
 
