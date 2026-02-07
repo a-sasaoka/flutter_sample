@@ -24,13 +24,12 @@ enum Flavor {
 
   /// 文字列からFlavorに変換する
   static Flavor fromString(String value) {
-    try {
-      return values.byName(value.toLowerCase());
-    } on Exception catch (_) {
-      throw ArgumentError(
+    return values.firstWhere(
+      (e) => e.name == value.toLowerCase(),
+      orElse: () => throw ArgumentError(
         'Invalid flavor: "$value". Available flavors are: '
         '${values.map((f) => f.name).join(', ')}',
-      );
-    }
+      ),
+    );
   }
 }
