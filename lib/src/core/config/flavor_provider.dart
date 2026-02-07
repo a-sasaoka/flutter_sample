@@ -20,5 +20,17 @@ enum Flavor {
   stg,
 
   /// 本番環境
-  prod,
+  prod;
+
+  /// 文字列からFlavorに変換する
+  static Flavor fromString(String value) {
+    try {
+      return values.byName(value.toLowerCase());
+    } on Exception catch (_) {
+      throw ArgumentError(
+        'Invalid flavor: "$value". Available flavors are: '
+        '${values.map((f) => f.name).join(', ')}',
+      );
+    }
+  }
 }

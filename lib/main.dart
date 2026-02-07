@@ -22,7 +22,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Flavorを取得（文字列で扱うとエラーの原因になるので、enumに変換する）
-  final flavor = Flavor.values.byName(AppEnv.flavor);
+  final flavor = Flavor.fromString(AppEnv.flavor);
 
   // Firebaseの初期化（DefaultFirebaseOptionsは環境別の内容を読み込む）
   await Firebase.initializeApp(options: firebaseOptionsWithFlavor(flavor));
