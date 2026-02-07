@@ -62,7 +62,7 @@ fvm dart run build_runner build --delete-conflicting-outputs --define "envied_ge
 - 以下のコマンドで起動します（`.env.local` を使う例）:
 
 ```bash
-fvm flutter run --dart-define-from-file=.env.local
+fvm flutter run --dart-define=FLUTTER_ENV=local --dart-define-from-file=.env.local
 ```
 
 ### VS Code から起動する場合（`launch.json` 利用）
