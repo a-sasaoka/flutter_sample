@@ -100,13 +100,3 @@ chmod +x tool/hooks/pre-commit tool/setup_git_hooks.sh
 - どちらかに問題がある場合、コミットは中断されます。
 
 ---
-
-## Lint設定
-
-### 利用パッケージ
-
-- very_good_analysis
-- custom_lint
-- riverpod_lint
-
----
