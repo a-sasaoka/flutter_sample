@@ -56,3 +56,4 @@ app.*.map.json
 # Firebase config (ignored)
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
+lib/firebase_options_*.dart
