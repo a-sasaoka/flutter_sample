@@ -51,6 +51,13 @@ IDEでルートクラスを補完することで、タイプミスやパス指�
 ログイン状態に応じて画面遷移を自動制御しています。  
 さらに、状態判定中のチラつきを防ぐために `SplashScreen` を導入しています。
 
+### 認証モード切替（`USE_FIREBASE_AUTH`）
+
+`app_router.dart` では `AppEnv.useFirebaseAuth` を参照し、`redirect` に利用するガードを切り替えています。
+
+- `USE_FIREBASE_AUTH=true`: `firebaseAuthGuard` を使用
+- `USE_FIREBASE_AUTH=false`: `authGuard` を使用（既存トークン認証）
+
 ---
 
 ### 📁 追加ファイル構成

@@ -16,10 +16,14 @@ lib
     │   ├── analytics                               # イベント計測関連
     │   │   ├── analytics_event.dart                # イベント定義
     │   │   └── analytics_service.dart              # イベント送信サービス
-    │   ├── auth                                    # 認証関連（トークン管理・リフレッシュなど）
-    │   │   ├── auth_guard.dart                     # GoRouter用ガード関数
-    │   │   ├── auth_repository.dart                # ログイン・リフレッシュ処理
-    │   │   ├── auth_state_notifier.dart            # ログイン状態を監視するProvider
+    │   ├── auth                                    # 認証関連（APIトークン認証 / Firebase Auth）
+    │   │   ├── auth_guard.dart                     # 既存トークン認証向けのGoRouterガード
+    │   │   ├── auth_repository.dart                # 既存トークン認証のログイン・リフレッシュ処理
+    │   │   ├── auth_state_notifier.dart            # 既存トークン認証のログイン状態を監視するProvider
+    │   │   ├── base_auth_guard.dart                # 認証ガード共通ロジック
+    │   │   ├── firebase_auth_guard.dart            # Firebase認証向けのGoRouterガード
+    │   │   ├── firebase_auth_repository.dart       # Firebase Authentication操作（ログイン/登録/メール確認/リセット）
+    │   │   ├── firebase_auth_state_notifier.dart   # Firebase認証状態を監視するProvider
     │   │   ├── token_interceptor.dart              # DioのInterceptorで自動付与・更新
     │   │   └── token_storage.dart                  # トークンの永続化（SharedPreferences）
     │   ├── config                                  # 環境設定やテーマ、共有設定など
@@ -53,7 +57,11 @@ lib
     └── features                                    # 各機能（画面単位）ごとのモジュール
         ├── auth                                    # 認証関連機能
         │   └── presentation                        # 画面(UI)層
-        │       └── login_screen.dart               # ログイン画面のUI
+        │       ├── firebase_email_verification_screen.dart # Firebaseメール認証待ち画面
+        │       ├── firebase_login_screen.dart      # Firebase版ログイン画面
+        │       ├── firebase_reset_password_screen.dart # Firebaseパスワードリセット画面
+        │       ├── firebase_sign_up_screen.dart    # Firebase版サインアップ画面
+        │       └── login_screen.dart               # 既存トークン認証向けログイン画面
         ├── sample_feature                          # サンプル用の機能
         │   ├── application                         # 状態管理・ビジネスロジック
         │   ├── data                                # データ取得処理（APIやDBアクセス）
