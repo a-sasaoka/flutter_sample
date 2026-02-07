@@ -35,6 +35,15 @@ fvm flutter pub get
 cp env.example .env.local
 ```
 
+### `.env.local` で最低限変更・確認する項目
+
+- `FLAVOR`: `local` に変更
+- `BASE_URL`: 利用する API のエンドポイントに変更
+- `FIREBASE_*`: `DUMMY` のままにせず、Firebase プロジェクトの実値に変更
+- `APP_ID` と `FIREBASE_IOS_BUNDLE_ID`: iOS/Firebase 側の設定と一致しているか確認
+
+> 注意: このプロジェクトは起動時に `Firebase.initializeApp(...)` を実行するため、`USE_FIREBASE_AUTH=false` の場合でも `FIREBASE_*` の設定は必要です。
+
 ### 認証モード切替（`USE_FIREBASE_AUTH`）
 
 `.env.*` の `USE_FIREBASE_AUTH` で認証方式を切り替えできます。
