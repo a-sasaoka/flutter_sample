@@ -11,6 +11,9 @@
 - Firebase は以下の設定ファイルを事前に生成しておくこと
   - Android: `android/app/google-services.json`
   - iOS: `ios/Runner/GoogleService-Info.plist`
+- Firebase サービスの利用区分
+  - 必須: Firebase Crashlytics, Firebase Analytics
+  - 任意: Firebase Authentication（`USE_FIREBASE_AUTH=true` の場合に必要）
 
 ## セットアップ
 
