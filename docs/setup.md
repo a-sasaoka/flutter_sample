@@ -51,6 +51,22 @@ cp env.example .env.local
 > 注意1: このプロジェクトでは Firebase Crashlytics / Firebase Analytics を利用するため、`USE_FIREBASE_AUTH=false` の場合でも `FIREBASE_*` の設定は必要です。
 > 注意2: ユーザー一覧のサンプルAPI動作確認には GET /users を返すエンドポイントが必要です。動作確認する場合は `BASE_URL` に `https://jsonplaceholder.typicode.com` を指定してください。
 
+- 転記マッピング一覧（Firebase 設定ファイル → `.env.local`）
+
+| `.env.local` のキー | 転記元ファイル | 転記元（探し方） |
+| --- | --- | --- |
+| `FIREBASE_ANDROID_API_KEY` | `android/app/google-services.json` | `APP_ID` と同じ `package_name` の `client` を選び、その中の「APIキー（current_key）」 |
+| `FIREBASE_ANDROID_APP_ID` | `android/app/google-services.json` | `APP_ID` と同じ `package_name` の `client` を選び、その中の「モバイルSDKアプリID（mobilesdk_app_id）」 |
+| `FIREBASE_ANDROID_MSG_SENDER_ID` | `android/app/google-services.json` | `project_info` の「project_number」 |
+| `FIREBASE_ANDROID_PROJECT_ID` | `android/app/google-services.json` | `project_info` の「project_id」 |
+| `FIREBASE_ANDROID_STORAGE_BUCKET` | `android/app/google-services.json` | `project_info` の「storage_bucket」 |
+| `FIREBASE_IOS_API_KEY` | `ios/Runner/GoogleService-Info.plist` | `API_KEY` |
+| `FIREBASE_IOS_APP_ID` | `ios/Runner/GoogleService-Info.plist` | `GOOGLE_APP_ID` |
+| `FIREBASE_IOS_MSG_SENDER_ID` | `ios/Runner/GoogleService-Info.plist` | `GCM_SENDER_ID` |
+| `FIREBASE_IOS_PROJECT_ID` | `ios/Runner/GoogleService-Info.plist` | `PROJECT_ID` |
+| `FIREBASE_IOS_STORAGE_BUCKET` | `ios/Runner/GoogleService-Info.plist` | `STORAGE_BUCKET` |
+| `FIREBASE_IOS_BUNDLE_ID` | `ios/Runner/GoogleService-Info.plist` | `BUNDLE_ID` |
+
 ### 認証モード切替（`USE_FIREBASE_AUTH`）
 
 `.env.*` の `USE_FIREBASE_AUTH` で認証方式を切り替えできます。
