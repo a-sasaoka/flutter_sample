@@ -53,6 +53,7 @@ android {
         versionName = flutter.versionName
 
         resValue("string", "app_name", dartDefines["APP_NAME"] ?: "Flutter Sample")
+        resValue("string", "GOOGLE_REVERSED_CLIENT_ID", dartDefines["GOOGLE_REVERSED_CLIENT_ID"] ?: "DUMMY")
     }
 
     buildTypes {

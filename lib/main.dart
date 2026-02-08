@@ -8,20 +8,24 @@ import 'dart:ui';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_sample/firebase_options.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/config/app_config_provider.dart';
+import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/config/app_theme.dart';
+import 'package:flutter_sample/src/core/config/firebase_options.dart';
+import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // Flavorを取得（文字列で扱うとエラーの原因になるので、enumに変換する）
+  final flavor = Flavor.fromString(AppEnv.flavor);
+
+  // Firebaseの初期化（DefaultFirebaseOptionsは環境別の内容を読み込む）
+  await Firebase.initializeApp(options: firebaseOptionsWithFlavor(flavor));
 
   // Crashlytics: Flutterエラーを記録
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
@@ -49,8 +53,12 @@ Future<void> main() async {
   container.dispose();
 
   runApp(
-    const ProviderScope(
-      child: MyApp(),
+    ProviderScope(
+      overrides: [
+        // プロバイダーにFlavorを設定
+        flavorProvider.overrideWithValue(flavor),
+      ],
+      child: const MyApp(),
     ),
   );
 }
