@@ -21,11 +21,10 @@ git clone https://github.com/a-sasaoka/flutter_sample.git <your_app>
 cd <your_app>
 ```
 
-- Flutter バージョンを指定し、依存を取得します。
+- fvm_config.json で指定された Flutter バージョンをインストールし依存を取得します。
 
 ```bash
-fvm install 3.35.7
-fvm use 3.35.7
+fvm install
 fvm flutter pub get
 ```
 
