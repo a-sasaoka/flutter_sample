@@ -1,16 +1,104 @@
 # 初期セットアップ
 
-## 1️⃣ FVMによるFlutterバージョン指定
+このドキュメントを上から順に実行すれば、新規プロジェクトを作成できる構成にしています。
+
+---
+
+## 前提条件
+
+- FVM がインストール済み（[インストールガイド](https://fvm.app/documentation/getting-started/installation?utm_source=openai)）
+- Flutter/Dart バージョン: **Flutter 3.35.7 / Dart 3.9.2**
+- Firebase は以下の設定ファイルを事前に生成しておくこと
+  - Android: `android/app/google-services.json`
+  - iOS: `ios/Runner/GoogleService-Info.plist`
+- Firebase サービスの利用区分
+  - 必須: Firebase Crashlytics, Firebase Analytics
+  - 任意: Firebase Authentication（`USE_FIREBASE_AUTH=true` の場合に必要）
+
+## セットアップ
+
+- リポジトリを clone します。
 
 ```bash
-fvm use 3.35.7
+git clone https://github.com/a-sasaoka/flutter_sample.git <your_app>
+cd <your_app>
 ```
 
-## 2️⃣ 依存パッケージのインストール
+- fvm_config.json で指定された Flutter バージョンをインストールし依存を取得します。
 
 ```bash
+fvm install
 fvm flutter pub get
 ```
+
+- Firebase 設定ファイルを配置します。
+  - Android: `android/app/google-services.json`
+  - iOS: `ios/Runner/GoogleService-Info.plist`
+
+- `.env.local` を作成し編集します。
+
+```bash
+cp env.example .env.local
+```
+
+### `.env.local` で変更・確認する項目
+
+- `FLAVOR`: `local` に変更
+- `BASE_URL`: 利用する API のエンドポイントに変更
+- `FIREBASE_*`: Firebase プロジェクトの実値に変更
+- `APP_ID` と `FIREBASE_IOS_BUNDLE_ID`: iOS/Firebase 側の設定と一致するよう変更
+
+> 注意1: このプロジェクトでは Firebase Crashlytics / Firebase Analytics を利用するため、`USE_FIREBASE_AUTH=false` の場合でも `FIREBASE_*` の設定は必要です。
+> 注意2: ユーザー一覧のサンプルAPI動作確認には GET /users を返すエンドポイントが必要です。動作確認する場合は `BASE_URL` に `https://jsonplaceholder.typicode.com` を指定してください。
+
+- 転記マッピング一覧（Firebase 設定ファイル → `.env.local`）
+
+| `.env.local` のキー | 転記元ファイル | 転記元（探し方） |
+| --- | --- | --- |
+| `FIREBASE_ANDROID_API_KEY` | `android/app/google-services.json` | `APP_ID` と同じ `package_name` の `client` を選び、その中の「APIキー（current_key）」 |
+| `FIREBASE_ANDROID_APP_ID` | `android/app/google-services.json` | `APP_ID` と同じ `package_name` の `client` を選び、その中の「モバイルSDKアプリID（mobilesdk_app_id）」 |
+| `FIREBASE_ANDROID_MSG_SENDER_ID` | `android/app/google-services.json` | `project_info` の「project_number」 |
+| `FIREBASE_ANDROID_PROJECT_ID` | `android/app/google-services.json` | `project_info` の「project_id」 |
+| `FIREBASE_ANDROID_STORAGE_BUCKET` | `android/app/google-services.json` | `project_info` の「storage_bucket」 |
+| `FIREBASE_IOS_API_KEY` | `ios/Runner/GoogleService-Info.plist` | `API_KEY` |
+| `FIREBASE_IOS_APP_ID` | `ios/Runner/GoogleService-Info.plist` | `GOOGLE_APP_ID` |
+| `FIREBASE_IOS_MSG_SENDER_ID` | `ios/Runner/GoogleService-Info.plist` | `GCM_SENDER_ID` |
+| `FIREBASE_IOS_PROJECT_ID` | `ios/Runner/GoogleService-Info.plist` | `PROJECT_ID` |
+| `FIREBASE_IOS_STORAGE_BUCKET` | `ios/Runner/GoogleService-Info.plist` | `STORAGE_BUCKET` |
+| `FIREBASE_IOS_BUNDLE_ID` | `ios/Runner/GoogleService-Info.plist` | `BUNDLE_ID` |
+
+### 認証モード切替（`USE_FIREBASE_AUTH`）
+
+`.env.*` の `USE_FIREBASE_AUTH` で認証方式を切り替えできます。
+
+- `true`: Firebase Authentication（メール/パスワード認証）を使用
+- `false`: APIトークン認証フローを使用
+
+`USE_FIREBASE_AUTH` を変更した場合は、`app_env.g.dart` を更新するために Envied の再生成を実行してください。
+
+> 注意: `USE_FIREBASE_AUTH` に限らず、`.env.*` のうち `AppEnv`（Envied）で参照している値を変更した場合は再生成が必要です。
+
+- Envied の生成を実行します。
+
+```bash
+fvm dart run build_runner build --delete-conflicting-outputs --define "envied_generator:envied=path=.env.local"
+```
+
+- 以下のコマンドで起動します（`.env.local` を使う例）:
+
+```bash
+fvm flutter run --dart-define=FLUTTER_ENV=local --dart-define-from-file=.env.local
+```
+
+### VS Code から起動する場合（`launch.json` 利用）
+
+`.vscode/launch.json` に環境別の起動構成（`Local` / `Dev` / `Staging` / `Prod`）が用意されています。  
+VS Code の「実行とデバッグ」から対象構成を選んで起動してください。
+
+- `Local`: `--dart-define=FLUTTER_ENV=local --dart-define-from-file=.env.local`
+- `Dev`: `--dart-define=FLUTTER_ENV=dev --dart-define-from-file=.env.dev`
+- `Staging`: `--dart-define=FLUTTER_ENV=stg --dart-define-from-file=.env.stg`
+- `Prod`: `--dart-define=FLUTTER_ENV=prod --dart-define-from-file=.env.prod`
 
 ---
 
@@ -35,15 +123,5 @@ chmod +x tool/hooks/pre-commit tool/setup_git_hooks.sh
   - `flutter analyze`（静的解析）
   - `dart format --set-exit-if-changed`（フォーマットチェック）
 - どちらかに問題がある場合、コミットは中断されます。
-
----
-
-## Lint設定
-
-### 利用パッケージ
-
-- very_good_analysis
-- custom_lint
-- riverpod_lint
 
 ---

@@ -14,6 +14,7 @@
 | 環境変数 | [Envied](https://pub.dev/packages/envied) |
 | ログ | [Logger](https://pub.dev/packages/logger) |
 | Firebase基盤 | [Firebase Core](https://pub.dev/packages/firebase_core) |
+| 認証 | [Firebase Authentication](https://pub.dev/packages/firebase_auth) |
 | イベント計測 | [Firebase Analytics](https://pub.dev/packages/firebase_analytics) |
 | クラッシュ収集 | [Firebase Crashlytics](https://pub.dev/packages/firebase_crashlytics) |
 | 端末情報 | [Package Info Plus](https://pub.dev/packages/package_info_plus) |
