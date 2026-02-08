@@ -59,6 +59,8 @@ cp env.example .env.local
 
 `USE_FIREBASE_AUTH` を変更した場合は、`app_env.g.dart` を更新するために Envied の再生成を実行してください。
 
+> 注意: `USE_FIREBASE_AUTH` に限らず、`.env.*` のうち `AppEnv`（Envied）で参照している値を変更した場合は再生成が必要です。
+
 - Envied の生成を実行します。
 
 ```bash
