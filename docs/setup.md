@@ -48,7 +48,7 @@ cp env.example .env.local
 - `FIREBASE_*`: Firebase プロジェクトの実値に変更
 - `APP_ID` と `FIREBASE_IOS_BUNDLE_ID`: iOS/Firebase 側の設定と一致するよう変更
 
-> 注意1: このプロジェクトは起動時に `Firebase.initializeApp(...)` を実行するため、`USE_FIREBASE_AUTH=false` の場合でも `FIREBASE_*` の設定は必要です。
+> 注意1: このプロジェクトでは Firebase Crashlytics / Firebase Analytics を利用するため、`USE_FIREBASE_AUTH=false` の場合でも `FIREBASE_*` の設定は必要です。
 > 注意2: ユーザー一覧のサンプルAPI動作確認には GET /users を返すエンドポイントが必要です。動作確認する場合は `BASE_URL` に `https://jsonplaceholder.typicode.com` を指定してください。
 
 ### 認証モード切替（`USE_FIREBASE_AUTH`）
