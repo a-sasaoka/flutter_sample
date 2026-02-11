@@ -82,9 +82,7 @@ cp env.example .env.local
 - `true`: Firebase Authentication（メール/パスワード認証）を使用
 - `false`: APIトークン認証フローを使用
 
-`USE_FIREBASE_AUTH` を変更した場合は、`app_env.g.dart` を更新するために Envied の再生成を実行してください。
-
-> 注意: `USE_FIREBASE_AUTH` に限らず、`.env.*` のうち `AppEnv`（Envied）で参照している値を変更した場合は再生成が必要です。
+> 注意: `.env.*` のうち `AppEnv`（Envied）で参照している値を変更した場合は再生成が必要です。
 
 - Envied の生成を実行します。
 
