@@ -8,9 +8,7 @@
 
 - FVM がインストール済み（[インストールガイド](https://fvm.app/documentation/getting-started/installation?utm_source=openai)）
 - Flutter/Dart バージョン: **Flutter 3.35.7 / Dart 3.9.2**
-- Firebase は以下の設定ファイルを事前に生成しておくこと
-  - Android: `android/app/google-services.json`
-  - iOS: `ios/Runner/GoogleService-Info.plist`
+- FlutterFire CLI が利用可能であること（[インストールガイド](https://firebase.google.com/docs/flutter/setup?hl=ja&platform=ios)）
 - Firebase サービスの利用区分
   - 必須: Firebase Crashlytics, Firebase Analytics
   - 任意: Firebase Authentication（`USE_FIREBASE_AUTH=true` の場合に必要）
@@ -31,9 +29,19 @@ fvm install
 fvm flutter pub get
 ```
 
-- Firebase 設定ファイルを配置します。
-  - Android: `android/app/google-services.json`
-  - iOS: `ios/Runner/GoogleService-Info.plist`
+- Firebase プロジェクトを指定して設定ファイルを生成します。
+
+```bash
+flutterfire configure --project={Firebase project ID}
+```
+
+- プラットフォーム選択で android と iOS のチェックを入れる
+- lib/firebase_options.dart の上書きを聞かれた場合は yes で上書きする
+- Android application id (or package name) と ios bundle id は共通の値にする
+- 以下ファイルが生成されたことを確認する
+  - `android/app/google-services.json`
+  - `ios/Runner/GoogleService-Info.plist`
+  - `lib/firebase_options.dart`
 
 - `.env.local` を作成し編集します。
 
@@ -51,21 +59,21 @@ cp env.example .env.local
 > 注意1: このプロジェクトでは Firebase Crashlytics / Firebase Analytics を利用するため、`USE_FIREBASE_AUTH=false` の場合でも `FIREBASE_*` の設定は必要です。
 > 注意2: ユーザー一覧のサンプルAPI動作確認には GET /users を返すエンドポイントが必要です。動作確認する場合は `BASE_URL` に `https://jsonplaceholder.typicode.com` を指定してください。
 
-- 転記マッピング一覧（Firebase 設定ファイル → `.env.local`）
+- 転記マッピング一覧（`lib/firebase_options.dart` → `.env.local`）
 
-| `.env.local` のキー | 転記元ファイル | 転記元（探し方） |
-| --- | --- | --- |
-| `FIREBASE_ANDROID_API_KEY` | `android/app/google-services.json` | `APP_ID` と同じ `package_name` の `client` を選び、その中の「APIキー（current_key）」 |
-| `FIREBASE_ANDROID_APP_ID` | `android/app/google-services.json` | `APP_ID` と同じ `package_name` の `client` を選び、その中の「モバイルSDKアプリID（mobilesdk_app_id）」 |
-| `FIREBASE_ANDROID_MSG_SENDER_ID` | `android/app/google-services.json` | `project_info` の「project_number」 |
-| `FIREBASE_ANDROID_PROJECT_ID` | `android/app/google-services.json` | `project_info` の「project_id」 |
-| `FIREBASE_ANDROID_STORAGE_BUCKET` | `android/app/google-services.json` | `project_info` の「storage_bucket」 |
-| `FIREBASE_IOS_API_KEY` | `ios/Runner/GoogleService-Info.plist` | `API_KEY` |
-| `FIREBASE_IOS_APP_ID` | `ios/Runner/GoogleService-Info.plist` | `GOOGLE_APP_ID` |
-| `FIREBASE_IOS_MSG_SENDER_ID` | `ios/Runner/GoogleService-Info.plist` | `GCM_SENDER_ID` |
-| `FIREBASE_IOS_PROJECT_ID` | `ios/Runner/GoogleService-Info.plist` | `PROJECT_ID` |
-| `FIREBASE_IOS_STORAGE_BUCKET` | `ios/Runner/GoogleService-Info.plist` | `STORAGE_BUCKET` |
-| `FIREBASE_IOS_BUNDLE_ID` | `ios/Runner/GoogleService-Info.plist` | `BUNDLE_ID` |
+| `.env.local` のキー | 転記元 |
+| --- | --- |
+| `FIREBASE_ANDROID_API_KEY` | `DefaultFirebaseOptions.android.apiKey` |
+| `FIREBASE_ANDROID_APP_ID` | `DefaultFirebaseOptions.android.appId` |
+| `FIREBASE_ANDROID_MSG_SENDER_ID` | `DefaultFirebaseOptions.android.messagingSenderId` |
+| `FIREBASE_ANDROID_PROJECT_ID` | `DefaultFirebaseOptions.android.projectId` |
+| `FIREBASE_ANDROID_STORAGE_BUCKET` | `DefaultFirebaseOptions.android.storageBucket` |
+| `FIREBASE_IOS_API_KEY` | `DefaultFirebaseOptions.ios.apiKey` |
+| `FIREBASE_IOS_APP_ID` | `DefaultFirebaseOptions.ios.appId` |
+| `FIREBASE_IOS_MSG_SENDER_ID` | `DefaultFirebaseOptions.ios.messagingSenderId` |
+| `FIREBASE_IOS_PROJECT_ID` | `DefaultFirebaseOptions.ios.projectId` |
+| `FIREBASE_IOS_STORAGE_BUCKET` | `DefaultFirebaseOptions.ios.storageBucket` |
+| `FIREBASE_IOS_BUNDLE_ID` | `DefaultFirebaseOptions.ios.iosBundleId` |
 
 ### 認証モード切替（`USE_FIREBASE_AUTH`）
 
