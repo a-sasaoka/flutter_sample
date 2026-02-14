@@ -42,6 +42,29 @@ flutterfire configure --project={Firebase project ID} --out=lib/firebase_options
   - `ios/Runner/GoogleService-Info.plist`
   - `lib/firebase_options.generated.dart`
 
+### Googleアカウントによるログイン設定
+
+この設定は **Firebase Authentication で Googleログインを使う場合のみ** 必要です。
+
+1. `ios/Runner/GoogleService-Info.plist` を開き、`REVERSED_CLIENT_ID` の値を確認する
+2. `ios/Runner/Info.plist` の `CFBundleURLSchemes` に同じ値を設定
+
+```xml
+<key>CFBundleURLTypes</key>
+<array>
+  <dict>
+    <key>CFBundleTypeRole</key>
+    <string>Editor</string>
+    <key>CFBundleURLSchemes</key>
+    <array>
+      <string>com.googleusercontent.apps.xxxxxxxxxxxxxxxxx</string>
+    </array>
+  </dict>
+</array>
+```
+
+### .env.local の準備
+
 - `.env.local` を作成し編集します。
 
 ```bash
