@@ -79,7 +79,7 @@ cp env.example .env.local
 
 `.env.*` の `USE_FIREBASE_AUTH` で認証方式を切り替えできます。
 
-- `true`: Firebase Authentication（メール/パスワード認証）を使用
+- `true`: Firebase Authenticationを使用
 - `false`: APIトークン認証フローを使用
 
 > 注意: `.env.*` のうち `AppEnv`（Envied）で参照している値を変更した場合は再生成が必要です。
