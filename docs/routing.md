@@ -55,7 +55,7 @@ IDEでルートクラスを補完することで、タイプミスやパス指�
 `app_router.dart` では `AppEnv.useFirebaseAuth` を参照し、利用するガードを切り替えています。
 
 - `USE_FIREBASE_AUTH=true`: `firebaseAuthGuard` を使用
-- `USE_FIREBASE_AUTH=false`: `authGuard` を使用（既存トークン認証）
+- `USE_FIREBASE_AUTH=false`: `authGuard` を使用（自作認証）
 
 ```dart
 redirect: (context, state) {
@@ -72,14 +72,14 @@ redirect: (context, state) {
 
 ```plaintext
 lib/src/core/auth/
- ├── auth_guard.dart                  # 既存トークン認証向けガード
- ├── auth_state_notifier.dart         # 既存トークン認証の状態管理
+ ├── auth_guard.dart                  # 自作認証向けガード
+ ├── auth_state_notifier.dart         # 自作認証の状態管理
  ├── base_auth_guard.dart             # 共通リダイレクト判定ロジック
  ├── firebase_auth_guard.dart         # Firebase認証向けガード
  └── firebase_auth_state_notifier.dart # Firebase認証状態管理
 
 lib/src/features/auth/presentation/
- ├── login_screen.dart                    # 既存トークン認証のログイン画面
+ ├── login_screen.dart                    # 自作認証のログイン画面
  ├── firebase_login_screen.dart           # Firebaseログイン画面
  ├── firebase_sign_up_screen.dart         # Firebaseサインアップ画面
  ├── firebase_email_verification_screen.dart # メール認証待ち画面
@@ -102,10 +102,10 @@ lib/src/features/auth/presentation/
 
 ### 動作フロー
 
-#### `USE_FIREBASE_AUTH=false`（既存トークン認証）
+#### `USE_FIREBASE_AUTH=false`（自作認証）
 
 ```plaintext
-アプリ起動（トークン認証版）
+アプリ起動（自作認証版）
    ↓
 auth_guard.dart で authStateProvider を監視
    ↓
