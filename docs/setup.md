@@ -32,16 +32,15 @@ fvm flutter pub get
 - Firebase プロジェクトを指定して設定ファイルを生成します。
 
 ```bash
-flutterfire configure --project={Firebase project ID}
+flutterfire configure --project={Firebase project ID} --out=lib/firebase_options.generated.dart
 ```
 
 - プラットフォーム選択で android と iOS のチェックを入れる
-- lib/firebase_options.dart の上書きを聞かれた場合は yes で上書きする
 - Android application id (or package name) と ios bundle id は共通の値にする
 - 以下ファイルが生成されたことを確認する
   - `android/app/google-services.json`
   - `ios/Runner/GoogleService-Info.plist`
-  - `lib/firebase_options.dart`
+  - `lib/firebase_options.generated.dart`
 
 - `.env.local` を作成し編集します。
 
@@ -59,21 +58,22 @@ cp env.example .env.local
 > 注意1: このプロジェクトでは Firebase Crashlytics / Firebase Analytics を利用するため、`USE_FIREBASE_AUTH=false` の場合でも `FIREBASE_*` の設定は必要です。
 > 注意2: ユーザー一覧のサンプルAPI動作確認には GET /users を返すエンドポイントが必要です。動作確認する場合は `BASE_URL` に `https://jsonplaceholder.typicode.com` を指定してください。
 
-- 転記マッピング一覧（`lib/firebase_options.dart` → `.env.local`）
+- 転記マッピング一覧（`lib/firebase_options.generated.dart` → `.env.local`）
+  - 転記し終わったら`lib/firebase_options.generated.dart`は削除しておく
 
 | `.env.local` のキー | 転記元 |
 | --- | --- |
-| `FIREBASE_ANDROID_API_KEY` | `DefaultFirebaseOptions.android.apiKey` |
-| `FIREBASE_ANDROID_APP_ID` | `DefaultFirebaseOptions.android.appId` |
-| `FIREBASE_ANDROID_MSG_SENDER_ID` | `DefaultFirebaseOptions.android.messagingSenderId` |
-| `FIREBASE_ANDROID_PROJECT_ID` | `DefaultFirebaseOptions.android.projectId` |
-| `FIREBASE_ANDROID_STORAGE_BUCKET` | `DefaultFirebaseOptions.android.storageBucket` |
-| `FIREBASE_IOS_API_KEY` | `DefaultFirebaseOptions.ios.apiKey` |
-| `FIREBASE_IOS_APP_ID` | `DefaultFirebaseOptions.ios.appId` |
-| `FIREBASE_IOS_MSG_SENDER_ID` | `DefaultFirebaseOptions.ios.messagingSenderId` |
-| `FIREBASE_IOS_PROJECT_ID` | `DefaultFirebaseOptions.ios.projectId` |
-| `FIREBASE_IOS_STORAGE_BUCKET` | `DefaultFirebaseOptions.ios.storageBucket` |
-| `FIREBASE_IOS_BUNDLE_ID` | `DefaultFirebaseOptions.ios.iosBundleId` |
+| `FIREBASE_ANDROID_API_KEY` | `android` ブロックの `apiKey` |
+| `FIREBASE_ANDROID_APP_ID` | `android` ブロックの `appId` |
+| `FIREBASE_ANDROID_MSG_SENDER_ID` | `android` ブロックの `messagingSenderId` |
+| `FIREBASE_ANDROID_PROJECT_ID` | `android` ブロックの `projectId` |
+| `FIREBASE_ANDROID_STORAGE_BUCKET` | `android` ブロックの `storageBucket` |
+| `FIREBASE_IOS_API_KEY` | `ios` ブロックの `apiKey` |
+| `FIREBASE_IOS_APP_ID` | `ios` ブロックの `appId` |
+| `FIREBASE_IOS_MSG_SENDER_ID` | `ios` ブロックの `messagingSenderId` |
+| `FIREBASE_IOS_PROJECT_ID` | `ios` ブロックの `projectId` |
+| `FIREBASE_IOS_STORAGE_BUCKET` | `ios` ブロックの `storageBucket` |
+| `FIREBASE_IOS_BUNDLE_ID` | `ios` ブロックの `iosBundleId` |
 
 ### 認証モード切替（`USE_FIREBASE_AUTH`）
 
