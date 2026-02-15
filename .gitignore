@@ -54,5 +54,10 @@ app.*.map.json
 **/ios/Flutter/Dart-Defines.xcconfig
 
 # Firebase config (ignored)
+firebase.json
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
+lib/firebase_options_*.dart
+
+# AI prompt
+GEMINI.md
