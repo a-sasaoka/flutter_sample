@@ -34,9 +34,8 @@ lib
     │   │   └── theme_mode_provider.dart                     # ダークモードなどテーマ切替の状態管理
     │   ├── exceptions                                       # 共通の例外クラス定義
     │   │   └── app_exception.dart                           # APIエラーなどをまとめて扱う例外クラス
-    │   ├── network                                          # 通信関連の設定やロギング
-    │   │   ├── dio_interceptor.dart                         # Dioの通信を監視するInterceptor
-    │   │   └── logger_provider.dart                         # loggerパッケージによるログ出力設定
+    │   ├── network                                          # 通信関連の設定
+    │   │   └── dio_interceptor.dart                         # Dioの通信を監視するInterceptor
     │   ├── router                                           # ルーティング（GoRouter）関連
     │   │   └── app_router.dart                              # ルート定義（画面遷移の設定）
     │   ├── storage                                          # 永続化関連（SharedPreferencesベースのキャッシュなど）
@@ -44,7 +43,8 @@ lib
     │   │   └── shared_preferences_provider.dart             # SharedPreferencesプロバイダ
     │   ├── ui                                               # 共通UI関連（エラーハンドリングなど）
     │   │   └── error_handler.dart                           # グローバルなエラーハンドリングUI
-    │   ├── utils                                            # 共通のユーティリティ関数群（未実装 or 今後追加）
+    │   ├── utils                                            # 共通のユーティリティ
+    │   │   └── logger_provider.dart                         # loggerパッケージによるログ出力設定
     │   └── widgets                                          # 汎用UI部品や画面
     │       ├── home_screen.dart                             # ホーム画面
     │       ├── not_found_screen.dart                        # ルートが見つからない時の画面

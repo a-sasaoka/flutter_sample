@@ -2,7 +2,7 @@
 
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
-import 'package:flutter_sample/src/core/network/logger_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'dio_interceptor.g.dart';

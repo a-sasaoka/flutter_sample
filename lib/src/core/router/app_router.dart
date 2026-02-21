@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/core/auth/auth_guard.dart';
 import 'package:flutter_sample/src/core/auth/firebase_auth_guard.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
-import 'package:flutter_sample/src/core/network/logger_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/home_screen.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
 import 'package:flutter_sample/src/core/widgets/settings_screen.dart';

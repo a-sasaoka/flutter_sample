@@ -7,8 +7,8 @@ import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
-import 'package:flutter_sample/src/core/network/logger_provider.dart';
 import 'package:flutter_sample/src/core/router/app_router.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 

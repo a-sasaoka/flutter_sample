@@ -39,8 +39,9 @@ lib/src/features/user/
 lib/src/core/
  ├── exceptions/
  │    └── app_exception.dart        # 共通例外クラス
- └── network/
-      ├── dio_interceptor.dart      # 共通Dioインターセプタ
+ ├── network/
+ │    └── dio_interceptor.dart      # 共通Dioインターセプタ
+ └── utils/
       └── logger_provider.dart      # 環境別ログ出力用Loggerプロバイダ
 ```
 
