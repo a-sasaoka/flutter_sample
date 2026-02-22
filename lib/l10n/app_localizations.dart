@@ -128,6 +128,18 @@ abstract class AppLocalizations {
   /// **'OK'**
   String get ok;
 
+  /// No description provided for @loading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading...'**
+  String get loading;
+
+  /// No description provided for @send.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get send;
+
   /// No description provided for @errorNetwork.
   ///
   /// In en, this message translates to:
@@ -163,6 +175,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'An error has occurred'**
   String get errorDialogTitle;
+
+  /// No description provided for @errorLoginFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Login failed.'**
+  String get errorLoginFailed;
+
+  /// No description provided for @errorSignUpFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign up failed.'**
+  String get errorSignUpFailed;
 
   /// No description provided for @homeTitle.
   ///
@@ -229,6 +253,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Bundle ID'**
   String get homeBundleId;
+
+  /// No description provided for @homeCrashTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Crash Test'**
+  String get homeCrashTest;
+
+  /// No description provided for @homeAnalyticsTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Analytics Test'**
+  String get homeAnalyticsTest;
 
   /// No description provided for @notFoundTitle.
   ///
@@ -356,24 +392,6 @@ abstract class AppLocalizations {
   /// **'User List'**
   String get userListTitle;
 
-  /// No description provided for @homeCrashTest.
-  ///
-  /// In en, this message translates to:
-  /// **'Crash Test'**
-  String get homeCrashTest;
-
-  /// No description provided for @homeAnalyticsTest.
-  ///
-  /// In en, this message translates to:
-  /// **'Analytics Test'**
-  String get homeAnalyticsTest;
-
-  /// No description provided for @errorLoginFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Login failed.'**
-  String get errorLoginFailed;
-
   /// No description provided for @signUpTitle.
   ///
   /// In en, this message translates to:
@@ -391,18 +409,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Google Sign In'**
   String get googleSignUp;
-
-  /// No description provided for @errorSignUpFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Sign up failed.'**
-  String get errorSignUpFailed;
-
-  /// No description provided for @loading.
-  ///
-  /// In en, this message translates to:
-  /// **'Loading...'**
-  String get loading;
 
   /// No description provided for @emailVerificationTitle.
   ///
@@ -440,11 +446,23 @@ abstract class AppLocalizations {
   /// **'Password reset email has been sent.'**
   String get resetPasswordMailSent;
 
-  /// No description provided for @send.
+  /// No description provided for @versionUpTitle.
   ///
   /// In en, this message translates to:
-  /// **'Send'**
-  String get send;
+  /// **'A new version is available.\nPlease update.'**
+  String get versionUpTitle;
+
+  /// No description provided for @versionUpCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get versionUpCancel;
+
+  /// No description provided for @versionUpUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get versionUpUpdate;
 }
 
 class _AppLocalizationsDelegate

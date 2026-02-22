@@ -24,6 +24,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ok => 'OK';
 
   @override
+  String get loading => 'Loading...';
+
+  @override
+  String get send => 'Send';
+
+  @override
   String get errorNetwork => 'A network error has occurred.';
 
   @override
@@ -40,6 +46,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorDialogTitle => 'An error has occurred';
+
+  @override
+  String get errorLoginFailed => 'Login failed.';
+
+  @override
+  String get errorSignUpFailed => 'Sign up failed.';
 
   @override
   String get homeTitle => 'Home';
@@ -74,6 +86,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeBundleId => 'Bundle ID';
+
+  @override
+  String get homeCrashTest => 'Crash Test';
+
+  @override
+  String get homeAnalyticsTest => 'Analytics Test';
 
   @override
   String get notFoundTitle => 'Page Not Found';
@@ -140,15 +158,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get userListTitle => 'User List';
 
   @override
-  String get homeCrashTest => 'Crash Test';
-
-  @override
-  String get homeAnalyticsTest => 'Analytics Test';
-
-  @override
-  String get errorLoginFailed => 'Login failed.';
-
-  @override
   String get signUpTitle => 'Sign Up';
 
   @override
@@ -156,12 +165,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get googleSignUp => 'Google Sign In';
-
-  @override
-  String get errorSignUpFailed => 'Sign up failed.';
-
-  @override
-  String get loading => 'Loading...';
 
   @override
   String get emailVerificationTitle => 'Email Verification';
@@ -184,5 +187,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resetPasswordMailSent => 'Password reset email has been sent.';
 
   @override
-  String get send => 'Send';
+  String get versionUpTitle => 'A new version is available.\nPlease update.';
+
+  @override
+  String get versionUpCancel => 'Cancel';
+
+  @override
+  String get versionUpUpdate => 'Update';
 }
