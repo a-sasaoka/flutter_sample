@@ -7,7 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:version/version.dart';
 
-part 'update_request_provider.dart.g.dart';
+part 'update_request_provider.g.dart';
 
 /// RemoteConfigからアップデート情報を取得するコントローラ
 @Riverpod(keepAlive: true)

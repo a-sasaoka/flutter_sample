@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'update_request_provider.dart.dart';
+part of 'update_request_provider.dart';
 
 // **************************************************************************
 // RiverpodGenerator
@@ -37,7 +37,7 @@ final class UpdateRequestControllerProvider
 }
 
 String _$updateRequestControllerHash() =>
-    r'cb1322445e18dc86adb56fedad9365102541851f';
+    r'a7e2b229d6d9c4efe75acf6861a43373fcf2943b';
 
 /// RemoteConfigからアップデート情報を取得するコントローラ
 
