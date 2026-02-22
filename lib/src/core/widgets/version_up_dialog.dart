@@ -14,21 +14,25 @@ class VersionUpDialog {
     // 新しいアプリバージョンあり、かつキャンセルしていない場合はダイアログを表示する
     if (requestType != UpdateRequestType.not &&
         !ref.read(cancelControllerProvider)) {
+      final isCancelable = requestType == UpdateRequestType.cancelable;
       await showDialog<void>(
         context: context,
-        // ダイアログの外をタップしても閉じられないようにする
-        barrierDismissible: false,
+        // キャンセル可能ならダイアログの外をタップしても閉じるようにする
+        barrierDismissible: isCancelable,
         builder: (context) {
           return PopScope(
-            // AndroidのBackボタンで閉じられないようにする
-            canPop: false,
+            canPop: isCancelable,
+            onPopInvokedWithResult: (didPop, _) {
+              if (didPop && isCancelable) {
+                ref.read(cancelControllerProvider.notifier).clickCancel();
+              }
+            },
             child: AlertDialog(
               title: Text(AppLocalizations.of(context)!.versionUpTitle),
               actions: [
                 if (requestType == UpdateRequestType.cancelable)
                   TextButton(
                     onPressed: () {
-                      ref.read(cancelControllerProvider.notifier).clickCancel();
                       Navigator.of(context).pop();
                     },
                     child: Text(AppLocalizations.of(context)!.versionUpCancel),

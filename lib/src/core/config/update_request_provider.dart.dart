@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:firebase_remote_config/firebase_remote_config.dart';
+import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/update_info.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -36,7 +37,10 @@ class UpdateRequestController extends _$UpdateRequestController {
   @override
   Future<UpdateRequestType> build() async {
     // タイムアウトとフェッチのインターバル時間を設定
-    const interval = Duration.zero;
+    final flavor = ref.read(flavorProvider);
+    final interval = flavor == Flavor.prod
+        ? const Duration(hours: 12)
+        : Duration.zero;
     await _remoteConfig.setConfigSettings(
       RemoteConfigSettings(
         fetchTimeout: const Duration(minutes: 1),
