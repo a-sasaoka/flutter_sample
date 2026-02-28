@@ -12,7 +12,7 @@ fvm use
 fvm flutter pub get
 ```
 
-## 4️⃣ 環境設定ファイルの準備
+## 3️⃣ 環境設定ファイルの準備
 
 `env.example`をコピーして、以下の4ファイルを作成します。
 
@@ -35,7 +35,7 @@ fvm flutter pub get
 | USE_FIREBASE_AUTH         | 認証でFirebase Authenticationを使う場合は`true`、使わない場合は`false`                                                             |
 | GOOGLE_REVERSED_CLIENT_ID | `ios/Runner/GoogleService-Info.plist`の`REVERSED_CLIENT_ID`の値（Firebase Authenticationを使わない場合は未設定でも問題ありません） |
 
-## 3️⃣ Firebase利用準備
+## 4️⃣ Firebase利用準備
 
 本プロジェクトではFirebaseの機能をデフォルトで使っているため必要な設定を行います。
 Firebase自体についての説明等は本プロジェクトの趣旨とは外れてしまうのでここでは割愛します。
