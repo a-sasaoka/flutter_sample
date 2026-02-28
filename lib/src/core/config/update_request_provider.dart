@@ -56,37 +56,42 @@ class UpdateRequestController extends _$UpdateRequestController {
 
   /// RemoteConfigからアップデート情報を取得
   Future<UpdateRequestType> _getRemoteConfigData() async {
-    // RemoteConfigから情報を取得
-    final string = _remoteConfig.getString('update_info');
-    if (string.isEmpty) {
+    try {
+      // RemoteConfigから情報を取得
+      final string = _remoteConfig.getString('update_info');
+      if (string.isEmpty) {
+        return UpdateRequestType.not;
+      }
+
+      // JSONをMapに変換
+      final map = json.decode(string) as Map<String, Object?>;
+      // JSONの情報からアップデート情報を作成
+      final entity = UpdateInfo.fromJson(map);
+
+      // 現在のアプリバージョンを取得
+      final appPackageInfo = await PackageInfo.fromPlatform();
+      final currentVersion = Version.parse(appPackageInfo.version);
+
+      // RemoteConfigに設定されているバージョンと適用日を取得
+      final requiredVersion = Version.parse(entity.requiredVersion);
+      final enabledAt = entity.enabledAt;
+
+      // 現在のバージョンより新しいバージョンが指定されているか
+      final hasNewVersion = requiredVersion > currentVersion;
+      // 強制アップデート有効期間内かどうか
+      final isEnabled = enabledAt.compareTo(DateTime.now()) < 0;
+
+      if (!isEnabled || !hasNewVersion) {
+        // 有効期間外、もしくは新しいバージョンは無い
+        return UpdateRequestType.not;
+      }
+      return entity.canCancel
+          ? UpdateRequestType.cancelable
+          : UpdateRequestType.forcibly;
+    } on Exception catch (_) {
+      // パース失敗時はアップデートなしとして扱う
       return UpdateRequestType.not;
     }
-
-    // JSONをMapに変換
-    final map = json.decode(string) as Map<String, Object?>;
-    // JSONの情報からアップデート情報を作成
-    final entity = UpdateInfo.fromJson(map);
-
-    // 現在のアプリバージョンを取得
-    final appPackageInfo = await PackageInfo.fromPlatform();
-    final currentVersion = Version.parse(appPackageInfo.version);
-
-    // RemoteConfigに設定されているバージョンと適用日を取得
-    final requiredVersion = Version.parse(entity.requiredVersion);
-    final enabledAt = entity.enabledAt;
-
-    // 現在のバージョンより新しいバージョンが指定されているか
-    final hasNewVersion = requiredVersion > currentVersion;
-    // 強制アップデート有効期間内かどうか
-    final isEnabled = enabledAt.compareTo(DateTime.now()) < 0;
-
-    if (!isEnabled || !hasNewVersion) {
-      // 有効期間外、もしくは新しいバージョンは無い
-      return UpdateRequestType.not;
-    }
-    return entity.canCancel
-        ? UpdateRequestType.cancelable
-        : UpdateRequestType.forcibly;
   }
 }
 

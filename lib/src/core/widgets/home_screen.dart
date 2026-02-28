@@ -37,102 +37,106 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context)!.homeTitle)),
       body: updateRequest.when(
-        data: (updateRequest) {
-          // メインのWidgetの描画が終わってからダイアログを表示する
-          WidgetsBinding.instance.addPostFrameCallback((_) async {
-            await VersionUpDialog.show(
-              context,
-              updateRequest,
-              ref,
-            );
-          });
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Text(AppLocalizations.of(context)!.homeDescription),
-              const SizedBox(height: 16),
-              Text(
-                '${AppLocalizations.of(context)!.homeCurrentEnv}:'
-                ' ${AppEnv.environment.toUpperCase()}',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => const SettingsRoute().push<void>(context),
-                child: Text(AppLocalizations.of(context)!.homeToSettings),
-              ),
-              const SizedBox(height: 8),
-              FilledButton(
-                onPressed: () => const SampleRoute().push<void>(context),
-                child: Text(AppLocalizations.of(context)!.homeToSample),
-              ),
-              const SizedBox(height: 8),
-              FilledButton(
-                onPressed: () => const UserListRoute().push<void>(context),
-                child: Text(AppLocalizations.of(context)!.homeToUserList),
-              ),
-              if (AppEnv.useFirebaseAuth) ...[
-                const SizedBox(height: 8),
-                FilledButton(
-                  onPressed: () =>
-                      const ResetPasswordRoute().push<void>(context),
-                  child: Text(
-                    AppLocalizations.of(context)!.homeToResetPassword,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => context.go('/undefined/path'),
-                child: Text(AppLocalizations.of(context)!.homeToNotFound),
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () async {
-                  final info = await PackageInfo.fromPlatform();
-                  setState(() {
-                    appName = info.appName;
-                    bundleId = info
-                        .packageName; // ← Android: applicationId / iOS: bundleIdentifier
-                  });
-                },
-                child: Text(AppLocalizations.of(context)!.homeGetAppInfo),
-              ),
-              Text('${AppLocalizations.of(context)!.homeAppName}: $appName'),
-              Text('${AppLocalizations.of(context)!.homeBundleId}: $bundleId'),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () {
-                  FirebaseCrashlytics.instance.crash();
-                },
-                child: Text(AppLocalizations.of(context)!.homeCrashTest),
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () async {
-                  final logger = ref.read(loggerProvider);
-                  final analytics = ref.read(analyticsServiceProvider);
-
-                  try {
-                    await analytics.logEvent(
-                      event: AnalyticsEvent.homeButtonTapped,
-                    );
-                    logger.d('🎯 logEvent sent via AnalyticsService');
-                  } on Exception catch (e, st) {
-                    logger.e('❌ AnalyticsService error: $e\n$st');
-                  }
-                },
-                child: Text(AppLocalizations.of(context)!.homeAnalyticsTest),
-              ),
-            ],
-          );
-        },
-        error: (_, _) => const SizedBox.shrink(),
+        data: (updateRequest) => _buildBody(context, updateRequest),
+        error: (_, _) => _buildBody(context, null),
         loading: () => const CircularProgressIndicator(),
       ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, UpdateRequestType? updateRequest) {
+    // メインのWidgetの描画が終わってからダイアログを表示する
+    if (updateRequest != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!context.mounted) return;
+        await VersionUpDialog.show(
+          context,
+          updateRequest,
+          ref,
+        );
+      });
+    }
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(AppLocalizations.of(context)!.homeDescription),
+        const SizedBox(height: 16),
+        Text(
+          '${AppLocalizations.of(context)!.homeCurrentEnv}:'
+          ' ${AppEnv.environment.toUpperCase()}',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        FilledButton(
+          onPressed: () => const SettingsRoute().push<void>(context),
+          child: Text(AppLocalizations.of(context)!.homeToSettings),
+        ),
+        const SizedBox(height: 8),
+        FilledButton(
+          onPressed: () => const SampleRoute().push<void>(context),
+          child: Text(AppLocalizations.of(context)!.homeToSample),
+        ),
+        const SizedBox(height: 8),
+        FilledButton(
+          onPressed: () => const UserListRoute().push<void>(context),
+          child: Text(AppLocalizations.of(context)!.homeToUserList),
+        ),
+        if (AppEnv.useFirebaseAuth) ...[
+          const SizedBox(height: 8),
+          FilledButton(
+            onPressed: () => const ResetPasswordRoute().push<void>(context),
+            child: Text(
+              AppLocalizations.of(context)!.homeToResetPassword,
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+        FilledButton(
+          onPressed: () => context.go('/undefined/path'),
+          child: Text(AppLocalizations.of(context)!.homeToNotFound),
+        ),
+        const SizedBox(height: 16),
+        FilledButton(
+          onPressed: () async {
+            final info = await PackageInfo.fromPlatform();
+            setState(() {
+              appName = info.appName;
+              bundleId = info
+                  .packageName; // ← Android: applicationId / iOS: bundleIdentifier
+            });
+          },
+          child: Text(AppLocalizations.of(context)!.homeGetAppInfo),
+        ),
+        Text('${AppLocalizations.of(context)!.homeAppName}: $appName'),
+        Text('${AppLocalizations.of(context)!.homeBundleId}: $bundleId'),
+        const SizedBox(height: 16),
+        FilledButton(
+          onPressed: () {
+            FirebaseCrashlytics.instance.crash();
+          },
+          child: Text(AppLocalizations.of(context)!.homeCrashTest),
+        ),
+        const SizedBox(height: 16),
+        FilledButton(
+          onPressed: () async {
+            final logger = ref.read(loggerProvider);
+            final analytics = ref.read(analyticsServiceProvider);
+
+            try {
+              await analytics.logEvent(
+                event: AnalyticsEvent.homeButtonTapped,
+              );
+              logger.d('🎯 logEvent sent via AnalyticsService');
+            } on Exception catch (e, st) {
+              logger.e('❌ AnalyticsService error: $e\n$st');
+            }
+          },
+          child: Text(AppLocalizations.of(context)!.homeAnalyticsTest),
+        ),
+      ],
     );
   }
 }
