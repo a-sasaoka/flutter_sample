@@ -11,32 +11,33 @@ Flutter開発のサンプルプロジェクトです。\
 
 ### A. 基本情報
 
-- [1. プロジェクト概要](docs/overview.md)
-- [2. 技術スタックと開発環境](docs/tech_stack.md)
-- [3. ディレクトリ構成](docs/project_structure.md)
+- [プロジェクト概要](docs/overview.md)
+- [技術スタックと開発環境](docs/tech_stack.md)
+- [ディレクトリ構成](docs/project_structure.md)
 
 ### B. 開発準備
 
-- [4. 初期セットアップ](docs/setup.md)
+- [初期セットアップ](docs/setup.md)
 
 ### C. アプリ基盤
 
-- [5. GoRouter（型安全ルーティング）](docs/routing.md)
-- [6. 多言語対応（Localization）](docs/localization.md)
-- [7. SharedPreferences 永続化](docs/persistence.md)
-- [8. テーマ設定（FlexColorScheme）](docs/theme.md)
+- [GoRouter（型安全ルーティング）](docs/routing.md)
+- [多言語対応（Localization）](docs/localization.md)
+- [SharedPreferences 永続化](docs/persistence.md)
+- [テーマ設定（FlexColorScheme）](docs/theme.md)
 
 ### D. 機能別実装
 
-- [9. API通信デモ（UserList）](docs/api_and_error_handling.md)
-- [10. トークン認証（Bearer + Refresh）](docs/auth.md)
-- [11. Firebase Authenticationによる認証対応](docs/firebase_authentication.md)
-- [12. 認証状態管理とルーティング制御（AuthGuard + SplashScreen）](docs/routing.md#認証状態管理とルーティング制御authguard--splashscreen)
-- [13. APIキャッシュ対応（SharedPreferencesベース）](docs/cache.md)
-- [14. Firebase Crashlytics](docs/crashlytics.md)
-- [15. Firebase Analytics](docs/analytics.md)
+- [API通信デモ（UserList）](docs/api_and_error_handling.md)
+- [トークン認証（Bearer + Refresh）](docs/auth.md)
+- [Firebase Authenticationによる認証対応](docs/firebase_authentication.md)
+- [認証状態管理とルーティング制御（AuthGuard + SplashScreen）](docs/routing.md#認証状態管理とルーティング制御authguard--splashscreen)
+- [APIキャッシュ対応（SharedPreferencesベース）](docs/cache.md)
+- [Firebase Crashlytics](docs/crashlytics.md)
+- [Firebase Analytics](docs/analytics.md)
+- [バージョンアップ通知（Firebase Remote Config）](docs/remote_config.md)
 
 ### E. 開発運用
 
-- [16. コード生成コマンド](docs/code_generation.md)
-- [17. 今後の拡張案](docs/roadmap.md)
+- [コード生成コマンド](docs/code_generation.md)
+- [今後の拡張案](docs/roadmap.md)
