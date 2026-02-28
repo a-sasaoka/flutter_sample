@@ -9,16 +9,18 @@
 
 このサンプルプロジェクトを通して、以下の技術や設計手法を体系的に学ぶことができます。
 
-| 分野 | 学べる内容 |
-|------|-------------|
-| 🧠 状態管理 | Riverpod（アノテーションベース）によるスケーラブルな構成 |
-| 🧭 ルーティング | GoRouter + go_router_builder による型安全なルート設計 |
-| 🌐 通信 | Dio + Interceptorによる共通通信層の設計 |
-| 🔒 認証 | Bearerトークン + 自動リフレッシュ構成 |
-| 💾 データ保持 | SharedPreferencesを用いたキャッシュ・テーマ・トークン永続化 |
-| 🧰 コード生成 | build_runner + Enviedによる環境切替対応 |
-| 🎨 UI | FlexColorSchemeによるテーマ設定と永続化 |
-| 🧩 Lint | very_good_analysis + custom_lint + riverpod_lintの実用設定 |
-| 🚀 開発効率 | FVM + VSCode設定 + Git Hooks で統一開発環境を構築 |
+| 分野            | 学べる内容                                                    |
+| --------------- | ------------------------------------------------------------- |
+| 🧠 状態管理     | Riverpod（アノテーションベース）によるスケーラブルな構成      |
+| 🧭 ルーティング | GoRouter + go_router_builder による型安全なルート設計         |
+| 🌐 通信         | Dio + Interceptorによる共通通信層とエラーハンドリング         |
+| 🔒 認証         | Bearerトークン + 自動リフレッシュ構成                         |
+| 💾 データ保持   | SharedPreferencesを用いたキャッシュ・テーマ・トークン永続化   |
+| 🌍 多言語対応   | flutter_localizations + gen-l10n による標準的な多言語化       |
+| 🔥 Firebase     | Analytics（画面遷移自動計測） + Crashlytics（クラッシュ収集） |
+| 🧰 コード生成   | build_runner + Enviedによる環境切替対応                       |
+| 🎨 UI           | FlexColorSchemeによるテーマ設定と永続化                       |
+| 🧩 Lint         | very_good_analysis + custom_lint + riverpod_lintの実用設定    |
+| 🚀 開発効率     | FVM + VSCode設定 + Git Hooks で統一開発環境を構築             |
 
 ---
