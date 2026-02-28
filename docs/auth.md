@@ -27,10 +27,10 @@ dio.interceptors.add(ref.read(dioInterceptorProvider));   // ② ログ出力・
 
 ### 💡 理由
 
-| 順番 | 説明 |
-|------|------|
+| 順番               | 説明                                                    |
+| ------------------ | ------------------------------------------------------- |
 | ① tokenInterceptor | リクエスト前に認証ヘッダーを追加・401検知でリフレッシュ |
-| ② dioInterceptor | 通信全体のログ・例外処理を担当（最終層で処理） |
+| ② dioInterceptor   | 通信全体のログ・例外処理を担当（最終層で処理）          |
 
 > 順番を逆にすると、ログにトークンが含まれなかったり、401エラー時の自動リフレッシュが動作しないことがあります。
 
@@ -38,10 +38,10 @@ dio.interceptors.add(ref.read(dioInterceptorProvider));   // ② ログ出力・
 
 ## ✅ 動作確認手順
 
-1. `/auth/login` に有効なユーザー情報をPOSTしてログイン  
-2. `SharedPreferences` にトークンが保存されていることを確認  
-3. 他のAPI通信で `Authorization` ヘッダーが自動付与されることを確認  
-4. トークン失効時に `/auth/refresh` が自動呼び出されることを確認  
+1. `/auth/login` に有効なユーザー情報をPOSTしてログイン
+2. `SharedPreferences` にトークンが保存されていることを確認
+3. 他のAPI通信で `Authorization` ヘッダーが自動付与されることを確認
+4. トークン失効時に `/auth/refresh` が自動呼び出されることを確認
 
 ---
 
@@ -51,8 +51,8 @@ dio.interceptors.add(ref.read(dioInterceptorProvider));   // ② ログ出力・
 
 ## 💡 補足
 
-- `authRepositoryProvider` を通じてログインAPIを呼び出し、トークンを保存します。  
-- 以降のAPI通信では `tokenInterceptorProvider` により自動で認証ヘッダーが付与されます。  
+- `authRepositoryProvider` を通じてログインAPIを呼び出し、トークンを保存します。
+- 以降のAPI通信では `tokenInterceptorProvider` により自動で認証ヘッダーが付与されます。
 - トークンの有効期限が切れると自動的にリフレッシュ処理が走ります。
 
 ---

@@ -62,12 +62,12 @@ fvm dart run build_runner watch --delete-conflicting-outputs
 
 ## 💡 補足：再生成が必要なタイミング
 
-| 状況 | コード生成の要否 |
-|------|----------------|
-| 環境（.env）を切り替えた | 🔁 Envied再生成が必要 |
-| モデル（Freezed / JsonSerializable）を更新した | ✅ 通常生成のみでOK |
-| `.env` の値を修正した | 🔁 Envied再生成が必要 |
-| コードのみ変更した | 🚫 Envied不要 |
+| 状況                                           | コード生成の要否      |
+| ---------------------------------------------- | --------------------- |
+| 環境（.env）を切り替えた                       | 🔁 Envied再生成が必要 |
+| モデル（Freezed / JsonSerializable）を更新した | ✅ 通常生成のみでOK   |
+| `.env` の値を修正した                          | 🔁 Envied再生成が必要 |
+| コードのみ変更した                             | 🚫 Envied不要         |
 
 **ポイント:**
 

@@ -30,12 +30,13 @@ Flutter開発のサンプルプロジェクトです。\
 
 - [9. API通信デモ（UserList）](docs/api_and_error_handling.md)
 - [10. トークン認証（Bearer + Refresh）](docs/auth.md)
-- [11. 認証状態管理とルーティング制御（AuthGuard + SplashScreen）](docs/routing.md#認証状態管理とルーティング制御authguard--splashscreen)
-- [12. APIキャッシュ対応（SharedPreferencesベース）](docs/cache.md)
-- [13. Firebase Crashlytics](docs/crashlytics.md)
-- [14. Firebase Analytics](docs/analytics.md)
+- [11. Firebase Authenticationによる認証対応](docs/firebase_authentication.md)
+- [12. 認証状態管理とルーティング制御（AuthGuard + SplashScreen）](docs/routing.md#認証状態管理とルーティング制御authguard--splashscreen)
+- [13. APIキャッシュ対応（SharedPreferencesベース）](docs/cache.md)
+- [14. Firebase Crashlytics](docs/crashlytics.md)
+- [15. Firebase Analytics](docs/analytics.md)
 
 ### E. 開発運用
 
-- [15. コード生成コマンド](docs/code_generation.md)
-- [16. 今後の拡張案](docs/roadmap.md)
+- [16. コード生成コマンド](docs/code_generation.md)
+- [17. 今後の拡張案](docs/roadmap.md)

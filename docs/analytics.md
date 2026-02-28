@@ -51,7 +51,7 @@ lib/src/core/analytics/analytics_service.dart
 
 ### 主な役割
 
-- 任意イベント（例: ボタンタップ、完了アクションなど）の送信  
+- 任意イベント（例: ボタンタップ、完了アクションなど）の送信
 - GoRouter の自動画面トラッキングと組み合わせて、アプリ全体を Analytics で可視化
 
 ### 使用例
@@ -64,9 +64,9 @@ ref.read(analyticsServiceProvider).logEvent(
 
 ## ⭐ この構成のメリットまとめ
 
-| 項目 | 内容 |
-|------|------|
-| 保守性 | イベント送信を AnalyticsService に集約 |
+| 項目   | 内容                                                            |
+| ------ | --------------------------------------------------------------- |
+| 保守性 | イベント送信を AnalyticsService に集約                          |
 | 拡張性 | 他の Firebase 機能（Performance / A/B Testing）とも連携しやすい |
 
 実務レベルの Analytics 基盤として、イベント設計や分析設計にも拡張しやすい形になっています。
