@@ -99,6 +99,10 @@ class DefaultFirebaseOptions {
 }
 ```
 
+## 5️⃣ コード生成コマンドの実行
+
+[こちら](docs/code_generation.md)を参考にコード生成を実行してください。
+
 ---
 
 ## Git Hooksでコミット前にLintチェックを自動実行
