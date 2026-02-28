@@ -47,7 +47,7 @@ Firebase自体についての説明等は本プロジェクトの趣旨とは外
 現在、`android/app/google-services.json`と`ios/Runner/GoogleService-Info.plist`を環境に合わせて自動で切り替える仕組みは組み込まれていません。
 そのため、`flutterfire configure --project={firebaseのプロジェクト名}`を実行する度に上記2ファイルが上書きされるので注意してください。
 
-Firebaseは最終的には環境毎に準備されると思いますが、当初は`local`だけあれば問題ありません。
+Firebaseの環境設定は最終的に各環境ごとに行うことになりますが、まずは`local`環境のみで十分です。
 その場合、buildエラーが解消されないと思うので、その他の環境用は以下の内容でファイルを作成してください。
 
 ```dart
