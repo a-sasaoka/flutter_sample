@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
-import 'package:flutter_sample/src/core/auth/auth_state_notifier.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// ログイン画面

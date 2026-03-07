@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
-import 'package:flutter_sample/src/core/auth/firebase_auth_repository.dart';
 import 'package:flutter_sample/src/core/router/app_router.dart';
+import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// Firebase版のサインアップ画面

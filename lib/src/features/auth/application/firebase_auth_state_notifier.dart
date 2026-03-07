@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_sample/src/core/auth/firebase_auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'firebase_auth_state_notifier.g.dart';
