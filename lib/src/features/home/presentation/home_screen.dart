@@ -31,31 +31,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final updateRequest = ref.watch(updateRequestControllerProvider);
 
+    // データの変化を「監視」し、アップデート情報が届いた時だけ1回ダイアログを出します
+    ref.listen(updateRequestControllerProvider, (previous, next) async {
+      // next.value にデータが入っているか確認
+      if (next.hasValue && next.value != null) {
+        await VersionUpDialog.show(context, next.value!, ref);
+      }
+    });
+
     // 初心者向けメモ：
     // - XXXRoute().go(context) で遷移すると履歴を置き換えになります（戻るボタンで戻れない）
     // - XXXRoute().push<void>(context) ならスタックに積む遷移です（戻るボタンで戻れる）
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context)!.homeTitle)),
       body: updateRequest.when(
-        data: (updateRequest) => _buildBody(context, updateRequest),
-        error: (_, _) => _buildBody(context, null),
+        data: (_) => _buildBody(context),
+        error: (_, _) => _buildBody(context),
         loading: () => const CircularProgressIndicator(),
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context, UpdateRequestType? updateRequest) {
-    // メインのWidgetの描画が終わってからダイアログを表示する
-    if (updateRequest != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        if (!context.mounted) return;
-        await VersionUpDialog.show(
-          context,
-          updateRequest,
-          ref,
-        );
-      });
-    }
+  Widget _buildBody(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
