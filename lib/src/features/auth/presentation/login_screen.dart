@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
@@ -13,8 +14,10 @@ class LoginScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final emailController = TextEditingController();
-    final passwordController = TextEditingController();
+    // useTextEditingController() を使うことで、画面が再描画されても
+    // コントローラーが作り直されず、中のデータが保たれます
+    final emailController = useTextEditingController();
+    final passwordController = useTextEditingController();
 
     Future<void> onLogin() async {
       try {
