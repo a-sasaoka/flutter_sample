@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_sample/src/core/auth/auth_repository.dart';
-import 'package:flutter_sample/src/core/auth/token_storage.dart';
+import 'package:flutter_sample/src/core/storage/token_storage.dart';
+import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'token_interceptor.g.dart';

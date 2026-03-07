@@ -16,7 +16,6 @@ flutter_sample
     └── src
         ├── core                                                # アプリ全体で共通的に利用される基盤コード
         │   ├── analytics                                       # イベント計測関連
-        │   ├── auth                                            # 認証関連（トークン管理・リフレッシュなど）
         │   ├── config                                          # 環境設定やテーマ、共有設定など
         │   ├── exceptions                                      # 共通の例外クラス定義
         │   ├── network                                         # 通信関連の設定やロギング
@@ -25,10 +24,6 @@ flutter_sample
         │   ├── ui                                              # 共通UI関連（エラーハンドリングなど）
         │   ├── utils                                           # 共通のユーティリティ関数群
         │   └── widgets                                         # 汎用UI部品や画面
-        ├── data                                                # データ層：APIやリポジトリの定義
-        │   └── datasource                                      # API通信やデータ取得関連
-        │       ├── models                                      # 共通モデル定義
-        │       └── repository                                  # 共通リポジトリ定義
         └── features                                            # 各機能（画面単位）ごとのモジュール
             ├── (機能)                                           # 各機能
             │   ├── application                                 # 状態管理・ビジネスロジック

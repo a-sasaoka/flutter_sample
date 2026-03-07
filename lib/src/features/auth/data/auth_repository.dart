@@ -1,5 +1,5 @@
-import 'package:flutter_sample/src/core/auth/token_storage.dart';
-import 'package:flutter_sample/src/data/datasource/api_client.dart';
+import 'package:flutter_sample/src/core/network/api_client.dart';
+import 'package:flutter_sample/src/core/storage/token_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'auth_repository.g.dart';

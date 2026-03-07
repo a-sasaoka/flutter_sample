@@ -2,13 +2,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
-import 'package:flutter_sample/src/core/auth/firebase_auth_repository.dart';
 import 'package:flutter_sample/src/core/config/app_config_provider.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
 import 'package:flutter_sample/src/core/router/app_router.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
+import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// 設定画面ウィジェット
