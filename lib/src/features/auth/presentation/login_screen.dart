@@ -8,7 +8,7 @@ import 'package:flutter_sample/src/features/auth/application/auth_state_notifier
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// ログイン画面
-class LoginScreen extends ConsumerWidget {
+class LoginScreen extends HookConsumerWidget {
   /// コンストラクタ
   const LoginScreen({super.key});
 
