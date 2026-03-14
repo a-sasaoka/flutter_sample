@@ -19,6 +19,8 @@ class LoginScreen extends HookConsumerWidget {
     final emailController = useTextEditingController();
     final passwordController = useTextEditingController();
 
+    final l10n = AppLocalizations.of(context)!;
+
     Future<void> onLogin() async {
       try {
         // 仮のトークンを保存（API連携前提で後で置き換えOK）
@@ -30,7 +32,7 @@ class LoginScreen extends HookConsumerWidget {
             );
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context)!.loginSuccess)),
+            SnackBar(content: Text(l10n.loginSuccess)),
           );
 
           final analytics = ref.read(analyticsServiceProvider);
@@ -46,7 +48,7 @@ class LoginScreen extends HookConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.loginTitle)),
+      appBar: AppBar(title: Text(l10n.loginTitle)),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -54,21 +56,21 @@ class LoginScreen extends HookConsumerWidget {
             TextField(
               controller: emailController,
               decoration: InputDecoration(
-                labelText: AppLocalizations.of(context)!.loginEmailLabel,
+                labelText: l10n.loginEmailLabel,
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: passwordController,
               decoration: InputDecoration(
-                labelText: AppLocalizations.of(context)!.loginPasswordLabel,
+                labelText: l10n.loginPasswordLabel,
               ),
               obscureText: true,
             ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: onLogin,
-              child: Text(AppLocalizations.of(context)!.loginButton),
+              child: Text(l10n.loginButton),
             ),
           ],
         ),

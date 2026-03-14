@@ -54,15 +54,16 @@ class ErrorHandler {
     Object error,
   ) async {
     final messageText = message(context, error);
+    final l10n = AppLocalizations.of(context)!;
     await showDialog<void>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.errorDialogTitle),
+        title: Text(l10n.errorDialogTitle),
         content: Text(messageText),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context)!.ok),
+            child: Text(l10n.ok),
           ),
         ],
       ),

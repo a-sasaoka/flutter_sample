@@ -15,6 +15,7 @@ import 'package:flutter_sample/src/features/auth/presentation/firebase_login_scr
 import 'package:flutter_sample/src/features/auth/presentation/firebase_reset_password_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_sign_up_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/login_screen.dart';
+import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
 import 'package:flutter_sample/src/features/sample_feature/presentation/sample_screen.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
@@ -32,6 +33,7 @@ part 'app_router.g.dart';
     TypedGoRoute<SettingsRoute>(path: 'settings'),
     TypedGoRoute<SampleRoute>(path: 'sample'),
     TypedGoRoute<UserListRoute>(path: 'users'),
+    TypedGoRoute<ChatRoute>(path: 'chat'),
   ],
 )
 class HomeRoute extends GoRouteData with $HomeRoute {
@@ -137,6 +139,17 @@ class EmailVerificationRoute extends GoRouteData with $EmailVerificationRoute {
   @override
   Widget build(BuildContext context, GoRouterState state) {
     return const FirebaseEmailVerificationScreen();
+  }
+}
+
+/// 🤖 AIチャット画面ルート
+class ChatRoute extends GoRouteData with $ChatRoute {
+  /// コンストラクタ
+  const ChatRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const ChatScreen();
   }
 }
 

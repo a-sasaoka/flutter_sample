@@ -15,6 +15,8 @@ class VersionUpDialog {
     if (requestType != UpdateRequestType.not &&
         !ref.read(cancelControllerProvider)) {
       final isCancelable = requestType == UpdateRequestType.cancelable;
+      final l10n = AppLocalizations.of(context)!;
+
       await showDialog<void>(
         context: context,
         // キャンセル可能ならダイアログの外をタップしても閉じるようにする
@@ -28,21 +30,21 @@ class VersionUpDialog {
               }
             },
             child: AlertDialog(
-              title: Text(AppLocalizations.of(context)!.versionUpTitle),
+              title: Text(l10n.versionUpTitle),
               actions: [
                 if (requestType == UpdateRequestType.cancelable)
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).pop();
                     },
-                    child: Text(AppLocalizations.of(context)!.versionUpCancel),
+                    child: Text(l10n.versionUpCancel),
                   ),
                 TextButton(
                   onPressed: () {
                     // 本来であればここにStoreに飛ばす処理を書く
                     Navigator.of(context).pop();
                   },
-                  child: Text(AppLocalizations.of(context)!.versionUpUpdate),
+                  child: Text(l10n.versionUpUpdate),
                 ),
               ],
             ),

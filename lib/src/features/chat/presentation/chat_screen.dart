@@ -1,0 +1,151 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
+import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+/// チャット画面
+class ChatScreen extends HookConsumerWidget {
+  /// コンストラクタ
+  const ChatScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final messages = ref.watch(chatProvider);
+    final textController = useTextEditingController();
+    final l10n = AppLocalizations.of(context)!;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.chatTitle),
+      ),
+      body: Column(
+        children: [
+          // メッセージリスト表示部分
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: messages.length,
+              itemBuilder: (context, index) {
+                final msg = messages[index];
+
+                // Dart3のパターンマッチングでUIを出し分ける
+                // sealedクラスなので、全パターン網羅しないとコンパイルエラーになり安全
+                return switch (msg) {
+                  ChatMessageLoading() => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                  ChatMessageUser(:final text) => _buildBubble(
+                    text: text,
+                    isUser: true,
+                    color: Colors.blueAccent,
+                    textColor: Colors.white,
+                  ),
+                  ChatMessageAi(:final text) => _buildBubble(
+                    text: text,
+                    isUser: false,
+                    color: Colors.grey[300]!,
+                    textColor: Colors.black87,
+                  ),
+                  ChatMessageError(:final error) => () {
+                    String errorMessage;
+
+                    // エラーの型によって翻訳キーを出し分ける
+                    if (error is ChatEmptyResponseException) {
+                      errorMessage = l10n.chatEmptyMessage;
+                    } else {
+                      // 予期せぬエラーの場合は、プレースホルダー付きのメッセージを使う
+                      errorMessage = l10n.chatError(
+                        error.toString(),
+                      );
+                    }
+
+                    return _buildBubble(
+                      text: errorMessage,
+                      isUser: false,
+                      color: Colors.red[100]!,
+                      textColor: Colors.red[900]!,
+                    );
+                  }(),
+                };
+              },
+            ),
+          ),
+          // 下部の入力フォーム
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: textController,
+                      decoration: InputDecoration(
+                        hintText: l10n.chatHint,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  CircleAvatar(
+                    backgroundColor: Colors.blueAccent,
+                    child: IconButton(
+                      icon: const Icon(Icons.send, color: Colors.white),
+                      onPressed: () async {
+                        // 1. 送信するテキストを変数に保持
+                        final text = textController.text;
+
+                        // 2. 即座に入力フォームをクリア（ユーザーを待たせない）
+                        textController.clear();
+
+                        // 3. AIにメッセージを送信
+                        await ref.read(chatProvider.notifier).sendMessage(text);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 共通の吹き出しUIウィジェット
+  Widget _buildBubble({
+    required String text,
+    required bool isUser,
+    required Color color,
+    required Color textColor,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Align(
+        alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            text,
+            style: TextStyle(color: textColor),
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -11,10 +11,12 @@ class SampleScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.sampleTitle)),
+      appBar: AppBar(title: Text(l10n.sampleTitle)),
       body: Center(
-        child: Text(AppLocalizations.of(context)!.sampleDescription),
+        child: Text(l10n.sampleDescription),
       ),
     );
   }
