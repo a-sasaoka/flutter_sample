@@ -7,6 +7,7 @@ import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
+import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 import 'package:flutter_sample/src/core/network/logger_provider.dart';
 import 'package:flutter_sample/src/core/router/app_router.dart';
@@ -63,7 +64,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         const SizedBox(height: 16),
         Text(
           '${l10n.homeCurrentEnv}:'
-          ' ${AppEnv.environment.toUpperCase()}',
+          ' ${ref.read(flavorProvider).name.toUpperCase()}',
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
