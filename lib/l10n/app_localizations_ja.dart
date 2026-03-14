@@ -30,6 +30,20 @@ class AppLocalizationsJa extends AppLocalizations {
   String get send => '送信';
 
   @override
+  String get chatEmptyMessage => 'AIからの返答が空でした。';
+
+  @override
+  String chatError(Object error) {
+    return 'エラーが発生しました: $error';
+  }
+
+  @override
+  String get chatTitle => 'Gemini アシスタント';
+
+  @override
+  String get chatHint => 'メッセージを入力...';
+
+  @override
   String get errorNetwork => 'ネットワークエラーが発生しました。';
 
   @override
@@ -73,6 +87,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get homeToResetPassword => 'パスワードリセット画面へ';
+
+  @override
+  String get homeToChat => 'AIチャット画面へ';
 
   @override
   String get homeToNotFound => '存在しないパスに遷移（NotFoundの動作確認）';

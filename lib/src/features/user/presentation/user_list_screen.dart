@@ -14,9 +14,10 @@ class UserListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final users = ref.watch(userProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.userListTitle)),
+      appBar: AppBar(title: Text(l10n.userListTitle)),
       body: users.when(
         data: (list) => RefreshIndicator(
           onRefresh: () => ref.read(userProvider.notifier).refresh(),
@@ -40,7 +41,7 @@ class UserListScreen extends ConsumerWidget {
             ErrorHandler.showSnackBar(context, e);
           });
           return Center(
-            child: Text(AppLocalizations.of(context)!.errorUnknown),
+            child: Text(l10n.errorUnknown),
           );
         },
       ),

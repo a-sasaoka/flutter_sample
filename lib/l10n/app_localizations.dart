@@ -140,6 +140,30 @@ abstract class AppLocalizations {
   /// **'Send'**
   String get send;
 
+  /// No description provided for @chatEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The response from AI was empty.'**
+  String get chatEmptyMessage;
+
+  /// No description provided for @chatError.
+  ///
+  /// In en, this message translates to:
+  /// **'An error occurred: {error}'**
+  String chatError(Object error);
+
+  /// No description provided for @chatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini Assistant'**
+  String get chatTitle;
+
+  /// No description provided for @chatHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a message...'**
+  String get chatHint;
+
   /// No description provided for @errorNetwork.
   ///
   /// In en, this message translates to:
@@ -229,6 +253,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Go to Reset Password'**
   String get homeToResetPassword;
+
+  /// No description provided for @homeToChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to AI Chat'**
+  String get homeToChat;
 
   /// No description provided for @homeToNotFound.
   ///
