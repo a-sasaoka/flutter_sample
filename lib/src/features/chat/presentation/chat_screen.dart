@@ -70,26 +70,14 @@ class ChatScreen extends HookConsumerWidget {
                     color: Colors.grey[300]!,
                     textColor: Colors.black87,
                   ),
-                  ChatMessageError(:final error) => () {
-                    String errorMessage;
-
-                    // エラーの型によって翻訳キーを出し分ける
-                    if (error is ChatEmptyResponseException) {
-                      errorMessage = l10n.chatEmptyMessage;
-                    } else {
-                      // 予期せぬエラーの場合は、プレースホルダー付きのメッセージを使う
-                      errorMessage = l10n.chatError(
-                        error.toString(),
-                      );
-                    }
-
-                    return _buildBubble(
-                      text: errorMessage,
-                      isUser: false,
-                      color: Colors.red[100]!,
-                      textColor: Colors.red[900]!,
-                    );
-                  }(),
+                  ChatMessageError(:final error) => _buildBubble(
+                    text: error is ChatEmptyResponseException
+                        ? l10n.chatEmptyMessage
+                        : l10n.chatError(error.toString()),
+                    isUser: false,
+                    color: Colors.red[100]!,
+                    textColor: Colors.red[900]!,
+                  ),
                 };
               },
             ),
@@ -127,10 +115,8 @@ class ChatScreen extends HookConsumerWidget {
                         textController.clear();
 
                         // 3. AIにメッセージを送信
-                        // AI回答を全て取得して表示する場合
-                        // ignore: lines_longer_than_80_chars
-                        // await ref.read(chatProvider.notifier).sendMessage(text);
-                        // AI回答をリアルタイムで表示する場合
+                        // AI回答をリアルタイムで表示する場合はsendMessageStreamを使う
+                        // AI回答を全て取得して表示する場合はsendMessageを使う
                         await ref
                             .read(chatProvider.notifier)
                             .sendMessageStream(text);

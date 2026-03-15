@@ -1,4 +1,5 @@
 import 'package:firebase_ai/firebase_ai.dart';
+import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'chat_repository.g.dart';
@@ -27,7 +28,7 @@ class ChatRepository {
   }
 
   /// 使用するモデル
-  static const String _modelName = 'gemini-2.5-flash';
+  static final String _modelName = AppEnv.aiModel;
 
   late final GenerativeModel _model;
   late final ChatSession _chatSession;

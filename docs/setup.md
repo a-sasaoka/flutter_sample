@@ -35,6 +35,7 @@ fvm flutter pub get
 | USE_FIREBASE_AUTH         | 認証でFirebase Authenticationを使う場合は`true`、使わない場合は`false`                                                             |
 | GOOGLE_REVERSED_CLIENT_ID | `ios/Runner/GoogleService-Info.plist`の`REVERSED_CLIENT_ID`の値（Firebase Authenticationを使わない場合は未設定でも問題ありません） |
 | DEBUG_TOKEN               | App Checkのデバッグトークン（Firebase App Checkを使わない場合は未設定でも問題ありません）                                          |
+| AI_MODEL                  | AIチャットで使用するモデル                                                                                                         |
 
 ## 4️⃣ Firebase利用準備
 
