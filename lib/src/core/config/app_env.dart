@@ -48,4 +48,8 @@ abstract class AppEnv {
   /// App Checkのデバッグ用トークン
   @EnviedField(varName: 'DEBUG_TOKEN')
   static final String debugToken = _AppEnv.debugToken;
+
+  /// AIモデル
+  @EnviedField(varName: 'AI_MODEL')
+  static final String aiModel = _AppEnv.aiModel;
 }
