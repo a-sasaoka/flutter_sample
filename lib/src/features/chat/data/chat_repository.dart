@@ -39,4 +39,13 @@ class ChatRepository {
     }
     return response.text!;
   }
+
+  /// メッセージを送信するストリームメソッド（AIのレスポンスにリアルタイムで反応する）
+  Stream<String> sendMessageStream(String prompt) {
+    // generateContent ではなく generateContentStream を使うのがポイント
+    return _model.generateContentStream([Content.text(prompt)]).map((chunk) {
+      // チャンク（文字の断片）からテキスト部分だけを抽出して流す
+      return chunk.text ?? '';
+    });
+  }
 }
