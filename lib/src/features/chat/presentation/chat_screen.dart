@@ -15,7 +15,23 @@ class ChatScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final messages = ref.watch(chatProvider);
     final textController = useTextEditingController();
+    final scrollController = useScrollController();
     final l10n = AppLocalizations.of(context)!;
+
+    // メッセージリスト（state）の変更を監視して、自動スクロールを実行する
+    ref.listen(chatProvider, (previous, next) {
+      // 画面の描画（レイアウト）が完了するのを一瞬待ってからスクロールさせる
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (scrollController.hasClients) {
+          await scrollController.animateTo(
+            // リストの一番下（最大スクロール位置）を指定
+            scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300), // アニメーションの秒数
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -26,6 +42,7 @@ class ChatScreen extends HookConsumerWidget {
           // メッセージリスト表示部分
           Expanded(
             child: ListView.builder(
+              controller: scrollController,
               padding: const EdgeInsets.all(16),
               itemCount: messages.length,
               itemBuilder: (context, index) {
@@ -110,7 +127,13 @@ class ChatScreen extends HookConsumerWidget {
                         textController.clear();
 
                         // 3. AIにメッセージを送信
-                        await ref.read(chatProvider.notifier).sendMessage(text);
+                        // AI回答を全て取得して表示する場合
+                        // ignore: lines_longer_than_80_chars
+                        // await ref.read(chatProvider.notifier).sendMessage(text);
+                        // AI回答をリアルタイムで表示する場合
+                        await ref
+                            .read(chatProvider.notifier)
+                            .sendMessageStream(text);
                       },
                     ),
                   ),
