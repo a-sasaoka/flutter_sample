@@ -9,6 +9,9 @@ part 'chat_notifier.g.dart';
 class ChatNotifier extends _$ChatNotifier {
   @override
   List<ChatMessage> build() {
+    // 画面（Notifier）が生きている間は、Repositoryも監視（watch）して破棄させない
+    ref.watch(chatRepositoryProvider);
+
     return [];
   }
 

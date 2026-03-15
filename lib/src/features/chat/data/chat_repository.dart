@@ -22,16 +22,19 @@ class ChatRepository {
       model: _modelName,
       generationConfig: GenerationConfig(temperature: 0.7),
     );
+
+    _chatSession = _model.startChat();
   }
 
   /// 使用するモデル
   static const String _modelName = 'gemini-2.5-flash';
 
   late final GenerativeModel _model;
+  late final ChatSession _chatSession;
 
   /// メッセージを送信するメソッド
   Future<String> sendMessage(String prompt) async {
-    final response = await _model.generateContent([Content.text(prompt)]);
+    final response = await _chatSession.sendMessage(Content.text(prompt));
 
     // AIからの返答が空の場合は例外を投げる
     if (response.text == null || response.text!.isEmpty) {
@@ -42,8 +45,8 @@ class ChatRepository {
 
   /// メッセージを送信するストリームメソッド（AIのレスポンスにリアルタイムで反応する）
   Stream<String> sendMessageStream(String prompt) {
-    // generateContent ではなく generateContentStream を使うのがポイント
-    return _model.generateContentStream([Content.text(prompt)]).map((chunk) {
+    // sendMessage ではなく sendMessageStream を使うのがポイント
+    return _chatSession.sendMessageStream(Content.text(prompt)).map((chunk) {
       // チャンク（文字の断片）からテキスト部分だけを抽出して流す
       return chunk.text ?? '';
     });
