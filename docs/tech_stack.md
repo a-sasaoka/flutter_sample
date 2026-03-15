@@ -18,6 +18,8 @@
 | クラッシュ収集        | [Firebase Crashlytics](https://pub.dev/packages/firebase_crashlytics)                                                                                                                                                                    |
 | リモート設定          | [Firebase Remote Config](https://pub.dev/packages/firebase_remote_config)                                                                                                                                                                |
 | 認証                  | [Firebase Authentication](https://pub.dev/packages/firebase_auth) + [Google Sign In](https://pub.dev/packages/google_sign_in)                                                                                                            |
+| セキュリティ          | [Firebase App Check](https://pub.dev/packages/firebase_app_check)                                                                                                                                                                        |
+| AI / 機械学習         | [Firebase AI](https://pub.dev/packages/firebase_ai)                                                                                                                                                                                      |
 | 端末情報              | [Package Info Plus](https://pub.dev/packages/package_info_plus)                                                                                                                                                                          |
 | ローカル保存          | [Shared Preferences](https://pub.dev/packages/shared_preferences)                                                                                                                                                                        |
 | Lint / 静的解析       | [Very Good Analysis](https://pub.dev/packages/very_good_analysis), [Custom Lint](https://pub.dev/packages/custom_lint), [Riverpod Lint](https://pub.dev/packages/riverpod_lint), [Flutter Lints](https://pub.dev/packages/flutter_lints) |
@@ -32,3 +34,4 @@
 | Flutter SDK | 管理: FVM / バージョン: 3.35.7        |
 | Dart SDK    | 3.9.2                                 |
 | GitHub管理  | Git（`.gitkeep`で空ディレクトリ管理） |
+
