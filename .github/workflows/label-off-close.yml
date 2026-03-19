@@ -1,0 +1,22 @@
+name: Issueが閉じられたら「In progress」ラベルを消す
+on:
+  issues:
+    types: [closed] # Issueが閉じられた時が合図
+
+jobs:
+  remove_label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 「In progress」ラベルを剥がす
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.removeLabel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              name: 'In progress' 
+            }).catch(() => {
+              // もし「In progress」ラベルが最初から付いていなくても、
+              // エラーにせず「何もしない」で終わらせます。
+            });
