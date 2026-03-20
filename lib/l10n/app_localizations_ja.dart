@@ -24,6 +24,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get ok => 'OK';
 
   @override
+  String get loading => '読み込み中';
+
+  @override
+  String get send => '送信';
+
+  @override
   String get errorNetwork => 'ネットワークエラーが発生しました。';
 
   @override
@@ -40,6 +46,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get errorDialogTitle => 'エラーが発生しました';
+
+  @override
+  String get errorLoginFailed => 'ログインに失敗しました。';
+
+  @override
+  String get errorSignUpFailed => '登録に失敗しました';
 
   @override
   String get homeTitle => 'ホーム';
@@ -73,6 +85,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get homeBundleId => 'バンドルID';
+
+  @override
+  String get homeCrashTest => 'クラッシュテスト';
+
+  @override
+  String get homeAnalyticsTest => 'アナリティクステスト';
 
   @override
   String get notFoundTitle => 'ページが見つかりません';
@@ -138,15 +156,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get userListTitle => 'ユーザー一覧';
 
   @override
-  String get homeCrashTest => 'クラッシュテスト';
-
-  @override
-  String get homeAnalyticsTest => 'アナリティクステスト';
-
-  @override
-  String get errorLoginFailed => 'ログインに失敗しました。';
-
-  @override
   String get signUpTitle => '新規登録';
 
   @override
@@ -154,12 +163,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get googleSignUp => 'Googleでログイン';
-
-  @override
-  String get errorSignUpFailed => '登録に失敗しました';
-
-  @override
-  String get loading => '読み込み中';
 
   @override
   String get emailVerificationTitle => 'メール確認';
@@ -180,5 +183,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get resetPasswordMailSent => '再設定メールを送信しました';
 
   @override
-  String get send => '送信';
+  String get versionUpTitle => '最新の更新があります。\nアップデートをお願いします。';
+
+  @override
+  String get versionUpCancel => 'キャンセル';
+
+  @override
+  String get versionUpUpdate => 'アップデート';
 }

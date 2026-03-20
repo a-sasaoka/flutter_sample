@@ -57,7 +57,7 @@ app.*.map.json
 firebase.json
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
-lib/firebase_options_*.dart
+lib/firebase_options*.dart
 
 # AI prompt
 GEMINI.md

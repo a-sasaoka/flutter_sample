@@ -89,20 +89,7 @@ class MyApp extends ConsumerWidget {
           themeMode: themeMode,
           routerConfig: router,
           debugShowCheckedModeBanner: false,
-          builder: (context, child) {
-            final l10n = AppLocalizations.of(context);
-            if (l10n == null) {
-              return const SizedBox.shrink();
-            }
-            return Title(
-              title: l10n.appTitle,
-              color: Theme.of(context).colorScheme.surface,
-              child: MediaQuery(
-                data: MediaQuery.of(context),
-                child: child!,
-              ),
-            );
-          },
+          builder: (context, child) => _AppTitleWrapper(child: child),
         );
       },
       loading: () => const MaterialApp(
@@ -111,15 +98,41 @@ class MyApp extends ConsumerWidget {
         ),
       ),
       error: (err, _) {
-        final l10n = AppLocalizations.of(context)!;
+        final l10n = AppLocalizations.of(context);
         return MaterialApp(
           home: Scaffold(
             body: Center(
-              child: Text('${l10n.errorOccurred}: $err'),
+              child: Text(
+                l10n != null
+                    ? '${l10n.errorOccurred}: $err'
+                    : 'Error occurred: $err',
+              ),
             ),
           ),
         );
       },
+    );
+  }
+}
+
+/// アプリのタイトルや共通設定をラップするウィジェット
+class _AppTitleWrapper extends StatelessWidget {
+  const _AppTitleWrapper({required this.child});
+
+  final Widget? child;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null || child == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Title(
+      title: l10n.appTitle,
+      color: Theme.of(context).colorScheme.surface,
+      // MediaQueryをそのまま渡すだけなら冗長ですが、将来的なフォントサイズ制限などのために残す場合はここに記述します
+      child: child!,
     );
   }
 }
