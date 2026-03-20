@@ -1,3 +1,4 @@
+import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -58,8 +59,14 @@ class ChatNotifier extends _$ChatNotifier {
     try {
       final repository = ref.read(chatRepositoryProvider);
 
+      // 日付が変わったことを認識できるように毎回日時を付与する
+      final now = ref.read(currentDateTimeProvider);
+      final timeContext =
+          '（※システム情報: 現在時刻は ${now.year}年${now.month}月${now.day}日'
+          ' ${now.hour}時${now.minute}分 です）\n';
+
       // sendMessageStream を呼び出して、Streamを受け取る
-      final stream = repository.sendMessageStream(text);
+      final stream = repository.sendMessageStream(timeContext + text);
 
       // 最初の文字が届いたかどうかを判定するフラグ
       var isFirstChunk = true;
