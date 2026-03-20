@@ -70,7 +70,7 @@ class ChatScreen extends HookConsumerWidget {
                     text: text,
                     isUser: false,
                     color: Colors.grey[300]!,
-                    textColor: Colors.black87,
+                    textColor: Theme.of(context).colorScheme.onSurface,
                     context: context,
                   ),
                   ChatMessageError(:final error) => _buildBubble(
@@ -164,7 +164,7 @@ class ChatScreen extends HookConsumerWidget {
                   selectable: true, // 長押しでテキストをコピーできるようにする
                   styleSheet: MarkdownStyleSheet(
                     p: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
+                      color: textColor,
                     ),
                     code: TextStyle(
                       backgroundColor: Theme.of(
