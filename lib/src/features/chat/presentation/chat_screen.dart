@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
@@ -63,12 +64,14 @@ class ChatScreen extends HookConsumerWidget {
                     isUser: true,
                     color: Colors.blueAccent,
                     textColor: Colors.white,
+                    context: context,
                   ),
                   ChatMessageAi(:final text) => _buildBubble(
                     text: text,
                     isUser: false,
                     color: Colors.grey[300]!,
                     textColor: Colors.black87,
+                    context: context,
                   ),
                   ChatMessageError(:final error) => _buildBubble(
                     text: error is ChatEmptyResponseException
@@ -77,6 +80,7 @@ class ChatScreen extends HookConsumerWidget {
                     isUser: false,
                     color: Colors.red[100]!,
                     textColor: Colors.red[900]!,
+                    context: context,
                   ),
                 };
               },
@@ -138,6 +142,7 @@ class ChatScreen extends HookConsumerWidget {
     required bool isUser,
     required Color color,
     required Color textColor,
+    required BuildContext context,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -149,10 +154,26 @@ class ChatScreen extends HookConsumerWidget {
             color: color,
             borderRadius: BorderRadius.circular(20),
           ),
-          child: Text(
-            text,
-            style: TextStyle(color: textColor),
-          ),
+          child: isUser
+              ? Text(
+                  text,
+                  style: TextStyle(color: textColor),
+                )
+              : MarkdownBody(
+                  data: text,
+                  selectable: true, // 長押しでテキストをコピーできるようにする
+                  styleSheet: MarkdownStyleSheet(
+                    p: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    code: TextStyle(
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ),
         ),
       ),
     );
