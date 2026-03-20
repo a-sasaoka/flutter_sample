@@ -12,30 +12,26 @@ part 'update_request_provider.g.dart';
 /// RemoteConfigからアップデート情報を取得するコントローラ
 @Riverpod(keepAlive: true)
 class UpdateRequestController extends _$UpdateRequestController {
-  /// コンストラクタ
-  UpdateRequestController() {
-    // RemoteConfigの変更を監視
-    _remoteConfig.onConfigUpdated.listen((event) async {
-      await _remoteConfig.activate();
-
-      // キャンセルフラグをリセット
-      ref.read(cancelControllerProvider.notifier).reset();
-
-      // stateをローディングに変更
-      state = const AsyncValue.loading();
-
-      // 変更した状態をstateに設定
-      state = await AsyncValue.guard(() async {
-        return _getRemoteConfigData();
-      });
-    });
-  }
-
   /// RemoteConfigインスタンス
   final FirebaseRemoteConfig _remoteConfig = FirebaseRemoteConfig.instance;
 
   @override
   Future<UpdateRequestType> build() async {
+    // RemoteConfigの変更を監視
+    final subscription = _remoteConfig.onConfigUpdated.listen((event) async {
+      await _remoteConfig.activate();
+      // キャンセルフラグをリセット
+      ref.read(cancelControllerProvider.notifier).reset();
+      // stateをローディングに変更
+      state = const AsyncValue.loading();
+      // 変更した状態をstateに設定
+      state = await AsyncValue.guard(() async {
+        return _getRemoteConfigData();
+      });
+    });
+    // プロバイダーが破棄されたらサブスクリプションをキャンセル
+    ref.onDispose(subscription.cancel);
+
     // タイムアウトとフェッチのインターバル時間を設定
     final flavor = ref.read(flavorProvider);
     final interval = flavor == Flavor.prod

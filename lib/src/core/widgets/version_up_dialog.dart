@@ -33,6 +33,7 @@ class VersionUpDialog {
                 if (requestType == UpdateRequestType.cancelable)
                   TextButton(
                     onPressed: () {
+                      ref.read(cancelControllerProvider.notifier).clickCancel();
                       Navigator.of(context).pop();
                     },
                     child: Text(AppLocalizations.of(context)!.versionUpCancel),

@@ -98,10 +98,15 @@ class MyApp extends ConsumerWidget {
         ),
       ),
       error: (err, _) {
+        final l10n = AppLocalizations.of(context);
         return MaterialApp(
           home: Scaffold(
             body: Center(
-              child: Text('Error occurred: $err'),
+              child: Text(
+                l10n != null
+                    ? '${l10n.errorOccurred}: $err'
+                    : 'Error occurred: $err',
+              ),
             ),
           ),
         );
