@@ -8,6 +8,59 @@ part of 'update_request_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// FirebaseRemoteConfigのインスタンスを提供するプロバイダ
+
+@ProviderFor(firebaseRemoteConfig)
+const firebaseRemoteConfigProvider = FirebaseRemoteConfigProvider._();
+
+/// FirebaseRemoteConfigのインスタンスを提供するプロバイダ
+
+final class FirebaseRemoteConfigProvider
+    extends
+        $FunctionalProvider<
+          FirebaseRemoteConfig,
+          FirebaseRemoteConfig,
+          FirebaseRemoteConfig
+        >
+    with $Provider<FirebaseRemoteConfig> {
+  /// FirebaseRemoteConfigのインスタンスを提供するプロバイダ
+  const FirebaseRemoteConfigProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'firebaseRemoteConfigProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$firebaseRemoteConfigHash();
+
+  @$internal
+  @override
+  $ProviderElement<FirebaseRemoteConfig> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  FirebaseRemoteConfig create(Ref ref) {
+    return firebaseRemoteConfig(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(FirebaseRemoteConfig value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<FirebaseRemoteConfig>(value),
+    );
+  }
+}
+
+String _$firebaseRemoteConfigHash() =>
+    r'b77ccb5a415dded5f97912f191756d9103cc4faf';
+
 /// RemoteConfigからアップデート情報を取得するコントローラ
 
 @ProviderFor(UpdateRequestController)
@@ -37,7 +90,7 @@ final class UpdateRequestControllerProvider
 }
 
 String _$updateRequestControllerHash() =>
-    r'9b93aa37fcdecbfe0e6c5aa36862d2f70b91b276';
+    r'7bce677d9b1cfd4c3e78c683440b523f16a9c200';
 
 /// RemoteConfigからアップデート情報を取得するコントローラ
 

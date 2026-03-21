@@ -97,6 +97,7 @@ dev_dependencies:
   json_serializable: ^6.11.1 # JSONモデル生成
   envied_generator: ^1.3.1 # 環境変数ファイル生成
   riverpod_generator: ^3.0.3 # Riverpod用コード生成
+  mocktail: ^1.0.4 # モック生成
 
 # -----------------------------------------------
 # 🎯 Flutter固有の設定

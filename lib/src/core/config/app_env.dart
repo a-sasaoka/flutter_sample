@@ -1,6 +1,7 @@
 // Enviedを使って環境ごとに設定値を安全に読み込む仕組み。
 
 import 'package:envied/envied.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'app_env.g.dart';
 
@@ -53,3 +54,7 @@ abstract class AppEnv {
   @EnviedField(varName: 'AI_MODEL')
   static final String aiModel = _AppEnv.aiModel;
 }
+
+/// 認証設定をRiverpodで提供
+@riverpod
+bool useFirebaseAuth(Ref ref) => AppEnv.useFirebaseAuth;

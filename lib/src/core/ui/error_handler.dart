@@ -10,30 +10,29 @@ class ErrorHandler {
   /// 共通メッセージ変換
   static String message(BuildContext context, Object error) {
     final l10n = AppLocalizations.of(context)!;
-    return switch (error) {
-      NetworkException(:final messageKey) => _localizeErrorKey(
-        l10n,
-        messageKey,
-      ),
-      TimeoutException() => l10n.errorTimeout,
-      UnknownException(:final message) => message ?? l10n.errorUnknown,
-      Object() => l10n.errorUnknown,
-    };
+
+    // 1. UnknownException かつ カスタムメッセージがある場合のみ例外的に扱う
+    if (error is UnknownException && error.message != null) {
+      return error.message!;
+    }
+
+    // 2. AppException であれば、その messageKey を使って多言語化する
+    if (error is AppException) {
+      return _localizeErrorKey(l10n, error.messageKey);
+    }
+
+    // 3. それ以外の一般エラー（Object）
+    return l10n.errorUnknown;
   }
 
   static String _localizeErrorKey(AppLocalizations l10n, String key) {
-    switch (key) {
-      case 'errorNetwork':
-        return l10n.errorNetwork;
-      case 'errorTimeout':
-        return l10n.errorTimeout;
-      case 'errorUnknown':
-        return l10n.errorUnknown;
-      case 'errorServer':
-        return l10n.errorServer;
-      default:
-        return key;
-    }
+    return switch (key) {
+      'errorNetwork' => l10n.errorNetwork,
+      'errorTimeout' => l10n.errorTimeout,
+      'errorUnknown' => l10n.errorUnknown,
+      'errorServer' => l10n.errorServer,
+      _ => key, // 未定義のキーはそのまま返す（フォールバック）
+    };
   }
 
   /// Snackbarで表示（軽度なエラー向け）

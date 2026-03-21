@@ -85,7 +85,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           onPressed: () => const UserListRoute().push<void>(context),
           child: Text(l10n.homeToUserList),
         ),
-        if (AppEnv.useFirebaseAuth) ...[
+        if (ref.read(useFirebaseAuthProvider)) ...[
           const SizedBox(height: 8),
           FilledButton(
             onPressed: () => const ResetPasswordRoute().push<void>(context),
