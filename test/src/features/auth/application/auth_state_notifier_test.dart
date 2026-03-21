@@ -1,0 +1,115 @@
+import 'package:flutter_sample/src/core/storage/token_storage.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+// Mocktail の代わりに Fake クラスを作成する
+// extends を使うことで Riverpod の内部プロパティ (_element等) を維持できる
+class FakeTokenStorage extends TokenStorage {
+  FakeTokenStorage({this.mockAccessToken});
+
+  final String? mockAccessToken;
+
+  // 呼び出し確認用のフラグ
+  bool isSaveTokensCalled = false;
+  bool isClearCalled = false;
+
+  @override
+  void build() {} // SharedPreferences にアクセスしないよう空にする
+
+  @override
+  Future<String?> getAccessToken() async => mockAccessToken;
+
+  @override
+  Future<void> saveTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
+    isSaveTokensCalled = true;
+  }
+
+  @override
+  Future<void> clear() async {
+    isClearCalled = true;
+  }
+}
+
+void main() {
+  /// テストごとにクリーンな ProviderContainer を作成するヘルパー
+  ProviderContainer createContainer(FakeTokenStorage fakeStorage) {
+    final container = ProviderContainer(
+      overrides: [
+        // tokenStorageProvider を Fake クラスに差し替える
+        tokenStorageProvider.overrideWith(() => fakeStorage),
+      ],
+    );
+    addTearDown(container.dispose);
+    return container;
+  }
+
+  group('AuthStateNotifier (build)', () {
+    test('初期化: トークンが存在する場合、state が true になること', () async {
+      // Arrange: 有効なトークンを返す Fake を作成
+      final fakeStorage = FakeTokenStorage(mockAccessToken: 'valid_token');
+      final container = createContainer(fakeStorage);
+
+      // Act
+      final authState = await container.read(authStateProvider.future);
+
+      // Assert
+      expect(authState, isTrue);
+    });
+
+    test('初期化: トークンがない場合、state が false になること', () async {
+      // Arrange: トークンがない Fake を作成
+      final fakeStorage = FakeTokenStorage();
+      final container = createContainer(fakeStorage);
+
+      // Act
+      final authState = await container.read(authStateProvider.future);
+
+      // Assert
+      expect(authState, isFalse);
+    });
+  });
+
+  group('AuthStateNotifier (methods)', () {
+    test('login: トークンを保存し、state を true に更新すること', () async {
+      // Arrange
+      final fakeStorage = FakeTokenStorage();
+      final container = createContainer(fakeStorage);
+      final notifier = container.read(authStateProvider.notifier);
+
+      // Act
+      await notifier.login('access', 'refresh');
+
+      // Assert
+      expect(fakeStorage.isSaveTokensCalled, isTrue); // saveTokens が呼ばれたか
+      expect(
+        container.read(authStateProvider).value,
+        isTrue,
+      ); // state が true か
+    });
+
+    test('logout: トークンを削除し、state を false に更新すること', () async {
+      // Arrange
+      // ログアウト前はログイン状態 (true) だったと仮定する
+      final fakeStorage = FakeTokenStorage(mockAccessToken: 'old_token');
+      final container = createContainer(fakeStorage);
+      final notifier = container.read(authStateProvider.notifier);
+
+      // buildの完了を待つ
+      await container.read(authStateProvider.future);
+
+      // Act
+      await notifier.logout();
+
+      // Assert
+      expect(fakeStorage.isClearCalled, isTrue); // clear が呼ばれたか
+      expect(
+        container.read(authStateProvider).value,
+        isFalse,
+      ); // state が false か
+    });
+  });
+}
