@@ -1,35 +1,47 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
+import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'analytics_service.g.dart';
 
+// coverage:ignore-start
+/// Firebase Analytics のインスタンスを提供する Provider
+@riverpod
+FirebaseAnalytics firebaseAnalytics(Ref ref) {
+  return FirebaseAnalytics.instance;
+}
+// coverage:ignore-end
+
 /// Analytics Service を Riverpod で提供
 @Riverpod(keepAlive: true)
 AnalyticsService analyticsService(Ref ref) {
-  return AnalyticsService(FirebaseAnalytics.instance);
+  return AnalyticsService(ref);
 }
 
 /// Analytics Service
 class AnalyticsService {
   /// コンストラクタ
-  AnalyticsService(this._analytics);
+  AnalyticsService(this._ref);
 
-  final FirebaseAnalytics _analytics;
+  final Ref _ref;
 
   /// 汎用イベント送信（timestamp 自動付与）
   Future<void> logEvent({
     required AnalyticsEvent event,
     Map<String, Object?> parameters = const {},
   }) async {
-    final data = {
-      ...parameters,
-      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    final data = <String, Object>{
+      for (final entry in parameters.entries)
+        if (entry.value != null) entry.key: entry.value!,
+      'timestamp': _ref.read(currentDateTimeProvider).millisecondsSinceEpoch,
     };
 
-    await _analytics.logEvent(
-      name: event.name,
-      parameters: data.cast<String, Object>(),
-    );
+    await _ref
+        .read(firebaseAnalyticsProvider)
+        .logEvent(
+          name: event.name,
+          parameters: data,
+        );
   }
 }

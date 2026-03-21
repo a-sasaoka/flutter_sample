@@ -29,7 +29,7 @@ class ThemeModeNotifier extends _$ThemeModeNotifier {
   Future<void> set(ThemeMode mode) async {
     state = AsyncData(mode); // 即時反映
     final prefs = await ref.read(sharedPreferencesProvider.future);
-    await prefs.setString(_key, mode.valeu);
+    await prefs.setString(_key, mode.value);
   }
 
   /// トグル切り替え
@@ -43,7 +43,7 @@ class ThemeModeNotifier extends _$ThemeModeNotifier {
 /// ThemeMode 拡張メソッド
 extension _ThemeModeExt on ThemeMode {
   /// 文字列を取得
-  String get valeu => {
+  String get value => {
     ThemeMode.light: 'light',
     ThemeMode.dark: 'dark',
     ThemeMode.system: 'system',

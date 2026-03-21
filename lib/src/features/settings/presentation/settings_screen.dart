@@ -94,7 +94,7 @@ class SettingsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               Text(l10n.hello),
-              if (AppEnv.useFirebaseAuth) ...[
+              if (ref.read(useFirebaseAuthProvider)) ...[
                 const SizedBox(height: 32),
                 // 🚪 ログアウト（SignOut）ボタン
                 ElevatedButton.icon(
