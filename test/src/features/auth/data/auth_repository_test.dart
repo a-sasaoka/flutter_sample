@@ -1,0 +1,186 @@
+import 'package:dio/dio.dart'; // Responseクラス用
+import 'package:flutter_sample/src/core/network/api_client.dart';
+import 'package:flutter_sample/src/core/storage/token_storage.dart';
+import 'package:flutter_sample/src/features/auth/data/auth_repository.dart'; // パスは適宜合わせてください
+import 'package:flutter_test/flutter_test.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:mocktail/mocktail.dart';
+
+// --- モックとFakeクラスの定義 ---
+
+// ApiClientのモック
+class MockApiClient extends Mock implements ApiClient {}
+
+// DioのResponseのモック
+class MockResponse extends Mock implements Response<Map<String, dynamic>> {}
+
+// 先ほど大活躍した TokenStorage の Fake クラス
+class FakeTokenStorage extends TokenStorage {
+  FakeTokenStorage({this.initialRefreshToken});
+
+  final String? initialRefreshToken;
+
+  // 保存された値を検証するためのプロパティ
+  String? savedAccessToken;
+  String? savedRefreshToken;
+
+  @override
+  void build() {}
+
+  @override
+  Future<String?> getRefreshToken() async => initialRefreshToken;
+
+  @override
+  Future<void> saveTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
+    savedAccessToken = accessToken;
+    savedRefreshToken = refreshToken;
+  }
+}
+
+void main() {
+  late MockApiClient mockApi;
+
+  setUp(() {
+    mockApi = MockApiClient();
+  });
+
+  /// 依存関係を注入した ProviderContainer を作成するヘルパー
+  ProviderContainer createContainer(FakeTokenStorage fakeStorage) {
+    final container = ProviderContainer(
+      overrides: [
+        apiClientProvider.overrideWithValue(mockApi),
+        tokenStorageProvider.overrideWith(() => fakeStorage),
+      ],
+    );
+    addTearDown(container.dispose);
+    return container;
+  }
+
+  group('AuthRepository', () {
+    test('login: APIを呼び出し、取得したトークンをTokenStorageに保存すること', () async {
+      // Arrange
+      final fakeStorage = FakeTokenStorage();
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider.notifier);
+
+      final mockResponse = MockResponse();
+      // APIが返すダミーのレスポンスデータを設定
+      when(() => mockResponse.data).thenReturn({
+        'access_token': 'new_access_token',
+        'refresh_token': 'new_refresh_token',
+      });
+      // postメソッドが呼ばれたらモックレスポンスを返す
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockResponse);
+
+      // Act
+      await repo.login('test@example.com', 'password123');
+
+      // Assert
+      // 1. APIが正しい引数で呼ばれたか
+      verify(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: {'email': 'test@example.com', 'password': 'password123'},
+        ),
+      ).called(1);
+
+      // 2. TokenStorageに正しい値が保存されたか
+      expect(fakeStorage.savedAccessToken, 'new_access_token');
+      expect(fakeStorage.savedRefreshToken, 'new_refresh_token');
+    });
+
+    group('refreshToken', () {
+      test('TokenStorageにリフレッシュトークンがない場合、APIを呼ばずに false を返すこと', () async {
+        // Arrange: 初期リフレッシュトークンを null に設定
+        final fakeStorage = FakeTokenStorage();
+        final container = createContainer(fakeStorage);
+        final repo = container.read(authRepositoryProvider.notifier);
+
+        // Act
+        final result = await repo.refreshToken();
+
+        // Assert
+        expect(result, isFalse);
+        // APIが一切呼ばれていないことを確認
+        verifyNever(
+          () => mockApi.post<void>(any(), data: any<dynamic>(named: 'data')),
+        );
+      });
+
+      test('APIのレスポンスに access_token が含まれていない場合、保存せずに false を返すこと', () async {
+        // Arrange
+        final fakeStorage = FakeTokenStorage(
+          initialRefreshToken: 'old_refresh',
+        );
+        final container = createContainer(fakeStorage);
+        final repo = container.read(authRepositoryProvider.notifier);
+
+        final mockResponse = MockResponse();
+        // access_token が null (または存在しない) レスポンスをシミュレート
+        when(() => mockResponse.data).thenReturn({'access_token': null});
+
+        when(
+          () => mockApi.post<Map<String, dynamic>>(
+            '/auth/refresh',
+            data: any<dynamic>(named: 'data'),
+          ),
+        ).thenAnswer((_) async => mockResponse);
+
+        // Act
+        final result = await repo.refreshToken();
+
+        // Assert
+        expect(result, isFalse);
+        // 保存処理が呼ばれていない（プロパティがnullのまま）ことを確認
+        expect(fakeStorage.savedAccessToken, isNull);
+      });
+
+      test('APIから新しいアクセストークンを取得できた場合、保存して true を返すこと', () async {
+        // Arrange
+        final fakeStorage = FakeTokenStorage(
+          initialRefreshToken: 'valid_refresh',
+        );
+        final container = createContainer(fakeStorage);
+        final repo = container.read(authRepositoryProvider.notifier);
+
+        final mockResponse = MockResponse();
+        when(
+          () => mockResponse.data,
+        ).thenReturn({'access_token': 'refreshed_access'});
+
+        when(
+          () => mockApi.post<Map<String, dynamic>>(
+            '/auth/refresh',
+            data: any<dynamic>(named: 'data'),
+          ),
+        ).thenAnswer((_) async => mockResponse);
+
+        // Act
+        final result = await repo.refreshToken();
+
+        // Assert
+        expect(result, isTrue);
+
+        // APIが正しいリフレッシュトークンを送信したか
+        verify(
+          () => mockApi.post<Map<String, dynamic>>(
+            '/auth/refresh',
+            data: {'refresh_token': 'valid_refresh'},
+          ),
+        ).called(1);
+
+        // 新しいアクセストークンと、既存のリフレッシュトークンが保存されたか
+        expect(fakeStorage.savedAccessToken, 'refreshed_access');
+        expect(fakeStorage.savedRefreshToken, 'valid_refresh');
+      });
+    });
+  });
+}

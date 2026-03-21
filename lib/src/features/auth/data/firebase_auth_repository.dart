@@ -4,12 +4,19 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'firebase_auth_repository.g.dart';
 
+// coverage:ignore-start
+/// Firebase Authenticationのインスタンスを返す
+@riverpod
+FirebaseAuth firebaseAuth(Ref ref) => FirebaseAuth.instance;
+
+/// Google Sign Inのインスタンスを返す
+@riverpod
+GoogleSignIn googleSignIn(Ref ref) => GoogleSignIn.instance;
+// coverage:ignore-end
+
 /// Firebase Authenticationを使用した認証リポジトリ
 @riverpod
 class FirebaseAuthRepository extends _$FirebaseAuthRepository {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
-
   // Google認証初期化フラグ
   bool _googleSignInInitialized = false;
 
@@ -17,7 +24,7 @@ class FirebaseAuthRepository extends _$FirebaseAuthRepository {
   Future<void> _ensureGoogleSignInInitialized() async {
     if (_googleSignInInitialized) return;
 
-    await _googleSignIn.initialize();
+    await ref.read(googleSignInProvider).initialize();
 
     _googleSignInInitialized = true;
   }
@@ -25,18 +32,21 @@ class FirebaseAuthRepository extends _$FirebaseAuthRepository {
   @override
   User? build() {
     // 現在ログインしているユーザーを返す
-    return _auth.currentUser;
+    return ref.read(firebaseAuthProvider).currentUser;
   }
 
   /// 認証状態の変更を監視するストリームを返す
-  Stream<User?> authStateChanges() => _auth.authStateChanges();
+  Stream<User?> authStateChanges() =>
+      ref.read(firebaseAuthProvider).authStateChanges();
 
   /// メールアドレスとパスワードでログインする
   Future<void> signIn(String email, String password) async {
-    final userCredential = await _auth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+    final userCredential = await ref
+        .read(firebaseAuthProvider)
+        .signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
 
     // ログインした情報でstateを更新
     state = userCredential.user;
@@ -47,7 +57,7 @@ class FirebaseAuthRepository extends _$FirebaseAuthRepository {
     await _ensureGoogleSignInInitialized();
 
     try {
-      final googleUser = await _googleSignIn.authenticate();
+      final googleUser = await ref.read(googleSignInProvider).authenticate();
 
       // ID token 取得
       final googleAuth = googleUser.authentication;
@@ -69,7 +79,9 @@ class FirebaseAuthRepository extends _$FirebaseAuthRepository {
         idToken: idToken,
       );
 
-      final userCredential = await _auth.signInWithCredential(credential);
+      final userCredential = await ref
+          .read(firebaseAuthProvider)
+          .signInWithCredential(credential);
 
       // ログインした情報でstateを更新
       state = userCredential.user;
@@ -82,10 +94,12 @@ class FirebaseAuthRepository extends _$FirebaseAuthRepository {
 
   /// メールアドレスとパスワードで新規登録する
   Future<void> signUp(String email, String password) async {
-    final userCredential = await _auth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+    final userCredential = await ref
+        .read(firebaseAuthProvider)
+        .createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
 
     // 登録した情報でstateを更新
     state = userCredential.user;
@@ -93,7 +107,7 @@ class FirebaseAuthRepository extends _$FirebaseAuthRepository {
 
   /// 未認証ユーザーに確認メールを送信する
   Future<void> sendEmailVerification() async {
-    final user = _auth.currentUser;
+    final user = ref.read(firebaseAuthProvider).currentUser;
     if (user != null && !user.emailVerified) {
       await user.sendEmailVerification();
     }
@@ -101,23 +115,23 @@ class FirebaseAuthRepository extends _$FirebaseAuthRepository {
 
   /// Firebase から現在のユーザー情報を再読み込みする
   Future<void> reloadCurrentUser() async {
-    final user = _auth.currentUser;
+    final user = ref.read(firebaseAuthProvider).currentUser;
     if (user != null) {
       await user.reload();
       // reload後の最新ユーザー情報でstateを更新
-      state = _auth.currentUser;
+      state = ref.read(firebaseAuthProvider).currentUser;
     }
   }
 
   /// パスワードリセットメールを送信する
   Future<void> sendPasswordResetEmail(String email) async {
-    await _auth.sendPasswordResetEmail(email: email);
+    await ref.read(firebaseAuthProvider).sendPasswordResetEmail(email: email);
   }
 
   /// サインアウトする
   Future<void> signOut() async {
-    await _auth.signOut();
-    await _googleSignIn.signOut();
+    await ref.read(firebaseAuthProvider).signOut();
+    await ref.read(googleSignInProvider).signOut();
 
     // stateをnullで初期化
     state = null;
