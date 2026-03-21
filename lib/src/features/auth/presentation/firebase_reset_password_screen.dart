@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
-import 'package:flutter_sample/src/core/auth/firebase_auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 
 /// パスワードのリセットメールを送信する画面
 class FirebaseResetPasswordScreen extends ConsumerWidget {

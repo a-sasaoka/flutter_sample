@@ -52,6 +52,7 @@ app.*.map.json
 .env.*
 !env.example
 **/ios/Flutter/Dart-Defines.xcconfig
+lib/src/core/config/app_env.g.dart
 
 # Firebase config (ignored)
 firebase.json
