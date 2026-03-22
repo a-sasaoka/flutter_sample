@@ -23,6 +23,8 @@ class SettingsScreen extends ConsumerWidget {
 
     final l10n = AppLocalizations.of(context)!;
 
+    final useAuth = ref.watch(useFirebaseAuthProvider);
+
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: configAsync.when(
@@ -94,10 +96,11 @@ class SettingsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               Text(l10n.hello),
-              if (ref.read(useFirebaseAuthProvider)) ...[
+              if (useAuth) ...[
                 const SizedBox(height: 32),
                 // 🚪 ログアウト（SignOut）ボタン
                 ElevatedButton.icon(
+                  key: const Key('logout_button'),
                   icon: const Icon(Icons.logout),
                   label: Text(l10n.logout),
                   style: ElevatedButton.styleFrom(
