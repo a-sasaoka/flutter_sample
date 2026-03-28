@@ -44,7 +44,7 @@ abstract class AppEnv {
 
   /// 認証設定
   @EnviedField(varName: 'USE_FIREBASE_AUTH')
-  static final bool useFirebaseAuth = _AppEnv.useFirebaseAuth;
+  static final bool _useFirebaseAuth = _AppEnv._useFirebaseAuth;
 
   /// App Checkのデバッグ用トークン
   @EnviedField(varName: 'DEBUG_TOKEN')
@@ -57,4 +57,4 @@ abstract class AppEnv {
 
 /// 認証設定をRiverpodで提供
 @riverpod
-bool useFirebaseAuth(Ref ref) => AppEnv.useFirebaseAuth;
+bool useFirebaseAuth(Ref ref) => AppEnv._useFirebaseAuth;

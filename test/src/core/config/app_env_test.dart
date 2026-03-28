@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -48,7 +49,10 @@ void main() {
       );
 
       // 真偽値系の検証
-      expect(AppEnv.useFirebaseAuth, isA<bool>());
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      expect(container.read(useFirebaseAuthProvider), isA<bool>());
 
       // その他の文字列（空文字も許容される可能性があるものは isA<String> のみ）
       expect(AppEnv.debugToken, isA<String>());
