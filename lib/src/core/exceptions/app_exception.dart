@@ -1,48 +1,20 @@
 // API・通信系の共通例外クラス
 
-/// 例外の種類を明示的に表す列挙型
-enum ExceptionType {
-  /// ネットワーク関連の例外
-  network,
-
-  /// タイムアウト
-  timeout,
-
-  /// 不明なエラー
-  unknown,
-}
-
 /// アプリケーション共通の例外基底クラス
 sealed class AppException implements Exception {
-  const AppException(this.type, {this.code});
-
-  /// 例外の種類
-  final ExceptionType type;
+  const AppException({this.code});
 
   /// エラーコード（任意）
   final int? code;
 
   /// 多言語化用のメッセージキー
-  String get messageKey {
-    switch (type) {
-      case ExceptionType.network:
-        return 'errorNetwork';
-      case ExceptionType.timeout:
-        return 'errorTimeout';
-      case ExceptionType.unknown:
-        return 'errorUnknown';
-    }
-  }
-
-  @override
-  String toString() => type.name;
+  String get messageKey;
 }
 
 /// ネットワーク関連の例外
 class NetworkException extends AppException {
   /// コンストラクタ
-  const NetworkException({this.statusCode, int? code})
-    : super(ExceptionType.network, code: code);
+  const NetworkException({this.statusCode, super.code});
 
   /// ステータスコード（任意）
   final int? statusCode;
@@ -55,19 +27,34 @@ class NetworkException extends AppException {
     }
     return 'errorNetwork';
   }
+
+  @override
+  String toString() => 'NetworkException(statusCode: $statusCode, code: $code)';
 }
 
 /// タイムアウト
 class TimeoutException extends AppException {
   /// コンストラクタ
-  const TimeoutException() : super(ExceptionType.timeout);
+  const TimeoutException({super.code});
+
+  @override
+  String get messageKey => 'errorTimeout';
+
+  @override
+  String toString() => 'TimeoutException(code: $code)';
 }
 
 /// 不明なエラー
 class UnknownException extends AppException {
   /// コンストラクタ
-  const UnknownException({this.message}) : super(ExceptionType.unknown);
+  const UnknownException({this.message, super.code});
 
   /// 任意のメッセージ
   final String? message;
+
+  @override
+  String get messageKey => 'errorUnknown';
+
+  @override
+  String toString() => 'UnknownException(message: $message, code: $code)';
 }
