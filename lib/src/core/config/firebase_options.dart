@@ -6,15 +6,9 @@ import 'package:flutter_sample/firebase_options_stg.dart' as stg;
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 
 /// 環境毎のFirebaseOptionsを返す
-FirebaseOptions firebaseOptionsWithFlavor(Flavor env) {
-  switch (env) {
-    case Flavor.dev:
-      return dev.DefaultFirebaseOptions.currentPlatform;
-    case Flavor.local:
-      return local.DefaultFirebaseOptions.currentPlatform;
-    case Flavor.stg:
-      return stg.DefaultFirebaseOptions.currentPlatform;
-    case Flavor.prod:
-      return prod.DefaultFirebaseOptions.currentPlatform;
-  }
-}
+FirebaseOptions firebaseOptionsWithFlavor(Flavor env) => switch (env) {
+  Flavor.dev => dev.DefaultFirebaseOptions.currentPlatform,
+  Flavor.local => local.DefaultFirebaseOptions.currentPlatform,
+  Flavor.stg => stg.DefaultFirebaseOptions.currentPlatform,
+  Flavor.prod => prod.DefaultFirebaseOptions.currentPlatform,
+};
