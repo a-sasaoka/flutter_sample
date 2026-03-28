@@ -2,15 +2,21 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
+import 'package:flutter_sample/src/core/network/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logger/logger.dart';
 import 'package:mocktail/mocktail.dart';
 
 // FirebaseAnalytics のモック
 class MockFirebaseAnalytics extends Mock implements FirebaseAnalytics {}
 
+// Logger のモック
+class MockLogger extends Mock implements Logger {}
+
 void main() {
   late MockFirebaseAnalytics mockAnalytics;
+  late MockLogger mockLogger;
   late ProviderContainer container;
 
   // テスト用の固定日時（時間を止める！）
@@ -18,6 +24,7 @@ void main() {
 
   setUp(() {
     mockAnalytics = MockFirebaseAnalytics();
+    mockLogger = MockLogger();
 
     container = ProviderContainer(
       overrides: [
@@ -25,6 +32,8 @@ void main() {
         firebaseAnalyticsProvider.overrideWithValue(mockAnalytics),
         // 2. 現在日時を固定の日時に差し替え（DIの真骨頂！）
         currentDateTimeProvider.overrideWithValue(mockDateTime),
+        // 3. Loggerをモック化（flavorProvider のエラー回避 & ログのノイズ軽減）
+        loggerProvider.overrideWithValue(mockLogger),
       ],
     );
   });
@@ -76,6 +85,25 @@ void main() {
 
       // ③ 【進化ポイント】timestamp がモックで固定した日時と「完全に一致」しているか！
       expect(params['timestamp'], mockDateTime.millisecondsSinceEpoch);
+    });
+
+    test('logEvent 実行時に例外が発生した場合、クラッシュせずに処理が完了すること', () async {
+      // Arrange
+      when(
+        () => mockAnalytics.logEvent(
+          name: any(named: 'name'),
+          parameters: any(named: 'parameters'),
+        ),
+      ).thenAnswer((_) async => throw Exception('Test Analytics Error'));
+
+      final service = container.read(analyticsServiceProvider);
+
+      // Act & Assert
+      // 例外が内部で catch され、メソッドがエラーを外に漏らさず正常終了(completes)することを確認
+      await expectLater(
+        service.logEvent(event: AnalyticsEvent.loginSuccess),
+        completes,
+      );
     });
   });
 }
