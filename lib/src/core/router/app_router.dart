@@ -24,6 +24,7 @@ import 'package:flutter_sample/src/features/settings/presentation/settings_scree
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
 import 'package:go_router/go_router.dart';
+import 'package:logger/logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'app_router.g.dart';
@@ -89,13 +90,15 @@ class LoginRoute extends GoRouteData with $LoginRoute {
 
   @override
   Widget build(BuildContext context, GoRouterState state) {
-    final container = ProviderScope.containerOf(context);
-    final useFirebase = container.read(useFirebaseAuthProvider);
-
-    if (useFirebase) {
-      return const FirebaseLoginScreen();
-    }
-    return const LoginScreen();
+    return Consumer(
+      builder: (context, ref, child) {
+        final useFirebase = ref.watch(useFirebaseAuthProvider);
+        if (useFirebase) {
+          return const FirebaseLoginScreen();
+        }
+        return const LoginScreen();
+      },
+    );
   }
 }
 
@@ -161,13 +164,13 @@ class ChatRoute extends GoRouteData with $ChatRoute {
 /// Firebase Analytics の screen_class をカスタマイズして送信するカスタム Observer
 class TypedRouteAnalyticsObserver extends NavigatorObserver {
   /// コンストラクタ
-  TypedRouteAnalyticsObserver({required this.ref, required this.analytics});
+  TypedRouteAnalyticsObserver({required this.analytics, required this.logger});
 
   /// Firebase Analytics インスタンス
   final FirebaseAnalytics analytics;
 
-  /// Ref
-  final Ref ref;
+  /// Logger インスタンス
+  final Logger logger;
 
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
@@ -196,14 +199,7 @@ class TypedRouteAnalyticsObserver extends NavigatorObserver {
       ),
     );
 
-    // ProviderContainer自体が有効か、Refが有効かを確認して実行
-    if (ref.mounted) {
-      try {
-        ref.read(loggerProvider).d('📊 screen_view → $screenClass');
-      } on Exception catch (_) {
-        // 消滅済みの場合はログ出力自体をスキップ
-      }
-    }
+    logger.d('📊 screen_view → $screenClass');
   }
 }
 
@@ -225,8 +221,8 @@ GoRouter router(Ref ref) {
     debugLogDiagnostics: true,
     observers: [
       TypedRouteAnalyticsObserver(
-        ref: ref,
-        analytics: ref.read(firebaseAnalyticsProvider),
+        analytics: ref.watch(firebaseAnalyticsProvider),
+        logger: ref.watch(loggerProvider),
       ),
     ],
   );

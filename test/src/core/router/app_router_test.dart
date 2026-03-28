@@ -177,8 +177,6 @@ void main() {
   });
 
   group('TypedRouteAnalyticsObserver テスト', () {
-    final containerRefProvider = Provider((ref) => ref);
-
     test('didPush: 画面遷移時に Analytics にログが送信されること', () async {
       final container = ProviderContainer(
         overrides: [loggerProvider.overrideWithValue(mockLogger)],
@@ -186,8 +184,8 @@ void main() {
       addTearDown(container.dispose);
 
       final observer = TypedRouteAnalyticsObserver(
-        ref: container.read(containerRefProvider),
         analytics: mockAnalytics,
+        logger: mockLogger,
       );
 
       final route = MaterialPageRoute<void>(
@@ -281,10 +279,10 @@ void main() {
     );
 
     test('didReplace メソッドを直接呼び出してカバレッジを100%にする', () {
-      final container = ProviderContainer(overrides: []);
+      ProviderContainer(overrides: []);
       final observer = TypedRouteAnalyticsObserver(
-        ref: container.read(Provider((ref) => ref)),
         analytics: mockAnalytics,
+        logger: mockLogger,
       );
 
       // ダミーのルートを作成して直接渡す
