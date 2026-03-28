@@ -10,7 +10,7 @@ part 'logger_provider.g.dart';
 @Riverpod(keepAlive: true)
 Logger logger(Ref ref) {
   return Logger(
-    level: ref.read(flavorProvider) == Flavor.prod
+    level: ref.watch(flavorProvider) == Flavor.prod
         ? Level.warning
         : Level.debug,
     printer: PrettyPrinter(
