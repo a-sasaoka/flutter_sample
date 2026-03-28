@@ -11,7 +11,7 @@ part 'token_interceptor.g.dart';
 /// これにより、テスト時は単なる Mock オブジェクトに差し替え可能になります。
 @Riverpod(keepAlive: true)
 TokenStorage tokenStorageInternal(Ref ref) {
-  return ref.read(tokenStorageProvider.notifier);
+  return ref.watch(tokenStorageProvider.notifier);
 }
 
 /// テストで Notifier の内部構造 (_element) によるエラーを回避するため、
@@ -19,7 +19,7 @@ TokenStorage tokenStorageInternal(Ref ref) {
 /// これにより、テスト時は単なる Mock オブジェクトに差し替え可能になります。
 @Riverpod(keepAlive: true)
 AuthRepository authRepositoryInternal(Ref ref) {
-  return ref.read(authRepositoryProvider.notifier);
+  return ref.watch(authRepositoryProvider.notifier);
 }
 
 /// 再リクエスト（リトライ）用のDioインスタンスを提供するProvider
