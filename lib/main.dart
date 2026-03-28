@@ -17,13 +17,18 @@ import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/core/config/firebase_options.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
+import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Flavorを取得（文字列で扱うとエラーの原因になるので、enumに変換する）
   final flavor = Flavor.fromString(AppEnv.flavor);
+
+  // アプリのパッケージ情報を取得
+  final packageInfo = await PackageInfo.fromPlatform();
 
   // Firebaseの初期化（DefaultFirebaseOptionsは環境別の内容を読み込む）
   await Firebase.initializeApp(options: firebaseOptionsWithFlavor(flavor));
@@ -66,6 +71,9 @@ Future<void> main() async {
       overrides: [
         // プロバイダーにFlavorを設定
         flavorProvider.overrideWithValue(flavor),
+
+        // プロバイダーにPackageInfoを設定
+        packageInfoProvider.overrideWithValue(packageInfo),
       ],
       child: const MyApp(),
     ),

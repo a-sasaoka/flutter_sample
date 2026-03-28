@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
+import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -62,12 +63,20 @@ void main() {
 
   /// テスト用のProviderContainerを作成するヘルパー
   ProviderContainer createContainer({Flavor flavor = Flavor.dev}) {
+    final mockPackageInfo = PackageInfo(
+      appName: 'TestApp',
+      packageName: 'com.example.test',
+      version: '1.0.0',
+      buildNumber: '1',
+    );
+
     final container = ProviderContainer(
       overrides: [
         flavorProvider.overrideWithValue(flavor),
         firebaseRemoteConfigProvider.overrideWithValue(mockRemoteConfig),
         // プロバイダ経由で現在時刻を注入！
         currentDateTimeProvider.overrideWithValue(mockCurrentTime),
+        packageInfoProvider.overrideWithValue(mockPackageInfo),
       ],
     );
     addTearDown(container.dispose);
