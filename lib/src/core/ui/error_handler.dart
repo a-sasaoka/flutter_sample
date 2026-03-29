@@ -7,6 +7,9 @@ import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 
 /// エラーをSnackbarまたはDialogで表示する共通関数群
 class ErrorHandler {
+  // インスタンス化を防止するプライベートコンストラクタ
+  ErrorHandler._(); // coverage:ignore-line
+
   /// 共通メッセージ変換
   static String message(BuildContext context, Object error) {
     final l10n = AppLocalizations.of(context)!;
@@ -38,13 +41,15 @@ class ErrorHandler {
   /// Snackbarで表示（軽度なエラー向け）
   static void showSnackBar(BuildContext context, Object error) {
     final messageText = message(context, error);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(messageText),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar() // 前のスナックバーを消して即座に新しいものを表示
+      ..showSnackBar(
+        SnackBar(
+          content: Text(messageText),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
   }
 
   /// Dialogで表示（重要なエラーや確認が必要な場合）
@@ -56,12 +61,12 @@ class ErrorHandler {
     final l10n = AppLocalizations.of(context)!;
     await showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(l10n.errorDialogTitle),
         content: Text(messageText),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext), // ダイアログのコンテキストを使用
             child: Text(l10n.ok),
           ),
         ],
