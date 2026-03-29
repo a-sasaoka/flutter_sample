@@ -1,4 +1,5 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,7 @@ import 'package:flutter_sample/src/core/network/logger_provider.dart';
 import 'package:flutter_sample/src/core/router/app_router.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
+import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_email_verification_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_login_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_reset_password_screen.dart';
@@ -34,13 +36,43 @@ class MockGoRouterState extends Mock implements GoRouterState {}
 
 class MockBuildContext extends Mock implements BuildContext {}
 
+class MockUser extends Mock implements User {}
+
+class _FakeAuthStateNotifier extends AuthStateNotifier {
+  _FakeAuthStateNotifier({required this.isLoggedIn});
+  final bool isLoggedIn;
+  @override
+  Future<bool> build() async => isLoggedIn;
+}
+
+class _FakeFirebaseAuthStateNotifier extends FirebaseAuthStateNotifier {
+  _FakeFirebaseAuthStateNotifier({required this.isLoggedIn, this.mockUser});
+  final bool isLoggedIn;
+  final User? mockUser;
+  @override
+  User? build() => isLoggedIn ? mockUser : null;
+}
+
 void main() {
   late MockFirebaseAnalytics mockAnalytics;
   late MockLogger mockLogger;
+  late MockUser mockUser;
 
   setUp(() {
     mockAnalytics = MockFirebaseAnalytics();
     mockLogger = MockLogger();
+    mockUser = MockUser();
+
+    when(() => mockUser.uid).thenReturn('dummy_uid_123');
+    when(() => mockUser.emailVerified).thenReturn(true);
+    when(() => mockUser.isAnonymous).thenReturn(false);
+    when(() => mockUser.email).thenReturn('test@example.com');
+    when(() => mockUser.displayName).thenReturn('Test User');
+    when(() => mockUser.phoneNumber).thenReturn(null);
+    when(() => mockUser.photoURL).thenReturn(null);
+    when(() => mockUser.tenantId).thenReturn(null);
+    when(() => mockUser.refreshToken).thenReturn('dummy_token');
+
     when(
       () => mockAnalytics.logScreenView(
         screenClass: any(named: 'screenClass'),
@@ -56,6 +88,35 @@ void main() {
     GlobalCupertinoLocalizations.delegate,
   ];
 
+  ProviderContainer createContainer({
+    required bool isLoggedIn,
+    required bool useFirebase,
+  }) {
+    final container =
+        ProviderContainer(
+            overrides: [
+              firebaseAnalyticsProvider.overrideWithValue(mockAnalytics),
+              loggerProvider.overrideWithValue(mockLogger),
+              flavorProvider.overrideWithValue(Flavor.dev),
+              useFirebaseAuthProvider.overrideWithValue(useFirebase),
+              authStateProvider.overrideWith(
+                () => _FakeAuthStateNotifier(isLoggedIn: isLoggedIn),
+              ),
+              firebaseAuthStateProvider.overrideWith(
+                () => _FakeFirebaseAuthStateNotifier(
+                  isLoggedIn: isLoggedIn,
+                  mockUser: mockUser,
+                ),
+              ),
+            ],
+          )
+          // routerProvider が AutoDispose されて「操作用」と「画面用」の２つに分裂するのを防ぐため、
+          // ここで listen して強制的にインスタンスを維持（ロック）する！
+          ..listen(routerProvider, (_, _) {});
+
+    return container;
+  }
+
   Widget createTestWidget(ProviderContainer container) {
     return UncontrolledProviderScope(
       container: container,
@@ -67,91 +128,80 @@ void main() {
     );
   }
 
-  group('AppRouter / RouteData Build テスト', () {
-    testWidgets('HomeRoute: / にアクセスした時に HomeScreen が表示されること', (tester) async {
-      final container = ProviderContainer(
-        overrides: [
-          firebaseAnalyticsProvider.overrideWithValue(mockAnalytics),
-          loggerProvider.overrideWithValue(mockLogger),
-          flavorProvider.overrideWithValue(Flavor.dev),
-          authStateProvider.overrideWith(
-            () => _FakeAuthStateNotifier(isLoggedIn: true),
-          ),
-          routerProvider.overrideWith(
-            (ref) => GoRouter(
-              initialLocation: '/',
-              routes: $appRoutes,
-              redirect: (context, state) {
-                final authState = ref.read(authStateProvider);
-                if (authState.isLoading) return null;
-                return authState.value ?? false ? null : '/login';
-              },
-            ),
-          ),
-        ],
-      );
+  Future<void> teardownWidget(
+    WidgetTester tester,
+    ProviderContainer container,
+  ) async {
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+    container.dispose();
+    await tester.pump(const Duration(seconds: 5));
+  }
 
-      try {
-        await tester.pumpWidget(createTestWidget(container));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-        await tester.pumpAndSettle();
-
-        expect(find.byType(HomeScreen), findsOneWidget);
-
-        // コンテナを破棄してタイマーの「元」を絶つ
-        container.dispose();
-        // さらに時間を進めて、残っているタイマー（0.4秒など）を無理やり発火させて消化する
-        await tester.pump(const Duration(seconds: 5));
-      } finally {
-        // 万が一途中でエラーになっても確実に dispose する
-      }
-    });
-
-    testWidgets('LoginRoute: 未ログイン時にログイン画面が表示されること', (tester) async {
-      final container = ProviderContainer(
-        overrides: [
-          firebaseAnalyticsProvider.overrideWithValue(mockAnalytics),
-          loggerProvider.overrideWithValue(mockLogger),
-          flavorProvider.overrideWithValue(Flavor.dev),
-          authStateProvider.overrideWith(
-            () => _FakeAuthStateNotifier(isLoggedIn: false),
-          ),
-          routerProvider.overrideWith(
-            (ref) => GoRouter(
-              initialLocation: '/', // / から /login へのリダイレクトをテスト
-              routes: $appRoutes,
-              redirect: (context, state) {
-                final authState = ref.read(authStateProvider);
-                if (authState.isLoading) return null;
-                final isLoggingIn = state.matchedLocation == '/login';
-                if (authState.value == false && !isLoggingIn) return '/login';
-                return null;
-              },
-            ),
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
+  group('AppRouter リダイレクト・ルーティング統合テスト', () {
+    testWidgets('ログイン済みの時、HomeScreen が表示されること', (tester) async {
+      final container = createContainer(isLoggedIn: true, useFirebase: true);
 
       await tester.pumpWidget(createTestWidget(container));
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 1));
 
-      final loginFinder = find.byWidgetPredicate(
-        (widget) => widget is FirebaseLoginScreen || widget is LoginScreen,
-      );
-      expect(loginFinder, findsOneWidget);
+      expect(find.byType(HomeScreen), findsOneWidget);
+      await teardownWidget(tester, container);
     });
 
-    testWidgets('LoginRoute.build: Provider経由で正しいWidgetを返すこと', (tester) async {
+    testWidgets('未ログインかつ Firebase 未使用の時、通常 LoginScreen が表示されること', (
+      tester,
+    ) async {
+      final container = createContainer(isLoggedIn: false, useFirebase: false);
+
+      await tester.pumpWidget(createTestWidget(container));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.byType(LoginScreen), findsOneWidget);
+      await teardownWidget(tester, container);
+    });
+
+    testWidgets('未ログインかつ Firebase 使用の時、FirebaseLoginScreen が表示されること', (
+      tester,
+    ) async {
+      final container = createContainer(isLoggedIn: false, useFirebase: true);
+
+      await tester.pumpWidget(createTestWidget(container));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.byType(FirebaseLoginScreen), findsOneWidget);
+      await teardownWidget(tester, container);
+    });
+
+    testWidgets('存在しないパスにアクセスした時、NotFoundScreenが表示されること', (tester) async {
+      final container = createContainer(isLoggedIn: true, useFirebase: false);
+
+      await tester.pumpWidget(createTestWidget(container));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // ここで呼ぶ `.go()` は、画面と全く同じルーターインスタンスに対して実行される！
+      container.read(routerProvider).go('/not-found-path-123');
+
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+
+      expect(find.byType(NotFoundScreen), findsOneWidget);
+      await teardownWidget(tester, container);
+    });
+  });
+
+  group('RouteData ユニットテスト', () {
+    testWidgets('LoginRoute.build: 直接 build メソッドを呼んだ時に正しいWidgetを返すこと', (
+      tester,
+    ) async {
       final container = ProviderContainer(
-        overrides: [
-          useFirebaseAuthProvider.overrideWithValue(true),
-        ],
+        overrides: [useFirebaseAuthProvider.overrideWithValue(true)],
       );
-      addTearDown(container.dispose);
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -173,34 +223,8 @@ void main() {
 
       await tester.pump();
       expect(find.byType(FirebaseLoginScreen), findsOneWidget);
-    });
-  });
 
-  group('TypedRouteAnalyticsObserver テスト', () {
-    test('didPush: 画面遷移時に Analytics にログが送信されること', () async {
-      final container = ProviderContainer(
-        overrides: [loggerProvider.overrideWithValue(mockLogger)],
-      );
-      addTearDown(container.dispose);
-
-      final observer = TypedRouteAnalyticsObserver(
-        analytics: mockAnalytics,
-        logger: mockLogger,
-      );
-
-      final route = MaterialPageRoute<void>(
-        builder: (_) => const SizedBox(),
-        settings: const RouteSettings(name: 'TestScreen'),
-      );
-
-      observer.didPush(route, null);
-
-      verify(
-        () => mockAnalytics.logScreenView(
-          screenClass: 'TestScreen',
-          screenName: 'TestScreen',
-        ),
-      ).called(1);
+      await teardownWidget(tester, container);
     });
 
     test('HomeRoute.build: HomeScreen を返すこと', () {
@@ -277,22 +301,37 @@ void main() {
         expect(widget, isA<FirebaseEmailVerificationScreen>());
       },
     );
+  });
 
-    test('didReplace メソッドを直接呼び出してカバレッジを100%にする', () {
-      ProviderContainer(overrides: []);
+  group('TypedRouteAnalyticsObserver テスト', () {
+    test('didPush: 画面遷移時に Analytics にログが送信されること', () async {
       final observer = TypedRouteAnalyticsObserver(
         analytics: mockAnalytics,
         logger: mockLogger,
       );
+      final route = MaterialPageRoute<void>(
+        builder: (_) => const SizedBox(),
+        settings: const RouteSettings(name: 'TestScreen'),
+      );
+      observer.didPush(route, null);
+      verify(
+        () => mockAnalytics.logScreenView(
+          screenClass: 'TestScreen',
+          screenName: 'TestScreen',
+        ),
+      ).called(1);
+    });
 
-      // ダミーのルートを作成して直接渡す
+    test('didReplace: 画面置換時に Analytics にログが送信されること', () {
+      final observer = TypedRouteAnalyticsObserver(
+        analytics: mockAnalytics,
+        logger: mockLogger,
+      );
       final route = MaterialPageRoute<void>(
         builder: (_) => const SizedBox(),
         settings: const RouteSettings(name: 'TargetRoute'),
       );
-
       observer.didReplace(newRoute: route);
-
       verify(
         () => mockAnalytics.logScreenView(
           screenClass: 'TargetRoute',
@@ -301,148 +340,4 @@ void main() {
       ).called(1);
     });
   });
-
-  group('routerProvider エラーハンドリング', () {
-    testWidgets('存在しないパスにアクセスした時、NotFoundScreenが表示されること', (tester) async {
-      final container = ProviderContainer(
-        overrides: [
-          firebaseAnalyticsProvider.overrideWithValue(mockAnalytics),
-          loggerProvider.overrideWithValue(mockLogger),
-          authStateProvider.overrideWith(
-            () => _FakeAuthStateNotifier(isLoggedIn: true),
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      await tester.pumpWidget(createTestWidget(container));
-      await tester.pumpAndSettle();
-
-      container.read(routerProvider).go('/not-found-path-123');
-
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(NotFoundScreen), findsOneWidget);
-    });
-  });
-
-  group('routerProvider リダイレクト判定テスト', () {
-    testWidgets('useFirebaseAuthProvider が false の時、LoginScreen が表示されること', (
-      tester,
-    ) async {
-      final container = ProviderContainer(
-        overrides: [
-          firebaseAnalyticsProvider.overrideWithValue(mockAnalytics),
-          loggerProvider.overrideWithValue(mockLogger),
-          flavorProvider.overrideWithValue(Flavor.dev),
-          useFirebaseAuthProvider.overrideWithValue(false),
-          authStateProvider.overrideWith(
-            () => _FakeAuthStateNotifier(isLoggedIn: false),
-          ),
-          routerProvider.overrideWith(
-            (ref) => GoRouter(
-              initialLocation: '/',
-              routes: $appRoutes,
-              redirect: (context, state) {
-                final authState = ref.read(authStateProvider);
-                if (authState.isLoading) return null;
-                final isLoggingIn = state.matchedLocation == '/login';
-                if (authState.value == false && !isLoggingIn) return '/login';
-                return null;
-              },
-            ),
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      await tester.pumpWidget(createTestWidget(container));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 200));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(LoginScreen), findsOneWidget);
-    });
-
-    testWidgets(
-      'useFirebaseAuthProvider が true の時、FirebaseLoginScreen が表示されること',
-      (tester) async {
-        final container = ProviderContainer(
-          overrides: [
-            firebaseAnalyticsProvider.overrideWithValue(mockAnalytics),
-            loggerProvider.overrideWithValue(mockLogger),
-            flavorProvider.overrideWithValue(Flavor.dev),
-            useFirebaseAuthProvider.overrideWithValue(true),
-            authStateProvider.overrideWith(
-              () => _FakeAuthStateNotifier(isLoggedIn: false),
-            ),
-            routerProvider.overrideWith(
-              (ref) => GoRouter(
-                initialLocation: '/',
-                routes: $appRoutes,
-                redirect: (context, state) {
-                  final authState = ref.read(authStateProvider);
-                  if (authState.isLoading) return null;
-                  final isLoggingIn = state.matchedLocation == '/login';
-                  if (authState.value == false && !isLoggingIn) return '/login';
-                  return null;
-                },
-              ),
-            ),
-          ],
-        );
-        addTearDown(container.dispose);
-
-        await tester.pumpWidget(createTestWidget(container));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 200));
-        await tester.pumpAndSettle();
-
-        expect(find.byType(FirebaseLoginScreen), findsOneWidget);
-      },
-    );
-
-    testWidgets('authGuard: Firebase未使用モードかつ未ログイン時に通常のリダイレクトが行われること', (
-      tester,
-    ) async {
-      final container = ProviderContainer(
-        overrides: [
-          firebaseAnalyticsProvider.overrideWithValue(mockAnalytics),
-          loggerProvider.overrideWithValue(mockLogger),
-          flavorProvider.overrideWithValue(Flavor.dev),
-          // 💡 1. Firebaseモードをオフにする
-          useFirebaseAuthProvider.overrideWithValue(false),
-          // 💡 2. 未ログイン状態にする
-          authStateProvider.overrideWith(
-            () => _FakeAuthStateNotifier(isLoggedIn: false),
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      // 💡 3. 初期位置を / (Home) に設定して起動
-      // これにより、authGuard 内で 「未ログインなので /login へ」という判定を強制的に通す
-      await tester.pumpWidget(createTestWidget(container));
-
-      // GoRouter の解決を待つ
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
-      await tester.pumpAndSettle();
-
-      // 💡 4. 結果として LoginScreen が表示されていることを確認
-      expect(find.byType(LoginScreen), findsOneWidget);
-    });
-  });
-}
-
-class _FakeAuthStateNotifier extends AuthStateNotifier {
-  _FakeAuthStateNotifier({required this.isLoggedIn});
-  final bool isLoggedIn;
-  @override
-  Future<bool> build() {
-    state = AsyncData(isLoggedIn);
-    return Future.value(isLoggedIn);
-  }
 }

@@ -12,6 +12,7 @@ import 'package:flutter_sample/src/core/network/logger_provider.dart';
 import 'package:flutter_sample/src/core/router/auth_guard.dart';
 import 'package:flutter_sample/src/core/router/firebase_auth_guard.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_email_verification_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_login_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_reset_password_screen.dart';
@@ -208,7 +209,18 @@ class TypedRouteAnalyticsObserver extends NavigatorObserver {
 GoRouter router(Ref ref) {
   final useFirebase = ref.watch(useFirebaseAuthProvider);
 
+  // 認証状態の変更を検知して GoRouter にルーティングの再評価を促すための Listenable
+  final routerListenable = ValueNotifier<bool>(false);
+
+  ref
+    ..listen(
+      authStateProvider,
+      (_, _) => routerListenable.value = !routerListenable.value,
+    )
+    ..onDispose(routerListenable.dispose);
+
   return GoRouter(
+    refreshListenable: routerListenable,
     routes: $appRoutes,
     redirect: (context, state) {
       if (useFirebase) {
