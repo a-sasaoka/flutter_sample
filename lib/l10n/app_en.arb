@@ -59,6 +59,7 @@
   "googleSignUp": "Google Sign In",
   "emailVerificationTitle": "Email Verification",
   "emailVerificationDescription": "A verification email has been sent.",
+  "checkVerificationStatus": "Check verification status",
   "resendVerificationMail": "Resend verification email",
   "emailVerificationWaiting": "Once your email is verified, you will be redirected automatically.",
   "resetPassword": "Reset Password",

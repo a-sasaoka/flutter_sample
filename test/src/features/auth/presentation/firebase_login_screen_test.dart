@@ -1,7 +1,5 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
-import 'package:flutter_sample/src/core/router/app_router.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_login_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,7 +7,11 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
-// --- モックとデリゲート ---
+// --- モッククラスの定義 ---
+
+class MockFirebaseAuthRepository extends Mock
+    implements FirebaseAuthRepository {}
+
 class MockAppLocalizations extends Mock implements AppLocalizations {}
 
 class _MockLocalizationsDelegate
@@ -25,205 +27,174 @@ class _MockLocalizationsDelegate
       false;
 }
 
-// --- Fake Repository ---
-class FakeFirebaseAuthRepository extends FirebaseAuthRepository {
-  // テストで挙動を操作するためのフラグ
-  bool signInShouldThrow = false;
-  bool googleSignInShouldThrow = false;
-  bool googleSignInReturnValue = true;
-
-  // 呼び出し確認用
-  String? calledEmail;
-  String? calledPassword;
-  int signInWithGoogleCallCount = 0;
-
-  @override
-  User? build() => null;
-
-  @override
-  Future<void> signIn(String email, String password) async {
-    if (signInShouldThrow) throw Exception('Login Failed');
-    calledEmail = email;
-    calledPassword = password;
-  }
-
-  @override
-  Future<bool> signInWithGoogle() async {
-    signInWithGoogleCallCount++;
-    if (googleSignInShouldThrow) throw Exception('Google Login Failed');
-    return googleSignInReturnValue;
-  }
-}
-
 void main() {
+  late MockFirebaseAuthRepository mockAuthRepo;
   late MockAppLocalizations mockL10n;
 
   setUp(() {
+    mockAuthRepo = MockFirebaseAuthRepository();
     mockL10n = MockAppLocalizations();
-    when(() => mockL10n.loginTitle).thenReturn('ログイン画面');
+
+    // 多言語化のスタブ
+    when(() => mockL10n.loginTitle).thenReturn('ログイン');
     when(() => mockL10n.loginEmailLabel).thenReturn('メールアドレス');
     when(() => mockL10n.loginPasswordLabel).thenReturn('パスワード');
-    when(() => mockL10n.login).thenReturn('ログイン実行'); // 画面タイトルと被らないように調整
-    when(() => mockL10n.signUp).thenReturn('新規登録');
+    when(() => mockL10n.login).thenReturn('ログインする');
+    when(() => mockL10n.signUp).thenReturn('新規登録へ');
     when(() => mockL10n.googleSignUp).thenReturn('Googleでログイン');
     when(() => mockL10n.errorLoginFailed).thenReturn('ログインに失敗しました');
   });
 
-  /// テスト環境のセットアップ
-  Future<GoRouter> setupWidget(
-    WidgetTester tester,
-    FakeFirebaseAuthRepository fakeRepo,
-  ) async {
+  /// テスト用のWidgetを構築するヘルパー
+  Widget createTestWidget() {
     final router = GoRouter(
+      // 💡 画面遷移を検知するため、初期パスを専用のもの(/login)にする
       initialLocation: '/login',
       routes: [
         GoRoute(
           path: '/login',
           builder: (context, state) => const FirebaseLoginScreen(),
         ),
-        GoRoute(
-          path: const HomeRoute().location,
-          builder: (context, state) =>
-              const Scaffold(body: Text('Home Screen')),
-        ),
-        GoRoute(
-          path: const SignUpRoute().location,
-          builder: (context, state) =>
-              const Scaffold(body: Text('SignUp Screen')),
-        ),
       ],
-    );
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          firebaseAuthRepositoryProvider.overrideWith(() => fakeRepo),
-        ],
-        // Providerが破棄されないように延命
-        child: Consumer(
-          builder: (context, ref, child) {
-            ref.watch(firebaseAuthRepositoryProvider);
-            return MaterialApp.router(
-              localizationsDelegates: [_MockLocalizationsDelegate(mockL10n)],
-              routerConfig: router,
-            );
-          },
-        ),
+      // HomeRoute や SignUpRoute への遷移をエラー画面としてキャッチする！
+      errorBuilder: (context, state) => Scaffold(
+        body: Text('Navigated to ${state.uri}'),
       ),
     );
-    await tester.pumpAndSettle();
-    return router;
+
+    return ProviderScope(
+      overrides: [
+        firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+      ],
+      child: MaterialApp.router(
+        routerConfig: router,
+        localizationsDelegates: [_MockLocalizationsDelegate(mockL10n)],
+      ),
+    );
   }
 
   group('FirebaseLoginScreen', () {
-    testWidgets('初期表示: 入力フォームと各ボタンが正しく表示されること', (tester) async {
-      final fakeRepo = FakeFirebaseAuthRepository();
-      await setupWidget(tester, fakeRepo);
+    testWidgets('UIが正しくレンダリングされること', (tester) async {
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
 
-      expect(find.text('ログイン画面'), findsOneWidget);
-      expect(find.widgetWithText(TextField, 'メールアドレス'), findsOneWidget);
-      expect(find.widgetWithText(TextField, 'パスワード'), findsOneWidget);
-      expect(find.text('ログイン実行'), findsOneWidget);
-      expect(find.text('新規登録'), findsOneWidget);
+      expect(find.text('ログイン'), findsOneWidget);
+      expect(find.text('メールアドレス'), findsOneWidget);
+      expect(find.text('パスワード'), findsOneWidget);
+      expect(find.text('ログインする'), findsOneWidget);
+      expect(find.text('新規登録へ'), findsOneWidget);
       expect(find.text('Googleでログイン'), findsOneWidget);
     });
 
     group('メール・パスワードログイン', () {
-      testWidgets('正常系: 入力値が渡され、成功するとHomeへ遷移すること', (tester) async {
-        final fakeRepo = FakeFirebaseAuthRepository();
-        await setupWidget(tester, fakeRepo);
+      testWidgets('入力値が Repository に渡され、成功時に HomeRoute に遷移すること', (
+        tester,
+      ) async {
+        when(
+          () => mockAuthRepo.signIn('test@example.com', 'password123'),
+        ).thenAnswer((_) async {});
 
-        // Act
-        await tester.enterText(
-          find.widgetWithText(TextField, 'メールアドレス'),
-          'test@example.com',
-        );
-        await tester.enterText(
-          find.widgetWithText(TextField, 'パスワード'),
-          'password123',
-        );
-        await tester.tap(find.text('ログイン実行'));
+        await tester.pumpWidget(createTestWidget());
         await tester.pumpAndSettle();
 
-        // Assert
-        expect(fakeRepo.calledEmail, 'test@example.com');
-        expect(fakeRepo.calledPassword, 'password123');
-        // 💡 URLではなく、画面遷移後のテキストが見えるかで判定！
-        expect(find.text('Home Screen'), findsOneWidget);
+        // TextFieldに入力する
+        await tester.enterText(
+          find.byType(TextField).at(0),
+          'test@example.com',
+        );
+        await tester.enterText(find.byType(TextField).at(1), 'password123');
+
+        // ログインボタンをタップ
+        await tester.tap(find.text('ログインする'));
+        await tester.pumpAndSettle();
+
+        // 正しい引数で signIn が呼ばれたか検証
+        verify(
+          () => mockAuthRepo.signIn('test@example.com', 'password123'),
+        ).called(1);
+
+        // 画面遷移したことを確認
+        expect(find.textContaining('Navigated to'), findsOneWidget);
       });
 
-      testWidgets('異常系: 例外が発生した場合、SnackBarでエラーメッセージを表示すること', (tester) async {
-        final fakeRepo = FakeFirebaseAuthRepository()..signInShouldThrow = true;
-        await setupWidget(tester, fakeRepo);
+      testWidgets('ログイン失敗時(例外発生時)、SnackBarが表示されること', (tester) async {
+        // 例外を投げるようにモックを設定
+        when(
+          () => mockAuthRepo.signIn(any(), any()),
+        ).thenThrow(Exception('Login Error'));
 
-        // Act
-        await tester.tap(find.text('ログイン実行'));
-        await tester.pump(); // SnackBarのアニメーションを待つ
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
 
-        // Assert
-        expect(find.byType(SnackBar), findsOneWidget);
+        await tester.tap(find.text('ログインする'));
+        // SnackBar の表示アニメーションを1フレーム進める（pumpAndSettleだとSnackBarが消えるまで待ってしまうため）
+        await tester.pump();
+
+        // SnackBar のテキストが表示されているか確認
         expect(find.text('ログインに失敗しました'), findsOneWidget);
+      });
+    });
+
+    group('新規登録', () {
+      testWidgets('新規登録ボタンタップ時、SignUpRouteに遷移すること', (tester) async {
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('新規登録へ'));
+        await tester.pumpAndSettle();
+
+        // 画面遷移したことを確認
+        expect(find.textContaining('Navigated to'), findsOneWidget);
       });
     });
 
     group('Googleログイン', () {
-      testWidgets('正常系: trueが返った場合、Homeへ遷移すること', (tester) async {
-        final fakeRepo = FakeFirebaseAuthRepository()
-          ..googleSignInReturnValue = true;
-        await setupWidget(tester, fakeRepo);
+      testWidgets('ログイン成功時(trueを返す場合)、HomeRouteに遷移すること', (tester) async {
+        when(
+          () => mockAuthRepo.signInWithGoogle(),
+        ).thenAnswer((_) async => true);
 
-        // Act
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
+
         await tester.tap(find.text('Googleでログイン'));
         await tester.pumpAndSettle();
 
-        // Assert
-        expect(fakeRepo.signInWithGoogleCallCount, 1);
-        expect(find.text('Home Screen'), findsOneWidget);
+        verify(() => mockAuthRepo.signInWithGoogle()).called(1);
+        expect(find.textContaining('Navigated to'), findsOneWidget);
       });
 
-      testWidgets('キャンセル: falseが返った場合、遷移もSnackBar表示も行わないこと', (tester) async {
-        final fakeRepo = FakeFirebaseAuthRepository()
-          ..googleSignInReturnValue = false;
-        await setupWidget(tester, fakeRepo);
+      testWidgets('ログインキャンセル時(falseを返す場合)、何も起きないこと', (tester) async {
+        when(
+          () => mockAuthRepo.signInWithGoogle(),
+        ).thenAnswer((_) async => false);
 
-        // Act
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
+
         await tester.tap(find.text('Googleでログイン'));
         await tester.pumpAndSettle();
 
-        // Assert
-        expect(fakeRepo.signInWithGoogleCallCount, 1);
-        expect(find.text('Home Screen'), findsNothing); // 遷移していない
-        expect(find.text('ログイン画面'), findsOneWidget); // 元の画面のまま
-        expect(find.byType(SnackBar), findsNothing);
+        verify(() => mockAuthRepo.signInWithGoogle()).called(1);
+
+        // 画面遷移せず、エラーSnackBarも出ないことを確認
+        expect(find.textContaining('Navigated to'), findsNothing);
+        expect(find.text('ログインに失敗しました'), findsNothing);
       });
 
-      testWidgets('異常系: 例外が発生した場合、SnackBarでエラーメッセージを表示すること', (tester) async {
-        final fakeRepo = FakeFirebaseAuthRepository()
-          ..googleSignInShouldThrow = true;
-        await setupWidget(tester, fakeRepo);
+      testWidgets('ログイン例外発生時、SnackBarが表示されること', (tester) async {
+        when(
+          () => mockAuthRepo.signInWithGoogle(),
+        ).thenThrow(Exception('Google Login Error'));
 
-        // Act
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
+
         await tester.tap(find.text('Googleでログイン'));
-        await tester.pump();
+        await tester.pump(); // SnackBar描画のために1フレーム進める
 
-        // Assert
-        expect(find.byType(SnackBar), findsOneWidget);
+        verify(() => mockAuthRepo.signInWithGoogle()).called(1);
         expect(find.text('ログインに失敗しました'), findsOneWidget);
-      });
-    });
-
-    group('ナビゲーション', () {
-      testWidgets('新規登録ボタンタップで SignUpRoute へ遷移すること', (tester) async {
-        final fakeRepo = FakeFirebaseAuthRepository();
-        await setupWidget(tester, fakeRepo);
-
-        // Act
-        await tester.tap(find.text('新規登録'));
-        await tester.pumpAndSettle();
-
-        // Assert
-        // ダミー画面のテキスト「SignUp Screen」が表示されていることで遷移成功を証明！
-        expect(find.text('SignUp Screen'), findsOneWidget);
       });
     });
   });

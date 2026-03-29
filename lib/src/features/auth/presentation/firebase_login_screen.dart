@@ -42,7 +42,7 @@ class _FirebaseLoginScreenState extends ConsumerState<FirebaseLoginScreen> {
               onPressed: () async {
                 try {
                   await ref
-                      .read(firebaseAuthRepositoryProvider.notifier)
+                      .read(firebaseAuthRepositoryProvider)
                       .signIn(
                         emailCtrl.text,
                         passwordCtrl.text,
@@ -74,7 +74,7 @@ class _FirebaseLoginScreenState extends ConsumerState<FirebaseLoginScreen> {
               onPressed: () async {
                 try {
                   final isSignedIn = await ref
-                      .read(firebaseAuthRepositoryProvider.notifier)
+                      .read(firebaseAuthRepositoryProvider)
                       .signInWithGoogle();
                   if (!isSignedIn) {
                     return;

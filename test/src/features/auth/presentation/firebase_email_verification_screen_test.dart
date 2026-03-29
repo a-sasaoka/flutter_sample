@@ -1,6 +1,9 @@
+// ignore_for_file: use_setters_to_change_properties, document_ignores
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_email_verification_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,7 +11,9 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
-// --- モッククラス ---
+class MockFirebaseAuthRepository extends Mock
+    implements FirebaseAuthRepository {}
+
 class MockUser extends Mock implements User {}
 
 class MockAppLocalizations extends Mock implements AppLocalizations {}
@@ -26,59 +31,41 @@ class _MockLocalizationsDelegate
       false;
 }
 
-// --- Fake Repository ---
-class FakeFirebaseAuthRepository extends FirebaseAuthRepository {
-  FakeFirebaseAuthRepository(this._initialUser);
-  final User? _initialUser;
-
-  int reloadCalledCount = 0;
-  int sendEmailCalledCount = 0;
+class FakeFirebaseAuthStateNotifier extends FirebaseAuthStateNotifier {
+  FakeFirebaseAuthStateNotifier(this.initialState);
+  final User? initialState;
 
   @override
-  User? build() => _initialUser;
+  User? build() => initialState;
 
-  @override
-  Future<void> reloadCurrentUser() async {
-    reloadCalledCount++;
-  }
-
-  @override
-  Future<void> sendEmailVerification() async {
-    sendEmailCalledCount++;
-  }
-
-  // テスト中にユーザー状態（認証済み等）を変更するためのヘルパー
-  // ignore: use_setters_to_change_properties
-  void updateUser(User? user) {
-    state = user;
+  void updateState(User? newUser) {
+    state = newUser;
   }
 }
 
 void main() {
-  late MockAppLocalizations mockL10n;
+  late MockFirebaseAuthRepository mockAuthRepo;
   late MockUser mockUser;
+  late MockAppLocalizations mockL10n;
 
   setUp(() {
-    mockL10n = MockAppLocalizations();
+    mockAuthRepo = MockFirebaseAuthRepository();
     mockUser = MockUser();
+    mockL10n = MockAppLocalizations();
 
-    // L10nのスタブ設定
     when(() => mockL10n.emailVerificationTitle).thenReturn('メール認証');
     when(
       () => mockL10n.emailVerificationDescription,
     ).thenReturn('確認メールを送信しました。');
-    when(() => mockL10n.resendVerificationMail).thenReturn('再送信');
-    when(() => mockL10n.emailVerificationWaiting).thenReturn('認証待ち...');
+    when(() => mockL10n.resendVerificationMail).thenReturn('再送信する');
+    when(() => mockL10n.emailVerificationWaiting).thenReturn('認証待ちです...');
+    when(() => mockL10n.checkVerificationStatus).thenReturn('認証を完了したか確認する');
 
-    // 初期状態は「未認証 (false)」にしておく
-    when(() => mockUser.emailVerified).thenReturn(false);
+    when(() => mockAuthRepo.sendEmailVerification()).thenAnswer((_) async {});
+    when(() => mockAuthRepo.reloadCurrentUser()).thenAnswer((_) async {});
   });
 
-  /// 画面をセットアップし、テスト用のGoRouterを返すヘルパー関数
-  Future<GoRouter> setupWidget(
-    WidgetTester tester,
-    FakeFirebaseAuthRepository fakeRepo,
-  ) async {
+  Widget createTestWidget(ProviderContainer container) {
     final router = GoRouter(
       initialLocation: '/verify',
       routes: [
@@ -86,95 +73,121 @@ void main() {
           path: '/verify',
           builder: (context, state) => const FirebaseEmailVerificationScreen(),
         ),
-        GoRoute(
-          path: '/',
-          builder: (context, state) =>
-              const Scaffold(body: Text('Home Screen')),
-        ),
       ],
-    );
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          firebaseAuthRepositoryProvider.overrideWith(() => fakeRepo),
-        ],
-        // Consumer でラップして Provider を強制的に延命する
-        child: Consumer(
-          builder: (context, ref, _) {
-            // テスト中、誰も watch していないことで Provider が破棄されるのを防ぐ
-            ref.watch(firebaseAuthRepositoryProvider);
-
-            return MaterialApp.router(
-              localizationsDelegates: [_MockLocalizationsDelegate(mockL10n)],
-              routerConfig: router,
-            );
-          },
-        ),
+      errorBuilder: (context, state) => Scaffold(
+        body: Text('Navigated to ${state.uri}'),
       ),
     );
-    await tester.pumpAndSettle();
-    return router;
+
+    return UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp.router(
+        routerConfig: router,
+        localizationsDelegates: [_MockLocalizationsDelegate(mockL10n)],
+      ),
+    );
   }
 
   group('FirebaseEmailVerificationScreen', () {
-    testWidgets('初期表示: 正しいテキストとボタンが表示されること', (tester) async {
-      final fakeRepo = FakeFirebaseAuthRepository(mockUser);
-      await setupWidget(tester, fakeRepo);
+    testWidgets('UIが正しくレンダリングされ、再送信ボタンが動作すること', (tester) async {
+      when(() => mockUser.emailVerified).thenReturn(false);
+
+      final container = ProviderContainer(
+        overrides: [
+          firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+          firebaseAuthStateProvider.overrideWith(
+            () => FakeFirebaseAuthStateNotifier(mockUser),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(createTestWidget(container));
+      await tester.pumpAndSettle();
 
       expect(find.text('メール認証'), findsOneWidget);
       expect(find.text('確認メールを送信しました。'), findsOneWidget);
-      expect(find.text('再送信'), findsOneWidget);
-      expect(find.text('認証待ち...'), findsOneWidget);
+      expect(find.text('認証を完了したか確認する'), findsOneWidget);
+      expect(find.text('認証待ちです...'), findsOneWidget);
 
-      // テスト終了時にタイマーが動いたままだとエラーになるため、画面を破棄(dispose)する
-      await tester.pumpWidget(const SizedBox());
-    });
-
-    testWidgets('ボタン押下: 再送信ボタンをタップすると sendEmailVerification が呼ばれること', (
-      tester,
-    ) async {
-      final fakeRepo = FakeFirebaseAuthRepository(mockUser);
-      await setupWidget(tester, fakeRepo);
-
-      // Act: ボタンをタップ
-      await tester.tap(find.text('再送信'));
+      await tester.tap(find.text('再送信する'));
       await tester.pump();
 
-      // Assert: メソッドが1回呼ばれたか確認
-      expect(fakeRepo.sendEmailCalledCount, 1);
-
-      // 画面を破棄
-      await tester.pumpWidget(const SizedBox());
+      verify(() => mockAuthRepo.sendEmailVerification()).called(1);
     });
 
-    testWidgets('タイマー: 3秒ごとに reloadCurrentUser が呼ばれ、認証完了でホームへ遷移すること', (
+    testWidgets('手動確認ボタンをタップした時、ユーザー情報がリロードされること', (tester) async {
+      when(() => mockUser.emailVerified).thenReturn(false);
+
+      final container = ProviderContainer(
+        overrides: [
+          firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+          firebaseAuthStateProvider.overrideWith(
+            () => FakeFirebaseAuthStateNotifier(mockUser),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(createTestWidget(container));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('認証を完了したか確認する'));
+      await tester.pump();
+
+      verify(() => mockAuthRepo.reloadCurrentUser()).called(1);
+    });
+
+    testWidgets('アプリがバックグラウンドから復帰(resumed)した時、ユーザー情報がリロードされること', (
       tester,
     ) async {
-      final fakeRepo = FakeFirebaseAuthRepository(mockUser);
-      final router = await setupWidget(tester, fakeRepo);
+      when(() => mockUser.emailVerified).thenReturn(false);
 
-      // 1. 最初の3秒を進める
-      await tester.pump(const Duration(seconds: 3));
+      final container = ProviderContainer(
+        overrides: [
+          firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+          firebaseAuthStateProvider.overrideWith(
+            () => FakeFirebaseAuthStateNotifier(mockUser),
+          ),
+        ],
+      );
 
-      // 未認証なので、リロードは呼ばれるが遷移はしない
-      expect(fakeRepo.reloadCalledCount, 1);
-      expect(router.routerDelegate.currentConfiguration.uri.path, '/verify');
+      await tester.pumpWidget(createTestWidget(container));
+      await tester.pumpAndSettle();
 
-      // 2. ユーザーが別端末などでメールリンクを踏み、認証完了したとシミュレート
-      when(() => mockUser.emailVerified).thenReturn(true);
-      fakeRepo.updateUser(mockUser); // 状態を更新
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
 
-      // 3. 次の3秒を進める
-      await tester.pump(const Duration(seconds: 3));
-
-      // リロードが2回目に呼ばれ、認証完了を検知して遷移するはず
-      expect(fakeRepo.reloadCalledCount, 2);
-
-      await tester.pumpAndSettle(); // 画面遷移アニメーションを完了させる
-
-      // タイマーがキャンセルされ、Home画面（ダミーの '/' パス）へ遷移したことを確認
-      expect(router.routerDelegate.currentConfiguration.uri.path, '/');
+      verify(() => mockAuthRepo.reloadCurrentUser()).called(1);
     });
+
+    testWidgets(
+      'ユーザー状態が変更され emailVerified == true になると、自動で HomeRoute に遷移すること',
+      (tester) async {
+        when(() => mockUser.emailVerified).thenReturn(false);
+
+        final container = ProviderContainer(
+          overrides: [
+            firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+            firebaseAuthStateProvider.overrideWith(
+              () => FakeFirebaseAuthStateNotifier(mockUser),
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(createTestWidget(container));
+        await tester.pumpAndSettle();
+
+        final verifiedUser = MockUser();
+        when(() => verifiedUser.emailVerified).thenReturn(true);
+
+        (container.read(firebaseAuthStateProvider.notifier)
+                as FakeFirebaseAuthStateNotifier)
+            .updateState(verifiedUser);
+
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('Navigated to'), findsOneWidget);
+        expect(find.text('メール認証'), findsNothing);
+      },
+    );
   });
 }

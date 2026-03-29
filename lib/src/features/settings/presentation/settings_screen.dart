@@ -108,9 +108,7 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   onPressed: () async {
                     try {
-                      await ref
-                          .read(firebaseAuthRepositoryProvider.notifier)
-                          .signOut();
+                      await ref.read(firebaseAuthRepositoryProvider).signOut();
 
                       // --- ログアウト成功 → ログイン画面へ遷移 ---
                       if (context.mounted) {

@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
@@ -7,7 +6,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
-// --- モックとデリゲート ---
+// --- モッククラスの定義 ---
+
+class MockFirebaseAuthRepository extends Mock
+    implements FirebaseAuthRepository {}
+
 class MockAppLocalizations extends Mock implements AppLocalizations {}
 
 class _MockLocalizationsDelegate
@@ -23,81 +26,71 @@ class _MockLocalizationsDelegate
       false;
 }
 
-// --- Fake Repository ---
-class FakeFirebaseAuthRepository extends FirebaseAuthRepository {
-  String? calledResetEmail;
-
-  @override
-  User? build() => null;
-
-  @override
-  Future<void> sendPasswordResetEmail(String email) async {
-    calledResetEmail = email;
-  }
-}
-
 void main() {
+  late MockFirebaseAuthRepository mockAuthRepo;
   late MockAppLocalizations mockL10n;
 
   setUp(() {
+    mockAuthRepo = MockFirebaseAuthRepository();
     mockL10n = MockAppLocalizations();
+
+    // 多言語化のスタブ
     when(() => mockL10n.resetPassword).thenReturn('パスワードリセット');
     when(() => mockL10n.loginEmailLabel).thenReturn('メールアドレス');
-    when(() => mockL10n.send).thenReturn('送信');
+    when(() => mockL10n.send).thenReturn('送信する');
     when(() => mockL10n.resetPasswordMailSent).thenReturn('リセットメールを送信しました');
   });
 
-  /// テスト環境のセットアップ
-  Future<void> setupWidget(
-    WidgetTester tester,
-    FakeFirebaseAuthRepository fakeRepo,
-  ) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          firebaseAuthRepositoryProvider.overrideWith(() => fakeRepo),
-        ],
-        child: MaterialApp(
-          localizationsDelegates: [_MockLocalizationsDelegate(mockL10n)],
-          home: const FirebaseResetPasswordScreen(),
-        ),
+  /// テスト用のWidgetを構築するヘルパー
+  Widget createTestWidget() {
+    // 画面遷移（GoRouter）がないので、シンプルな MaterialApp で十分です
+    return ProviderScope(
+      overrides: [
+        firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+      ],
+      child: MaterialApp(
+        home: const FirebaseResetPasswordScreen(),
+        localizationsDelegates: [_MockLocalizationsDelegate(mockL10n)],
       ),
     );
-    await tester.pumpAndSettle();
   }
 
   group('FirebaseResetPasswordScreen', () {
-    testWidgets('初期表示: 入力フォームとボタンが正しく表示されること', (tester) async {
-      final fakeRepo = FakeFirebaseAuthRepository();
-      await setupWidget(tester, fakeRepo);
+    testWidgets('UIが正しくレンダリングされること', (tester) async {
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
 
       expect(find.text('パスワードリセット'), findsOneWidget);
-      expect(find.widgetWithText(TextField, 'メールアドレス'), findsOneWidget);
-      expect(find.text('送信'), findsOneWidget);
+      expect(find.text('メールアドレス'), findsOneWidget);
+      expect(find.text('送信する'), findsOneWidget);
     });
 
-    testWidgets('送信処理: 入力したメールアドレスがRepositoryに渡され、完了後にSnackBarが表示されること', (
+    testWidgets('メールアドレスを入力して送信ボタンを押すと、リセット処理が呼ばれSnackBarが表示されること', (
       tester,
     ) async {
-      final fakeRepo = FakeFirebaseAuthRepository();
-      await setupWidget(tester, fakeRepo);
+      const testEmail = 'test@example.com';
 
-      // Act: メールアドレスを入力して送信ボタンをタップ
-      await tester.enterText(
-        find.widgetWithText(TextField, 'メールアドレス'),
-        'reset@example.com',
-      );
-      await tester.tap(find.text('送信'));
+      // モックの設定：テスト用のメールアドレスが渡されたら成功（空のFuture）を返す
+      when(
+        () => mockAuthRepo.sendPasswordResetEmail(testEmail),
+      ).thenAnswer((_) async {});
 
-      // SnackBarが表示されるまでアニメーションを進める
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      // 1. TextField にメールアドレスを入力
+      await tester.enterText(find.byType(TextField), testEmail);
+
+      // 2. 送信ボタンをタップ
+      await tester.tap(find.text('送信する'));
+
+      // 3. SnackBar の表示アニメーションを1フレーム進める
       await tester.pump();
 
-      // Assert:
-      // 1. Repositoryの sendPasswordResetEmail が正しい引数で呼ばれたか
-      expect(fakeRepo.calledResetEmail, 'reset@example.com');
+      // Repository のメソッドが正しい引数で1回呼ばれたか
+      verify(() => mockAuthRepo.sendPasswordResetEmail(testEmail)).called(1);
 
-      // 2. 成功のSnackBarが表示されているか
-      expect(find.byType(SnackBar), findsOneWidget);
+      // 成功メッセージの SnackBar が表示されているか
       expect(find.text('リセットメールを送信しました'), findsOneWidget);
     });
   });

@@ -188,6 +188,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get emailVerificationDescription => '登録したメールアドレスに確認メールを送信しました。';
 
   @override
+  String get checkVerificationStatus => '認証を完了したか確認する';
+
+  @override
   String get resendVerificationMail => '確認メールを再送する';
 
   @override

@@ -29,7 +29,7 @@ class FirebaseResetPasswordScreen extends ConsumerWidget {
               onPressed: () async {
                 // Riverpod経由でFirebaseのパスワードリセットを実行
                 await ref
-                    .read(firebaseAuthRepositoryProvider.notifier)
+                    .read(firebaseAuthRepositoryProvider)
                     .sendPasswordResetEmail(emailCtrl.text);
 
                 if (context.mounted) {

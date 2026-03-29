@@ -452,6 +452,12 @@ abstract class AppLocalizations {
   /// **'A verification email has been sent.'**
   String get emailVerificationDescription;
 
+  /// No description provided for @checkVerificationStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Check verification status'**
+  String get checkVerificationStatus;
+
   /// No description provided for @resendVerificationMail.
   ///
   /// In en, this message translates to:

@@ -58,12 +58,12 @@ class _FirebaseSignUpScreenState extends ConsumerState<FirebaseSignUpScreen> {
                       try {
                         // サインアップ
                         await ref
-                            .read(firebaseAuthRepositoryProvider.notifier)
+                            .read(firebaseAuthRepositoryProvider)
                             .signUp(emailCtrl.text, passwordCtrl.text);
 
                         // 確認メール送信
                         await ref
-                            .read(firebaseAuthRepositoryProvider.notifier)
+                            .read(firebaseAuthRepositoryProvider)
                             .sendEmailVerification();
 
                         // メール認証待ち画面へ遷移

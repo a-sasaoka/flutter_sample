@@ -3,16 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/router/app_router.dart';
+import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// Firebaseでメール認証の確認・再送信を行う画面
-///
-/// この画面では以下を行う:
-/// - メール確認待ちの説明表示
-/// - 認証メールの再送信
-/// - 一定間隔でユーザー情報をリロードし、
-///   emailVerified が true になったら自動で Home へ遷移
 class FirebaseEmailVerificationScreen extends ConsumerStatefulWidget {
   /// コンストラクタ
   const FirebaseEmailVerificationScreen({super.key});
@@ -23,40 +18,38 @@ class FirebaseEmailVerificationScreen extends ConsumerStatefulWidget {
 }
 
 class _FirebaseEmailVerificationScreenState
-    extends ConsumerState<FirebaseEmailVerificationScreen> {
-  Timer? _timer;
-
+    extends ConsumerState<FirebaseEmailVerificationScreen>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-
-    // 3秒ごとにメール認証状態をチェック
-    _timer = Timer.periodic(const Duration(seconds: 3), (_) async {
-      final authRepo = ref.read(firebaseAuthRepositoryProvider.notifier);
-
-      await authRepo.reloadCurrentUser();
-      if (!mounted) return;
-
-      final user = ref.read(firebaseAuthRepositoryProvider);
-      if (user != null && user.emailVerified) {
-        _timer?.cancel();
-
-        // メール確認完了 → ホーム画面へ遷移
-        if (!mounted) return;
-        const HomeRoute().go(context);
-      }
-    });
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 【自動リロード】スマホの別アプリから戻ってきた時に発火
+    if (state == AppLifecycleState.resumed) {
+      unawaited(ref.read(firebaseAuthRepositoryProvider).reloadCurrentUser());
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+
+    // 状態を監視し、emailVerified == true になったら自動で画面遷移
+    ref.listen(firebaseAuthStateProvider, (previous, next) {
+      if (next != null && next.emailVerified) {
+        const HomeRoute().go(context);
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.emailVerificationTitle)),
@@ -68,11 +61,23 @@ class _FirebaseEmailVerificationScreenState
             Text(l10n.emailVerificationDescription),
             const SizedBox(height: 24),
 
-            ElevatedButton(
+            // PCなどで認証した人向けの「手動リロードボタン」
+            FilledButton(
               onPressed: () async {
-                // 現在のユーザーに認証メールを再送する
+                // 手動でFirebaseの最新状態を取得しにいく
                 await ref
-                    .read(firebaseAuthRepositoryProvider.notifier)
+                    .read(firebaseAuthRepositoryProvider)
+                    .reloadCurrentUser();
+              },
+              child: Text(l10n.checkVerificationStatus),
+            ),
+
+            const SizedBox(height: 16),
+
+            OutlinedButton(
+              onPressed: () async {
+                await ref
+                    .read(firebaseAuthRepositoryProvider)
                     .sendEmailVerification();
               },
               child: Text(l10n.resendVerificationMail),

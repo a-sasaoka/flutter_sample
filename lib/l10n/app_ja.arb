@@ -59,6 +59,7 @@
   "googleSignUp": "Googleでログイン",
   "emailVerificationTitle": "メール確認",
   "emailVerificationDescription": "登録したメールアドレスに確認メールを送信しました。",
+  "checkVerificationStatus": "認証を完了したか確認する",
   "resendVerificationMail": "確認メールを再送する",
   "emailVerificationWaiting": "メールを確認後、この画面に戻ると自動的に次の画面へ進みます。",
   "resetPassword": "パスワード再設定",

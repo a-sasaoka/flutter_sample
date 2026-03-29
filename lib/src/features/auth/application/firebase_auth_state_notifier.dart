@@ -9,8 +9,9 @@ part 'firebase_auth_state_notifier.g.dart';
 class FirebaseAuthStateNotifier extends _$FirebaseAuthStateNotifier {
   @override
   User? build() {
-    // ref.watch を使うことで、firebaseAuthRepositoryProvider の
-    // 状態が更新された際に自動的に検知して再構築してくれます。
-    return ref.watch(firebaseAuthRepositoryProvider);
+    // 新しく作成した StreamProvider を監視し、
+    // 最新の非同期データ（User?）を同期的に返すようにする
+    final asyncUser = ref.watch(authStateChangesProvider);
+    return asyncUser.value;
   }
 }

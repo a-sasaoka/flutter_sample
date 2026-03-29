@@ -191,6 +191,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'A verification email has been sent.';
 
   @override
+  String get checkVerificationStatus => 'Check verification status';
+
+  @override
   String get resendVerificationMail => 'Resend verification email';
 
   @override
