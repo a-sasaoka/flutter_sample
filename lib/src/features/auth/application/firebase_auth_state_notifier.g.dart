@@ -45,7 +45,7 @@ final class FirebaseAuthStateNotifierProvider
 }
 
 String _$firebaseAuthStateNotifierHash() =>
-    r'ca5a5b8593483c219f77538e6db37b03ef17e180';
+    r'2b7b9337c46ed3d9820c7c2636399670bdf05ee6';
 
 /// Firebase Authenticationの認証状態を管理するStateNotifier
 
