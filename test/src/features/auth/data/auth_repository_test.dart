@@ -14,8 +14,8 @@ class MockApiClient extends Mock implements ApiClient {}
 // DioのResponseのモック
 class MockResponse extends Mock implements Response<Map<String, dynamic>> {}
 
-// 先ほど大活躍した TokenStorage の Fake クラス
-class FakeTokenStorage extends TokenStorage {
+// TokenStorageのモック
+class FakeTokenStorage extends Mock implements TokenStorage {
   FakeTokenStorage({this.initialRefreshToken});
 
   final String? initialRefreshToken;
@@ -23,9 +23,6 @@ class FakeTokenStorage extends TokenStorage {
   // 保存された値を検証するためのプロパティ
   String? savedAccessToken;
   String? savedRefreshToken;
-
-  @override
-  void build() {}
 
   @override
   Future<String?> getRefreshToken() async => initialRefreshToken;
@@ -52,7 +49,8 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         apiClientProvider.overrideWithValue(mockApi),
-        tokenStorageProvider.overrideWith(() => fakeStorage),
+        // 💡 修正: tokenStorageProvider は Notifier ではないので (ref) => の形でオーバーライドする
+        tokenStorageProvider.overrideWith((ref) => fakeStorage),
       ],
     );
     addTearDown(container.dispose);
@@ -85,10 +83,17 @@ void main() {
 
       // Assert
       // 1. APIが正しい引数で呼ばれたか
+      // Mapの比較はそのまま書くとインスタンス違いで失敗するため、equals() を使用する
       verify(
         () => mockApi.post<Map<String, dynamic>>(
           '/auth/login',
-          data: {'email': 'test@example.com', 'password': 'password123'},
+          data: any<dynamic>(
+            named: 'data',
+            that: equals({
+              'email': 'test@example.com',
+              'password': 'password123',
+            }),
+          ),
         ),
       ).called(1);
 
@@ -111,7 +116,10 @@ void main() {
         expect(result, isFalse);
         // APIが一切呼ばれていないことを確認
         verifyNever(
-          () => mockApi.post<void>(any(), data: any<dynamic>(named: 'data')),
+          () => mockApi.post<Map<String, dynamic>>(
+            any(),
+            data: any<dynamic>(named: 'data'),
+          ),
         );
       });
 
@@ -173,7 +181,10 @@ void main() {
         verify(
           () => mockApi.post<Map<String, dynamic>>(
             '/auth/refresh',
-            data: {'refresh_token': 'valid_refresh'},
+            data: any<dynamic>(
+              named: 'data',
+              that: equals({'refresh_token': 'valid_refresh'}),
+            ),
           ),
         ).called(1);
 

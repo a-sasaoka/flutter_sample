@@ -2,10 +2,9 @@ import 'package:flutter_sample/src/core/storage/token_storage.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:mocktail/mocktail.dart';
 
-// Mocktail の代わりに Fake クラスを作成する
-// extends を使うことで Riverpod の内部プロパティ (_element等) を維持できる
-class FakeTokenStorage extends TokenStorage {
+class FakeTokenStorage extends Mock implements TokenStorage {
   FakeTokenStorage({this.mockAccessToken});
 
   final String? mockAccessToken;
@@ -13,9 +12,6 @@ class FakeTokenStorage extends TokenStorage {
   // 呼び出し確認用のフラグ
   bool isSaveTokensCalled = false;
   bool isClearCalled = false;
-
-  @override
-  void build() {} // SharedPreferences にアクセスしないよう空にする
 
   @override
   Future<String?> getAccessToken() async => mockAccessToken;
@@ -40,7 +36,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         // tokenStorageProvider を Fake クラスに差し替える
-        tokenStorageProvider.overrideWith(() => fakeStorage),
+        tokenStorageProvider.overrideWith((ref) => fakeStorage),
       ],
     );
     addTearDown(container.dispose);

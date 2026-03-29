@@ -25,7 +25,7 @@ class AuthRepository extends _$AuthRepository {
     final refresh = response.data?['refresh_token'] as String;
 
     await ref
-        .read(tokenStorageProvider.notifier)
+        .read(tokenStorageProvider)
         .saveTokens(
           accessToken: access,
           refreshToken: refresh,
@@ -34,9 +34,7 @@ class AuthRepository extends _$AuthRepository {
 
   /// リフレッシュトークンAPIを呼び出し、アクセストークンを更新する
   Future<bool> refreshToken() async {
-    final refresh = await ref
-        .read(tokenStorageProvider.notifier)
-        .getRefreshToken();
+    final refresh = await ref.read(tokenStorageProvider).getRefreshToken();
     if (refresh == null) return false;
 
     final api = ref.read(apiClientProvider);
@@ -49,7 +47,7 @@ class AuthRepository extends _$AuthRepository {
     if (access == null) return false;
 
     await ref
-        .read(tokenStorageProvider.notifier)
+        .read(tokenStorageProvider)
         .saveTokens(
           accessToken: access as String,
           refreshToken: refresh,

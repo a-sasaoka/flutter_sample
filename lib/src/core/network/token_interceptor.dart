@@ -11,7 +11,7 @@ part 'token_interceptor.g.dart';
 /// これにより、テスト時は単なる Mock オブジェクトに差し替え可能になります。
 @Riverpod(keepAlive: true)
 TokenStorage tokenStorageInternal(Ref ref) {
-  return ref.watch(tokenStorageProvider.notifier);
+  return ref.watch(tokenStorageProvider);
 }
 
 /// テストで Notifier の内部構造 (_element) によるエラーを回避するため、

@@ -8,16 +8,14 @@ part 'auth_state_notifier.g.dart';
 class AuthStateNotifier extends _$AuthStateNotifier {
   @override
   Future<bool> build() async {
-    final token = await ref
-        .read(tokenStorageProvider.notifier)
-        .getAccessToken();
+    final token = await ref.read(tokenStorageProvider).getAccessToken();
     return token != null; // トークンがあればログイン状態
   }
 
   /// ログイン状態にする
   Future<void> login(String accessToken, String refreshToken) async {
     await ref
-        .read(tokenStorageProvider.notifier)
+        .read(tokenStorageProvider)
         .saveTokens(
           accessToken: accessToken,
           refreshToken: refreshToken,
@@ -27,7 +25,7 @@ class AuthStateNotifier extends _$AuthStateNotifier {
 
   /// ログアウト状態にする
   Future<void> logout() async {
-    await ref.read(tokenStorageProvider.notifier).clear();
+    await ref.read(tokenStorageProvider).clear();
     state = const AsyncData(false);
   }
 }
