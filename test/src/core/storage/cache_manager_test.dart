@@ -109,6 +109,46 @@ void main() {
       verify(() => mockPrefs.remove(testKey)).called(1);
     });
 
+    test('get: JSONパースエラーが発生した場合、キャッシュが壊れているとみなして削除し null を返すこと', () async {
+      // Arrange
+      const invalidJson = '{ invalid json string }';
+      when(
+        () => mockPrefs.getString(testKey),
+      ).thenAnswer((_) async => invalidJson);
+      when(() => mockPrefs.remove(testKey)).thenAnswer((_) async => {});
+
+      final manager = container.read(cacheManagerProvider);
+
+      // Act
+      final result = await manager.get(testKey);
+
+      // Assert
+      expect(result, isNull);
+      verify(() => mockPrefs.remove(testKey)).called(1);
+    });
+
+    test('get: キャッシュのデータ構造が想定と違う場合、キャッシュが壊れているとみなして削除し null を返すこと', () async {
+      // Arrange
+      // timestamp が int ではなく String として保存されてしまっている異常な状態を再現
+      final invalidData = jsonEncode({
+        'timestamp': 'invalid_type_timestamp',
+        'data': testValue,
+      });
+      when(
+        () => mockPrefs.getString(testKey),
+      ).thenAnswer((_) async => invalidData);
+      when(() => mockPrefs.remove(testKey)).thenAnswer((_) async => {});
+
+      final manager = container.read(cacheManagerProvider);
+
+      // Act
+      final result = await manager.get(testKey);
+
+      // Assert
+      expect(result, isNull);
+      verify(() => mockPrefs.remove(testKey)).called(1);
+    });
+
     test('clear: 指定したキーのキャッシュを削除すること', () async {
       // Arrange
       when(() => mockPrefs.remove(testKey)).thenAnswer((_) async => {});
