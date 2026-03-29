@@ -36,7 +36,7 @@ final class AuthStateNotifierProvider
   AuthStateNotifier create() => AuthStateNotifier();
 }
 
-String _$authStateNotifierHash() => r'5ab6e23027f4a4342fb474171d8515dcca1ccf19';
+String _$authStateNotifierHash() => r'08a99d2df732a58c398091213f43ed0bbcf2a417';
 
 /// ログイン状態を管理するStateNotifier
 
