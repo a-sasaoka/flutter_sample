@@ -5,6 +5,9 @@ import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 
 /// バージョンアップダイアログの表示
 class VersionUpDialog {
+  // インスタンス化を防止するプライベートコンストラクタ
+  VersionUpDialog._(); // coverage:ignore-line
+
   /// バージョンアップダイアログを表示
   static Future<void> show(
     BuildContext context,
@@ -21,7 +24,7 @@ class VersionUpDialog {
         context: context,
         // キャンセル可能ならダイアログの外をタップしても閉じるようにする
         barrierDismissible: isCancelable,
-        builder: (context) {
+        builder: (dialogContext) {
           return PopScope(
             canPop: isCancelable,
             onPopInvokedWithResult: (didPop, _) {
@@ -32,18 +35,18 @@ class VersionUpDialog {
             child: AlertDialog(
               title: Text(l10n.versionUpTitle),
               actions: [
-                if (requestType == UpdateRequestType.cancelable)
+                if (isCancelable)
                   TextButton(
                     onPressed: () {
                       ref.read(cancelControllerProvider.notifier).clickCancel();
-                      Navigator.of(context).pop();
+                      Navigator.pop(dialogContext); // dialogContext を使用
                     },
                     child: Text(l10n.versionUpCancel),
                   ),
                 TextButton(
                   onPressed: () {
                     // 本来であればここにStoreに飛ばす処理を書く
-                    Navigator.of(context).pop();
+                    Navigator.pop(dialogContext); // dialogContext を使用
                   },
                   child: Text(l10n.versionUpUpdate),
                 ),
