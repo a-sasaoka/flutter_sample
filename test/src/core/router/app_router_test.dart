@@ -43,6 +43,11 @@ class _FakeAuthStateNotifier extends AuthStateNotifier {
   final bool isLoggedIn;
   @override
   Future<bool> build() async => isLoggedIn;
+
+  // 外部から状態を強制的に変更するメソッド
+  void changeState({required bool value}) {
+    state = AsyncData(value);
+  }
 }
 
 class _FakeFirebaseAuthStateNotifier extends FirebaseAuthStateNotifier {
@@ -51,6 +56,12 @@ class _FakeFirebaseAuthStateNotifier extends FirebaseAuthStateNotifier {
   final User? mockUser;
   @override
   User? build() => isLoggedIn ? mockUser : null;
+
+  // 外部からFirebaseのログイン状態を強制的に変更するメソッド
+  // ignore: use_setters_to_change_properties
+  void changeState(User? user) {
+    state = user;
+  }
 }
 
 void main() {
@@ -92,28 +103,23 @@ void main() {
     required bool isLoggedIn,
     required bool useFirebase,
   }) {
-    final container =
-        ProviderContainer(
-            overrides: [
-              firebaseAnalyticsProvider.overrideWithValue(mockAnalytics),
-              loggerProvider.overrideWithValue(mockLogger),
-              flavorProvider.overrideWithValue(Flavor.dev),
-              useFirebaseAuthProvider.overrideWithValue(useFirebase),
-              authStateProvider.overrideWith(
-                () => _FakeAuthStateNotifier(isLoggedIn: isLoggedIn),
-              ),
-              firebaseAuthStateProvider.overrideWith(
-                () => _FakeFirebaseAuthStateNotifier(
-                  isLoggedIn: isLoggedIn,
-                  mockUser: mockUser,
-                ),
-              ),
-            ],
-          )
-          // routerProvider が AutoDispose されて「操作用」と「画面用」の２つに分裂するのを防ぐため、
-          // ここで listen して強制的にインスタンスを維持（ロック）する！
-          ..listen(routerProvider, (_, _) {});
-
+    final container = ProviderContainer(
+      overrides: [
+        firebaseAnalyticsProvider.overrideWithValue(mockAnalytics),
+        loggerProvider.overrideWithValue(mockLogger),
+        flavorProvider.overrideWithValue(Flavor.dev),
+        useFirebaseAuthProvider.overrideWithValue(useFirebase),
+        authStateProvider.overrideWith(
+          () => _FakeAuthStateNotifier(isLoggedIn: isLoggedIn),
+        ),
+        firebaseAuthStateProvider.overrideWith(
+          () => _FakeFirebaseAuthStateNotifier(
+            isLoggedIn: isLoggedIn,
+            mockUser: mockUser,
+          ),
+        ),
+      ],
+    )..listen(routerProvider, (_, _) {});
     return container;
   }
 
@@ -183,7 +189,6 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
 
-      // ここで呼ぶ `.go()` は、画面と全く同じルーターインスタンスに対して実行される！
       container.read(routerProvider).go('/not-found-path-123');
 
       for (var i = 0; i < 5; i++) {
@@ -191,6 +196,28 @@ void main() {
       }
 
       expect(find.byType(NotFoundScreen), findsOneWidget);
+      await teardownWidget(tester, container);
+    });
+
+    testWidgets('認証状態の変更を検知してルーターが更新（Listen）されること', (tester) async {
+      final container = createContainer(isLoggedIn: false, useFirebase: true);
+
+      await tester.pumpWidget(createTestWidget(container));
+      await tester.pumpAndSettle();
+
+      // authStateProvider の状態を強制的に変更する
+      (container.read(authStateProvider.notifier) as _FakeAuthStateNotifier)
+          .changeState(value: true);
+      await tester.pump();
+
+      // firebaseAuthStateProvider の状態を強制的に変更する
+      (container.read(firebaseAuthStateProvider.notifier)
+              as _FakeFirebaseAuthStateNotifier)
+          .changeState(mockUser);
+      await tester.pump();
+
+      // エラーが起きず正常に動作していればOK
+      expect(tester.takeException(), isNull);
       await teardownWidget(tester, container);
     });
   });

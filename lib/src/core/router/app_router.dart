@@ -13,6 +13,7 @@ import 'package:flutter_sample/src/core/router/auth_guard.dart';
 import 'package:flutter_sample/src/core/router/firebase_auth_guard.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
+import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_email_verification_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_login_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_reset_password_screen.dart';
@@ -215,6 +216,10 @@ GoRouter router(Ref ref) {
   ref
     ..listen(
       authStateProvider,
+      (_, _) => routerListenable.value = !routerListenable.value,
+    )
+    ..listen(
+      firebaseAuthStateProvider,
       (_, _) => routerListenable.value = !routerListenable.value,
     )
     ..onDispose(routerListenable.dispose);
