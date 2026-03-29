@@ -62,7 +62,7 @@ void main() {
       // Arrange
       final fakeStorage = FakeTokenStorage();
       final container = createContainer(fakeStorage);
-      final repo = container.read(authRepositoryProvider.notifier);
+      final repo = container.read(authRepositoryProvider);
 
       final mockResponse = MockResponse();
       // APIが返すダミーのレスポンスデータを設定
@@ -102,12 +102,46 @@ void main() {
       expect(fakeStorage.savedRefreshToken, 'new_refresh_token');
     });
 
+    test('login: APIレスポンスにトークンが含まれていない場合、Exceptionを投げること', () async {
+      // Arrange
+      final fakeStorage = FakeTokenStorage();
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      final mockResponse = MockResponse();
+      // access_token が欠落している不正なレスポンスをシミュレート
+      when(() => mockResponse.data).thenReturn({
+        'refresh_token': 'new_refresh_token', // access_tokenがない
+      });
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockResponse);
+
+      // Act & Assert
+      expect(
+        () => repo.login('test@example.com', 'password123'),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            contains('Invalid token response from server'),
+          ),
+        ),
+      );
+
+      // 例外が発生し、TokenStorageに保存処理が行われていないことを確認
+      expect(fakeStorage.savedAccessToken, isNull);
+    });
+
     group('refreshToken', () {
       test('TokenStorageにリフレッシュトークンがない場合、APIを呼ばずに false を返すこと', () async {
         // Arrange: 初期リフレッシュトークンを null に設定
         final fakeStorage = FakeTokenStorage();
         final container = createContainer(fakeStorage);
-        final repo = container.read(authRepositoryProvider.notifier);
+        final repo = container.read(authRepositoryProvider);
 
         // Act
         final result = await repo.refreshToken();
@@ -129,7 +163,7 @@ void main() {
           initialRefreshToken: 'old_refresh',
         );
         final container = createContainer(fakeStorage);
-        final repo = container.read(authRepositoryProvider.notifier);
+        final repo = container.read(authRepositoryProvider);
 
         final mockResponse = MockResponse();
         // access_token が null (または存在しない) レスポンスをシミュレート
@@ -157,7 +191,7 @@ void main() {
           initialRefreshToken: 'valid_refresh',
         );
         final container = createContainer(fakeStorage);
-        final repo = container.read(authRepositoryProvider.notifier);
+        final repo = container.read(authRepositoryProvider);
 
         final mockResponse = MockResponse();
         when(

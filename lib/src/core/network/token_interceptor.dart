@@ -19,7 +19,7 @@ TokenStorage tokenStorageInternal(Ref ref) {
 /// これにより、テスト時は単なる Mock オブジェクトに差し替え可能になります。
 @Riverpod(keepAlive: true)
 AuthRepository authRepositoryInternal(Ref ref) {
-  return ref.watch(authRepositoryProvider.notifier);
+  return ref.watch(authRepositoryProvider);
 }
 
 /// 再リクエスト（リトライ）用のDioインスタンスを提供するProvider

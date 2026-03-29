@@ -10,12 +10,14 @@ part of 'auth_repository.dart';
 // ignore_for_file: type=lint, type=warning
 /// 認証リポジトリ
 
-@ProviderFor(AuthRepository)
+@ProviderFor(authRepository)
 const authRepositoryProvider = AuthRepositoryProvider._();
 
 /// 認証リポジトリ
+
 final class AuthRepositoryProvider
-    extends $NotifierProvider<AuthRepository, void> {
+    extends $FunctionalProvider<AuthRepository, AuthRepository, AuthRepository>
+    with $Provider<AuthRepository> {
   /// 認証リポジトリ
   const AuthRepositoryProvider._()
     : super(
@@ -33,36 +35,21 @@ final class AuthRepositoryProvider
 
   @$internal
   @override
-  AuthRepository create() => AuthRepository();
+  $ProviderElement<AuthRepository> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  AuthRepository create(Ref ref) {
+    return authRepository(ref);
+  }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(void value) {
+  Override overrideWithValue(AuthRepository value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<void>(value),
+      providerOverride: $SyncValueProvider<AuthRepository>(value),
     );
   }
 }
 
-String _$authRepositoryHash() => r'9253fcd5422d053d3b94f6aa0f0a24057f3ba447';
-
-/// 認証リポジトリ
-
-abstract class _$AuthRepository extends $Notifier<void> {
-  void build();
-  @$mustCallSuper
-  @override
-  void runBuild() {
-    build();
-    final ref = this.ref as $Ref<void, void>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<void, void>,
-              void,
-              Object?,
-              Object?
-            >;
-    element.handleValue(ref, null);
-  }
-}
+String _$authRepositoryHash() => r'790ae813fa6ac6f8f5dc9cfb407f9224f926974f';

@@ -6,13 +6,19 @@ part 'auth_repository.g.dart';
 
 /// 認証リポジトリ
 @Riverpod(keepAlive: true)
-class AuthRepository extends _$AuthRepository {
-  @override
-  void build() {}
+AuthRepository authRepository(Ref ref) {
+  return AuthRepository(ref);
+}
+
+/// 認証リポジトリの実装クラス
+class AuthRepository {
+  /// コンストラクタ
+  AuthRepository(this._ref);
+  final Ref _ref;
 
   /// ログインAPIを呼び出し、トークンを保存する
   Future<void> login(String email, String password) async {
-    final api = ref.read(apiClientProvider);
+    final api = _ref.read(apiClientProvider);
     final response = await api.post<Map<String, dynamic>>(
       '/auth/login',
       data: {
@@ -21,10 +27,14 @@ class AuthRepository extends _$AuthRepository {
       },
     );
 
-    final access = response.data?['access_token'] as String;
-    final refresh = response.data?['refresh_token'] as String;
+    final access = response.data?['access_token'] as String?;
+    final refresh = response.data?['refresh_token'] as String?;
 
-    await ref
+    if (access == null || refresh == null) {
+      throw Exception('Invalid token response from server');
+    }
+
+    await _ref
         .read(tokenStorageProvider)
         .saveTokens(
           accessToken: access,
@@ -34,22 +44,22 @@ class AuthRepository extends _$AuthRepository {
 
   /// リフレッシュトークンAPIを呼び出し、アクセストークンを更新する
   Future<bool> refreshToken() async {
-    final refresh = await ref.read(tokenStorageProvider).getRefreshToken();
+    final refresh = await _ref.read(tokenStorageProvider).getRefreshToken();
     if (refresh == null) return false;
 
-    final api = ref.read(apiClientProvider);
+    final api = _ref.read(apiClientProvider);
     final response = await api.post<Map<String, dynamic>>(
       '/auth/refresh',
       data: {'refresh_token': refresh},
     );
 
-    final access = response.data?['access_token'];
+    final access = response.data?['access_token'] as String?;
     if (access == null) return false;
 
-    await ref
+    await _ref
         .read(tokenStorageProvider)
         .saveTokens(
-          accessToken: access as String,
+          accessToken: access,
           refreshToken: refresh,
         );
     return true;
