@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/config/update_request_provider.dart';
+import 'package:go_router/go_router.dart';
 
 /// バージョンアップダイアログの表示
 class VersionUpDialog {
@@ -39,14 +40,14 @@ class VersionUpDialog {
                   TextButton(
                     onPressed: () {
                       ref.read(cancelControllerProvider.notifier).clickCancel();
-                      Navigator.pop(dialogContext); // dialogContext を使用
+                      dialogContext.pop(); // dialogContext を使用
                     },
                     child: Text(l10n.versionUpCancel),
                   ),
                 TextButton(
                   onPressed: () {
                     // 本来であればここにStoreに飛ばす処理を書く
-                    Navigator.pop(dialogContext); // dialogContext を使用
+                    dialogContext.pop(); // dialogContext を使用
                   },
                   child: Text(l10n.versionUpUpdate),
                 ),

@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
+import 'package:go_router/go_router.dart';
 
 /// エラーをSnackbarまたはDialogで表示する共通関数群
 class ErrorHandler {
@@ -66,7 +67,7 @@ class ErrorHandler {
         content: Text(messageText),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext), // ダイアログのコンテキストを使用
+            onPressed: () => dialogContext.pop(), // ダイアログのコンテキストを使用
             child: Text(l10n.ok),
           ),
         ],
