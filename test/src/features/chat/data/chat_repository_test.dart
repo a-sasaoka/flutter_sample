@@ -1,84 +1,88 @@
 import 'dart:async';
 
+import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
+// --- モッククラスの定義 ---
 class MockChatApiClient extends Mock implements ChatApiClient {}
 
 void main() {
+  late MockChatApiClient mockApiClient;
+  late ChatRepository repository;
+
+  setUp(() {
+    mockApiClient = MockChatApiClient();
+
+    repository = ChatRepository(apiClient: mockApiClient);
+  });
+
   group('ChatRepository', () {
-    late MockChatApiClient mockApiClient;
-    late ChatRepository repository;
-
-    setUp(() {
-      mockApiClient = MockChatApiClient();
-      // テスト用の（偽物の）APIクライアントを注入
-      repository = ChatRepository(
-        now: DateTime(2026, 3, 21, 10),
-        apiClient: mockApiClient,
-      );
-    });
-
-    group('sendMessage (単発送信)', () {
-      test('正常系: AIからのテキストが返ること', () async {
+    group('sendMessage (単発メッセージ)', () {
+      test('正常系: AIからの返答がそのまま返されること', () async {
+        // Arrange: モックが返す値を設定
         when(
-          () => mockApiClient.sendMessage(any()),
-        ).thenAnswer((_) async => 'AIの返答です');
+          () => mockApiClient.sendMessage('テストプロンプト'),
+        ).thenAnswer((_) async => 'こんにちは！AIです。');
 
-        final result = await repository.sendMessage('こんにちは');
+        // Act: テスト対象のメソッドを実行
+        final result = await repository.sendMessage('テストプロンプト');
 
-        expect(result, 'AIの返答です');
-        verify(() => mockApiClient.sendMessage('こんにちは')).called(1);
+        // Assert: 結果を検証
+        expect(result, 'こんにちは！AIです。');
+        verify(() => mockApiClient.sendMessage('テストプロンプト')).called(1);
       });
 
       test(
-        '異常系: APIから null が返った場合、ChatEmptyResponseException を投げること',
+        '異常系: AIからの返答が空文字("")の場合、ChatEmptyResponseExceptionを投げること',
         () async {
           when(
             () => mockApiClient.sendMessage(any()),
-          ).thenAnswer((_) async => null); // nullを返す
+          ).thenAnswer((_) async => '');
 
+          // 例外が投げられることを検証
           expect(
-            () => repository.sendMessage('こんにちは'),
+            () => repository.sendMessage('テスト'),
             throwsA(isA<ChatEmptyResponseException>()),
           );
         },
       );
 
-      test('異常系: APIから 空文字 が返った場合、ChatEmptyResponseException を投げること', () async {
+      test('異常系: AIからの返答がnullの場合、ChatEmptyResponseExceptionを投げること', () async {
         when(
           () => mockApiClient.sendMessage(any()),
-        ).thenAnswer((_) async => ''); // 空文字を返す
+        ).thenAnswer((_) async => null);
 
+        // nullの場合も同様に例外になることを検証
         expect(
-          () => repository.sendMessage('こんにちは'),
+          () => repository.sendMessage('テスト'),
           throwsA(isA<ChatEmptyResponseException>()),
         );
       });
     });
 
-    group('sendMessageStream (Stream送信)', () {
-      test('正常系: チャンクからテキストが抽出されてStreamで流れること', () async {
+    group('sendMessageStream (ストリーム)', () {
+      test('正常系: Streamの各チャンクが順番に返され、nullは空文字に変換されること', () async {
+        // Arrange: モックのStreamが ['AI', null, 'からの返答'] の順で流れてくると仮定
         when(
-          () => mockApiClient.sendMessageStream(any()),
-        ).thenAnswer((_) => Stream.fromIterable(['AI', 'からの返答']));
+          () => mockApiClient.sendMessageStream('ストリームテスト'),
+        ).thenAnswer((_) => Stream.fromIterable(['AI', null, 'からの返答']));
 
-        final stream = repository.sendMessageStream('こんにちは');
+        // Act: Streamを取得
+        final stream = repository.sendMessageStream('ストリームテスト');
 
-        expect(stream, emitsInOrder(['AI', 'からの返答']));
-      });
-
-      test('正常系: チャンクのテキストがnullの場合は空文字に変換されて流れること', () async {
-        // null が混ざったStreamを返す
-        when(
-          () => mockApiClient.sendMessageStream(any()),
-        ).thenAnswer((_) => Stream.fromIterable(['AI', null, 'です']));
-
-        final stream = repository.sendMessageStream('こんにちは');
-
-        // chunk ?? '' のロジックにより、null が '' に変換されるはず
-        expect(stream, emitsInOrder(['AI', '', 'です']));
+        // Assert: Streamから流れてくる値を順番に検証
+        // .map((text) => text ?? '') のロジックによって、nullが空文字に変換されることを確認
+        expect(
+          stream,
+          emitsInOrder([
+            'AI',
+            '', // null が 空文字('') に変換されていること！
+            'からの返答',
+            emitsDone, // Streamが正しく完了すること
+          ]),
+        );
       });
     });
   });

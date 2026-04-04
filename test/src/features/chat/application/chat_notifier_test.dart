@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
+import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
 import 'package:flutter_test/flutter_test.dart';

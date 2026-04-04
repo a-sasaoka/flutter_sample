@@ -3,7 +3,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
-import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
+import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 

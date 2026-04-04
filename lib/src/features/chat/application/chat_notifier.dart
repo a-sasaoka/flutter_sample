@@ -1,5 +1,6 @@
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
-import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
+import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
+import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 

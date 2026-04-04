@@ -8,22 +8,22 @@ part of 'token_interceptor.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// [TokenRefreshCallback] を提供するプロバイダ。
+/// [TokenRefreshCallback] を提供するプロバイダ
 ///
 /// Core層では具体的な実装を持たないため、デフォルトでは `UnimplementedError` を投げます。
 /// アプリ起動時の最上位の `ProviderScope` (overrides) にて、
 /// Feature層のリフレッシュ処理（例: authRepositoryProvider の refreshToken メソッド）
-/// でオーバーライドして使用してください。
+/// でオーバーライドして使用してください
 
 @ProviderFor(tokenRefreshCallback)
 const tokenRefreshCallbackProvider = TokenRefreshCallbackProvider._();
 
-/// [TokenRefreshCallback] を提供するプロバイダ。
+/// [TokenRefreshCallback] を提供するプロバイダ
 ///
 /// Core層では具体的な実装を持たないため、デフォルトでは `UnimplementedError` を投げます。
 /// アプリ起動時の最上位の `ProviderScope` (overrides) にて、
 /// Feature層のリフレッシュ処理（例: authRepositoryProvider の refreshToken メソッド）
-/// でオーバーライドして使用してください。
+/// でオーバーライドして使用してください
 
 final class TokenRefreshCallbackProvider
     extends
@@ -33,12 +33,12 @@ final class TokenRefreshCallbackProvider
           TokenRefreshCallback
         >
     with $Provider<TokenRefreshCallback> {
-  /// [TokenRefreshCallback] を提供するプロバイダ。
+  /// [TokenRefreshCallback] を提供するプロバイダ
   ///
   /// Core層では具体的な実装を持たないため、デフォルトでは `UnimplementedError` を投げます。
   /// アプリ起動時の最上位の `ProviderScope` (overrides) にて、
   /// Feature層のリフレッシュ処理（例: authRepositoryProvider の refreshToken メソッド）
-  /// でオーバーライドして使用してください。
+  /// でオーバーライドして使用してください
   const TokenRefreshCallbackProvider._()
     : super(
         from: null,
@@ -74,14 +74,25 @@ final class TokenRefreshCallbackProvider
 }
 
 String _$tokenRefreshCallbackHash() =>
-    r'c81237718917f72977e6b53d46226cbdfa0f3577';
+    r'6ab82d6c3982c2d325c5e1c1e44eed4f0a9e43c2';
+
+/// テストで Notifier の内部構造 (_element) によるエラーを回避するため、
+/// Notifier インスタンスを直接提供するだけの Provider を定義します。
+/// これにより、テスト時は単なる Mock オブジェクトに差し替え可能になります。
 
 @ProviderFor(tokenStorageInternal)
 const tokenStorageInternalProvider = TokenStorageInternalProvider._();
 
+/// テストで Notifier の内部構造 (_element) によるエラーを回避するため、
+/// Notifier インスタンスを直接提供するだけの Provider を定義します。
+/// これにより、テスト時は単なる Mock オブジェクトに差し替え可能になります。
+
 final class TokenStorageInternalProvider
     extends $FunctionalProvider<TokenStorage, TokenStorage, TokenStorage>
     with $Provider<TokenStorage> {
+  /// テストで Notifier の内部構造 (_element) によるエラーを回避するため、
+  /// Notifier インスタンスを直接提供するだけの Provider を定義します。
+  /// これにより、テスト時は単なる Mock オブジェクトに差し替え可能になります。
   const TokenStorageInternalProvider._()
     : super(
         from: null,
@@ -118,11 +129,19 @@ final class TokenStorageInternalProvider
 String _$tokenStorageInternalHash() =>
     r'3e0364f9cdf9fc50fa6eb985833831eb3f1557e8';
 
+/// 再リクエスト（リトライ）用のDioインスタンスを提供するProvider
+/// テスト時にモックへ差し替え可能にするために切り出し
+
 @ProviderFor(retryDio)
 const retryDioProvider = RetryDioProvider._();
 
+/// 再リクエスト（リトライ）用のDioインスタンスを提供するProvider
+/// テスト時にモックへ差し替え可能にするために切り出し
+
 final class RetryDioProvider extends $FunctionalProvider<Dio, Dio, Dio>
     with $Provider<Dio> {
+  /// 再リクエスト（リトライ）用のDioインスタンスを提供するProvider
+  /// テスト時にモックへ差し替え可能にするために切り出し
   const RetryDioProvider._()
     : super(
         from: null,
