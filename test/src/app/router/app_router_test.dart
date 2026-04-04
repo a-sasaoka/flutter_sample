@@ -19,7 +19,6 @@ import 'package:flutter_sample/src/features/auth/presentation/firebase_sign_up_s
 import 'package:flutter_sample/src/features/auth/presentation/login_screen.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
-import 'package:flutter_sample/src/features/sample_feature/presentation/sample_screen.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
@@ -268,14 +267,6 @@ void main() {
         MockGoRouterState(),
       );
       expect(widget, isA<SettingsScreen>());
-    });
-
-    test('SampleRoute.build: SampleScreen を返すこと', () {
-      final widget = const SampleRoute().build(
-        MockBuildContext(),
-        MockGoRouterState(),
-      );
-      expect(widget, isA<SampleScreen>());
     });
 
     test('UserListRoute.build: UserListScreen を返すこと', () {

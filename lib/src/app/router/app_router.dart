@@ -21,7 +21,6 @@ import 'package:flutter_sample/src/features/auth/presentation/firebase_sign_up_s
 import 'package:flutter_sample/src/features/auth/presentation/login_screen.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
-import 'package:flutter_sample/src/features/sample_feature/presentation/sample_screen.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
@@ -36,8 +35,8 @@ part 'app_router.g.dart';
   path: '/',
   routes: [
     TypedGoRoute<SettingsRoute>(path: 'settings'),
-    TypedGoRoute<SampleRoute>(path: 'sample'),
     TypedGoRoute<UserListRoute>(path: 'users'),
+    TypedGoRoute<ResetPasswordRoute>(path: 'reset-password'),
     TypedGoRoute<ChatRoute>(path: 'chat'),
   ],
 )
@@ -62,17 +61,6 @@ class SettingsRoute extends GoRouteData with $SettingsRoute {
   }
 }
 
-/// 🧪 サンプル画面ルート
-class SampleRoute extends GoRouteData with $SampleRoute {
-  /// コンストラクタ
-  const SampleRoute();
-
-  @override
-  Widget build(BuildContext context, GoRouterState state) {
-    return const SampleScreen();
-  }
-}
-
 /// 👥 ユーザー一覧画面ルート
 class UserListRoute extends GoRouteData with $UserListRoute {
   /// コンストラクタ
@@ -84,8 +72,35 @@ class UserListRoute extends GoRouteData with $UserListRoute {
   }
 }
 
+/// 🔑 パスワードリセット画面ルート
+class ResetPasswordRoute extends GoRouteData with $ResetPasswordRoute {
+  /// コンストラクタ
+  const ResetPasswordRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const FirebaseResetPasswordScreen();
+  }
+}
+
+/// 🤖 AIチャット画面ルート
+class ChatRoute extends GoRouteData with $ChatRoute {
+  /// コンストラクタ
+  const ChatRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const ChatScreen();
+  }
+}
+
 /// 🔐 ログイン画面ルート
-@TypedGoRoute<LoginRoute>(path: '/login')
+@TypedGoRoute<LoginRoute>(
+  path: '/login',
+  routes: [
+    TypedGoRoute<SignUpRoute>(path: '/signup'),
+  ],
+)
 class LoginRoute extends GoRouteData with $LoginRoute {
   /// コンストラクタ
   const LoginRoute();
@@ -104,6 +119,17 @@ class LoginRoute extends GoRouteData with $LoginRoute {
   }
 }
 
+/// 🧾 サインアップ画面ルート
+class SignUpRoute extends GoRouteData with $SignUpRoute {
+  /// コンストラクタ
+  const SignUpRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const FirebaseSignUpScreen();
+  }
+}
+
 /// スプラッシュ画面ルート
 @TypedGoRoute<SplashRoute>(path: '/splash')
 class SplashRoute extends GoRouteData with $SplashRoute {
@@ -116,30 +142,6 @@ class SplashRoute extends GoRouteData with $SplashRoute {
   }
 }
 
-/// 🧾 サインアップ画面ルート
-@TypedGoRoute<SignUpRoute>(path: '/signup')
-class SignUpRoute extends GoRouteData with $SignUpRoute {
-  /// コンストラクタ
-  const SignUpRoute();
-
-  @override
-  Widget build(BuildContext context, GoRouterState state) {
-    return const FirebaseSignUpScreen();
-  }
-}
-
-/// 🔑 パスワードリセット画面ルート
-@TypedGoRoute<ResetPasswordRoute>(path: '/reset-password')
-class ResetPasswordRoute extends GoRouteData with $ResetPasswordRoute {
-  /// コンストラクタ
-  const ResetPasswordRoute();
-
-  @override
-  Widget build(BuildContext context, GoRouterState state) {
-    return const FirebaseResetPasswordScreen();
-  }
-}
-
 /// 📧 メールアドレス確認画面ルート
 @TypedGoRoute<EmailVerificationRoute>(path: '/email-verification')
 class EmailVerificationRoute extends GoRouteData with $EmailVerificationRoute {
@@ -149,17 +151,6 @@ class EmailVerificationRoute extends GoRouteData with $EmailVerificationRoute {
   @override
   Widget build(BuildContext context, GoRouterState state) {
     return const FirebaseEmailVerificationScreen();
-  }
-}
-
-/// 🤖 AIチャット画面ルート
-class ChatRoute extends GoRouteData with $ChatRoute {
-  /// コンストラクタ
-  const ChatRoute();
-
-  @override
-  Widget build(BuildContext context, GoRouterState state) {
-    return const ChatScreen();
   }
 }
 

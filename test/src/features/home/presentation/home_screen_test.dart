@@ -73,7 +73,6 @@ void main() {
     when(() => mockL10n.homeDescription).thenReturn('ホーム画面の説明');
     when(() => mockL10n.homeCurrentEnv).thenReturn('現在の環境');
     when(() => mockL10n.homeToSettings).thenReturn('設定画面へ');
-    when(() => mockL10n.homeToSample).thenReturn('サンプル画面へ');
     when(() => mockL10n.homeToUserList).thenReturn('ユーザー一覧へ');
     when(() => mockL10n.homeToResetPassword).thenReturn('パスワードリセットへ');
     when(() => mockL10n.homeToChat).thenReturn('チャット画面へ');
@@ -265,7 +264,6 @@ void main() {
       }
 
       await tapAndVerifyRouting('設定画面へ', 'settings');
-      await tapAndVerifyRouting('サンプル画面へ', 'sample');
       await tapAndVerifyRouting('ユーザー一覧へ', 'user');
       await tapAndVerifyRouting('パスワードリセットへ', 'reset');
       await tapAndVerifyRouting('チャット画面へ', 'chat');

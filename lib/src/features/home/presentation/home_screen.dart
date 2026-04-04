@@ -59,11 +59,6 @@ class HomeScreen extends HookConsumerWidget {
           ),
           const SizedBox(height: 8),
           FilledButton(
-            onPressed: () => const SampleRoute().push<void>(context),
-            child: Text(l10n.homeToSample),
-          ),
-          const SizedBox(height: 8),
-          FilledButton(
             onPressed: () => const UserListRoute().push<void>(context),
             child: Text(l10n.homeToUserList),
           ),
