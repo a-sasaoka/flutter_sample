@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
@@ -43,12 +44,13 @@ void main() {
     when(() => mockL10n.signUp).thenReturn('新規登録へ');
     when(() => mockL10n.googleSignUp).thenReturn('Googleでログイン');
     when(() => mockL10n.errorLoginFailed).thenReturn('ログインに失敗しました');
+    when(() => mockL10n.errorUnknown).thenReturn('予期しないエラーが発生しました');
+    when(() => mockL10n.close).thenReturn('閉じる');
   });
 
   /// テスト用のWidgetを構築するヘルパー
   Widget createTestWidget() {
     final router = GoRouter(
-      // 💡 画面遷移を検知するため、初期パスを専用のもの(/login)にする
       initialLocation: '/login',
       routes: [
         GoRoute(
@@ -56,7 +58,6 @@ void main() {
           builder: (context, state) => const FirebaseLoginScreen(),
         ),
       ],
-      // HomeRoute や SignUpRoute への遷移をエラー画面としてキャッチする！
       errorBuilder: (context, state) => Scaffold(
         body: Text('Navigated to ${state.uri}'),
       ),
@@ -117,20 +118,50 @@ void main() {
         expect(find.textContaining('Navigated to'), findsOneWidget);
       });
 
-      testWidgets('ログイン失敗時(例外発生時)、SnackBarが表示されること', (tester) async {
-        // 例外を投げるようにモックを設定
+      testWidgets('ログイン処理中、ローディング表示になり入力がロックされること', (tester) async {
+        // 処理完了までに時間をかけることでローディング中を検証
         when(
           () => mockAuthRepo.signIn(any(), any()),
-        ).thenThrow(Exception('Login Error'));
+        ).thenAnswer(
+          (_) async => Future.delayed(const Duration(milliseconds: 100)),
+        );
 
         await tester.pumpWidget(createTestWidget());
         await tester.pumpAndSettle();
 
         await tester.tap(find.text('ログインする'));
-        // SnackBar の表示アニメーションを1フレーム進める（pumpAndSettleだとSnackBarが消えるまで待ってしまうため）
+
+        // ポンプして画面を再描画（処理はまだ終わっていない）
         await tester.pump();
 
-        // SnackBar のテキストが表示されているか確認
+        // インジケーターが表示されていること
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+        // 非同期処理を完了させる
+        await tester.pumpAndSettle();
+
+        // ローディングが終了していること
+        expect(find.byType(CircularProgressIndicator), findsNothing);
+      });
+
+      testWidgets('ログイン失敗時(FirebaseAuthException発生時)、専用のSnackBarが表示されること', (
+        tester,
+      ) async {
+        // FirebaseAuthException を投げることで、ErrorHandler が適切な翻訳文言を返すことを確認
+        when(
+          () => mockAuthRepo.signIn(any(), any()),
+        ).thenThrow(FirebaseAuthException(code: 'wrong-password'));
+
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('ログインする'));
+
+        // SnackBar の表示アニメーションを1フレーム進める
+        await tester.pump();
+
+        // SnackBar とテキストが表示されているか確認
+        expect(find.byType(SnackBar), findsOneWidget);
         expect(find.text('ログインに失敗しました'), findsOneWidget);
       });
     });
@@ -179,10 +210,31 @@ void main() {
 
         // 画面遷移せず、エラーSnackBarも出ないことを確認
         expect(find.textContaining('Navigated to'), findsNothing);
-        expect(find.text('ログインに失敗しました'), findsNothing);
+        expect(find.byType(SnackBar), findsNothing);
       });
 
-      testWidgets('ログイン例外発生時、SnackBarが表示されること', (tester) async {
+      testWidgets('ログイン処理中、ローディングインジケーターが表示されること', (tester) async {
+        when(
+          () => mockAuthRepo.signInWithGoogle(),
+        ).thenAnswer(
+          (_) async =>
+              Future.delayed(const Duration(milliseconds: 100), () => true),
+        );
+
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Googleでログイン'));
+        await tester.pump();
+
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+        await tester.pumpAndSettle();
+      });
+
+      testWidgets('ログイン例外発生時(一般的なException)、汎用のSnackBarが表示されること', (
+        tester,
+      ) async {
         when(
           () => mockAuthRepo.signInWithGoogle(),
         ).thenThrow(Exception('Google Login Error'));
@@ -194,7 +246,10 @@ void main() {
         await tester.pump(); // SnackBar描画のために1フレーム進める
 
         verify(() => mockAuthRepo.signInWithGoogle()).called(1);
-        expect(find.text('ログインに失敗しました'), findsOneWidget);
+
+        // 一般的な Exception なので ErrorHandler が「予期しないエラー」にフォールバックすることを確認
+        expect(find.byType(SnackBar), findsOneWidget);
+        expect(find.text('予期しないエラーが発生しました'), findsOneWidget);
       });
     });
   });
