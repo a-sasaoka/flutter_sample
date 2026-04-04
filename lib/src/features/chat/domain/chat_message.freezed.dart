@@ -14,30 +14,62 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ChatMessage {
 
-
+ String get id; DateTime get createdAt;
+/// Create a copy of ChatMessage
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ChatMessageCopyWith<ChatMessage> get copyWith => _$ChatMessageCopyWithImpl<ChatMessage>(this as ChatMessage, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChatMessage);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChatMessage&&(identical(other.id, id) || other.id == id)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 
 @override
-int get hashCode => runtimeType.hashCode;
+int get hashCode => Object.hash(runtimeType,id,createdAt);
 
 @override
 String toString() {
-  return 'ChatMessage()';
+  return 'ChatMessage(id: $id, createdAt: $createdAt)';
 }
 
 
 }
 
 /// @nodoc
-class $ChatMessageCopyWith<$Res>  {
-$ChatMessageCopyWith(ChatMessage _, $Res Function(ChatMessage) __);
+abstract mixin class $ChatMessageCopyWith<$Res>  {
+  factory $ChatMessageCopyWith(ChatMessage value, $Res Function(ChatMessage) _then) = _$ChatMessageCopyWithImpl;
+@useResult
+$Res call({
+ String id, DateTime createdAt
+});
+
+
+
+
+}
+/// @nodoc
+class _$ChatMessageCopyWithImpl<$Res>
+    implements $ChatMessageCopyWith<$Res> {
+  _$ChatMessageCopyWithImpl(this._self, this._then);
+
+  final ChatMessage _self;
+  final $Res Function(ChatMessage) _then;
+
+/// Create a copy of ChatMessage
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? createdAt = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime,
+  ));
+}
+
 }
 
 
@@ -125,13 +157,13 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String text)?  user,TResult Function( String text)?  ai,TResult Function()?  loading,TResult Function( Object error)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String text,  DateTime createdAt)?  user,TResult Function( String id,  String text,  DateTime createdAt)?  ai,TResult Function( String id,  DateTime createdAt)?  loading,TResult Function( String id,  Object error,  DateTime createdAt)?  error,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case ChatMessageUser() when user != null:
-return user(_that.text);case ChatMessageAi() when ai != null:
-return ai(_that.text);case ChatMessageLoading() when loading != null:
-return loading();case ChatMessageError() when error != null:
-return error(_that.error);case _:
+return user(_that.id,_that.text,_that.createdAt);case ChatMessageAi() when ai != null:
+return ai(_that.id,_that.text,_that.createdAt);case ChatMessageLoading() when loading != null:
+return loading(_that.id,_that.createdAt);case ChatMessageError() when error != null:
+return error(_that.id,_that.error,_that.createdAt);case _:
   return orElse();
 
 }
@@ -149,13 +181,13 @@ return error(_that.error);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String text)  user,required TResult Function( String text)  ai,required TResult Function()  loading,required TResult Function( Object error)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String text,  DateTime createdAt)  user,required TResult Function( String id,  String text,  DateTime createdAt)  ai,required TResult Function( String id,  DateTime createdAt)  loading,required TResult Function( String id,  Object error,  DateTime createdAt)  error,}) {final _that = this;
 switch (_that) {
 case ChatMessageUser():
-return user(_that.text);case ChatMessageAi():
-return ai(_that.text);case ChatMessageLoading():
-return loading();case ChatMessageError():
-return error(_that.error);}
+return user(_that.id,_that.text,_that.createdAt);case ChatMessageAi():
+return ai(_that.id,_that.text,_that.createdAt);case ChatMessageLoading():
+return loading(_that.id,_that.createdAt);case ChatMessageError():
+return error(_that.id,_that.error,_that.createdAt);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -169,13 +201,13 @@ return error(_that.error);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String text)?  user,TResult? Function( String text)?  ai,TResult? Function()?  loading,TResult? Function( Object error)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String text,  DateTime createdAt)?  user,TResult? Function( String id,  String text,  DateTime createdAt)?  ai,TResult? Function( String id,  DateTime createdAt)?  loading,TResult? Function( String id,  Object error,  DateTime createdAt)?  error,}) {final _that = this;
 switch (_that) {
 case ChatMessageUser() when user != null:
-return user(_that.text);case ChatMessageAi() when ai != null:
-return ai(_that.text);case ChatMessageLoading() when loading != null:
-return loading();case ChatMessageError() when error != null:
-return error(_that.error);case _:
+return user(_that.id,_that.text,_that.createdAt);case ChatMessageAi() when ai != null:
+return ai(_that.id,_that.text,_that.createdAt);case ChatMessageLoading() when loading != null:
+return loading(_that.id,_that.createdAt);case ChatMessageError() when error != null:
+return error(_that.id,_that.error,_that.createdAt);case _:
   return null;
 
 }
@@ -186,15 +218,17 @@ return error(_that.error);case _:
 /// @nodoc
 
 
-class ChatMessageUser implements ChatMessage {
-  const ChatMessageUser({required this.text});
+class ChatMessageUser extends ChatMessage {
+  const ChatMessageUser({required this.id, required this.text, required this.createdAt}): super._();
   
 
+@override final  String id;
  final  String text;
+@override final  DateTime createdAt;
 
 /// Create a copy of ChatMessage
 /// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
+@override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
 $ChatMessageUserCopyWith<ChatMessageUser> get copyWith => _$ChatMessageUserCopyWithImpl<ChatMessageUser>(this, _$identity);
 
@@ -202,16 +236,16 @@ $ChatMessageUserCopyWith<ChatMessageUser> get copyWith => _$ChatMessageUserCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChatMessageUser&&(identical(other.text, text) || other.text == text));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChatMessageUser&&(identical(other.id, id) || other.id == id)&&(identical(other.text, text) || other.text == text)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,text);
+int get hashCode => Object.hash(runtimeType,id,text,createdAt);
 
 @override
 String toString() {
-  return 'ChatMessage.user(text: $text)';
+  return 'ChatMessage.user(id: $id, text: $text, createdAt: $createdAt)';
 }
 
 
@@ -220,9 +254,9 @@ String toString() {
 /// @nodoc
 abstract mixin class $ChatMessageUserCopyWith<$Res> implements $ChatMessageCopyWith<$Res> {
   factory $ChatMessageUserCopyWith(ChatMessageUser value, $Res Function(ChatMessageUser) _then) = _$ChatMessageUserCopyWithImpl;
-@useResult
+@override @useResult
 $Res call({
- String text
+ String id, String text, DateTime createdAt
 });
 
 
@@ -239,10 +273,12 @@ class _$ChatMessageUserCopyWithImpl<$Res>
 
 /// Create a copy of ChatMessage
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? text = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? text = null,Object? createdAt = null,}) {
   return _then(ChatMessageUser(
-text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
-as String,
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
+as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime,
   ));
 }
 
@@ -252,15 +288,17 @@ as String,
 /// @nodoc
 
 
-class ChatMessageAi implements ChatMessage {
-  const ChatMessageAi({required this.text});
+class ChatMessageAi extends ChatMessage {
+  const ChatMessageAi({required this.id, required this.text, required this.createdAt}): super._();
   
 
+@override final  String id;
  final  String text;
+@override final  DateTime createdAt;
 
 /// Create a copy of ChatMessage
 /// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
+@override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
 $ChatMessageAiCopyWith<ChatMessageAi> get copyWith => _$ChatMessageAiCopyWithImpl<ChatMessageAi>(this, _$identity);
 
@@ -268,16 +306,16 @@ $ChatMessageAiCopyWith<ChatMessageAi> get copyWith => _$ChatMessageAiCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChatMessageAi&&(identical(other.text, text) || other.text == text));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChatMessageAi&&(identical(other.id, id) || other.id == id)&&(identical(other.text, text) || other.text == text)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,text);
+int get hashCode => Object.hash(runtimeType,id,text,createdAt);
 
 @override
 String toString() {
-  return 'ChatMessage.ai(text: $text)';
+  return 'ChatMessage.ai(id: $id, text: $text, createdAt: $createdAt)';
 }
 
 
@@ -286,9 +324,9 @@ String toString() {
 /// @nodoc
 abstract mixin class $ChatMessageAiCopyWith<$Res> implements $ChatMessageCopyWith<$Res> {
   factory $ChatMessageAiCopyWith(ChatMessageAi value, $Res Function(ChatMessageAi) _then) = _$ChatMessageAiCopyWithImpl;
-@useResult
+@override @useResult
 $Res call({
- String text
+ String id, String text, DateTime createdAt
 });
 
 
@@ -305,10 +343,12 @@ class _$ChatMessageAiCopyWithImpl<$Res>
 
 /// Create a copy of ChatMessage
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? text = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? text = null,Object? createdAt = null,}) {
   return _then(ChatMessageAi(
-text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
-as String,
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
+as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime,
   ));
 }
 
@@ -318,47 +358,85 @@ as String,
 /// @nodoc
 
 
-class ChatMessageLoading implements ChatMessage {
-  const ChatMessageLoading();
+class ChatMessageLoading extends ChatMessage {
+  const ChatMessageLoading({required this.id, required this.createdAt}): super._();
   
 
+@override final  String id;
+@override final  DateTime createdAt;
 
-
+/// Create a copy of ChatMessage
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ChatMessageLoadingCopyWith<ChatMessageLoading> get copyWith => _$ChatMessageLoadingCopyWithImpl<ChatMessageLoading>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChatMessageLoading);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChatMessageLoading&&(identical(other.id, id) || other.id == id)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 
 @override
-int get hashCode => runtimeType.hashCode;
+int get hashCode => Object.hash(runtimeType,id,createdAt);
 
 @override
 String toString() {
-  return 'ChatMessage.loading()';
+  return 'ChatMessage.loading(id: $id, createdAt: $createdAt)';
 }
 
 
 }
 
+/// @nodoc
+abstract mixin class $ChatMessageLoadingCopyWith<$Res> implements $ChatMessageCopyWith<$Res> {
+  factory $ChatMessageLoadingCopyWith(ChatMessageLoading value, $Res Function(ChatMessageLoading) _then) = _$ChatMessageLoadingCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, DateTime createdAt
+});
 
 
+
+
+}
+/// @nodoc
+class _$ChatMessageLoadingCopyWithImpl<$Res>
+    implements $ChatMessageLoadingCopyWith<$Res> {
+  _$ChatMessageLoadingCopyWithImpl(this._self, this._then);
+
+  final ChatMessageLoading _self;
+  final $Res Function(ChatMessageLoading) _then;
+
+/// Create a copy of ChatMessage
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? createdAt = null,}) {
+  return _then(ChatMessageLoading(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime,
+  ));
+}
+
+
+}
 
 /// @nodoc
 
 
-class ChatMessageError implements ChatMessage {
-  const ChatMessageError({required this.error});
+class ChatMessageError extends ChatMessage {
+  const ChatMessageError({required this.id, required this.error, required this.createdAt}): super._();
   
 
+@override final  String id;
  final  Object error;
+@override final  DateTime createdAt;
 
 /// Create a copy of ChatMessage
 /// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
+@override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
 $ChatMessageErrorCopyWith<ChatMessageError> get copyWith => _$ChatMessageErrorCopyWithImpl<ChatMessageError>(this, _$identity);
 
@@ -366,16 +444,16 @@ $ChatMessageErrorCopyWith<ChatMessageError> get copyWith => _$ChatMessageErrorCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChatMessageError&&const DeepCollectionEquality().equals(other.error, error));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChatMessageError&&(identical(other.id, id) || other.id == id)&&const DeepCollectionEquality().equals(other.error, error)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(error));
+int get hashCode => Object.hash(runtimeType,id,const DeepCollectionEquality().hash(error),createdAt);
 
 @override
 String toString() {
-  return 'ChatMessage.error(error: $error)';
+  return 'ChatMessage.error(id: $id, error: $error, createdAt: $createdAt)';
 }
 
 
@@ -384,9 +462,9 @@ String toString() {
 /// @nodoc
 abstract mixin class $ChatMessageErrorCopyWith<$Res> implements $ChatMessageCopyWith<$Res> {
   factory $ChatMessageErrorCopyWith(ChatMessageError value, $Res Function(ChatMessageError) _then) = _$ChatMessageErrorCopyWithImpl;
-@useResult
+@override @useResult
 $Res call({
- Object error
+ String id, Object error, DateTime createdAt
 });
 
 
@@ -403,9 +481,11 @@ class _$ChatMessageErrorCopyWithImpl<$Res>
 
 /// Create a copy of ChatMessage
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? error = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? error = null,Object? createdAt = null,}) {
   return _then(ChatMessageError(
-error: null == error ? _self.error : error ,
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,error: null == error ? _self.error : error ,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime,
   ));
 }
 

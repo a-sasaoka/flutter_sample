@@ -3,12 +3,16 @@ import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:uuid/uuid.dart';
 
 part 'chat_notifier.g.dart';
 
 /// チャットのやり取りを管理するプロバイダー
 @riverpod
 class ChatNotifier extends _$ChatNotifier {
+  // 一意のIDを生成するためのインスタンス
+  final _uuid = const Uuid();
+
   @override
   List<ChatMessage> build() {
     // 画面（Notifier）が生きている間は、Repositoryも監視（watch）して破棄させない
@@ -27,9 +31,23 @@ class ChatNotifier extends _$ChatNotifier {
       final promptWithTime = _buildPromptWithTime(text);
       final responseText = await repository.sendMessage(promptWithTime);
 
-      _replaceLastMessage(ChatMessage.ai(text: responseText));
+      final now = ref.read(currentDateTimeProvider);
+      _replaceLastMessage(
+        ChatMessage.ai(
+          id: _uuid.v4(),
+          text: responseText,
+          createdAt: now,
+        ),
+      );
     } on Exception catch (e) {
-      _replaceLastMessage(ChatMessage.error(error: e));
+      final now = ref.read(currentDateTimeProvider);
+      _replaceLastMessage(
+        ChatMessage.error(
+          id: _uuid.v4(),
+          error: e,
+          createdAt: now,
+        ),
+      );
     }
   }
 
@@ -49,14 +67,25 @@ class ChatNotifier extends _$ChatNotifier {
       await for (final chunk in stream) {
         if (isFirstChunk) {
           // 最初の1文字目でローディングをAIメッセージに差し替え
-          _replaceLastMessage(ChatMessage.ai(text: chunk));
+          final now = ref.read(currentDateTimeProvider);
+          _replaceLastMessage(
+            ChatMessage.ai(
+              id: _uuid.v4(),
+              text: chunk,
+              createdAt: now,
+            ),
+          );
           isFirstChunk = false;
         } else {
           // 2回目以降は既存のテキストに継ぎ足し
           final lastMessage = state.last;
           if (lastMessage is ChatMessageAi) {
             _replaceLastMessage(
-              ChatMessage.ai(text: lastMessage.text + chunk),
+              ChatMessage.ai(
+                id: lastMessage.id, // 既存のIDを引き継ぐ！
+                text: lastMessage.text + chunk,
+                createdAt: lastMessage.createdAt, // 既存の時刻を引き継ぐ！
+              ),
             );
           }
         }
@@ -66,16 +95,31 @@ class ChatNotifier extends _$ChatNotifier {
         throw ChatEmptyResponseException(); // 空のままStreamが終わった場合
       }
     } on Exception catch (e) {
-      _replaceLastMessage(ChatMessage.error(error: e));
+      final now = ref.read(currentDateTimeProvider);
+      _replaceLastMessage(
+        ChatMessage.error(
+          id: _uuid.v4(),
+          error: e,
+          createdAt: now,
+        ),
+      );
     }
   }
 
   /// ユーザーメッセージとローディング状態をセットで追加する
   void _addMessageAndLoading(String text) {
+    final now = ref.read(currentDateTimeProvider);
     state = [
       ...state,
-      ChatMessage.user(text: text),
-      const ChatMessage.loading(),
+      ChatMessage.user(
+        id: _uuid.v4(),
+        text: text,
+        createdAt: now,
+      ),
+      ChatMessage.loading(
+        id: _uuid.v4(),
+        createdAt: now,
+      ),
     ];
   }
 

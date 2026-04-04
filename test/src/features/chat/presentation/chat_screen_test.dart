@@ -74,7 +74,6 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          // UI側で ref.watch(chatProvider) が使われている前提
           chatProvider.overrideWith(() => fakeNotifier),
         ],
         child: MaterialApp(
@@ -88,6 +87,8 @@ void main() {
   }
 
   group('ChatScreen', () {
+    final dummyTime = DateTime(2026, 4, 4, 14, 5);
+
     testWidgets('初期表示: タイトルと入力フォームが表示され、メッセージリストは空であること', (tester) async {
       await setupWidget(tester);
 
@@ -98,13 +99,21 @@ void main() {
       expect(find.byIcon(Icons.send), findsOneWidget);
     });
 
-    testWidgets('メッセージ描画: 全てのパターンのメッセージが正しく描画されること', (tester) async {
+    testWidgets('メッセージ描画: 全てのパターンのメッセージと時刻が正しく描画されること', (tester) async {
       final messages = [
-        const ChatMessage.user(text: 'こんにちは'),
-        const ChatMessage.ai(text: '**太字**のAI返答'), // Markdownのテスト用
-        const ChatMessage.loading(),
-        ChatMessage.error(error: Exception('通信失敗')),
-        ChatMessage.error(error: ChatEmptyResponseException()), // 特殊エラーの分岐用
+        ChatMessage.user(id: '1', text: 'こんにちは', createdAt: dummyTime),
+        ChatMessage.ai(id: '2', text: '**太字**のAI返答', createdAt: dummyTime),
+        ChatMessage.loading(id: '3', createdAt: dummyTime),
+        ChatMessage.error(
+          id: '4',
+          error: Exception('通信失敗'),
+          createdAt: dummyTime,
+        ),
+        ChatMessage.error(
+          id: '5',
+          error: ChatEmptyResponseException(),
+          createdAt: dummyTime,
+        ),
       ];
 
       await setupWidget(tester, initialMessages: messages);
@@ -123,6 +132,9 @@ void main() {
 
       // 5. ChatEmptyResponseException の特殊文言の検証
       expect(find.text('AIからの返答が空でした'), findsOneWidget);
+
+      // 6. 時間表示の検証 (loading以外の4つの吹き出しで '14:05' が表示されているか)
+      expect(find.text('14:05'), findsNWidgets(4));
     });
 
     testWidgets('送信アクション: テキスト入力後に送信ボタンを押すと、メソッドが呼ばれフォームがクリアされること', (
@@ -151,7 +163,11 @@ void main() {
       // 画面に収まりきらない大量のメッセージを初期配置する
       final initialMessages = List.generate(
         20,
-        (i) => ChatMessage.ai(text: 'ダミーメッセージ $i'),
+        (i) => ChatMessage.ai(
+          id: 'ai_$i',
+          text: 'ダミーメッセージ $i',
+          createdAt: dummyTime,
+        ),
       );
 
       final fakeNotifier = await setupWidget(
@@ -165,7 +181,11 @@ void main() {
       // Act: 新しいメッセージをStateに追加（ref.listenが発火する）
       fakeNotifier.updateMessages([
         ...initialMessages,
-        const ChatMessage.user(text: '新しいメッセージ'),
+        ChatMessage.user(
+          id: 'user_1',
+          text: '新しいメッセージ',
+          createdAt: dummyTime,
+        ),
       ]);
 
       // pumpAndSettleを使うことで、addPostFrameCallbackと
@@ -174,6 +194,32 @@ void main() {
 
       // Assert: アニメーションでスクロールが完了し、最新のメッセージが画面内に描画されていること
       expect(find.text('新しいメッセージ'), findsOneWidget);
+    });
+
+    testWidgets('送信アクション: テキスト入力後にEnterキーを押すと、メソッドが呼ばれフォームがクリアされること', (
+      tester,
+    ) async {
+      final fakeNotifier = await setupWidget(tester);
+
+      final textField = find.byType(TextField);
+
+      // Act: テキストを入力
+      await tester.enterText(textField, 'Enterキーで送信！');
+
+      // 💡 ここがポイント！
+      // ソフトウェアキーボードの「完了(Done/Enter)キー」を押した動作をエミュレートし、
+      // TextFieldの `onSubmitted` を発火させます。
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+
+      await tester.pumpAndSettle();
+
+      // Assert
+      // 1. Notifierに正しいテキストが渡されたか
+      expect(fakeNotifier.calledStreamText, 'Enterキーで送信！');
+
+      // 2. テキストフィールドが空（クリア）になったか
+      final textFieldWidget = tester.widget<TextField>(textField);
+      expect(textFieldWidget.controller?.text, isEmpty);
     });
   });
 }

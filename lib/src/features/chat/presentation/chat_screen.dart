@@ -51,37 +51,48 @@ class ChatScreen extends HookConsumerWidget {
 
                 // Dart3のパターンマッチングでUIを出し分ける
                 // sealedクラスなので、全パターン網羅しないとコンパイルエラーになり安全
+                // 追加した id と createdAt を取り出してUIに適用する
                 return switch (msg) {
-                  ChatMessageLoading() => const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Align(
+                  ChatMessageLoading(:final id) => Padding(
+                    key: Key(id), // Keyを設定してUIのチラつきを防止
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: const Align(
                       alignment: Alignment.centerLeft,
                       child: CircularProgressIndicator(),
                     ),
                   ),
-                  ChatMessageUser(:final text) => _buildBubble(
-                    text: text,
-                    isUser: true,
-                    color: Colors.blueAccent,
-                    textColor: Colors.white,
-                    context: context,
-                  ),
-                  ChatMessageAi(:final text) => _buildBubble(
-                    text: text,
-                    isUser: false,
-                    color: Colors.grey[300]!,
-                    textColor: Theme.of(context).colorScheme.onSurface,
-                    context: context,
-                  ),
-                  ChatMessageError(:final error) => _buildBubble(
-                    text: error is ChatEmptyResponseException
-                        ? l10n.chatEmptyMessage
-                        : l10n.chatError(error.toString()),
-                    isUser: false,
-                    color: Colors.red[100]!,
-                    textColor: Colors.red[900]!,
-                    context: context,
-                  ),
+                  ChatMessageUser(:final id, :final text, :final createdAt) =>
+                    _buildBubble(
+                      key: Key(id),
+                      text: text,
+                      isUser: true,
+                      color: Colors.blueAccent,
+                      textColor: Colors.white,
+                      createdAt: createdAt,
+                      context: context,
+                    ),
+                  ChatMessageAi(:final id, :final text, :final createdAt) =>
+                    _buildBubble(
+                      key: Key(id),
+                      text: text,
+                      isUser: false,
+                      color: Colors.grey[300]!,
+                      textColor: Theme.of(context).colorScheme.onSurface,
+                      createdAt: createdAt,
+                      context: context,
+                    ),
+                  ChatMessageError(:final id, :final error, :final createdAt) =>
+                    _buildBubble(
+                      key: Key(id),
+                      text: error is ChatEmptyResponseException
+                          ? l10n.chatEmptyMessage
+                          : l10n.chatError(error.toString()),
+                      isUser: false,
+                      color: Colors.red[100]!,
+                      textColor: Colors.red[900]!,
+                      createdAt: createdAt,
+                      context: context,
+                    ),
                 };
               },
             ),
@@ -104,6 +115,14 @@ class ChatScreen extends HookConsumerWidget {
                           horizontal: 16,
                         ),
                       ),
+                      // Enterキー（完了）を押した時も送信できるようにする
+                      onSubmitted: (text) async {
+                        if (text.trim().isEmpty) return;
+                        textController.clear();
+                        await ref
+                            .read(chatProvider.notifier)
+                            .sendMessageStream(text);
+                      },
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -114,6 +133,7 @@ class ChatScreen extends HookConsumerWidget {
                       onPressed: () async {
                         // 1. 送信するテキストを変数に保持
                         final text = textController.text;
+                        if (text.trim().isEmpty) return; // 空送信防止
 
                         // 2. 即座に入力フォームをクリア（ユーザーを待たせない）
                         textController.clear();
@@ -138,43 +158,81 @@ class ChatScreen extends HookConsumerWidget {
 
   // 共通の吹き出しUIウィジェット
   Widget _buildBubble({
+    required Key key, // 💡 ListView最適化のためのKey
     required String text,
     required bool isUser,
     required Color color,
     required Color textColor,
+    required DateTime createdAt, // 💡 送信時刻
     required BuildContext context,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Align(
-        alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: isUser
-              ? Text(
-                  text,
-                  style: TextStyle(color: textColor),
-                )
-              : MarkdownBody(
-                  data: text,
-                  selectable: true, // 長押しでテキストをコピーできるようにする
-                  styleSheet: MarkdownStyleSheet(
-                    p: TextStyle(
-                      color: textColor,
-                    ),
-                    code: TextStyle(
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-                ),
+    // 時間を「14:05」のようなフォーマットの文字列にする
+    final timeString =
+        '${createdAt.hour.toString().padLeft(2, '0')}:'
+        '${createdAt.minute.toString().padLeft(2, '0')}';
+
+    // 時間を表示するちっちゃいテキストウィジェット
+    final timeWidget = Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Text(
+        timeString,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          fontSize: 10,
+          color: Colors.grey[600],
         ),
+      ),
+    );
+
+    // 吹き出し本体
+    final bubble = Container(
+      // 💡 画面幅の75%を最大幅にして、文字が長すぎても画面端までいかないようにする
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.sizeOf(context).width * 0.75,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: isUser
+          ? Text(
+              text,
+              style: TextStyle(color: textColor),
+            )
+          : MarkdownBody(
+              data: text,
+              selectable: true,
+              styleSheet: MarkdownStyleSheet(
+                p: TextStyle(color: textColor),
+                code: TextStyle(
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+    );
+
+    return Padding(
+      key: key,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        // ユーザーなら右寄せ、AIなら左寄せ
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
+        // 下揃え（吹き出しの一番下と時間を揃える）
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (isUser) timeWidget,
+          if (isUser) const SizedBox(width: 8),
+
+          bubble, // 吹き出し本体
+
+          if (!isUser) const SizedBox(width: 8),
+          if (!isUser) timeWidget,
+        ],
       ),
     );
   }
