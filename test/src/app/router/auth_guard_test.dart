@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart'; // SynchronousFuture 用
-import 'package:flutter_sample/src/core/router/app_router.dart';
-import 'package:flutter_sample/src/core/router/auth_guard.dart';
+import 'package:flutter_sample/src/app/router/app_router.dart';
+import 'package:flutter_sample/src/app/router/auth_guard.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';

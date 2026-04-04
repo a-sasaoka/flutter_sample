@@ -17,7 +17,9 @@ import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/core/config/firebase_options.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
+import 'package:flutter_sample/src/core/network/token_interceptor.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
+import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -74,6 +76,11 @@ Future<void> main() async {
 
         // プロバイダーにPackageInfoを設定
         packageInfoProvider.overrideWithValue(packageInfo),
+
+        // プロバイダーにTokenRefreshCallbackを設定
+        tokenRefreshCallbackProvider.overrideWith(
+          (ref) => ref.watch(authRepositoryProvider).refreshToken,
+        ),
       ],
       child: const MyApp(),
     ),

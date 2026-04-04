@@ -1,4 +1,4 @@
-import 'package:flutter_sample/src/core/router/app_router.dart';
+import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:go_router/go_router.dart';
 
 /// 認証状態に応じたリダイレクト先を判定する共通ヘルパー

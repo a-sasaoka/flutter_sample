@@ -8,23 +8,80 @@ part of 'token_interceptor.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// テストで Notifier の内部構造 (_element) によるエラーを回避するため、
-/// Notifier インスタンスを直接提供するだけの Provider を定義します。
-/// これにより、テスト時は単なる Mock オブジェクトに差し替え可能になります。
+/// [TokenRefreshCallback] を提供するプロバイダ。
+///
+/// Core層では具体的な実装を持たないため、デフォルトでは `UnimplementedError` を投げます。
+/// アプリ起動時の最上位の `ProviderScope` (overrides) にて、
+/// Feature層のリフレッシュ処理（例: authRepositoryProvider の refreshToken メソッド）
+/// でオーバーライドして使用してください。
+
+@ProviderFor(tokenRefreshCallback)
+const tokenRefreshCallbackProvider = TokenRefreshCallbackProvider._();
+
+/// [TokenRefreshCallback] を提供するプロバイダ。
+///
+/// Core層では具体的な実装を持たないため、デフォルトでは `UnimplementedError` を投げます。
+/// アプリ起動時の最上位の `ProviderScope` (overrides) にて、
+/// Feature層のリフレッシュ処理（例: authRepositoryProvider の refreshToken メソッド）
+/// でオーバーライドして使用してください。
+
+final class TokenRefreshCallbackProvider
+    extends
+        $FunctionalProvider<
+          TokenRefreshCallback,
+          TokenRefreshCallback,
+          TokenRefreshCallback
+        >
+    with $Provider<TokenRefreshCallback> {
+  /// [TokenRefreshCallback] を提供するプロバイダ。
+  ///
+  /// Core層では具体的な実装を持たないため、デフォルトでは `UnimplementedError` を投げます。
+  /// アプリ起動時の最上位の `ProviderScope` (overrides) にて、
+  /// Feature層のリフレッシュ処理（例: authRepositoryProvider の refreshToken メソッド）
+  /// でオーバーライドして使用してください。
+  const TokenRefreshCallbackProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'tokenRefreshCallbackProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$tokenRefreshCallbackHash();
+
+  @$internal
+  @override
+  $ProviderElement<TokenRefreshCallback> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  TokenRefreshCallback create(Ref ref) {
+    return tokenRefreshCallback(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(TokenRefreshCallback value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<TokenRefreshCallback>(value),
+    );
+  }
+}
+
+String _$tokenRefreshCallbackHash() =>
+    r'c81237718917f72977e6b53d46226cbdfa0f3577';
 
 @ProviderFor(tokenStorageInternal)
 const tokenStorageInternalProvider = TokenStorageInternalProvider._();
 
-/// テストで Notifier の内部構造 (_element) によるエラーを回避するため、
-/// Notifier インスタンスを直接提供するだけの Provider を定義します。
-/// これにより、テスト時は単なる Mock オブジェクトに差し替え可能になります。
-
 final class TokenStorageInternalProvider
     extends $FunctionalProvider<TokenStorage, TokenStorage, TokenStorage>
     with $Provider<TokenStorage> {
-  /// テストで Notifier の内部構造 (_element) によるエラーを回避するため、
-  /// Notifier インスタンスを直接提供するだけの Provider を定義します。
-  /// これにより、テスト時は単なる Mock オブジェクトに差し替え可能になります。
   const TokenStorageInternalProvider._()
     : super(
         from: null,
@@ -61,72 +118,11 @@ final class TokenStorageInternalProvider
 String _$tokenStorageInternalHash() =>
     r'3e0364f9cdf9fc50fa6eb985833831eb3f1557e8';
 
-/// テストで Notifier の内部構造 (_element) によるエラーを回避するため、
-/// Notifier インスタンスを直接提供するだけの Provider を定義します。
-/// これにより、テスト時は単なる Mock オブジェクトに差し替え可能になります。
-
-@ProviderFor(authRepositoryInternal)
-const authRepositoryInternalProvider = AuthRepositoryInternalProvider._();
-
-/// テストで Notifier の内部構造 (_element) によるエラーを回避するため、
-/// Notifier インスタンスを直接提供するだけの Provider を定義します。
-/// これにより、テスト時は単なる Mock オブジェクトに差し替え可能になります。
-
-final class AuthRepositoryInternalProvider
-    extends $FunctionalProvider<AuthRepository, AuthRepository, AuthRepository>
-    with $Provider<AuthRepository> {
-  /// テストで Notifier の内部構造 (_element) によるエラーを回避するため、
-  /// Notifier インスタンスを直接提供するだけの Provider を定義します。
-  /// これにより、テスト時は単なる Mock オブジェクトに差し替え可能になります。
-  const AuthRepositoryInternalProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'authRepositoryInternalProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$authRepositoryInternalHash();
-
-  @$internal
-  @override
-  $ProviderElement<AuthRepository> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  AuthRepository create(Ref ref) {
-    return authRepositoryInternal(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(AuthRepository value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<AuthRepository>(value),
-    );
-  }
-}
-
-String _$authRepositoryInternalHash() =>
-    r'd1c774cbd10fb1160fcbd11e190ebc5f76dae1a2';
-
-/// 再リクエスト（リトライ）用のDioインスタンスを提供するProvider
-/// テスト時にモックへ差し替え可能にするために切り出し
-
 @ProviderFor(retryDio)
 const retryDioProvider = RetryDioProvider._();
 
-/// 再リクエスト（リトライ）用のDioインスタンスを提供するProvider
-/// テスト時にモックへ差し替え可能にするために切り出し
-
 final class RetryDioProvider extends $FunctionalProvider<Dio, Dio, Dio>
     with $Provider<Dio> {
-  /// 再リクエスト（リトライ）用のDioインスタンスを提供するProvider
-  /// テスト時にモックへ差し替え可能にするために切り出し
   const RetryDioProvider._()
     : super(
         from: null,
@@ -212,4 +208,4 @@ final class TokenInterceptorProvider
   }
 }
 
-String _$tokenInterceptorHash() => r'f7cd6c161415f624b2c9b324902ff39001cf3952';
+String _$tokenInterceptorHash() => r'f456ce4b39329a5a5897e27a8d8119dc2aafdd36';
