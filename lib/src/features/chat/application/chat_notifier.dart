@@ -12,7 +12,6 @@ class ChatNotifier extends _$ChatNotifier {
   List<ChatMessage> build() {
     // 画面（Notifier）が生きている間は、Repositoryも監視（watch）して破棄させない
     ref.watch(chatRepositoryProvider);
-
     return [];
   }
 
@@ -20,28 +19,16 @@ class ChatNotifier extends _$ChatNotifier {
   Future<void> sendMessage(String text) async {
     if (text.trim().isEmpty) return;
 
-    // ユーザーメッセージとローディング状態をまとめて追加
-    state = [
-      ...state,
-      ChatMessage.user(text: text),
-      const ChatMessage.loading(),
-    ];
+    _addMessageAndLoading(text);
 
     try {
       final repository = ref.read(chatRepositoryProvider);
-      final responseText = await repository.sendMessage(text);
+      final promptWithTime = _buildPromptWithTime(text);
+      final responseText = await repository.sendMessage(promptWithTime);
 
-      // 最後の要素（loading）をAIの返答に差し替える
-      state = [
-        ...state.sublist(0, state.length - 1),
-        ChatMessage.ai(text: responseText),
-      ];
+      _replaceLastMessage(ChatMessage.ai(text: responseText));
     } on Exception catch (e) {
-      // エラー時も同様にローディングをエラー表示に差し替える
-      state = [
-        ...state.sublist(0, state.length - 1),
-        ChatMessage.error(error: e),
-      ];
+      _replaceLastMessage(ChatMessage.error(error: e));
     }
   }
 
@@ -49,61 +36,61 @@ class ChatNotifier extends _$ChatNotifier {
   Future<void> sendMessageStream(String text) async {
     if (text.trim().isEmpty) return;
 
-    // ユーザーメッセージとローディング状態をまとめて追加
+    _addMessageAndLoading(text);
+
+    try {
+      final repository = ref.read(chatRepositoryProvider);
+      final promptWithTime = _buildPromptWithTime(text);
+      final stream = repository.sendMessageStream(promptWithTime);
+
+      var isFirstChunk = true;
+
+      await for (final chunk in stream) {
+        if (isFirstChunk) {
+          // 最初の1文字目でローディングをAIメッセージに差し替え
+          _replaceLastMessage(ChatMessage.ai(text: chunk));
+          isFirstChunk = false;
+        } else {
+          // 2回目以降は既存のテキストに継ぎ足し
+          final lastMessage = state.last;
+          if (lastMessage is ChatMessageAi) {
+            _replaceLastMessage(
+              ChatMessage.ai(text: lastMessage.text + chunk),
+            );
+          }
+        }
+      }
+
+      if (isFirstChunk) {
+        throw ChatEmptyResponseException(); // 空のままStreamが終わった場合
+      }
+    } on Exception catch (e) {
+      _replaceLastMessage(ChatMessage.error(error: e));
+    }
+  }
+
+  /// ユーザーメッセージとローディング状態をセットで追加する
+  void _addMessageAndLoading(String text) {
     state = [
       ...state,
       ChatMessage.user(text: text),
       const ChatMessage.loading(),
     ];
+  }
 
-    try {
-      final repository = ref.read(chatRepositoryProvider);
+  /// 状態リストの「最後の要素」を新しいメッセージに差し替える
+  void _replaceLastMessage(ChatMessage newMessage) {
+    if (state.isEmpty) return;
+    state = [
+      ...state.sublist(0, state.length - 1),
+      newMessage,
+    ];
+  }
 
-      // 日付が変わったことを認識できるように毎回日時を付与する
-      final now = ref.read(currentDateTimeProvider);
-      final timeContext =
-          '（※システム情報: 現在時刻は ${now.year}年${now.month}月${now.day}日'
-          ' ${now.hour}時${now.minute}分 です）\n';
-
-      // sendMessageStream を呼び出して、Streamを受け取る
-      final stream = repository.sendMessageStream(timeContext + text);
-
-      // 最初の文字が届いたかどうかを判定するフラグ
-      var isFirstChunk = true;
-
-      // streamから文字のchunkが届くたびに、このループが回る
-      await for (final chunk in stream) {
-        if (isFirstChunk) {
-          // 【最初の1文字目が届いた時】
-          // ローディングを消して、最初の文字が入ったAIメッセージに差し替える
-          state = [
-            ...state.sublist(0, state.length - 1),
-            ChatMessage.ai(text: chunk),
-          ];
-          isFirstChunk = false;
-        } else {
-          // 【2回目以降の文字が届いた時】
-          // 今画面に出ている最後のAIメッセージの末尾に、新しい文字を「継ぎ足す」
-          final lastMessage = state.last;
-          if (lastMessage is ChatMessageAi) {
-            state = [
-              ...state.sublist(0, state.length - 1),
-              ChatMessage.ai(text: lastMessage.text + chunk),
-            ];
-          }
-        }
-      }
-
-      // 結果的に空っぽだったらエラー扱いにする
-      if (isFirstChunk) {
-        throw ChatEmptyResponseException();
-      }
-    } on Exception catch (e) {
-      // エラーが発生した場合は、最後のメッセージ（ローディングまたは途中のAI文）をエラー表示に差し替える
-      state = [
-        ...state.sublist(0, state.length - 1),
-        ChatMessage.error(error: e),
-      ];
-    }
+  /// AIに送るプロンプトにシステム日時を付加する
+  String _buildPromptWithTime(String originalText) {
+    final now = ref.read(currentDateTimeProvider);
+    return '（※システム情報: 現在時刻は ${now.year}年${now.month}月${now.day}日'
+        ' ${now.hour}時${now.minute}分 です）\n$originalText';
   }
 }

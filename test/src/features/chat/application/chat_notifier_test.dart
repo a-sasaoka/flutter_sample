@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -48,7 +49,7 @@ void main() {
 
     final container = ProviderContainer(
       overrides: [
-        chatRepositoryProvider.overrideWith((ref) => fakeRepo),
+        chatRepositoryProvider.overrideWithValue(fakeRepo),
         currentDateTimeProvider.overrideWithValue(fixedDateTime),
       ],
     );
@@ -87,8 +88,10 @@ void main() {
         final state = container.read(chatProvider);
 
         expect(state.length, 2);
-        // Freezedのクラス等に合わせて判定 (toString に text や ai が含まれるかでチェック)
+        expect(state.first, isA<ChatMessageUser>());
         expect(state.first.toString(), contains('こんにちは'));
+
+        expect(state.last, isA<ChatMessageAi>());
         expect(state.last.toString(), contains('単発のAI返答'));
       });
 
@@ -100,11 +103,9 @@ void main() {
         await notifier.sendMessage('こんにちは');
 
         final state = container.read(chatProvider);
+
         expect(state.length, 2);
-        expect(
-          state.last.toString(),
-          contains('error'),
-        ); // ChatMessage.error() になっているか
+        expect(state.last, isA<ChatMessageError>());
       });
     });
 
@@ -132,7 +133,7 @@ void main() {
 
         // 1. 結合されたメッセージの検証
         expect(state.length, 2);
-        // Fake で 'AI', 'からの', '返答です' を流したので、くっついて1つの文になっているはず
+        expect(state.last, isA<ChatMessageAi>());
         expect(state.last.toString(), contains('AIからの返答です'));
 
         // 2. 日付コンテキスト（システム情報）が正しく Repository に渡されたかの検証
@@ -152,9 +153,9 @@ void main() {
           await notifier.sendMessageStream('空のStream');
 
           final state = container.read(chatProvider);
+
           expect(state.length, 2);
-          // isFirstChunk が true のままループを抜けるので、エラー状態に差し替わる
-          expect(state.last.toString(), contains('error'));
+          expect(state.last, isA<ChatMessageError>());
           expect(state.last.toString(), contains('ChatEmptyResponseException'));
         },
       );
@@ -167,8 +168,9 @@ void main() {
         await notifier.sendMessageStream('エラーが起きるStream');
 
         final state = container.read(chatProvider);
+
         expect(state.length, 2);
-        expect(state.last.toString(), contains('error'));
+        expect(state.last, isA<ChatMessageError>());
       });
     });
   });
