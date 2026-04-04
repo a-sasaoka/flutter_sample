@@ -30,6 +30,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get send => '送信';
 
   @override
+  String get close => '閉じる';
+
+  @override
   String get chatEmptyMessage => 'AIからの返答が空でした。';
 
   @override

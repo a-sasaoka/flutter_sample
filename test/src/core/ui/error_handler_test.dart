@@ -9,6 +9,9 @@ import 'package:mocktail/mocktail.dart';
 // --- モックとデリゲートの定義 ---
 class MockAppLocalizations extends Mock implements AppLocalizations {}
 
+// フォールバック（未知のキー）のテスト用モック
+class MockUnknownException extends Mock implements UnknownException {}
+
 class _MockLocalizationsDelegate
     extends LocalizationsDelegate<AppLocalizations> {
   const _MockLocalizationsDelegate(this.mock);
@@ -34,6 +37,7 @@ void main() {
     when(() => mockL10n.errorServer).thenReturn('errorServer');
     when(() => mockL10n.errorDialogTitle).thenReturn('errorDialogTitle');
     when(() => mockL10n.ok).thenReturn('ok');
+    when(() => mockL10n.close).thenReturn('close');
   });
 
   Future<void> setupWidget(
@@ -147,7 +151,25 @@ void main() {
       expect(result, 'VAL_UNKNOWN_OBJ');
     });
 
-    // 💡 削除: 到達不可能な「7. default分岐」のテストは削除しました！
+    testWidgets('7. 未定義の messageKey はそのまま返されること (フォールバック)', (tester) async {
+      final mockException = MockUnknownException();
+
+      // 辞書に存在しない未知のキーを定義
+      when(() => mockException.messageKey).thenReturn('unmapped_error_key');
+      // ※UnknownExceptionのmessageプロパティなどが呼ばれた時用の念のためのスタブ
+      when(() => mockException.message).thenReturn(null);
+
+      String? result;
+      await setupWidget(
+        tester,
+        onBuild: (context) {
+          result = ErrorHandler.message(context, mockException);
+        },
+      );
+
+      // 未知のキーがそのまま返ってくることを期待
+      expect(result, 'unmapped_error_key');
+    });
   });
 
   group('UI表示確認', () {

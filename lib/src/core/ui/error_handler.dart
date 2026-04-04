@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
+import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:go_router/go_router.dart';
 
 /// エラーをSnackbarまたはDialogで表示する共通関数群
@@ -42,15 +43,8 @@ class ErrorHandler {
   /// Snackbarで表示（軽度なエラー向け）
   static void showSnackBar(BuildContext context, Object error) {
     final messageText = message(context, error);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar() // 前のスナックバーを消して即座に新しいものを表示
-      ..showSnackBar(
-        SnackBar(
-          content: Text(messageText),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+
+    context.showErrorSnackBar(messageText);
   }
 
   /// Dialogで表示（重要なエラーや確認が必要な場合）

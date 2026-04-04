@@ -63,7 +63,7 @@ class _MockLocalizationsDelegate
       false;
 }
 
-// 💡 状態を制御するためのEnum
+// 状態を制御するためのEnum
 enum ConfigState { loading, error, data }
 
 void main() {
@@ -92,6 +92,7 @@ void main() {
     when(() => mockL10n.settingsLocaleEn).thenReturn('English');
     when(() => mockL10n.hello).thenReturn('こんにちは！');
     when(() => mockL10n.logout).thenReturn('ログアウト');
+    when(() => mockL10n.close).thenReturn('閉じる');
 
     // エラーハンドラー経由で表示される翻訳キー
     when(() => mockL10n.errorUnknown).thenReturn('不明なエラー');

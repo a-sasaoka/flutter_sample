@@ -30,6 +30,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get send => 'Send';
 
   @override
+  String get close => 'Close';
+
+  @override
   String get chatEmptyMessage => 'The response from AI was empty.';
 
   @override

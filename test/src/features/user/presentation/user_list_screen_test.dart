@@ -11,7 +11,7 @@ import 'package:mocktail/mocktail.dart';
 
 class MockAppLocalizations extends Mock implements AppLocalizations {}
 
-// 💡 究極の解決策: 非同期のタイミングを無視し、直接 state(状態) を操れる Fake を作る
+// 非同期のタイミングを無視し、直接 state(状態) を操れる Fake を作る
 class FakeUserNotifier extends UserNotifier {
   int refreshCallCount = 0;
 
@@ -21,7 +21,7 @@ class FakeUserNotifier extends UserNotifier {
     return [];
   }
 
-  // 🔥 テストコードから好きなタイミングで状態を「強制変更」するための魔法のメソッド
+  // テストコードから好きなタイミングで状態を「強制変更」するためのメソッド
   // ignore: use_setters_to_change_properties
   void changeState(AsyncValue<List<UserModel>> newState) {
     state = newState;
@@ -53,6 +53,7 @@ void main() {
     mockL10n = MockAppLocalizations();
     when(() => mockL10n.userListTitle).thenReturn('User List');
     when(() => mockL10n.errorUnknown).thenReturn('Error Occurred');
+    when(() => mockL10n.close).thenReturn('Close');
   });
 
   UserModel createDummyUser(int id) {
@@ -72,7 +73,7 @@ void main() {
     });
   }
 
-  // 💡 FakeNotifier のインスタンスを保存し、テスト中いつでも操作できるようにする
+  // FakeNotifier のインスタンスを保存し、テスト中いつでも操作できるようにする
   FakeUserNotifier? fakeNotifier;
 
   Future<void> setupWidget(WidgetTester tester) async {
@@ -102,7 +103,7 @@ void main() {
     testWidgets('【状態系】Loading状態の時にインジケータが表示されること', (tester) async {
       await setupWidget(tester);
 
-      // 💡 状態を Loading に「強制変更」
+      // 状態を Loading に「強制変更」
       fakeNotifier!.changeState(const AsyncValue.loading());
       await tester.pump();
 
@@ -114,7 +115,7 @@ void main() {
 
       final dummyUsers = [createDummyUser(1), createDummyUser(2)];
 
-      // 💡 状態を Data に「強制変更」
+      // 状態を Data に「強制変更」
       fakeNotifier!.changeState(AsyncValue.data(dummyUsers));
       await tester.pumpAndSettle();
 
@@ -145,13 +146,12 @@ void main() {
 
       final exception = Exception('API Error');
 
-      // 💡 状態を Error に「強制変更」
+      // 状態を Error に「強制変更」
       fakeNotifier!.changeState(AsyncValue.error(exception, StackTrace.empty));
 
       // UIに新しい状態(Error)を反映させるため、1フレームだけ画面を更新する
       await tester.pump();
 
-      // 🌟 これで絶対にテキストが見つかります！
       expect(find.text('Error Occurred'), findsOneWidget);
 
       // addPostFrameCallback で予約された SnackBar のアニメーションを少しだけ進める
