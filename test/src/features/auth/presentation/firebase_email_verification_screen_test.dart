@@ -60,6 +60,11 @@ void main() {
     when(() => mockL10n.resendVerificationMail).thenReturn('再送信する');
     when(() => mockL10n.emailVerificationWaiting).thenReturn('認証待ちです...');
     when(() => mockL10n.checkVerificationStatus).thenReturn('認証を完了したか確認する');
+    when(() => mockL10n.errorUnknown).thenReturn('予期しないエラーが発生しました。');
+    when(() => mockL10n.close).thenReturn('閉じる');
+    when(
+      () => mockL10n.resendVerificationMailSuccess,
+    ).thenReturn('確認メールを再送信しました'); // 👈 成功メッセージ用
 
     when(() => mockAuthRepo.sendEmailVerification()).thenAnswer((_) async {});
     when(() => mockAuthRepo.reloadCurrentUser()).thenAnswer((_) async {});
@@ -89,7 +94,7 @@ void main() {
   }
 
   group('FirebaseEmailVerificationScreen', () {
-    testWidgets('UIが正しくレンダリングされ、再送信ボタンが動作すること', (tester) async {
+    testWidgets('UIが正しくレンダリングされること', (tester) async {
       when(() => mockUser.emailVerified).thenReturn(false);
 
       final container = ProviderContainer(
@@ -108,14 +113,46 @@ void main() {
       expect(find.text('確認メールを送信しました。'), findsOneWidget);
       expect(find.text('認証を完了したか確認する'), findsOneWidget);
       expect(find.text('認証待ちです...'), findsOneWidget);
-
-      await tester.tap(find.text('再送信する'));
-      await tester.pump();
-
-      verify(() => mockAuthRepo.sendEmailVerification()).called(1);
     });
 
-    testWidgets('手動確認ボタンをタップした時、ユーザー情報がリロードされること', (tester) async {
+    testWidgets('手動確認ボタンタップ時、ローディング表示になりリロード処理が呼ばれること', (tester) async {
+      when(() => mockUser.emailVerified).thenReturn(false);
+
+      // ローディング中の状態（CircularProgressIndicator）をテストするために、
+      // 処理が完了するまでに意図的に少しだけ遅延させる
+      when(() => mockAuthRepo.reloadCurrentUser()).thenAnswer(
+        (_) async => Future.delayed(const Duration(milliseconds: 100)),
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+          firebaseAuthStateProvider.overrideWith(
+            () => FakeFirebaseAuthStateNotifier(mockUser),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(createTestWidget(container));
+      await tester.pumpAndSettle();
+
+      // ボタンをタップ
+      await tester.tap(find.text('認証を完了したか確認する'));
+
+      // ポンプして画面を再描画（まだ非同期処理は終わっていない）
+      await tester.pump();
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      // 非同期処理を最後まで完了させる
+      await tester.pumpAndSettle();
+
+      // ローディングが消え、処理が呼ばれたことを確認
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      verify(() => mockAuthRepo.reloadCurrentUser()).called(1);
+    });
+
+    testWidgets('再送信ボタンをタップした時、処理後に成功スナックバーが表示されること', (tester) async {
       when(() => mockUser.emailVerified).thenReturn(false);
 
       final container = ProviderContainer(
@@ -130,10 +167,40 @@ void main() {
       await tester.pumpWidget(createTestWidget(container));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('認証を完了したか確認する'));
-      await tester.pump();
+      await tester.tap(find.text('再送信する'));
+      await tester.pumpAndSettle();
 
-      verify(() => mockAuthRepo.reloadCurrentUser()).called(1);
+      verify(() => mockAuthRepo.sendEmailVerification()).called(1);
+      // 処理成功後にスナックバーが表示されていることを確認
+      expect(find.byType(SnackBar), findsOneWidget);
+    });
+
+    testWidgets('再送信処理でエラーが起きた場合、エラースナックバーが表示されること', (tester) async {
+      when(() => mockUser.emailVerified).thenReturn(false);
+
+      // 例外を投げるように設定
+      when(
+        () => mockAuthRepo.sendEmailVerification(),
+      ).thenThrow(Exception('Error'));
+
+      final container = ProviderContainer(
+        overrides: [
+          firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+          firebaseAuthStateProvider.overrideWith(
+            () => FakeFirebaseAuthStateNotifier(mockUser),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(createTestWidget(container));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('再送信する'));
+      await tester.pumpAndSettle();
+
+      verify(() => mockAuthRepo.sendEmailVerification()).called(1);
+      // ErrorHandler 経由でエラースナックバーが表示されることを確認
+      expect(find.byType(SnackBar), findsOneWidget);
     });
 
     testWidgets('アプリがバックグラウンドから復帰(resumed)した時、ユーザー情報がリロードされること', (
@@ -189,5 +256,35 @@ void main() {
         expect(find.text('メール認証'), findsNothing);
       },
     );
+
+    testWidgets('手動確認ボタンをタップしてエラーが起きた場合、エラースナックバーが表示されること', (tester) async {
+      when(() => mockUser.emailVerified).thenReturn(false);
+
+      // リロード処理で例外を投げるように設定
+      when(
+        () => mockAuthRepo.reloadCurrentUser(),
+      ).thenThrow(Exception('Reload Error'));
+
+      final container = ProviderContainer(
+        overrides: [
+          firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+          firebaseAuthStateProvider.overrideWith(
+            () => FakeFirebaseAuthStateNotifier(mockUser),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(createTestWidget(container));
+      await tester.pumpAndSettle();
+
+      // 手動確認ボタンをタップ
+      await tester.tap(find.text('認証を完了したか確認する'));
+      await tester.pumpAndSettle();
+
+      verify(() => mockAuthRepo.reloadCurrentUser()).called(1);
+
+      // ErrorHandler 経由でエラースナックバーが表示されることを確認（61行目の通過）
+      expect(find.byType(SnackBar), findsOneWidget);
+    });
   });
 }

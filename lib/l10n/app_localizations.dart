@@ -110,18 +110,6 @@ abstract class AppLocalizations {
   /// **'Hello'**
   String get hello;
 
-  /// No description provided for @login.
-  ///
-  /// In en, this message translates to:
-  /// **'Login'**
-  String get login;
-
-  /// No description provided for @logout.
-  ///
-  /// In en, this message translates to:
-  /// **'Logout'**
-  String get logout;
-
   /// No description provided for @ok.
   ///
   /// In en, this message translates to:
@@ -146,29 +134,113 @@ abstract class AppLocalizations {
   /// **'Close'**
   String get close;
 
-  /// No description provided for @chatEmptyMessage.
+  /// No description provided for @login.
   ///
   /// In en, this message translates to:
-  /// **'The response from AI was empty.'**
-  String get chatEmptyMessage;
+  /// **'Login'**
+  String get login;
 
-  /// No description provided for @chatError.
+  /// No description provided for @logout.
   ///
   /// In en, this message translates to:
-  /// **'An error occurred: {error}'**
-  String chatError(Object error);
+  /// **'Logout'**
+  String get logout;
 
-  /// No description provided for @chatTitle.
+  /// No description provided for @loginTitle.
   ///
   /// In en, this message translates to:
-  /// **'Gemini Assistant'**
-  String get chatTitle;
+  /// **'Login'**
+  String get loginTitle;
 
-  /// No description provided for @chatHint.
+  /// No description provided for @loginEmailLabel.
   ///
   /// In en, this message translates to:
-  /// **'Enter a message...'**
-  String get chatHint;
+  /// **'Email Address'**
+  String get loginEmailLabel;
+
+  /// No description provided for @loginPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get loginPasswordLabel;
+
+  /// No description provided for @loginButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Login'**
+  String get loginButton;
+
+  /// No description provided for @loginSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Login successful!'**
+  String get loginSuccess;
+
+  /// No description provided for @signUpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Up'**
+  String get signUpTitle;
+
+  /// No description provided for @signUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Account'**
+  String get signUp;
+
+  /// No description provided for @googleSignUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Sign In'**
+  String get googleSignUp;
+
+  /// No description provided for @emailVerificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Email Verification'**
+  String get emailVerificationTitle;
+
+  /// No description provided for @emailVerificationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A verification email has been sent.'**
+  String get emailVerificationDescription;
+
+  /// No description provided for @checkVerificationStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Check verification status'**
+  String get checkVerificationStatus;
+
+  /// No description provided for @resendVerificationMail.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend verification email'**
+  String get resendVerificationMail;
+
+  /// No description provided for @resendVerificationMailSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification email has been resent.'**
+  String get resendVerificationMailSuccess;
+
+  /// No description provided for @emailVerificationWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Once your email is verified, you will be redirected automatically.'**
+  String get emailVerificationWaiting;
+
+  /// No description provided for @resetPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
+  String get resetPassword;
+
+  /// No description provided for @resetPasswordMailSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset email has been sent.'**
+  String get resetPasswordMailSent;
 
   /// No description provided for @errorNetwork.
   ///
@@ -217,6 +289,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign up failed.'**
   String get errorSignUpFailed;
+
+  /// No description provided for @errorInvalidEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'The email address is badly formatted.'**
+  String get errorInvalidEmail;
+
+  /// No description provided for @errorUserDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'This account has been disabled.'**
+  String get errorUserDisabled;
+
+  /// No description provided for @errorEmailAlreadyInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'This email address is already in use.'**
+  String get errorEmailAlreadyInUse;
+
+  /// No description provided for @errorWeakPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'The password is too weak. Please make it more complex.'**
+  String get errorWeakPassword;
 
   /// No description provided for @homeTitle.
   ///
@@ -302,23 +398,29 @@ abstract class AppLocalizations {
   /// **'Analytics Test'**
   String get homeAnalyticsTest;
 
-  /// No description provided for @notFoundTitle.
+  /// No description provided for @chatTitle.
   ///
   /// In en, this message translates to:
-  /// **'Page Not Found'**
-  String get notFoundTitle;
+  /// **'Gemini Assistant'**
+  String get chatTitle;
 
-  /// No description provided for @notFoundMessage.
+  /// No description provided for @chatHint.
   ///
   /// In en, this message translates to:
-  /// **'The page could not be found.'**
-  String get notFoundMessage;
+  /// **'Enter a message...'**
+  String get chatHint;
 
-  /// No description provided for @notFoundBackToHome.
+  /// No description provided for @chatEmptyMessage.
   ///
   /// In en, this message translates to:
-  /// **'Back to Home'**
-  String get notFoundBackToHome;
+  /// **'The response from AI was empty.'**
+  String get chatEmptyMessage;
+
+  /// No description provided for @chatError.
+  ///
+  /// In en, this message translates to:
+  /// **'An error occurred: {error}'**
+  String chatError(Object error);
 
   /// No description provided for @settingsTitle.
   ///
@@ -380,36 +482,6 @@ abstract class AppLocalizations {
   /// **'English (en)'**
   String get settingsLocaleEn;
 
-  /// No description provided for @loginTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Login'**
-  String get loginTitle;
-
-  /// No description provided for @loginEmailLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Email Address'**
-  String get loginEmailLabel;
-
-  /// No description provided for @loginPasswordLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Password'**
-  String get loginPasswordLabel;
-
-  /// No description provided for @loginButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Login'**
-  String get loginButton;
-
-  /// No description provided for @loginSuccess.
-  ///
-  /// In en, this message translates to:
-  /// **'Login successful!'**
-  String get loginSuccess;
-
   /// No description provided for @sampleTitle.
   ///
   /// In en, this message translates to:
@@ -428,65 +500,23 @@ abstract class AppLocalizations {
   /// **'User List'**
   String get userListTitle;
 
-  /// No description provided for @signUpTitle.
+  /// No description provided for @notFoundTitle.
   ///
   /// In en, this message translates to:
-  /// **'Sign Up'**
-  String get signUpTitle;
+  /// **'Page Not Found'**
+  String get notFoundTitle;
 
-  /// No description provided for @signUp.
+  /// No description provided for @notFoundMessage.
   ///
   /// In en, this message translates to:
-  /// **'Create Account'**
-  String get signUp;
+  /// **'The page could not be found.'**
+  String get notFoundMessage;
 
-  /// No description provided for @googleSignUp.
+  /// No description provided for @notFoundBackToHome.
   ///
   /// In en, this message translates to:
-  /// **'Google Sign In'**
-  String get googleSignUp;
-
-  /// No description provided for @emailVerificationTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Email Verification'**
-  String get emailVerificationTitle;
-
-  /// No description provided for @emailVerificationDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'A verification email has been sent.'**
-  String get emailVerificationDescription;
-
-  /// No description provided for @checkVerificationStatus.
-  ///
-  /// In en, this message translates to:
-  /// **'Check verification status'**
-  String get checkVerificationStatus;
-
-  /// No description provided for @resendVerificationMail.
-  ///
-  /// In en, this message translates to:
-  /// **'Resend verification email'**
-  String get resendVerificationMail;
-
-  /// No description provided for @emailVerificationWaiting.
-  ///
-  /// In en, this message translates to:
-  /// **'Once your email is verified, you will be redirected automatically.'**
-  String get emailVerificationWaiting;
-
-  /// No description provided for @resetPassword.
-  ///
-  /// In en, this message translates to:
-  /// **'Reset Password'**
-  String get resetPassword;
-
-  /// No description provided for @resetPasswordMailSent.
-  ///
-  /// In en, this message translates to:
-  /// **'Password reset email has been sent.'**
-  String get resetPasswordMailSent;
+  /// **'Back to Home'**
+  String get notFoundBackToHome;
 
   /// No description provided for @versionUpTitle.
   ///

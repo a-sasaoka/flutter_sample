@@ -4,39 +4,39 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('AppException テスト', () {
     group('NetworkException', () {
-      test('通常のネットワークエラーの場合、正しいmessageKeyを返すこと', () {
+      test('通常のネットワークエラーの場合、正しい AppErrorType を返すこと', () {
         const exception = NetworkException(statusCode: 404);
 
-        expect(exception.messageKey, equals('errorNetwork'));
+        expect(exception.type, equals(AppErrorType.network));
         expect(exception.statusCode, equals(404));
       });
 
-      test('statusCodeが500以上の場合、messageKeyが errorServer になること', () {
+      test('statusCodeが500以上の場合、type が AppErrorType.server になること', () {
         const exception = NetworkException(statusCode: 500);
 
-        expect(exception.messageKey, equals('errorServer'));
+        expect(exception.type, equals(AppErrorType.server));
       });
 
-      test('statusCodeがnullの場合、デフォルトの errorNetwork を返すこと', () {
+      test('statusCodeがnullの場合、デフォルトの AppErrorType.network を返すこと', () {
         const exception = NetworkException();
 
-        expect(exception.messageKey, equals('errorNetwork'));
+        expect(exception.type, equals(AppErrorType.network));
       });
     });
 
     group('TimeoutException', () {
-      test('正しいmessageKeyを返すこと', () {
+      test('正しい AppErrorType を返すこと', () {
         const exception = TimeoutException();
 
-        expect(exception.messageKey, equals('errorTimeout'));
+        expect(exception.type, equals(AppErrorType.timeout));
       });
     });
 
     group('UnknownException', () {
-      test('正しいmessageKey、および任意のメッセージを保持できること', () {
+      test('正しい AppErrorType、および任意のメッセージを保持できること', () {
         const exception = UnknownException(message: 'some error');
 
-        expect(exception.messageKey, equals('errorUnknown'));
+        expect(exception.type, equals(AppErrorType.unknown));
         expect(exception.message, equals('some error'));
       });
     });

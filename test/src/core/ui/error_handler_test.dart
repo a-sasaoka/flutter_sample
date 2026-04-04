@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
@@ -8,9 +10,6 @@ import 'package:mocktail/mocktail.dart';
 
 // --- モックとデリゲートの定義 ---
 class MockAppLocalizations extends Mock implements AppLocalizations {}
-
-// フォールバック（未知のキー）のテスト用モック
-class MockUnknownException extends Mock implements UnknownException {}
 
 class _MockLocalizationsDelegate
     extends LocalizationsDelegate<AppLocalizations> {
@@ -30,12 +29,18 @@ void main() {
 
   setUp(() {
     mockL10n = MockAppLocalizations();
-    // 基本スタブ
     when(() => mockL10n.errorNetwork).thenReturn('errorNetwork');
     when(() => mockL10n.errorTimeout).thenReturn('errorTimeout');
     when(() => mockL10n.errorUnknown).thenReturn('errorUnknown');
     when(() => mockL10n.errorServer).thenReturn('errorServer');
     when(() => mockL10n.errorDialogTitle).thenReturn('errorDialogTitle');
+    when(() => mockL10n.errorInvalidEmail).thenReturn('errorInvalidEmail');
+    when(() => mockL10n.errorUserDisabled).thenReturn('errorUserDisabled');
+    when(() => mockL10n.errorLoginFailed).thenReturn('errorLoginFailed');
+    when(
+      () => mockL10n.errorEmailAlreadyInUse,
+    ).thenReturn('errorEmailAlreadyInUse');
+    when(() => mockL10n.errorWeakPassword).thenReturn('errorWeakPassword');
     when(() => mockL10n.ok).thenReturn('ok');
     when(() => mockL10n.close).thenReturn('close');
   });
@@ -86,61 +91,110 @@ void main() {
       expect(result, 'UNIQUE_CUSTOM_MSG');
     });
 
-    testWidgets('2. NetworkException -> errorNetwork 分岐', (tester) async {
-      when(() => mockL10n.errorNetwork).thenReturn('VAL_NETWORK');
-      String? result;
+    testWidgets('2. AppException (Network/Server/Timeout/Unknown) の分岐が正しいこと', (
+      tester,
+    ) async {
       await setupWidget(
         tester,
         onBuild: (context) {
-          result = ErrorHandler.message(context, const NetworkException());
-        },
-      );
-      expect(result, 'VAL_NETWORK');
-    });
-
-    testWidgets('3. NetworkException(500) -> errorServer 分岐', (tester) async {
-      when(() => mockL10n.errorServer).thenReturn('VAL_SERVER');
-      String? result;
-      await setupWidget(
-        tester,
-        onBuild: (context) {
-          result = ErrorHandler.message(
-            context,
-            const NetworkException(statusCode: 500),
+          // それぞれの Enum (型) に応じて正しい多言語化キーが返るか検証
+          expect(
+            ErrorHandler.message(context, const NetworkException()),
+            'errorNetwork',
+          );
+          expect(
+            ErrorHandler.message(
+              context,
+              const NetworkException(statusCode: 500),
+            ),
+            'errorServer',
+          );
+          expect(
+            ErrorHandler.message(context, const TimeoutException()),
+            'errorTimeout',
+          );
+          expect(
+            ErrorHandler.message(context, const UnknownException()),
+            'errorUnknown',
           );
         },
       );
-      expect(result, 'VAL_SERVER');
     });
 
-    testWidgets('4. TimeoutException -> errorTimeout 分岐', (tester) async {
-      when(() => mockL10n.errorTimeout).thenReturn('VAL_TIMEOUT');
-      String? result;
-      await setupWidget(
-        tester,
-        onBuild: (context) {
-          result = ErrorHandler.message(context, const TimeoutException());
-        },
-      );
-      expect(result, 'VAL_TIMEOUT');
-    });
-
-    testWidgets('5. UnknownException (メッセージなし) -> errorUnknown 分岐', (
+    testWidgets('3. DioException でラップされている場合、中身の AppException を取り出して処理すること', (
       tester,
     ) async {
-      when(() => mockL10n.errorUnknown).thenReturn('VAL_UNKNOWN_APP');
       String? result;
       await setupWidget(
         tester,
         onBuild: (context) {
-          result = ErrorHandler.message(context, const UnknownException());
+          // DioException の中に TimeoutException を仕込む
+          final dioError = DioException(
+            requestOptions: RequestOptions(path: '/'),
+            error: const TimeoutException(),
+          );
+          result = ErrorHandler.message(context, dioError);
         },
       );
-      expect(result, 'VAL_UNKNOWN_APP');
+      // TimeoutException として処理されていることを確認
+      expect(result, 'errorTimeout');
     });
 
-    testWidgets('6. 一般的な Object -> errorUnknown 分岐', (tester) async {
-      when(() => mockL10n.errorUnknown).thenReturn('VAL_UNKNOWN_OBJ');
+    testWidgets('4. FirebaseAuthException の各エラーコードが正しく変換されること', (tester) async {
+      await setupWidget(
+        tester,
+        onBuild: (context) {
+          // 各種 Firebase エラーコードの検証
+          expect(
+            ErrorHandler.message(
+              context,
+              FirebaseAuthException(code: 'invalid-email'),
+            ),
+            'errorInvalidEmail',
+          );
+          expect(
+            ErrorHandler.message(
+              context,
+              FirebaseAuthException(code: 'user-disabled'),
+            ),
+            'errorUserDisabled',
+          );
+          expect(
+            ErrorHandler.message(
+              context,
+              FirebaseAuthException(code: 'wrong-password'),
+            ),
+            'errorLoginFailed',
+          );
+          expect(
+            ErrorHandler.message(
+              context,
+              FirebaseAuthException(code: 'email-already-in-use'),
+            ),
+            'errorEmailAlreadyInUse',
+          );
+          expect(
+            ErrorHandler.message(
+              context,
+              FirebaseAuthException(code: 'weak-password'),
+            ),
+            'errorWeakPassword',
+          );
+          // 未定義のコードは errorUnknown にフォールバックすること
+          expect(
+            ErrorHandler.message(
+              context,
+              FirebaseAuthException(code: 'some-unknown-code'),
+            ),
+            'errorUnknown',
+          );
+        },
+      );
+    });
+
+    testWidgets('5. 一般的な Object (予期せぬエラー) は errorUnknown になること', (
+      tester,
+    ) async {
       String? result;
       await setupWidget(
         tester,
@@ -148,27 +202,7 @@ void main() {
           result = ErrorHandler.message(context, Exception('General Error'));
         },
       );
-      expect(result, 'VAL_UNKNOWN_OBJ');
-    });
-
-    testWidgets('7. 未定義の messageKey はそのまま返されること (フォールバック)', (tester) async {
-      final mockException = MockUnknownException();
-
-      // 辞書に存在しない未知のキーを定義
-      when(() => mockException.messageKey).thenReturn('unmapped_error_key');
-      // ※UnknownExceptionのmessageプロパティなどが呼ばれた時用の念のためのスタブ
-      when(() => mockException.message).thenReturn(null);
-
-      String? result;
-      await setupWidget(
-        tester,
-        onBuild: (context) {
-          result = ErrorHandler.message(context, mockException);
-        },
-      );
-
-      // 未知のキーがそのまま返ってくることを期待
-      expect(result, 'unmapped_error_key');
+      expect(result, 'errorUnknown');
     });
   });
 

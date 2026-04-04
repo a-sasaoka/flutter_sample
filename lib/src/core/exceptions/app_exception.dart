@@ -1,5 +1,20 @@
 // API・通信系の共通例外クラス
 
+/// エラーの種類を定義する列挙型
+enum AppErrorType {
+  /// ネットワークエラー
+  network,
+
+  /// タイムアウト
+  timeout,
+
+  /// サーバーエラー
+  server,
+
+  /// その他のエラー
+  unknown,
+}
+
 /// アプリケーション共通の例外基底クラス
 sealed class AppException implements Exception {
   const AppException({this.code});
@@ -8,7 +23,7 @@ sealed class AppException implements Exception {
   final int? code;
 
   /// 多言語化用のメッセージキー
-  String get messageKey;
+  AppErrorType get type;
 }
 
 /// ネットワーク関連の例外
@@ -20,12 +35,12 @@ class NetworkException extends AppException {
   final int? statusCode;
 
   @override
-  String get messageKey {
+  AppErrorType get type {
     // 500番台はサーバーエラーとして扱う
     if (statusCode != null && statusCode! >= 500) {
-      return 'errorServer';
+      return AppErrorType.server;
     }
-    return 'errorNetwork';
+    return AppErrorType.network;
   }
 
   @override
@@ -38,7 +53,7 @@ class TimeoutException extends AppException {
   const TimeoutException({super.code});
 
   @override
-  String get messageKey => 'errorTimeout';
+  AppErrorType get type => AppErrorType.timeout;
 
   @override
   String toString() => 'TimeoutException(code: $code)';
@@ -53,7 +68,7 @@ class UnknownException extends AppException {
   final String? message;
 
   @override
-  String get messageKey => 'errorUnknown';
+  AppErrorType get type => AppErrorType.unknown;
 
   @override
   String toString() => 'UnknownException(message: $message, code: $code)';

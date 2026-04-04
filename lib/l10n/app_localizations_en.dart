@@ -15,12 +15,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hello => 'Hello';
 
   @override
-  String get login => 'Login';
-
-  @override
-  String get logout => 'Logout';
-
-  @override
   String get ok => 'OK';
 
   @override
@@ -33,18 +27,61 @@ class AppLocalizationsEn extends AppLocalizations {
   String get close => 'Close';
 
   @override
-  String get chatEmptyMessage => 'The response from AI was empty.';
+  String get login => 'Login';
 
   @override
-  String chatError(Object error) {
-    return 'An error occurred: $error';
-  }
+  String get logout => 'Logout';
 
   @override
-  String get chatTitle => 'Gemini Assistant';
+  String get loginTitle => 'Login';
 
   @override
-  String get chatHint => 'Enter a message...';
+  String get loginEmailLabel => 'Email Address';
+
+  @override
+  String get loginPasswordLabel => 'Password';
+
+  @override
+  String get loginButton => 'Login';
+
+  @override
+  String get loginSuccess => 'Login successful!';
+
+  @override
+  String get signUpTitle => 'Sign Up';
+
+  @override
+  String get signUp => 'Create Account';
+
+  @override
+  String get googleSignUp => 'Google Sign In';
+
+  @override
+  String get emailVerificationTitle => 'Email Verification';
+
+  @override
+  String get emailVerificationDescription =>
+      'A verification email has been sent.';
+
+  @override
+  String get checkVerificationStatus => 'Check verification status';
+
+  @override
+  String get resendVerificationMail => 'Resend verification email';
+
+  @override
+  String get resendVerificationMailSuccess =>
+      'Verification email has been resent.';
+
+  @override
+  String get emailVerificationWaiting =>
+      'Once your email is verified, you will be redirected automatically.';
+
+  @override
+  String get resetPassword => 'Reset Password';
+
+  @override
+  String get resetPasswordMailSent => 'Password reset email has been sent.';
 
   @override
   String get errorNetwork => 'A network error has occurred.';
@@ -69,6 +106,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorSignUpFailed => 'Sign up failed.';
+
+  @override
+  String get errorInvalidEmail => 'The email address is badly formatted.';
+
+  @override
+  String get errorUserDisabled => 'This account has been disabled.';
+
+  @override
+  String get errorEmailAlreadyInUse => 'This email address is already in use.';
+
+  @override
+  String get errorWeakPassword =>
+      'The password is too weak. Please make it more complex.';
 
   @override
   String get homeTitle => 'Home';
@@ -114,13 +164,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeAnalyticsTest => 'Analytics Test';
 
   @override
-  String get notFoundTitle => 'Page Not Found';
+  String get chatTitle => 'Gemini Assistant';
 
   @override
-  String get notFoundMessage => 'The page could not be found.';
+  String get chatHint => 'Enter a message...';
 
   @override
-  String get notFoundBackToHome => 'Back to Home';
+  String get chatEmptyMessage => 'The response from AI was empty.';
+
+  @override
+  String chatError(Object error) {
+    return 'An error occurred: $error';
+  }
 
   @override
   String get settingsTitle => 'Settings';
@@ -153,21 +208,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLocaleEn => 'English (en)';
 
   @override
-  String get loginTitle => 'Login';
-
-  @override
-  String get loginEmailLabel => 'Email Address';
-
-  @override
-  String get loginPasswordLabel => 'Password';
-
-  @override
-  String get loginButton => 'Login';
-
-  @override
-  String get loginSuccess => 'Login successful!';
-
-  @override
   String get sampleTitle => 'Sample Feature';
 
   @override
@@ -178,36 +218,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get userListTitle => 'User List';
 
   @override
-  String get signUpTitle => 'Sign Up';
+  String get notFoundTitle => 'Page Not Found';
 
   @override
-  String get signUp => 'Create Account';
+  String get notFoundMessage => 'The page could not be found.';
 
   @override
-  String get googleSignUp => 'Google Sign In';
-
-  @override
-  String get emailVerificationTitle => 'Email Verification';
-
-  @override
-  String get emailVerificationDescription =>
-      'A verification email has been sent.';
-
-  @override
-  String get checkVerificationStatus => 'Check verification status';
-
-  @override
-  String get resendVerificationMail => 'Resend verification email';
-
-  @override
-  String get emailVerificationWaiting =>
-      'Once your email is verified, you will be redirected automatically.';
-
-  @override
-  String get resetPassword => 'Reset Password';
-
-  @override
-  String get resetPasswordMailSent => 'Password reset email has been sent.';
+  String get notFoundBackToHome => 'Back to Home';
 
   @override
   String get versionUpTitle => 'A new version is available.\nPlease update.';
