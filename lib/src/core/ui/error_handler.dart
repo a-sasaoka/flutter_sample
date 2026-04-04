@@ -6,6 +6,42 @@ import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:go_router/go_router.dart';
 
+/// Firebase Authentication の公式エラーコード文字列定数群
+///
+/// `FirebaseAuthException` の `code` プロパティと照合するために使用します。
+/// 公式リファレンス: https://firebase.google.com/docs/auth/admin/errors
+class FirebaseAuthErrorCodes {
+  FirebaseAuthErrorCodes._(); // coverage:ignore-line
+
+  /// メールアドレスの形式が不正な場合にスローされます。
+  /// （例: `@` が含まれていない、ドメインがない など）
+  static const invalidEmail = 'invalid-email';
+
+  /// 該当するユーザーアカウントが、Firebaseコンソール等で
+  /// 管理者によって「無効（Disabled）」に設定されている場合にスローされます。
+  static const userDisabled = 'user-disabled';
+
+  /// 指定された識別子（メールアドレス等）に対応するユーザーが存在しない場合にスローされます。
+  /// ※最近のFirebaseでは、セキュリティ向上のため `invalid-credential` に統合される傾向があります。
+  static const userNotFound = 'user-not-found';
+
+  /// パスワードが間違っている場合にスローされます。
+  /// ※最近のFirebaseでは、セキュリティ向上のため `invalid-credential` に統合される傾向があります。
+  static const wrongPassword = 'wrong-password';
+
+  /// 認証情報（メールアドレスとパスワードの組み合わせなど）が間違っている、
+  /// または有効期限が切れている場合にスローされます。
+  /// （セキュリティ上、「メアドがない」のか「パスワードが違う」のかを攻撃者に教えないための汎用エラーです）
+  static const invalidCredential = 'invalid-credential';
+
+  /// 新規登録時、指定したメールアドレスが既に別のアカウントで使用されている場合にスローされます。
+  static const emailAlreadyInUse = 'email-already-in-use';
+
+  /// 新規登録時、指定したパスワードがFirebaseの要件（通常は6文字以上）を
+  /// 満たしておらず、弱すぎる場合にスローされます。
+  static const weakPassword = 'weak-password';
+}
+
 /// エラーをSnackbarまたはDialogで表示する共通関数群
 class ErrorHandler {
   ErrorHandler._(); // coverage:ignore-line
@@ -55,19 +91,18 @@ class ErrorHandler {
     AppLocalizations l10n,
     FirebaseAuthException error,
   ) {
-    // 存在する l10n キーを使いつつ、足りないものは直接文字列で補完しています
     switch (error.code) {
-      case 'invalid-email':
+      case FirebaseAuthErrorCodes.invalidEmail:
         return l10n.errorInvalidEmail;
-      case 'user-disabled':
+      case FirebaseAuthErrorCodes.userDisabled:
         return l10n.errorUserDisabled;
-      case 'user-not-found':
-      case 'wrong-password':
-      case 'invalid-credential':
+      case FirebaseAuthErrorCodes.userNotFound:
+      case FirebaseAuthErrorCodes.wrongPassword:
+      case FirebaseAuthErrorCodes.invalidCredential:
         return l10n.errorLoginFailed;
-      case 'email-already-in-use':
+      case FirebaseAuthErrorCodes.emailAlreadyInUse:
         return l10n.errorEmailAlreadyInUse;
-      case 'weak-password':
+      case FirebaseAuthErrorCodes.weakPassword:
         return l10n.errorWeakPassword;
       default:
         return l10n.errorUnknown;

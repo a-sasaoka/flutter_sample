@@ -144,39 +144,40 @@ void main() {
       await setupWidget(
         tester,
         onBuild: (context) {
-          // 各種 Firebase エラーコードの検証
           expect(
             ErrorHandler.message(
               context,
-              FirebaseAuthException(code: 'invalid-email'),
+              FirebaseAuthException(code: FirebaseAuthErrorCodes.invalidEmail),
             ),
             'errorInvalidEmail',
           );
           expect(
             ErrorHandler.message(
               context,
-              FirebaseAuthException(code: 'user-disabled'),
+              FirebaseAuthException(code: FirebaseAuthErrorCodes.userDisabled),
             ),
             'errorUserDisabled',
           );
           expect(
             ErrorHandler.message(
               context,
-              FirebaseAuthException(code: 'wrong-password'),
+              FirebaseAuthException(code: FirebaseAuthErrorCodes.wrongPassword),
             ),
             'errorLoginFailed',
           );
           expect(
             ErrorHandler.message(
               context,
-              FirebaseAuthException(code: 'email-already-in-use'),
+              FirebaseAuthException(
+                code: FirebaseAuthErrorCodes.emailAlreadyInUse,
+              ),
             ),
             'errorEmailAlreadyInUse',
           );
           expect(
             ErrorHandler.message(
               context,
-              FirebaseAuthException(code: 'weak-password'),
+              FirebaseAuthException(code: FirebaseAuthErrorCodes.weakPassword),
             ),
             'errorWeakPassword',
           );
@@ -184,7 +185,9 @@ void main() {
           expect(
             ErrorHandler.message(
               context,
-              FirebaseAuthException(code: 'some-unknown-code'),
+              FirebaseAuthException(
+                code: 'some-unknown-code',
+              ),
             ),
             'errorUnknown',
           );
