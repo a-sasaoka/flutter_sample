@@ -1,5 +1,3 @@
-// テーマモードの切り替えUI（ドロップダウン + ダークモードの簡易スイッチ）
-
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
@@ -18,120 +16,160 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // アプリ全体の設定をまとめて取得
     final configAsync = ref.watch(appConfigProvider);
-
     final l10n = AppLocalizations.of(context)!;
-
     final useAuth = ref.watch(useFirebaseAuthProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: configAsync.when(
+        loading: () =>
+            const Center(child: CircularProgressIndicator.adaptive()),
+        error: (err, _) => Center(child: Text('Error: $err')),
         data: (tuple) {
-          final themeModeNotifier = ref.read(themeModeProvider.notifier);
-          final localeNotifier = ref.read(localeProvider.notifier);
-          final mode = tuple.theme;
-          final locale = tuple.locale;
-
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text(l10n.settingsThemeSection),
-              const SizedBox(height: 8),
-              DropdownButton<ThemeMode>(
-                value: mode,
-                onChanged: (v) async {
-                  if (v != null) await themeModeNotifier.set(v);
-                },
-                items: [
-                  DropdownMenuItem(
-                    value: ThemeMode.system,
-                    child: Text(
-                      l10n.settingsThemeSystem,
-                    ),
-                  ),
-                  DropdownMenuItem(
-                    value: ThemeMode.light,
-                    child: Text(
-                      l10n.settingsThemeLight,
-                    ),
-                  ),
-                  DropdownMenuItem(
-                    value: ThemeMode.dark,
-                    child: Text(
-                      l10n.settingsThemeDark,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              SwitchListTile(
-                title: Text(l10n.settingsThemeToggle),
-                value: mode == ThemeMode.dark,
-                onChanged: (_) => themeModeNotifier.toggleLightDark(),
-              ),
+              // テーマ設定セクション
+              _ThemeSection(currentMode: tuple.theme),
               const SizedBox(height: 32),
-              Text(l10n.settingsLocaleSection),
-              DropdownButton<String>(
-                value: locale?.languageCode,
-                onChanged: (v) async {
-                  await localeNotifier.setLocale(v);
-                },
-                items: [
-                  DropdownMenuItem(
-                    child: Text(
-                      l10n.settingsLocaleSystem,
-                    ),
-                  ),
-                  DropdownMenuItem(
-                    value: 'ja',
-                    child: Text(l10n.settingsLocaleJa),
-                  ),
-                  DropdownMenuItem(
-                    value: 'en',
-                    child: Text(l10n.settingsLocaleEn),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(l10n.hello),
+
+              // 言語設定セクション
+              _LocaleSection(currentLocale: tuple.locale),
+
               if (useAuth) ...[
                 const SizedBox(height: 32),
-                // 🚪 ログアウト（SignOut）ボタン
-                ElevatedButton.icon(
-                  key: const Key('logout_button'),
-                  icon: const Icon(Icons.logout),
-                  label: Text(l10n.logout),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                  ),
-                  onPressed: () async {
-                    try {
-                      await ref.read(firebaseAuthRepositoryProvider).signOut();
-
-                      // --- ログアウト成功 → ログイン画面へ遷移 ---
-                      if (context.mounted) {
-                        const LoginRoute().go(context);
-                      }
-                    } on Exception catch (e) {
-                      if (context.mounted) {
-                        ErrorHandler.showSnackBar(
-                          context,
-                          e,
-                        );
-                      }
-                    }
-                  },
-                ),
+                // ログアウトボタン
+                const _LogoutButton(),
               ],
             ],
           );
         },
-        loading: () =>
-            const Center(child: CircularProgressIndicator.adaptive()),
-        error: (err, _) => Center(child: Text('Error: $err')),
       ),
+    );
+  }
+}
+
+/// テーマ設定セクション
+class _ThemeSection extends ConsumerWidget {
+  const _ThemeSection({required this.currentMode});
+
+  final ThemeMode currentMode;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final themeModeNotifier = ref.read(themeModeProvider.notifier);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.settingsThemeSection),
+        const SizedBox(height: 8),
+        DropdownButton<ThemeMode>(
+          value: currentMode,
+          onChanged: (v) async {
+            if (v != null) await themeModeNotifier.set(v);
+          },
+          items: [
+            DropdownMenuItem(
+              value: ThemeMode.system,
+              child: Text(l10n.settingsThemeSystem),
+            ),
+            DropdownMenuItem(
+              value: ThemeMode.light,
+              child: Text(l10n.settingsThemeLight),
+            ),
+            DropdownMenuItem(
+              value: ThemeMode.dark,
+              child: Text(l10n.settingsThemeDark),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        SwitchListTile(
+          title: Text(l10n.settingsThemeToggle),
+          value: currentMode == ThemeMode.dark,
+          onChanged: (_) => themeModeNotifier.toggleLightDark(),
+        ),
+      ],
+    );
+  }
+}
+
+/// 言語（ロケール）設定セクション
+class _LocaleSection extends ConsumerWidget {
+  const _LocaleSection({required this.currentLocale});
+
+  final Locale? currentLocale;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final localeNotifier = ref.read(localeProvider.notifier);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.settingsLocaleSection),
+        DropdownButton<String>(
+          value: currentLocale?.languageCode,
+          onChanged: (v) async {
+            await localeNotifier.setLocale(v);
+          },
+          items: [
+            DropdownMenuItem(
+              child: Text(l10n.settingsLocaleSystem),
+            ),
+            DropdownMenuItem(
+              value: 'ja',
+              child: Text(l10n.settingsLocaleJa),
+            ),
+            DropdownMenuItem(
+              value: 'en',
+              child: Text(l10n.settingsLocaleEn),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(l10n.hello),
+      ],
+    );
+  }
+}
+
+/// ログアウトボタン
+class _LogoutButton extends ConsumerWidget {
+  const _LogoutButton();
+
+  // ログアウトの「ロジック」だけを独立したメソッドとして定義
+  Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref.read(firebaseAuthRepositoryProvider).signOut();
+
+      if (context.mounted) {
+        const LoginRoute().go(context);
+      }
+    } on Exception catch (e) {
+      if (context.mounted) {
+        ErrorHandler.showSnackBar(context, e);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return ElevatedButton.icon(
+      key: const Key('logout_button'),
+      icon: const Icon(Icons.logout),
+      label: Text(l10n.logout),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.redAccent,
+        foregroundColor: Colors.white,
+      ),
+      onPressed: () => _handleLogout(context, ref),
     );
   }
 }

@@ -253,7 +253,12 @@ void main() {
           await tester.pumpWidget(createTestWidget());
           await tester.pumpAndSettle();
 
-          await tester.tap(find.byKey(const Key('logout_button')));
+          final logoutButton = find.byKey(const Key('logout_button'));
+
+          // 画面サイズによってはログアウトボタンが隠れている可能性があるため、見える位置までスクロールする
+          await tester.ensureVisible(logoutButton);
+
+          await tester.tap(logoutButton);
           await tester.pumpAndSettle();
 
           verify(() => mockAuthRepo.signOut()).called(1);
@@ -267,7 +272,12 @@ void main() {
           await tester.pumpWidget(createTestWidget());
           await tester.pumpAndSettle();
 
-          await tester.tap(find.byKey(const Key('logout_button')));
+          final logoutButton = find.byKey(const Key('logout_button'));
+
+          // 画面サイズによってはログアウトボタンが隠れている可能性があるため、見える位置までスクロールする
+          await tester.ensureVisible(logoutButton);
+
+          await tester.tap(logoutButton);
           await tester.pump();
 
           verify(() => mockAuthRepo.signOut()).called(1);
