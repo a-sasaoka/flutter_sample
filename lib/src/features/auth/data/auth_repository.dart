@@ -7,18 +7,28 @@ part 'auth_repository.g.dart';
 /// 認証リポジトリ
 @Riverpod(keepAlive: true)
 AuthRepository authRepository(Ref ref) {
-  return AuthRepository(ref);
+  return AuthRepository(
+    api: ref.watch(apiClientProvider),
+    tokenStorage: ref.watch(tokenStorageProvider),
+  );
 }
 
 /// 認証リポジトリの実装クラス
 class AuthRepository {
   /// コンストラクタ
-  AuthRepository(this._ref);
-  final Ref _ref;
+  AuthRepository({
+    required this.api,
+    required this.tokenStorage,
+  });
+
+  /// APIクライアント
+  final ApiClient api;
+
+  /// トークンストレージ
+  final TokenStorage tokenStorage;
 
   /// ログインAPIを呼び出し、トークンを保存する
   Future<void> login(String email, String password) async {
-    final api = _ref.read(apiClientProvider);
     final response = await api.post<Map<String, dynamic>>(
       '/auth/login',
       data: {
@@ -34,20 +44,17 @@ class AuthRepository {
       throw Exception('Invalid token response from server');
     }
 
-    await _ref
-        .read(tokenStorageProvider)
-        .saveTokens(
-          accessToken: access,
-          refreshToken: refresh,
-        );
+    await tokenStorage.saveTokens(
+      accessToken: access,
+      refreshToken: refresh,
+    );
   }
 
   /// リフレッシュトークンAPIを呼び出し、アクセストークンを更新する
   Future<bool> refreshToken() async {
-    final refresh = await _ref.read(tokenStorageProvider).getRefreshToken();
+    final refresh = await tokenStorage.getRefreshToken();
     if (refresh == null) return false;
 
-    final api = _ref.read(apiClientProvider);
     final response = await api.post<Map<String, dynamic>>(
       '/auth/refresh',
       data: {'refresh_token': refresh},
@@ -56,12 +63,10 @@ class AuthRepository {
     final access = response.data?['access_token'] as String?;
     if (access == null) return false;
 
-    await _ref
-        .read(tokenStorageProvider)
-        .saveTokens(
-          accessToken: access,
-          refreshToken: refresh,
-        );
+    await tokenStorage.saveTokens(
+      accessToken: access,
+      refreshToken: refresh,
+    );
     return true;
   }
 }

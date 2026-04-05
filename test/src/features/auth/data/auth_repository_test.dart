@@ -121,7 +121,7 @@ void main() {
       ).thenAnswer((_) async => mockResponse);
 
       // Act & Assert
-      expect(
+      await expectLater(
         () => repo.login('test@example.com', 'password123'),
         throwsA(
           isA<Exception>().having(
@@ -227,5 +227,28 @@ void main() {
         expect(fakeStorage.savedRefreshToken, 'valid_refresh');
       });
     });
+  });
+
+  group('authRepositoryProvider', () {
+    test(
+      '依存関係（APIクライアントとトークンストレージ）が正しく注入された AuthRepository のインスタンスを提供すること',
+      () {
+        // 1. Arrange (準備)
+        final fakeStorage = FakeTokenStorage();
+
+        // 依存するプロバイダーをモック・フェイクにすり替えたコンテナを作成
+        final container = createContainer(fakeStorage);
+
+        // 2. Act (実行)
+        // テスト対象のプロバイダーを読み込む
+        final repository = container.read(authRepositoryProvider);
+
+        // 3. Assert (検証)
+        expect(repository, isA<AuthRepository>());
+
+        expect(repository.api, equals(mockApi));
+        expect(repository.tokenStorage, equals(fakeStorage));
+      },
+    );
   });
 }
