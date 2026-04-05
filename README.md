@@ -36,6 +36,7 @@ Flutter開発のサンプルプロジェクトです。\
 - [Firebase Crashlytics](docs/crashlytics.md)
 - [Firebase Analytics](docs/analytics.md)
 - [バージョンアップ通知（Firebase Remote Config）](docs/remote_config.md)
+- [AIチャット機能 (Firebase AI Logic)](docs/ai_chat.md)
 
 ### E. 開発運用
 

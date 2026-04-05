@@ -15,13 +15,15 @@ class NotFoundScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.notFoundTitle)),
+      appBar: AppBar(title: Text(l10n.notFoundTitle)),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(AppLocalizations.of(context)!.notFoundMessage),
+            Text(l10n.notFoundMessage),
             if (unknownPath != null) ...[
               const SizedBox(height: 8),
               Text('path: $unknownPath'),
@@ -29,7 +31,7 @@ class NotFoundScreen extends StatelessWidget {
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => context.go('/'),
-              child: Text(AppLocalizations.of(context)!.notFoundBackToHome),
+              child: Text(l10n.notFoundBackToHome),
             ),
           ],
         ),

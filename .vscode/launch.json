@@ -6,40 +6,28 @@
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
-      "args": [
-        "--dart-define=FLUTTER_ENV=local",
-        "--dart-define-from-file=.env.local"
-      ]
+      "args": ["--dart-define-from-file=.env.local"]
     },
     {
       "name": "Dev",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
-      "args": [
-        "--dart-define=FLUTTER_ENV=dev",
-        "--dart-define-from-file=.env.dev"
-      ]
+      "args": ["--dart-define-from-file=.env.dev"]
     },
     {
       "name": "Staging",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
-      "args": [
-        "--dart-define=FLUTTER_ENV=stg",
-        "--dart-define-from-file=.env.stg"
-      ]
+      "args": ["--dart-define-from-file=.env.stg"]
     },
     {
       "name": "Prod",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
-      "args": [
-        "--dart-define=FLUTTER_ENV=prod",
-        "--dart-define-from-file=.env.prod"
-      ]
+      "args": ["--dart-define-from-file=.env.prod"]
     }
   ]
 }

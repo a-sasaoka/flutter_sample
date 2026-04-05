@@ -30,6 +30,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get send => 'Send';
 
   @override
+  String get chatEmptyMessage => 'The response from AI was empty.';
+
+  @override
+  String chatError(Object error) {
+    return 'An error occurred: $error';
+  }
+
+  @override
+  String get chatTitle => 'Gemini Assistant';
+
+  @override
+  String get chatHint => 'Enter a message...';
+
+  @override
   String get errorNetwork => 'A network error has occurred.';
 
   @override
@@ -74,6 +88,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeToResetPassword => 'Go to Reset Password';
+
+  @override
+  String get homeToChat => 'Go to AI Chat';
 
   @override
   String get homeToNotFound => 'Navigate to invalid path (NotFound test)';

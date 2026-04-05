@@ -45,14 +45,11 @@ abstract class AppEnv {
   @EnviedField(varName: 'USE_FIREBASE_AUTH')
   static final bool useFirebaseAuth = _AppEnv.useFirebaseAuth;
 
-  /// ================================
-  /// 🌎 現在の実行環境（手動設定）
-  /// ================================
-  static const String environment = _envName;
+  /// App Checkのデバッグ用トークン
+  @EnviedField(varName: 'DEBUG_TOKEN')
+  static final String debugToken = _AppEnv.debugToken;
 
-  // 環境識別子
-  static const String _envName = String.fromEnvironment(
-    'FLUTTER_ENV',
-    defaultValue: 'local',
-  );
+  /// AIモデル
+  @EnviedField(varName: 'AI_MODEL')
+  static final String aiModel = _AppEnv.aiModel;
 }

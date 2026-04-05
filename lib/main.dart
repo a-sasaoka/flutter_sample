@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +28,17 @@ Future<void> main() async {
   // Firebaseの初期化（DefaultFirebaseOptionsは環境別の内容を読み込む）
   await Firebase.initializeApp(options: firebaseOptionsWithFlavor(flavor));
 
+  // デバッグ用のトークン
+  final myDebugToken = AppEnv.debugToken;
+
+  // App Checkの有効化（デバッグモード）
+  await FirebaseAppCheck.instance.activate(
+    // Androidのエミュレータ/実機用のデバッグプロバイダ
+    providerAndroid: AndroidDebugProvider(debugToken: myDebugToken),
+    // iOSのシミュレータ/実機用のデバッグプロバイダ
+    providerApple: AppleDebugProvider(debugToken: myDebugToken),
+  );
+
   // Crashlytics: Flutterエラーを記録
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
 
@@ -44,10 +56,7 @@ Future<void> main() async {
   await analytics.logEvent(
     event: AnalyticsEvent.appStarted,
     parameters: {
-      'env': const String.fromEnvironment(
-        'FLUTTER_ENV',
-        defaultValue: 'unknown',
-      ),
+      'env': flavor.name,
     },
   );
   container.dispose();
