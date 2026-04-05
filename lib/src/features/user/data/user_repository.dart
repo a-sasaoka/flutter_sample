@@ -2,21 +2,38 @@
 
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/storage/cache_manager.dart';
-import 'package:flutter_sample/src/features/user/data/user_model.dart';
+import 'package:flutter_sample/src/features/user/domain/user_model.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'user_repository.g.dart';
 
-/// ユーザーリポジトリ
+/// UserRepositoryを提供するプロバイダ
 @riverpod
-class UserRepository extends _$UserRepository {
-  @override
-  void build() {}
+UserRepository userRepository(Ref ref) {
+  return UserRepository(
+    api: ref.watch(apiClientProvider),
+    cache: ref.watch(cacheManagerProvider),
+  );
+}
+
+/// UserRepository本体
+class UserRepository {
+  /// コンストラクタ
+  const UserRepository({
+    required this.api,
+    required this.cache,
+  });
+
+  /// APIクライアント
+  final ApiClient api;
+
+  /// キャッシュマネージャー
+  final CacheManager cache;
 
   /// ユーザー一覧を取得
   Future<List<UserModel>> fetchUsers() async {
     const cacheKey = 'users';
-    final cache = ref.read(cacheManagerProvider);
+
     final cachedData = await cache.get(cacheKey);
 
     if (cachedData != null) {
@@ -27,7 +44,6 @@ class UserRepository extends _$UserRepository {
     }
 
     // APIから取得
-    final api = ref.read(apiClientProvider);
     final response = await api.get<List<dynamic>>('/users');
     final users = response.data!
         .map((e) => UserModel.fromJson(e as Map<String, dynamic>))

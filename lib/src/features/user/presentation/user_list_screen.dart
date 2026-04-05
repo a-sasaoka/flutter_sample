@@ -13,14 +13,23 @@ class UserListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final users = ref.watch(userProvider);
     final l10n = AppLocalizations.of(context)!;
+
+    // エラー時のスナックバー表示は `ref.listen` で監視する
+    // これにより、ビルド中の副作用（何度もスナックバーが出る等）を完全に防げます
+    ref.listen(userProvider, (previous, next) {
+      if (!next.isLoading && next.hasError) {
+        ErrorHandler.showSnackBar(context, next.error!);
+      }
+    });
+
+    final usersAsync = ref.watch(userProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.userListTitle)),
-      body: users.when(
+      body: usersAsync.when(
         data: (list) => RefreshIndicator(
-          onRefresh: () => ref.read(userProvider.notifier).refresh(),
+          onRefresh: () => ref.refresh(userProvider.future),
           child: ListView.builder(
             itemCount: list.length,
             itemBuilder: (context, index) {
@@ -35,15 +44,9 @@ class UserListScreen extends ConsumerWidget {
           ),
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) {
-          // 画面を表示した後にスナックバーを表示する
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            ErrorHandler.showSnackBar(context, e);
-          });
-          return Center(
-            child: Text(l10n.errorUnknown),
-          );
-        },
+        error: (e, _) => Center(
+          child: Text(l10n.errorUnknown),
+        ),
       ),
     );
   }

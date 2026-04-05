@@ -1,41 +1,34 @@
+import 'dart:async';
+
 import 'package:flutter_sample/src/features/user/application/user_notifier.dart';
-import 'package:flutter_sample/src/features/user/data/user_model.dart';
 import 'package:flutter_sample/src/features/user/data/user_repository.dart';
+import 'package:flutter_sample/src/features/user/domain/user_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:mocktail/mocktail.dart';
 
-// UserRepository のフェイク（確実な結果を返す本物の代替品）
-class FakeUserRepository extends UserRepository {
-  FakeUserRepository({this.mockResult, this.mockError});
-
-  List<UserModel>? mockResult;
-  Exception? mockError;
-
-  @override
-  dynamic build() => null;
-
-  @override
-  Future<List<UserModel>> fetchUsers() async {
-    if (mockError != null) throw mockError!;
-    return mockResult ?? [];
-  }
-}
+// --- モッククラス ---
+class MockUserRepository extends Mock implements UserRepository {}
 
 void main() {
-  /// ProviderContainer を作成するヘルパー関数
-  ProviderContainer makeProviderContainer(FakeUserRepository fakeRepo) {
+  late MockUserRepository mockRepository;
+
+  setUp(() {
+    mockRepository = MockUserRepository();
+  });
+
+  // テスト用のコンテナを作成する（ここでモックに差し替える）
+  ProviderContainer createContainer() {
     final container = ProviderContainer(
       overrides: [
-        userRepositoryProvider.overrideWith(() => fakeRepo),
+        userRepositoryProvider.overrideWithValue(mockRepository),
       ],
     );
     addTearDown(container.dispose);
     return container;
   }
 
-  /// テスト用の UserModel ダミーデータを生成するヘルパー関数
-  /// Freezed の fromJson を使えば、Address クラスの構造を完全に知らなくても
-  /// 最低限の JSON マップから安全にインスタンス化できます！
+  // ダミーデータ生成ヘルパー
   UserModel createDummyUser(int id) {
     return UserModel.fromJson({
       'id': id,
@@ -56,93 +49,72 @@ void main() {
     });
   }
 
-  group('UserNotifier Coverage 100% Test', () {
-    test('【正常系】build(): 初期化時に fetchUsers が呼ばれ、AsyncData になること', () async {
-      // 本物のインスタンスをダミーデータとして用意
-      final dummyUsers = [createDummyUser(1), createDummyUser(2)];
+  group('UserNotifier', () {
+    test('正常系: データが正しく取得でき、AsyncData になること', () async {
+      // Arrange
+      final dummyUsers = [createDummyUser(1)];
+      when(
+        () => mockRepository.fetchUsers(),
+      ).thenAnswer((_) async => dummyUsers);
 
-      final fakeRepo = FakeUserRepository(mockResult: dummyUsers);
-      final container = makeProviderContainer(fakeRepo);
+      final container = createContainer();
 
-      final result = await container.read(userProvider.future);
+      // プロバイダーを起動し、自動破棄を防ぐリスナー
+      final subscription = container.listen(userProvider, (_, _) {});
 
-      expect(result, dummyUsers);
+      // 初回は Loading
+      expect(
+        container.read(userProvider),
+        isA<AsyncLoading<List<UserModel>>>(),
+      );
+
+      // .future には触らず、Dartの内部処理（マイクロタスク）が1周するのを待つだけ
+      await Future<void>.delayed(Duration.zero);
+
+      // Assert: 状態が AsyncData に更新されていることを確認
       final state = container.read(userProvider);
       expect(state, isA<AsyncData<List<UserModel>>>());
+      expect(state.value, dummyUsers);
+
+      // リスナーを閉じる
+      subscription.close();
     });
 
-    test('【異常系】build(): fetchUsers で例外が発生した場合、AsyncError になること', () async {
-      final exception = Exception('Fetch Error');
-      final fakeRepo = FakeUserRepository(mockError: exception);
-      final container = makeProviderContainer(fakeRepo)
-        // ダミーのリスナーを登録し、テストが終わるまでプロバイダーを「生存」させる
-        ..listen(userProvider, (_, _) {});
+    test('異常系: エラーが発生した場合、エラー状態になること', () async {
+      // Arrange
+      final exception = Exception('API Error');
+      // 非同期エラーを確実に再現するため async => throw を使用
+      when(
+        () => mockRepository.fetchUsers(),
+      ).thenAnswer((_) async => throw exception);
 
-      // AsyncError が投げられることを検証
-      await expectLater(
-        container.read(userProvider.future),
-        throwsA(isA<Exception>()),
-      );
+      final container = createContainer();
 
-      final state = container.read(userProvider);
-      expect(state, isA<AsyncError<List<UserModel>>>());
-    });
+      // 状態の完了を待つための Completer
+      final completer = Completer<void>();
 
-    test('【正常系】refresh(): AsyncLoading を経て、最新のデータで AsyncData になること', () async {
-      final initialUsers = [createDummyUser(1)];
-      final newUsers = [createDummyUser(1), createDummyUser(2)];
-
-      final fakeRepo = FakeUserRepository(mockResult: initialUsers);
-      final container = makeProviderContainer(fakeRepo);
-
-      // 1. 初期化を待つ
-      await container.read(userProvider.future);
-
-      // 2. フェイクのリポジトリが返すデータを新しいものに差し替える
-      fakeRepo.mockResult = newUsers;
-
-      final states = <AsyncValue<List<UserModel>>>[];
+      // リスナーで状態を監視し、Loading が終わった（またはエラーが出た）ら完了とする
       container.listen(
         userProvider,
-        (_, next) => states.add(next),
+        (previous, next) {
+          // next.hasError: エラーを保持しているか
+          // !next.isLoading: 読み込み中でないか
+          if (next.hasError || !next.isLoading) {
+            if (!completer.isCompleted) completer.complete();
+          }
+        },
+        fireImmediately: true,
       );
 
-      // 3. refresh 実行
-      await container.read(userProvider.notifier).refresh();
+      // Act: Completer が完了するまで待つ
+      await completer.future;
 
-      // 4. Loading -> Data の遷移を検証
-      expect(states.length, 2);
-      expect(states[0], isA<AsyncLoading<List<UserModel>>>());
-      expect(states[1], isA<AsyncData<List<UserModel>>>());
+      // Assert: 最終的な状態をチェック
+      final state = container.read(userProvider);
 
-      // データが更新されているか検証
-      expect(states[1].value, newUsers);
+      // Riverpod の状態が「エラーを保持していること」を確認
+      expect(state.hasError, isTrue, reason: 'エラーを保持しているはず');
+      expect(state.error, exception, reason: '投げた例外と一致するはず');
     });
-
-    test(
-      '【異常系】refresh(): 例外が発生した場合、AsyncLoading を経て AsyncError になること',
-      () async {
-        final fakeRepo = FakeUserRepository(mockResult: []);
-        final container = makeProviderContainer(fakeRepo);
-
-        await container.read(userProvider.future);
-
-        // エラーを投げるように仕込む
-        fakeRepo.mockError = Exception('Refresh Error');
-
-        final states = <AsyncValue<List<UserModel>>>[];
-        container.listen(
-          userProvider,
-          (_, next) => states.add(next),
-        );
-
-        await container.read(userProvider.notifier).refresh();
-
-        // Loading -> Error の遷移を検証
-        expect(states.length, 2);
-        expect(states[0], isA<AsyncLoading<List<UserModel>>>());
-        expect(states[1], isA<AsyncError<List<UserModel>>>());
-      },
-    );
   });
 }

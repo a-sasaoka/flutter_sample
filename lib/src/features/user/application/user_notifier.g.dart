@@ -36,7 +36,7 @@ final class UserNotifierProvider
   UserNotifier create() => UserNotifier();
 }
 
-String _$userNotifierHash() => r'3d6914a6992fa754b69e6c5158226cc0fdd38272';
+String _$userNotifierHash() => r'deead7d97e37ee70f881800694d25d4e2e72aeff';
 
 /// UserNotifier
 
