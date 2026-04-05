@@ -1,7 +1,3 @@
-// MaterialApp.router に GoRouter を渡すのがポイントです。
-// Riverpod を使うために最上位に ProviderScope を置きます。
-// theme/darkTheme/themeMode を追加します。
-
 import 'dart:async';
 import 'dart:ui';
 
@@ -57,31 +53,32 @@ Future<void> main() async {
     return true;
   };
 
-  final container = ProviderContainer();
-  final analytics = container.read(analyticsServiceProvider);
+  final container = ProviderContainer(
+    overrides: [
+      // プロバイダーにFlavorを設定
+      flavorProvider.overrideWithValue(flavor),
 
+      // プロバイダーにPackageInfoを設定
+      packageInfoProvider.overrideWithValue(packageInfo),
+
+      // プロバイダーにTokenRefreshCallbackを設定
+      tokenRefreshCallbackProvider.overrideWith(
+        (ref) => ref.watch(authRepositoryProvider).refreshToken,
+      ),
+    ],
+  );
+
+  // コンテナからアナリティクスを読み込んで送信
+  final analytics = container.read(analyticsServiceProvider);
   await analytics.logEvent(
     event: AnalyticsEvent.appStarted,
-    parameters: {
-      'env': flavor.name,
-    },
+    parameters: {'env': flavor.name},
   );
-  container.dispose();
 
+  // コンテナは破棄 (dispose) せず、そのままアプリに渡す
   runApp(
-    ProviderScope(
-      overrides: [
-        // プロバイダーにFlavorを設定
-        flavorProvider.overrideWithValue(flavor),
-
-        // プロバイダーにPackageInfoを設定
-        packageInfoProvider.overrideWithValue(packageInfo),
-
-        // プロバイダーにTokenRefreshCallbackを設定
-        tokenRefreshCallbackProvider.overrideWith(
-          (ref) => ref.watch(authRepositoryProvider).refreshToken,
-        ),
-      ],
+    UncontrolledProviderScope(
+      container: container,
       child: const MyApp(),
     ),
   );
@@ -99,42 +96,41 @@ class MyApp extends ConsumerWidget {
 
     return configAsync.when(
       data: (tuple) {
-        final router = tuple.router;
-        final themeMode = tuple.theme;
-        final locale = tuple.locale;
-
         return MaterialApp.router(
-          locale: locale,
+          locale: tuple.locale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          title: '', // temporary placeholder
+          title: '',
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
-          themeMode: themeMode,
-          routerConfig: router,
+          themeMode: tuple.theme,
+          routerConfig: tuple.router,
           debugShowCheckedModeBanner: false,
           builder: (context, child) => _AppTitleWrapper(child: child),
         );
       },
-      loading: () => const MaterialApp(
-        home: Scaffold(
-          body: Center(child: CircularProgressIndicator()),
+      loading: () => const Directionality(
+        // MaterialAppやMaterialApp.routerを使わない
+        textDirection: TextDirection.ltr,
+        child: ColoredBox(
+          color: Colors.white,
+          child: Center(child: CircularProgressIndicator()),
         ),
       ),
-      error: (err, _) {
-        final l10n = AppLocalizations.of(context);
-        return MaterialApp(
-          home: Scaffold(
-            body: Center(
-              child: Text(
-                l10n != null
-                    ? '${l10n.errorOccurred}: $err'
-                    : 'Error occurred: $err',
-              ),
+      error: (err, _) => Directionality(
+        // MaterialAppやMaterialApp.routerを使わない
+        textDirection: TextDirection.ltr,
+        child: ColoredBox(
+          color: Colors.white,
+          child: Center(
+            child: Text(
+              'Fatal Error / A fatal error has occurred.\n$err',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.black, fontSize: 14),
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
@@ -149,13 +145,12 @@ class _AppTitleWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     if (l10n == null || child == null) {
-      return const SizedBox.shrink();
+      return child ?? const SizedBox.shrink();
     }
 
     return Title(
       title: l10n.appTitle,
       color: Theme.of(context).colorScheme.surface,
-      // MediaQueryをそのまま渡すだけなら冗長ですが、将来的なフォントサイズ制限などのために残す場合はここに記述します
       child: child!,
     );
   }
