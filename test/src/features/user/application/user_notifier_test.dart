@@ -116,5 +116,41 @@ void main() {
       expect(state.hasError, isTrue, reason: 'エラーを保持しているはず');
       expect(state.error, exception, reason: '投げた例外と一致するはず');
     });
+
+    test('refresh: forceRefresh=true でデータが再取得され、状態が更新されること', () async {
+      // Arrange
+      final initialUsers = [createDummyUser(1)];
+      final refreshedUsers = [createDummyUser(2), createDummyUser(3)];
+
+      // 1. 初回の build() 用（引数なし）
+      when(
+        () => mockRepository.fetchUsers(),
+      ).thenAnswer((_) async => initialUsers);
+
+      // 2. refresh() 用（forceRefresh: true）
+      when(
+        () => mockRepository.fetchUsers(forceRefresh: true),
+      ).thenAnswer((_) async => refreshedUsers);
+
+      final container = createContainer();
+      final subscription = container.listen(userProvider, (_, _) {});
+
+      // 初回の読み込み完了を待つ
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(userProvider).value, initialUsers);
+
+      // Act: refresh を実行
+      await container.read(userProvider.notifier).refresh();
+
+      // Assert: 状態が「新しいデータ」に更新されていること
+      final state = container.read(userProvider);
+      expect(state, isA<AsyncData<List<UserModel>>>());
+      expect(state.value, refreshedUsers);
+
+      // Repository のメソッドが、確実に `forceRefresh: true` を伴って呼ばれたことを証明
+      verify(() => mockRepository.fetchUsers(forceRefresh: true)).called(1);
+
+      subscription.close();
+    });
   });
 }

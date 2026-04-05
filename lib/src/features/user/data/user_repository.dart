@@ -31,16 +31,19 @@ class UserRepository {
   final CacheManager cache;
 
   /// ユーザー一覧を取得
-  Future<List<UserModel>> fetchUsers() async {
+  /// [forceRefresh] true の場合はキャッシュを無視してAPIから再取得する
+  Future<List<UserModel>> fetchUsers({bool forceRefresh = false}) async {
     const cacheKey = 'users';
 
-    final cachedData = await cache.get(cacheKey);
-
-    if (cachedData != null) {
-      // キャッシュから読み込む
-      return (cachedData as List)
-          .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
-          .toList(growable: false);
+    // 強制更新でない場合のみ、キャッシュを確認する
+    if (!forceRefresh) {
+      final cachedData = await cache.get(cacheKey);
+      if (cachedData != null) {
+        // キャッシュから読み込む
+        return (cachedData as List)
+            .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
+            .toList(growable: false);
+      }
     }
 
     // APIから取得
@@ -49,7 +52,7 @@ class UserRepository {
         .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
         .toList(growable: false);
 
-    // キャッシュに保存
+    // キャッシュに保存（上書き）
     await cache.save(cacheKey, response.data);
 
     return users;

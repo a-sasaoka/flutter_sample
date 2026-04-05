@@ -114,8 +114,15 @@ void main() {
     testWidgets('【正常系】引っ張って更新（Pull-to-Refresh）でデータが再取得されること', (tester) async {
       // Arrange
       final dummyUsers = [createDummyUser(1)];
+
+      // 初回表示用（引数なし）のモック
       when(
         () => mockRepository.fetchUsers(),
+      ).thenAnswer((_) async => dummyUsers);
+
+      // 引っ張って更新用（forceRefresh: true）のモック
+      when(
+        () => mockRepository.fetchUsers(forceRefresh: true),
       ).thenAnswer((_) async => dummyUsers);
 
       await pumpUserListScreen(tester);
@@ -129,8 +136,8 @@ void main() {
       await tester.fling(find.byType(ListView), const Offset(0, 300), 1000);
       await tester.pumpAndSettle();
 
-      // Assert: ref.refresh が呼ばれ、裏側で再度Repositoryの通信が走ったことを検証！
-      verify(() => mockRepository.fetchUsers()).called(1);
+      // Assert: ref.refresh が呼ばれ、裏側で「確実に forceRefresh: true の通信が」走ったことを検証
+      verify(() => mockRepository.fetchUsers(forceRefresh: true)).called(1);
     });
 
     testWidgets('【異常系】Error状態でエラー文とSnackBarが表示されること', (tester) async {

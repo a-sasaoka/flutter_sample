@@ -29,7 +29,7 @@ class UserListScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(l10n.userListTitle)),
       body: usersAsync.when(
         data: (list) => RefreshIndicator(
-          onRefresh: () => ref.refresh(userProvider.future),
+          onRefresh: () => ref.read(userProvider.notifier).refresh(),
           child: ListView.builder(
             itemCount: list.length,
             itemBuilder: (context, index) {

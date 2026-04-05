@@ -100,6 +100,34 @@ void main() {
       verify(() => mockCache.save('users', dummyJsonList)).called(1);
     });
 
+    test('forceRefresh が true の場合、キャッシュを無視してAPIからデータを再取得し、保存すること', () async {
+      // Arrange (準備)
+      // APIクライアントは正常にレスポンスを返すように設定
+      final mockResponse = MockResponse();
+      when(() => mockResponse.data).thenReturn(dummyJsonList);
+      when(
+        () => mockApi.get<List<dynamic>>('/users'),
+      ).thenAnswer((_) async => mockResponse);
+
+      when(
+        () => mockCache.save('users', dummyJsonList),
+      ).thenAnswer((_) async {});
+
+      // Act (実行)
+      // 引数に forceRefresh: true を渡す
+      final result = await repository.fetchUsers(forceRefresh: true);
+
+      // Assert (検証)
+      expect(result.length, 1);
+      expect(result.first.name, 'Test User 1');
+
+      verifyNever(() => mockCache.get(any<String>()));
+
+      // API通信が1回呼ばれ、取得したデータがキャッシュに1回保存されていることを確認
+      verify(() => mockApi.get<List<dynamic>>('/users')).called(1);
+      verify(() => mockCache.save('users', dummyJsonList)).called(1);
+    });
+
     test('API通信でエラーが発生した場合、例外がそのまま投げられ、キャッシュは保存されないこと', () async {
       // Arrange (準備)
       final exception = Exception('API Error');
@@ -130,7 +158,7 @@ void main() {
         final mockApi = MockApiClient();
         final mockCache = MockCacheManager();
 
-        // 💡 依存する根元のプロバイダーをモックにすり替えたコンテナを作成
+        // 依存する根元のプロバイダーをモックにすり替えたコンテナを作成
         final container = ProviderContainer(
           overrides: [
             apiClientProvider.overrideWithValue(mockApi),
@@ -140,14 +168,12 @@ void main() {
         addTearDown(container.dispose);
 
         // 2. Act (実行)
-        // 💡 テスト対象のプロバイダーを読み込む
+        // テスト対象のプロバイダーを読み込む
         final repository = container.read(userRepositoryProvider);
 
         // 3. Assert (検証)
-        // ① 正しく UserRepository のインスタンスが生成されているか
         expect(repository, isA<UserRepository>());
 
-        // ② コンストラクタ経由で注入されたプロパティが、私たちが用意したモックと「完全に同一のインスタンス」であるか
         expect(repository.api, equals(mockApi));
         expect(repository.cache, equals(mockCache));
       },
