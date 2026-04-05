@@ -1,18 +1,15 @@
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
+import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:uuid/uuid.dart';
 
 part 'chat_notifier.g.dart';
 
 /// チャットのやり取りを管理するプロバイダー
 @riverpod
 class ChatNotifier extends _$ChatNotifier {
-  // メモリ効率のため静的（static const）で一意のID生成器を保持
-  static const _uuid = Uuid();
-
   // ストリーミング中（生成中）かどうかを判定する排他制御フラグ
   bool _isGenerating = false;
 
@@ -33,7 +30,7 @@ class ChatNotifier extends _$ChatNotifier {
     _isGenerating = true;
 
     // 事前にAIのメッセージIDを発行し、ローディングと共に追加
-    final targetAiId = _uuid.v4();
+    final targetAiId = ref.read(uuidProvider).v4();
     _addMessageAndLoading(text, targetAiId);
 
     try {
@@ -86,7 +83,7 @@ class ChatNotifier extends _$ChatNotifier {
     _isGenerating = true;
 
     // 事前にAIのメッセージIDを発行し、ローディングと共に追加
-    final targetAiId = _uuid.v4();
+    final targetAiId = ref.read(uuidProvider).v4();
     _addMessageAndLoading(text, targetAiId);
 
     try {
@@ -154,7 +151,7 @@ class ChatNotifier extends _$ChatNotifier {
     state = [
       ...state,
       ChatMessage.user(
-        id: _uuid.v4(),
+        id: ref.read(uuidProvider).v4(),
         text: text,
         createdAt: now,
       ),

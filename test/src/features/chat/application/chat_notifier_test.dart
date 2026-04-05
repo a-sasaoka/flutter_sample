@@ -1,12 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
+import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:uuid/data.dart';
+import 'package:uuid/uuid.dart';
 
 // --- Fake Repository ---
 // Streamの挙動を完全にコントロールするためのFakeクラス
@@ -50,6 +53,17 @@ class FakeChatRepository extends Fake implements ChatRepository {
   }
 }
 
+// --- Fake Uuid ---
+// ランダムな UUID 生成を固定化・予測可能にするための Fake クラス
+class FakeUuid extends Fake implements Uuid {
+  int _counter = 0;
+  @override
+  String v4({V4Options? config, Map<String, dynamic>? options}) {
+    _counter++;
+    return 'fake-uuid-$_counter';
+  }
+}
+
 void main() {
   /// テスト環境のセットアップヘルパー
   ProviderContainer createContainer(FakeChatRepository fakeRepo) {
@@ -60,6 +74,7 @@ void main() {
       overrides: [
         chatRepositoryProvider.overrideWithValue(fakeRepo),
         currentDateTimeProvider.overrideWithValue(fixedDateTime),
+        uuidProvider.overrideWithValue(FakeUuid()),
       ],
     );
     addTearDown(container.dispose);
