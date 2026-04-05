@@ -100,6 +100,28 @@ void main() {
       verify(() => mockCache.save('users', dummyJsonList)).called(1);
     });
 
+    test('APIからのレスポンスデータが null の場合、空のリストが返され、キャッシュは保存されないこと', () async {
+      // Arrange (準備)
+      // キャッシュが存在しないように設定
+      when(() => mockCache.get('users')).thenAnswer((_) async => null);
+
+      // APIクライアントは、data が null のレスポンスを返す
+      final mockResponse = MockResponse();
+      when(() => mockResponse.data).thenReturn(null);
+      when(
+        () => mockApi.get<List<dynamic>>('/users'),
+      ).thenAnswer((_) async => mockResponse);
+
+      // Act (実行)
+      final result = await repository.fetchUsers();
+
+      // Assert (検証)
+      expect(result, isEmpty);
+
+      verify(() => mockApi.get<List<dynamic>>('/users')).called(1);
+      verifyNever(() => mockCache.save(any<String>(), any<dynamic>()));
+    });
+
     test('forceRefresh が true の場合、キャッシュを無視してAPIからデータを再取得し、保存すること', () async {
       // Arrange (準備)
       // APIクライアントは正常にレスポンスを返すように設定

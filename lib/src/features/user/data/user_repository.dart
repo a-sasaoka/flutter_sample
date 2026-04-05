@@ -48,7 +48,11 @@ class UserRepository {
 
     // APIから取得
     final response = await api.get<List<dynamic>>('/users');
-    final users = response.data!
+    final data = response.data;
+    if (data == null) {
+      return [];
+    }
+    final users = data
         .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
         .toList(growable: false);
 
