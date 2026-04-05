@@ -173,8 +173,15 @@ class ChatNotifier extends _$ChatNotifier {
   /// AIに送るプロンプトにシステム日時を付加する
   String _buildPromptWithTime(String originalText) {
     final now = ref.read(currentDateTimeProvider);
-    return '（※システム情報: 現在時刻は ${now.year}年${now.month}月${now.day}日'
-        ' ${now.hour}時${now.minute}分 です）\n$originalText';
+
+    final year = now.year;
+    final month = now.month.toString().padLeft(2, '0');
+    final day = now.day.toString().padLeft(2, '0');
+    final hour = now.hour.toString().padLeft(2, '0');
+    final minute = now.minute.toString().padLeft(2, '0');
+
+    return '[System Information: Current Time is $year-$month-$day '
+        '$hour:$minute]\n$originalText';
   }
 
   /// UI側でボタンの活性/非活性を制御するためのゲッター

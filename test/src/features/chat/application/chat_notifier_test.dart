@@ -190,7 +190,7 @@ void main() {
         // 2. 日付コンテキスト（システム情報）が正しく Repository に渡されたかの検証
         expect(
           fakeRepo.lastStreamText,
-          '（※システム情報: 現在時刻は 2026年3月21日 10時0分 です）\nストリームテスト',
+          '[System Information: Current Time is 2026-03-21 10:00]\nストリームテスト',
         );
       });
 
