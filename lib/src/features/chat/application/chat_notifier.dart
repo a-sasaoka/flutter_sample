@@ -10,8 +10,11 @@ part 'chat_notifier.g.dart';
 /// チャットのやり取りを管理するプロバイダー
 @riverpod
 class ChatNotifier extends _$ChatNotifier {
-  // 一意のIDを生成するためのインスタンス
-  final _uuid = const Uuid();
+  // メモリ効率のため静的（static const）で一意のID生成器を保持
+  static const _uuid = Uuid();
+
+  // ストリーミング中（生成中）かどうかを判定する排他制御フラグ
+  bool _isGenerating = false;
 
   @override
   List<ChatMessage> build() {
@@ -22,92 +25,131 @@ class ChatNotifier extends _$ChatNotifier {
 
   /// メッセージを送信するメソッド
   Future<void> sendMessage(String text) async {
-    if (text.trim().isEmpty) return;
+    // 空文字の送信や、生成中の連打を防ぐ
+    if (text.trim().isEmpty || _isGenerating) {
+      return;
+    }
 
-    _addMessageAndLoading(text);
+    _isGenerating = true;
+
+    // 事前にAIのメッセージIDを発行し、ローディングと共に追加
+    final targetAiId = _uuid.v4();
+    _addMessageAndLoading(text, targetAiId);
 
     try {
       final repository = ref.read(chatRepositoryProvider);
       final promptWithTime = _buildPromptWithTime(text);
       final responseText = await repository.sendMessage(promptWithTime);
 
+      if (!ref.mounted) {
+        return;
+      }
+
       final now = ref.read(currentDateTimeProvider);
-      _replaceLastMessage(
+
+      // IDを指定してAIのメッセージに差し替え（競合対策）
+      _updateMessageById(
+        targetAiId,
         ChatMessage.ai(
-          id: _uuid.v4(),
+          id: targetAiId,
           text: responseText,
           createdAt: now,
         ),
       );
     } on Exception catch (e) {
+      if (!ref.mounted) {
+        return;
+      }
+
       final now = ref.read(currentDateTimeProvider);
-      _replaceLastMessage(
+      _updateMessageById(
+        targetAiId,
         ChatMessage.error(
-          id: _uuid.v4(),
+          id: targetAiId,
           error: e,
           createdAt: now,
         ),
       );
+    } finally {
+      _isGenerating = false;
+      state = [...state];
     }
   }
 
   /// メッセージを送信するメソッド（Stream版）
   Future<void> sendMessageStream(String text) async {
-    if (text.trim().isEmpty) return;
+    // 空文字の送信や、生成中の連打を防ぐ
+    if (text.trim().isEmpty || _isGenerating) {
+      return;
+    }
 
-    _addMessageAndLoading(text);
+    _isGenerating = true;
+
+    // 事前にAIのメッセージIDを発行し、ローディングと共に追加
+    final targetAiId = _uuid.v4();
+    _addMessageAndLoading(text, targetAiId);
 
     try {
       final repository = ref.read(chatRepositoryProvider);
       final promptWithTime = _buildPromptWithTime(text);
       final stream = repository.sendMessageStream(promptWithTime);
 
+      var aiResponseText = '';
       var isFirstChunk = true;
+      late DateTime aiMessageCreatedAt;
+      final buffer = StringBuffer();
 
       await for (final chunk in stream) {
-        if (isFirstChunk) {
-          // 最初の1文字目でローディングをAIメッセージに差し替え
-          final now = ref.read(currentDateTimeProvider);
-          _replaceLastMessage(
-            ChatMessage.ai(
-              id: _uuid.v4(),
-              text: chunk,
-              createdAt: now,
-            ),
-          );
-          isFirstChunk = false;
-        } else {
-          // 2回目以降は既存のテキストに継ぎ足し
-          final lastMessage = state.last;
-          if (lastMessage is ChatMessageAi) {
-            _replaceLastMessage(
-              ChatMessage.ai(
-                id: lastMessage.id, // 既存のIDを引き継ぐ！
-                text: lastMessage.text + chunk,
-                createdAt: lastMessage.createdAt, // 既存の時刻を引き継ぐ！
-              ),
-            );
-          }
+        if (!ref.mounted) {
+          return;
         }
+
+        if (isFirstChunk) {
+          // 最初のチャンクが届いた瞬間の時刻を記録
+          aiMessageCreatedAt = ref.read(currentDateTimeProvider);
+          isFirstChunk = false;
+        }
+
+        buffer.write(chunk);
+        aiResponseText = buffer.toString();
+
+        // 既存のIDと時刻を引き継ぎながら、テキストを更新（競合対策）
+        _updateMessageById(
+          targetAiId,
+          ChatMessage.ai(
+            id: targetAiId,
+            text: aiResponseText,
+            createdAt: aiMessageCreatedAt,
+          ),
+        );
       }
 
       if (isFirstChunk) {
         throw ChatEmptyResponseException(); // 空のままStreamが終わった場合
       }
     } on Exception catch (e) {
+      if (!ref.mounted) {
+        return;
+      }
+
       final now = ref.read(currentDateTimeProvider);
-      _replaceLastMessage(
+      _updateMessageById(
+        targetAiId,
         ChatMessage.error(
-          id: _uuid.v4(),
+          id: targetAiId,
           error: e,
           createdAt: now,
         ),
       );
+    } finally {
+      _isGenerating = false;
+      state = [...state];
     }
   }
 
   /// ユーザーメッセージとローディング状態をセットで追加する
-  void _addMessageAndLoading(String text) {
+  /// [targetAiId] は後で上書き検索するための目印
+  void _addMessageAndLoading(String text, String targetAiId) {
     final now = ref.read(currentDateTimeProvider);
     state = [
       ...state,
@@ -117,18 +159,17 @@ class ChatNotifier extends _$ChatNotifier {
         createdAt: now,
       ),
       ChatMessage.loading(
-        id: _uuid.v4(),
+        id: targetAiId,
         createdAt: now,
       ),
     ];
   }
 
-  /// 状態リストの「最後の要素」を新しいメッセージに差し替える
-  void _replaceLastMessage(ChatMessage newMessage) {
-    if (state.isEmpty) return;
+  /// 状態リストの中から特定のIDを探して新しいメッセージに差し替える
+  void _updateMessageById(String targetId, ChatMessage newMessage) {
     state = [
-      ...state.sublist(0, state.length - 1),
-      newMessage,
+      for (final msg in state)
+        if (msg.id == targetId) newMessage else msg,
     ];
   }
 
@@ -138,4 +179,7 @@ class ChatNotifier extends _$ChatNotifier {
     return '（※システム情報: 現在時刻は ${now.year}年${now.month}月${now.day}日'
         ' ${now.hour}時${now.minute}分 です）\n$originalText';
   }
+
+  /// UI側でボタンの活性/非活性を制御するためのゲッター
+  bool get isGenerating => _isGenerating;
 }

@@ -15,6 +15,10 @@ class FakeChatRepository extends Fake implements ChatRepository {
   bool shouldStreamThrow = false;
   bool streamEmpty = false;
 
+  // 排他制御（連打防止）が正しく機能しているか確認するためのカウンター
+  int sendMessageCallCount = 0;
+  int sendMessageStreamCallCount = 0;
+
   // Streamで流す分割された文字列（チャンク）
   List<String> streamChunks = ['AI', 'からの', '返答です'];
 
@@ -23,20 +27,24 @@ class FakeChatRepository extends Fake implements ChatRepository {
 
   @override
   Future<String> sendMessage(String text) async {
+    sendMessageCallCount++;
     if (shouldThrow) throw Exception('API Error');
+    // 非同期処理（生成中）をシミュレートするため少し待つ
+    await Future<void>.delayed(const Duration(milliseconds: 50));
     return '単発のAI返答';
   }
 
   @override
   Stream<String> sendMessageStream(String text) async* {
+    sendMessageStreamCallCount++;
     lastStreamText = text;
 
     if (shouldStreamThrow) throw Exception('Stream API Error');
     if (streamEmpty) return; // 空のStreamを返して終了
 
     for (final chunk in streamChunks) {
-      // Streamが徐々に流れてくる様子をシミュレート
-      await Future<void>.delayed(const Duration(milliseconds: 1));
+      // Streamが徐々に流れてくる様子をシミュレート（生成中の隙間を作る）
+      await Future<void>.delayed(const Duration(milliseconds: 20));
       yield chunk;
     }
   }
@@ -55,6 +63,9 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
+
+    container.listen(chatProvider, (_, _) {});
+
     return container;
   }
 
@@ -77,6 +88,7 @@ void main() {
         await notifier.sendMessage('   '); // スペースのみ
 
         expect(container.read(chatProvider), isEmpty);
+        expect(fakeRepo.sendMessageCallCount, 0); // 呼ばれていないこと
       });
 
       test('正常系: ユーザーのメッセージとAIの返答がstateに追加されること', () async {
@@ -96,7 +108,29 @@ void main() {
         expect(state.last.toString(), contains('単発のAI返答'));
       });
 
-      test('異常系: 例外が発生した場合、最後の要素がエラーメッセージに差し替わること', () async {
+      test('排他制御: 生成中に連続で送信しても、2回目以降は無視されること', () async {
+        final fakeRepo = FakeChatRepository();
+        final container = createContainer(fakeRepo);
+        final notifier = container.read(chatProvider.notifier);
+
+        // 1回目を await せずに実行し、状態を生成中（isGenerating = true）にする
+        final future1 = notifier.sendMessage('1回目');
+
+        // 瞬時に2回目を実行（ブロックされるはず）
+        final future2 = notifier.sendMessage('2回目');
+
+        // 両方の完了を待つ
+        await Future.wait([future1, future2]);
+
+        final state = container.read(chatProvider);
+
+        // 結果検証: リポジトリは1回しか呼ばれておらず、リストも2つ（1回目の質問と答え）のみ
+        expect(fakeRepo.sendMessageCallCount, 1);
+        expect(state.length, 2);
+        expect(state.first.toString(), contains('1回目'));
+      });
+
+      test('異常系: 例外が発生した場合、対象の要素がエラーメッセージに差し替わること', () async {
         final fakeRepo = FakeChatRepository()..shouldThrow = true;
         final container = createContainer(fakeRepo);
         final notifier = container.read(chatProvider.notifier);
@@ -119,6 +153,7 @@ void main() {
         await notifier.sendMessageStream('   ');
 
         expect(container.read(chatProvider), isEmpty);
+        expect(fakeRepo.sendMessageStreamCallCount, 0);
       });
 
       test('正常系: システム日時が付与され、Streamから届くチャンクが結合されていくこと', () async {
@@ -144,6 +179,29 @@ void main() {
         );
       });
 
+      test('排他制御: Stream生成中に連続で送信しても、2回目以降は無視されること', () async {
+        final fakeRepo = FakeChatRepository();
+        final container = createContainer(fakeRepo);
+        final notifier = container.read(chatProvider.notifier);
+
+        // 1回目を await せずに実行
+        final future1 = notifier.sendMessageStream('1回目のStream');
+
+        expect(notifier.isGenerating, isTrue); // 生成中になっていること
+
+        // 瞬時に2回目を実行（ブロックされるはず）
+        final future2 = notifier.sendMessageStream('2回目のStream');
+
+        // 両方の完了を待つ
+        await Future.wait([future1, future2]);
+
+        final state = container.read(chatProvider);
+
+        expect(notifier.isGenerating, isFalse); // 生成が終わっていること
+        expect(fakeRepo.sendMessageStreamCallCount, 1);
+        expect(state.length, 2);
+      });
+
       test(
         '異常系: Stream が空っぽで終わった場合、ChatEmptyResponseException としてエラー表示になること',
         () async {
@@ -161,7 +219,7 @@ void main() {
         },
       );
 
-      test('異常系: Stream の途中で例外が発生した場合、エラー表示になること', () async {
+      test('異常系: Stream の途中で例外が発生した場合、対象要素がエラー表示になること', () async {
         final fakeRepo = FakeChatRepository()..shouldStreamThrow = true;
         final container = createContainer(fakeRepo);
         final notifier = container.read(chatProvider.notifier);

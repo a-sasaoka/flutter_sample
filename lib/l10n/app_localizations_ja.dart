@@ -165,6 +165,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chatHint => 'メッセージを入力...';
 
   @override
+  String get thinking => 'AIが考え中...';
+
+  @override
   String get chatEmptyMessage => 'AIからの返答が空でした。';
 
   @override

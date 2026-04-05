@@ -410,6 +410,12 @@ abstract class AppLocalizations {
   /// **'Enter a message...'**
   String get chatHint;
 
+  /// No description provided for @thinking.
+  ///
+  /// In en, this message translates to:
+  /// **'AI is thinking...'**
+  String get thinking;
+
   /// No description provided for @chatEmptyMessage.
   ///
   /// In en, this message translates to:

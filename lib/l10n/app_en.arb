@@ -62,6 +62,7 @@
   "@_CHAT": {},
   "chatTitle": "Gemini Assistant",
   "chatHint": "Enter a message...",
+  "thinking": "AI is thinking...",
   "chatEmptyMessage": "The response from AI was empty.",
   "chatError": "An error occurred: {error}",
 

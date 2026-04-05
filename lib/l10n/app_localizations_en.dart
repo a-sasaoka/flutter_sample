@@ -170,6 +170,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatHint => 'Enter a message...';
 
   @override
+  String get thinking => 'AI is thinking...';
+
+  @override
   String get chatEmptyMessage => 'The response from AI was empty.';
 
   @override

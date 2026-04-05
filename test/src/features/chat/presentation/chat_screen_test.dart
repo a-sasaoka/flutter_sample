@@ -28,13 +28,22 @@ class _MockLocalizationsDelegate
 // --- Fake Notifier ---
 // Riverpodの AutoDisposeNotifier を継承し、ChatNotifierのフリをする
 class FakeChatNotifier extends ChatNotifier {
-  FakeChatNotifier(this.initialState);
+  FakeChatNotifier({
+    this.initialState = const [],
+    this.initialIsGenerating = false,
+  });
+
   final List<ChatMessage> initialState;
+
+  bool initialIsGenerating;
 
   String? calledStreamText;
 
   @override
   List<ChatMessage> build() => initialState;
+
+  @override
+  bool get isGenerating => initialIsGenerating;
 
   @override
   Future<void> sendMessageStream(String text) async {
@@ -49,6 +58,13 @@ class FakeChatNotifier extends ChatNotifier {
   void updateMessages(List<ChatMessage> newMessages) {
     state = newMessages;
   }
+
+  // テスト中に isGenerating の状態を切り替えてUIを再描画させるヘルパー
+  void setGeneratingState({required bool isGenerating}) {
+    initialIsGenerating = isGenerating;
+    // state を再代入して Riverpod に変更を検知させ、UIをリビルドする
+    state = [...state];
+  }
 }
 
 void main() {
@@ -59,6 +75,7 @@ void main() {
     when(() => mockL10n.chatTitle).thenReturn('チャット画面');
     when(() => mockL10n.chatHint).thenReturn('メッセージを入力');
     when(() => mockL10n.chatEmptyMessage).thenReturn('AIからの返答が空でした');
+    when(() => mockL10n.thinking).thenReturn('AIが考え中...');
     when(
       () => mockL10n.chatError(any()),
     ).thenAnswer((inv) => 'エラー: ${inv.positionalArguments[0]}');
@@ -68,8 +85,12 @@ void main() {
   Future<FakeChatNotifier> setupWidget(
     WidgetTester tester, {
     List<ChatMessage> initialMessages = const [],
+    bool initialIsGenerating = false,
   }) async {
-    final fakeNotifier = FakeChatNotifier(initialMessages);
+    final fakeNotifier = FakeChatNotifier(
+      initialState: initialMessages,
+      initialIsGenerating: initialIsGenerating,
+    );
 
     await tester.pumpWidget(
       ProviderScope(
@@ -135,6 +156,60 @@ void main() {
 
       // 6. 時間表示の検証 (loading以外の4つの吹き出しで '14:05' が表示されているか)
       expect(find.text('14:05'), findsNWidgets(4));
+    });
+
+    testWidgets('UI状態: 生成中(isGenerating=true)の時、入力フォームとボタンが非活性になること', (
+      tester,
+    ) async {
+      // 最初から生成中の状態で画面を起動する
+      final fakeNotifier = await setupWidget(tester, initialIsGenerating: true);
+
+      // 1. TextField の検証
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(textField.enabled, isFalse, reason: '生成中は入力を受け付けないこと');
+
+      // InputDecoration の hintText を検証
+      final inputDecoration = textField.decoration;
+      expect(inputDecoration?.hintText, 'AIが考え中...', reason: 'ヒントが変わっていること');
+
+      // 2. 送信ボタン（IconButton）の検証
+      final iconButton = tester.widget<IconButton>(find.byType(IconButton));
+      expect(iconButton.onPressed, isNull, reason: '生成中はボタンが押せない(null)こと');
+
+      // 3. ボタンの背景色（CircleAvatar）の検証
+      final circleAvatar = tester.widget<CircleAvatar>(
+        find.byType(CircleAvatar),
+      );
+      expect(circleAvatar.backgroundColor, Colors.grey, reason: 'グレーになっていること');
+
+      // --- Act: 生成完了の状態に切り替える ---
+      fakeNotifier.setGeneratingState(isGenerating: false);
+      await tester.pumpAndSettle();
+
+      // --- Assert: UIが元の活性状態に戻ったか ---
+      final restoredTextField = tester.widget<TextField>(
+        find.byType(TextField),
+      );
+      expect(restoredTextField.enabled, isTrue, reason: '入力可能に戻っていること');
+      expect(restoredTextField.decoration?.hintText, 'メッセージを入力');
+
+      final restoredIconButton = tester.widget<IconButton>(
+        find.byType(IconButton),
+      );
+      expect(
+        restoredIconButton.onPressed,
+        isNotNull,
+        reason: '再び押せるようになっていること',
+      );
+
+      final restoredCircleAvatar = tester.widget<CircleAvatar>(
+        find.byType(CircleAvatar),
+      );
+      expect(
+        restoredCircleAvatar.backgroundColor,
+        Colors.blueAccent,
+        reason: '元の色に戻っていること',
+      );
     });
 
     testWidgets('送信アクション: テキスト入力後に送信ボタンを押すと、メソッドが呼ばれフォームがクリアされること', (
@@ -206,7 +281,6 @@ void main() {
       // Act: テキストを入力
       await tester.enterText(textField, 'Enterキーで送信！');
 
-      // 💡 ここがポイント！
       // ソフトウェアキーボードの「完了(Done/Enter)キー」を押した動作をエミュレートし、
       // TextFieldの `onSubmitted` を発火させます。
       await tester.testTextInput.receiveAction(TextInputAction.done);

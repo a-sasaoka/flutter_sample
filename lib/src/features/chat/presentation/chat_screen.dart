@@ -15,6 +15,9 @@ class ChatScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final messages = ref.watch(chatProvider);
+
+    final isGenerating = ref.watch(chatProvider.notifier).isGenerating;
+
     final textController = useTextEditingController();
     final scrollController = useScrollController();
     final l10n = AppLocalizations.of(context)!;
@@ -106,8 +109,10 @@ class ChatScreen extends HookConsumerWidget {
                   Expanded(
                     child: TextField(
                       controller: textController,
+                      // 生成中は TextField への入力を無効化する
+                      enabled: !isGenerating,
                       decoration: InputDecoration(
-                        hintText: l10n.chatHint,
+                        hintText: isGenerating ? l10n.thinking : l10n.chatHint,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
@@ -117,7 +122,8 @@ class ChatScreen extends HookConsumerWidget {
                       ),
                       // Enterキー（完了）を押した時も送信できるようにする
                       onSubmitted: (text) async {
-                        if (text.trim().isEmpty) return;
+                        // 生成中は送信できないようにブロック
+                        if (text.trim().isEmpty || isGenerating) return;
                         textController.clear();
                         await ref
                             .read(chatProvider.notifier)
@@ -127,24 +133,24 @@ class ChatScreen extends HookConsumerWidget {
                   ),
                   const SizedBox(width: 8),
                   CircleAvatar(
-                    backgroundColor: Colors.blueAccent,
+                    backgroundColor: isGenerating
+                        ? Colors.grey
+                        : Colors.blueAccent,
                     child: IconButton(
                       icon: const Icon(Icons.send, color: Colors.white),
-                      onPressed: () async {
-                        // 1. 送信するテキストを変数に保持
-                        final text = textController.text;
-                        if (text.trim().isEmpty) return; // 空送信防止
+                      // 生成中は onPressed を null にして完全にボタンを無効化する
+                      onPressed: isGenerating
+                          ? null
+                          : () async {
+                              final text = textController.text;
+                              if (text.trim().isEmpty) return;
 
-                        // 2. 即座に入力フォームをクリア（ユーザーを待たせない）
-                        textController.clear();
+                              textController.clear();
 
-                        // 3. AIにメッセージを送信
-                        // AI回答をリアルタイムで表示する場合はsendMessageStreamを使う
-                        // AI回答を全て取得して表示する場合はsendMessageを使う
-                        await ref
-                            .read(chatProvider.notifier)
-                            .sendMessageStream(text);
-                      },
+                              await ref
+                                  .read(chatProvider.notifier)
+                                  .sendMessageStream(text);
+                            },
                     ),
                   ),
                 ],
@@ -158,20 +164,18 @@ class ChatScreen extends HookConsumerWidget {
 
   // 共通の吹き出しUIウィジェット
   Widget _buildBubble({
-    required Key key, // 💡 ListView最適化のためのKey
+    required Key key,
     required String text,
     required bool isUser,
     required Color color,
     required Color textColor,
-    required DateTime createdAt, // 💡 送信時刻
+    required DateTime createdAt,
     required BuildContext context,
   }) {
-    // 時間を「14:05」のようなフォーマットの文字列にする
     final timeString =
         '${createdAt.hour.toString().padLeft(2, '0')}:'
         '${createdAt.minute.toString().padLeft(2, '0')}';
 
-    // 時間を表示するちっちゃいテキストウィジェット
     final timeWidget = Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Text(
@@ -183,9 +187,7 @@ class ChatScreen extends HookConsumerWidget {
       ),
     );
 
-    // 吹き出し本体
     final bubble = Container(
-      // 💡 画面幅の75%を最大幅にして、文字が長すぎても画面端までいかないようにする
       constraints: BoxConstraints(
         maxWidth: MediaQuery.sizeOf(context).width * 0.75,
       ),
@@ -218,17 +220,15 @@ class ChatScreen extends HookConsumerWidget {
       key: key,
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        // ユーザーなら右寄せ、AIなら左寄せ
         mainAxisAlignment: isUser
             ? MainAxisAlignment.end
             : MainAxisAlignment.start,
-        // 下揃え（吹き出しの一番下と時間を揃える）
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (isUser) timeWidget,
           if (isUser) const SizedBox(width: 8),
 
-          bubble, // 吹き出し本体
+          bubble,
 
           if (!isUser) const SizedBox(width: 8),
           if (!isUser) timeWidget,
