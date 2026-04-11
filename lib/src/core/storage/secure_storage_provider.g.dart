@@ -8,9 +8,12 @@ part of 'secure_storage_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// FlutterSecureStorage をアプリ全体で共有する Provider
 
 @ProviderFor(secureStorage)
 const secureStorageProvider = SecureStorageProvider._();
+
+/// FlutterSecureStorage をアプリ全体で共有する Provider
 
 final class SecureStorageProvider
     extends
@@ -20,6 +23,7 @@ final class SecureStorageProvider
           FlutterSecureStorage
         >
     with $Provider<FlutterSecureStorage> {
+  /// FlutterSecureStorage をアプリ全体で共有する Provider
   const SecureStorageProvider._()
     : super(
         from: null,
@@ -54,4 +58,4 @@ final class SecureStorageProvider
   }
 }
 
-String _$secureStorageHash() => r'a258bda40d2f36685fbecdd5f830905be2798ff2';
+String _$secureStorageHash() => r'3f86743cbe4607b66acc21d23adde6a8e6aef97f';
