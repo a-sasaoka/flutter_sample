@@ -1,4 +1,5 @@
 /// 共通で利用する Analytics イベント名をまとめる
+/// 記録したいイベントが増えた場合はここで追加していく
 enum AnalyticsEvent {
   /// アプリ起動
   appStarted('app_started'),

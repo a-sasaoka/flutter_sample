@@ -1,5 +1,3 @@
-// 共通のDioインターセプタを定義
-
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/logger_provider.dart';
@@ -26,6 +24,7 @@ InterceptorsWrapper dioInterceptor(Ref ref) {
     onError: (DioException e, handler) {
       logger.e('❌ Error: ${e.message}');
 
+      // エラーの種類に応じて例外を生成する
       final exception = switch (e.type) {
         DioExceptionType.connectionTimeout ||
         DioExceptionType.receiveTimeout ||

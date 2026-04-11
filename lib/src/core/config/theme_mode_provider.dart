@@ -1,5 +1,3 @@
-// SharedPreferences を使ってテーマモードを永続化する。
-
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';

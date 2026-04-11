@@ -4,7 +4,7 @@ import 'package:flutter_sample/src/features/auth/application/firebase_auth_state
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-/// 認証状態に応じてリダイレクト先を判定するガード
+/// 認証状態に応じてリダイレクト先を判定するガード（Firebase Authentication版）
 String? firebaseAuthGuard(Ref ref, GoRouterState state) {
   // 現在のログイン状態を取得（コールバック内のため watch ではなく read を使用）
   final authState = ref.read(firebaseAuthStateProvider);

@@ -1,5 +1,3 @@
-// 環境ごとにログ出力を制御するLoggerプロバイダ
-
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:logger/logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';

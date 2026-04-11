@@ -1,8 +1,7 @@
-// APIレスポンスなどを簡易的にキャッシュする仕組み
-
 import 'dart:convert';
 
 import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
+import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'cache_manager.g.dart';
@@ -29,7 +28,7 @@ class CacheManager {
   Future<void> save(String key, dynamic value) async {
     final prefs = await ref.read(sharedPreferencesProvider.future);
     final data = {
-      _keyTimestamp: DateTime.now().millisecondsSinceEpoch,
+      _keyTimestamp: ref.read(currentDateTimeProvider).millisecondsSinceEpoch,
       _keyData: value,
     };
     await prefs.setString(key, jsonEncode(data));
@@ -46,7 +45,8 @@ class CacheManager {
       final timestamp = DateTime.fromMillisecondsSinceEpoch(
         decoded[_keyTimestamp] as int,
       );
-      if (DateTime.now().difference(timestamp) > _cacheDuration) {
+      if (ref.read(currentDateTimeProvider).difference(timestamp) >
+          _cacheDuration) {
         await prefs.remove(key);
         return null; // キャッシュ期限切れ
       }

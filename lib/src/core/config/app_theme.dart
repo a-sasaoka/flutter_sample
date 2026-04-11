@@ -1,6 +1,3 @@
-// FlexColorScheme を使った Material 3 対応テーマ。
-// 初心者向けポイント：light/dark の2種類を用意し、MaterialAppに両方渡します。
-
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
 

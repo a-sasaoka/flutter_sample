@@ -1,5 +1,3 @@
-// APIクライアント経由でユーザー一覧を取得
-
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/storage/cache_manager.dart';
 import 'package:flutter_sample/src/features/user/domain/user_model.dart';

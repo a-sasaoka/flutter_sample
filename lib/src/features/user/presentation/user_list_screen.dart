@@ -1,5 +1,3 @@
-// ユーザー一覧を表示する画面
-
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';

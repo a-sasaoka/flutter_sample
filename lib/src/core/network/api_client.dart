@@ -1,6 +1,3 @@
-// Dio + pretty_dio_logger + Riverpod構成
-// API通信の共通設定を行うクライアントクラス
-
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';

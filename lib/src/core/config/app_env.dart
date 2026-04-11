@@ -1,5 +1,3 @@
-// Enviedを使って環境ごとに設定値を安全に読み込む仕組み。
-
 import 'package:envied/envied.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 

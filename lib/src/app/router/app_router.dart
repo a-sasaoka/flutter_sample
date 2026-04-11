@@ -1,6 +1,3 @@
-// Riverpod + GoRouter + アノテーション対応版
-// GoRouterBuilderによる型安全なルーティング + riverpod_generator対応
-
 import 'dart:async';
 
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -109,6 +106,7 @@ class LoginRoute extends GoRouteData with $LoginRoute {
   Widget build(BuildContext context, GoRouterState state) {
     return Consumer(
       builder: (context, ref, child) {
+        // Firebase Authenticationの利用有無で遷移先画面を切り替える
         final useFirebase = ref.watch(useFirebaseAuthProvider);
         if (useFirebase) {
           return const FirebaseLoginScreen();
@@ -219,6 +217,7 @@ GoRouter router(Ref ref) {
     refreshListenable: routerListenable,
     routes: $appRoutes,
     redirect: (context, state) {
+      // Firebase Authenticationの利用有無で認証ガードを切り替える
       if (useFirebase) {
         return firebaseAuthGuard(ref, state);
       }
