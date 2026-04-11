@@ -12,6 +12,11 @@ Talker logger(Ref ref) {
 }
 
 /// Talker で検知したエラーを Crashlytics に送信するためのカスタムオブザーバー
+///
+/// 【運用ルール】
+/// - `talker.handle()`: Crashlytics に「非致命的エラー (Non-fatal)」として自動送信されます。
+/// - `talker.error()` など: ログ出力のみで Crashlytics には送信されません。
+///   （グローバルな Fatal エラーとして手動で Crashlytics に送る場合はこちらを使用します）
 class CustomTalkerObserver extends TalkerObserver {
   /// コンストラクタ
   CustomTalkerObserver({

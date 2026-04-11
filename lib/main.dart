@@ -55,6 +55,7 @@ Future<void> main() async {
     observer: CustomTalkerObserver(
       isProd: isProd,
       recordError: (error, stack) async {
+        // talker.handle() 経由のエラーは常に「非致命的 (Non-fatal)」として送信する
         await FirebaseCrashlytics.instance.recordError(error, stack);
       },
     ),
@@ -84,12 +85,16 @@ Future<void> main() async {
 
   // Flutterフレームワークのエラー
   FlutterError.onError = (details) {
-    talker.handle(details.exception, details.stack);
+    talker.error('Flutter Error', details.exception, details.stack);
+    unawaited(FirebaseCrashlytics.instance.recordFlutterFatalError(details));
   };
 
   // Dartの未処理例外
   PlatformDispatcher.instance.onError = (error, stack) {
-    talker.handle(error, stack);
+    talker.error('Uncaught Exception', error, stack);
+    unawaited(
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true),
+    );
     return true;
   };
 
