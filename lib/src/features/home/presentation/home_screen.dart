@@ -73,18 +73,20 @@ class HomeScreen extends HookConsumerWidget {
             onPressed: () => const ChatRoute().push<void>(context),
             child: Text(l10n.homeToChat),
           ),
-          const SizedBox(height: 8),
-          FilledButton(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (context) => TalkerScreen(
-                  talker: ref.read(loggerProvider),
-                  appBarTitle: l10n.developerLogTitle,
+          if (flavor != Flavor.prod) ...[
+            const SizedBox(height: 8),
+            FilledButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => TalkerScreen(
+                    talker: ref.read(loggerProvider),
+                    appBarTitle: l10n.developerLogTitle,
+                  ),
                 ),
               ),
+              child: Text(l10n.developerLogTitle),
             ),
-            child: Text(l10n.developerLogTitle),
-          ),
+          ],
           const SizedBox(height: 16),
           FilledButton(
             onPressed: () => context.go('/undefined/path'),
