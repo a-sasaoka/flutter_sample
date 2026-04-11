@@ -3,6 +3,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/utils/app_lifecycle_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_email_verification_screen.dart';
@@ -40,6 +41,17 @@ class FakeFirebaseAuthStateNotifier extends FirebaseAuthStateNotifier {
 
   void updateState(User? newUser) {
     state = newUser;
+  }
+}
+
+class FakeAppLifecycle extends AppLifecycle {
+  @override
+  // テスト開始時は「バックグラウンド（paused）にいる」という設定にしておきます
+  AppLifecycleState build() => AppLifecycleState.paused;
+
+  // テストコードから好きなタイミングで状態を変えるためのメソッド
+  void updateState(AppLifecycleState newState) {
+    state = newState;
   }
 }
 
@@ -214,15 +226,21 @@ void main() {
           firebaseAuthStateProvider.overrideWith(
             () => FakeFirebaseAuthStateNotifier(mockUser),
           ),
+          appLifecycleProvider.overrideWith(FakeAppLifecycle.new),
         ],
       );
 
       await tester.pumpWidget(createTestWidget(container));
       await tester.pumpAndSettle();
 
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      // ✨ Fakeプロバイダーの操作リモコン（Notifier）を取得する
+      final _ =
+          container.read(appLifecycleProvider.notifier) as FakeAppLifecycle
+            // アプリがバックグラウンドから復帰（resumed）した状態をシミュレート！
+            ..updateState(AppLifecycleState.resumed);
       await tester.pump();
 
+      // 状態の変化を検知して、リロード処理が1回呼ばれたことを確認
       verify(() => mockAuthRepo.reloadCurrentUser()).called(1);
     });
 

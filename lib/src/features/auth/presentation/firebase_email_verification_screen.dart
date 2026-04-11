@@ -6,6 +6,7 @@ import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
+import 'package:flutter_sample/src/core/utils/app_lifecycle_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -23,29 +24,19 @@ class FirebaseEmailVerificationScreen extends HookConsumerWidget {
     final isReloading = useState(false);
     final isResending = useState(false);
 
-    final lifecycleState = useAppLifecycleState();
-
-    useEffect(() {
-      if (lifecycleState == AppLifecycleState.resumed) {
-        unawaited(
-          ref
-              .read(firebaseAuthRepositoryProvider)
-              .reloadCurrentUser()
-              .catchError((Object e) {
-                if (context.mounted && e is Exception) {
-                  ErrorHandler.showSnackBar(context, e);
-                }
-              }),
-        );
-      }
-      return null;
-    }, [lifecycleState]);
-
-    ref.listen(firebaseAuthStateProvider, (previous, next) {
-      if (next != null && next.emailVerified) {
-        const HomeRoute().go(context);
-      }
-    });
+    ref
+      ..listen(appLifecycleProvider, (previous, next) {
+        if (next == AppLifecycleState.resumed) {
+          unawaited(
+            ref.read(firebaseAuthRepositoryProvider).reloadCurrentUser(),
+          );
+        }
+      })
+      ..listen(firebaseAuthStateProvider, (previous, next) {
+        if (next != null && next.emailVerified) {
+          const HomeRoute().go(context);
+        }
+      });
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.emailVerificationTitle)),
