@@ -1,8 +1,9 @@
-# データ永続化・キャッシュ（SharedPreferencesAsync）
+# データ永続化・キャッシュ（SharedPreferences / SecureStorage）
 
-本プロジェクトでは、テーマ設定、APIのレスポンスキャッシュ、認証トークンなどのデータを永続化するために、最新の `SharedPreferencesAsync` を採用しています。
+本プロジェクトでは、用途に合わせて2種類のローカルデータ永続化パッケージを使い分けています。
 
-従来の `SharedPreferences` が抱えていた「アプリ起動時の同期的な読み込みブロック」を解消し、よりセキュアでパフォーマンスの高い非同期アーキテクチャを構築しています。
+1. **SharedPreferencesAsync**: テーマ設定やAPIのレスポンスキャッシュなど、一般的なデータの保存。従来の「アプリ起動時の同期的な読み込みブロック」を解消した最新の非同期アーキテクチャで構築しています。
+2. **FlutterSecureStorage**: 認証トークンなど、よりセキュアに保存したい機密情報向け（iOSのKeychain、AndroidのEncryptedSharedPreferencesを利用）。
 
 ---
 
@@ -15,6 +16,7 @@ lib/src/core/storage/
  ├── shared_preferences_provider.dart  # SharedPreferencesAsyncのインスタンスを提供する大元
  ├── cache_manager.dart                # APIレスポンス等のキャッシュ管理（有効期限付き）
  └── token_storage.dart                # 認証トークン（Bearer）の保存・取得・削除
+ └── secure_storage_provider.dart      # FlutterSecureStorageのインスタンスを提供する大元
 ```
 
 ---
@@ -80,7 +82,7 @@ void main() {
         child: const MyApp(),
       ),
     );
-    
+
     // ... アサーション
   });
 }

@@ -25,11 +25,13 @@ lib/src/features/user/
 このプロジェクトでは、Dioを利用した通信基盤に共通エラーハンドリング、トークン管理、ロギング処理を追加しています。
 
 ```plaintext
-lib/src/core/network/
- ├── api_client.dart           # Dioの共通インスタンス
- ├── dio_interceptor.dart      # 共通の通信ログ・エラー変換
- ├── token_interceptor.dart    # 認証トークン(Bearer)の自動リフレッシュ・付与
- └── logger_provider.dart      # 環境別ログ出力用プロバイダ
+lib/src/core/
+  ├── network/
+  │   ├── api_client.dart        # Dioの共通インスタンス
+  │   ├── dio_interceptor.dart   # 共通の通信ログ・エラー変換
+  │   └── token_interceptor.dart # 認証トークン(Bearer)の自動リフレッシュ・付与
+  └── utils/
+      └── logger_provider.dart   # Talkerを用いた統合ロギング用プロバイダ
 ```
 
 | 項目           | 内容                                                             |

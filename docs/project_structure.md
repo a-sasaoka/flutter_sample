@@ -24,10 +24,10 @@ flutter_sample
         │   ├── analytics                                       # イベント計測関連
         │   ├── config                                          # 環境設定やテーマ、プロバイダー設定など
         │   ├── exceptions                                      # 共通の例外クラス定義
-        │   ├── network                                         # APIクライアント、Interceptor、ロギング
-        │   ├── storage                                         # 永続化関連（SharedPreferencesAsync・キャッシュ）
+        │   ├── network                                         # APIクライアント、Interceptor
+        │   ├── storage                                         # 永続化関連（SharedPreferences・SecureStorage・キャッシュ）
         │   ├── ui                                              # 共通UI関連（エラーハンドリングなど）
-        │   ├── utils                                           # 共通のユーティリティ関数群
+        │   ├── utils                                           # 共通ユーティリティ（ロギング・通信状態・ライフサイクル監視等）
         │   └── widgets                                         # 汎用UI部品（ダイアログや共通画面）
         └── features                                            # 各機能ごとのモジュール（Layered Architecture）
             ├── auth                                            # 認証機能
