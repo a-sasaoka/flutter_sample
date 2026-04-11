@@ -50,7 +50,7 @@ class AnalyticsService {
       );
     } on Exception catch (e) {
       // 分析イベントの送信失敗でアプリのクラッシュや機能停止を防ぐ
-      _ref.read(loggerProvider).w('Analytics Error: $e');
+      _ref.read(loggerProvider).warning('Analytics Error: $e');
     }
   }
 }

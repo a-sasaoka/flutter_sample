@@ -5,18 +5,18 @@ import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:logger/logger.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 // FirebaseAnalytics のモック
 class MockFirebaseAnalytics extends Mock implements FirebaseAnalytics {}
 
-// Logger のモック
-class MockLogger extends Mock implements Logger {}
+// Talker のモック
+class MockTalker extends Mock implements Talker {}
 
 void main() {
   late MockFirebaseAnalytics mockAnalytics;
-  late MockLogger mockLogger;
+  late MockTalker mockTalker;
   late ProviderContainer container;
 
   // テスト用の固定日時（時間を止める！）
@@ -24,7 +24,7 @@ void main() {
 
   setUp(() {
     mockAnalytics = MockFirebaseAnalytics();
-    mockLogger = MockLogger();
+    mockTalker = MockTalker();
 
     container = ProviderContainer(
       overrides: [
@@ -33,7 +33,7 @@ void main() {
         // 2. 現在日時を固定の日時に差し替え（DIの真骨頂！）
         currentDateTimeProvider.overrideWithValue(mockDateTime),
         // 3. Loggerをモック化（flavorProvider のエラー回避 & ログのノイズ軽減）
-        loggerProvider.overrideWithValue(mockLogger),
+        loggerProvider.overrideWithValue(mockTalker),
       ],
     );
   });

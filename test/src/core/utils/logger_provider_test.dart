@@ -1,47 +1,140 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:logger/logger.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:talker_flutter/talker_flutter.dart';
+
+class MockTalker extends Mock implements Talker {}
+
+// recordError の呼び出しを検証するための Callable クラスとそのモック
+// ignore: one_member_abstracts
+abstract class RecordErrorCallable {
+  Future<void> call(dynamic error, StackTrace? stackTrace);
+}
+
+class MockRecordErrorCallable extends Mock implements RecordErrorCallable {}
+
+// TalkerObserver に渡されるエラー情報のモック
+class MockTalkerError extends Mock implements TalkerError {}
+
+class MockTalkerException extends Mock implements TalkerException {}
 
 void main() {
   group('loggerProvider テスト', () {
-    test('Flavor.dev の場合、ログレベルが debug に設定されること', () {
-      // Arrange
+    test(
+      'デフォルトのまま読み取ろうとすると ProviderException(UnimplementedError) が投げられること',
+      () {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+
+        expect(
+          () => container.read(loggerProvider),
+          throwsA(
+            predicate((e) => e.toString().contains('UnimplementedError')),
+          ),
+        );
+      },
+    );
+
+    test('overrideWithValue で上書きすると、その Talker インスタンスを返すこと', () {
+      final mockTalker = MockTalker();
       final container = ProviderContainer(
         overrides: [
-          flavorProvider.overrideWithValue(Flavor.dev),
+          loggerProvider.overrideWithValue(mockTalker),
         ],
       );
       addTearDown(container.dispose);
 
-      // Act
       final logger = container.read(loggerProvider);
+      expect(logger, equals(mockTalker));
+    });
+  });
 
-      // Assert
-      // logger.level ではなく Logger.level (static) や内部設定を参照する必要がある場合がありますが、
-      // 一般的には生成されたインスタンスの挙動を確認します。
-      // ※Loggerパッケージの仕様上、直接インスタンスからlevelを取得できない場合は、
-      // 意図した設定でコンストラクタが呼ばれていることを信頼するか、
-      // もしくは Logger の出力をキャプチャしてテストします。
-      // 今回は provider のロジックが通ることを確認します。
-      expect(logger, isA<Logger>());
+  group('CustomTalkerObserver テスト', () {
+    late MockRecordErrorCallable mockRecordError;
+
+    setUp(() {
+      mockRecordError = MockRecordErrorCallable();
+      // recordError が呼ばれたら何もせずに完了するようスタブ化
+      when(
+        () => mockRecordError.call(any<dynamic>(), any<StackTrace?>()),
+      ).thenAnswer((_) async {});
     });
 
-    test('Flavor.prod の場合、ログレベルが warning に設定されること', () {
-      // Arrange
-      final container = ProviderContainer(
-        overrides: [
-          flavorProvider.overrideWithValue(Flavor.prod),
-        ],
+    test('isProd = true の場合、onError で recordError が呼ばれること', () {
+      final observer = CustomTalkerObserver(
+        isProd: true,
+        recordError: mockRecordError.call,
       );
-      addTearDown(container.dispose);
 
-      // Act
-      final logger = container.read(loggerProvider);
+      final mockTalkerError = MockTalkerError();
+      final error = ArgumentError('test error');
+      const stackTrace = StackTrace.empty;
 
-      // Assert
-      expect(logger, isA<Logger>());
+      when(() => mockTalkerError.error).thenReturn(error);
+      when(() => mockTalkerError.stackTrace).thenReturn(stackTrace);
+
+      observer.onError(mockTalkerError);
+
+      verify(() => mockRecordError.call(error, stackTrace)).called(1);
+    });
+
+    test('isProd = false の場合、onError で recordError が呼ばれないこと', () {
+      final observer = CustomTalkerObserver(
+        isProd: false,
+        recordError: mockRecordError.call,
+      );
+
+      final mockTalkerError = MockTalkerError();
+      final error = ArgumentError('test error');
+      const stackTrace = StackTrace.empty;
+
+      when(() => mockTalkerError.error).thenReturn(error);
+      when(() => mockTalkerError.stackTrace).thenReturn(stackTrace);
+
+      observer.onError(mockTalkerError);
+
+      verifyNever(
+        () => mockRecordError.call(any<dynamic>(), any<StackTrace?>()),
+      );
+    });
+
+    test('isProd = true の場合、onException で recordError が呼ばれること', () {
+      final observer = CustomTalkerObserver(
+        isProd: true,
+        recordError: mockRecordError.call,
+      );
+
+      final mockTalkerException = MockTalkerException();
+      final exception = Exception('test exception');
+      const stackTrace = StackTrace.empty;
+
+      when(() => mockTalkerException.exception).thenReturn(exception);
+      when(() => mockTalkerException.stackTrace).thenReturn(stackTrace);
+
+      observer.onException(mockTalkerException);
+
+      verify(() => mockRecordError.call(exception, stackTrace)).called(1);
+    });
+
+    test('isProd = false の場合、onException で recordError が呼ばれないこと', () {
+      final observer = CustomTalkerObserver(
+        isProd: false,
+        recordError: mockRecordError.call,
+      );
+
+      final mockTalkerException = MockTalkerException();
+      final exception = Exception('test exception');
+      const stackTrace = StackTrace.empty;
+
+      when(() => mockTalkerException.exception).thenReturn(exception);
+      when(() => mockTalkerException.stackTrace).thenReturn(stackTrace);
+
+      observer.onException(mockTalkerException);
+
+      verifyNever(
+        () => mockRecordError.call(any<dynamic>(), any<StackTrace?>()),
+      );
     });
   });
 }

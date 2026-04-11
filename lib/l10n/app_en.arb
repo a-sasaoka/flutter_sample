@@ -87,5 +87,6 @@
   "notFoundBackToHome": "Back to Home",
   "versionUpTitle": "A new version is available.\nPlease update.",
   "versionUpCancel": "Cancel",
-  "versionUpUpdate": "Update"
+  "versionUpUpdate": "Update",
+  "developerLogTitle": "Developer Log"
 }

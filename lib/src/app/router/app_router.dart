@@ -22,8 +22,8 @@ import 'package:flutter_sample/src/features/settings/presentation/settings_scree
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
 import 'package:go_router/go_router.dart';
-import 'package:logger/logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 part 'app_router.g.dart';
 
@@ -155,13 +155,13 @@ class EmailVerificationRoute extends GoRouteData with $EmailVerificationRoute {
 /// Firebase Analytics の screen_class をカスタマイズして送信するカスタム Observer
 class TypedRouteAnalyticsObserver extends NavigatorObserver {
   /// コンストラクタ
-  TypedRouteAnalyticsObserver({required this.analytics, required this.logger});
+  TypedRouteAnalyticsObserver({required this.analytics, required this.talker});
 
   /// Firebase Analytics インスタンス
   final FirebaseAnalytics analytics;
 
-  /// Logger インスタンス
-  final Logger logger;
+  /// Talker インスタンス
+  final Talker talker;
 
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
@@ -190,7 +190,7 @@ class TypedRouteAnalyticsObserver extends NavigatorObserver {
       ),
     );
 
-    logger.d('📊 screen_view → $screenClass');
+    talker.debug('📊 screen_view → $screenClass');
   }
 }
 
@@ -229,7 +229,7 @@ GoRouter router(Ref ref) {
     observers: [
       TypedRouteAnalyticsObserver(
         analytics: ref.watch(firebaseAnalyticsProvider),
-        logger: ref.watch(loggerProvider),
+        talker: ref.watch(loggerProvider),
       ),
     ],
   );

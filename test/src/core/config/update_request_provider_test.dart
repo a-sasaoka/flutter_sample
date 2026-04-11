@@ -6,10 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 // 1. モッククラスとフェイククラスの作成
 class MockFirebaseRemoteConfig extends Mock implements FirebaseRemoteConfig {}
@@ -18,9 +20,12 @@ class FakeRemoteConfigSettings extends Fake implements RemoteConfigSettings {}
 
 class MockRemoteConfigUpdate extends Mock implements RemoteConfigUpdate {}
 
+class MockTalker extends Mock implements Talker {}
+
 void main() {
   late MockFirebaseRemoteConfig mockRemoteConfig;
   late StreamController<RemoteConfigUpdate> configUpdateController;
+  late MockTalker mockLogger;
 
   // テスト環境の「現在時刻」を固定（時間を止める魔法！）
   final mockCurrentTime = DateTime(2024, 1, 1, 12);
@@ -34,6 +39,7 @@ void main() {
   setUp(() {
     mockRemoteConfig = MockFirebaseRemoteConfig();
     configUpdateController = StreamController<RemoteConfigUpdate>.broadcast();
+    mockLogger = MockTalker();
 
     // パッケージ情報（現在のアプリバージョン）を "1.0.0" に固定
     PackageInfo.setMockInitialValues(
@@ -77,6 +83,7 @@ void main() {
         // プロバイダ経由で現在時刻を注入！
         currentDateTimeProvider.overrideWithValue(mockCurrentTime),
         packageInfoProvider.overrideWithValue(mockPackageInfo),
+        loggerProvider.overrideWithValue(mockLogger),
       ],
     );
     addTearDown(container.dispose);

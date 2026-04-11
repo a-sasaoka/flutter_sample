@@ -3,8 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
 import 'package:flutter_sample/src/core/network/token_interceptor.dart';
-import 'package:pretty_dio_logger/pretty_dio_logger.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:talker_dio_logger/talker_dio_logger.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 part 'api_client.g.dart';
 
@@ -36,9 +38,14 @@ Dio dio(Ref ref) {
   // 開発時のみリクエスト・レスポンスログを出力
   if (kDebugMode) {
     dio.interceptors.add(
-      PrettyDioLogger(
-        requestHeader: true,
-        requestBody: true,
+      TalkerDioLogger(
+        talker: ref.watch(loggerProvider),
+        settings: TalkerDioLoggerSettings(
+          printRequestHeaders: true,
+          errorPen: AnsiPen()..red(),
+          requestPen: AnsiPen()..yellow(),
+          responsePen: AnsiPen()..green(),
+        ),
       ),
     );
   }

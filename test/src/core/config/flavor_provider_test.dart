@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -39,7 +38,9 @@ void main() {
       // Riverpodの仕組みにより ProviderException としてラップされて投げられることを確認
       expect(
         () => container.read(flavorProvider),
-        throwsA(isA<ProviderException>()),
+        throwsA(
+          predicate((e) => e.toString().contains('UnimplementedError')),
+        ),
       );
     });
 

@@ -24,12 +24,12 @@ import 'package:flutter_sample/src/features/splash/presentation/splash_screen.da
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:logger/logger.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 class MockFirebaseAnalytics extends Mock implements FirebaseAnalytics {}
 
-class MockLogger extends Mock implements Logger {}
+class MockTalker extends Mock implements Talker {}
 
 class MockGoRouterState extends Mock implements GoRouterState {}
 
@@ -65,12 +65,12 @@ class _FakeFirebaseAuthStateNotifier extends FirebaseAuthStateNotifier {
 
 void main() {
   late MockFirebaseAnalytics mockAnalytics;
-  late MockLogger mockLogger;
+  late MockTalker mockTalker;
   late MockUser mockUser;
 
   setUp(() {
     mockAnalytics = MockFirebaseAnalytics();
-    mockLogger = MockLogger();
+    mockTalker = MockTalker();
     mockUser = MockUser();
 
     when(() => mockUser.uid).thenReturn('dummy_uid_123');
@@ -105,7 +105,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         firebaseAnalyticsProvider.overrideWithValue(mockAnalytics),
-        loggerProvider.overrideWithValue(mockLogger),
+        loggerProvider.overrideWithValue(mockTalker),
         flavorProvider.overrideWithValue(Flavor.dev),
         useFirebaseAuthProvider.overrideWithValue(useFirebase),
         authStateProvider.overrideWith(
@@ -325,7 +325,7 @@ void main() {
     test('didPush: 画面遷移時に Analytics にログが送信されること', () async {
       final observer = TypedRouteAnalyticsObserver(
         analytics: mockAnalytics,
-        logger: mockLogger,
+        talker: mockTalker,
       );
       final route = MaterialPageRoute<void>(
         builder: (_) => const SizedBox(),
@@ -343,7 +343,7 @@ void main() {
     test('didReplace: 画面置換時に Analytics にログが送信されること', () {
       final observer = TypedRouteAnalyticsObserver(
         analytics: mockAnalytics,
-        logger: mockLogger,
+        talker: mockTalker,
       );
       final route = MaterialPageRoute<void>(
         builder: (_) => const SizedBox(),

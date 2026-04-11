@@ -12,17 +12,17 @@ InterceptorsWrapper dioInterceptor(Ref ref) {
 
   return InterceptorsWrapper(
     onRequest: (options, handler) {
-      logger.i('➡️ [${options.method}] ${options.uri}');
+      logger.info('➡️ [${options.method}] ${options.uri}');
       return handler.next(options);
     },
     onResponse: (response, handler) {
-      logger.d(
+      logger.debug(
         '✅ Response [${response.statusCode}] ${response.requestOptions.uri}',
       );
       return handler.next(response);
     },
     onError: (DioException e, handler) {
-      logger.e('❌ Error: ${e.message}');
+      logger.error('❌ Error: ${e.message}');
 
       // エラーの種類に応じて例外を生成する
       final exception = switch (e.type) {

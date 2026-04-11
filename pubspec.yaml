@@ -51,6 +51,9 @@ dependencies:
 
   # --- 🪵 ログ出力 ---
   logger: ^2.6.2
+  talker_flutter: ^5.1.16
+  talker_riverpod_logger: ^5.1.16
+  talker_dio_logger: ^5.1.16
 
   # --- 💾 ローカルデータ保存 ---
   shared_preferences: ^2.5.3

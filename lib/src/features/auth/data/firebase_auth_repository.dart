@@ -90,7 +90,7 @@ class FirebaseAuthRepository {
 
       return true;
     } on Exception catch (e) {
-      _ref.read(loggerProvider).w('SignInWithGoogle Error: $e');
+      _ref.read(loggerProvider).warning('SignInWithGoogle Error: $e');
 
       // ユーザーキャンセル等もここに入ることがあります
       return false;

@@ -103,7 +103,7 @@ class UpdateRequestController extends _$UpdateRequestController {
     } on Exception catch (e) {
       ref
           .read(loggerProvider)
-          .w('Failed to retrieve or parse the update information: $e');
+          .warning('Failed to retrieve or parse the update information: $e');
       // パース失敗時はアップデートなしとして扱う
       return UpdateRequestType.not;
     }

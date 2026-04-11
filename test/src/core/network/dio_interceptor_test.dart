@@ -4,11 +4,11 @@ import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:logger/logger.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 // モッククラス
-class MockLogger extends Mock implements Logger {}
+class MockTalker extends Mock implements Talker {}
 
 class MockErrorInterceptorHandler extends Mock
     implements ErrorInterceptorHandler {}
@@ -34,14 +34,14 @@ void main() {
     registerFallbackValue(FakeResponse());
   });
 
-  late MockLogger mockLogger;
+  late MockTalker mockTalker;
   late ProviderContainer container;
 
   setUp(() {
-    mockLogger = MockLogger();
+    mockTalker = MockTalker();
     container = ProviderContainer(
       overrides: [
-        loggerProvider.overrideWithValue(mockLogger),
+        loggerProvider.overrideWithValue(mockTalker),
       ],
     );
   });
@@ -136,12 +136,12 @@ void main() {
 
       // Act & Assert (Request)
       interceptor.onRequest(options, reqHandler);
-      verify(() => mockLogger.i(any<dynamic>())).called(1);
+      verify(() => mockTalker.info(any<dynamic>())).called(1);
       verify(() => reqHandler.next(options)).called(1);
 
       // Act & Assert (Response)
       interceptor.onResponse(response, resHandler);
-      verify(() => mockLogger.d(any<dynamic>())).called(1);
+      verify(() => mockTalker.debug(any<dynamic>())).called(1);
       verify(() => resHandler.next(response)).called(1);
     });
   });

@@ -541,6 +541,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Update'**
   String get versionUpUpdate;
+
+  /// No description provided for @developerLogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Developer Log'**
+  String get developerLogTitle;
 }
 
 class _AppLocalizationsDelegate
