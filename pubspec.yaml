@@ -54,6 +54,7 @@ dependencies:
 
   # --- 💾 ローカルデータ保存 ---
   shared_preferences: ^2.5.3
+  flutter_secure_storage: ^10.0.0
 
   # --- 🧱 JSONシリアライズ・デシリアライズ ---
   freezed_annotation: ^3.1.0
