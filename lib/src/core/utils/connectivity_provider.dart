@@ -21,5 +21,6 @@ bool isOnline(Ref ref) {
   }
 
   // どれにも繋がっていない（none）でなければオンラインと判定
-  return !connectivityStatus.contains(ConnectivityResult.none);
+  return connectivityStatus.isNotEmpty &&
+      !connectivityStatus.contains(ConnectivityResult.none);
 }
