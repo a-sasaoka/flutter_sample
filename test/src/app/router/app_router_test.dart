@@ -357,5 +357,28 @@ void main() {
         ),
       ).called(1);
     });
+
+    test('didPop: 画面を戻った時に Analytics に前の画面のログが送信されること', () {
+      final observer = TypedRouteAnalyticsObserver(
+        analytics: mockAnalytics,
+        talker: mockTalker,
+      );
+      final previousRoute = MaterialPageRoute<void>(
+        builder: (_) => const SizedBox(),
+        settings: const RouteSettings(name: 'PreviousScreen'),
+      );
+      final currentRoute = MaterialPageRoute<void>(
+        builder: (_) => const SizedBox(),
+        settings: const RouteSettings(name: 'CurrentScreen'),
+      );
+
+      observer.didPop(currentRoute, previousRoute);
+      verify(
+        () => mockAnalytics.logScreenView(
+          screenClass: 'PreviousScreen',
+          screenName: 'PreviousScreen',
+        ),
+      ).called(1);
+    });
   });
 }

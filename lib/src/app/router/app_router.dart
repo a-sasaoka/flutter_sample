@@ -177,6 +177,14 @@ class TypedRouteAnalyticsObserver extends NavigatorObserver {
     super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
   }
 
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (previousRoute != null) {
+      _sendScreenView(previousRoute);
+    }
+    super.didPop(route, previousRoute);
+  }
+
   void _sendScreenView(Route<dynamic> route) {
     final settings = route.settings;
     final runtimeTypeName = settings.name ?? route.runtimeType.toString();
