@@ -54,9 +54,13 @@ Future<void> main() async {
     ),
     observer: CustomTalkerObserver(
       isProd: isProd,
-      recordError: (error, stack) async {
-        // talker.handle() 経由のエラーは常に「非致命的 (Non-fatal)」として送信する
-        await FirebaseCrashlytics.instance.recordError(error, stack);
+      recordError: (error, stack, {required fatal}) async {
+        // CustomTalkerObserver 側で指定された fatal フラグ (false) をそのまま渡す
+        await FirebaseCrashlytics.instance.recordError(
+          error,
+          stack,
+          fatal: fatal,
+        );
       },
     ),
   );

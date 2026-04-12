@@ -9,7 +9,11 @@ class MockTalker extends Mock implements Talker {}
 // recordError の呼び出しを検証するための Callable クラスとそのモック
 // ignore: one_member_abstracts
 abstract class RecordErrorCallable {
-  Future<void> call(dynamic error, StackTrace? stackTrace);
+  Future<void> call(
+    dynamic error,
+    StackTrace? stackTrace, {
+    required bool fatal,
+  });
 }
 
 class MockRecordErrorCallable extends Mock implements RecordErrorCallable {}
@@ -57,7 +61,11 @@ void main() {
       mockRecordError = MockRecordErrorCallable();
       // recordError が呼ばれたら何もせずに完了するようスタブ化
       when(
-        () => mockRecordError.call(any<dynamic>(), any<StackTrace?>()),
+        () => mockRecordError.call(
+          any<dynamic>(),
+          any<StackTrace?>(),
+          fatal: any(named: 'fatal'),
+        ),
       ).thenAnswer((_) async {});
     });
 
@@ -76,7 +84,9 @@ void main() {
 
       observer.onError(mockTalkerError);
 
-      verify(() => mockRecordError.call(error, stackTrace)).called(1);
+      verify(
+        () => mockRecordError.call(error, stackTrace, fatal: false),
+      ).called(1);
     });
 
     test('isProd = false の場合、onError で recordError が呼ばれないこと', () {
@@ -95,7 +105,11 @@ void main() {
       observer.onError(mockTalkerError);
 
       verifyNever(
-        () => mockRecordError.call(any<dynamic>(), any<StackTrace?>()),
+        () => mockRecordError.call(
+          any<dynamic>(),
+          any<StackTrace?>(),
+          fatal: any(named: 'fatal'),
+        ),
       );
     });
 
@@ -114,7 +128,9 @@ void main() {
 
       observer.onException(mockTalkerException);
 
-      verify(() => mockRecordError.call(exception, stackTrace)).called(1);
+      verify(
+        () => mockRecordError.call(exception, stackTrace, fatal: false),
+      ).called(1);
     });
 
     test('isProd = false の場合、onException で recordError が呼ばれないこと', () {
@@ -133,7 +149,11 @@ void main() {
       observer.onException(mockTalkerException);
 
       verifyNever(
-        () => mockRecordError.call(any<dynamic>(), any<StackTrace?>()),
+        () => mockRecordError.call(
+          any<dynamic>(),
+          any<StackTrace?>(),
+          fatal: any(named: 'fatal'),
+        ),
       );
     });
   });

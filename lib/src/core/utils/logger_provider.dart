@@ -28,14 +28,18 @@ class CustomTalkerObserver extends TalkerObserver {
   final bool isProd;
 
   /// 外部から送信処理を注入できるようにする
-  final Future<void> Function(dynamic error, StackTrace? stackTrace)
+  final Future<void> Function(
+    dynamic error,
+    StackTrace? stackTrace, {
+    required bool fatal,
+  })
   recordError;
 
   @override
   void onError(TalkerError err) {
     super.onError(err);
     if (isProd) {
-      unawaited(recordError(err.error, err.stackTrace));
+      unawaited(recordError(err.error, err.stackTrace, fatal: false));
     }
   }
 
@@ -43,7 +47,7 @@ class CustomTalkerObserver extends TalkerObserver {
   void onException(TalkerException err) {
     super.onException(err);
     if (isProd) {
-      unawaited(recordError(err.exception, err.stackTrace));
+      unawaited(recordError(err.exception, err.stackTrace, fatal: false));
     }
   }
 }
