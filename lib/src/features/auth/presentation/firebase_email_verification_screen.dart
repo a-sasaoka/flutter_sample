@@ -37,7 +37,7 @@ class _FirebaseEmailVerificationScreenState
       await authRepo.reloadCurrentUser();
       if (!mounted) return;
 
-      final user = ref.watch(firebaseAuthRepositoryProvider);
+      final user = ref.read(firebaseAuthRepositoryProvider);
       if (user != null && user.emailVerified) {
         _timer?.cancel();
 

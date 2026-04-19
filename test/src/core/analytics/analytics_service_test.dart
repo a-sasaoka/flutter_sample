@@ -1,0 +1,81 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
+import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
+import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+
+// FirebaseAnalytics のモック
+class MockFirebaseAnalytics extends Mock implements FirebaseAnalytics {}
+
+void main() {
+  late MockFirebaseAnalytics mockAnalytics;
+  late ProviderContainer container;
+
+  // テスト用の固定日時（時間を止める！）
+  final mockDateTime = DateTime(2024, 1, 1, 12);
+
+  setUp(() {
+    mockAnalytics = MockFirebaseAnalytics();
+
+    container = ProviderContainer(
+      overrides: [
+        // 1. Analyticsのモックを注入
+        firebaseAnalyticsProvider.overrideWithValue(mockAnalytics),
+        // 2. 現在日時を固定の日時に差し替え（DIの真骨頂！）
+        currentDateTimeProvider.overrideWithValue(mockDateTime),
+      ],
+    );
+  });
+
+  tearDown(() {
+    container.dispose();
+  });
+
+  group('AnalyticsService テスト', () {
+    test('logEvent が正しいイベント名とパラメータ(null除外, 固定のtimestamp付与)で呼び出されること', () async {
+      // Arrange
+      when(
+        () => mockAnalytics.logEvent(
+          name: any(named: 'name'),
+          parameters: any(named: 'parameters'),
+        ),
+      ).thenAnswer((_) async {});
+
+      final service = container.read(analyticsServiceProvider);
+
+      // Act
+      await service.logEvent(
+        event: AnalyticsEvent.loginSuccess,
+        parameters: {
+          'user_id': 123,
+          'user_type': 'premium',
+          'null_value': null, // 除外対象
+        },
+      );
+
+      // Assert
+      final captured = verify(
+        () => mockAnalytics.logEvent(
+          name: captureAny(named: 'name'),
+          parameters: captureAny(named: 'parameters'),
+        ),
+      ).captured;
+
+      expect(captured[0], 'login_success');
+
+      final params = captured[1] as Map<String, Object>;
+
+      // ① 正常な値が渡されているか
+      expect(params['user_id'], 123);
+      expect(params['user_type'], 'premium');
+
+      // ② null の値が正しく除外されているか
+      expect(params.containsKey('null_value'), isFalse);
+
+      // ③ 【進化ポイント】timestamp がモックで固定した日時と「完全に一致」しているか！
+      expect(params['timestamp'], mockDateTime.millisecondsSinceEpoch);
+    });
+  });
+}

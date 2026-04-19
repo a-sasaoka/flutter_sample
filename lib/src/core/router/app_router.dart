@@ -5,6 +5,8 @@ import 'dart:async';
 
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/network/logger_provider.dart';
 import 'package:flutter_sample/src/core/router/auth_guard.dart';
@@ -87,7 +89,10 @@ class LoginRoute extends GoRouteData with $LoginRoute {
 
   @override
   Widget build(BuildContext context, GoRouterState state) {
-    if (AppEnv.useFirebaseAuth) {
+    final container = ProviderScope.containerOf(context);
+    final useFirebase = container.read(useFirebaseAuthProvider);
+
+    if (useFirebase) {
       return const FirebaseLoginScreen();
     }
     return const LoginScreen();
@@ -191,17 +196,26 @@ class TypedRouteAnalyticsObserver extends NavigatorObserver {
       ),
     );
 
-    ref.read(loggerProvider).d('📊 screen_view → $screenClass');
+    // ProviderContainer自体が有効か、Refが有効かを確認して実行
+    if (ref.mounted) {
+      try {
+        ref.read(loggerProvider).d('📊 screen_view → $screenClass');
+      } on Exception catch (_) {
+        // 消滅済みの場合はログ出力自体をスキップ
+      }
+    }
   }
 }
 
 /// 🌐 GoRouterのインスタンスをRiverpodで提供
 @riverpod
 GoRouter router(Ref ref) {
+  final useFirebase = ref.watch(useFirebaseAuthProvider);
+
   return GoRouter(
     routes: $appRoutes,
     redirect: (context, state) {
-      if (AppEnv.useFirebaseAuth) {
+      if (useFirebase) {
         return firebaseAuthGuard(ref, state);
       }
       return authGuard(ref, state);
@@ -212,7 +226,7 @@ GoRouter router(Ref ref) {
     observers: [
       TypedRouteAnalyticsObserver(
         ref: ref,
-        analytics: FirebaseAnalytics.instance,
+        analytics: ref.read(firebaseAnalyticsProvider),
       ),
     ],
   );

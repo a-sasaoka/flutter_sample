@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 
 /// アプリ全体のテーマ設定をまとめたクラス
 class AppTheme {
-  AppTheme._();
+  AppTheme._(); // coverage:ignore-line
 
   // ベースとなる色（お好みでOK）
   // static const _seed = Color(0xFF4F46E5); // indigo-ish

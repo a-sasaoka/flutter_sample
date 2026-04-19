@@ -3,23 +3,48 @@ import 'dart:convert';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/update_info.dart';
+import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:version/version.dart';
 
 part 'update_request_provider.g.dart';
 
+// coverage:ignore-start
+/// FirebaseRemoteConfigのインスタンスを提供するプロバイダ
+@Riverpod(keepAlive: true)
+FirebaseRemoteConfig firebaseRemoteConfig(Ref ref) {
+  return FirebaseRemoteConfig.instance;
+}
+// coverage:ignore-end
+
 /// RemoteConfigからアップデート情報を取得するコントローラ
 @Riverpod(keepAlive: true)
 class UpdateRequestController extends _$UpdateRequestController {
-  /// RemoteConfigインスタンス
-  final FirebaseRemoteConfig _remoteConfig = FirebaseRemoteConfig.instance;
-
   @override
   Future<UpdateRequestType> build() async {
-    // RemoteConfigの変更を監視
-    final subscription = _remoteConfig.onConfigUpdated.listen((event) async {
-      await _remoteConfig.activate();
+    // DIでモックを注入できるように、プロバイダ経由で取得
+    final remoteConfig = ref.watch(firebaseRemoteConfigProvider);
+
+    // タイムアウトとフェッチのインターバル時間を設定
+    final flavor = ref.read(flavorProvider);
+    final interval = flavor == Flavor.prod
+        ? const Duration(hours: 12)
+        : Duration.zero;
+    await remoteConfig.setConfigSettings(
+      RemoteConfigSettings(
+        fetchTimeout: const Duration(minutes: 1),
+        minimumFetchInterval: interval,
+      ),
+    );
+
+    // RemoteConfigの変更を監視（build内で行い、disposeで破棄する）
+    final subscription = remoteConfig.onConfigUpdated.listen((event) async {
+      await remoteConfig.activate();
+
+      // Providerがすでに破棄されていたら何もしない
+      if (!ref.mounted) return;
+
       // キャンセルフラグをリセット
       ref.read(cancelControllerProvider.notifier).reset();
       // stateをローディングに変更
@@ -29,23 +54,11 @@ class UpdateRequestController extends _$UpdateRequestController {
         return _getRemoteConfigData();
       });
     });
-    // プロバイダーが破棄されたらサブスクリプションをキャンセル
+
     ref.onDispose(subscription.cancel);
 
-    // タイムアウトとフェッチのインターバル時間を設定
-    final flavor = ref.read(flavorProvider);
-    final interval = flavor == Flavor.prod
-        ? const Duration(hours: 12)
-        : Duration.zero;
-    await _remoteConfig.setConfigSettings(
-      RemoteConfigSettings(
-        fetchTimeout: const Duration(minutes: 1),
-        minimumFetchInterval: interval,
-      ),
-    );
-
     // アクティベート
-    await _remoteConfig.fetchAndActivate();
+    await remoteConfig.fetchAndActivate();
 
     return _getRemoteConfigData();
   }
@@ -53,8 +66,9 @@ class UpdateRequestController extends _$UpdateRequestController {
   /// RemoteConfigからアップデート情報を取得
   Future<UpdateRequestType> _getRemoteConfigData() async {
     try {
+      final remoteConfig = ref.read(firebaseRemoteConfigProvider);
       // RemoteConfigから情報を取得
-      final string = _remoteConfig.getString('update_info');
+      final string = remoteConfig.getString('update_info');
       if (string.isEmpty) {
         return UpdateRequestType.not;
       }
@@ -75,7 +89,8 @@ class UpdateRequestController extends _$UpdateRequestController {
       // 現在のバージョンより新しいバージョンが指定されているか
       final hasNewVersion = requiredVersion > currentVersion;
       // 強制アップデート有効期間内かどうか
-      final isEnabled = enabledAt.compareTo(DateTime.now()) < 0;
+      final isEnabled =
+          enabledAt.compareTo(ref.read(currentDateTimeProvider)) < 0;
 
       if (!isEnabled || !hasNewVersion) {
         // 有効期間外、もしくは新しいバージョンは無い

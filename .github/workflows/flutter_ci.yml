@@ -1,0 +1,65 @@
+# GitHub Actionsのワークフロー名。Actionsタブでこの名前が表示されます。
+name: Flutter CI
+
+# 実行トリガーの設定
+on:
+  pull_request:
+    # mainブランチへ向けたPull Requestが対象
+    branches: [main]
+    # PR作成時、追記プッシュ時、再オープン時に実行
+    types: [opened, synchronize, reopened]
+
+jobs:
+  # テストを実行するメインのジョブ
+  test:
+    # クラウド上の最新Ubuntu環境で実行
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. ソースコードを取得
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. .fvmrc から Flutter バージョンを取得
+      #    例: "flutter": "3.24.0" から "3.24.0" を抽出します
+      - name: Get Flutter version from FVM
+        id: fvm-config
+        run: |
+          FLUTTER_VERSION=$(grep '"flutter":' .fvmrc | cut -d'"' -f4)
+          echo "FLUTTER_VERSION=$FLUTTER_VERSION" >> $GITHUB_OUTPUT
+
+      # 3. 指定したバージョンの Flutter SDK をインストール
+      #    cache: true により、パッケージ等のキャッシュを有効化して高速化します
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.fvm-config.outputs.FLUTTER_VERSION }}
+          channel: "stable"
+          cache: true
+
+      # 4. 依存パッケージ（Riverpod, Freezed等）のインストール
+      - name: Install dependencies
+        run: flutter pub get
+
+      # 5. コードの整形チェック
+      #    整形が正しくない場合、ここで失敗させてコードの美しさを保ちます
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      # 6. 静的解析（Lintチェック）
+      #    プロジェクトの analysis_options.yaml に基づき、潜在的な不具合や規約違反を検知します
+      - name: Analyze project
+        run: flutter analyze
+
+      # 7. 全テストの実行とカバレッジデータの生成
+      #    カバレッジ100%のテスト群がすべてパスすることを確認します
+      - name: Run tests with coverage
+        run: flutter test --coverage
+
+      # 8. カバレッジ結果の可視化
+      #    GitHub Actionsの実行結果画面に、どのファイルがテストされたかの表を表示します
+      - name: Report coverage
+        uses: pierotofy/set-lcov-reporter@v1.0.1
+        with:
+          lcov-file: ./coverage/lcov.info
+          filter-changed-files: true
