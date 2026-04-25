@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 import 'package:flutter_sample/src/core/widgets/version_up_dialog.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart'; // 💡 追加: GoRouterをインポート
+import 'package:go_router/go_router.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart'; // 💡 追加: GoRouterをインポート
 
 // `CancelController`をテスト用に拡張し、メソッド呼び出しを追跡できるようにします。
 class TestCancelController extends CancelController {

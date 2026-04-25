@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sample/src/app/router/auth_guard.dart';
 import 'package:flutter_sample/src/app/router/firebase_auth_guard.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
@@ -22,6 +21,7 @@ import 'package:flutter_sample/src/features/settings/presentation/settings_scree
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
