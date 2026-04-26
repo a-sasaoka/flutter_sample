@@ -260,15 +260,16 @@ void main() {
             firebaseAuthStateProvider.overrideWith(
               () => FakeFirebaseAuthStateNotifier(mockUser),
             ),
+            appLifecycleProvider.overrideWith(FakeAppLifecycle.new),
           ],
         );
 
         await tester.pumpWidget(createTestWidget(container));
         await tester.pumpAndSettle();
 
-        tester.binding.handleAppLifecycleStateChanged(
-          AppLifecycleState.resumed,
-        );
+        final _ =
+            container.read(appLifecycleProvider.notifier) as FakeAppLifecycle
+              ..updateState(AppLifecycleState.resumed);
         await tester.pumpAndSettle();
 
         verify(() => mockAuthRepo.reloadCurrentUser()).called(1);
