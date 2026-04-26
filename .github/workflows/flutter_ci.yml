@@ -56,7 +56,16 @@ jobs:
           echo "DEBUG_TOKEN=example" >> .env.local
           echo "AI_MODEL=gemini-2.5-flash" >> .env.local
 
-      # 4.5. build_runnerで自動生成コード（Riverpod, Freezed, Envied等）を生成する
+      # 4.5. ダミーのFirebase設定ファイルを作成する（静的解析エラー回避）
+      - name: Create dummy Firebase options
+        run: |
+          DUMMY_CONTENT="import 'package:firebase_core/firebase_core.dart' show FirebaseOptions; class DefaultFirebaseOptions { static FirebaseOptions get currentPlatform => const FirebaseOptions(apiKey: 'dummy', appId: 'dummy', messagingSenderId: 'dummy', projectId: 'dummy'); }"
+          echo "$DUMMY_CONTENT" > lib/firebase_options_dev.dart
+          echo "$DUMMY_CONTENT" > lib/firebase_options_local.dart
+          echo "$DUMMY_CONTENT" > lib/firebase_options_prod.dart
+          echo "$DUMMY_CONTENT" > lib/firebase_options_stg.dart
+
+      # 4.6. build_runnerで自動生成コード（Riverpod, Freezed, Envied等）を生成する
       - name: Run build_runner
         run: dart run build_runner build --delete-conflicting-outputs --define "envied_generator:envied=path=.env.local"
 
