@@ -1,5 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_sample/src/core/network/logger_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -90,7 +90,7 @@ class FirebaseAuthRepository {
 
       return true;
     } on Exception catch (e) {
-      _ref.read(loggerProvider).w('SignInWithGoogle Error: $e');
+      _ref.read(loggerProvider).warning('SignInWithGoogle Error: $e');
 
       // ユーザーキャンセル等もここに入ることがあります
       return false;

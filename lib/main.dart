@@ -14,16 +14,20 @@ import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/core/config/firebase_options.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/network/token_interceptor.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:talker_flutter/talker_flutter.dart';
+import 'package:talker_riverpod_logger/talker_riverpod_logger.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Flavorを取得（文字列で扱うとエラーの原因になるので、enumに変換する）
   final flavor = Flavor.fromString(AppEnv.flavor);
+  final isProd = flavor == Flavor.prod;
 
   // アプリのパッケージ情報を取得
   final packageInfo = await PackageInfo.fromPlatform();
@@ -42,16 +46,24 @@ Future<void> main() async {
     providerApple: AppleDebugProvider(debugToken: myDebugToken),
   );
 
-  // Crashlytics: Flutterエラーを記録
-  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
-
-  // Crashlytics: Dartの未処理例外を記録
-  PlatformDispatcher.instance.onError = (error, stack) {
-    unawaited(
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true),
-    );
-    return true;
-  };
+  // コンテナ生成の前に Talker を初期化
+  final talker = TalkerFlutter.init(
+    settings: TalkerSettings(
+      useConsoleLogs: !isProd,
+      useHistory: !isProd,
+    ),
+    observer: CustomTalkerObserver(
+      isProd: isProd,
+      recordError: (error, stack, {required fatal}) async {
+        // CustomTalkerObserver 側で指定された fatal フラグ (false) をそのまま渡す
+        await FirebaseCrashlytics.instance.recordError(
+          error,
+          stack,
+          fatal: fatal,
+        );
+      },
+    ),
+  );
 
   final container = ProviderContainer(
     overrides: [
@@ -65,8 +77,30 @@ Future<void> main() async {
       tokenRefreshCallbackProvider.overrideWith(
         (ref) => ref.watch(authRepositoryProvider).refreshToken,
       ),
+
+      // プロバイダーにTalkerを設定
+      loggerProvider.overrideWithValue(talker),
+    ],
+    observers: [
+      // ObserverにもTalkerを設定
+      TalkerRiverpodObserver(talker: talker),
     ],
   );
+
+  // Flutterフレームワークのエラー
+  FlutterError.onError = (details) {
+    talker.error('Flutter Error', details.exception, details.stack);
+    unawaited(FirebaseCrashlytics.instance.recordFlutterFatalError(details));
+  };
+
+  // Dartの未処理例外
+  PlatformDispatcher.instance.onError = (error, stack) {
+    talker.error('Uncaught Exception', error, stack);
+    unawaited(
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true),
+    );
+    return true;
+  };
 
   // コンテナからアナリティクスを読み込んで送信
   final analytics = container.read(analyticsServiceProvider);

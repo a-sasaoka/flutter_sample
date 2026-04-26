@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_sample/src/core/network/logger_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:logger/logger.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 // --- モックとFakeクラスの定義 ---
 
@@ -19,7 +19,7 @@ class MockUser extends Mock implements User {}
 
 class MockUserCredential extends Mock implements UserCredential {}
 
-class MockLogger extends Mock implements Logger {}
+class MockTalker extends Mock implements Talker {}
 
 class MockGoogleSignInAccount extends Mock implements GoogleSignInAccount {}
 
@@ -35,7 +35,7 @@ class FakeAuthCredential extends Fake implements AuthCredential {}
 void main() {
   late MockFirebaseAuth mockFirebaseAuth;
   late MockGoogleSignIn mockGoogleSignIn;
-  late MockLogger mockLogger;
+  late MockTalker mockTalker;
   late ProviderContainer container;
 
   setUpAll(() {
@@ -46,9 +46,9 @@ void main() {
   setUp(() {
     mockFirebaseAuth = MockFirebaseAuth();
     mockGoogleSignIn = MockGoogleSignIn();
-    mockLogger = MockLogger();
+    mockTalker = MockTalker();
 
-    when(() => mockLogger.w(any<dynamic>())).thenReturn(null);
+    when(() => mockTalker.warning(any<dynamic>())).thenReturn(null);
 
     when(
       () => mockFirebaseAuth.userChanges(),
@@ -59,7 +59,7 @@ void main() {
       overrides: [
         firebaseAuthProvider.overrideWithValue(mockFirebaseAuth),
         googleSignInProvider.overrideWithValue(mockGoogleSignIn),
-        loggerProvider.overrideWithValue(mockLogger),
+        loggerProvider.overrideWithValue(mockTalker),
       ],
     );
   });
@@ -209,7 +209,7 @@ void main() {
 
         expect(result, isFalse);
         verify(
-          () => mockLogger.w('SignInWithGoogle Error: $exception'),
+          () => mockTalker.warning('SignInWithGoogle Error: $exception'),
         ).called(1);
       },
     );

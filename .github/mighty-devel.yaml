@@ -1,0 +1,3 @@
+# Geminiへの指示書
+pr_description:
+  instruction: "要約や説明は必ず日本語で出力してください。"

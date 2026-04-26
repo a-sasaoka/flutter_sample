@@ -2,12 +2,11 @@ import 'dart:async';
 
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sample/src/app/router/auth_guard.dart';
 import 'package:flutter_sample/src/app/router/firebase_auth_guard.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
-import 'package:flutter_sample/src/core/network/logger_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
@@ -22,8 +21,9 @@ import 'package:flutter_sample/src/features/settings/presentation/settings_scree
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
 import 'package:go_router/go_router.dart';
-import 'package:logger/logger.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 part 'app_router.g.dart';
 
@@ -155,13 +155,13 @@ class EmailVerificationRoute extends GoRouteData with $EmailVerificationRoute {
 /// Firebase Analytics の screen_class をカスタマイズして送信するカスタム Observer
 class TypedRouteAnalyticsObserver extends NavigatorObserver {
   /// コンストラクタ
-  TypedRouteAnalyticsObserver({required this.analytics, required this.logger});
+  TypedRouteAnalyticsObserver({required this.analytics, required this.talker});
 
   /// Firebase Analytics インスタンス
   final FirebaseAnalytics analytics;
 
-  /// Logger インスタンス
-  final Logger logger;
+  /// Talker インスタンス
+  final Talker talker;
 
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
@@ -177,6 +177,14 @@ class TypedRouteAnalyticsObserver extends NavigatorObserver {
     super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
   }
 
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (previousRoute != null) {
+      _sendScreenView(previousRoute);
+    }
+    super.didPop(route, previousRoute);
+  }
+
   void _sendScreenView(Route<dynamic> route) {
     final settings = route.settings;
     final runtimeTypeName = settings.name ?? route.runtimeType.toString();
@@ -190,7 +198,7 @@ class TypedRouteAnalyticsObserver extends NavigatorObserver {
       ),
     );
 
-    logger.d('📊 screen_view → $screenClass');
+    talker.debug('📊 screen_view → $screenClass');
   }
 }
 
@@ -229,7 +237,7 @@ GoRouter router(Ref ref) {
     observers: [
       TypedRouteAnalyticsObserver(
         analytics: ref.watch(firebaseAnalyticsProvider),
-        logger: ref.watch(loggerProvider),
+        talker: ref.watch(loggerProvider),
       ),
     ],
   );

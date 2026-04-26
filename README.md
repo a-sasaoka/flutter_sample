@@ -23,15 +23,16 @@ Flutter開発のサンプルプロジェクトです。\
 
 - [GoRouter（型安全ルーティング）](docs/routing.md)
 - [多言語対応（Localization）](docs/localization.md)
-- [SharedPreferences 永続化](docs/persistence.md)
+- [データ永続化（SharedPreferences / Secure Storage）](docs/persistence.md)
 - [テーマ設定（FlexColorScheme）](docs/theme.md)
+- [共通ユーティリティ（ログ・通信状態・ライフサイクル）](docs/core_utilities.md)
 
 ### D. 機能別実装
 
 - [API通信デモ（UserList）](docs/api_and_error_handling.md)
 - [トークン認証（Bearer + Refresh）](docs/auth.md)
 - [Firebase Authenticationによる認証対応](docs/firebase_authentication.md)
-- [APIキャッシュ対応（SharedPreferencesベース）](docs/cache.md)
+- [APIキャッシュ対応（SharedPreferencesAsyncベース）](docs/cache.md)
 - [Firebase Crashlytics](docs/crashlytics.md)
 - [Firebase Analytics](docs/analytics.md)
 - [バージョンアップ通知（Firebase Remote Config）](docs/remote_config.md)

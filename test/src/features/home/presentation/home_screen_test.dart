@@ -7,15 +7,15 @@ import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 import 'package:flutter_sample/src/core/network/firebase_crashlytics_provider.dart';
-import 'package:flutter_sample/src/core/network/logger_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:logger/logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 // --- モッククラスの定義 ---
 
@@ -39,7 +39,9 @@ class MockAnalyticsService extends Mock implements AnalyticsService {}
 
 class MockCrashlytics extends Mock implements FirebaseCrashlytics {}
 
-class MockLogger extends Mock implements Logger {}
+class MockTalker extends Mock implements Talker {}
+
+class MockTalkerFilter extends Mock implements TalkerFilter {}
 
 // --- Fake Notifier ---
 // UpdateRequestController の状態をコントロールするFake
@@ -54,7 +56,7 @@ void main() {
   late MockAppLocalizations mockL10n;
   late MockAnalyticsService mockAnalyticsService;
   late MockCrashlytics mockCrashlytics;
-  late MockLogger mockLogger;
+  late MockTalker mockTalker;
 
   String? attemptedPath;
 
@@ -66,7 +68,7 @@ void main() {
     mockL10n = MockAppLocalizations();
     mockAnalyticsService = MockAnalyticsService();
     mockCrashlytics = MockCrashlytics();
-    mockLogger = MockLogger();
+    mockTalker = MockTalker();
 
     // L10n のスタブ設定
     when(() => mockL10n.homeTitle).thenReturn('ホーム');
@@ -82,6 +84,7 @@ void main() {
     when(() => mockL10n.homeBundleId).thenReturn('Bundle ID');
     when(() => mockL10n.homeCrashTest).thenReturn('クラッシュテスト');
     when(() => mockL10n.homeAnalyticsTest).thenReturn('分析イベント送信テスト');
+    when(() => mockL10n.developerLogTitle).thenReturn('開発者ログ');
   });
 
   /// テスト環境のセットアップヘルパー
@@ -120,7 +123,7 @@ void main() {
             FakeUpdateRequestController.new,
           ),
           firebaseCrashlyticsProvider.overrideWithValue(mockCrashlytics),
-          loggerProvider.overrideWithValue(mockLogger),
+          loggerProvider.overrideWithValue(mockTalker),
           analyticsServiceProvider.overrideWithValue(mockAnalyticsService),
           packageInfoProvider.overrideWithValue(dummyPackageInfo),
         ],
@@ -143,6 +146,7 @@ void main() {
 
       expect(find.text('アプリ名: '), findsOneWidget);
       expect(find.text('Bundle ID: '), findsOneWidget);
+      expect(find.text('開発者ログ'), findsOneWidget);
     });
 
     testWidgets('PackageInfo: アプリ情報取得ボタンを押すと、情報が読み込まれてUIが更新されること', (
@@ -181,7 +185,7 @@ void main() {
     });
 
     group('Analytics', () {
-      testWidgets('正常系: ボタンを押すとイベントが送信され、LoggerのDebugが出力されること', (tester) async {
+      testWidgets('正常系: ボタンを押すとイベントが送信され、TalkerのDebugが出力されること', (tester) async {
         when(
           () => mockAnalyticsService.logEvent(event: any(named: 'event')),
         ).thenAnswer((_) async {});
@@ -205,11 +209,12 @@ void main() {
             event: AnalyticsEvent.homeButtonTapped,
           ),
         ).called(1);
-        verify(() => mockLogger.d(any<dynamic>())).called(1);
-        verifyNever(() => mockLogger.e(any<dynamic>()));
+
+        verify(() => mockTalker.debug(any<dynamic>())).called(1);
+        verifyNever(() => mockTalker.error(any<dynamic>()));
       });
 
-      testWidgets('異常系: イベント送信で例外が発生した場合、LoggerのErrorが出力されること', (tester) async {
+      testWidgets('異常系: イベント送信で例外が発生した場合、TalkerのErrorが出力されること', (tester) async {
         when(
           () => mockAnalyticsService.logEvent(event: any(named: 'event')),
         ).thenThrow(Exception('Analytics Error'));
@@ -233,8 +238,9 @@ void main() {
             event: AnalyticsEvent.homeButtonTapped,
           ),
         ).called(1);
-        verifyNever(() => mockLogger.d(any<dynamic>()));
-        verify(() => mockLogger.e(any<dynamic>())).called(1);
+
+        verifyNever(() => mockTalker.debug(any<dynamic>()));
+        verify(() => mockTalker.error(any<dynamic>())).called(1);
       });
     });
   });
@@ -268,6 +274,31 @@ void main() {
       await tapAndVerifyRouting('パスワードリセットへ', 'reset');
       await tapAndVerifyRouting('チャット画面へ', 'chat');
       await tapAndVerifyRouting('存在しない画面へ', 'undefined');
+    });
+
+    testWidgets('開発者ログボタンを押すと、TalkerScreenが表示されること', (tester) async {
+      // TalkerScreenの描画時に呼ばれるプロパティのスタブを設定
+      final mockFilter = MockTalkerFilter();
+      when(() => mockFilter.enabledKeys).thenReturn([]);
+
+      when(() => mockTalker.history).thenReturn([]);
+      when(() => mockTalker.stream).thenAnswer((_) => const Stream.empty());
+      when(() => mockTalker.filter).thenReturn(mockFilter);
+
+      await setupWidget(tester);
+
+      final button = find.text('開発者ログ');
+
+      await tester.dragUntilVisible(
+        button,
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TalkerScreen), findsOneWidget);
     });
   });
 }

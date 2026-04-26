@@ -8,11 +8,12 @@ import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 import 'package:flutter_sample/src/core/network/firebase_crashlytics_provider.dart';
-import 'package:flutter_sample/src/core/network/logger_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:flutter_sample/src/core/widgets/version_up_dialog.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 /// ホーム画面のウィジェット
 class HomeScreen extends HookConsumerWidget {
@@ -72,6 +73,20 @@ class HomeScreen extends HookConsumerWidget {
             onPressed: () => const ChatRoute().push<void>(context),
             child: Text(l10n.homeToChat),
           ),
+          if (flavor != Flavor.prod) ...[
+            const SizedBox(height: 8),
+            FilledButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => TalkerScreen(
+                    talker: ref.read(loggerProvider),
+                    appBarTitle: l10n.developerLogTitle,
+                  ),
+                ),
+              ),
+              child: Text(l10n.developerLogTitle),
+            ),
+          ],
           const SizedBox(height: 16),
           FilledButton(
             onPressed: () => context.go('/undefined/path'),
@@ -108,9 +123,9 @@ class HomeScreen extends HookConsumerWidget {
                 await analytics.logEvent(
                   event: AnalyticsEvent.homeButtonTapped,
                 );
-                logger.d('🎯 logEvent sent via AnalyticsService');
+                logger.debug('🎯 logEvent sent via AnalyticsService');
               } on Exception catch (e, st) {
-                logger.e('❌ AnalyticsService error: $e\n$st');
+                logger.error('❌ AnalyticsService error: $e\n$st');
               }
             },
             child: Text(l10n.homeAnalyticsTest),

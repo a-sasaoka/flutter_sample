@@ -1,7 +1,7 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
-import 'package:flutter_sample/src/core/network/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'analytics_service.g.dart';
@@ -50,7 +50,7 @@ class AnalyticsService {
       );
     } on Exception catch (e) {
       // 分析イベントの送信失敗でアプリのクラッシュや機能停止を防ぐ
-      _ref.read(loggerProvider).w('Analytics Error: $e');
+      _ref.read(loggerProvider).warning('Analytics Error: $e');
     }
   }
 }

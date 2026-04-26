@@ -87,5 +87,6 @@
   "notFoundBackToHome": "ホームへ戻る",
   "versionUpTitle": "最新の更新があります。\nアップデートをお願いします。",
   "versionUpCancel": "キャンセル",
-  "versionUpUpdate": "アップデート"
+  "versionUpUpdate": "アップデート",
+  "developerLogTitle": "開発者用ログ"
 }

@@ -1,10 +1,10 @@
 // ignore_for_file: one_member_abstracts, document_ignores
 
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sample/src/core/network/token_interceptor.dart';
 import 'package:flutter_sample/src/core/storage/token_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
 // --- モッククラス群 ---

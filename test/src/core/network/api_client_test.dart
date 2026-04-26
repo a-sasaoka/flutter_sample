@@ -1,11 +1,13 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
 import 'package:flutter_sample/src/core/network/token_interceptor.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:pretty_dio_logger/pretty_dio_logger.dart';
+import 'package:talker_dio_logger/talker_dio_logger.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 // モッククラス
 class MockDio extends Mock implements Dio {}
@@ -13,6 +15,8 @@ class MockDio extends Mock implements Dio {}
 class MockTokenInterceptor extends Mock implements InterceptorsWrapper {}
 
 class MockDioInterceptor extends Mock implements InterceptorsWrapper {}
+
+class MockTalker extends Mock implements Talker {}
 
 void main() {
   late MockDio mockDio;
@@ -135,11 +139,16 @@ void main() {
     test('dioProvider が正しい BaseOptions と Interceptor で構成されていること', () {
       final mockTokenInterceptor = MockTokenInterceptor();
       final mockDioInterceptor = MockDioInterceptor();
+      final mockTalker = MockTalker();
+
+      // TalkerDioLogger が内部で talker.settings を参照するため、スタブ化して null エラーを防ぐ
+      when(() => mockTalker.settings).thenReturn(TalkerSettings());
 
       final testContainer = ProviderContainer(
         overrides: [
           tokenInterceptorProvider.overrideWithValue(mockTokenInterceptor),
           dioInterceptorProvider.overrideWithValue(mockDioInterceptor),
+          loggerProvider.overrideWithValue(mockTalker),
         ],
       );
 
@@ -158,7 +167,7 @@ void main() {
 
       expect(interceptorTypes[1], equals(MockTokenInterceptor));
       expect(interceptorTypes[2], equals(MockDioInterceptor));
-      expect(interceptorTypes[3], equals(PrettyDioLogger));
+      expect(interceptorTypes[3], equals(TalkerDioLogger));
 
       testContainer.dispose();
     });

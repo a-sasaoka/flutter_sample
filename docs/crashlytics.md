@@ -7,6 +7,7 @@
 ```plaintext
 lib/main.dart                                           # アプリ全体のエラーハンドラーを登録
 lib/src/core/network/firebase_crashlytics_provider.dart # インスタンスを提供するRiverpodプロバイダ
+lib/src/core/utils/logger_provider.dart                 # TalkerとCrashlyticsの連携オブザーバー
 lib/src/features/home/presentation/home_screen.dart     # 動作確認用のクラッシュボタン配置
 ```
 

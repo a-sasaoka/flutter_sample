@@ -2,13 +2,12 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
-import 'package:flutter_sample/src/core/network/logger_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
@@ -24,12 +23,13 @@ import 'package:flutter_sample/src/features/splash/presentation/splash_screen.da
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:logger/logger.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 class MockFirebaseAnalytics extends Mock implements FirebaseAnalytics {}
 
-class MockLogger extends Mock implements Logger {}
+class MockTalker extends Mock implements Talker {}
 
 class MockGoRouterState extends Mock implements GoRouterState {}
 
@@ -65,12 +65,12 @@ class _FakeFirebaseAuthStateNotifier extends FirebaseAuthStateNotifier {
 
 void main() {
   late MockFirebaseAnalytics mockAnalytics;
-  late MockLogger mockLogger;
+  late MockTalker mockTalker;
   late MockUser mockUser;
 
   setUp(() {
     mockAnalytics = MockFirebaseAnalytics();
-    mockLogger = MockLogger();
+    mockTalker = MockTalker();
     mockUser = MockUser();
 
     when(() => mockUser.uid).thenReturn('dummy_uid_123');
@@ -105,7 +105,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         firebaseAnalyticsProvider.overrideWithValue(mockAnalytics),
-        loggerProvider.overrideWithValue(mockLogger),
+        loggerProvider.overrideWithValue(mockTalker),
         flavorProvider.overrideWithValue(Flavor.dev),
         useFirebaseAuthProvider.overrideWithValue(useFirebase),
         authStateProvider.overrideWith(
@@ -325,7 +325,7 @@ void main() {
     test('didPush: 画面遷移時に Analytics にログが送信されること', () async {
       final observer = TypedRouteAnalyticsObserver(
         analytics: mockAnalytics,
-        logger: mockLogger,
+        talker: mockTalker,
       );
       final route = MaterialPageRoute<void>(
         builder: (_) => const SizedBox(),
@@ -343,7 +343,7 @@ void main() {
     test('didReplace: 画面置換時に Analytics にログが送信されること', () {
       final observer = TypedRouteAnalyticsObserver(
         analytics: mockAnalytics,
-        logger: mockLogger,
+        talker: mockTalker,
       );
       final route = MaterialPageRoute<void>(
         builder: (_) => const SizedBox(),
@@ -354,6 +354,29 @@ void main() {
         () => mockAnalytics.logScreenView(
           screenClass: 'TargetRoute',
           screenName: 'TargetRoute',
+        ),
+      ).called(1);
+    });
+
+    test('didPop: 画面を戻った時に Analytics に前の画面のログが送信されること', () {
+      final observer = TypedRouteAnalyticsObserver(
+        analytics: mockAnalytics,
+        talker: mockTalker,
+      );
+      final previousRoute = MaterialPageRoute<void>(
+        builder: (_) => const SizedBox(),
+        settings: const RouteSettings(name: 'PreviousScreen'),
+      );
+      final currentRoute = MaterialPageRoute<void>(
+        builder: (_) => const SizedBox(),
+        settings: const RouteSettings(name: 'CurrentScreen'),
+      );
+
+      observer.didPop(currentRoute, previousRoute);
+      verify(
+        () => mockAnalytics.logScreenView(
+          screenClass: 'PreviousScreen',
+          screenName: 'PreviousScreen',
         ),
       ).called(1);
     });

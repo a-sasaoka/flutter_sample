@@ -8,16 +8,16 @@ part of 'logger_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Loggerプロバイダ
+/// 統合ロギングプロバイダ (Talker)
 
 @ProviderFor(logger)
 const loggerProvider = LoggerProvider._();
 
-/// Loggerプロバイダ
+/// 統合ロギングプロバイダ (Talker)
 
-final class LoggerProvider extends $FunctionalProvider<Logger, Logger, Logger>
-    with $Provider<Logger> {
-  /// Loggerプロバイダ
+final class LoggerProvider extends $FunctionalProvider<Talker, Talker, Talker>
+    with $Provider<Talker> {
+  /// 統合ロギングプロバイダ (Talker)
   const LoggerProvider._()
     : super(
         from: null,
@@ -34,21 +34,21 @@ final class LoggerProvider extends $FunctionalProvider<Logger, Logger, Logger>
 
   @$internal
   @override
-  $ProviderElement<Logger> $createElement($ProviderPointer pointer) =>
+  $ProviderElement<Talker> $createElement($ProviderPointer pointer) =>
       $ProviderElement(pointer);
 
   @override
-  Logger create(Ref ref) {
+  Talker create(Ref ref) {
     return logger(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(Logger value) {
+  Override overrideWithValue(Talker value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<Logger>(value),
+      providerOverride: $SyncValueProvider<Talker>(value),
     );
   }
 }
 
-String _$loggerHash() => r'0e5bc4ebc683e4836648d029a715c5dc83a8d4ab';
+String _$loggerHash() => r'eeaf4eb2e598ffd98694ea1f326da6dc8e9425fa';

@@ -231,4 +231,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get versionUpUpdate => 'アップデート';
+
+  @override
+  String get developerLogTitle => '開発者用ログ';
 }

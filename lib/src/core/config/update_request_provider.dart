@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/update_info.dart';
-import 'package:flutter_sample/src/core/network/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:version/version.dart';
@@ -103,7 +103,7 @@ class UpdateRequestController extends _$UpdateRequestController {
     } on Exception catch (e) {
       ref
           .read(loggerProvider)
-          .w('Failed to retrieve or parse the update information: $e');
+          .warning('Failed to retrieve or parse the update information: $e');
       // パース失敗時はアップデートなしとして扱う
       return UpdateRequestType.not;
     }
