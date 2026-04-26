@@ -105,6 +105,10 @@ jobs:
       - name: Run tests with coverage
         run: flutter test --coverage
 
+      # 7.5. lcovのインストール（カバレッジレポート生成ツール genhtml に必要）
+      - name: Install lcov
+        run: sudo apt-get update && sudo apt-get install -y lcov
+
       # 8. カバレッジ結果の可視化
       #    GitHub Actionsの実行結果画面に、どのファイルがテストされたかの表を表示します
       - name: Report coverage
