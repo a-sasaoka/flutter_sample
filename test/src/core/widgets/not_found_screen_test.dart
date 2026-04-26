@@ -37,7 +37,7 @@ void main() {
       );
     }
 
-    testWidgets('unknownPathがなくても正しく描画される', (WidgetTester tester) async {
+    testWidgets('unknownPathがなくても正しく描画される', (tester) async {
       await pumpWidget(tester);
 
       expect(find.text('Page Not Found'), findsOneWidget);
@@ -46,7 +46,7 @@ void main() {
       expect(find.byType(FilledButton), findsOneWidget);
     });
 
-    testWidgets('unknownPathがあっても正しく描画される', (WidgetTester tester) async {
+    testWidgets('unknownPathがあっても正しく描画される', (tester) async {
       const path = '/test_path';
       await pumpWidget(tester, unknownPath: path);
 
@@ -57,7 +57,7 @@ void main() {
       expect(find.byType(FilledButton), findsOneWidget);
     });
 
-    testWidgets('ボタンをタップするとホーム画面に遷移する', (WidgetTester tester) async {
+    testWidgets('ボタンをタップするとホーム画面に遷移する', (tester) async {
       when(() => mockGoRouter.go('/')).thenAnswer((_) async {});
       await pumpWidget(tester);
 

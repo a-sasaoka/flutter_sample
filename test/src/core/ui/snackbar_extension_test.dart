@@ -22,7 +22,7 @@ void main() {
   }
 
   testWidgets('showSnackBar displays an info SnackBar by default', (
-    WidgetTester tester,
+    tester,
   ) async {
     const testMessage = 'Test Info Message';
 
@@ -58,7 +58,7 @@ void main() {
   });
 
   testWidgets('showSuccessSnackBar displays a success SnackBar', (
-    WidgetTester tester,
+    tester,
   ) async {
     const testMessage = 'Test Success Message';
 
@@ -81,7 +81,7 @@ void main() {
   });
 
   testWidgets('showErrorSnackBar displays an error SnackBar', (
-    WidgetTester tester,
+    tester,
   ) async {
     const testMessage = 'Test Error Message';
 
@@ -105,7 +105,7 @@ void main() {
 
   testWidgets(
     'showSnackBar hides the previous SnackBar if called consecutively',
-    (WidgetTester tester) async {
+    (tester) async {
       const message1 = 'Message 1';
       const message2 = 'Message 2';
 

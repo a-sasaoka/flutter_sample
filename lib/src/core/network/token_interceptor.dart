@@ -53,7 +53,7 @@ InterceptorsWrapper tokenInterceptor(Ref ref) {
       }
       return handler.next(options);
     },
-    onError: (DioException e, handler) async {
+    onError: (e, handler) async {
       if (e.response?.statusCode == 401) {
         final refreshTokenFn = ref.read(tokenRefreshCallbackProvider);
         final refreshed = await refreshTokenFn();
