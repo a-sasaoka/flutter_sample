@@ -59,11 +59,23 @@ jobs:
       # 4.5. ダミーのFirebase設定ファイルを作成する（静的解析エラー回避）
       - name: Create dummy Firebase options
         run: |
-          DUMMY_CONTENT="import 'package:firebase_core/firebase_core.dart' show FirebaseOptions; class DefaultFirebaseOptions { static FirebaseOptions get currentPlatform => const FirebaseOptions(apiKey: 'dummy', appId: 'dummy', messagingSenderId: 'dummy', projectId: 'dummy'); }"
-          echo "$DUMMY_CONTENT" > lib/firebase_options_dev.dart
-          echo "$DUMMY_CONTENT" > lib/firebase_options_local.dart
-          echo "$DUMMY_CONTENT" > lib/firebase_options_prod.dart
-          echo "$DUMMY_CONTENT" > lib/firebase_options_stg.dart
+          cat << 'EOF' > dummy_firebase.dart
+          // ignore_for_file: type=lint
+          import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
+          class DefaultFirebaseOptions {
+            static FirebaseOptions get currentPlatform => const FirebaseOptions(
+              apiKey: 'dummy',
+              appId: 'dummy',
+              messagingSenderId: 'dummy',
+              projectId: 'dummy'
+            );
+          }
+          EOF
+          cp dummy_firebase.dart lib/firebase_options_dev.dart
+          cp dummy_firebase.dart lib/firebase_options_local.dart
+          cp dummy_firebase.dart lib/firebase_options_prod.dart
+          cp dummy_firebase.dart lib/firebase_options_stg.dart
+          rm dummy_firebase.dart
           # 後続の整形チェックで引っかからないように、生成したファイルをあらかじめ整形しておく
           dart format lib/firebase_options_*.dart
 
