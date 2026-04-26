@@ -41,6 +41,10 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # 4.5. build_runnerで自動生成コード（Riverpod, Freezed, Envied等）を生成する
+      - name: Run build_runner
+        run: dart run build_runner build --delete-conflicting-outputs --define "envied_generator:envied=path=.env.local"
+
       # 5. コードの整形チェック
       #    整形が正しくない場合、ここで失敗させてコードの美しさを保ちます
       - name: Check formatting
