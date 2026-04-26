@@ -123,10 +123,13 @@ jobs:
           '**/*.freezed.dart' \
           -o coverage/lcov.info
 
-      # 7.9. カバレッジパスの修正（CIの罠対策！）
-      # ※ lcovコマンドが絶対パスに戻してしまうため、必ず除外処理の【後】に実行する
+      # 7.9. カバレッジパスの修正（どんな環境でも強制的に lib/ からの相対パスにする最強の魔法）
       - name: Fix coverage paths
-        run: sed -i "s|SF:${{ github.workspace }}/|SF:|g" coverage/lcov.info
+        run: sed -i 's|SF:.*/lib/|SF:lib/|g' coverage/lcov.info
+
+      # 7.10. 【原因究明用】実際の成績表の中身（住所）をログに出力して覗き見する
+      - name: Debug coverage paths
+        run: grep "SF:" coverage/lcov.info | head -n 20
 
       # 8. カバレッジ結果の可視化
       #    GitHub Actionsの実行結果画面に、どのファイルがテストされたかの表を表示します
