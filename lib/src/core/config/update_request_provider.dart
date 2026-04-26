@@ -3,8 +3,9 @@ import 'dart:convert';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/update_info.dart';
+import 'package:flutter_sample/src/core/network/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
-import 'package:package_info_plus/package_info_plus.dart';
+import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:version/version.dart';
 
@@ -27,7 +28,7 @@ class UpdateRequestController extends _$UpdateRequestController {
     final remoteConfig = ref.watch(firebaseRemoteConfigProvider);
 
     // タイムアウトとフェッチのインターバル時間を設定
-    final flavor = ref.read(flavorProvider);
+    final flavor = ref.watch(flavorProvider);
     final interval = flavor == Flavor.prod
         ? const Duration(hours: 12)
         : Duration.zero;
@@ -51,7 +52,7 @@ class UpdateRequestController extends _$UpdateRequestController {
       state = const AsyncValue.loading();
       // 変更した状態をstateに設定
       state = await AsyncValue.guard(() async {
-        return _getRemoteConfigData();
+        return _getRemoteConfigData(ref);
       });
     });
 
@@ -60,11 +61,11 @@ class UpdateRequestController extends _$UpdateRequestController {
     // アクティベート
     await remoteConfig.fetchAndActivate();
 
-    return _getRemoteConfigData();
+    return _getRemoteConfigData(ref);
   }
 
   /// RemoteConfigからアップデート情報を取得
-  Future<UpdateRequestType> _getRemoteConfigData() async {
+  Future<UpdateRequestType> _getRemoteConfigData(Ref ref) async {
     try {
       final remoteConfig = ref.read(firebaseRemoteConfigProvider);
       // RemoteConfigから情報を取得
@@ -79,7 +80,7 @@ class UpdateRequestController extends _$UpdateRequestController {
       final entity = UpdateInfo.fromJson(map);
 
       // 現在のアプリバージョンを取得
-      final appPackageInfo = await PackageInfo.fromPlatform();
+      final appPackageInfo = ref.read(packageInfoProvider);
       final currentVersion = Version.parse(appPackageInfo.version);
 
       // RemoteConfigに設定されているバージョンと適用日を取得
@@ -99,7 +100,10 @@ class UpdateRequestController extends _$UpdateRequestController {
       return entity.canCancel
           ? UpdateRequestType.cancelable
           : UpdateRequestType.forcibly;
-    } on Exception catch (_) {
+    } on Exception catch (e) {
+      ref
+          .read(loggerProvider)
+          .w('Failed to retrieve or parse the update information: $e');
       // パース失敗時はアップデートなしとして扱う
       return UpdateRequestType.not;
     }

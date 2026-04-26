@@ -1,7 +1,5 @@
-// Dio + pretty_dio_logger + Riverpod構成
-// API通信の共通設定を行うクライアントクラス
-
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
 import 'package:flutter_sample/src/core/network/token_interceptor.dart';
@@ -30,18 +28,20 @@ Dio dio(Ref ref) {
   );
 
   // トークン付与・更新
-  dio.interceptors.add(ref.read(tokenInterceptorProvider));
+  dio.interceptors.add(ref.watch(tokenInterceptorProvider));
 
   // ログ出力・例外処理
-  dio.interceptors.add(ref.read(dioInterceptorProvider));
+  dio.interceptors.add(ref.watch(dioInterceptorProvider));
 
   // 開発時のみリクエスト・レスポンスログを出力
-  dio.interceptors.add(
-    PrettyDioLogger(
-      requestHeader: true,
-      requestBody: true,
-    ),
-  );
+  if (kDebugMode) {
+    dio.interceptors.add(
+      PrettyDioLogger(
+        requestHeader: true,
+        requestBody: true,
+      ),
+    );
+  }
 
   return dio;
 }
@@ -58,33 +58,79 @@ class ApiClient {
   /// GETリクエスト
   Future<Response<T>> get<T>(
     String path, {
+    Object? data,
     Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+    ProgressCallback? onReceiveProgress,
   }) {
-    return _dio.get<T>(path, queryParameters: queryParameters);
+    return _dio.get<T>(
+      path,
+      data: data,
+      queryParameters: queryParameters,
+      options: options,
+      cancelToken: cancelToken,
+      onReceiveProgress: onReceiveProgress,
+    );
   }
 
   /// POSTリクエスト
   Future<Response<T>> post<T>(
     String path, {
-    dynamic data,
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
   }) {
-    return _dio.post<T>(path, data: data);
+    return _dio.post<T>(
+      path,
+      data: data,
+      queryParameters: queryParameters,
+      options: options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
   }
 
   /// PUTリクエスト
   Future<Response<T>> put<T>(
     String path, {
-    dynamic data,
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
   }) {
-    return _dio.put<T>(path, data: data);
+    return _dio.put<T>(
+      path,
+      data: data,
+      queryParameters: queryParameters,
+      options: options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
   }
 
   /// DELETEリクエスト
   Future<Response<T>> delete<T>(
     String path, {
+    Object? data,
     Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
   }) {
-    return _dio.delete<T>(path, queryParameters: queryParameters);
+    return _dio.delete<T>(
+      path,
+      data: data,
+      queryParameters: queryParameters,
+      options: options,
+      cancelToken: cancelToken,
+    );
   }
 }
 

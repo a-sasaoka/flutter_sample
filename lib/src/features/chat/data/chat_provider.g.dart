@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'chat_repository.dart';
+part of 'chat_provider.dart';
 
 // **************************************************************************
 // RiverpodGenerator
@@ -8,20 +8,17 @@ part of 'chat_repository.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// チャットのリポジトリクラスのプロバイダー
-/// ※ Riverpodの初期化処理であり、内部でFirebase初期化を伴うためカバレッジから除外
+/// チャットのリポジトリを提供するプロバイダー
 
 @ProviderFor(chatRepository)
 const chatRepositoryProvider = ChatRepositoryProvider._();
 
-/// チャットのリポジトリクラスのプロバイダー
-/// ※ Riverpodの初期化処理であり、内部でFirebase初期化を伴うためカバレッジから除外
+/// チャットのリポジトリを提供するプロバイダー
 
 final class ChatRepositoryProvider
     extends $FunctionalProvider<ChatRepository, ChatRepository, ChatRepository>
     with $Provider<ChatRepository> {
-  /// チャットのリポジトリクラスのプロバイダー
-  /// ※ Riverpodの初期化処理であり、内部でFirebase初期化を伴うためカバレッジから除外
+  /// チャットのリポジトリを提供するプロバイダー
   const ChatRepositoryProvider._()
     : super(
         from: null,
@@ -55,4 +52,4 @@ final class ChatRepositoryProvider
   }
 }
 
-String _$chatRepositoryHash() => r'2c662ce1c9186f91d7ca96cdd2b4844b63e6fa8f';
+String _$chatRepositoryHash() => r'024b6f59d2e89d99d7953fdd6a7ee43b710fc387';

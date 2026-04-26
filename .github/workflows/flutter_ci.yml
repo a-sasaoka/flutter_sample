@@ -9,6 +9,10 @@ on:
     # PR作成時、追記プッシュ時、再オープン時に実行
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   # テストを実行するメインのジョブ
   test:
@@ -41,6 +45,48 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # 4.4. ダミーの環境変数ファイルを作成する（envied_generatorのエラー回避）
+      - name: Create dummy .env.local
+        run: |
+          echo "FLAVOR=local" > .env.local
+          echo "APP_NAME=example local" >> .env.local
+          echo "APP_ID=example.local" >> .env.local
+          echo "BASE_URL=https://jsonplaceholder.typicode.com" >> .env.local
+          echo "CONNECT_TIMEOUT=10" >> .env.local
+          echo "RECEIVE_TIMEOUT=15" >> .env.local
+          echo "SEND_TIMEOUT=10" >> .env.local
+          echo "USE_FIREBASE_AUTH=true" >> .env.local
+          echo "GOOGLE_REVERSED_CLIENT_ID=example" >> .env.local
+          echo "DEBUG_TOKEN=example" >> .env.local
+          echo "AI_MODEL=gemini-2.5-flash" >> .env.local
+
+      # 4.5. ダミーのFirebase設定ファイルを作成する（静的解析エラー回避）
+      - name: Create dummy Firebase options
+        run: |
+          cat << 'EOF' > dummy_firebase.dart
+          // ignore_for_file: type=lint
+          import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
+          class DefaultFirebaseOptions {
+            static FirebaseOptions get currentPlatform => const FirebaseOptions(
+              apiKey: 'dummy',
+              appId: 'dummy',
+              messagingSenderId: 'dummy',
+              projectId: 'dummy'
+            );
+          }
+          EOF
+          cp dummy_firebase.dart lib/firebase_options_dev.dart
+          cp dummy_firebase.dart lib/firebase_options_local.dart
+          cp dummy_firebase.dart lib/firebase_options_prod.dart
+          cp dummy_firebase.dart lib/firebase_options_stg.dart
+          rm dummy_firebase.dart
+          # 後続の整形チェックで引っかからないように、生成したファイルをあらかじめ整形しておく
+          dart format lib/firebase_options_*.dart
+
+      # 4.6. build_runnerで自動生成コード（Riverpod, Freezed, Envied等）を生成する
+      - name: Run build_runner
+        run: dart run build_runner build --delete-conflicting-outputs --define "envied_generator:envied=path=.env.local"
+
       # 5. コードの整形チェック
       #    整形が正しくない場合、ここで失敗させてコードの美しさを保ちます
       - name: Check formatting
@@ -49,17 +95,38 @@ jobs:
       # 6. 静的解析（Lintチェック）
       #    プロジェクトの analysis_options.yaml に基づき、潜在的な不具合や規約違反を検知します
       - name: Analyze project
-        run: flutter analyze
+        run: |
+          # flutter analyze 実行時に custom_lint プラグインがサーバーエラーを起こすのを防ぐため、
+          # 一時的に analysis_options.yaml からプラグイン設定をコメントアウトします。
+          sed -i 's/plugins:/# plugins:/g' analysis_options.yaml
+          sed -i 's/- custom_lint/# - custom_lint/g' analysis_options.yaml
+          flutter analyze
+          # custom_lint は専用のコマンドで実行します（CI環境での公式推奨手順）
+          dart run custom_lint
 
       # 7. 全テストの実行とカバレッジデータの生成
       #    カバレッジ100%のテスト群がすべてパスすることを確認します
       - name: Run tests with coverage
         run: flutter test --coverage
 
+      # 7.5. lcovのインストール（カバレッジレポート生成ツール genhtml に必要）
+      - name: Install lcov
+        run: sudo apt-get update && sudo apt-get install -y lcov
+
+      # 7.8. カバレッジデータから自動生成ファイルや設定ファイルを除外
+      - name: Remove excluded files from coverage
+        run: |
+          lcov --ignore-errors unused --remove coverage/lcov.info \
+          'lib/firebase_options_*.dart' \
+          'lib/l10n/*' \
+          '**/*.g.dart' \
+          '**/*.freezed.dart' \
+          -o coverage/lcov.info
+
       # 8. カバレッジ結果の可視化
       #    GitHub Actionsの実行結果画面に、どのファイルがテストされたかの表を表示します
       - name: Report coverage
-        uses: pierotofy/set-lcov-reporter@v1.0.1
+        uses: zgosalvez/github-actions-report-lcov@v4
         with:
-          lcov-file: ./coverage/lcov.info
-          filter-changed-files: true
+          coverage-files: ./coverage/lcov.info
+          github-token: ${{ secrets.GITHUB_TOKEN }}

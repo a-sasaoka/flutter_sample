@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
@@ -5,95 +7,94 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
+// Firebase の User オブジェクトのモック
 class MockUser extends Mock implements User {}
 
-// FirebaseAuthRepository の Fake クラスを作成する
-// extends を使うことで Riverpod の内部状態を維持しつつ、テスト用に挙動を乗っ取ります。
-class FakeFirebaseAuthRepository extends FirebaseAuthRepository {
-  FakeFirebaseAuthRepository(this._initialState);
-
-  final User? _initialState;
-
-  @override
-  User? build() {
-    return _initialState;
-  }
-
-  // テスト用に外から状態 (User?) を変更するためのヘルパーメソッド
-  // ignore: use_setters_to_change_properties
-  void updateUser(User? user) {
-    state = user;
-  }
-}
-
 void main() {
-  late MockUser mockUser;
-
-  setUp(() {
-    mockUser = MockUser();
-  });
-
   group('FirebaseAuthStateNotifier', () {
-    test('初期化: リポジトリの初期状態が null の場合、state も null になること', () {
-      final container = ProviderContainer(
-        overrides: [
-          // 引数なしの () => Fake... という形で override する
-          firebaseAuthRepositoryProvider.overrideWith(
-            () => FakeFirebaseAuthRepository(null),
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      final state = container.read(firebaseAuthStateProvider);
-
-      expect(state, isNull);
-    });
-
-    test('初期化: リポジトリの初期状態が User の場合、state も User になること', () {
-      final container = ProviderContainer(
-        overrides: [
-          firebaseAuthRepositoryProvider.overrideWith(
-            () => FakeFirebaseAuthRepository(mockUser),
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      final state = container.read(firebaseAuthStateProvider);
-
-      expect(state, mockUser);
-    });
-
     test(
-      '状態変化: firebaseAuthRepositoryProvider が更新されると、listen して state も同期されること',
-      () {
-        // Arrange: 最初は未ログイン (null) 状態で Fake を作成
-        final fakeRepo = FakeFirebaseAuthRepository(null);
+      'ログイン済み: authStateChangesProvider が User を返す時、state に User がセットされること',
+      () async {
+        // Arrange
+        final mockUser = MockUser();
+
         final container = ProviderContainer(
           overrides: [
-            firebaseAuthRepositoryProvider.overrideWith(() => fakeRepo),
+            authStateChangesProvider.overrideWith(
+              (ref) => Stream.value(mockUser),
+            ),
           ],
         );
         addTearDown(container.dispose);
 
-        // 1. 初回読み込み (この時点で build 内の ref.listen が登録される)
-        var state = container.read(firebaseAuthStateProvider);
-        expect(state, isNull);
+        // 💡 修正1: listen を使って Provider を「監視状態」にし、勝手に破棄されるのを防ぐ
+        container.listen(firebaseAuthStateProvider, (_, _) {});
 
-        // 2. Act: リポジトリ側の状態を MockUser (ログイン状態) に更新する
-        fakeRepo.updateUser(mockUser);
+        // 非同期データが流れて状態が同期されるまで1フレーム待つ
+        await Future<void>.delayed(Duration.zero);
 
-        // 3. Assert: listen が発火し、Notifier の状態も自動的に同期されているか確認
-        state = container.read(firebaseAuthStateProvider);
+        // Act
+        final state = container.read(firebaseAuthStateProvider);
+
+        // Assert
         expect(state, mockUser);
+      },
+    );
 
-        // 4. Act: リポジトリ側が再度ログアウト (null) したと仮定する
-        fakeRepo.updateUser(null);
+    test(
+      '未ログイン: authStateChangesProvider が null を返す時、state に null がセットされること',
+      () async {
+        // Arrange
+        final container = ProviderContainer(
+          overrides: [
+            authStateChangesProvider.overrideWith((ref) => Stream.value(null)),
+          ],
+        );
+        addTearDown(container.dispose);
 
-        // 5. Assert: 再度同期されているか
-        state = container.read(firebaseAuthStateProvider);
+        // 監視状態にする
+        container.listen(firebaseAuthStateProvider, (_, _) {});
+
+        await Future<void>.delayed(Duration.zero);
+
+        // Act
+        final state = container.read(firebaseAuthStateProvider);
+
+        // Assert
         expect(state, isNull);
+      },
+    );
+
+    test(
+      'ロード中: authStateChangesProvider がまだ値を流していない時、state は null になること',
+      () async {
+        // Arrange
+        final streamController = StreamController<User?>();
+
+        final container = ProviderContainer(
+          overrides: [
+            authStateChangesProvider.overrideWith(
+              (ref) => streamController.stream,
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        // 監視状態にする
+        container.listen(firebaseAuthStateProvider, (_, _) {});
+
+        // Act
+        // まだ streamController に何も追加していない（ロード中）の状態で読み取る
+        final state = container.read(firebaseAuthStateProvider);
+
+        // Assert
+        expect(state, isNull);
+
+        // 💡 修正2: Riverpodのエラー（Bad state）を回避するため、
+        // テスト終了直前にダミーの値を流して「ロード状態」を平和に終わらせる
+        streamController.add(null);
+        await Future<void>.delayed(Duration.zero);
+        await streamController.close();
       },
     );
   });

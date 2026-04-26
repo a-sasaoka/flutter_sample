@@ -1,5 +1,3 @@
-// 共通のDioインターセプタを定義
-
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/logger_provider.dart';
@@ -10,7 +8,7 @@ part 'dio_interceptor.g.dart';
 /// Dioインターセプタプロバイダ
 @Riverpod(keepAlive: true)
 InterceptorsWrapper dioInterceptor(Ref ref) {
-  final logger = ref.read(loggerProvider);
+  final logger = ref.watch(loggerProvider);
 
   return InterceptorsWrapper(
     onRequest: (options, handler) {
@@ -25,23 +23,20 @@ InterceptorsWrapper dioInterceptor(Ref ref) {
     },
     onError: (DioException e, handler) {
       logger.e('❌ Error: ${e.message}');
-      AppException exception;
 
-      switch (e.type) {
-        case DioExceptionType.connectionTimeout ||
-            DioExceptionType.receiveTimeout ||
-            DioExceptionType.sendTimeout:
-          exception = const TimeoutException();
-        case DioExceptionType.badResponse:
-          exception = NetworkException(
-            statusCode: e.response?.statusCode,
-          );
-        case DioExceptionType.badCertificate ||
-            DioExceptionType.cancel ||
-            DioExceptionType.connectionError ||
-            DioExceptionType.unknown:
-          exception = UnknownException(message: e.message);
-      }
+      // エラーの種類に応じて例外を生成する
+      final exception = switch (e.type) {
+        DioExceptionType.connectionTimeout ||
+        DioExceptionType.receiveTimeout ||
+        DioExceptionType.sendTimeout => const TimeoutException(),
+        DioExceptionType.badResponse => NetworkException(
+          statusCode: e.response?.statusCode,
+        ),
+        DioExceptionType.badCertificate ||
+        DioExceptionType.cancel ||
+        DioExceptionType.connectionError ||
+        DioExceptionType.unknown => UnknownException(message: e.message),
+      };
 
       return handler.reject(
         DioException(

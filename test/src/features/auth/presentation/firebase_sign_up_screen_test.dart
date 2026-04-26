@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
-import 'package:flutter_sample/src/core/router/app_router.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_sign_up_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,7 +8,11 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
-// --- モックとデリゲート ---
+// --- モッククラスの定義 ---
+
+class MockFirebaseAuthRepository extends Mock
+    implements FirebaseAuthRepository {}
+
 class MockAppLocalizations extends Mock implements AppLocalizations {}
 
 class _MockLocalizationsDelegate
@@ -25,158 +28,166 @@ class _MockLocalizationsDelegate
       false;
 }
 
-// --- Fake Repository ---
-class FakeFirebaseAuthRepository extends FirebaseAuthRepository {
-  bool shouldThrow = false;
-  String? calledEmail;
-  String? calledPassword;
-  int sendEmailCallCount = 0;
-
-  @override
-  User? build() => null;
-
-  @override
-  Future<void> signUp(String email, String password) async {
-    // UIのローディング状態(`isLoading = true`)をテストで確実に捉えるため、
-    // ここで意図的にわずかな非同期の遅延を発生させます。
-    await Future<void>.delayed(const Duration(milliseconds: 10));
-
-    if (shouldThrow) throw Exception('SignUp Failed');
-    calledEmail = email;
-    calledPassword = password;
-  }
-
-  @override
-  Future<void> sendEmailVerification() async {
-    sendEmailCallCount++;
-  }
-}
-
 void main() {
+  late MockFirebaseAuthRepository mockAuthRepo;
   late MockAppLocalizations mockL10n;
 
   setUp(() {
+    mockAuthRepo = MockFirebaseAuthRepository();
     mockL10n = MockAppLocalizations();
-    when(() => mockL10n.signUpTitle).thenReturn('新規登録画面');
+
+    // 多言語化のスタブ
+    when(() => mockL10n.signUpTitle).thenReturn('新規登録');
     when(() => mockL10n.loginEmailLabel).thenReturn('メールアドレス');
     when(() => mockL10n.loginPasswordLabel).thenReturn('パスワード');
-    when(() => mockL10n.signUp).thenReturn('登録実行');
-    when(() => mockL10n.loading).thenReturn('処理中...');
-    when(() => mockL10n.errorSignUpFailed).thenReturn('登録に失敗しました');
+    when(() => mockL10n.signUp).thenReturn('登録する');
+    when(() => mockL10n.errorUnknown).thenReturn('予期しないエラーが発生しました');
+    when(
+      () => mockL10n.errorEmailAlreadyInUse,
+    ).thenReturn('このメールアドレスは既に登録されています');
+    when(() => mockL10n.close).thenReturn('閉じる');
   });
 
-  /// テスト環境のセットアップ
-  Future<void> setupWidget(
-    WidgetTester tester,
-    FakeFirebaseAuthRepository fakeRepo,
-  ) async {
+  /// テスト用のWidgetを構築するヘルパー
+  Widget createTestWidget() {
     final router = GoRouter(
-      initialLocation: '/sign-up',
+      initialLocation: '/signup',
       routes: [
         GoRoute(
-          path: '/sign-up',
+          path: '/signup',
           builder: (context, state) => const FirebaseSignUpScreen(),
         ),
-        // 遷移先のルートを Location を使って設定
-        GoRoute(
-          path: const EmailVerificationRoute().location,
-          builder: (context, state) =>
-              const Scaffold(body: Text('Email Verification Screen')),
-        ),
       ],
-    );
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          firebaseAuthRepositoryProvider.overrideWith(() => fakeRepo),
-        ],
-        child: Consumer(
-          builder: (context, ref, child) {
-            ref.watch(firebaseAuthRepositoryProvider);
-            return MaterialApp.router(
-              localizationsDelegates: [_MockLocalizationsDelegate(mockL10n)],
-              routerConfig: router,
-            );
-          },
-        ),
+      // 成功時に EmailVerificationRoute などへ遷移したことをキャッチする
+      errorBuilder: (context, state) => Scaffold(
+        body: Text('Navigated to ${state.uri}'),
       ),
     );
-    await tester.pumpAndSettle();
+
+    return ProviderScope(
+      overrides: [
+        firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+      ],
+      child: MaterialApp.router(
+        routerConfig: router,
+        localizationsDelegates: [_MockLocalizationsDelegate(mockL10n)],
+      ),
+    );
   }
 
   group('FirebaseSignUpScreen', () {
-    testWidgets('初期表示: 入力フォームとボタンが正しく表示されること', (tester) async {
-      final fakeRepo = FakeFirebaseAuthRepository();
-      await setupWidget(tester, fakeRepo);
+    testWidgets('UIが正しくレンダリングされること', (tester) async {
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
 
-      expect(find.text('新規登録画面'), findsOneWidget);
-      expect(find.widgetWithText(TextField, 'メールアドレス'), findsOneWidget);
-      expect(find.widgetWithText(TextField, 'パスワード'), findsOneWidget);
-      expect(find.text('登録実行'), findsOneWidget);
+      expect(find.text('新規登録'), findsOneWidget);
+      expect(find.text('メールアドレス'), findsOneWidget);
+      expect(find.text('パスワード'), findsOneWidget);
+      expect(find.text('登録する'), findsOneWidget);
     });
 
-    testWidgets('正常系: 入力値が渡され、メール認証が呼ばれ、遷移すること（ローディング表示も確認）', (tester) async {
-      final fakeRepo = FakeFirebaseAuthRepository();
-      await setupWidget(tester, fakeRepo);
+    testWidgets('未入力でボタンを押した場合は何も起きないこと(バリデーション)', (tester) async {
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
 
+      // 未入力のままボタンを押す
+      await tester.tap(find.text('登録する'));
+      await tester.pumpAndSettle();
+
+      // Repository のメソッドが呼ばれていないことを確認
+      verifyNever(() => mockAuthRepo.signUp(any(), any()));
+      verifyNever(() => mockAuthRepo.sendEmailVerification());
+    });
+
+    testWidgets('入力値が Repository に渡され、成功時に確認メールを送信して画面遷移すること', (tester) async {
+      when(
+        () => mockAuthRepo.signUp('test@example.com', 'password123'),
+      ).thenAnswer((_) async {});
+      when(
+        () => mockAuthRepo.sendEmailVerification(),
+      ).thenAnswer((_) async {});
+
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      // TextFieldに入力する
       await tester.enterText(
-        find.widgetWithText(TextField, 'メールアドレス'),
+        find.byType(TextField).at(0),
         'test@example.com',
       );
-      await tester.enterText(
-        find.widgetWithText(TextField, 'パスワード'),
-        'password123',
-      );
+      await tester.enterText(find.byType(TextField).at(1), 'password123');
 
-      // Act: ボタンをタップ
-      await tester.tap(find.text('登録実行'));
-
-      // 1回目のpump: signUpメソッド内の delayed(10ms) で処理が止まっている状態。
-      // この時、画面は isLoading = true になっているので、テキストが変わるはず。
-      await tester.pump();
-      expect(find.text('処理中...'), findsOneWidget);
-      expect(find.text('登録実行'), findsNothing); // 元のテキストは消えていること
-
-      // 2回目のpumpAndSettle: 非同期処理を最後まで完了させる。
+      // 登録ボタンをタップ
+      await tester.tap(find.text('登録する'));
       await tester.pumpAndSettle();
 
-      // Assert
-      expect(fakeRepo.calledEmail, 'test@example.com');
-      expect(fakeRepo.calledPassword, 'password123');
-      expect(fakeRepo.sendEmailCallCount, 1);
+      // 正しい引数で処理が呼ばれたか検証
+      verify(
+        () => mockAuthRepo.signUp('test@example.com', 'password123'),
+      ).called(1);
+      verify(() => mockAuthRepo.sendEmailVerification()).called(1);
 
-      // 画面遷移しているか
-      expect(find.text('Email Verification Screen'), findsOneWidget);
+      // 画面遷移したことを確認
+      expect(find.textContaining('Navigated to'), findsOneWidget);
     });
 
-    testWidgets('異常系: 例外が発生した場合、SnackBarが表示され、ローディング状態が解除されること', (
-      tester,
-    ) async {
-      final fakeRepo = FakeFirebaseAuthRepository()..shouldThrow = true;
-      await setupWidget(tester, fakeRepo);
+    testWidgets('サインアップ処理中、ローディング表示になり入力がロックされること', (tester) async {
+      // 処理完了までに時間をかけることでローディング中を検証
+      when(
+        () => mockAuthRepo.signUp(any(), any()),
+      ).thenAnswer(
+        (_) async => Future.delayed(const Duration(milliseconds: 100)),
+      );
+      // sendEmailVerification のモックも念のため設定
+      when(() => mockAuthRepo.sendEmailVerification()).thenAnswer((_) async {});
 
-      // Act
-      await tester.tap(find.text('登録実行'));
-
-      // 処理中の表示確認
-      await tester.pump();
-      expect(find.text('処理中...'), findsOneWidget);
-
-      // 最後まで待つ（例外発生 → finallyで isLoading = false になる）
+      await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
-      // Assert
-      // 1. SnackBar が表示されたか
+      await tester.enterText(find.byType(TextField).at(0), 'test@example.com');
+      await tester.enterText(find.byType(TextField).at(1), 'password123');
+
+      await tester.tap(find.text('登録する'));
+
+      // ポンプして画面を再描画（処理はまだ終わっていない）
+      await tester.pump();
+
+      // インジケーターが表示されていること
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      // 非同期処理を完了させる
+      await tester.pumpAndSettle();
+
+      // ローディングが終了していること
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+    });
+
+    testWidgets('サインアップ失敗時(Firebaseエラー)、専用のSnackBarが表示され画面遷移しないこと', (
+      tester,
+    ) async {
+      // メールアドレス使用済みのエラーを投げる
+      when(
+        () => mockAuthRepo.signUp(any(), any()),
+      ).thenThrow(FirebaseAuthException(code: 'email-already-in-use'));
+
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).at(0), 'used@example.com');
+      await tester.enterText(find.byType(TextField).at(1), 'password123');
+
+      await tester.tap(find.text('登録する'));
+
+      // SnackBar の表示アニメーションを1フレーム進める
+      await tester.pump();
+
+      // ErrorHandler が翻訳した「既に登録されています」の文言が表示されることを確認
       expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('登録に失敗しました'), findsOneWidget);
+      expect(find.text('このメールアドレスは既に登録されています'), findsOneWidget);
 
-      // 2. ローディングが解除され、元のボタンテキストに戻ったか
-      expect(find.text('登録実行'), findsOneWidget);
-      expect(find.text('処理中...'), findsNothing);
-
-      // 3. 画面遷移していないか
-      expect(find.text('新規登録画面'), findsOneWidget);
+      // 確認メール送信が呼ばれていないこと、画面遷移していないことを確認
+      verifyNever(() => mockAuthRepo.sendEmailVerification());
+      expect(find.textContaining('Navigated to'), findsNothing);
     });
   });
 }

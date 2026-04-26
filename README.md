@@ -31,7 +31,6 @@ Flutter開発のサンプルプロジェクトです。\
 - [API通信デモ（UserList）](docs/api_and_error_handling.md)
 - [トークン認証（Bearer + Refresh）](docs/auth.md)
 - [Firebase Authenticationによる認証対応](docs/firebase_authentication.md)
-- [認証状態管理とルーティング制御（AuthGuard + SplashScreen）](docs/routing.md#認証状態管理とルーティング制御authguard--splashscreen)
 - [APIキャッシュ対応（SharedPreferencesベース）](docs/cache.md)
 - [Firebase Crashlytics](docs/crashlytics.md)
 - [Firebase Analytics](docs/analytics.md)

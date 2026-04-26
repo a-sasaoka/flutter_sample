@@ -1,6 +1,3 @@
-// 不正なURLにアクセスしたときの画面。
-// 初心者向けメモ：実アプリでは「トップへ戻る」などの導線を置くのが定番です。
-
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';

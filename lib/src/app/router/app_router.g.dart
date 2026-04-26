@@ -10,8 +10,6 @@ List<RouteBase> get $appRoutes => [
   $homeRoute,
   $loginRoute,
   $splashRoute,
-  $signUpRoute,
-  $resetPasswordRoute,
   $emailVerificationRoute,
 ];
 
@@ -20,8 +18,11 @@ RouteBase get $homeRoute => GoRouteData.$route(
   factory: $HomeRoute._fromState,
   routes: [
     GoRouteData.$route(path: 'settings', factory: $SettingsRoute._fromState),
-    GoRouteData.$route(path: 'sample', factory: $SampleRoute._fromState),
     GoRouteData.$route(path: 'users', factory: $UserListRoute._fromState),
+    GoRouteData.$route(
+      path: 'reset-password',
+      factory: $ResetPasswordRoute._fromState,
+    ),
     GoRouteData.$route(path: 'chat', factory: $ChatRoute._fromState),
   ],
 );
@@ -66,11 +67,11 @@ mixin $SettingsRoute on GoRouteData {
   void replace(BuildContext context) => context.replace(location);
 }
 
-mixin $SampleRoute on GoRouteData {
-  static SampleRoute _fromState(GoRouterState state) => const SampleRoute();
+mixin $UserListRoute on GoRouteData {
+  static UserListRoute _fromState(GoRouterState state) => const UserListRoute();
 
   @override
-  String get location => GoRouteData.$location('/sample');
+  String get location => GoRouteData.$location('/users');
 
   @override
   void go(BuildContext context) => context.go(location);
@@ -86,11 +87,12 @@ mixin $SampleRoute on GoRouteData {
   void replace(BuildContext context) => context.replace(location);
 }
 
-mixin $UserListRoute on GoRouteData {
-  static UserListRoute _fromState(GoRouterState state) => const UserListRoute();
+mixin $ResetPasswordRoute on GoRouteData {
+  static ResetPasswordRoute _fromState(GoRouterState state) =>
+      const ResetPasswordRoute();
 
   @override
-  String get location => GoRouteData.$location('/users');
+  String get location => GoRouteData.$location('/reset-password');
 
   @override
   void go(BuildContext context) => context.go(location);
@@ -126,14 +128,39 @@ mixin $ChatRoute on GoRouteData {
   void replace(BuildContext context) => context.replace(location);
 }
 
-RouteBase get $loginRoute =>
-    GoRouteData.$route(path: '/login', factory: $LoginRoute._fromState);
+RouteBase get $loginRoute => GoRouteData.$route(
+  path: '/login',
+  factory: $LoginRoute._fromState,
+  routes: [
+    GoRouteData.$route(path: '/signup', factory: $SignUpRoute._fromState),
+  ],
+);
 
 mixin $LoginRoute on GoRouteData {
   static LoginRoute _fromState(GoRouterState state) => const LoginRoute();
 
   @override
   String get location => GoRouteData.$location('/login');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $SignUpRoute on GoRouteData {
+  static SignUpRoute _fromState(GoRouterState state) => const SignUpRoute();
+
+  @override
+  String get location => GoRouteData.$location('/signup');
 
   @override
   void go(BuildContext context) => context.go(location);
@@ -157,55 +184,6 @@ mixin $SplashRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/splash');
-
-  @override
-  void go(BuildContext context) => context.go(location);
-
-  @override
-  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
-
-  @override
-  void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location);
-
-  @override
-  void replace(BuildContext context) => context.replace(location);
-}
-
-RouteBase get $signUpRoute =>
-    GoRouteData.$route(path: '/signup', factory: $SignUpRoute._fromState);
-
-mixin $SignUpRoute on GoRouteData {
-  static SignUpRoute _fromState(GoRouterState state) => const SignUpRoute();
-
-  @override
-  String get location => GoRouteData.$location('/signup');
-
-  @override
-  void go(BuildContext context) => context.go(location);
-
-  @override
-  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
-
-  @override
-  void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location);
-
-  @override
-  void replace(BuildContext context) => context.replace(location);
-}
-
-RouteBase get $resetPasswordRoute => GoRouteData.$route(
-  path: '/reset-password',
-  factory: $ResetPasswordRoute._fromState,
-);
-
-mixin $ResetPasswordRoute on GoRouteData {
-  static ResetPasswordRoute _fromState(GoRouterState state) =>
-      const ResetPasswordRoute();
-
-  @override
-  String get location => GoRouteData.$location('/reset-password');
 
   @override
   void go(BuildContext context) => context.go(location);
@@ -297,4 +275,4 @@ final class RouterProvider
   }
 }
 
-String _$routerHash() => r'1ba97a503320b2d894046f201751850763da8091';
+String _$routerHash() => r'2820f58777f7b32a1a6d244130051a55835b42cf';

@@ -38,7 +38,7 @@ void main() {
     test('saveTokens: アクセストークンとリフレッシュトークンを正しいキーで保存すること', () async {
       // Arrange
       when(() => mockPrefs.setString(any(), any())).thenAnswer((_) async => {});
-      final storage = container.read(tokenStorageProvider.notifier);
+      final storage = container.read(tokenStorageProvider);
 
       // Act
       await storage.saveTokens(
@@ -60,7 +60,7 @@ void main() {
       when(
         () => mockPrefs.getString(accessTokenKey),
       ).thenAnswer((_) async => testAccessToken);
-      final storage = container.read(tokenStorageProvider.notifier);
+      final storage = container.read(tokenStorageProvider);
 
       // Act
       final result = await storage.getAccessToken();
@@ -75,7 +75,7 @@ void main() {
       when(
         () => mockPrefs.getString(refreshTokenKey),
       ).thenAnswer((_) async => testRefreshToken);
-      final storage = container.read(tokenStorageProvider.notifier);
+      final storage = container.read(tokenStorageProvider);
 
       // Act
       final result = await storage.getRefreshToken();
@@ -88,7 +88,7 @@ void main() {
     test('clear: 両方のトークンを削除すること', () async {
       // Arrange
       when(() => mockPrefs.remove(any())).thenAnswer((_) async => {});
-      final storage = container.read(tokenStorageProvider.notifier);
+      final storage = container.read(tokenStorageProvider);
 
       // Act
       await storage.clear();
@@ -101,7 +101,7 @@ void main() {
     test('トークンが保存されていない場合、get メソッドが null を返すこと', () async {
       // Arrange
       when(() => mockPrefs.getString(any())).thenAnswer((_) async => null);
-      final storage = container.read(tokenStorageProvider.notifier);
+      final storage = container.read(tokenStorageProvider);
 
       // Act
       final access = await storage.getAccessToken();

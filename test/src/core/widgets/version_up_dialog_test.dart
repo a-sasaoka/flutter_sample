@@ -5,6 +5,7 @@ import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 import 'package:flutter_sample/src/core/widgets/version_up_dialog.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart'; // 💡 追加: GoRouterをインポート
 
 // `CancelController`をテスト用に拡張し、メソッド呼び出しを追跡できるようにします。
 class TestCancelController extends CancelController {
@@ -30,7 +31,26 @@ void main() {
         ],
         child: Consumer(
           builder: (context, ref, _) {
-            return MaterialApp(
+            // 💡 修正: context.pop() が動くように GoRouter を設定
+            final router = GoRouter(
+              routes: [
+                GoRoute(
+                  path: '/',
+                  builder: (context, state) => Scaffold(
+                    body: Center(
+                      child: ElevatedButton(
+                        onPressed: () => showDialogCallback(context, ref),
+                        child: const Text('Show Dialog'),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+
+            // 💡 修正: MaterialApp.router に変更
+            return MaterialApp.router(
+              routerConfig: router,
               localizationsDelegates: const [
                 AppLocalizations.delegate,
                 GlobalMaterialLocalizations.delegate,
@@ -38,16 +58,6 @@ void main() {
                 GlobalCupertinoLocalizations.delegate,
               ],
               supportedLocales: AppLocalizations.supportedLocales,
-              home: Builder(
-                builder: (context) => Scaffold(
-                  body: Center(
-                    child: ElevatedButton(
-                      onPressed: () => showDialogCallback(context, ref),
-                      child: const Text('Show Dialog'),
-                    ),
-                  ),
-                ),
-              ),
             );
           },
         ),

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/config/app_config_provider.dart';
@@ -14,42 +13,41 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
-// --- モック & フェイク定義 ---
+// --- モックとFakeクラスの定義 ---
+
+class MockFirebaseAuthRepository extends Mock
+    implements FirebaseAuthRepository {}
+
 class MockAppLocalizations extends Mock implements AppLocalizations {}
 
-class FakeAuthRepo extends FirebaseAuthRepository {
-  FakeAuthRepo({this.onSignOut});
-  final Future<void> Function()? onSignOut;
-  @override
-  User? build() => null;
-  @override
-  Future<void> signOut() async => onSignOut?.call();
-}
-
 class FakeThemeModeNotifier extends ThemeModeNotifier {
-  FakeThemeModeNotifier({required this.initial, this.onSet, this.onToggle});
-  final ThemeMode initial;
-  final void Function(ThemeMode)? onSet;
-  final void Function()? onToggle;
+  ThemeMode? calledSetMode;
+  bool calledToggle = false;
 
   @override
-  Future<ThemeMode> build() async => initial;
+  Future<ThemeMode> build() async => ThemeMode.system;
+
   @override
-  Future<void> set(ThemeMode mode) async => onSet?.call(mode);
+  Future<void> set(ThemeMode mode) async {
+    calledSetMode = mode;
+  }
+
   @override
-  Future<void> toggleLightDark() async => onToggle?.call();
+  Future<void> toggleLightDark() async {
+    calledToggle = true;
+  }
 }
 
 class FakeLocaleNotifier extends LocaleNotifier {
-  FakeLocaleNotifier({required this.initial, this.onSet});
-  final Locale? initial;
-  final void Function(String?)? onSet;
+  String? calledSetLocale;
 
   @override
-  Future<Locale?> build() async => initial;
+  Future<Locale?> build() async => null;
+
   @override
-  Future<void> setLocale(String? languageCode) async =>
-      onSet?.call(languageCode);
+  Future<void> setLocale(String? locale) async {
+    calledSetLocale = locale;
+  }
 }
 
 class _MockLocalizationsDelegate
@@ -61,202 +59,234 @@ class _MockLocalizationsDelegate
   @override
   Future<AppLocalizations> load(Locale locale) async => mock;
   @override
-  bool shouldReload(covariant _) => false;
+  bool shouldReload(covariant LocalizationsDelegate<AppLocalizations> old) =>
+      false;
 }
 
+// 状態を制御するためのEnum
+enum ConfigState { loading, error, data }
+
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  late MockFirebaseAuthRepository mockAuthRepo;
   late MockAppLocalizations mockL10n;
+  late FakeThemeModeNotifier fakeThemeModeNotifier;
+  late FakeLocaleNotifier fakeLocaleNotifier;
 
   setUp(() {
+    mockAuthRepo = MockFirebaseAuthRepository();
     mockL10n = MockAppLocalizations();
-    when(() => mockL10n.settingsTitle).thenReturn('Settings');
-    when(() => mockL10n.settingsThemeSection).thenReturn('Theme');
-    when(() => mockL10n.settingsThemeSystem).thenReturn('System');
-    when(() => mockL10n.settingsThemeLight).thenReturn('Light');
-    when(() => mockL10n.settingsThemeDark).thenReturn('Dark');
-    when(() => mockL10n.settingsThemeToggle).thenReturn('Toggle Dark Mode');
-    when(() => mockL10n.settingsLocaleSection).thenReturn('Language');
-    when(() => mockL10n.settingsLocaleSystem).thenReturn('System Default');
-    when(() => mockL10n.settingsLocaleJa).thenReturn('Japanese');
+
+    fakeThemeModeNotifier = FakeThemeModeNotifier();
+    fakeLocaleNotifier = FakeLocaleNotifier();
+
+    // 翻訳モックの設定
+    when(() => mockL10n.settingsTitle).thenReturn('設定');
+    when(() => mockL10n.settingsThemeSection).thenReturn('テーマ設定');
+    when(() => mockL10n.settingsThemeSystem).thenReturn('システム依存');
+    when(() => mockL10n.settingsThemeLight).thenReturn('ライトモード');
+    when(() => mockL10n.settingsThemeDark).thenReturn('ダークモード');
+    when(() => mockL10n.settingsThemeToggle).thenReturn('ダークモードにする');
+    when(() => mockL10n.settingsLocaleSection).thenReturn('言語設定');
+    when(() => mockL10n.settingsLocaleSystem).thenReturn('システム依存');
+    when(() => mockL10n.settingsLocaleJa).thenReturn('日本語');
     when(() => mockL10n.settingsLocaleEn).thenReturn('English');
-    when(() => mockL10n.hello).thenReturn('Hello');
-    when(() => mockL10n.logout).thenReturn('Logout');
-    when(() => mockL10n.errorUnknown).thenReturn('Error Occurred');
+    when(() => mockL10n.hello).thenReturn('こんにちは！');
+    when(() => mockL10n.logout).thenReturn('ログアウト');
+    when(() => mockL10n.close).thenReturn('閉じる');
+
+    // エラーハンドラー経由で表示される翻訳キー
+    when(() => mockL10n.errorUnknown).thenReturn('不明なエラー');
+
+    // リポジトリメソッドのスタブ
+    when(() => mockAuthRepo.signOut()).thenAnswer((_) async {});
   });
 
-  Future<void> setupWidget(
-    WidgetTester tester, {
-    required AsyncValue<({ThemeMode theme, Locale? locale, GoRouter router})>
-    config,
+  Widget createTestWidget({
+    ConfigState configState = ConfigState.data,
     bool useAuth = true,
-    FirebaseAuthRepository? authRepo,
-    ThemeModeNotifier? themeNotifier,
-    LocaleNotifier? localeNotifier,
-  }) async {
-    tester.view.physicalSize = const Size(400, 800);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
-
-    // テスト用のダミールーターを用意（未知のルート遷移でクラッシュさせない）
-    final testRouter = GoRouter(
-      initialLocation: '/',
+  }) {
+    final router = GoRouter(
+      initialLocation: '/settings',
       routes: [
         GoRoute(
-          path: '/',
+          path: '/settings',
           builder: (context, state) => const SettingsScreen(),
         ),
       ],
-      // ログアウト後の画面遷移（$LoginRouteなど）を安全にキャッチする
-      errorBuilder: (context, state) =>
-          const Scaffold(body: Text('Router Handled')),
-    );
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          appConfigProvider.overrideWith(
-            (ref) => config.when(
-              data: (d) => d,
-              loading: () =>
-                  Completer<
-                        ({ThemeMode theme, Locale? locale, GoRouter router})
-                      >()
-                      .future,
-              error: Error.throwWithStackTrace,
-            ),
-          ),
-          useFirebaseAuthProvider.overrideWithValue(useAuth),
-          firebaseAuthRepositoryProvider.overrideWith(
-            () => authRepo ?? FakeAuthRepo(),
-          ),
-          if (themeNotifier != null)
-            themeModeProvider.overrideWith(() => themeNotifier),
-          if (localeNotifier != null)
-            localeProvider.overrideWith(() => localeNotifier),
-        ],
-        // MaterialApp.router に変更
-        child: MaterialApp.router(
-          localizationsDelegates: [_MockLocalizationsDelegate(mockL10n)],
-          routerConfig: testRouter,
-        ),
+      errorBuilder: (context, state) => Scaffold(
+        body: Text('Navigated to ${state.uri}'),
       ),
     );
 
-    await tester.pump();
-    if (!config.isLoading) {
-      await tester.pumpAndSettle();
-    }
+    return ProviderScope(
+      overrides: [
+        appConfigProvider.overrideWith((ref) async {
+          if (configState == ConfigState.loading) {
+            // Loadingをシミュレートするため、終わらないFutureを返す
+            return Completer<
+                  ({Locale? locale, GoRouter router, ThemeMode theme})
+                >()
+                .future;
+          } else if (configState == ConfigState.error) {
+            // 例外を投げてError状態を再現
+            throw Exception('Config Load Error');
+          } else {
+            // Data状態としてレコード型を返す
+            return (
+              locale: const Locale('ja'),
+              router: router,
+              theme: ThemeMode.light,
+            );
+          }
+        }),
+        useFirebaseAuthProvider.overrideWithValue(useAuth),
+        firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+        themeModeProvider.overrideWith(() => fakeThemeModeNotifier),
+        localeProvider.overrideWith(() => fakeLocaleNotifier),
+      ],
+      child: MaterialApp.router(
+        routerConfig: router,
+        localizationsDelegates: [_MockLocalizationsDelegate(mockL10n)],
+      ),
+    );
   }
 
-  group('SettingsScreen Coverage 100% Test', () {
-    final validData = AsyncValue.data((
-      theme: ThemeMode.light,
-      locale: const Locale('en'),
-      router: GoRouter(routes: []),
-    ));
-
-    testWidgets('【正常系】UI表示とテーマ・言語の変更操作', (tester) async {
-      ThemeMode? changedTheme;
-      var isToggled = false;
-      String? changedLocale;
-
-      final fakeThemeNotifier = FakeThemeModeNotifier(
-        initial: ThemeMode.light,
-        onSet: (mode) => changedTheme = mode,
-        onToggle: () => isToggled = true,
-      );
-      final fakeLocaleNotifier = FakeLocaleNotifier(
-        initial: const Locale('en'),
-        onSet: (code) => changedLocale = code,
+  group('SettingsScreen', () {
+    testWidgets('ローディング状態の時、CircularProgressIndicator が表示されること', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestWidget(configState: ConfigState.loading),
       );
 
-      await setupWidget(
-        tester,
-        config: validData,
-        themeNotifier: fakeThemeNotifier,
-        localeNotifier: fakeLocaleNotifier,
+      // 初期ルーティングのマイクロタスクを消化するために少し進める
+      await tester.pump();
+      await tester.pump();
+
+      // iOS環境等でCupertinoActivityIndicatorに化ける可能性も考慮
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is CircularProgressIndicator ||
+              w.runtimeType.toString() == 'CupertinoActivityIndicator',
+        ),
+        findsOneWidget,
       );
-
-      expect(find.text('Settings'), findsOneWidget);
-
-      // 1. テーマ変更 (Dropdown) : 物理タップを避け、直接 onChanged を発火
-      final themeDropdown = tester.widget<DropdownButton<ThemeMode>>(
-        find.byType(DropdownButton<ThemeMode>),
-      );
-      themeDropdown.onChanged!(ThemeMode.dark);
-
-      // Riverpod の状態が更新されたか確認
-      expect(changedTheme, ThemeMode.dark);
-
-      // 2. テーマ切替 (SwitchListTile) : 同様に直接 onChanged を発火
-      final switchTile = tester.widget<SwitchListTile>(
-        find.byType(SwitchListTile),
-      );
-      switchTile.onChanged!(true);
-
-      expect(isToggled, isTrue);
-
-      // 3. 言語変更 (Dropdown) : 同様に直接 onChanged を発火
-      final localeDropdown = tester.widget<DropdownButton<String>>(
-        find.byType(DropdownButton<String>),
-      );
-      localeDropdown.onChanged!('ja');
-
-      expect(changedLocale, 'ja');
     });
 
-    testWidgets('【正常系】ログアウト成功時の処理', (tester) async {
-      var signOutCalled = false;
-      final authRepo = FakeAuthRepo(
-        onSignOut: () async => signOutCalled = true,
+    testWidgets('エラー状態の時、エラーメッセージが表示されること', (tester) async {
+      await tester.pumpWidget(
+        createTestWidget(configState: ConfigState.error),
       );
 
-      await setupWidget(tester, config: validData, authRepo: authRepo);
-
-      final logoutBtn = find.byKey(const Key('logout_button'));
-      await tester.ensureVisible(logoutBtn);
-      await tester.tap(logoutBtn);
-
-      await tester.pump();
+      // エラー画面が完全に描画されるまで待機
       await tester.pumpAndSettle();
 
-      expect(signOutCalled, isTrue);
+      expect(find.textContaining('Config Load Error'), findsOneWidget);
     });
 
-    testWidgets('【異常系】ログアウト失敗時にSnackBarが表示されること', (tester) async {
-      final authRepo = FakeAuthRepo(
-        onSignOut: () async =>
-            throw Exception('SignOut Failed'), // これはErrorHandlerで変換される
-      );
+    group('データ取得完了後 (Data状態)', () {
+      testWidgets('UIが正しくレンダリングされること', (tester) async {
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
 
-      await setupWidget(tester, config: validData, authRepo: authRepo);
+        expect(find.text('設定'), findsOneWidget);
+        expect(find.text('テーマ設定'), findsOneWidget);
+        expect(find.text('ライトモード'), findsOneWidget);
+        expect(find.text('言語設定'), findsOneWidget);
+        expect(find.text('こんにちは！'), findsOneWidget);
+      });
 
-      await tester.tap(find.byKey(const Key('logout_button')));
-      await tester.pump();
-      await tester.pumpAndSettle();
-
-      expect(find.byType(SnackBar), findsOneWidget);
-      // エラーハンドラーによって変換されたL10nのメッセージを検証する
-      expect(find.textContaining('Error Occurred'), findsOneWidget);
-    });
-
-    testWidgets('【境界系】useAuthがfalseの時、ログアウトボタンが表示されないこと', (tester) async {
-      await setupWidget(tester, config: validData, useAuth: false);
-      expect(find.byKey(const Key('logout_button')), findsNothing);
-    });
-
-    testWidgets('【状態系】Loading状態の時にインジケータが表示されること', (tester) async {
-      await setupWidget(tester, config: const AsyncValue.loading());
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    });
-
-    testWidgets('【状態系】Error状態の時にエラーテキストが表示されること', (tester) async {
-      await setupWidget(
+      testWidgets('テーマのDropdownを変更した時、ThemeModeNotifierのsetが呼ばれること', (
         tester,
-        config: const AsyncValue.error('Fetch Error', StackTrace.empty),
-      );
-      expect(find.textContaining('Error: Fetch Error'), findsOneWidget);
+      ) async {
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(DropdownButton<ThemeMode>));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('ダークモード').last);
+        await tester.pumpAndSettle();
+
+        expect(fakeThemeModeNotifier.calledSetMode, ThemeMode.dark);
+      });
+
+      testWidgets('テーマのSwitchを切り替えた時、toggleLightDarkが呼ばれること', (tester) async {
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(SwitchListTile));
+        await tester.pumpAndSettle();
+
+        expect(fakeThemeModeNotifier.calledToggle, isTrue);
+      });
+
+      testWidgets('言語のDropdownを変更した時、LocaleNotifierのsetLocaleが呼ばれること', (
+        tester,
+      ) async {
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(DropdownButton<String>));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('English').last);
+        await tester.pumpAndSettle();
+
+        expect(fakeLocaleNotifier.calledSetLocale, 'en');
+      });
+
+      group('ログアウトボタン (useAuthの分岐)', () {
+        testWidgets('useAuth == false の場合、ログアウトボタンは表示されないこと', (tester) async {
+          await tester.pumpWidget(
+            createTestWidget(useAuth: false),
+          );
+          await tester.pumpAndSettle();
+
+          expect(find.byKey(const Key('logout_button')), findsNothing);
+        });
+
+        testWidgets('useAuth == true でログアウト成功時、LoginRouteに遷移すること', (
+          tester,
+        ) async {
+          await tester.pumpWidget(createTestWidget());
+          await tester.pumpAndSettle();
+
+          final logoutButton = find.byKey(const Key('logout_button'));
+
+          // 画面サイズによってはログアウトボタンが隠れている可能性があるため、見える位置までスクロールする
+          await tester.ensureVisible(logoutButton);
+
+          await tester.tap(logoutButton);
+          await tester.pumpAndSettle();
+
+          verify(() => mockAuthRepo.signOut()).called(1);
+          expect(find.textContaining('Navigated to'), findsOneWidget);
+        });
+
+        testWidgets('ログアウト時に例外が発生した場合、SnackBarでエラーが表示されること', (tester) async {
+          final exception = Exception('Logout failed!');
+          when(() => mockAuthRepo.signOut()).thenThrow(exception);
+
+          await tester.pumpWidget(createTestWidget());
+          await tester.pumpAndSettle();
+
+          final logoutButton = find.byKey(const Key('logout_button'));
+
+          // 画面サイズによってはログアウトボタンが隠れている可能性があるため、見える位置までスクロールする
+          await tester.ensureVisible(logoutButton);
+
+          await tester.tap(logoutButton);
+          await tester.pump();
+
+          verify(() => mockAuthRepo.signOut()).called(1);
+
+          // ErrorHandler経由で例外のメッセージが「不明なエラー」に翻訳されて出力されることを確認
+          expect(find.textContaining('不明なエラー'), findsOneWidget);
+          expect(find.textContaining('Navigated to'), findsNothing);
+        });
+      });
     });
   });
 }

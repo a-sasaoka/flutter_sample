@@ -12,7 +12,7 @@ class LocaleNotifier extends _$LocaleNotifier {
   @override
   Future<Locale?> build() async {
     // SharedPreferences を読み込み、保存されていればその Locale を返す
-    final prefs = await ref.read(sharedPreferencesProvider.future);
+    final prefs = await ref.watch(sharedPreferencesProvider.future);
     final code = await prefs.getString(_key);
 
     if (code == null || code.isEmpty) {

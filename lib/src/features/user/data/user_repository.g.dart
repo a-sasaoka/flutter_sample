@@ -8,15 +8,17 @@ part of 'user_repository.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// ユーザーリポジトリ
+/// UserRepositoryを提供するプロバイダ
 
-@ProviderFor(UserRepository)
+@ProviderFor(userRepository)
 const userRepositoryProvider = UserRepositoryProvider._();
 
-/// ユーザーリポジトリ
+/// UserRepositoryを提供するプロバイダ
+
 final class UserRepositoryProvider
-    extends $NotifierProvider<UserRepository, void> {
-  /// ユーザーリポジトリ
+    extends $FunctionalProvider<UserRepository, UserRepository, UserRepository>
+    with $Provider<UserRepository> {
+  /// UserRepositoryを提供するプロバイダ
   const UserRepositoryProvider._()
     : super(
         from: null,
@@ -33,36 +35,21 @@ final class UserRepositoryProvider
 
   @$internal
   @override
-  UserRepository create() => UserRepository();
+  $ProviderElement<UserRepository> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  UserRepository create(Ref ref) {
+    return userRepository(ref);
+  }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(void value) {
+  Override overrideWithValue(UserRepository value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<void>(value),
+      providerOverride: $SyncValueProvider<UserRepository>(value),
     );
   }
 }
 
-String _$userRepositoryHash() => r'087c87432f773322efb8a8fd6444e3f7c6043b3b';
-
-/// ユーザーリポジトリ
-
-abstract class _$UserRepository extends $Notifier<void> {
-  void build();
-  @$mustCallSuper
-  @override
-  void runBuild() {
-    build();
-    final ref = this.ref as $Ref<void, void>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<void, void>,
-              void,
-              Object?,
-              Object?
-            >;
-    element.handleValue(ref, null);
-  }
-}
+String _$userRepositoryHash() => r'fa037ad3c8a6ee8bc541b963f035a8f07ca331e4';

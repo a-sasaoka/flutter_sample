@@ -1,5 +1,5 @@
-import 'package:flutter_sample/src/core/router/app_router.dart';
-import 'package:flutter_sample/src/core/router/base_auth_guard.dart'; // クラスが定義されているファイル名に合わせてください
+import 'package:flutter_sample/src/app/router/app_router.dart';
+import 'package:flutter_sample/src/app/router/base_auth_guard.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';

@@ -1,5 +1,8 @@
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
-import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
+import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
+import 'package:flutter_sample/src/features/chat/application/chat_state.dart';
+import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
+import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -9,101 +12,175 @@ part 'chat_notifier.g.dart';
 @riverpod
 class ChatNotifier extends _$ChatNotifier {
   @override
-  List<ChatMessage> build() {
+  ChatState build() {
     // 画面（Notifier）が生きている間は、Repositoryも監視（watch）して破棄させない
     ref.watch(chatRepositoryProvider);
-
-    return [];
+    return const ChatState();
   }
 
   /// メッセージを送信するメソッド
   Future<void> sendMessage(String text) async {
-    if (text.trim().isEmpty) return;
+    // 空文字の送信や、生成中の連打を防ぐ
+    if (text.trim().isEmpty || state.isGenerating) {
+      return;
+    }
 
-    // ユーザーメッセージとローディング状態をまとめて追加
-    state = [
-      ...state,
-      ChatMessage.user(text: text),
-      const ChatMessage.loading(),
-    ];
+    state = state.copyWith(isGenerating: true);
+
+    // 事前にAIのメッセージIDを発行し、ローディングと共に追加
+    final targetAiId = ref.read(uuidProvider).v4();
+    _addMessageAndLoading(text, targetAiId);
 
     try {
       final repository = ref.read(chatRepositoryProvider);
-      final responseText = await repository.sendMessage(text);
+      final promptWithTime = _buildPromptWithTime(text);
+      final responseText = await repository.sendMessage(promptWithTime);
 
-      // 最後の要素（loading）をAIの返答に差し替える
-      state = [
-        ...state.sublist(0, state.length - 1),
-        ChatMessage.ai(text: responseText),
-      ];
+      if (!ref.mounted) {
+        return;
+      }
+
+      final now = ref.read(currentDateTimeProvider);
+
+      // IDを指定してAIのメッセージに差し替え（競合対策）
+      _updateMessageById(
+        targetAiId,
+        ChatMessage.ai(
+          id: targetAiId,
+          text: responseText,
+          createdAt: now,
+        ),
+      );
     } on Exception catch (e) {
-      // エラー時も同様にローディングをエラー表示に差し替える
-      state = [
-        ...state.sublist(0, state.length - 1),
-        ChatMessage.error(error: e),
-      ];
+      if (!ref.mounted) {
+        return;
+      }
+
+      final now = ref.read(currentDateTimeProvider);
+      _updateMessageById(
+        targetAiId,
+        ChatMessage.error(
+          id: targetAiId,
+          error: e,
+          createdAt: now,
+        ),
+      );
+    } finally {
+      state = state.copyWith(isGenerating: false);
     }
   }
 
   /// メッセージを送信するメソッド（Stream版）
   Future<void> sendMessageStream(String text) async {
-    if (text.trim().isEmpty) return;
+    // 空文字の送信や、生成中の連打を防ぐ
+    if (text.trim().isEmpty || state.isGenerating) {
+      return;
+    }
 
-    // ユーザーメッセージとローディング状態をまとめて追加
-    state = [
-      ...state,
-      ChatMessage.user(text: text),
-      const ChatMessage.loading(),
-    ];
+    state = state.copyWith(isGenerating: true);
+
+    // 事前にAIのメッセージIDを発行し、ローディングと共に追加
+    final targetAiId = ref.read(uuidProvider).v4();
+    _addMessageAndLoading(text, targetAiId);
 
     try {
       final repository = ref.read(chatRepositoryProvider);
+      final promptWithTime = _buildPromptWithTime(text);
+      final stream = repository.sendMessageStream(promptWithTime);
 
-      // 日付が変わったことを認識できるように毎回日時を付与する
-      final now = ref.read(currentDateTimeProvider);
-      final timeContext =
-          '（※システム情報: 現在時刻は ${now.year}年${now.month}月${now.day}日'
-          ' ${now.hour}時${now.minute}分 です）\n';
-
-      // sendMessageStream を呼び出して、Streamを受け取る
-      final stream = repository.sendMessageStream(timeContext + text);
-
-      // 最初の文字が届いたかどうかを判定するフラグ
+      var aiResponseText = '';
       var isFirstChunk = true;
+      late DateTime aiMessageCreatedAt;
+      final buffer = StringBuffer();
 
-      // streamから文字のchunkが届くたびに、このループが回る
       await for (final chunk in stream) {
-        if (isFirstChunk) {
-          // 【最初の1文字目が届いた時】
-          // ローディングを消して、最初の文字が入ったAIメッセージに差し替える
-          state = [
-            ...state.sublist(0, state.length - 1),
-            ChatMessage.ai(text: chunk),
-          ];
-          isFirstChunk = false;
-        } else {
-          // 【2回目以降の文字が届いた時】
-          // 今画面に出ている最後のAIメッセージの末尾に、新しい文字を「継ぎ足す」
-          final lastMessage = state.last;
-          if (lastMessage is ChatMessageAi) {
-            state = [
-              ...state.sublist(0, state.length - 1),
-              ChatMessage.ai(text: lastMessage.text + chunk),
-            ];
-          }
+        if (!ref.mounted) {
+          return;
         }
+
+        if (isFirstChunk) {
+          // 最初のチャンクが届いた瞬間の時刻を記録
+          aiMessageCreatedAt = ref.read(currentDateTimeProvider);
+          isFirstChunk = false;
+        }
+
+        buffer.write(chunk);
+        aiResponseText = buffer.toString();
+
+        // 既存のIDと時刻を引き継ぎながら、テキストを更新（競合対策）
+        _updateMessageById(
+          targetAiId,
+          ChatMessage.ai(
+            id: targetAiId,
+            text: aiResponseText,
+            createdAt: aiMessageCreatedAt,
+          ),
+        );
       }
 
-      // 結果的に空っぽだったらエラー扱いにする
       if (isFirstChunk) {
-        throw ChatEmptyResponseException();
+        throw ChatEmptyResponseException(); // 空のままStreamが終わった場合
       }
     } on Exception catch (e) {
-      // エラーが発生した場合は、最後のメッセージ（ローディングまたは途中のAI文）をエラー表示に差し替える
-      state = [
-        ...state.sublist(0, state.length - 1),
-        ChatMessage.error(error: e),
-      ];
+      if (!ref.mounted) {
+        return;
+      }
+
+      final now = ref.read(currentDateTimeProvider);
+      _updateMessageById(
+        targetAiId,
+        ChatMessage.error(
+          id: targetAiId,
+          error: e,
+          createdAt: now,
+        ),
+      );
+    } finally {
+      state = state.copyWith(isGenerating: false);
     }
+  }
+
+  /// ユーザーメッセージとローディング状態をセットで追加する
+  /// [targetAiId] は後で上書き検索するための目印
+  void _addMessageAndLoading(String text, String targetAiId) {
+    final now = ref.read(currentDateTimeProvider);
+    state = state.copyWith(
+      messages: [
+        ...state.messages,
+        ChatMessage.user(
+          id: ref.read(uuidProvider).v4(),
+          text: text,
+          createdAt: now,
+        ),
+        ChatMessage.loading(
+          id: targetAiId,
+          createdAt: now,
+        ),
+      ],
+    );
+  }
+
+  /// 状態リストの中から特定のIDを探して新しいメッセージに差し替える
+  void _updateMessageById(String targetId, ChatMessage newMessage) {
+    state = state.copyWith(
+      messages: [
+        for (final msg in state.messages)
+          if (msg.id == targetId) newMessage else msg,
+      ],
+    );
+  }
+
+  /// AIに送るプロンプトにシステム日時を付加する
+  String _buildPromptWithTime(String originalText) {
+    final now = ref.read(currentDateTimeProvider);
+
+    final year = now.year;
+    final month = now.month.toString().padLeft(2, '0');
+    final day = now.day.toString().padLeft(2, '0');
+    final hour = now.hour.toString().padLeft(2, '0');
+    final minute = now.minute.toString().padLeft(2, '0');
+
+    return '[System Information: Current Time is $year-$month-$day '
+        '$hour:$minute]\n$originalText';
   }
 }

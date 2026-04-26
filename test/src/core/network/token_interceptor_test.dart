@@ -1,15 +1,15 @@
+// ignore_for_file: one_member_abstracts, document_ignores
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sample/src/core/network/token_interceptor.dart';
 import 'package:flutter_sample/src/core/storage/token_storage.dart';
-import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
-// 💡 implements だけで定義 (extends は不要)
-class MockTokenStorage extends Mock implements TokenStorage {}
+// --- モッククラス群 ---
 
-class MockAuthRepository extends Mock implements AuthRepository {}
+class MockTokenStorage extends Mock implements TokenStorage {}
 
 class MockDio extends Mock implements Dio {}
 
@@ -19,7 +19,16 @@ class MockRequestInterceptorHandler extends Mock
 class MockErrorInterceptorHandler extends Mock
     implements ErrorInterceptorHandler {}
 
-// Fake 群
+// 関数をモック化するための抽象クラスを定義
+abstract class _MockTokenRefreshCallable {
+  Future<bool> call();
+}
+
+class MockTokenRefreshCallback extends Mock
+    implements _MockTokenRefreshCallable {}
+
+// --- Fake群 ---
+
 class FakeRequestOptions extends Fake implements RequestOptions {}
 
 class FakeDioException extends Fake implements DioException {}
@@ -28,8 +37,8 @@ class FakeResponse extends Fake implements Response<Map<String, dynamic>> {}
 
 void main() {
   late MockTokenStorage mockStorage;
-  late MockAuthRepository mockAuthRepo;
   late MockDio mockRetryDio;
+  late MockTokenRefreshCallback mockRefreshToken;
   late ProviderContainer container;
 
   setUpAll(() {
@@ -40,17 +49,16 @@ void main() {
 
   setUp(() {
     mockStorage = MockTokenStorage();
-    mockAuthRepo = MockAuthRepository();
     mockRetryDio = MockDio();
+    mockRefreshToken = MockTokenRefreshCallback();
 
     container = ProviderContainer(
       overrides: [
-        // 🔥 重要：.notifier を付けず、InternalProvider を直接 overrideWithValue する
-        // これにより、インターセプター内の ref.read(tokenStorageInternalProvider) が
-        // 確実に mockStorage を返すようになります。
         tokenStorageInternalProvider.overrideWithValue(mockStorage),
-        authRepositoryInternalProvider.overrideWithValue(mockAuthRepo),
         retryDioProvider.overrideWithValue(mockRetryDio),
+        tokenRefreshCallbackProvider.overrideWith(
+          (ref) => mockRefreshToken.call,
+        ),
       ],
     );
   });
@@ -59,8 +67,6 @@ void main() {
 
   group('TokenInterceptor', () {
     test('onRequest: トークンがある場合、Authorizationヘッダーが付与されること', () async {
-      // Arrange: ここで定義した mockStorage が InternalProvider を通じて
-      // interceptor に注入されるようになります。
       when(
         () => mockStorage.getAccessToken(),
       ).thenAnswer((_) async => 'valid_token');
@@ -69,18 +75,14 @@ void main() {
       final handler = MockRequestInterceptorHandler();
       final options = RequestOptions(path: '/test');
 
-      // Act
       interceptor.onRequest(options, handler);
-
       await Future<void>.delayed(Duration.zero);
 
-      // Assert
       expect(options.headers['Authorization'], equals('Bearer valid_token'));
       verify(() => handler.next(options)).called(1);
     });
 
     test('onError: 401エラー時にトークンリフレッシュが成功すれば、リトライが行われること', () async {
-      // Arrange
       final interceptor = container.read(tokenInterceptorProvider);
       final handler = MockErrorInterceptorHandler();
       final options = RequestOptions(path: '/test');
@@ -89,7 +91,9 @@ void main() {
         response: Response(requestOptions: options, statusCode: 401),
       );
 
-      when(() => mockAuthRepo.refreshToken()).thenAnswer((_) async => true);
+      // モック関数の振る舞いを定義
+      when(() => mockRefreshToken.call()).thenAnswer((_) async => true);
+
       when(
         () => mockStorage.getAccessToken(),
       ).thenAnswer((_) async => 'new_token');
@@ -104,18 +108,14 @@ void main() {
         () => mockRetryDio.fetch<Map<String, dynamic>>(any()),
       ).thenAnswer((_) async => mockResponse);
 
-      // Act
       interceptor.onError(error401, handler);
-
       await Future<void>.delayed(Duration.zero);
 
-      // Assert
       expect(options.headers['Authorization'], equals('Bearer new_token'));
       verify(() => handler.resolve(mockResponse)).called(1);
     });
 
     test('onError: 401エラーだがリフレッシュに失敗した場合、そのままエラーを流すこと', () async {
-      // Arrange
       final interceptor = container.read(tokenInterceptorProvider);
       final handler = MockErrorInterceptorHandler();
       final error401 = DioException(
@@ -123,14 +123,12 @@ void main() {
         response: Response(requestOptions: RequestOptions(), statusCode: 401),
       );
 
-      when(() => mockAuthRepo.refreshToken()).thenAnswer((_) async => false);
+      // モック関数が false を返すように設定
+      when(() => mockRefreshToken.call()).thenAnswer((_) async => false);
 
-      // Act
       interceptor.onError(error401, handler);
-
       await Future<void>.delayed(Duration.zero);
 
-      // Assert
       verify(() => handler.next(error401)).called(1);
       verifyNever(() => mockRetryDio.fetch<dynamic>(any()));
     });
@@ -162,7 +160,8 @@ void main() {
     interceptor.onError(error500, handler);
     await Future<void>.delayed(Duration.zero);
 
-    verifyNever(() => mockAuthRepo.refreshToken());
+    // リフレッシュ関数が一度も呼ばれていないことを検証
+    verifyNever(() => mockRefreshToken.call());
     verify(() => handler.next(error500)).called(1);
   });
 
@@ -175,7 +174,7 @@ void main() {
       response: Response(requestOptions: options, statusCode: 401),
     );
 
-    when(() => mockAuthRepo.refreshToken()).thenAnswer((_) async => true);
+    when(() => mockRefreshToken.call()).thenAnswer((_) async => true);
     when(
       () => mockStorage.getAccessToken(),
     ).thenAnswer((_) async => 'new_token');
@@ -184,7 +183,6 @@ void main() {
       requestOptions: options,
       error: 'Retry failed',
     );
-    // fetchが呼ばれた時に例外を投げるように設定
     when(
       () => mockRetryDio.fetch<Map<String, dynamic>>(any()),
     ).thenThrow(retryError);
@@ -194,4 +192,26 @@ void main() {
 
     verify(() => handler.next(retryError)).called(1);
   });
+
+  test(
+    'tokenRefreshCallbackProvider: オーバーライドされていない場合は UnimplementedError を投げること',
+    () {
+      final emptyContainer = ProviderContainer();
+
+      // Riverpodは内部のエラーを ProviderException で包んで投げる仕様があるため、
+      // エラーの文字列表現 (toString) の中に目的のメッセージが含まれているかを検証します。
+      expect(
+        () => emptyContainer.read(tokenRefreshCallbackProvider),
+        throwsA(
+          predicate(
+            (e) => e.toString().contains(
+              'Please override it in the ProviderScope of the App layer',
+            ),
+          ),
+        ),
+      );
+
+      emptyContainer.dispose();
+    },
+  );
 }

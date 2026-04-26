@@ -15,12 +15,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get hello => 'こんにちは';
 
   @override
-  String get login => 'ログイン';
-
-  @override
-  String get logout => 'ログアウト';
-
-  @override
   String get ok => 'OK';
 
   @override
@@ -30,18 +24,61 @@ class AppLocalizationsJa extends AppLocalizations {
   String get send => '送信';
 
   @override
-  String get chatEmptyMessage => 'AIからの返答が空でした。';
+  String get close => '閉じる';
 
   @override
-  String chatError(Object error) {
-    return 'エラーが発生しました: $error';
-  }
+  String get login => 'ログイン';
 
   @override
-  String get chatTitle => 'Gemini アシスタント';
+  String get logout => 'ログアウト';
 
   @override
-  String get chatHint => 'メッセージを入力...';
+  String get loginTitle => 'ログイン';
+
+  @override
+  String get loginEmailLabel => 'メールアドレス';
+
+  @override
+  String get loginPasswordLabel => 'パスワード';
+
+  @override
+  String get loginButton => 'ログイン';
+
+  @override
+  String get loginSuccess => 'ログイン成功！';
+
+  @override
+  String get signUpTitle => '新規登録';
+
+  @override
+  String get signUp => '登録';
+
+  @override
+  String get googleSignUp => 'Googleでログイン';
+
+  @override
+  String get emailVerificationTitle => 'メール確認';
+
+  @override
+  String get emailVerificationDescription => '登録したメールアドレスに確認メールを送信しました。';
+
+  @override
+  String get checkVerificationStatus => '認証を完了したか確認する';
+
+  @override
+  String get resendVerificationMail => '確認メールを再送する';
+
+  @override
+  String get resendVerificationMailSuccess => '確認メールを再送信しました';
+
+  @override
+  String get emailVerificationWaiting => 'メールを確認後、この画面に戻ると自動的に次の画面へ進みます。';
+
+  @override
+  String get resetPassword => 'パスワード再設定';
+
+  @override
+  String get resetPasswordMailSent => '再設定メールを送信しました';
 
   @override
   String get errorNetwork => 'ネットワークエラーが発生しました。';
@@ -66,6 +103,18 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get errorSignUpFailed => '登録に失敗しました';
+
+  @override
+  String get errorInvalidEmail => 'メールアドレスの形式が正しくありません。';
+
+  @override
+  String get errorUserDisabled => 'このアカウントは無効化されています。';
+
+  @override
+  String get errorEmailAlreadyInUse => 'このメールアドレスは既に登録されています。';
+
+  @override
+  String get errorWeakPassword => 'パスワードが弱すぎます。もう少し複雑にしてください。';
 
   @override
   String get homeTitle => 'ホーム';
@@ -110,13 +159,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homeAnalyticsTest => 'アナリティクステスト';
 
   @override
-  String get notFoundTitle => 'ページが見つかりません';
+  String get chatTitle => 'Gemini アシスタント';
 
   @override
-  String get notFoundMessage => 'ページが見つかりませんでした。';
+  String get chatHint => 'メッセージを入力...';
 
   @override
-  String get notFoundBackToHome => 'ホームへ戻る';
+  String get thinking => 'AIが考え中...';
+
+  @override
+  String get chatEmptyMessage => 'AIからの返答が空でした。';
+
+  @override
+  String chatError(Object error) {
+    return 'エラーが発生しました: $error';
+  }
 
   @override
   String get settingsTitle => '設定';
@@ -149,21 +206,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsLocaleEn => '英語（en）';
 
   @override
-  String get loginTitle => 'ログイン';
-
-  @override
-  String get loginEmailLabel => 'メールアドレス';
-
-  @override
-  String get loginPasswordLabel => 'パスワード';
-
-  @override
-  String get loginButton => 'ログイン';
-
-  @override
-  String get loginSuccess => 'ログイン成功！';
-
-  @override
   String get sampleTitle => 'サンプル機能';
 
   @override
@@ -173,31 +215,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get userListTitle => 'ユーザー一覧';
 
   @override
-  String get signUpTitle => '新規登録';
+  String get notFoundTitle => 'ページが見つかりません';
 
   @override
-  String get signUp => '登録';
+  String get notFoundMessage => 'ページが見つかりませんでした。';
 
   @override
-  String get googleSignUp => 'Googleでログイン';
-
-  @override
-  String get emailVerificationTitle => 'メール確認';
-
-  @override
-  String get emailVerificationDescription => '登録したメールアドレスに確認メールを送信しました。';
-
-  @override
-  String get resendVerificationMail => '確認メールを再送する';
-
-  @override
-  String get emailVerificationWaiting => 'メールを確認後、この画面に戻ると自動的に次の画面へ進みます。';
-
-  @override
-  String get resetPassword => 'パスワード再設定';
-
-  @override
-  String get resetPasswordMailSent => '再設定メールを送信しました';
+  String get notFoundBackToHome => 'ホームへ戻る';
 
   @override
   String get versionUpTitle => '最新の更新があります。\nアップデートをお願いします。';

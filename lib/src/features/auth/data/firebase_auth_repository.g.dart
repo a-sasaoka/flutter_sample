@@ -100,14 +100,59 @@ final class GoogleSignInProvider
 
 String _$googleSignInHash() => r'16cf38da6ba66b02462d5ad518f809a45382089f';
 
+/// Firebase Authenticationの認証状態（ユーザー変更含む）を監視するプロバイダー
+
+@ProviderFor(authStateChanges)
+const authStateChangesProvider = AuthStateChangesProvider._();
+
+/// Firebase Authenticationの認証状態（ユーザー変更含む）を監視するプロバイダー
+
+final class AuthStateChangesProvider
+    extends $FunctionalProvider<AsyncValue<User?>, User?, Stream<User?>>
+    with $FutureModifier<User?>, $StreamProvider<User?> {
+  /// Firebase Authenticationの認証状態（ユーザー変更含む）を監視するプロバイダー
+  const AuthStateChangesProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'authStateChangesProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$authStateChangesHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<User?> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<User?> create(Ref ref) {
+    return authStateChanges(ref);
+  }
+}
+
+String _$authStateChangesHash() => r'c7af77d8677dab52fbf7e97ba783186b3b67e1ee';
+
 /// Firebase Authenticationを使用した認証リポジトリ
 
-@ProviderFor(FirebaseAuthRepository)
+@ProviderFor(firebaseAuthRepository)
 const firebaseAuthRepositoryProvider = FirebaseAuthRepositoryProvider._();
 
 /// Firebase Authenticationを使用した認証リポジトリ
+
 final class FirebaseAuthRepositoryProvider
-    extends $NotifierProvider<FirebaseAuthRepository, User?> {
+    extends
+        $FunctionalProvider<
+          FirebaseAuthRepository,
+          FirebaseAuthRepository,
+          FirebaseAuthRepository
+        >
+    with $Provider<FirebaseAuthRepository> {
   /// Firebase Authenticationを使用した認証リポジトリ
   const FirebaseAuthRepositoryProvider._()
     : super(
@@ -125,37 +170,23 @@ final class FirebaseAuthRepositoryProvider
 
   @$internal
   @override
-  FirebaseAuthRepository create() => FirebaseAuthRepository();
+  $ProviderElement<FirebaseAuthRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  FirebaseAuthRepository create(Ref ref) {
+    return firebaseAuthRepository(ref);
+  }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(User? value) {
+  Override overrideWithValue(FirebaseAuthRepository value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<User?>(value),
+      providerOverride: $SyncValueProvider<FirebaseAuthRepository>(value),
     );
   }
 }
 
 String _$firebaseAuthRepositoryHash() =>
-    r'3b6a6213867c92491e2215d3d556f4b3aaa40a1d';
-
-/// Firebase Authenticationを使用した認証リポジトリ
-
-abstract class _$FirebaseAuthRepository extends $Notifier<User?> {
-  User? build();
-  @$mustCallSuper
-  @override
-  void runBuild() {
-    final created = build();
-    final ref = this.ref as $Ref<User?, User?>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<User?, User?>,
-              User?,
-              Object?,
-              Object?
-            >;
-    element.handleValue(ref, created);
-  }
-}
+    r'd4ae548d4237ae737acd93959adfa0b1764bccf5';

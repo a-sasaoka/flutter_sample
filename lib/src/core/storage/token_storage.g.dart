@@ -8,14 +8,17 @@ part of 'token_storage.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// トークンストレージクラス
+/// トークンストレージプロバイダー
 
-@ProviderFor(TokenStorage)
+@ProviderFor(tokenStorage)
 const tokenStorageProvider = TokenStorageProvider._();
 
-/// トークンストレージクラス
-final class TokenStorageProvider extends $NotifierProvider<TokenStorage, void> {
-  /// トークンストレージクラス
+/// トークンストレージプロバイダー
+
+final class TokenStorageProvider
+    extends $FunctionalProvider<TokenStorage, TokenStorage, TokenStorage>
+    with $Provider<TokenStorage> {
+  /// トークンストレージプロバイダー
   const TokenStorageProvider._()
     : super(
         from: null,
@@ -32,36 +35,21 @@ final class TokenStorageProvider extends $NotifierProvider<TokenStorage, void> {
 
   @$internal
   @override
-  TokenStorage create() => TokenStorage();
+  $ProviderElement<TokenStorage> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  TokenStorage create(Ref ref) {
+    return tokenStorage(ref);
+  }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(void value) {
+  Override overrideWithValue(TokenStorage value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<void>(value),
+      providerOverride: $SyncValueProvider<TokenStorage>(value),
     );
   }
 }
 
-String _$tokenStorageHash() => r'7c8d4eb8dce70b8cee30f42b3c3fc7254fdcb55f';
-
-/// トークンストレージクラス
-
-abstract class _$TokenStorage extends $Notifier<void> {
-  void build();
-  @$mustCallSuper
-  @override
-  void runBuild() {
-    build();
-    final ref = this.ref as $Ref<void, void>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<void, void>,
-              void,
-              Object?,
-              Object?
-            >;
-    element.handleValue(ref, null);
-  }
-}
+String _$tokenStorageHash() => r'b287308b8c5204fbd62ffb90bb5717bd37a8ab56';

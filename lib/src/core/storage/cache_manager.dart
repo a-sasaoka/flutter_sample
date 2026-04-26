@@ -1,8 +1,7 @@
-// APIレスポンスなどを簡易的にキャッシュする仕組み
-
 import 'dart:convert';
 
 import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
+import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'cache_manager.g.dart';
@@ -19,6 +18,8 @@ class CacheManager {
   CacheManager._(this.ref);
 
   static const _cacheDuration = Duration(minutes: 10);
+  static const _keyTimestamp = 'timestamp';
+  static const _keyData = 'data';
 
   /// RiverpodのRef
   final Ref ref;
@@ -27,8 +28,8 @@ class CacheManager {
   Future<void> save(String key, dynamic value) async {
     final prefs = await ref.read(sharedPreferencesProvider.future);
     final data = {
-      'timestamp': DateTime.now().millisecondsSinceEpoch,
-      'data': value,
+      _keyTimestamp: ref.read(currentDateTimeProvider).millisecondsSinceEpoch,
+      _keyData: value,
     };
     await prefs.setString(key, jsonEncode(data));
   }
@@ -39,15 +40,22 @@ class CacheManager {
     final raw = await prefs.getString(key);
     if (raw == null) return null;
 
-    final decoded = jsonDecode(raw) as Map<String, dynamic>;
-    final timestamp = DateTime.fromMillisecondsSinceEpoch(
-      decoded['timestamp'] as int,
-    );
-    if (DateTime.now().difference(timestamp) > _cacheDuration) {
+    try {
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final timestamp = DateTime.fromMillisecondsSinceEpoch(
+        decoded[_keyTimestamp] as int,
+      );
+      if (ref.read(currentDateTimeProvider).difference(timestamp) >
+          _cacheDuration) {
+        await prefs.remove(key);
+        return null; // キャッシュ期限切れ
+      }
+      return decoded[_keyData];
+    } on Object catch (_) {
+      // JSONパースエラーや型の不一致などが起きた場合は、キャッシュが壊れているとみなして削除
       await prefs.remove(key);
-      return null; // キャッシュ期限切れ
+      return null;
     }
-    return decoded['data'];
   }
 
   /// キャッシュを削除

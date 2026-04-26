@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_sample/src/core/router/app_router.dart';
-import 'package:flutter_sample/src/core/router/firebase_auth_guard.dart';
+import 'package:flutter_sample/src/app/router/app_router.dart';
+import 'package:flutter_sample/src/app/router/firebase_auth_guard.dart';
 import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';

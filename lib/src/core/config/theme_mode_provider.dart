@@ -1,5 +1,3 @@
-// SharedPreferences を使ってテーマモードを永続化する。
-
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -14,7 +12,7 @@ class ThemeModeNotifier extends _$ThemeModeNotifier {
   @override
   Future<ThemeMode> build() async {
     // SharedPreferencesから設定を取得
-    final prefs = await ref.read(sharedPreferencesProvider.future);
+    final prefs = await ref.watch(sharedPreferencesProvider.future);
     final value = await prefs.getString(_key);
 
     // 保存されていなければシステム設定を返す
@@ -29,7 +27,7 @@ class ThemeModeNotifier extends _$ThemeModeNotifier {
   Future<void> set(ThemeMode mode) async {
     state = AsyncData(mode); // 即時反映
     final prefs = await ref.read(sharedPreferencesProvider.future);
-    await prefs.setString(_key, mode.value);
+    await prefs.setString(_key, mode.name);
   }
 
   /// トグル切り替え
@@ -40,29 +38,13 @@ class ThemeModeNotifier extends _$ThemeModeNotifier {
   }
 }
 
-/// ThemeMode 拡張メソッド
-extension _ThemeModeExt on ThemeMode {
-  /// 文字列を取得
-  String get value => {
-    ThemeMode.light: 'light',
-    ThemeMode.dark: 'dark',
-    ThemeMode.system: 'system',
-  }[this]!;
-}
-
 /// String 拡張メソッド
 extension _ThemeModeFromString on String {
   /// 文字列から ThemeMode に変換
   ThemeMode toThemeMode() {
-    switch (this) {
-      case 'light':
-        return ThemeMode.light;
-      case 'dark':
-        return ThemeMode.dark;
-      case 'system':
-        return ThemeMode.system;
-      default:
-        throw Exception('Invalid theme: $this');
-    }
+    return ThemeMode.values.firstWhere(
+      (e) => e.name == this,
+      orElse: () => ThemeMode.system,
+    );
   }
 }

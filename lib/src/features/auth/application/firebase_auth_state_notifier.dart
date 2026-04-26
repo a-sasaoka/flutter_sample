@@ -1,5 +1,4 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -10,15 +9,9 @@ part 'firebase_auth_state_notifier.g.dart';
 class FirebaseAuthStateNotifier extends _$FirebaseAuthStateNotifier {
   @override
   User? build() {
-    // 初期状態は repository の現在ログインユーザーで決定
-    final user = ref.read(firebaseAuthRepositoryProvider);
-
-    // FirebaseAuth の状態変化監視
-    ref.listen<User?>(
-      firebaseAuthRepositoryProvider.select((repo) => repo),
-      (_, _) => state = ref.read(firebaseAuthRepositoryProvider),
-    );
-
-    return user;
+    // 新しく作成した StreamProvider を監視し、
+    // 最新の非同期データ（User?）を同期的に返すようにする
+    final asyncUser = ref.watch(authStateChangesProvider);
+    return asyncUser.value;
   }
 }

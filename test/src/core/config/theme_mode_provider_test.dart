@@ -64,7 +64,7 @@ void main() {
     );
 
     test(
-      '初期化時(build): 無効な文字列が保存されていた場合は初期化に失敗し、StateError(またはException)になること',
+      '初期化時(build): 無効な文字列が保存されていた場合は ThemeMode.system を返すこと',
       () async {
         // Arrange
         when(
@@ -73,13 +73,11 @@ void main() {
 
         final container = createContainer();
 
+        // Act
+        final theme = await container.read(themeModeProvider.future);
+
         // Assert
-        // Riverpodの仕様上、初期化中のエラーは dispose 時に StateError として投げられるため、
-        // StateError を期待するテストに変更します。
-        await expectLater(
-          () => container.read(themeModeProvider.future),
-          throwsA(isA<StateError>()),
-        );
+        expect(theme, equals(ThemeMode.system));
       },
     );
 
@@ -105,7 +103,7 @@ void main() {
         container.read(themeModeProvider).value,
         equals(ThemeMode.light),
       );
-      // 2. _ThemeModeExt.valeu 経由で 'light' という文字列に変換されて保存されたか
+      // 2. ThemeMode.name 経由で 'light' という文字列に変換されて保存されたか
       verify(() => mockPrefs.setString('theme_mode', 'light')).called(1);
     });
 

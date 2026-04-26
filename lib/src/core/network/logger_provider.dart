@@ -1,5 +1,3 @@
-// 環境ごとにログ出力を制御するLoggerプロバイダ
-
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:logger/logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -10,7 +8,7 @@ part 'logger_provider.g.dart';
 @Riverpod(keepAlive: true)
 Logger logger(Ref ref) {
   return Logger(
-    level: ref.read(flavorProvider) == Flavor.prod
+    level: ref.watch(flavorProvider) == Flavor.prod
         ? Level.warning
         : Level.debug,
     printer: PrettyPrinter(

@@ -1,17 +1,16 @@
-// Riverpod + GoRouter + アノテーション対応版
-// GoRouterBuilderによる型安全なルーティング + riverpod_generator対応
-
 import 'dart:async';
 
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_sample/src/app/router/auth_guard.dart';
+import 'package:flutter_sample/src/app/router/firebase_auth_guard.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/network/logger_provider.dart';
-import 'package:flutter_sample/src/core/router/auth_guard.dart';
-import 'package:flutter_sample/src/core/router/firebase_auth_guard.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
+import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_email_verification_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_login_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_reset_password_screen.dart';
@@ -19,11 +18,11 @@ import 'package:flutter_sample/src/features/auth/presentation/firebase_sign_up_s
 import 'package:flutter_sample/src/features/auth/presentation/login_screen.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
-import 'package:flutter_sample/src/features/sample_feature/presentation/sample_screen.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
 import 'package:go_router/go_router.dart';
+import 'package:logger/logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'app_router.g.dart';
@@ -33,8 +32,8 @@ part 'app_router.g.dart';
   path: '/',
   routes: [
     TypedGoRoute<SettingsRoute>(path: 'settings'),
-    TypedGoRoute<SampleRoute>(path: 'sample'),
     TypedGoRoute<UserListRoute>(path: 'users'),
+    TypedGoRoute<ResetPasswordRoute>(path: 'reset-password'),
     TypedGoRoute<ChatRoute>(path: 'chat'),
   ],
 )
@@ -59,17 +58,6 @@ class SettingsRoute extends GoRouteData with $SettingsRoute {
   }
 }
 
-/// 🧪 サンプル画面ルート
-class SampleRoute extends GoRouteData with $SampleRoute {
-  /// コンストラクタ
-  const SampleRoute();
-
-  @override
-  Widget build(BuildContext context, GoRouterState state) {
-    return const SampleScreen();
-  }
-}
-
 /// 👥 ユーザー一覧画面ルート
 class UserListRoute extends GoRouteData with $UserListRoute {
   /// コンストラクタ
@@ -81,21 +69,62 @@ class UserListRoute extends GoRouteData with $UserListRoute {
   }
 }
 
+/// 🔑 パスワードリセット画面ルート
+class ResetPasswordRoute extends GoRouteData with $ResetPasswordRoute {
+  /// コンストラクタ
+  const ResetPasswordRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const FirebaseResetPasswordScreen();
+  }
+}
+
+/// 🤖 AIチャット画面ルート
+class ChatRoute extends GoRouteData with $ChatRoute {
+  /// コンストラクタ
+  const ChatRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const ChatScreen();
+  }
+}
+
 /// 🔐 ログイン画面ルート
-@TypedGoRoute<LoginRoute>(path: '/login')
+@TypedGoRoute<LoginRoute>(
+  path: '/login',
+  routes: [
+    TypedGoRoute<SignUpRoute>(path: '/signup'),
+  ],
+)
 class LoginRoute extends GoRouteData with $LoginRoute {
   /// コンストラクタ
   const LoginRoute();
 
   @override
   Widget build(BuildContext context, GoRouterState state) {
-    final container = ProviderScope.containerOf(context);
-    final useFirebase = container.read(useFirebaseAuthProvider);
+    return Consumer(
+      builder: (context, ref, child) {
+        // Firebase Authenticationの利用有無で遷移先画面を切り替える
+        final useFirebase = ref.watch(useFirebaseAuthProvider);
+        if (useFirebase) {
+          return const FirebaseLoginScreen();
+        }
+        return const LoginScreen();
+      },
+    );
+  }
+}
 
-    if (useFirebase) {
-      return const FirebaseLoginScreen();
-    }
-    return const LoginScreen();
+/// 🧾 サインアップ画面ルート
+class SignUpRoute extends GoRouteData with $SignUpRoute {
+  /// コンストラクタ
+  const SignUpRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const FirebaseSignUpScreen();
   }
 }
 
@@ -111,30 +140,6 @@ class SplashRoute extends GoRouteData with $SplashRoute {
   }
 }
 
-/// 🧾 サインアップ画面ルート
-@TypedGoRoute<SignUpRoute>(path: '/signup')
-class SignUpRoute extends GoRouteData with $SignUpRoute {
-  /// コンストラクタ
-  const SignUpRoute();
-
-  @override
-  Widget build(BuildContext context, GoRouterState state) {
-    return const FirebaseSignUpScreen();
-  }
-}
-
-/// 🔑 パスワードリセット画面ルート
-@TypedGoRoute<ResetPasswordRoute>(path: '/reset-password')
-class ResetPasswordRoute extends GoRouteData with $ResetPasswordRoute {
-  /// コンストラクタ
-  const ResetPasswordRoute();
-
-  @override
-  Widget build(BuildContext context, GoRouterState state) {
-    return const FirebaseResetPasswordScreen();
-  }
-}
-
 /// 📧 メールアドレス確認画面ルート
 @TypedGoRoute<EmailVerificationRoute>(path: '/email-verification')
 class EmailVerificationRoute extends GoRouteData with $EmailVerificationRoute {
@@ -147,27 +152,16 @@ class EmailVerificationRoute extends GoRouteData with $EmailVerificationRoute {
   }
 }
 
-/// 🤖 AIチャット画面ルート
-class ChatRoute extends GoRouteData with $ChatRoute {
-  /// コンストラクタ
-  const ChatRoute();
-
-  @override
-  Widget build(BuildContext context, GoRouterState state) {
-    return const ChatScreen();
-  }
-}
-
 /// Firebase Analytics の screen_class をカスタマイズして送信するカスタム Observer
 class TypedRouteAnalyticsObserver extends NavigatorObserver {
   /// コンストラクタ
-  TypedRouteAnalyticsObserver({required this.ref, required this.analytics});
+  TypedRouteAnalyticsObserver({required this.analytics, required this.logger});
 
   /// Firebase Analytics インスタンス
   final FirebaseAnalytics analytics;
 
-  /// Ref
-  final Ref ref;
+  /// Logger インスタンス
+  final Logger logger;
 
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
@@ -196,14 +190,7 @@ class TypedRouteAnalyticsObserver extends NavigatorObserver {
       ),
     );
 
-    // ProviderContainer自体が有効か、Refが有効かを確認して実行
-    if (ref.mounted) {
-      try {
-        ref.read(loggerProvider).d('📊 screen_view → $screenClass');
-      } on Exception catch (_) {
-        // 消滅済みの場合はログ出力自体をスキップ
-      }
-    }
+    logger.d('📊 screen_view → $screenClass');
   }
 }
 
@@ -212,9 +199,25 @@ class TypedRouteAnalyticsObserver extends NavigatorObserver {
 GoRouter router(Ref ref) {
   final useFirebase = ref.watch(useFirebaseAuthProvider);
 
+  // 認証状態の変更を検知して GoRouter にルーティングの再評価を促すための Listenable
+  final routerListenable = ValueNotifier<bool>(false);
+
+  ref
+    ..listen(
+      authStateProvider,
+      (_, _) => routerListenable.value = !routerListenable.value,
+    )
+    ..listen(
+      firebaseAuthStateProvider,
+      (_, _) => routerListenable.value = !routerListenable.value,
+    )
+    ..onDispose(routerListenable.dispose);
+
   return GoRouter(
+    refreshListenable: routerListenable,
     routes: $appRoutes,
     redirect: (context, state) {
+      // Firebase Authenticationの利用有無で認証ガードを切り替える
       if (useFirebase) {
         return firebaseAuthGuard(ref, state);
       }
@@ -225,8 +228,8 @@ GoRouter router(Ref ref) {
     debugLogDiagnostics: true,
     observers: [
       TypedRouteAnalyticsObserver(
-        ref: ref,
-        analytics: ref.read(firebaseAnalyticsProvider),
+        analytics: ref.watch(firebaseAnalyticsProvider),
+        logger: ref.watch(loggerProvider),
       ),
     ],
   );
