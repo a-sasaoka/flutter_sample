@@ -11,14 +11,14 @@ part of 'flavor_provider.dart';
 /// Flavorを扱うProvider
 
 @ProviderFor(flavor)
-const flavorProvider = FlavorProvider._();
+final flavorProvider = FlavorProvider._();
 
 /// Flavorを扱うProvider
 
 final class FlavorProvider extends $FunctionalProvider<Flavor, Flavor, Flavor>
     with $Provider<Flavor> {
   /// Flavorを扱うProvider
-  const FlavorProvider._()
+  FlavorProvider._()
     : super(
         from: null,
         argument: null,

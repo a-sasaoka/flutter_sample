@@ -11,13 +11,13 @@ part of 'auth_state_notifier.dart';
 /// ログイン状態を管理するStateNotifier
 
 @ProviderFor(AuthStateNotifier)
-const authStateProvider = AuthStateNotifierProvider._();
+final authStateProvider = AuthStateNotifierProvider._();
 
 /// ログイン状態を管理するStateNotifier
 final class AuthStateNotifierProvider
     extends $AsyncNotifierProvider<AuthStateNotifier, bool> {
   /// ログイン状態を管理するStateNotifier
-  const AuthStateNotifierProvider._()
+  AuthStateNotifierProvider._()
     : super(
         from: null,
         argument: null,
@@ -45,7 +45,6 @@ abstract class _$AuthStateNotifier extends $AsyncNotifier<bool> {
   @$mustCallSuper
   @override
   void runBuild() {
-    final created = build();
     final ref = this.ref as $Ref<AsyncValue<bool>, bool>;
     final element =
         ref.element
@@ -55,6 +54,6 @@ abstract class _$AuthStateNotifier extends $AsyncNotifier<bool> {
               Object?,
               Object?
             >;
-    element.handleValue(ref, created);
+    element.handleCreate(ref, build);
   }
 }

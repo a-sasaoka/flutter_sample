@@ -11,7 +11,7 @@ part of 'auth_repository.dart';
 /// 認証リポジトリ
 
 @ProviderFor(authRepository)
-const authRepositoryProvider = AuthRepositoryProvider._();
+final authRepositoryProvider = AuthRepositoryProvider._();
 
 /// 認証リポジトリ
 
@@ -19,7 +19,7 @@ final class AuthRepositoryProvider
     extends $FunctionalProvider<AuthRepository, AuthRepository, AuthRepository>
     with $Provider<AuthRepository> {
   /// 認証リポジトリ
-  const AuthRepositoryProvider._()
+  AuthRepositoryProvider._()
     : super(
         from: null,
         argument: null,

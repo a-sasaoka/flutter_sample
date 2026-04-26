@@ -16,7 +16,7 @@ part of 'token_interceptor.dart';
 /// でオーバーライドして使用してください
 
 @ProviderFor(tokenRefreshCallback)
-const tokenRefreshCallbackProvider = TokenRefreshCallbackProvider._();
+final tokenRefreshCallbackProvider = TokenRefreshCallbackProvider._();
 
 /// [TokenRefreshCallback] を提供するプロバイダ
 ///
@@ -39,7 +39,7 @@ final class TokenRefreshCallbackProvider
   /// アプリ起動時の最上位の `ProviderScope` (overrides) にて、
   /// Feature層のリフレッシュ処理（例: authRepositoryProvider の refreshToken メソッド）
   /// でオーバーライドして使用してください
-  const TokenRefreshCallbackProvider._()
+  TokenRefreshCallbackProvider._()
     : super(
         from: null,
         argument: null,
@@ -81,7 +81,7 @@ String _$tokenRefreshCallbackHash() =>
 /// これにより、テスト時は単なる Mock オブジェクトに差し替え可能になります。
 
 @ProviderFor(tokenStorageInternal)
-const tokenStorageInternalProvider = TokenStorageInternalProvider._();
+final tokenStorageInternalProvider = TokenStorageInternalProvider._();
 
 /// テストで Notifier の内部構造 (_element) によるエラーを回避するため、
 /// Notifier インスタンスを直接提供するだけの Provider を定義します。
@@ -93,7 +93,7 @@ final class TokenStorageInternalProvider
   /// テストで Notifier の内部構造 (_element) によるエラーを回避するため、
   /// Notifier インスタンスを直接提供するだけの Provider を定義します。
   /// これにより、テスト時は単なる Mock オブジェクトに差し替え可能になります。
-  const TokenStorageInternalProvider._()
+  TokenStorageInternalProvider._()
     : super(
         from: null,
         argument: null,
@@ -133,7 +133,7 @@ String _$tokenStorageInternalHash() =>
 /// テスト時にモックへ差し替え可能にするために切り出し
 
 @ProviderFor(retryDio)
-const retryDioProvider = RetryDioProvider._();
+final retryDioProvider = RetryDioProvider._();
 
 /// 再リクエスト（リトライ）用のDioインスタンスを提供するProvider
 /// テスト時にモックへ差し替え可能にするために切り出し
@@ -142,7 +142,7 @@ final class RetryDioProvider extends $FunctionalProvider<Dio, Dio, Dio>
     with $Provider<Dio> {
   /// 再リクエスト（リトライ）用のDioインスタンスを提供するProvider
   /// テスト時にモックへ差し替え可能にするために切り出し
-  const RetryDioProvider._()
+  RetryDioProvider._()
     : super(
         from: null,
         argument: null,
@@ -180,7 +180,7 @@ String _$retryDioHash() => r'8c75a1e5ad1d201e04db4c26b9f655a848b4784a';
 /// トークンを自動で付与・更新するDioのインターセプター
 
 @ProviderFor(tokenInterceptor)
-const tokenInterceptorProvider = TokenInterceptorProvider._();
+final tokenInterceptorProvider = TokenInterceptorProvider._();
 
 /// トークンを自動で付与・更新するDioのインターセプター
 
@@ -193,7 +193,7 @@ final class TokenInterceptorProvider
         >
     with $Provider<InterceptorsWrapper> {
   /// トークンを自動で付与・更新するDioのインターセプター
-  const TokenInterceptorProvider._()
+  TokenInterceptorProvider._()
     : super(
         from: null,
         argument: null,
@@ -227,4 +227,4 @@ final class TokenInterceptorProvider
   }
 }
 
-String _$tokenInterceptorHash() => r'f456ce4b39329a5a5897e27a8d8119dc2aafdd36';
+String _$tokenInterceptorHash() => r'62ef4495afcf37ce98c09b9e9d6f5931c39645c4';

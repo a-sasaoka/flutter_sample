@@ -11,13 +11,13 @@ part of 'theme_mode_provider.dart';
 /// テーマモードの状態を管理・保存するプロバイダー
 
 @ProviderFor(ThemeModeNotifier)
-const themeModeProvider = ThemeModeNotifierProvider._();
+final themeModeProvider = ThemeModeNotifierProvider._();
 
 /// テーマモードの状態を管理・保存するプロバイダー
 final class ThemeModeNotifierProvider
     extends $AsyncNotifierProvider<ThemeModeNotifier, ThemeMode> {
   /// テーマモードの状態を管理・保存するプロバイダー
-  const ThemeModeNotifierProvider._()
+  ThemeModeNotifierProvider._()
     : super(
         from: null,
         argument: null,
@@ -45,7 +45,6 @@ abstract class _$ThemeModeNotifier extends $AsyncNotifier<ThemeMode> {
   @$mustCallSuper
   @override
   void runBuild() {
-    final created = build();
     final ref = this.ref as $Ref<AsyncValue<ThemeMode>, ThemeMode>;
     final element =
         ref.element
@@ -55,6 +54,6 @@ abstract class _$ThemeModeNotifier extends $AsyncNotifier<ThemeMode> {
               Object?,
               Object?
             >;
-    element.handleValue(ref, created);
+    element.handleCreate(ref, build);
   }
 }

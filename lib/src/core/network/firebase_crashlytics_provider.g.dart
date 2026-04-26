@@ -11,7 +11,7 @@ part of 'firebase_crashlytics_provider.dart';
 /// Firebase Crashlytics のインスタンスを提供するプロバイダー
 
 @ProviderFor(firebaseCrashlytics)
-const firebaseCrashlyticsProvider = FirebaseCrashlyticsProvider._();
+final firebaseCrashlyticsProvider = FirebaseCrashlyticsProvider._();
 
 /// Firebase Crashlytics のインスタンスを提供するプロバイダー
 
@@ -24,7 +24,7 @@ final class FirebaseCrashlyticsProvider
         >
     with $Provider<FirebaseCrashlytics> {
   /// Firebase Crashlytics のインスタンスを提供するプロバイダー
-  const FirebaseCrashlyticsProvider._()
+  FirebaseCrashlyticsProvider._()
     : super(
         from: null,
         argument: null,

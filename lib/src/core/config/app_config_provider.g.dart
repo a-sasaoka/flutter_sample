@@ -11,7 +11,7 @@ part of 'app_config_provider.dart';
 /// アプリ全体の設定をまとめて取得するプロバイダ
 
 @ProviderFor(appConfig)
-const appConfigProvider = AppConfigProvider._();
+final appConfigProvider = AppConfigProvider._();
 
 /// アプリ全体の設定をまとめて取得するプロバイダ
 
@@ -26,7 +26,7 @@ final class AppConfigProvider
         $FutureModifier<({Locale? locale, GoRouter router, ThemeMode theme})>,
         $FutureProvider<({Locale? locale, GoRouter router, ThemeMode theme})> {
   /// アプリ全体の設定をまとめて取得するプロバイダ
-  const AppConfigProvider._()
+  AppConfigProvider._()
     : super(
         from: null,
         argument: null,

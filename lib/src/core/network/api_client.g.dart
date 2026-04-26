@@ -15,7 +15,7 @@ part of 'api_client.dart';
 /// - 必要に応じてトークン認証もここで実装可能
 
 @ProviderFor(dio)
-const dioProvider = DioProvider._();
+final dioProvider = DioProvider._();
 
 /// 共通Dioインスタンスを提供するProvider
 ///
@@ -30,7 +30,7 @@ final class DioProvider extends $FunctionalProvider<Dio, Dio, Dio>
   /// - Base URLやタイムアウトを設定
   /// - インターセプタでログ出力
   /// - 必要に応じてトークン認証もここで実装可能
-  const DioProvider._()
+  DioProvider._()
     : super(
         from: null,
         argument: null,
@@ -70,7 +70,7 @@ String _$dioHash() => r'21b6b35089eed9fc4b851139e9c4833088549815';
 /// `ref.watch(apiClientProvider)` でどこからでも取得可能。
 
 @ProviderFor(apiClient)
-const apiClientProvider = ApiClientProvider._();
+final apiClientProvider = ApiClientProvider._();
 
 /// ApiClient を Riverpod 経由で提供する Provider
 ///
@@ -82,7 +82,7 @@ final class ApiClientProvider
   /// ApiClient を Riverpod 経由で提供する Provider
   ///
   /// `ref.watch(apiClientProvider)` でどこからでも取得可能。
-  const ApiClientProvider._()
+  ApiClientProvider._()
     : super(
         from: null,
         argument: null,

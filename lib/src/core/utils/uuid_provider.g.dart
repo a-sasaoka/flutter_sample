@@ -11,14 +11,14 @@ part of 'uuid_provider.dart';
 /// UUID生成器を提供するプロバイダ
 
 @ProviderFor(uuid)
-const uuidProvider = UuidProvider._();
+final uuidProvider = UuidProvider._();
 
 /// UUID生成器を提供するプロバイダ
 
 final class UuidProvider extends $FunctionalProvider<Uuid, Uuid, Uuid>
     with $Provider<Uuid> {
   /// UUID生成器を提供するプロバイダ
-  const UuidProvider._()
+  UuidProvider._()
     : super(
         from: null,
         argument: null,

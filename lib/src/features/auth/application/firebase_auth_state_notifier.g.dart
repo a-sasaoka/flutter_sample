@@ -11,13 +11,13 @@ part of 'firebase_auth_state_notifier.dart';
 /// Firebase Authenticationの認証状態を管理するStateNotifier
 
 @ProviderFor(FirebaseAuthStateNotifier)
-const firebaseAuthStateProvider = FirebaseAuthStateNotifierProvider._();
+final firebaseAuthStateProvider = FirebaseAuthStateNotifierProvider._();
 
 /// Firebase Authenticationの認証状態を管理するStateNotifier
 final class FirebaseAuthStateNotifierProvider
     extends $NotifierProvider<FirebaseAuthStateNotifier, User?> {
   /// Firebase Authenticationの認証状態を管理するStateNotifier
-  const FirebaseAuthStateNotifierProvider._()
+  FirebaseAuthStateNotifierProvider._()
     : super(
         from: null,
         argument: null,
@@ -54,7 +54,6 @@ abstract class _$FirebaseAuthStateNotifier extends $Notifier<User?> {
   @$mustCallSuper
   @override
   void runBuild() {
-    final created = build();
     final ref = this.ref as $Ref<User?, User?>;
     final element =
         ref.element
@@ -64,6 +63,6 @@ abstract class _$FirebaseAuthStateNotifier extends $Notifier<User?> {
               Object?,
               Object?
             >;
-    element.handleValue(ref, created);
+    element.handleCreate(ref, build);
   }
 }
