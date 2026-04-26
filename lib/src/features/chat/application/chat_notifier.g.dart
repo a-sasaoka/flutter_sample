@@ -15,7 +15,7 @@ const chatProvider = ChatNotifierProvider._();
 
 /// チャットのやり取りを管理するプロバイダー
 final class ChatNotifierProvider
-    extends $NotifierProvider<ChatNotifier, List<ChatMessage>> {
+    extends $NotifierProvider<ChatNotifier, ChatState> {
   /// チャットのやり取りを管理するプロバイダー
   const ChatNotifierProvider._()
     : super(
@@ -36,30 +36,30 @@ final class ChatNotifierProvider
   ChatNotifier create() => ChatNotifier();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(List<ChatMessage> value) {
+  Override overrideWithValue(ChatState value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<List<ChatMessage>>(value),
+      providerOverride: $SyncValueProvider<ChatState>(value),
     );
   }
 }
 
-String _$chatNotifierHash() => r'74eb8a1f9478152df5cf6132a52ed4e258a3dbaf';
+String _$chatNotifierHash() => r'3aa7ceaf590081d9ea0ebd3409c26ffcf1f86e8f';
 
 /// チャットのやり取りを管理するプロバイダー
 
-abstract class _$ChatNotifier extends $Notifier<List<ChatMessage>> {
-  List<ChatMessage> build();
+abstract class _$ChatNotifier extends $Notifier<ChatState> {
+  ChatState build();
   @$mustCallSuper
   @override
   void runBuild() {
     final created = build();
-    final ref = this.ref as $Ref<List<ChatMessage>, List<ChatMessage>>;
+    final ref = this.ref as $Ref<ChatState, ChatState>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<List<ChatMessage>, List<ChatMessage>>,
-              List<ChatMessage>,
+              AnyNotifier<ChatState, ChatState>,
+              ChatState,
               Object?,
               Object?
             >;

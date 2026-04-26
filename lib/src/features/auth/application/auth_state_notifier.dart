@@ -14,23 +14,28 @@ class AuthStateNotifier extends _$AuthStateNotifier {
 
   /// ログイン状態にする
   Future<void> login(String accessToken, String refreshToken) async {
-    // guard を使うことで例外時は自動で AsyncError 状態になる
-    state = await AsyncValue.guard(() async {
+    try {
       await ref
           .read(tokenStorageProvider)
           .saveTokens(
             accessToken: accessToken,
             refreshToken: refreshToken,
           );
-      return true;
-    });
+      state = const AsyncData(true);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
   }
 
   /// ログアウト状態にする
   Future<void> logout() async {
-    state = await AsyncValue.guard(() async {
+    try {
       await ref.read(tokenStorageProvider).clear();
-      return false;
-    });
+      state = const AsyncData(false);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
   }
 }

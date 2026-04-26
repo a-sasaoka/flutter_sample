@@ -227,6 +227,38 @@ void main() {
     });
 
     testWidgets(
+      'アプリがバックグラウンドから復帰(resumed)した時のリロードでエラーが起きた場合、エラースナックバーが表示されること',
+      (tester) async {
+        when(() => mockUser.emailVerified).thenReturn(false);
+
+        // 非同期処理で例外を投げるように設定
+        when(() => mockAuthRepo.reloadCurrentUser()).thenAnswer(
+          (_) => Future.error(Exception('Lifecycle Reload Error')),
+        );
+
+        final container = ProviderContainer(
+          overrides: [
+            firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+            firebaseAuthStateProvider.overrideWith(
+              () => FakeFirebaseAuthStateNotifier(mockUser),
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(createTestWidget(container));
+        await tester.pumpAndSettle();
+
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await tester.pumpAndSettle();
+
+        verify(() => mockAuthRepo.reloadCurrentUser()).called(1);
+        expect(find.byType(SnackBar), findsOneWidget);
+      },
+    );
+
+    testWidgets(
       'ユーザー状態が変更され emailVerified == true になると、自動で HomeRoute に遷移すること',
       (tester) async {
         when(() => mockUser.emailVerified).thenReturn(false);

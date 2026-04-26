@@ -12,15 +12,20 @@ part 'chat_provider.g.dart';
 @riverpod
 ChatRepository chatRepository(Ref ref) {
   final now = ref.watch(currentDateTimeProvider);
-  final dateString =
-      '${now.year}年${now.month}月${now.day}日 ${now.hour}時${now.minute}分';
+  final year = now.year;
+  final month = now.month.toString().padLeft(2, '0');
+  final day = now.day.toString().padLeft(2, '0');
+  final hour = now.hour.toString().padLeft(2, '0');
+  final minute = now.minute.toString().padLeft(2, '0');
 
   // Vertex AI Gemini API を利用する場合は vertexAI() を使う
   // Gemini Developer API を利用する場合は googleAI() を使う
   final model = FirebaseAI.vertexAI().generativeModel(
     model: AppEnv.aiModel,
     generationConfig: GenerationConfig(temperature: 0.7),
-    systemInstruction: Content.system('現在の日時は $dateString です。'),
+    systemInstruction: Content.system(
+      'Current Time is $year-$month-$day $hour:$minute',
+    ),
     tools: [Tool.googleSearch()],
   );
 

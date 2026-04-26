@@ -1,3 +1,4 @@
+import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/storage/token_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -41,7 +42,9 @@ class AuthRepository {
     final refresh = response.data?['refresh_token'] as String?;
 
     if (access == null || refresh == null) {
-      throw Exception('Invalid token response from server');
+      throw const UnknownException(
+        message: 'Invalid token response from server',
+      );
     }
 
     await tokenStorage.saveTokens(

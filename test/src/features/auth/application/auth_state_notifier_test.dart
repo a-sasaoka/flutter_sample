@@ -5,9 +5,15 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
 class FakeTokenStorage extends Mock implements TokenStorage {
-  FakeTokenStorage({this.mockAccessToken});
+  FakeTokenStorage({
+    this.mockAccessToken,
+    this.shouldThrowOnSave = false,
+    this.shouldThrowOnClear = false,
+  });
 
   final String? mockAccessToken;
+  final bool shouldThrowOnSave;
+  final bool shouldThrowOnClear;
 
   // 呼び出し確認用のフラグ
   bool isSaveTokensCalled = false;
@@ -22,11 +28,17 @@ class FakeTokenStorage extends Mock implements TokenStorage {
     required String refreshToken,
   }) async {
     isSaveTokensCalled = true;
+    if (shouldThrowOnSave) {
+      throw Exception('Failed to save tokens');
+    }
   }
 
   @override
   Future<void> clear() async {
     isClearCalled = true;
+    if (shouldThrowOnClear) {
+      throw Exception('Failed to clear tokens');
+    }
   }
 }
 
@@ -87,6 +99,26 @@ void main() {
       ); // state が true か
     });
 
+    test('login: トークンの保存に失敗した場合、例外がスローされ state が AsyncError になること', () async {
+      // Arrange
+      final fakeStorage = FakeTokenStorage(shouldThrowOnSave: true);
+      final container = createContainer(fakeStorage);
+      final notifier = container.read(authStateProvider.notifier);
+
+      // Act & Assert
+      await expectLater(
+        () => notifier.login('access', 'refresh'),
+        throwsException,
+      );
+
+      // Assert
+      expect(fakeStorage.isSaveTokensCalled, isTrue); // saveTokens が呼ばれたか
+      expect(
+        container.read(authStateProvider).hasError,
+        isTrue,
+      ); // state が AsyncError か
+    });
+
     test('logout: トークンを削除し、state を false に更新すること', () async {
       // Arrange
       // ログアウト前はログイン状態 (true) だったと仮定する
@@ -106,6 +138,29 @@ void main() {
         container.read(authStateProvider).value,
         isFalse,
       ); // state が false か
+    });
+
+    test('logout: トークンの削除に失敗した場合、例外がスローされ state が AsyncError になること', () async {
+      // Arrange
+      final fakeStorage = FakeTokenStorage(
+        mockAccessToken: 'old_token',
+        shouldThrowOnClear: true,
+      );
+      final container = createContainer(fakeStorage);
+      final notifier = container.read(authStateProvider.notifier);
+
+      // buildの完了を待つ
+      await container.read(authStateProvider.future);
+
+      // Act & Assert
+      await expectLater(notifier.logout, throwsException);
+
+      // Assert
+      expect(fakeStorage.isClearCalled, isTrue); // clear が呼ばれたか
+      expect(
+        container.read(authStateProvider).hasError,
+        isTrue,
+      ); // state が AsyncError か
     });
   });
 }

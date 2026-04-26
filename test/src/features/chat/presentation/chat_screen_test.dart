@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
+import 'package:flutter_sample/src/features/chat/application/chat_state.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
@@ -40,10 +41,8 @@ class FakeChatNotifier extends ChatNotifier {
   String? calledStreamText;
 
   @override
-  List<ChatMessage> build() => initialState;
-
-  @override
-  bool get isGenerating => initialIsGenerating;
+  ChatState build() =>
+      ChatState(messages: initialState, isGenerating: initialIsGenerating);
 
   @override
   Future<void> sendMessageStream(String text) async {
@@ -54,16 +53,15 @@ class FakeChatNotifier extends ChatNotifier {
   Future<void> sendMessage(String text) async {}
 
   // テスト中のスクロール発火用に状態を更新するヘルパー
-  // ignore: use_setters_to_change_properties
   void updateMessages(List<ChatMessage> newMessages) {
-    state = newMessages;
+    state = state.copyWith(messages: newMessages);
   }
 
   // テスト中に isGenerating の状態を切り替えてUIを再描画させるヘルパー
   void setGeneratingState({required bool isGenerating}) {
     initialIsGenerating = isGenerating;
     // state を再代入して Riverpod に変更を検知させ、UIをリビルドする
-    state = [...state];
+    state = state.copyWith(isGenerating: isGenerating);
   }
 }
 

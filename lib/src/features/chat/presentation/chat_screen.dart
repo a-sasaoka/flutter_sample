@@ -14,9 +14,9 @@ class ChatScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final messages = ref.watch(chatProvider);
-
-    final isGenerating = ref.watch(chatProvider.notifier).isGenerating;
+    final chatState = ref.watch(chatProvider);
+    final messages = chatState.messages;
+    final isGenerating = chatState.isGenerating;
 
     final textController = useTextEditingController();
     final scrollController = useScrollController();

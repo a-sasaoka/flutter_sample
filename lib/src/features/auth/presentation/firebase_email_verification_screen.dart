@@ -27,7 +27,16 @@ class FirebaseEmailVerificationScreen extends HookConsumerWidget {
 
     useEffect(() {
       if (lifecycleState == AppLifecycleState.resumed) {
-        unawaited(ref.read(firebaseAuthRepositoryProvider).reloadCurrentUser());
+        unawaited(
+          ref
+              .read(firebaseAuthRepositoryProvider)
+              .reloadCurrentUser()
+              .catchError((Object e) {
+                if (context.mounted && e is Exception) {
+                  ErrorHandler.showSnackBar(context, e);
+                }
+              }),
+        );
       }
       return null;
     }, [lifecycleState]);

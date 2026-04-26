@@ -91,7 +91,7 @@ void main() {
 
       final state = container.read(chatProvider);
 
-      expect(state, isEmpty);
+      expect(state.messages, isEmpty);
     });
 
     group('sendMessage (単発送信)', () {
@@ -102,7 +102,7 @@ void main() {
 
         await notifier.sendMessage('   '); // スペースのみ
 
-        expect(container.read(chatProvider), isEmpty);
+        expect(container.read(chatProvider).messages, isEmpty);
         expect(fakeRepo.sendMessageCallCount, 0); // 呼ばれていないこと
       });
 
@@ -115,12 +115,12 @@ void main() {
 
         final state = container.read(chatProvider);
 
-        expect(state.length, 2);
-        expect(state.first, isA<ChatMessageUser>());
-        expect(state.first.toString(), contains('こんにちは'));
+        expect(state.messages.length, 2);
+        expect(state.messages.first, isA<ChatMessageUser>());
+        expect(state.messages.first.toString(), contains('こんにちは'));
 
-        expect(state.last, isA<ChatMessageAi>());
-        expect(state.last.toString(), contains('単発のAI返答'));
+        expect(state.messages.last, isA<ChatMessageAi>());
+        expect(state.messages.last.toString(), contains('単発のAI返答'));
       });
 
       test('排他制御: 生成中に連続で送信しても、2回目以降は無視されること', () async {
@@ -141,8 +141,8 @@ void main() {
 
         // 結果検証: リポジトリは1回しか呼ばれておらず、リストも2つ（1回目の質問と答え）のみ
         expect(fakeRepo.sendMessageCallCount, 1);
-        expect(state.length, 2);
-        expect(state.first.toString(), contains('1回目'));
+        expect(state.messages.length, 2);
+        expect(state.messages.first.toString(), contains('1回目'));
       });
 
       test('異常系: 例外が発生した場合、対象の要素がエラーメッセージに差し替わること', () async {
@@ -154,8 +154,8 @@ void main() {
 
         final state = container.read(chatProvider);
 
-        expect(state.length, 2);
-        expect(state.last, isA<ChatMessageError>());
+        expect(state.messages.length, 2);
+        expect(state.messages.last, isA<ChatMessageError>());
       });
     });
 
@@ -167,7 +167,7 @@ void main() {
 
         await notifier.sendMessageStream('   ');
 
-        expect(container.read(chatProvider), isEmpty);
+        expect(container.read(chatProvider).messages, isEmpty);
         expect(fakeRepo.sendMessageStreamCallCount, 0);
       });
 
@@ -183,9 +183,9 @@ void main() {
         final state = container.read(chatProvider);
 
         // 1. 結合されたメッセージの検証
-        expect(state.length, 2);
-        expect(state.last, isA<ChatMessageAi>());
-        expect(state.last.toString(), contains('AIからの返答です'));
+        expect(state.messages.length, 2);
+        expect(state.messages.last, isA<ChatMessageAi>());
+        expect(state.messages.last.toString(), contains('AIからの返答です'));
 
         // 2. 日付コンテキスト（システム情報）が正しく Repository に渡されたかの検証
         expect(
@@ -202,7 +202,10 @@ void main() {
         // 1回目を await せずに実行
         final future1 = notifier.sendMessageStream('1回目のStream');
 
-        expect(notifier.isGenerating, isTrue); // 生成中になっていること
+        expect(
+          container.read(chatProvider).isGenerating,
+          isTrue,
+        ); // 生成中になっていること
 
         // 瞬時に2回目を実行（ブロックされるはず）
         final future2 = notifier.sendMessageStream('2回目のStream');
@@ -212,9 +215,9 @@ void main() {
 
         final state = container.read(chatProvider);
 
-        expect(notifier.isGenerating, isFalse); // 生成が終わっていること
+        expect(state.isGenerating, isFalse); // 生成が終わっていること
         expect(fakeRepo.sendMessageStreamCallCount, 1);
-        expect(state.length, 2);
+        expect(state.messages.length, 2);
       });
 
       test(
@@ -228,9 +231,12 @@ void main() {
 
           final state = container.read(chatProvider);
 
-          expect(state.length, 2);
-          expect(state.last, isA<ChatMessageError>());
-          expect(state.last.toString(), contains('ChatEmptyResponseException'));
+          expect(state.messages.length, 2);
+          expect(state.messages.last, isA<ChatMessageError>());
+          expect(
+            state.messages.last.toString(),
+            contains('ChatEmptyResponseException'),
+          );
         },
       );
 
@@ -243,8 +249,8 @@ void main() {
 
         final state = container.read(chatProvider);
 
-        expect(state.length, 2);
-        expect(state.last, isA<ChatMessageError>());
+        expect(state.messages.length, 2);
+        expect(state.messages.last, isA<ChatMessageError>());
       });
     });
   });

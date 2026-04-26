@@ -1,5 +1,6 @@
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
+import 'package:flutter_sample/src/features/chat/application/chat_state.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
@@ -10,24 +11,21 @@ part 'chat_notifier.g.dart';
 /// チャットのやり取りを管理するプロバイダー
 @riverpod
 class ChatNotifier extends _$ChatNotifier {
-  // ストリーミング中（生成中）かどうかを判定する排他制御フラグ
-  bool _isGenerating = false;
-
   @override
-  List<ChatMessage> build() {
+  ChatState build() {
     // 画面（Notifier）が生きている間は、Repositoryも監視（watch）して破棄させない
     ref.watch(chatRepositoryProvider);
-    return [];
+    return const ChatState();
   }
 
   /// メッセージを送信するメソッド
   Future<void> sendMessage(String text) async {
     // 空文字の送信や、生成中の連打を防ぐ
-    if (text.trim().isEmpty || _isGenerating) {
+    if (text.trim().isEmpty || state.isGenerating) {
       return;
     }
 
-    _isGenerating = true;
+    state = state.copyWith(isGenerating: true);
 
     // 事前にAIのメッセージIDを発行し、ローディングと共に追加
     final targetAiId = ref.read(uuidProvider).v4();
@@ -68,19 +66,18 @@ class ChatNotifier extends _$ChatNotifier {
         ),
       );
     } finally {
-      _isGenerating = false;
-      state = [...state];
+      state = state.copyWith(isGenerating: false);
     }
   }
 
   /// メッセージを送信するメソッド（Stream版）
   Future<void> sendMessageStream(String text) async {
     // 空文字の送信や、生成中の連打を防ぐ
-    if (text.trim().isEmpty || _isGenerating) {
+    if (text.trim().isEmpty || state.isGenerating) {
       return;
     }
 
-    _isGenerating = true;
+    state = state.copyWith(isGenerating: true);
 
     // 事前にAIのメッセージIDを発行し、ローディングと共に追加
     final targetAiId = ref.read(uuidProvider).v4();
@@ -139,8 +136,7 @@ class ChatNotifier extends _$ChatNotifier {
         ),
       );
     } finally {
-      _isGenerating = false;
-      state = [...state];
+      state = state.copyWith(isGenerating: false);
     }
   }
 
@@ -148,26 +144,30 @@ class ChatNotifier extends _$ChatNotifier {
   /// [targetAiId] は後で上書き検索するための目印
   void _addMessageAndLoading(String text, String targetAiId) {
     final now = ref.read(currentDateTimeProvider);
-    state = [
-      ...state,
-      ChatMessage.user(
-        id: ref.read(uuidProvider).v4(),
-        text: text,
-        createdAt: now,
-      ),
-      ChatMessage.loading(
-        id: targetAiId,
-        createdAt: now,
-      ),
-    ];
+    state = state.copyWith(
+      messages: [
+        ...state.messages,
+        ChatMessage.user(
+          id: ref.read(uuidProvider).v4(),
+          text: text,
+          createdAt: now,
+        ),
+        ChatMessage.loading(
+          id: targetAiId,
+          createdAt: now,
+        ),
+      ],
+    );
   }
 
   /// 状態リストの中から特定のIDを探して新しいメッセージに差し替える
   void _updateMessageById(String targetId, ChatMessage newMessage) {
-    state = [
-      for (final msg in state)
-        if (msg.id == targetId) newMessage else msg,
-    ];
+    state = state.copyWith(
+      messages: [
+        for (final msg in state.messages)
+          if (msg.id == targetId) newMessage else msg,
+      ],
+    );
   }
 
   /// AIに送るプロンプトにシステム日時を付加する
@@ -183,7 +183,4 @@ class ChatNotifier extends _$ChatNotifier {
     return '[System Information: Current Time is $year-$month-$day '
         '$hour:$minute]\n$originalText';
   }
-
-  /// UI側でボタンの活性/非活性を制御するためのゲッター
-  bool get isGenerating => _isGenerating;
 }
