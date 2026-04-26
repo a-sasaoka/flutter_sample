@@ -59,7 +59,7 @@ jobs:
       # 8. カバレッジ結果の可視化
       #    GitHub Actionsの実行結果画面に、どのファイルがテストされたかの表を表示します
       - name: Report coverage
-        uses: pierotofy/set-lcov-reporter@v1.0.1
+        uses: zgosalvez/github-actions-report-lcov@v4
         with:
-          lcov-file: ./coverage/lcov.info
-          filter-changed-files: true
+          coverage-files: ./coverage/lcov.info
+          github-token: ${{ secrets.GITHUB_TOKEN }}
