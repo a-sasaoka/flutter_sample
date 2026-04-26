@@ -109,6 +109,10 @@ jobs:
       - name: Run tests with coverage
         run: flutter test --coverage
 
+      # 7.2. カバレッジパスの修正（CIの罠対策！絶対パスを相対パスに直す）
+      - name: Fix coverage paths
+        run: sed -i 's|SF:.*/lib/|SF:lib/|g' coverage/lcov.info
+
       # 7.5. lcovのインストール（カバレッジレポート生成ツール genhtml に必要）
       - name: Install lcov
         run: sudo apt-get update && sudo apt-get install -y lcov
