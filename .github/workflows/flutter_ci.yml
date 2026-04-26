@@ -64,6 +64,8 @@ jobs:
           echo "$DUMMY_CONTENT" > lib/firebase_options_local.dart
           echo "$DUMMY_CONTENT" > lib/firebase_options_prod.dart
           echo "$DUMMY_CONTENT" > lib/firebase_options_stg.dart
+          # 後続の整形チェックで引っかからないように、生成したファイルをあらかじめ整形しておく
+          dart format lib/firebase_options_*.dart
 
       # 4.6. build_runnerで自動生成コード（Riverpod, Freezed, Envied等）を生成する
       - name: Run build_runner
