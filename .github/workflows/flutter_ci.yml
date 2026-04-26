@@ -9,6 +9,10 @@ on:
     # PR作成時、追記プッシュ時、再オープン時に実行
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   # テストを実行するメインのジョブ
   test:
