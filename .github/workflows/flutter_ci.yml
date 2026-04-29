@@ -139,3 +139,4 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           minimum-coverage: 80
           update-comment: true
+          artifact-name: coverage-report
