@@ -6,6 +6,10 @@ on:
 jobs:
   remove_label:
     runs-on: ubuntu-latest
+
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     permissions:
       issues: write
     steps:

@@ -19,6 +19,9 @@ jobs:
     # クラウド上の最新Ubuntu環境で実行
     runs-on: ubuntu-latest
 
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     steps:
       # 1. ソースコードを取得
       - name: Checkout repository
