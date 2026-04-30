@@ -11,7 +11,7 @@ part of 'package_info_provider.dart';
 /// アプリのパッケージ情報を取得するプロバイダ
 
 @ProviderFor(packageInfo)
-const packageInfoProvider = PackageInfoProvider._();
+final packageInfoProvider = PackageInfoProvider._();
 
 /// アプリのパッケージ情報を取得するプロバイダ
 
@@ -19,7 +19,7 @@ final class PackageInfoProvider
     extends $FunctionalProvider<PackageInfo, PackageInfo, PackageInfo>
     with $Provider<PackageInfo> {
   /// アプリのパッケージ情報を取得するプロバイダ
-  const PackageInfoProvider._()
+  PackageInfoProvider._()
     : super(
         from: null,
         argument: null,

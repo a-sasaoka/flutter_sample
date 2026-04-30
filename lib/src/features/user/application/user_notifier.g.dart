@@ -11,13 +11,13 @@ part of 'user_notifier.dart';
 /// UserNotifier
 
 @ProviderFor(UserNotifier)
-const userProvider = UserNotifierProvider._();
+final userProvider = UserNotifierProvider._();
 
 /// UserNotifier
 final class UserNotifierProvider
     extends $AsyncNotifierProvider<UserNotifier, List<UserModel>> {
   /// UserNotifier
-  const UserNotifierProvider._()
+  UserNotifierProvider._()
     : super(
         from: null,
         argument: null,
@@ -45,7 +45,6 @@ abstract class _$UserNotifier extends $AsyncNotifier<List<UserModel>> {
   @$mustCallSuper
   @override
   void runBuild() {
-    final created = build();
     final ref = this.ref as $Ref<AsyncValue<List<UserModel>>, List<UserModel>>;
     final element =
         ref.element
@@ -55,6 +54,6 @@ abstract class _$UserNotifier extends $AsyncNotifier<List<UserModel>> {
               Object?,
               Object?
             >;
-    element.handleValue(ref, created);
+    element.handleCreate(ref, build);
   }
 }

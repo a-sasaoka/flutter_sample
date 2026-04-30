@@ -19,6 +19,9 @@ jobs:
     # クラウド上の最新Ubuntu環境で実行
     runs-on: ubuntu-latest
 
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     steps:
       # 1. ソースコードを取得
       - name: Checkout repository
@@ -109,10 +112,6 @@ jobs:
       - name: Run tests with coverage
         run: flutter test --coverage
 
-      # 7.2. カバレッジパスの修正（CIの罠対策！絶対パスを相対パスに直す）
-      - name: Fix coverage paths
-        run: sed -i 's|SF:.*/lib/|SF:lib/|g' coverage/lcov.info
-
       # 7.5. lcovのインストール（カバレッジレポート生成ツール genhtml に必要）
       - name: Install lcov
         run: sudo apt-get update && sudo apt-get install -y lcov
@@ -121,11 +120,15 @@ jobs:
       - name: Remove excluded files from coverage
         run: |
           lcov --ignore-errors unused --remove coverage/lcov.info \
-          'lib/firebase_options_*.dart' \
+          '**/firebase_options_*.dart' \
           'lib/l10n/*' \
           '**/*.g.dart' \
           '**/*.freezed.dart' \
           -o coverage/lcov.info
+
+      # 7.9. カバレッジパスの修正（どんな環境でも強制的に lib/ からの相対パスにする最強の魔法）
+      - name: Fix coverage paths
+        run: sed -i 's|SF:.*/lib/|SF:lib/|g' coverage/lcov.info
 
       # 8. カバレッジ結果の可視化
       #    GitHub Actionsの実行結果画面に、どのファイルがテストされたかの表を表示します
@@ -134,3 +137,6 @@ jobs:
         with:
           coverage-files: ./coverage/lcov.info
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          minimum-coverage: 80
+          update-comment: true
+          artifact-name: coverage-report

@@ -21,7 +21,7 @@ InterceptorsWrapper dioInterceptor(Ref ref) {
       );
       return handler.next(response);
     },
-    onError: (DioException e, handler) {
+    onError: (e, handler) {
       logger.error('❌ Error: ${e.message}');
 
       // エラーの種類に応じて例外を生成する

@@ -11,7 +11,7 @@ part of 'cache_manager.dart';
 /// キャッシュマネージャープロバイダー
 
 @ProviderFor(cacheManager)
-const cacheManagerProvider = CacheManagerProvider._();
+final cacheManagerProvider = CacheManagerProvider._();
 
 /// キャッシュマネージャープロバイダー
 
@@ -19,7 +19,7 @@ final class CacheManagerProvider
     extends $FunctionalProvider<CacheManager, CacheManager, CacheManager>
     with $Provider<CacheManager> {
   /// キャッシュマネージャープロバイダー
-  const CacheManagerProvider._()
+  CacheManagerProvider._()
     : super(
         from: null,
         argument: null,

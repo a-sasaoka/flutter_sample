@@ -33,7 +33,7 @@ dependencies:
   flutter_riverpod: ^3.0.3
   hooks_riverpod: ^3.0.3
   flutter_hooks: ^0.21.3+1
-  riverpod_annotation: ^3.0.3
+  riverpod_annotation: ^4.0.0
 
   # --- 🚀 ルーティング（画面遷移）---
   go_router: ^17.0.0
@@ -92,7 +92,7 @@ dev_dependencies:
     sdk: flutter
 
   # --- 🔍 Lint設定（コード品質チェック） ---
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
   very_good_analysis: ^10.0.0
   custom_lint: ^0.8.0
   riverpod_lint: ^3.0.3
@@ -102,7 +102,7 @@ dev_dependencies:
   freezed: ^3.2.3 # イミュータブルクラス生成
   json_serializable: ^6.11.1 # JSONモデル生成
   envied_generator: ^1.3.1 # 環境変数ファイル生成
-  riverpod_generator: ^3.0.3 # Riverpod用コード生成
+  riverpod_generator: ^4.0.0+1 # Riverpod用コード生成
   mocktail: ^1.0.4 # モック生成
 
 # -----------------------------------------------

@@ -15,7 +15,7 @@ part of 'shared_preferences_provider.dart';
 /// - テスト時に差し替えやすい
 
 @ProviderFor(sharedPreferences)
-const sharedPreferencesProvider = SharedPreferencesProvider._();
+final sharedPreferencesProvider = SharedPreferencesProvider._();
 
 /// SharedPreferencesAsync をアプリ全体で共有する Provider
 ///
@@ -38,7 +38,7 @@ final class SharedPreferencesProvider
   /// - 非同期で安全に利用可能
   /// - 起動時に待ち時間が発生しない
   /// - テスト時に差し替えやすい
-  const SharedPreferencesProvider._()
+  SharedPreferencesProvider._()
     : super(
         from: null,
         argument: null,

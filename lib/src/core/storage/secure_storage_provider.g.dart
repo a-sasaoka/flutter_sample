@@ -11,7 +11,7 @@ part of 'secure_storage_provider.dart';
 /// FlutterSecureStorage をアプリ全体で共有する Provider
 
 @ProviderFor(secureStorage)
-const secureStorageProvider = SecureStorageProvider._();
+final secureStorageProvider = SecureStorageProvider._();
 
 /// FlutterSecureStorage をアプリ全体で共有する Provider
 
@@ -24,7 +24,7 @@ final class SecureStorageProvider
         >
     with $Provider<FlutterSecureStorage> {
   /// FlutterSecureStorage をアプリ全体で共有する Provider
-  const SecureStorageProvider._()
+  SecureStorageProvider._()
     : super(
         from: null,
         argument: null,

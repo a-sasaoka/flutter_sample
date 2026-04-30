@@ -11,7 +11,7 @@ part of 'analytics_service.dart';
 /// Firebase Analytics のインスタンスを提供する Provider
 
 @ProviderFor(firebaseAnalytics)
-const firebaseAnalyticsProvider = FirebaseAnalyticsProvider._();
+final firebaseAnalyticsProvider = FirebaseAnalyticsProvider._();
 
 /// Firebase Analytics のインスタンスを提供する Provider
 
@@ -24,7 +24,7 @@ final class FirebaseAnalyticsProvider
         >
     with $Provider<FirebaseAnalytics> {
   /// Firebase Analytics のインスタンスを提供する Provider
-  const FirebaseAnalyticsProvider._()
+  FirebaseAnalyticsProvider._()
     : super(
         from: null,
         argument: null,
@@ -63,7 +63,7 @@ String _$firebaseAnalyticsHash() => r'00a82f1fb02a87d9f2b3720ecfce305a80ae39da';
 /// Analytics Service を Riverpod で提供
 
 @ProviderFor(analyticsService)
-const analyticsServiceProvider = AnalyticsServiceProvider._();
+final analyticsServiceProvider = AnalyticsServiceProvider._();
 
 /// Analytics Service を Riverpod で提供
 
@@ -76,7 +76,7 @@ final class AnalyticsServiceProvider
         >
     with $Provider<AnalyticsService> {
   /// Analytics Service を Riverpod で提供
-  const AnalyticsServiceProvider._()
+  AnalyticsServiceProvider._()
     : super(
         from: null,
         argument: null,

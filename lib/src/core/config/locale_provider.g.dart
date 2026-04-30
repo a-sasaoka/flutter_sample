@@ -11,13 +11,13 @@ part of 'locale_provider.dart';
 /// アプリ全体のロケールを管理するプロバイダ
 
 @ProviderFor(LocaleNotifier)
-const localeProvider = LocaleNotifierProvider._();
+final localeProvider = LocaleNotifierProvider._();
 
 /// アプリ全体のロケールを管理するプロバイダ
 final class LocaleNotifierProvider
     extends $AsyncNotifierProvider<LocaleNotifier, Locale?> {
   /// アプリ全体のロケールを管理するプロバイダ
-  const LocaleNotifierProvider._()
+  LocaleNotifierProvider._()
     : super(
         from: null,
         argument: null,
@@ -45,7 +45,6 @@ abstract class _$LocaleNotifier extends $AsyncNotifier<Locale?> {
   @$mustCallSuper
   @override
   void runBuild() {
-    final created = build();
     final ref = this.ref as $Ref<AsyncValue<Locale?>, Locale?>;
     final element =
         ref.element
@@ -55,6 +54,6 @@ abstract class _$LocaleNotifier extends $AsyncNotifier<Locale?> {
               Object?,
               Object?
             >;
-    element.handleValue(ref, created);
+    element.handleCreate(ref, build);
   }
 }

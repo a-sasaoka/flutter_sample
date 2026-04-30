@@ -12,7 +12,7 @@ part of 'date_time_provider.dart';
 /// テスト時にはこのプロバイダーを override することで、任意の日時でテストが可能になります。
 
 @ProviderFor(currentDateTime)
-const currentDateTimeProvider = CurrentDateTimeProvider._();
+final currentDateTimeProvider = CurrentDateTimeProvider._();
 
 /// 現在の日時を提供するプロバイダー
 /// テスト時にはこのプロバイダーを override することで、任意の日時でテストが可能になります。
@@ -22,7 +22,7 @@ final class CurrentDateTimeProvider
     with $Provider<DateTime> {
   /// 現在の日時を提供するプロバイダー
   /// テスト時にはこのプロバイダーを override することで、任意の日時でテストが可能になります。
-  const CurrentDateTimeProvider._()
+  CurrentDateTimeProvider._()
     : super(
         from: null,
         argument: null,

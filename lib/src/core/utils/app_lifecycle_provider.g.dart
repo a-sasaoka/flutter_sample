@@ -11,13 +11,13 @@ part of 'app_lifecycle_provider.dart';
 /// アプリのライフサイクル（フォアグラウンド/バックグラウンド等）を監視するプロバイダー
 
 @ProviderFor(AppLifecycle)
-const appLifecycleProvider = AppLifecycleProvider._();
+final appLifecycleProvider = AppLifecycleProvider._();
 
 /// アプリのライフサイクル（フォアグラウンド/バックグラウンド等）を監視するプロバイダー
 final class AppLifecycleProvider
     extends $NotifierProvider<AppLifecycle, AppLifecycleState> {
   /// アプリのライフサイクル（フォアグラウンド/バックグラウンド等）を監視するプロバイダー
-  const AppLifecycleProvider._()
+  AppLifecycleProvider._()
     : super(
         from: null,
         argument: null,
@@ -53,7 +53,6 @@ abstract class _$AppLifecycle extends $Notifier<AppLifecycleState> {
   @$mustCallSuper
   @override
   void runBuild() {
-    final created = build();
     final ref = this.ref as $Ref<AppLifecycleState, AppLifecycleState>;
     final element =
         ref.element
@@ -63,6 +62,6 @@ abstract class _$AppLifecycle extends $Notifier<AppLifecycleState> {
               Object?,
               Object?
             >;
-    element.handleValue(ref, created);
+    element.handleCreate(ref, build);
   }
 }

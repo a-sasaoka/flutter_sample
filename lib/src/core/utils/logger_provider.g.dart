@@ -11,14 +11,14 @@ part of 'logger_provider.dart';
 /// 統合ロギングプロバイダ (Talker)
 
 @ProviderFor(logger)
-const loggerProvider = LoggerProvider._();
+final loggerProvider = LoggerProvider._();
 
 /// 統合ロギングプロバイダ (Talker)
 
 final class LoggerProvider extends $FunctionalProvider<Talker, Talker, Talker>
     with $Provider<Talker> {
   /// 統合ロギングプロバイダ (Talker)
-  const LoggerProvider._()
+  LoggerProvider._()
     : super(
         from: null,
         argument: null,

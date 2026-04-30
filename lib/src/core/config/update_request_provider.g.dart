@@ -11,7 +11,7 @@ part of 'update_request_provider.dart';
 /// FirebaseRemoteConfigのインスタンスを提供するプロバイダ
 
 @ProviderFor(firebaseRemoteConfig)
-const firebaseRemoteConfigProvider = FirebaseRemoteConfigProvider._();
+final firebaseRemoteConfigProvider = FirebaseRemoteConfigProvider._();
 
 /// FirebaseRemoteConfigのインスタンスを提供するプロバイダ
 
@@ -24,7 +24,7 @@ final class FirebaseRemoteConfigProvider
         >
     with $Provider<FirebaseRemoteConfig> {
   /// FirebaseRemoteConfigのインスタンスを提供するプロバイダ
-  const FirebaseRemoteConfigProvider._()
+  FirebaseRemoteConfigProvider._()
     : super(
         from: null,
         argument: null,
@@ -64,13 +64,13 @@ String _$firebaseRemoteConfigHash() =>
 /// RemoteConfigからアップデート情報を取得するコントローラ
 
 @ProviderFor(UpdateRequestController)
-const updateRequestControllerProvider = UpdateRequestControllerProvider._();
+final updateRequestControllerProvider = UpdateRequestControllerProvider._();
 
 /// RemoteConfigからアップデート情報を取得するコントローラ
 final class UpdateRequestControllerProvider
     extends $AsyncNotifierProvider<UpdateRequestController, UpdateRequestType> {
   /// RemoteConfigからアップデート情報を取得するコントローラ
-  const UpdateRequestControllerProvider._()
+  UpdateRequestControllerProvider._()
     : super(
         from: null,
         argument: null,
@@ -100,7 +100,6 @@ abstract class _$UpdateRequestController
   @$mustCallSuper
   @override
   void runBuild() {
-    final created = build();
     final ref =
         this.ref as $Ref<AsyncValue<UpdateRequestType>, UpdateRequestType>;
     final element =
@@ -111,20 +110,20 @@ abstract class _$UpdateRequestController
               Object?,
               Object?
             >;
-    element.handleValue(ref, created);
+    element.handleCreate(ref, build);
   }
 }
 
 /// アップデート情報のキャンセル有無を管理するコントローラ
 
 @ProviderFor(CancelController)
-const cancelControllerProvider = CancelControllerProvider._();
+final cancelControllerProvider = CancelControllerProvider._();
 
 /// アップデート情報のキャンセル有無を管理するコントローラ
 final class CancelControllerProvider
     extends $NotifierProvider<CancelController, bool> {
   /// アップデート情報のキャンセル有無を管理するコントローラ
-  const CancelControllerProvider._()
+  CancelControllerProvider._()
     : super(
         from: null,
         argument: null,
@@ -160,7 +159,6 @@ abstract class _$CancelController extends $Notifier<bool> {
   @$mustCallSuper
   @override
   void runBuild() {
-    final created = build();
     final ref = this.ref as $Ref<bool, bool>;
     final element =
         ref.element
@@ -170,6 +168,6 @@ abstract class _$CancelController extends $Notifier<bool> {
               Object?,
               Object?
             >;
-    element.handleValue(ref, created);
+    element.handleCreate(ref, build);
   }
 }

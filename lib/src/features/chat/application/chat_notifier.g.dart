@@ -11,13 +11,13 @@ part of 'chat_notifier.dart';
 /// チャットのやり取りを管理するプロバイダー
 
 @ProviderFor(ChatNotifier)
-const chatProvider = ChatNotifierProvider._();
+final chatProvider = ChatNotifierProvider._();
 
 /// チャットのやり取りを管理するプロバイダー
 final class ChatNotifierProvider
     extends $NotifierProvider<ChatNotifier, ChatState> {
   /// チャットのやり取りを管理するプロバイダー
-  const ChatNotifierProvider._()
+  ChatNotifierProvider._()
     : super(
         from: null,
         argument: null,
@@ -53,7 +53,6 @@ abstract class _$ChatNotifier extends $Notifier<ChatState> {
   @$mustCallSuper
   @override
   void runBuild() {
-    final created = build();
     final ref = this.ref as $Ref<ChatState, ChatState>;
     final element =
         ref.element
@@ -63,6 +62,6 @@ abstract class _$ChatNotifier extends $Notifier<ChatState> {
               Object?,
               Object?
             >;
-    element.handleValue(ref, created);
+    element.handleCreate(ref, build);
   }
 }

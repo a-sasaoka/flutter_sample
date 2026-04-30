@@ -234,7 +234,7 @@ mixin $EmailVerificationRoute on GoRouteData {
 /// 🌐 GoRouterのインスタンスをRiverpodで提供
 
 @ProviderFor(router)
-const routerProvider = RouterProvider._();
+final routerProvider = RouterProvider._();
 
 /// 🌐 GoRouterのインスタンスをRiverpodで提供
 
@@ -242,7 +242,7 @@ final class RouterProvider
     extends $FunctionalProvider<GoRouter, GoRouter, GoRouter>
     with $Provider<GoRouter> {
   /// 🌐 GoRouterのインスタンスをRiverpodで提供
-  const RouterProvider._()
+  RouterProvider._()
     : super(
         from: null,
         argument: null,

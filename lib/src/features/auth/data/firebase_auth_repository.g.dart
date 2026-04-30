@@ -11,7 +11,7 @@ part of 'firebase_auth_repository.dart';
 /// Firebase Authenticationのインスタンスを返す
 
 @ProviderFor(firebaseAuth)
-const firebaseAuthProvider = FirebaseAuthProvider._();
+final firebaseAuthProvider = FirebaseAuthProvider._();
 
 /// Firebase Authenticationのインスタンスを返す
 
@@ -19,7 +19,7 @@ final class FirebaseAuthProvider
     extends $FunctionalProvider<FirebaseAuth, FirebaseAuth, FirebaseAuth>
     with $Provider<FirebaseAuth> {
   /// Firebase Authenticationのインスタンスを返す
-  const FirebaseAuthProvider._()
+  FirebaseAuthProvider._()
     : super(
         from: null,
         argument: null,
@@ -57,7 +57,7 @@ String _$firebaseAuthHash() => r'8f84097cccd00af817397c1715c5f537399ba780';
 /// Google Sign Inのインスタンスを返す
 
 @ProviderFor(googleSignIn)
-const googleSignInProvider = GoogleSignInProvider._();
+final googleSignInProvider = GoogleSignInProvider._();
 
 /// Google Sign Inのインスタンスを返す
 
@@ -65,7 +65,7 @@ final class GoogleSignInProvider
     extends $FunctionalProvider<GoogleSignIn, GoogleSignIn, GoogleSignIn>
     with $Provider<GoogleSignIn> {
   /// Google Sign Inのインスタンスを返す
-  const GoogleSignInProvider._()
+  GoogleSignInProvider._()
     : super(
         from: null,
         argument: null,
@@ -103,7 +103,7 @@ String _$googleSignInHash() => r'16cf38da6ba66b02462d5ad518f809a45382089f';
 /// Firebase Authenticationの認証状態（ユーザー変更含む）を監視するプロバイダー
 
 @ProviderFor(authStateChanges)
-const authStateChangesProvider = AuthStateChangesProvider._();
+final authStateChangesProvider = AuthStateChangesProvider._();
 
 /// Firebase Authenticationの認証状態（ユーザー変更含む）を監視するプロバイダー
 
@@ -111,7 +111,7 @@ final class AuthStateChangesProvider
     extends $FunctionalProvider<AsyncValue<User?>, User?, Stream<User?>>
     with $FutureModifier<User?>, $StreamProvider<User?> {
   /// Firebase Authenticationの認証状態（ユーザー変更含む）を監視するプロバイダー
-  const AuthStateChangesProvider._()
+  AuthStateChangesProvider._()
     : super(
         from: null,
         argument: null,
@@ -141,7 +141,7 @@ String _$authStateChangesHash() => r'c7af77d8677dab52fbf7e97ba783186b3b67e1ee';
 /// Firebase Authenticationを使用した認証リポジトリ
 
 @ProviderFor(firebaseAuthRepository)
-const firebaseAuthRepositoryProvider = FirebaseAuthRepositoryProvider._();
+final firebaseAuthRepositoryProvider = FirebaseAuthRepositoryProvider._();
 
 /// Firebase Authenticationを使用した認証リポジトリ
 
@@ -154,7 +154,7 @@ final class FirebaseAuthRepositoryProvider
         >
     with $Provider<FirebaseAuthRepository> {
   /// Firebase Authenticationを使用した認証リポジトリ
-  const FirebaseAuthRepositoryProvider._()
+  FirebaseAuthRepositoryProvider._()
     : super(
         from: null,
         argument: null,

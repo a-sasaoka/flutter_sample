@@ -11,7 +11,7 @@ part of 'connectivity_provider.dart';
 /// ネットワークの接続状態を監視するStreamProvider
 
 @ProviderFor(connectivity)
-const connectivityProvider = ConnectivityProvider._();
+final connectivityProvider = ConnectivityProvider._();
 
 /// ネットワークの接続状態を監視するStreamProvider
 
@@ -26,7 +26,7 @@ final class ConnectivityProvider
         $FutureModifier<List<ConnectivityResult>>,
         $StreamProvider<List<ConnectivityResult>> {
   /// ネットワークの接続状態を監視するStreamProvider
-  const ConnectivityProvider._()
+  ConnectivityProvider._()
     : super(
         from: null,
         argument: null,
@@ -57,14 +57,14 @@ String _$connectivityHash() => r'69c6e2db8337a9ff832358c4a079a4846fa6f28c';
 /// 「現在オンラインかどうか」だけを返すProvider
 
 @ProviderFor(isOnline)
-const isOnlineProvider = IsOnlineProvider._();
+final isOnlineProvider = IsOnlineProvider._();
 
 /// 「現在オンラインかどうか」だけを返すProvider
 
 final class IsOnlineProvider extends $FunctionalProvider<bool, bool, bool>
     with $Provider<bool> {
   /// 「現在オンラインかどうか」だけを返すProvider
-  const IsOnlineProvider._()
+  IsOnlineProvider._()
     : super(
         from: null,
         argument: null,

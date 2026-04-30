@@ -11,7 +11,7 @@ part of 'user_repository.dart';
 /// UserRepositoryを提供するプロバイダ
 
 @ProviderFor(userRepository)
-const userRepositoryProvider = UserRepositoryProvider._();
+final userRepositoryProvider = UserRepositoryProvider._();
 
 /// UserRepositoryを提供するプロバイダ
 
@@ -19,7 +19,7 @@ final class UserRepositoryProvider
     extends $FunctionalProvider<UserRepository, UserRepository, UserRepository>
     with $Provider<UserRepository> {
   /// UserRepositoryを提供するプロバイダ
-  const UserRepositoryProvider._()
+  UserRepositoryProvider._()
     : super(
         from: null,
         argument: null,

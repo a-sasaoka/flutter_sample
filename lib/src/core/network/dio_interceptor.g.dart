@@ -11,7 +11,7 @@ part of 'dio_interceptor.dart';
 /// Dioインターセプタプロバイダ
 
 @ProviderFor(dioInterceptor)
-const dioInterceptorProvider = DioInterceptorProvider._();
+final dioInterceptorProvider = DioInterceptorProvider._();
 
 /// Dioインターセプタプロバイダ
 
@@ -24,7 +24,7 @@ final class DioInterceptorProvider
         >
     with $Provider<InterceptorsWrapper> {
   /// Dioインターセプタプロバイダ
-  const DioInterceptorProvider._()
+  DioInterceptorProvider._()
     : super(
         from: null,
         argument: null,
@@ -58,4 +58,4 @@ final class DioInterceptorProvider
   }
 }
 
-String _$dioInterceptorHash() => r'8ceabf820ea8a02742f77bde1f8d7f1cd4567128';
+String _$dioInterceptorHash() => r'2cad61511f99aec02af1cda48254b5a1bcde53f2';

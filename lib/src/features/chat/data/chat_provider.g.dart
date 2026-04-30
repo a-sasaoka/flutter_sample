@@ -11,7 +11,7 @@ part of 'chat_provider.dart';
 /// チャットのリポジトリを提供するプロバイダー
 
 @ProviderFor(chatRepository)
-const chatRepositoryProvider = ChatRepositoryProvider._();
+final chatRepositoryProvider = ChatRepositoryProvider._();
 
 /// チャットのリポジトリを提供するプロバイダー
 
@@ -19,7 +19,7 @@ final class ChatRepositoryProvider
     extends $FunctionalProvider<ChatRepository, ChatRepository, ChatRepository>
     with $Provider<ChatRepository> {
   /// チャットのリポジトリを提供するプロバイダー
-  const ChatRepositoryProvider._()
+  ChatRepositoryProvider._()
     : super(
         from: null,
         argument: null,
@@ -52,4 +52,4 @@ final class ChatRepositoryProvider
   }
 }
 
-String _$chatRepositoryHash() => r'024b6f59d2e89d99d7953fdd6a7ee43b710fc387';
+String _$chatRepositoryHash() => r'fb5feaee183a0e0fea8c105095661e1c995f4f23';
