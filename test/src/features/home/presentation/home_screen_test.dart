@@ -78,6 +78,7 @@ void main() {
     when(() => mockL10n.homeToUserList).thenReturn('ユーザー一覧へ');
     when(() => mockL10n.homeToResetPassword).thenReturn('パスワードリセットへ');
     when(() => mockL10n.homeToChat).thenReturn('チャット画面へ');
+    when(() => mockL10n.homeToMemos).thenReturn('メモ一覧へ');
     when(() => mockL10n.homeToNotFound).thenReturn('存在しない画面へ');
     when(() => mockL10n.homeGetAppInfo).thenReturn('アプリ情報取得');
     when(() => mockL10n.homeAppName).thenReturn('アプリ名');
@@ -144,9 +145,22 @@ void main() {
       final expectedEnvText = '現在の環境: ${Flavor.local.name.toUpperCase()}';
       expect(find.text(expectedEnvText), findsOneWidget);
 
-      expect(find.text('アプリ名: '), findsOneWidget);
+      final devLog = find.text('開発者ログ');
+      await tester.dragUntilVisible(
+        devLog,
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      expect(devLog, findsOneWidget);
+
+      final appName = find.text('アプリ名: ');
+      await tester.dragUntilVisible(
+        appName,
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      expect(appName, findsOneWidget);
       expect(find.text('Bundle ID: '), findsOneWidget);
-      expect(find.text('開発者ログ'), findsOneWidget);
     });
 
     testWidgets('PackageInfo: アプリ情報取得ボタンを押すと、情報が読み込まれてUIが更新されること', (
@@ -155,12 +169,24 @@ void main() {
       await setupWidget(tester);
 
       // Act: アプリ情報取得ボタンをタップ
-      await tester.tap(find.text('アプリ情報取得'));
+      final button = find.text('アプリ情報取得');
+      await tester.dragUntilVisible(
+        button,
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      await tester.tap(button);
 
       await tester.pump();
 
       // Assert: プロバイダーで注入したダミー値が反映されていること
-      expect(find.text('アプリ名: テストアプリ'), findsOneWidget);
+      final appNameText = find.text('アプリ名: テストアプリ');
+      await tester.dragUntilVisible(
+        appNameText,
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      expect(appNameText, findsOneWidget);
       expect(find.text('Bundle ID: com.example.testapp'), findsOneWidget);
     });
 
@@ -273,6 +299,7 @@ void main() {
       await tapAndVerifyRouting('ユーザー一覧へ', 'user');
       await tapAndVerifyRouting('パスワードリセットへ', 'reset');
       await tapAndVerifyRouting('チャット画面へ', 'chat');
+      await tapAndVerifyRouting('メモ一覧へ', 'memos');
       await tapAndVerifyRouting('存在しない画面へ', 'undefined');
     });
 

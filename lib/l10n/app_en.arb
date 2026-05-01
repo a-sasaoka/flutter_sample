@@ -52,6 +52,7 @@
   "homeToUserList": "Go to User List (API Fetch)",
   "homeToResetPassword": "Go to Reset Password",
   "homeToChat": "Go to AI Chat",
+  "homeToMemos": "Go to Memos",
   "homeToNotFound": "Navigate to invalid path (NotFound test)",
   "homeGetAppInfo": "Get App Info",
   "homeAppName": "App Name",
@@ -77,6 +78,12 @@
   "settingsLocaleSystem": "System (follow device)",
   "settingsLocaleJa": "Japanese (ja)",
   "settingsLocaleEn": "English (en)",
+
+  "@_MEMOS": {},
+  "memoTitle": "Offline Notepad",
+  "memoEmpty": "No memos yet!",
+  "memoInputTitleHint": "Title",
+  "memoInputContentHint": "Content",
 
   "@_OTHER": {},
   "sampleTitle": "Sample Feature",

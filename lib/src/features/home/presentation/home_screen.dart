@@ -73,6 +73,11 @@ class HomeScreen extends HookConsumerWidget {
             onPressed: () => const ChatRoute().push<void>(context),
             child: Text(l10n.homeToChat),
           ),
+          const SizedBox(height: 8),
+          FilledButton(
+            onPressed: () => const MemosRoute().push<void>(context),
+            child: Text(l10n.homeToMemos),
+          ),
           if (flavor != Flavor.prod) ...[
             const SizedBox(height: 8),
             FilledButton(

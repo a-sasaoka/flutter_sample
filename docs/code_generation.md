@@ -26,25 +26,25 @@
 ### Local環境
 
 ```bash
-fvm dart run build_runner build --delete-conflicting-outputs --define "envied_generator:envied=path=.env.local"
+fvm dart run build_runner build --define "envied_generator:envied=path=.env.local"
 ```
 
 ### Dev環境
 
 ```bash
-fvm dart run build_runner build --delete-conflicting-outputs --define "envied_generator:envied=path=.env.dev"
+fvm dart run build_runner build --define "envied_generator:envied=path=.env.dev"
 ```
 
 ### Staging環境
 
 ```bash
-fvm dart run build_runner build --delete-conflicting-outputs --define "envied_generator:envied=path=.env.stg"
+fvm dart run build_runner build --define "envied_generator:envied=path=.env.stg"
 ```
 
 ### Production環境
 
 ```bash
-fvm dart run build_runner build --delete-conflicting-outputs --define "envied_generator:envied=path=.env.prod"
+fvm dart run build_runner build --define "envied_generator:envied=path=.env.prod"
 ```
 
 ---
@@ -55,7 +55,7 @@ fvm dart run build_runner build --delete-conflicting-outputs --define "envied_ge
 UI開発やモデル定義を連続して行う場合はこちらが便利です。
 
 ```bash
-fvm dart run build_runner watch --delete-conflicting-outputs --define "envied_generator:envied=path=.env.local"
+fvm dart run build_runner watch --define "envied_generator:envied=path=.env.local"
 ```
 
 ---
@@ -74,8 +74,8 @@ Xcodeのビルドプロセスに介入し、コンパイル前に環境変数を
 ### 🤖 Android
 
 Gradleのビルドスクリプトで環境変数を読み込みます。
-_defines.sh` を Build Phases (PreActions) として実行し、指定された `.env` ファイルから値を取得します。
-2. 取得した値は `ios/Runner/Info.plist` や `ios/Runner.xcodeproj/project.pbxproj` 内で `$(APP_NAME)` や `$(APP_ID)` のように参照され、アプリアイコン名やFirebase設定などに利用されます。
+\_defines.sh`を Build Phases (PreActions) として実行し、指定された`.env`ファイルから値を取得します。
+2. 取得した値は`ios/Runner/Info.plist`や`ios/Runner.xcodeproj/project.pbxproj`内で`$(APP_NAME)` や `$(APP_ID)` のように参照され、アプリアイコン名やFirebase設定などに利用されます。
 
 ### 🤖 Android
 

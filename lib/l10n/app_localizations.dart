@@ -362,6 +362,12 @@ abstract class AppLocalizations {
   /// **'Go to AI Chat'**
   String get homeToChat;
 
+  /// No description provided for @homeToMemos.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Memos'**
+  String get homeToMemos;
+
   /// No description provided for @homeToNotFound.
   ///
   /// In en, this message translates to:
@@ -487,6 +493,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'English (en)'**
   String get settingsLocaleEn;
+
+  /// No description provided for @memoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline Notepad'**
+  String get memoTitle;
+
+  /// No description provided for @memoEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No memos yet!'**
+  String get memoEmpty;
+
+  /// No description provided for @memoInputTitleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get memoInputTitleHint;
+
+  /// No description provided for @memoInputContentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Content'**
+  String get memoInputContentHint;
 
   /// No description provided for @sampleTitle.
   ///

@@ -146,6 +146,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeToChat => 'Go to AI Chat';
 
   @override
+  String get homeToMemos => 'Go to Memos';
+
+  @override
   String get homeToNotFound => 'Navigate to invalid path (NotFound test)';
 
   @override
@@ -209,6 +212,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsLocaleEn => 'English (en)';
+
+  @override
+  String get memoTitle => 'Offline Notepad';
+
+  @override
+  String get memoEmpty => 'No memos yet!';
+
+  @override
+  String get memoInputTitleHint => 'Title';
+
+  @override
+  String get memoInputContentHint => 'Content';
 
   @override
   String get sampleTitle => 'Sample Feature';

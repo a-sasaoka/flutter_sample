@@ -17,6 +17,7 @@ import 'package:flutter_sample/src/features/auth/presentation/firebase_sign_up_s
 import 'package:flutter_sample/src/features/auth/presentation/login_screen.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
+import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
@@ -35,6 +36,7 @@ part 'app_router.g.dart';
     TypedGoRoute<UserListRoute>(path: 'users'),
     TypedGoRoute<ResetPasswordRoute>(path: 'reset-password'),
     TypedGoRoute<ChatRoute>(path: 'chat'),
+    TypedGoRoute<MemosRoute>(path: 'memos'),
   ],
 )
 class HomeRoute extends GoRouteData with $HomeRoute {
@@ -88,6 +90,17 @@ class ChatRoute extends GoRouteData with $ChatRoute {
   @override
   Widget build(BuildContext context, GoRouterState state) {
     return const ChatScreen();
+  }
+}
+
+/// 📝 メモ一覧画面ルート
+class MemosRoute extends GoRouteData with $MemosRoute {
+  /// コンストラクタ
+  const MemosRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const MemoScreen();
   }
 }
 

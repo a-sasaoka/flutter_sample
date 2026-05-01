@@ -52,6 +52,7 @@
   "homeToUserList": "ユーザー一覧画面へ（APIで情報取得）",
   "homeToResetPassword": "パスワードリセット画面へ",
   "homeToChat": "AIチャット画面へ",
+  "homeToMemos": "メモ一覧画面へ",
   "homeToNotFound": "存在しないパスに遷移（NotFoundの動作確認）",
   "homeGetAppInfo": "アプリ情報取得",
   "homeAppName": "アプリ名",
@@ -77,6 +78,12 @@
   "settingsLocaleSystem": "システム（端末に合わせる）",
   "settingsLocaleJa": "日本語（ja）",
   "settingsLocaleEn": "英語（en）",
+
+  "@_MEMOS": {},
+  "memoTitle": "オフラインメモ帳",
+  "memoEmpty": "まだメモがありません！",
+  "memoInputTitleHint": "タイトル",
+  "memoInputContentHint": "中身",
 
   "@_OTHER": {},
   "sampleTitle": "サンプル機能",
