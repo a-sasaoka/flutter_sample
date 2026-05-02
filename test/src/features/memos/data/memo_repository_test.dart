@@ -388,7 +388,7 @@ void main() {
       ).called(1);
     });
 
-    test('syncUnsentMemos: エラー発生時にループを中断すること', () async {
+    test('syncUnsentMemos: エラー発生時もループを継続し、後続のメモを同期すること', () async {
       final container = createContainer();
       final repository = container.read(memoRepositoryProvider);
       await database
@@ -430,8 +430,8 @@ void main() {
 
       final memos = await database.select(database.memos).get();
       expect(memos.firstWhere((m) => m.id == '1').isSynced, false);
-      expect(memos.firstWhere((m) => m.id == '2').isSynced, false);
-      verifyNever(
+      expect(memos.firstWhere((m) => m.id == '2').isSynced, true);
+      verify(
         () => mockRemoteService.uploadMemo(
           id: '2',
           title: '2',
@@ -440,7 +440,7 @@ void main() {
           updatedAt: now,
           isDeleted: false,
         ),
-      );
+      ).called(1);
     });
 
     test('getAllMemos: オフラインの場合、同期をスキップしローカルの未削除メモを返すこと', () async {
