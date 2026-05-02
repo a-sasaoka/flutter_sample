@@ -10,16 +10,12 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
   $MemosTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
     'id',
     aliasedName,
     false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _titleMeta = const VerificationMeta('title');
   @override
@@ -52,8 +48,57 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, title, content, createdAt];
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isSyncedMeta = const VerificationMeta(
+    'isSynced',
+  );
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+    'is_synced',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_synced" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    title,
+    content,
+    createdAt,
+    updatedAt,
+    isDeleted,
+    isSynced,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -68,6 +113,8 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
     }
     if (data.containsKey('title')) {
       context.handle(
@@ -93,6 +140,26 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(
+        _isSyncedMeta,
+        isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
+      );
+    }
     return context;
   }
 
@@ -103,7 +170,7 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return Memo(
       id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
       title: attachedDatabase.typeMapping.read(
@@ -118,6 +185,18 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      isSynced: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_synced'],
+      )!,
     );
   }
 
@@ -128,8 +207,8 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
 }
 
 class Memo extends DataClass implements Insertable<Memo> {
-  /// メモの番号（自動で1, 2, 3...と増える）
-  final int id;
+  /// メモの番号（複数の端末で被らないように、UUIDにする）
+  final String id;
 
   /// メモのタイトル
   final String title;
@@ -139,19 +218,34 @@ class Memo extends DataClass implements Insertable<Memo> {
 
   /// 作成した日時
   final DateTime createdAt;
+
+  /// 最後に更新した日時（複数の端末で同時に編集された時、新しい方を優先するため）
+  final DateTime updatedAt;
+
+  /// 削除フラグ
+  final bool isDeleted;
+
+  /// サーバーへ保存（同期）されたかどうかのフラグ
+  final bool isSynced;
   const Memo({
     required this.id,
     required this.title,
     required this.content,
     required this.createdAt,
+    required this.updatedAt,
+    required this.isDeleted,
+    required this.isSynced,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
+    map['id'] = Variable<String>(id);
     map['title'] = Variable<String>(title);
     map['content'] = Variable<String>(content);
     map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['is_synced'] = Variable<bool>(isSynced);
     return map;
   }
 
@@ -161,6 +255,9 @@ class Memo extends DataClass implements Insertable<Memo> {
       title: Value(title),
       content: Value(content),
       createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      isDeleted: Value(isDeleted),
+      isSynced: Value(isSynced),
     );
   }
 
@@ -170,33 +267,45 @@ class Memo extends DataClass implements Insertable<Memo> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Memo(
-      id: serializer.fromJson<int>(json['id']),
+      id: serializer.fromJson<String>(json['id']),
       title: serializer.fromJson<String>(json['title']),
       content: serializer.fromJson<String>(json['content']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
     );
   }
   @override
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
+      'id': serializer.toJson<String>(id),
       'title': serializer.toJson<String>(title),
       'content': serializer.toJson<String>(content),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'isSynced': serializer.toJson<bool>(isSynced),
     };
   }
 
   Memo copyWith({
-    int? id,
+    String? id,
     String? title,
     String? content,
     DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isDeleted,
+    bool? isSynced,
   }) => Memo(
     id: id ?? this.id,
     title: title ?? this.title,
     content: content ?? this.content,
     createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    isDeleted: isDeleted ?? this.isDeleted,
+    isSynced: isSynced ?? this.isSynced,
   );
   Memo copyWithCompanion(MemosCompanion data) {
     return Memo(
@@ -204,6 +313,9 @@ class Memo extends DataClass implements Insertable<Memo> {
       title: data.title.present ? data.title.value : this.title,
       content: data.content.present ? data.content.value : this.content,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
     );
   }
 
@@ -213,13 +325,24 @@ class Memo extends DataClass implements Insertable<Memo> {
           ..write('id: $id, ')
           ..write('title: $title, ')
           ..write('content: $content, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('isSynced: $isSynced')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, title, content, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    title,
+    content,
+    createdAt,
+    updatedAt,
+    isDeleted,
+    isSynced,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -227,53 +350,86 @@ class Memo extends DataClass implements Insertable<Memo> {
           other.id == this.id &&
           other.title == this.title &&
           other.content == this.content &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.isDeleted == this.isDeleted &&
+          other.isSynced == this.isSynced);
 }
 
 class MemosCompanion extends UpdateCompanion<Memo> {
-  final Value<int> id;
+  final Value<String> id;
   final Value<String> title;
   final Value<String> content;
   final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> isDeleted;
+  final Value<bool> isSynced;
+  final Value<int> rowid;
   const MemosCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
     this.content = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   MemosCompanion.insert({
-    this.id = const Value.absent(),
+    required String id,
     required String title,
     required String content,
     required DateTime createdAt,
-  }) : title = Value(title),
+    required DateTime updatedAt,
+    this.isDeleted = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       title = Value(title),
        content = Value(content),
-       createdAt = Value(createdAt);
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
   static Insertable<Memo> custom({
-    Expression<int>? id,
+    Expression<String>? id,
     Expression<String>? title,
     Expression<String>? content,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? isDeleted,
+    Expression<bool>? isSynced,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (title != null) 'title': title,
       if (content != null) 'content': content,
       if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
   MemosCompanion copyWith({
-    Value<int>? id,
+    Value<String>? id,
     Value<String>? title,
     Value<String>? content,
     Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? isDeleted,
+    Value<bool>? isSynced,
+    Value<int>? rowid,
   }) {
     return MemosCompanion(
       id: id ?? this.id,
       title: title ?? this.title,
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+      isSynced: isSynced ?? this.isSynced,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -281,7 +437,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
@@ -292,6 +448,18 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
@@ -301,7 +469,11 @@ class MemosCompanion extends UpdateCompanion<Memo> {
           ..write('id: $id, ')
           ..write('title: $title, ')
           ..write('content: $content, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -320,17 +492,25 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 
 typedef $$MemosTableCreateCompanionBuilder =
     MemosCompanion Function({
-      Value<int> id,
+      required String id,
       required String title,
       required String content,
       required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<bool> isDeleted,
+      Value<bool> isSynced,
+      Value<int> rowid,
     });
 typedef $$MemosTableUpdateCompanionBuilder =
     MemosCompanion Function({
-      Value<int> id,
+      Value<String> id,
       Value<String> title,
       Value<String> content,
       Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> isDeleted,
+      Value<bool> isSynced,
+      Value<int> rowid,
     });
 
 class $$MemosTableFilterComposer extends Composer<_$AppDatabase, $MemosTable> {
@@ -341,7 +521,7 @@ class $$MemosTableFilterComposer extends Composer<_$AppDatabase, $MemosTable> {
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
@@ -360,6 +540,21 @@ class $$MemosTableFilterComposer extends Composer<_$AppDatabase, $MemosTable> {
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$MemosTableOrderingComposer
@@ -371,7 +566,7 @@ class $$MemosTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
@@ -390,6 +585,21 @@ class $$MemosTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$MemosTableAnnotationComposer
@@ -401,7 +611,7 @@ class $$MemosTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<String> get title =>
@@ -412,6 +622,15 @@ class $$MemosTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
 }
 
 class $$MemosTableTableManager
@@ -442,27 +661,43 @@ class $$MemosTableTableManager
               $$MemosTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
+                Value<String> id = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String> content = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => MemosCompanion(
                 id: id,
                 title: title,
                 content: content,
                 createdAt: createdAt,
+                updatedAt: updatedAt,
+                isDeleted: isDeleted,
+                isSynced: isSynced,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
+                required String id,
                 required String title,
                 required String content,
                 required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<bool> isDeleted = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => MemosCompanion.insert(
                 id: id,
                 title: title,
                 content: content,
                 createdAt: createdAt,
+                updatedAt: updatedAt,
+                isDeleted: isDeleted,
+                isSynced: isSynced,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

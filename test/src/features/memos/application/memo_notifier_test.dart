@@ -28,10 +28,11 @@ void main() {
     test('build() は repository.getAllMemos() の結果を返すこと', () async {
       final mockMemos = [
         MemoModel(
-          id: 1,
+          id: '1',
           title: 'テストタイトル',
           content: 'テストコンテンツ',
           createdAt: DateTime(2026, 5),
+          updatedAt: DateTime(2026, 5),
         ),
       ];
 
@@ -54,10 +55,11 @@ void main() {
     test('addMemo は repository.addMemo() を呼び、状態を再取得（invalidate）すること', () async {
       final mockMemos = [
         MemoModel(
-          id: 1,
+          id: '1',
           title: 'テストタイトル',
           content: 'テストコンテンツ',
           createdAt: DateTime(2026, 5),
+          updatedAt: DateTime(2026, 5),
         ),
       ];
 

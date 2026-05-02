@@ -24,23 +24,26 @@ void main() {
 
     test('テーブル操作の基本テスト (CRUD)', () async {
       // Create
-      final memoId = await database
+      await database
           .into(database.memos)
           .insert(
             MemosCompanion.insert(
+              id: 'test-id-1',
               title: 'テストタイトル',
               content: 'テストコンテンツ',
               createdAt: DateTime(2026, 5),
+              updatedAt: DateTime(2026, 5),
             ),
           );
 
       // Read
       var memos = await database.select(database.memos).get();
       expect(memos.length, 1);
-      expect(memos.first.id, memoId);
+      expect(memos.first.id, 'test-id-1');
       expect(memos.first.title, 'テストタイトル');
       expect(memos.first.content, 'テストコンテンツ');
       expect(memos.first.createdAt, DateTime(2026, 5));
+      expect(memos.first.updatedAt, DateTime(2026, 5));
 
       // Update
       await database

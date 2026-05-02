@@ -105,16 +105,18 @@ void main() {
       // 取得されるデータのスタブ
       final memoList = [
         MemoModel(
-          id: 1,
+          id: '1',
           title: 'テストタイトル1',
           content: 'テスト内容1',
           createdAt: DateTime(2026, 5),
+          updatedAt: DateTime(2026, 5),
         ),
         MemoModel(
-          id: 2,
+          id: '2',
           title: 'テストタイトル2',
           content: 'テスト内容2',
           createdAt: DateTime(2026, 5, 2),
+          updatedAt: DateTime(2026, 5, 2),
         ),
       ];
       when(
