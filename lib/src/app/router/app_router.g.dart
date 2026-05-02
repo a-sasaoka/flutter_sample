@@ -24,6 +24,7 @@ RouteBase get $homeRoute => GoRouteData.$route(
       factory: $ResetPasswordRoute._fromState,
     ),
     GoRouteData.$route(path: 'chat', factory: $ChatRoute._fromState),
+    GoRouteData.$route(path: 'memos', factory: $MemosRoute._fromState),
   ],
 );
 
@@ -113,6 +114,26 @@ mixin $ChatRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/chat');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $MemosRoute on GoRouteData {
+  static MemosRoute _fromState(GoRouterState state) => const MemosRoute();
+
+  @override
+  String get location => GoRouteData.$location('/memos');
 
   @override
   void go(BuildContext context) => context.go(location);

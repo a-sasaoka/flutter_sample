@@ -7,7 +7,7 @@
 | カテゴリ          | 拡張内容                                                                                        |
 | ----------------- | ----------------------------------------------------------------------------------------------- |
 | 🔒 セキュリティ   | トークン保存先の `flutter_secure_storage` への完全移行、`local_auth` による生体認証（FaceID等） |
-| 💾 オフライン対応 | Drift や Isar 等のローカルDBを用いた、堅牢なオフラインファースト設計・同期処理                  |
+| 💾 オフライン対応 | Drift を用いた、堅牢なオフラインファースト設計・同期処理（実装済み）                            |
 | 🤖 AI機能の拡張   | Gemini API のマルチモーダル対応（画像解析）、Function Calling による外部API連携                 |
 | 🔔 通知・連携     | Firebase Cloud Messaging (FCM) の導入、GoRouterを活用した Deep Linking（Universal Links）の対応 |
 | 🧠 高度なテスト   | UIのデグレを防ぐ Golden Test（画像回帰テスト）や、Maestro を用いた E2E（統合）テストの導入      |

@@ -141,6 +141,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homeToChat => 'AIチャット画面へ';
 
   @override
+  String get homeToMemos => 'メモ一覧画面へ';
+
+  @override
   String get homeToNotFound => '存在しないパスに遷移（NotFoundの動作確認）';
 
   @override
@@ -204,6 +207,18 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsLocaleEn => '英語（en）';
+
+  @override
+  String get memoTitle => 'オフラインメモ帳';
+
+  @override
+  String get memoEmpty => 'まだメモがありません！';
+
+  @override
+  String get memoInputTitleHint => 'タイトル';
+
+  @override
+  String get memoInputContentHint => '中身';
 
   @override
   String get sampleTitle => 'サンプル機能';
