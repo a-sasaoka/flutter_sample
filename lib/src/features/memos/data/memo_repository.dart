@@ -164,6 +164,7 @@ class MemoRepository {
     }
 
     // 見つかった未送信のメモを、順番にサーバーに送る
+    final syncedIds = <String>[];
     for (final memo in unsentMemos) {
       try {
         await _remote.uploadMemo(
@@ -174,17 +175,18 @@ class MemoRepository {
           updatedAt: memo.updatedAt,
           isDeleted: memo.isDeleted,
         );
-
-        // 成功したら「送信済み」に変更する
-        await (_db.update(_db.memos)..where((m) => m.id.equals(memo.id))).write(
-          const MemosCompanion(isSynced: drift.Value(true)),
-        );
-
+        syncedIds.add(memo.id);
         logger.debug('Synced unsent memo to server. id: ${memo.id}');
       } on Exception catch (e) {
         logger.error('Failed to sync memo (id: ${memo.id}) to server: $e');
-        break;
       }
+    }
+
+    // 成功したものをまとめてDB更新
+    if (syncedIds.isNotEmpty) {
+      await (_db.update(_db.memos)..where((m) => m.id.isIn(syncedIds))).write(
+        const MemosCompanion(isSynced: drift.Value(true)),
+      );
     }
   }
 
@@ -199,49 +201,45 @@ class MemoRepository {
     try {
       final remoteData = await _remote.fetchMemos();
 
-      // サーバーから取得したデータを一つずつ確認し、スマホ（ローカル）のデータと合流（マージ）する
-      for (final remoteMemo in remoteData) {
-        final id = remoteMemo['id'] as String;
-        final title = remoteMemo['title'] as String;
-        final content = remoteMemo['content'] as String;
-        final createdAt = remoteMemo['createdAt'] as DateTime;
-        final updatedAt = remoteMemo['updatedAt'] as DateTime;
-        final isDeleted = remoteMemo['isDeleted'] as bool;
+      // サーバーから取得したデータを効率的にマージする
+      if (remoteData.isNotEmpty) {
+        final localMemos =
+            await (_db.select(_db.memos)..where(
+                  (m) => m.id.isIn(remoteData.map((e) => e['id'] as String)),
+                ))
+                .get();
+        final localMemosMap = {for (final m in localMemos) m.id: m};
+        final companionsToUpsert = <MemosCompanion>[];
 
-        // スマホ側に同じIDのメモがあるか探す
-        final localMemo = await (_db.select(
-          _db.memos,
-        )..where((m) => m.id.equals(id))).getSingleOrNull();
+        for (final remoteMemo in remoteData) {
+          final id = remoteMemo['id'] as String;
+          final updatedAt = remoteMemo['updatedAt'] as DateTime;
+          final localMemo = localMemosMap[id];
 
-        if (localMemo == null) {
-          // スマホにデータがなければ、新しく追加する
-          await _db
-              .into(_db.memos)
-              .insert(
-                MemosCompanion.insert(
-                  id: id,
-                  title: title,
-                  content: content,
-                  createdAt: createdAt,
-                  updatedAt: updatedAt,
-                  isDeleted: drift.Value(isDeleted),
-                  isSynced: const drift.Value(true),
-                ),
-              );
-        } else {
-          // スマホにデータがある場合は「どちらが最後に更新されたか（updatedAt）」を比べる
-          if (updatedAt.isAfter(localMemo.updatedAt)) {
-            // サーバーのデータの方が新しければ、スマホのデータを上書きする
-            await (_db.update(_db.memos)..where((m) => m.id.equals(id))).write(
-              MemosCompanion(
-                title: drift.Value(title),
-                content: drift.Value(content),
-                updatedAt: drift.Value(updatedAt),
-                isDeleted: drift.Value(isDeleted),
+          // サーバーのデータが新しい場合、またはローカルに存在しない場合に更新/挿入対象とする
+          if (localMemo == null || updatedAt.isAfter(localMemo.updatedAt)) {
+            companionsToUpsert.add(
+              MemosCompanion.insert(
+                id: id,
+                title: remoteMemo['title'] as String,
+                content: remoteMemo['content'] as String,
+                createdAt: remoteMemo['createdAt'] as DateTime,
+                updatedAt: updatedAt,
+                isDeleted: drift.Value(remoteMemo['isDeleted'] as bool),
                 isSynced: const drift.Value(true),
               ),
             );
           }
+        }
+
+        if (companionsToUpsert.isNotEmpty) {
+          await _db.batch((batch) {
+            batch.insertAll(
+              _db.memos,
+              companionsToUpsert,
+              mode: drift.InsertMode.insertOrReplace,
+            );
+          });
         }
       }
       logger.debug('Merged remote memos into local database.');

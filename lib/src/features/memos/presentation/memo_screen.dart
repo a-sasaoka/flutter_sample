@@ -18,6 +18,8 @@ class MemoScreen extends HookConsumerWidget {
     final titleController = useTextEditingController();
     final contentController = useTextEditingController();
 
+    final isAdding = useState(false);
+
     return Scaffold(
       appBar: AppBar(title: Text(l10n.memoTitle)),
 
@@ -32,6 +34,7 @@ class MemoScreen extends HookConsumerWidget {
             itemBuilder: (context, index) {
               final memo = memos[index];
               return ListTile(
+                key: ValueKey(memo.id),
                 title: Text(memo.title),
                 subtitle: Text(memo.content),
                 trailing: Text('${memo.createdAt.month}/${memo.createdAt.day}'),
@@ -70,18 +73,27 @@ class MemoScreen extends HookConsumerWidget {
               ),
               IconButton(
                 icon: const Icon(Icons.send),
-                onPressed: () async {
-                  if (titleController.text.isNotEmpty) {
-                    await ref
-                        .read(memoProvider.notifier)
-                        .addMemo(
-                          titleController.text,
-                          contentController.text,
-                        );
-                    titleController.clear();
-                    contentController.clear();
-                  }
-                },
+                onPressed: isAdding.value
+                    ? null
+                    : () async {
+                        if (titleController.text.isNotEmpty) {
+                          isAdding.value = true;
+                          try {
+                            await ref
+                                .read(memoProvider.notifier)
+                                .addMemo(
+                                  titleController.text,
+                                  contentController.text,
+                                );
+                            titleController.clear();
+                            contentController.clear();
+                          } finally {
+                            if (context.mounted) {
+                              isAdding.value = false;
+                            }
+                          }
+                        }
+                      },
               ),
             ],
           ),
