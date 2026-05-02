@@ -11,6 +11,7 @@
 - **Freezed / json_serializable**: イミュータブルなデータモデルとJSONパース処理
 - **GoRouter Builder**: `@TypedGoRoute` による型安全なルーティング定義
 - **Envied**: `.env` ファイルからの環境変数クラス（難読化付き）の生成
+- **Drift (drift_dev)**: データベースのテーブル定義とクエリコードの生成
 
 ---
 

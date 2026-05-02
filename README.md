@@ -23,7 +23,7 @@ Flutter開発のサンプルプロジェクトです。\
 
 - [GoRouter（型安全ルーティング）](docs/routing.md)
 - [多言語対応（Localization）](docs/localization.md)
-- [データ永続化（SharedPreferences / Secure Storage）](docs/persistence.md)
+- [データ永続化・ローカルDB（SharedPreferences / Drift / Secure Storage）](docs/persistence.md)
 - [テーマ設定（FlexColorScheme）](docs/theme.md)
 - [共通ユーティリティ（ログ・通信状態・ライフサイクル）](docs/core_utilities.md)
 
@@ -37,6 +37,7 @@ Flutter開発のサンプルプロジェクトです。\
 - [Firebase Analytics](docs/analytics.md)
 - [バージョンアップ通知（Firebase Remote Config）](docs/remote_config.md)
 - [AIチャット機能 (Firebase AI Logic)](docs/ai_chat.md)
+- [Driftによるオフラインデータ操作（Memos）](docs/persistence.md)
 
 ### E. 開発運用
 

@@ -19,10 +19,12 @@ flutter_sample
     │   └── app_ja.arb                                          # 日本語翻訳ファイル
     └── src
         ├── app                                                 # アプリケーション全体の構成要素
+        │   ├── database                                        # Driftデータベース本体（テーブル統合管理）
         │   └── router                                          # ルーティング（GoRouter）関連・認証ガード
         ├── core                                                # アプリ全体で共通的に利用される基盤コード
         │   ├── analytics                                       # イベント計測関連
         │   ├── config                                          # 環境設定やテーマ、プロバイダー設定など
+        │   ├── database                                        # データベースインスタンスの提供
         │   ├── exceptions                                      # 共通の例外クラス定義
         │   ├── network                                         # APIクライアント、Interceptor
         │   ├── storage                                         # 永続化関連（SharedPreferences・SecureStorage・キャッシュ）
@@ -33,6 +35,7 @@ flutter_sample
             ├── auth                                            # 認証機能
             ├── chat                                            # AIチャット機能
             ├── home                                            # ホーム画面
+            ├── memos                                           # メモ一覧・オフライン操作機能
             ├── settings                                        # 設定画面
             ├── splash                                          # スプラッシュ画面
             └── user                                            # ユーザー管理機能

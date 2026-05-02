@@ -1,9 +1,10 @@
-# データ永続化・キャッシュ（SharedPreferences / SecureStorage）
+# データ永続化・ローカルDB（SharedPreferences / Drift / SecureStorage）
 
-本プロジェクトでは、用途に合わせて2種類のローカルデータ永続化パッケージを使い分けています。
+本プロジェクトでは、データの性質や用途に合わせて3種類の永続化手法を使い分けています。
 
-1. **SharedPreferencesAsync**: テーマ設定やAPIのレスポンスキャッシュなど、一般的なデータの保存。従来の「アプリ起動時の同期的な読み込みブロック」を解消した最新の非同期アーキテクチャで構築しています。
-2. **FlutterSecureStorage**: 認証トークンなど、よりセキュアに保存したい機密情報向け（iOSのKeychain、AndroidのEncryptedSharedPreferencesを利用）。
+1. **SharedPreferencesAsync**: テーマ設定や軽量なAPIキャッシュなど、Key-Value形式の単純なデータの保存。
+2. **Drift（SQLite）**: メモ一覧やオフライン対応が必要な複雑な構造を持つデータの保存。強力なクエリや型安全なテーブル定義が可能です。
+3. **FlutterSecureStorage**: 認証トークンなど、よりセキュアに保存したい機密情報向け。
 
 ---
 
@@ -13,11 +14,35 @@
 
 ```plaintext
 lib/src/core/storage/
- ├── shared_preferences_provider.dart  # SharedPreferencesAsyncのインスタンスを提供する大元
- ├── cache_manager.dart                # APIレスポンス等のキャッシュ管理（有効期限付き）
- └── token_storage.dart                # 認証トークン（Bearer）の保存・取得・削除
- └── secure_storage_provider.dart      # FlutterSecureStorageのインスタンスを提供する大元
+ ├── shared_preferences_provider.dart  # SharedPreferencesAsyncの提供
+ ├── cache_manager.dart                # APIレスポンス等のキャッシュ管理
+ ├── secure_storage_provider.dart      # FlutterSecureStorageの提供
+ └── token_storage.dart                # 認証トークンの管理
+
+lib/src/app/database/
+ └── app_database.dart                 # Driftデータベース本体（テーブルの統合管理）
+
+lib/src/core/database/
+ └── database_provider.dart            # AppDatabaseのインスタンスを提供するRiverpod
 ```
+
+---
+
+## 💡 Drift（SQLite）による本格的なローカルDB
+
+複雑なデータ構造や、オフライン環境でもデータを自由に操作（作成・更新・削除）したい場合は、**Drift** を採用しています。
+
+### 1. 型安全なテーブル定義と生成
+
+Dartのクラスとしてテーブルを定義でき、`build_runner` によって型安全なクエリコードが自動生成されます。
+
+### 2. Streamによるリアルタイム同期
+
+DBの値が変更されると、それを監視しているUIが自動的に更新される `watch` 機能を備えています。これにより、複雑な状態管理をDB層に委ねることができ、コードがシンプルになります。
+
+### 3. オフラインファースト設計
+
+リモート（API）から取得したデータを一度DBに保存し、UIは常にDBを参照する構成にすることで、電波のない場所でもアプリを快適に利用できる「オフラインファースト」な設計を実現しています。
 
 ---
 
@@ -61,7 +86,36 @@ APIのレスポンスなどを一時的に保存するクラスです。
 
 ## 🧪 テスト時の永続化のモック
 
-永続化層がRiverpodで切り出されているため、ユニットテストやWidgetテストでのモックへの差し替えも非常に簡単に行えます。
+永続化層はすべて Riverpod で抽象化されているため、テスト時にインメモリデータベースやモックへ差し替えることが容易です。
+
+- **Drift**: `NativeDatabase.memory()` を使うことで、高速なインメモリテストが可能です。
+
+```dart
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('AppDatabase', () {
+    late AppDatabase database;
+
+    setUp(() {
+      // テスト時はメモリ上で動くデータベースを使用する
+      database = AppDatabase(NativeDatabase.memory());
+    });
+
+    tearDown(() async {
+      await database.close();
+    });
+
+    test('schemaVersion returns 1', () {
+      expect(database.schemaVersion, 1);
+    });
+
+    // ... その他のテストケース
+  });
+}
+```
+
+- **SharedPreferences**: `SharedPreferencesAsync.setMockInitialValues()` で初期値を設定できます。
 
 ```dart
 void main() {
