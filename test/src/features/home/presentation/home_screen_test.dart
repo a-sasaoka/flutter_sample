@@ -79,6 +79,7 @@ void main() {
     when(() => mockL10n.homeToResetPassword).thenReturn('パスワードリセットへ');
     when(() => mockL10n.homeToChat).thenReturn('チャット画面へ');
     when(() => mockL10n.homeToMemos).thenReturn('メモ一覧へ');
+    when(() => mockL10n.homeToGraph).thenReturn('グラフ作成画面へ');
     when(() => mockL10n.homeToNotFound).thenReturn('存在しない画面へ');
     when(() => mockL10n.homeGetAppInfo).thenReturn('アプリ情報取得');
     when(() => mockL10n.homeAppName).thenReturn('アプリ名');
@@ -300,6 +301,7 @@ void main() {
       await tapAndVerifyRouting('パスワードリセットへ', 'reset');
       await tapAndVerifyRouting('チャット画面へ', 'chat');
       await tapAndVerifyRouting('メモ一覧へ', 'memos');
+      await tapAndVerifyRouting('グラフ作成画面へ', 'chart-input');
       await tapAndVerifyRouting('存在しない画面へ', 'undefined');
     });
 

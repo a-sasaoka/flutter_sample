@@ -59,6 +59,7 @@
   "homeBundleId": "Bundle ID",
   "homeCrashTest": "Crash Test",
   "homeAnalyticsTest": "Analytics Test",
+  "homeToGraph": "Go to the chart creation screen",  
 
   "@_CHAT": {},
   "chatTitle": "Gemini Assistant",
@@ -84,6 +85,23 @@
   "memoEmpty": "No memos yet!",
   "memoInputTitleHint": "Title",
   "memoInputContentHint": "Content",
+
+  "@_CHART": {},
+  "chartLine": "Line Chart",
+  "chartBar": "Bar Chart",
+  "chartPie": "Pie Chart",
+  "chartDisplayTitle": "{chartName} Display",
+  "@chartDisplayTitle": {
+    "placeholders": {
+      "chartName": {
+        "type": "String"
+      }
+    }
+  },
+  "chartInputTitle": "Chart Data Input",
+  "chartItemLabel": "Item Name",
+  "chartItemValue": "Value",
+  "chartViewGraph": "View Graph",
 
   "@_OTHER": {},
   "sampleTitle": "Sample Feature",

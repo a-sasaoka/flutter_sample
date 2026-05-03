@@ -78,6 +78,11 @@ class HomeScreen extends HookConsumerWidget {
             onPressed: () => const MemosRoute().push<void>(context),
             child: Text(l10n.homeToMemos),
           ),
+          const SizedBox(height: 8),
+          FilledButton(
+            onPressed: () => const ChartInputRoute().push<void>(context),
+            child: Text(l10n.homeToGraph),
+          ),
           if (flavor != Flavor.prod) ...[
             const SizedBox(height: 8),
             FilledButton(

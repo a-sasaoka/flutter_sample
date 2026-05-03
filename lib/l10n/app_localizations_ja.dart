@@ -162,6 +162,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homeAnalyticsTest => 'アナリティクステスト';
 
   @override
+  String get homeToGraph => 'グラフ作成画面へ';
+
+  @override
   String get chatTitle => 'Gemini アシスタント';
 
   @override
@@ -219,6 +222,32 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get memoInputContentHint => '中身';
+
+  @override
+  String get chartLine => '折れ線グラフ';
+
+  @override
+  String get chartBar => '棒グラフ';
+
+  @override
+  String get chartPie => '円グラフ';
+
+  @override
+  String chartDisplayTitle(String chartName) {
+    return '$chartNameの表示';
+  }
+
+  @override
+  String get chartInputTitle => 'グラフデータ入力';
+
+  @override
+  String get chartItemLabel => '項目名';
+
+  @override
+  String get chartItemValue => '値';
+
+  @override
+  String get chartViewGraph => 'グラフを表示';
 
   @override
   String get sampleTitle => 'サンプル機能';
