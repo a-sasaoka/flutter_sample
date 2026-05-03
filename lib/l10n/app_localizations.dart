@@ -572,6 +572,18 @@ abstract class AppLocalizations {
   /// **'View Graph'**
   String get chartViewGraph;
 
+  /// No description provided for @chartNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'No data available. Please add items first.'**
+  String get chartNoData;
+
+  /// No description provided for @chartAddItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Item'**
+  String get chartAddItem;
+
   /// No description provided for @sampleTitle.
   ///
   /// In en, this message translates to:

@@ -144,16 +144,11 @@ void main() {
       await tester.pumpWidget(createWidgetUnderTest(container, router));
       await tester.pumpAndSettle();
 
-      final viewBtn = find.widgetWithIcon(
-        FloatingActionButton,
-        Icons.bar_chart,
+      final viewBtn = find.descendant(
+        of: find.byType(AppBar),
+        matching: find.byType(IconButton),
       );
-      // スクロール外にあるかもしれないのでdragUntilVisibleを使用
-      await tester.dragUntilVisible(
-        viewBtn,
-        find.byType(Scaffold),
-        const Offset(0, -100),
-      );
+
       await tester.tap(viewBtn);
       await tester.pumpAndSettle();
 

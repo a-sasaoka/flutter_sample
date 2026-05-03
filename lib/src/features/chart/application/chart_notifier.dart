@@ -21,34 +21,41 @@ class ChartNotifier extends _$ChartNotifier {
 
   /// 新しい項目を追加する
   void addItem() {
+    final nextCounter = state.itemCounter + 1;
     state = state.copyWith(
+      itemCounter: nextCounter,
       items: [
         ...state.items,
         ChartItem(
           id: const Uuid().v4(),
-          label: 'Item${state.items.length + 1}',
+          label: 'Item$nextCounter',
         ),
       ],
     );
   }
 
-  /// 指定したインデックスの項目を削除する
-  void removeItem(int index) {
-    final newItems = List<ChartItem>.from(state.items)..removeAt(index);
-    state = state.copyWith(items: newItems);
+  /// 指定したIDの項目を削除する
+  void removeItem(String id) {
+    state = state.copyWith(
+      items: state.items.where((item) => item.id != id).toList(),
+    );
   }
 
-  /// 項目の名前を更新する
-  void updateLabel(int index, String label) {
-    final newItems = [...state.items];
-    newItems[index] = newItems[index].copyWith(label: label);
-    state = state.copyWith(items: newItems);
+  /// 指定したIDの項目の名前を更新する
+  void updateLabel(String id, String label) {
+    state = state.copyWith(
+      items: state.items.map((item) {
+        return item.id == id ? item.copyWith(label: label) : item;
+      }).toList(),
+    );
   }
 
-  /// 項目の数値を更新する
-  void updateValue(int index, double value) {
-    final newItems = [...state.items];
-    newItems[index] = newItems[index].copyWith(value: value);
-    state = state.copyWith(items: newItems);
+  /// 指定したIDの項目の数値を更新する
+  void updateValue(String id, double value) {
+    state = state.copyWith(
+      items: state.items.map((item) {
+        return item.id == id ? item.copyWith(value: value) : item;
+      }).toList(),
+    );
   }
 }

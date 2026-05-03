@@ -12,7 +12,13 @@ class ChartInputScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(chartProvider);
+    // グラフの種類だけをwatchすることで、項目更新時の再描画を抑制する
+    final chartType = ref.watch(chartProvider.select((s) => s.chartType));
+    // 項目IDのリストだけをwatchする
+    final itemIds = ref.watch(
+      chartProvider.select((s) => s.items.map((i) => i.id).toList()),
+    );
+
     final notifier = ref.read(chartProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
 
@@ -21,6 +27,16 @@ class ChartInputScreen extends HookConsumerWidget {
       child: Scaffold(
         appBar: AppBar(
           title: Text(l10n.chartInputTitle),
+          actions: [
+            // グラフ表示画面への遷移ボタンをAppBarに配置（FABの重複を避ける）
+            IconButton(
+              icon: const Icon(Icons.bar_chart),
+              onPressed: () {
+                const ChartDisplayRoute().go(context);
+              },
+              tooltip: l10n.chartViewGraph,
+            ),
+          ],
         ),
         body: Column(
           children: [
@@ -36,7 +52,7 @@ class ChartInputScreen extends HookConsumerWidget {
                       ),
                     )
                     .toList(),
-                selected: {state.chartType},
+                selected: {chartType},
                 onSelectionChanged: (selection) {
                   notifier.updateChartType(selection.first);
                 },
@@ -46,82 +62,97 @@ class ChartInputScreen extends HookConsumerWidget {
             // 入力リスト
             Expanded(
               child: ListView.builder(
-                itemCount: state.items.length,
+                itemCount: itemIds.length,
                 itemBuilder: (context, index) {
-                  final item = state.items[index];
-                  return Padding(
-                    key: ValueKey(item.id),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      children: [
-                        // 項目名入力
-                        Expanded(
-                          flex: 2,
-                          child: TextFormField(
-                            initialValue: item.label,
-                            decoration: InputDecoration(
-                              labelText: l10n.chartItemLabel,
-                              border: const OutlineInputBorder(),
-                            ),
-                            onChanged: (value) =>
-                                notifier.updateLabel(index, value),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        // 数値入力
-                        Expanded(
-                          child: TextFormField(
-                            initialValue: item.value.toString(),
-                            decoration: InputDecoration(
-                              labelText: l10n.chartItemValue,
-                              border: const OutlineInputBorder(),
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            onChanged: (value) {
-                              final doubleValue = double.tryParse(value) ?? 0.0;
-                              notifier.updateValue(index, doubleValue);
-                            },
-                          ),
-                        ),
-                        // 削除ボタン
-                        IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () => notifier.removeItem(index),
-                        ),
-                      ],
-                    ),
+                  final id = itemIds[index];
+                  return _ChartItemInput(
+                    key: ValueKey(id),
+                    id: id,
                   );
                 },
               ),
             ),
           ],
         ),
-        floatingActionButton: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 項目追加ボタン
-            FloatingActionButton(
-              heroTag: 'add',
-              onPressed: notifier.addItem,
-              child: const Icon(Icons.add),
-            ),
-            const SizedBox(height: 16),
-            // グラフ表示画面への遷移ボタン
-            FloatingActionButton.extended(
-              heroTag: 'view',
-              onPressed: () {
-                const ChartDisplayRoute().go(context);
-              },
-              label: Text(l10n.chartViewGraph),
-              icon: const Icon(Icons.bar_chart),
-            ),
-          ],
+        floatingActionButton: FloatingActionButton(
+          onPressed: notifier.addItem,
+          tooltip: l10n.chartAddItem,
+          child: const Icon(Icons.add),
         ),
+      ),
+    );
+  }
+}
+
+/// 個別の項目入力用ウィジェット（再描画最適化のため分割）
+class _ChartItemInput extends ConsumerWidget {
+  const _ChartItemInput({
+    required this.id,
+    super.key,
+  });
+
+  final String id;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // この項目に関連するデータのみをwatchする
+    final item = ref.watch(
+      chartProvider.select(
+        (s) => s.items.where((i) => i.id == id).firstOrNull,
+      ),
+    );
+
+    // 削除直後などはitemがnullになる可能性があるため、その場合は空のウィジェットを返す
+    if (item == null) {
+      return const SizedBox.shrink();
+    }
+
+    final notifier = ref.read(chartProvider.notifier);
+    final l10n = AppLocalizations.of(context)!;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 8,
+      ),
+      child: Row(
+        children: [
+          // 項目名入力
+          Expanded(
+            flex: 2,
+            child: TextFormField(
+              initialValue: item.label,
+              decoration: InputDecoration(
+                labelText: l10n.chartItemLabel,
+                border: const OutlineInputBorder(),
+              ),
+              onChanged: (value) => notifier.updateLabel(id, value),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // 数値入力
+          Expanded(
+            child: TextFormField(
+              initialValue: item.value.toString(),
+              decoration: InputDecoration(
+                labelText: l10n.chartItemValue,
+                border: const OutlineInputBorder(),
+              ),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              onChanged: (value) {
+                final doubleValue = double.tryParse(value) ?? 0.0;
+                notifier.updateValue(id, doubleValue);
+              },
+            ),
+          ),
+          // 削除ボタン
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () => notifier.removeItem(id),
+          ),
+        ],
       ),
     );
   }

@@ -16,7 +16,8 @@ mixin _$ChartState {
 
 /// 入力されたデータ項目のリスト
  List<ChartItem> get items;/// 選択されているグラフの種類
- ChartType get chartType;
+ ChartType get chartType;/// 項目名の連番管理用カウンター（削除されても重複しないように管理）
+ int get itemCounter;
 /// Create a copy of ChartState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -27,16 +28,16 @@ $ChartStateCopyWith<ChartState> get copyWith => _$ChartStateCopyWithImpl<ChartSt
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChartState&&const DeepCollectionEquality().equals(other.items, items)&&(identical(other.chartType, chartType) || other.chartType == chartType));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChartState&&const DeepCollectionEquality().equals(other.items, items)&&(identical(other.chartType, chartType) || other.chartType == chartType)&&(identical(other.itemCounter, itemCounter) || other.itemCounter == itemCounter));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(items),chartType);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(items),chartType,itemCounter);
 
 @override
 String toString() {
-  return 'ChartState(items: $items, chartType: $chartType)';
+  return 'ChartState(items: $items, chartType: $chartType, itemCounter: $itemCounter)';
 }
 
 
@@ -47,7 +48,7 @@ abstract mixin class $ChartStateCopyWith<$Res>  {
   factory $ChartStateCopyWith(ChartState value, $Res Function(ChartState) _then) = _$ChartStateCopyWithImpl;
 @useResult
 $Res call({
- List<ChartItem> items, ChartType chartType
+ List<ChartItem> items, ChartType chartType, int itemCounter
 });
 
 
@@ -64,11 +65,12 @@ class _$ChartStateCopyWithImpl<$Res>
 
 /// Create a copy of ChartState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? items = null,Object? chartType = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? items = null,Object? chartType = null,Object? itemCounter = null,}) {
   return _then(_self.copyWith(
 items: null == items ? _self.items : items // ignore: cast_nullable_to_non_nullable
 as List<ChartItem>,chartType: null == chartType ? _self.chartType : chartType // ignore: cast_nullable_to_non_nullable
-as ChartType,
+as ChartType,itemCounter: null == itemCounter ? _self.itemCounter : itemCounter // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 
@@ -150,10 +152,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<ChartItem> items,  ChartType chartType)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<ChartItem> items,  ChartType chartType,  int itemCounter)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ChartState() when $default != null:
-return $default(_that.items,_that.chartType);case _:
+return $default(_that.items,_that.chartType,_that.itemCounter);case _:
   return orElse();
 
 }
@@ -171,10 +173,10 @@ return $default(_that.items,_that.chartType);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<ChartItem> items,  ChartType chartType)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<ChartItem> items,  ChartType chartType,  int itemCounter)  $default,) {final _that = this;
 switch (_that) {
 case _ChartState():
-return $default(_that.items,_that.chartType);}
+return $default(_that.items,_that.chartType,_that.itemCounter);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -188,10 +190,10 @@ return $default(_that.items,_that.chartType);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<ChartItem> items,  ChartType chartType)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<ChartItem> items,  ChartType chartType,  int itemCounter)?  $default,) {final _that = this;
 switch (_that) {
 case _ChartState() when $default != null:
-return $default(_that.items,_that.chartType);case _:
+return $default(_that.items,_that.chartType,_that.itemCounter);case _:
   return null;
 
 }
@@ -203,7 +205,7 @@ return $default(_that.items,_that.chartType);case _:
 
 
 class _ChartState implements ChartState {
-  const _ChartState({final  List<ChartItem> items = const [ChartItem(id: 'item1', label: 'Item1', value: 10), ChartItem(id: 'item2', label: 'Item2', value: 20)], this.chartType = ChartType.line}): _items = items;
+  const _ChartState({final  List<ChartItem> items = const [ChartItem(id: 'item1', label: 'Item1', value: 10), ChartItem(id: 'item2', label: 'Item2', value: 20)], this.chartType = ChartType.line, this.itemCounter = 2}): _items = items;
   
 
 /// 入力されたデータ項目のリスト
@@ -217,6 +219,8 @@ class _ChartState implements ChartState {
 
 /// 選択されているグラフの種類
 @override@JsonKey() final  ChartType chartType;
+/// 項目名の連番管理用カウンター（削除されても重複しないように管理）
+@override@JsonKey() final  int itemCounter;
 
 /// Create a copy of ChartState
 /// with the given fields replaced by the non-null parameter values.
@@ -228,16 +232,16 @@ _$ChartStateCopyWith<_ChartState> get copyWith => __$ChartStateCopyWithImpl<_Cha
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ChartState&&const DeepCollectionEquality().equals(other._items, _items)&&(identical(other.chartType, chartType) || other.chartType == chartType));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ChartState&&const DeepCollectionEquality().equals(other._items, _items)&&(identical(other.chartType, chartType) || other.chartType == chartType)&&(identical(other.itemCounter, itemCounter) || other.itemCounter == itemCounter));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_items),chartType);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_items),chartType,itemCounter);
 
 @override
 String toString() {
-  return 'ChartState(items: $items, chartType: $chartType)';
+  return 'ChartState(items: $items, chartType: $chartType, itemCounter: $itemCounter)';
 }
 
 
@@ -248,7 +252,7 @@ abstract mixin class _$ChartStateCopyWith<$Res> implements $ChartStateCopyWith<$
   factory _$ChartStateCopyWith(_ChartState value, $Res Function(_ChartState) _then) = __$ChartStateCopyWithImpl;
 @override @useResult
 $Res call({
- List<ChartItem> items, ChartType chartType
+ List<ChartItem> items, ChartType chartType, int itemCounter
 });
 
 
@@ -265,11 +269,12 @@ class __$ChartStateCopyWithImpl<$Res>
 
 /// Create a copy of ChartState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? items = null,Object? chartType = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? items = null,Object? chartType = null,Object? itemCounter = null,}) {
   return _then(_ChartState(
 items: null == items ? _self._items : items // ignore: cast_nullable_to_non_nullable
 as List<ChartItem>,chartType: null == chartType ? _self.chartType : chartType // ignore: cast_nullable_to_non_nullable
-as ChartType,
+as ChartType,itemCounter: null == itemCounter ? _self.itemCounter : itemCounter // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 

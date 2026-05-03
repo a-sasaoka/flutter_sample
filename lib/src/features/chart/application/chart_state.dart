@@ -17,5 +17,8 @@ sealed class ChartState with _$ChartState {
 
     /// 選択されているグラフの種類
     @Default(ChartType.line) ChartType chartType,
+
+    /// 項目名の連番管理用カウンター（削除されても重複しないように管理）
+    @Default(2) int itemCounter,
   }) = _ChartState;
 }

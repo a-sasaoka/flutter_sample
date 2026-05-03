@@ -102,6 +102,8 @@
   "chartItemLabel": "Item Name",
   "chartItemValue": "Value",
   "chartViewGraph": "View Graph",
+  "chartNoData": "No data available. Please add items first.",
+  "chartAddItem": "Add Item",
 
   "@_OTHER": {},
   "sampleTitle": "Sample Feature",

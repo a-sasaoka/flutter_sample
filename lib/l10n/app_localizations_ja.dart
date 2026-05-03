@@ -250,6 +250,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chartViewGraph => 'グラフを表示';
 
   @override
+  String get chartNoData => 'データがありません。まず項目を追加してください。';
+
+  @override
+  String get chartAddItem => '項目を追加';
+
+  @override
   String get sampleTitle => 'サンプル機能';
 
   @override

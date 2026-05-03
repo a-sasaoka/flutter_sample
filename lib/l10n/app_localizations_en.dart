@@ -255,6 +255,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chartViewGraph => 'View Graph';
 
   @override
+  String get chartNoData => 'No data available. Please add items first.';
+
+  @override
+  String get chartAddItem => 'Add Item';
+
+  @override
   String get sampleTitle => 'Sample Feature';
 
   @override

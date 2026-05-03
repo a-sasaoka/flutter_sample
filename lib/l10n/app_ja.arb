@@ -102,6 +102,8 @@
   "chartItemLabel": "項目名",
   "chartItemValue": "値",
   "chartViewGraph": "グラフを表示",
+  "chartNoData": "データがありません。まず項目を追加してください。",
+  "chartAddItem": "項目を追加",
 
   "@_OTHER": {},
   "sampleTitle": "サンプル機能",

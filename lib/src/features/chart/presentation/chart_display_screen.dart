@@ -24,35 +24,42 @@ class ChartDisplayScreen extends ConsumerWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Expanded(
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: 1.5,
-                  child: _buildChart(state),
+        child: state.items.isEmpty
+            ? Center(
+                child: Text(
+                  l10n.chartNoData,
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
-              ),
-            ),
-            const SizedBox(height: 32),
-            // データ一覧の簡易表示
-            Expanded(
-              child: ListView.builder(
-                itemCount: state.items.length,
-                itemBuilder: (context, index) {
-                  final item = state.items[index];
-                  return ListTile(
-                    title: Text(item.label),
-                    trailing: Text(
-                      item.value.toString(),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+              )
+            : Column(
+                children: [
+                  Expanded(
+                    child: Center(
+                      child: AspectRatio(
+                        aspectRatio: 1.5,
+                        child: _buildChart(state),
+                      ),
                     ),
-                  );
-                },
+                  ),
+                  const SizedBox(height: 32),
+                  // データ一覧の簡易表示
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: state.items.length,
+                      itemBuilder: (context, index) {
+                        final item = state.items[index];
+                        return ListTile(
+                          title: Text(item.label),
+                          trailing: Text(
+                            item.value.toString(),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -68,11 +75,15 @@ class ChartDisplayScreen extends ConsumerWidget {
     }
   }
 
+  /// 項目数に応じてラベルの間欠表示間隔を計算する
+  int _getLabelInterval(int itemCount) {
+    if (itemCount > 20) return 5;
+    if (itemCount > 10) return 2;
+    return 1;
+  }
+
   Widget _buildLineChart(ChartState state) {
-    // 項目数に応じてラベルの間隔を計算（項目が多い時は間引く）
-    final labelInterval = state.items.length > 20
-        ? 5
-        : (state.items.length > 10 ? 2 : 1);
+    final labelInterval = _getLabelInterval(state.items.length);
 
     return LineChart(
       LineChartData(
@@ -101,7 +112,7 @@ class ChartDisplayScreen extends ConsumerWidget {
                 }
                 final index = value.toInt();
 
-                // 間引きのロジック：intervalに合わないインデックスは非表示
+                // 間引きのロジック
                 if (index % labelInterval != 0) {
                   return const SizedBox.shrink();
                 }
@@ -137,15 +148,12 @@ class ChartDisplayScreen extends ConsumerWidget {
   }
 
   Widget _buildBarChart(ChartState state) {
-    // 項目数に応じて棒の太さを調整（多いほど細くする）
+    // 項目数に応じて棒の太さを調整
     final barWidth = state.items.length > 20
         ? 4.0
         : (state.items.length > 10 ? 8.0 : 16.0);
 
-    // 項目数に応じてラベルの間隔を計算（項目が多い時は間引く）
-    final labelInterval = state.items.length > 20
-        ? 5
-        : (state.items.length > 10 ? 2 : 1);
+    final labelInterval = _getLabelInterval(state.items.length);
 
     return BarChart(
       BarChartData(
@@ -175,7 +183,7 @@ class ChartDisplayScreen extends ConsumerWidget {
                 }
                 final index = value.toInt();
 
-                // 間引きのロジック：intervalに合わないインデックスは非表示
+                // 間引きのロジック
                 if (index % labelInterval != 0) {
                   return const SizedBox.shrink();
                 }
