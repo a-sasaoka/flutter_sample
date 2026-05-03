@@ -47,12 +47,8 @@ class ChartNotifier extends _$ChartNotifier {
 
   /// 項目の数値を更新する
   void updateValue(int index, double value) {
-    final newItems = state.items.asMap().entries.map((entry) {
-      if (entry.key == index) {
-        return entry.value.copyWith(value: value);
-      }
-      return entry.value;
-    }).toList();
+    final newItems = [...state.items];
+    newItems[index] = newItems[index].copyWith(value: value);
     state = state.copyWith(items: newItems);
   }
 }

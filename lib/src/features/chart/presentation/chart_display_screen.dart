@@ -69,21 +69,52 @@ class ChartDisplayScreen extends ConsumerWidget {
   }
 
   Widget _buildLineChart(ChartState state) {
+    // 項目数に応じてラベルの間隔を計算（項目が多い時は間引く）
+    final labelInterval = state.items.length > 20
+        ? 5
+        : (state.items.length > 10 ? 2 : 1);
+
     return LineChart(
       LineChartData(
         titlesData: FlTitlesData(
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 40,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  value.toInt().toString(),
+                  style: const TextStyle(fontSize: 10),
+                );
+              },
+            ),
+          ),
+          topTitles: const AxisTitles(),
+          rightTitles: const AxisTitles(),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
+              reservedSize: 60, // 傾けたラベル用に少し広めに確保
               getTitlesWidget: (value, meta) {
                 if (value != value.toInt()) {
                   return const SizedBox.shrink();
                 }
                 final index = value.toInt();
+
+                // 間引きのロジック：intervalに合わないインデックスは非表示
+                if (index % labelInterval != 0) {
+                  return const SizedBox.shrink();
+                }
+
                 if (index >= 0 && index < state.items.length) {
                   return SideTitleWidget(
                     meta: meta,
-                    child: Text(state.items[index].label),
+                    angle: -0.5, // 文字が重ならないように少し傾ける
+                    space: 12, // 軸との間にスペースを空ける
+                    child: Text(
+                      state.items[index].label,
+                      style: const TextStyle(fontSize: 10),
+                    ),
                   );
                 }
                 return const SizedBox.shrink();
@@ -106,18 +137,61 @@ class ChartDisplayScreen extends ConsumerWidget {
   }
 
   Widget _buildBarChart(ChartState state) {
+    // 項目数に応じて棒の太さを調整（多いほど細くする）
+    final barWidth = state.items.length > 20
+        ? 4.0
+        : (state.items.length > 10 ? 8.0 : 16.0);
+
+    // 項目数に応じてラベルの間隔を計算（項目が多い時は間引く）
+    final labelInterval = state.items.length > 20
+        ? 5
+        : (state.items.length > 10 ? 2 : 1);
+
     return BarChart(
       BarChartData(
+        alignment: BarChartAlignment.spaceAround,
         titlesData: FlTitlesData(
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 40,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  value.toInt().toString(),
+                  style: const TextStyle(fontSize: 10),
+                );
+              },
+            ),
+          ),
+          topTitles: const AxisTitles(),
+          rightTitles: const AxisTitles(),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
+              reservedSize: 60, // 傾けたラベル用に少し広めに確保
               getTitlesWidget: (value, meta) {
-                final index = value.toInt();
-                if (index >= 0 && index < state.items.length) {
-                  return Text(state.items[index].label);
+                if (value != value.toInt()) {
+                  return const SizedBox.shrink();
                 }
-                return const Text('');
+                final index = value.toInt();
+
+                // 間引きのロジック：intervalに合わないインデックスは非表示
+                if (index % labelInterval != 0) {
+                  return const SizedBox.shrink();
+                }
+
+                if (index >= 0 && index < state.items.length) {
+                  return SideTitleWidget(
+                    meta: meta,
+                    angle: -0.5, // 文字が重ならないように少し傾ける
+                    space: 12, // 軸との間にスペースを空ける
+                    child: Text(
+                      state.items[index].label,
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
               },
             ),
           ),
@@ -129,7 +203,7 @@ class ChartDisplayScreen extends ConsumerWidget {
               BarChartRodData(
                 toY: entry.value.value,
                 color: Colors.green,
-                width: 16,
+                width: barWidth,
               ),
             ],
           );

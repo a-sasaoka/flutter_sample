@@ -103,18 +103,17 @@ void main() {
 
       // 正常なインデックス
       final validWidget = titlesData.getTitlesWidget(0, mockMeta);
-      expect(validWidget, isA<Text>());
-      expect((validWidget as Text).data, 'Item1');
+      expect(validWidget, isA<SideTitleWidget>());
+      final textWidget = (validWidget as SideTitleWidget).child as Text;
+      expect(textWidget.data, 'Item1');
 
       // 範囲外のインデックス（マイナス）
       final invalidWidget1 = titlesData.getTitlesWidget(-1, mockMeta);
-      expect(invalidWidget1, isA<Text>());
-      expect((invalidWidget1 as Text).data, '');
+      expect(invalidWidget1, isA<SizedBox>());
 
       // 範囲外のインデックス（要素数以上）
       final invalidWidget2 = titlesData.getTitlesWidget(99, mockMeta);
-      expect(invalidWidget2, isA<Text>());
-      expect((invalidWidget2 as Text).data, '');
+      expect(invalidWidget2, isA<SizedBox>());
     });
   });
 }
