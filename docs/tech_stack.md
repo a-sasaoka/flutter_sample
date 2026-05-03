@@ -4,7 +4,7 @@
 
 | 分類                  | 使用技術                                                                                                                                                                                                                                                                              |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Flutterバージョン管理 | [FVM](https://fvm.app)（バージョン: `3.41.7`）                                                                                                                                                                                                                                        |
+| Flutterバージョン管理 | [FVM](https://fvm.app)（バージョン: `3.41.9`）                                                                                                                                                                                                                                        |
 | 状態管理              | [Flutter Riverpod](https://pub.dev/packages/flutter_riverpod) + [Hooks Riverpod](https://pub.dev/packages/hooks_riverpod) + [Flutter Hooks](https://pub.dev/packages/flutter_hooks)                                                                                                   |
 | ルーティング          | [Go Router](https://pub.dev/packages/go_router) + [Go Router Builder](https://pub.dev/packages/go_router_builder)                                                                                                                                                                     |
 | テーマ管理            | [Flex Color Scheme](https://pub.dev/packages/flex_color_scheme)                                                                                                                                                                                                                       |
@@ -35,6 +35,6 @@
 | 項目        | 内容                           |
 | ----------- | ------------------------------ |
 | IDE         | Visual Studio Code             |
-| Flutter SDK | 管理: FVM / バージョン: 3.41.7 |
+| Flutter SDK | 管理: FVM / バージョン: 3.41.9 |
 | Dart SDK    | 3.11.5                         |
 | GitHub管理  | Git                            |
