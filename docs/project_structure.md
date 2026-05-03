@@ -33,6 +33,7 @@ flutter_sample
         │   └── widgets                                         # 汎用UI部品（ダイアログや共通画面）
         └── features                                            # 各機能ごとのモジュール（Layered Architecture）
             ├── auth                                            # 認証機能
+            ├── chart                                           # グラフ表示機能（fl_chart）
             ├── chat                                            # AIチャット機能
             ├── home                                            # ホーム画面
             ├── memos                                           # メモ一覧・オフライン操作機能
