@@ -79,7 +79,9 @@ class ChartInputScreen extends HookConsumerWidget {
                               labelText: l10n.chartItemValue,
                               border: const OutlineInputBorder(),
                             ),
-                            keyboardType: TextInputType.number,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
                             onChanged: (value) {
                               final doubleValue = double.tryParse(value) ?? 0.0;
                               notifier.updateValue(index, doubleValue);

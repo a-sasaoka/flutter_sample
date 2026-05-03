@@ -76,11 +76,17 @@ class ChartDisplayScreen extends ConsumerWidget {
             sideTitles: SideTitles(
               showTitles: true,
               getTitlesWidget: (value, meta) {
+                if (value != value.toInt()) {
+                  return const SizedBox.shrink();
+                }
                 final index = value.toInt();
                 if (index >= 0 && index < state.items.length) {
-                  return Text(state.items[index].label);
+                  return SideTitleWidget(
+                    meta: meta,
+                    child: Text(state.items[index].label),
+                  );
                 }
-                return const Text('');
+                return const SizedBox.shrink();
               },
             ),
           ),
@@ -132,20 +138,20 @@ class ChartDisplayScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPieChart(ChartState state) {
-    final colors = [
-      Colors.red,
-      Colors.blue,
-      Colors.green,
-      Colors.yellow,
-      Colors.purple,
-      Colors.orange,
-    ];
+  static final List<MaterialColor> _colors = [
+    Colors.red,
+    Colors.blue,
+    Colors.green,
+    Colors.yellow,
+    Colors.purple,
+    Colors.orange,
+  ];
 
+  Widget _buildPieChart(ChartState state) {
     return PieChart(
       PieChartData(
         sections: state.items.asMap().entries.map((entry) {
-          final color = colors[entry.key % colors.length];
+          final color = _colors[entry.key % _colors.length];
           return PieChartSectionData(
             value: entry.value.value,
             title: entry.value.label,

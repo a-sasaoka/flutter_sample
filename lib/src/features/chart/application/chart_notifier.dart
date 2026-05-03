@@ -40,12 +40,8 @@ class ChartNotifier extends _$ChartNotifier {
 
   /// 項目の名前を更新する
   void updateLabel(int index, String label) {
-    final newItems = state.items.asMap().entries.map((entry) {
-      if (entry.key == index) {
-        return entry.value.copyWith(label: label);
-      }
-      return entry.value;
-    }).toList();
+    final newItems = [...state.items];
+    newItems[index] = newItems[index].copyWith(label: label);
     state = state.copyWith(items: newItems);
   }
 

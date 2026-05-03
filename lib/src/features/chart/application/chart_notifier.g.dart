@@ -44,7 +44,7 @@ final class ChartNotifierProvider
   }
 }
 
-String _$chartNotifierHash() => r'80d5d692ec4225ef47a5e082992188d670918215';
+String _$chartNotifierHash() => r'7e0fc5b069a496140f3c9859f38dc44a9333b0c5';
 
 /// グラフデータの状態を管理するNotifier
 
