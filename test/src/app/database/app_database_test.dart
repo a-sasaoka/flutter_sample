@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_sample/src/app/database/app_database.dart';
@@ -5,6 +6,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  // テスト中はデータベースを複数開くことがあるため、警告をオフにする
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   group('AppDatabase', () {
     late AppDatabase database;

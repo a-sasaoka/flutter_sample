@@ -19,6 +19,7 @@
 | 📝 ロギング     | Talkerを用いた統合ログ管理（通信・状態・Crashlytics連携）とアプリ内開発者用画面     |
 | 🌍 多言語対応   | flutter_localizations + gen-l10n による標準的な多言語化                             |
 | 🔥 Firebase     | Auth / Analytics / Crashlytics / Remote Config / App Check を組み合わせた基盤構築   |
+| 📈 グラフ       | fl_chart を用いた動的なグラフ（折れ線・棒・円）の表示とデータ入力                   |
 | 🤖 生成AI       | Firebase AI Logic（firebase_ai）を用いたストリーミング応答と履歴保持チャット        |
 | 🧰 コード生成   | build_runner + Enviedによる環境切替対応と自動コード生成（riverpod_generator等）     |
 | 🎨 UI           | FlexColorSchemeによるテーマ設定と共通エラーハンドリングUI / Markdown表示            |

@@ -4,7 +4,7 @@
 
 | 分類                  | 使用技術                                                                                                                                                                                                                                                                              |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Flutterバージョン管理 | [FVM](https://fvm.app)（バージョン: `3.41.7`）                                                                                                                                                                                                                                        |
+| Flutterバージョン管理 | [FVM](https://fvm.app)（バージョン: `3.41.9`）                                                                                                                                                                                                                                        |
 | 状態管理              | [Flutter Riverpod](https://pub.dev/packages/flutter_riverpod) + [Hooks Riverpod](https://pub.dev/packages/hooks_riverpod) + [Flutter Hooks](https://pub.dev/packages/flutter_hooks)                                                                                                   |
 | ルーティング          | [Go Router](https://pub.dev/packages/go_router) + [Go Router Builder](https://pub.dev/packages/go_router_builder)                                                                                                                                                                     |
 | テーマ管理            | [Flex Color Scheme](https://pub.dev/packages/flex_color_scheme)                                                                                                                                                                                                                       |
@@ -21,6 +21,7 @@
 | 認証                  | [Firebase Authentication](https://pub.dev/packages/firebase_auth) + [Google Sign In](https://pub.dev/packages/google_sign_in)                                                                                                                                                         |
 | セキュリティ          | [Firebase App Check](https://pub.dev/packages/firebase_app_check)                                                                                                                                                                                                                     |
 | AI / 機械学習         | [Firebase AI](https://pub.dev/packages/firebase_ai)                                                                                                                                                                                                                                   |
+| グラフ表示            | [fl_chart](https://pub.dev/packages/fl_chart)                                                                                                                                                                                                                                         |
 | 端末情報              | [Package Info Plus](https://pub.dev/packages/package_info_plus)                                                                                                                                                                                                                       |
 | ローカル保存          | [Drift (SQLite)](https://drift.simonbinder.eu/) + [Shared Preferences](https://pub.dev/packages/shared_preferences) + [Flutter Secure Storage](https://pub.dev/packages/flutter_secure_storage)                                                                                       |
 | ユーティリティ        | [UUID](https://pub.dev/packages/uuid), [Version](https://pub.dev/packages/version), [Flutter Markdown Plus](https://pub.dev/packages/flutter_markdown_plus), [Connectivity Plus](https://pub.dev/packages/connectivity_plus), [Path Provider](https://pub.dev/packages/path_provider) |
@@ -34,6 +35,6 @@
 | 項目        | 内容                           |
 | ----------- | ------------------------------ |
 | IDE         | Visual Studio Code             |
-| Flutter SDK | 管理: FVM / バージョン: 3.41.7 |
+| Flutter SDK | 管理: FVM / バージョン: 3.41.9 |
 | Dart SDK    | 3.11.5                         |
 | GitHub管理  | Git                            |

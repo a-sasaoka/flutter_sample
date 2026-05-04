@@ -59,6 +59,7 @@
   "homeBundleId": "バンドルID",
   "homeCrashTest": "クラッシュテスト",
   "homeAnalyticsTest": "アナリティクステスト",
+  "homeToGraph": "グラフ作成画面へ",  
 
   "@_CHAT": {},
   "chatTitle": "Gemini アシスタント",
@@ -84,6 +85,25 @@
   "memoEmpty": "まだメモがありません！",
   "memoInputTitleHint": "タイトル",
   "memoInputContentHint": "中身",
+
+  "@_CHART": {},
+  "chartLine": "折れ線グラフ",
+  "chartBar": "棒グラフ",
+  "chartPie": "円グラフ",
+  "chartDisplayTitle": "{chartName}の表示",
+  "@chartDisplayTitle": {
+    "placeholders": {
+      "chartName": {
+        "type": "String"
+      }
+    }
+  },
+  "chartInputTitle": "グラフデータ入力",
+  "chartItemLabel": "項目名",
+  "chartItemValue": "値",
+  "chartViewGraph": "グラフを表示",
+  "chartNoData": "データがありません。まず項目を追加してください。",
+  "chartAddItem": "項目を追加",
 
   "@_OTHER": {},
   "sampleTitle": "サンプル機能",

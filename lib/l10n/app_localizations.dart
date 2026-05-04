@@ -404,6 +404,12 @@ abstract class AppLocalizations {
   /// **'Analytics Test'**
   String get homeAnalyticsTest;
 
+  /// No description provided for @homeToGraph.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to the chart creation screen'**
+  String get homeToGraph;
+
   /// No description provided for @chatTitle.
   ///
   /// In en, this message translates to:
@@ -517,6 +523,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Content'**
   String get memoInputContentHint;
+
+  /// No description provided for @chartLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Line Chart'**
+  String get chartLine;
+
+  /// No description provided for @chartBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Bar Chart'**
+  String get chartBar;
+
+  /// No description provided for @chartPie.
+  ///
+  /// In en, this message translates to:
+  /// **'Pie Chart'**
+  String get chartPie;
+
+  /// No description provided for @chartDisplayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{chartName} Display'**
+  String chartDisplayTitle(String chartName);
+
+  /// No description provided for @chartInputTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Chart Data Input'**
+  String get chartInputTitle;
+
+  /// No description provided for @chartItemLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Item Name'**
+  String get chartItemLabel;
+
+  /// No description provided for @chartItemValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Value'**
+  String get chartItemValue;
+
+  /// No description provided for @chartViewGraph.
+  ///
+  /// In en, this message translates to:
+  /// **'View Graph'**
+  String get chartViewGraph;
+
+  /// No description provided for @chartNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'No data available. Please add items first.'**
+  String get chartNoData;
+
+  /// No description provided for @chartAddItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Item'**
+  String get chartAddItem;
 
   /// No description provided for @sampleTitle.
   ///

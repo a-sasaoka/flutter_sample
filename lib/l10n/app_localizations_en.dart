@@ -167,6 +167,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeAnalyticsTest => 'Analytics Test';
 
   @override
+  String get homeToGraph => 'Go to the chart creation screen';
+
+  @override
   String get chatTitle => 'Gemini Assistant';
 
   @override
@@ -224,6 +227,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get memoInputContentHint => 'Content';
+
+  @override
+  String get chartLine => 'Line Chart';
+
+  @override
+  String get chartBar => 'Bar Chart';
+
+  @override
+  String get chartPie => 'Pie Chart';
+
+  @override
+  String chartDisplayTitle(String chartName) {
+    return '$chartName Display';
+  }
+
+  @override
+  String get chartInputTitle => 'Chart Data Input';
+
+  @override
+  String get chartItemLabel => 'Item Name';
+
+  @override
+  String get chartItemValue => 'Value';
+
+  @override
+  String get chartViewGraph => 'View Graph';
+
+  @override
+  String get chartNoData => 'No data available. Please add items first.';
+
+  @override
+  String get chartAddItem => 'Add Item';
 
   @override
   String get sampleTitle => 'Sample Feature';

@@ -16,6 +16,8 @@ import 'package:flutter_sample/src/features/auth/presentation/firebase_login_scr
 import 'package:flutter_sample/src/features/auth/presentation/firebase_reset_password_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_sign_up_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/login_screen.dart';
+import 'package:flutter_sample/src/features/chart/presentation/chart_display_screen.dart';
+import 'package:flutter_sample/src/features/chart/presentation/chart_input_screen.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
@@ -284,6 +286,22 @@ void main() {
         MockGoRouterState(),
       );
       expect(widget, isA<ChatScreen>());
+    });
+
+    test('ChartInputRoute.build: ChartInputScreen を返すこと', () {
+      final widget = const ChartInputRoute().build(
+        MockBuildContext(),
+        MockGoRouterState(),
+      );
+      expect(widget, isA<ChartInputScreen>());
+    });
+
+    test('ChartDisplayRoute.build: ChartDisplayScreen を返すこと', () {
+      final widget = const ChartDisplayRoute().build(
+        MockBuildContext(),
+        MockGoRouterState(),
+      );
+      expect(widget, isA<ChartDisplayScreen>());
     });
 
     test('MemosRoute.build: MemoScreen を返すこと', () {

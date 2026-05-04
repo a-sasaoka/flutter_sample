@@ -15,6 +15,8 @@ import 'package:flutter_sample/src/features/auth/presentation/firebase_login_scr
 import 'package:flutter_sample/src/features/auth/presentation/firebase_reset_password_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_sign_up_screen.dart';
 import 'package:flutter_sample/src/features/auth/presentation/login_screen.dart';
+import 'package:flutter_sample/src/features/chart/presentation/chart_display_screen.dart';
+import 'package:flutter_sample/src/features/chart/presentation/chart_input_screen.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
@@ -37,6 +39,12 @@ part 'app_router.g.dart';
     TypedGoRoute<ResetPasswordRoute>(path: 'reset-password'),
     TypedGoRoute<ChatRoute>(path: 'chat'),
     TypedGoRoute<MemosRoute>(path: 'memos'),
+    TypedGoRoute<ChartInputRoute>(
+      path: 'chart-input',
+      routes: [
+        TypedGoRoute<ChartDisplayRoute>(path: 'display'),
+      ],
+    ),
   ],
 )
 class HomeRoute extends GoRouteData with $HomeRoute {
@@ -57,6 +65,28 @@ class SettingsRoute extends GoRouteData with $SettingsRoute {
   @override
   Widget build(BuildContext context, GoRouterState state) {
     return const SettingsScreen();
+  }
+}
+
+/// 📊 グラフ入力画面ルート
+class ChartInputRoute extends GoRouteData with $ChartInputRoute {
+  /// コンストラクタ
+  const ChartInputRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const ChartInputScreen();
+  }
+}
+
+/// 📈 グラフ表示画面ルート
+class ChartDisplayRoute extends GoRouteData with $ChartDisplayRoute {
+  /// コンストラクタ
+  const ChartDisplayRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const ChartDisplayScreen();
   }
 }
 

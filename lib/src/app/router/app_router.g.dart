@@ -25,6 +25,16 @@ RouteBase get $homeRoute => GoRouteData.$route(
     ),
     GoRouteData.$route(path: 'chat', factory: $ChatRoute._fromState),
     GoRouteData.$route(path: 'memos', factory: $MemosRoute._fromState),
+    GoRouteData.$route(
+      path: 'chart-input',
+      factory: $ChartInputRoute._fromState,
+      routes: [
+        GoRouteData.$route(
+          path: 'display',
+          factory: $ChartDisplayRoute._fromState,
+        ),
+      ],
+    ),
   ],
 );
 
@@ -134,6 +144,48 @@ mixin $MemosRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/memos');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $ChartInputRoute on GoRouteData {
+  static ChartInputRoute _fromState(GoRouterState state) =>
+      const ChartInputRoute();
+
+  @override
+  String get location => GoRouteData.$location('/chart-input');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $ChartDisplayRoute on GoRouteData {
+  static ChartDisplayRoute _fromState(GoRouterState state) =>
+      const ChartDisplayRoute();
+
+  @override
+  String get location => GoRouteData.$location('/chart-input/display');
 
   @override
   void go(BuildContext context) => context.go(location);
