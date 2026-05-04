@@ -4,15 +4,20 @@
 
 今後は、さらにエンタープライズ規模の実務で求められる「セキュリティ・オフライン対応・運用自動化」に向けた以下の拡張を想定しています。
 
-| カテゴリ          | 拡張内容                                                                                        |
-| ----------------- | ----------------------------------------------------------------------------------------------- |
-| 🔒 セキュリティ   | トークン保存先の `flutter_secure_storage` への完全移行、`local_auth` による生体認証（FaceID等） |
-| 💾 オフライン対応 | Drift を用いた、堅牢なオフラインファースト設計・同期処理（実装済み）                            |
-| 🤖 AI機能の拡張   | Gemini API のマルチモーダル対応（画像解析）、Function Calling による外部API連携                 |
-| 🔔 通知・連携     | Firebase Cloud Messaging (FCM) の導入、GoRouterを活用した Deep Linking（Universal Links）の対応 |
-| 🧠 高度なテスト   | UIのデグレを防ぐ Golden Test（画像回帰テスト）や、Maestro を用いた E2E（統合）テストの導入      |
-| 🚀 自動デプロイ   | Fastlane を組み合わせた、App Store / Google Play への完全自動リリース（CD）パイプラインの構築   |
-| ☁️ API            | GraphQL や gRPC など、REST以外の通信方式への対応・検証                                          |
+| カテゴリ            | 拡張内容                                                                                        |
+| ------------------- | ----------------------------------------------------------------------------------------------- |
+| 🔒 セキュリティ     | トークン保存先の `flutter_secure_storage` への完全移行、`local_auth` による生体認証（FaceID等） |
+| 💾 オフライン対応   | Drift を用いた、堅牢なオフラインファースト設計・同期処理（実装済み）                            |
+| 🤖 AI機能の拡張     | Gemini API のマルチモーダル対応（画像解析）、Function Calling による外部API連携                 |
+| 🔔 通知・連携       | Firebase Cloud Messaging (FCM) の導入、GoRouterを活用した Deep Linking（Universal Links）の対応 |
+| 🧠 高度なテスト     | UIのデグレを防ぐ Golden Test（画像回帰テスト）や、Maestro を用いた E2E（統合）テストの導入      |
+| 🚀 自動デプロイ     | Fastlane を組み合わせた、App Store / Google Play への完全自動リリース（CD）パイプラインの構築   |
+| ☁️ API              | GraphQL や gRPC など、REST以外の通信方式への対応・検証                                          |
+| ⚡️ パフォーマンス   | 画像キャッシュ戦略、アプリサイズの軽量化、Firebase Performance Monitoring を用いた実環境の監視  |
+| ♿️ アクセシビリティ | Semanticsを活用したスクリーンリーダー対応、ダイナミックタイプ対応、コントラスト等の視認性最適化 |
+| 🎨 UX / デザイン    | Haptic Feedback（触覚）、Lottie/Rive等を用いたリッチなアニメーション、オンボーディング実装      |
+| 🏗️ アーキテクチャ   | Melosを用いたマルチパッケージ（Monorepo）構成、Flavor（Dev/Stg/Prod）の完全分離と管理           |
+| 📡 リアルタイム通信 | WebSocket や Server-Sent Events (SSE) を用いた完全な双方向リアルタイム通信の実装                |
 
 ---
 
