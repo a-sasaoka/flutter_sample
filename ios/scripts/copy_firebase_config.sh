@@ -26,5 +26,6 @@ DEST_FILE="${SRCROOT}/Runner/GoogleService-Info.plist"
 if [ -f "$SOURCE_FILE" ]; then
     cp -f "$SOURCE_FILE" "$DEST_FILE"
 else
-    echo "Warning: Firebase config NOT found at ${SOURCE_FILE}. Using existing file if any."
+    echo "Error: Firebase config NOT found at ${SOURCE_FILE}."
+    exit 1
 fi

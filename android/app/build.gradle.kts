@@ -10,7 +10,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.flutter_sample"
+    namespace = "jp.example.sample"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
