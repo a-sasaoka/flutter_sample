@@ -22,6 +22,7 @@ Flutter開発のサンプルプロジェクトです。\
 ### C. アプリ基盤
 
 - [GoRouter（型安全ルーティング）](docs/routing.md)
+- [Flavor管理（マルチ環境対応）](docs/flavor.md)
 - [多言語対応（Localization）](docs/localization.md)
 - [データ永続化・ローカルDB（SharedPreferences / Drift / Secure Storage）](docs/persistence.md)
 - [テーマ設定（FlexColorScheme）](docs/theme.md)

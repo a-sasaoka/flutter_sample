@@ -6,14 +6,29 @@
 
 ```plaintext
 flutter_sample
-├── .env*                                                       # 環境毎の設定ファイル（Gitでは管理しない。env.example参照）
+├── .env*                                                       # 秘匿情報・個人設定ファイル（Git管理外。env.example参照）
 ├── .github/                                                    # GitHub ActionsによるCI/CDワークフロー設定
+├── android/
+│   └── app/src/
+│       └── {flavor}/                                           # Android用の環境別Firebase設定等を格納
+├── config/                                                     # 環境毎の公開設定ファイル（JSON形式。Git管理対象）
+│   ├── flavor_local.json
+│   ├── flavor_dev.json
+│   ├── flavor_stg.json
+│   └── flavor_prod.json
 ├── docs/                                                       # プロジェクトの詳細な仕様・ドキュメント群
+├── ios/
+│   └── Runner/
+│       └── Firebase/                                           # iOS用の環境別Firebase設定を格納
 ├── test/                                                       # テストコード（lib配下と完全に1対1のディレクトリ構成）
 ├── tool/                                                       # 開発補助スクリプト（Git Hooks等）
 └── lib
-    ├── firebase_options_*.dart                                 # FlutterFire CLIで自動生成されるファイル（Gitでは管理しない）
-    ├── main.dart                                               # アプリのエントリーポイント。最初に実行されるファイル
+    ├── firebase_options_*.dart                                 # 各環境別のFirebase設定ファイル（Git管理外）
+    ├── main.dart                                               # 共通のアプリ起動ロジック（各main_*.dartから呼び出される）
+    ├── main_local.dart                                         # ローカル環境用エントリポイント
+    ├── main_dev.dart                                           # 開発環境用エントリポイント
+    ├── main_stg.dart                                           # ステージング環境用エントリポイント
+    ├── main_prod.dart                                          # 本番環境用エントリポイント
     ├── l10n                                                    # 多言語対応用のARBファイルを格納するディレクトリ
     │   ├── app_en.arb                                          # 英語翻訳ファイル
     │   └── app_ja.arb                                          # 日本語翻訳ファイル
@@ -23,7 +38,7 @@ flutter_sample
         │   └── router                                          # ルーティング（GoRouter）関連・認証ガード
         ├── core                                                # アプリ全体で共通的に利用される基盤コード
         │   ├── analytics                                       # イベント計測関連
-        │   ├── config                                          # 環境設定やテーマ、プロバイダー設定など
+        │   ├── config                                          # 環境設定（EnvConfig, AppEnv）、テーマ等
         │   ├── database                                        # データベースインスタンスの提供
         │   ├── exceptions                                      # 共通の例外クラス定義
         │   ├── network                                         # APIクライアント、Interceptor
