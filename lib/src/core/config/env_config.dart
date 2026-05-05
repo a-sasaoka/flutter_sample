@@ -29,24 +29,51 @@ sealed class EnvConfigState with _$EnvConfigState {
   }) = _EnvConfigState;
 }
 
+/// デフォルトの API ベース URL
+const defaultBaseUrl = 'https://jsonplaceholder.typicode.com';
+
+/// デフォルトの AI モデル名
+const defaultAiModel = 'gemini-2.5-flash';
+
+/// デフォルトの接続タイムアウト（秒）
+const defaultConnectTimeout = 10;
+
+/// デフォルトの受信タイムアウト（秒）
+const defaultReceiveTimeout = 15;
+
+/// デフォルトの送信タイムアウト（秒）
+const defaultSendTimeout = 10;
+
+/// デフォルトの Firebase Auth を使用するかどうか
+const defaultUseFirebaseAuth = true;
+
 /// JSON から読み込んだ環境設定を提供するプロバイダー。
 @riverpod
 EnvConfigState envConfig(Ref ref) {
   return const EnvConfigState(
     baseUrl: String.fromEnvironment(
       'BASE_URL',
-      defaultValue: 'https://jsonplaceholder.typicode.com',
+      defaultValue: defaultBaseUrl,
     ),
     aiModel: String.fromEnvironment(
       'AI_MODEL',
-      defaultValue: 'gemini-2.5-flash',
+      defaultValue: defaultAiModel,
     ),
-    connectTimeout: int.fromEnvironment('CONNECT_TIMEOUT', defaultValue: 10),
-    receiveTimeout: int.fromEnvironment('RECEIVE_TIMEOUT', defaultValue: 15),
-    sendTimeout: int.fromEnvironment('SEND_TIMEOUT', defaultValue: 10),
+    connectTimeout: int.fromEnvironment(
+      'CONNECT_TIMEOUT',
+      defaultValue: defaultConnectTimeout,
+    ),
+    receiveTimeout: int.fromEnvironment(
+      'RECEIVE_TIMEOUT',
+      defaultValue: defaultReceiveTimeout,
+    ),
+    sendTimeout: int.fromEnvironment(
+      'SEND_TIMEOUT',
+      defaultValue: defaultSendTimeout,
+    ),
     useFirebaseAuth: bool.fromEnvironment(
       'USE_FIREBASE_AUTH',
-      defaultValue: true,
+      defaultValue: defaultUseFirebaseAuth,
     ),
   );
 }
