@@ -1,36 +1,32 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+part 'env_config.freezed.dart';
 part 'env_config.g.dart';
 
 /// JSON (dart-define-from-file) から取得した公開設定を保持するモデル。
-class EnvConfigState {
+@freezed
+sealed class EnvConfigState with _$EnvConfigState {
   /// コンストラクタ
-  const EnvConfigState({
-    required this.baseUrl,
-    required this.aiModel,
-    required this.connectTimeout,
-    required this.receiveTimeout,
-    required this.sendTimeout,
-    required this.useFirebaseAuth,
-  });
+  const factory EnvConfigState({
+    /// API ベース URL
+    required String baseUrl,
 
-  /// API ベース URL
-  final String baseUrl;
+    /// AI モデル名
+    required String aiModel,
 
-  /// AI モデル名
-  final String aiModel;
+    /// 接続タイムアウト（秒）
+    required int connectTimeout,
 
-  /// 接続タイムアウト（秒）
-  final int connectTimeout;
+    /// 受信タイムアウト（秒）
+    required int receiveTimeout,
 
-  /// 受信タイムアウト（秒）
-  final int receiveTimeout;
+    /// 送信タイムアウト（秒）
+    required int sendTimeout,
 
-  /// 送信タイムアウト（秒）
-  final int sendTimeout;
-
-  /// Firebase Auth を使用するかどうか
-  final bool useFirebaseAuth;
+    /// Firebase Auth を使用するかどうか
+    required bool useFirebaseAuth,
+  }) = _EnvConfigState;
 }
 
 /// JSON から読み込んだ環境設定を提供するプロバイダー。

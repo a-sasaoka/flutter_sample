@@ -117,6 +117,6 @@ fvm dart run build_runner build
 ### セットアップ
 
 ```bash
-chmod +x tool/hooks/pre-commit tool/setup_git_hooks.sh
+chmod +x tool/hooks/pre-commit tool/setup_git_hooks.sh ios/scripts/*.sh
 ./tool/setup_git_hooks.sh
 ```
