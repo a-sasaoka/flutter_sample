@@ -37,8 +37,14 @@ class EnvConfigState {
 @riverpod
 EnvConfigState envConfig(Ref ref) {
   return const EnvConfigState(
-    baseUrl: String.fromEnvironment('BASE_URL'),
-    aiModel: String.fromEnvironment('AI_MODEL'),
+    baseUrl: String.fromEnvironment(
+      'BASE_URL',
+      defaultValue: 'https://jsonplaceholder.typicode.com',
+    ),
+    aiModel: String.fromEnvironment(
+      'AI_MODEL',
+      defaultValue: 'gemini-2.5-flash',
+    ),
     connectTimeout: int.fromEnvironment('CONNECT_TIMEOUT', defaultValue: 10),
     receiveTimeout: int.fromEnvironment('RECEIVE_TIMEOUT', defaultValue: 15),
     sendTimeout: int.fromEnvironment('SEND_TIMEOUT', defaultValue: 10),

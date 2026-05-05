@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # ビルド設定名（例: Debug-local, Release-dev 等）から Flavor 名を取得
-# ハイフンで分割し、2番目の要素（local, dev, stg, prod）を抽出
-FLAVOR=$(echo "${CONFIGURATION}" | cut -d "-" -f 2)
+# ハイフンで分割し、2番目の要素（local, dev, stg, prod）を抽出し、小文字に変換
+FLAVOR=$(echo "${CONFIGURATION}" | cut -d "-" -f 2 | tr '[:upper:]' '[:lower:]')
 
 # コピー元ファイルパス
 SOURCE_FILE="${SRCROOT}/Runner/Firebase/${FLAVOR}/GoogleService-Info.plist"
