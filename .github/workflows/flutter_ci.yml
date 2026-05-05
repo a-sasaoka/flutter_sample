@@ -51,17 +51,8 @@ jobs:
       # 4.4. ダミーの環境変数ファイルを作成する（envied_generatorのエラー回避）
       - name: Create dummy .env.local
         run: |
-          echo "FLAVOR=local" > .env.local
-          echo "APP_NAME=example local" >> .env.local
-          echo "APP_ID=example.local" >> .env.local
-          echo "BASE_URL=https://jsonplaceholder.typicode.com" >> .env.local
-          echo "CONNECT_TIMEOUT=10" >> .env.local
-          echo "RECEIVE_TIMEOUT=15" >> .env.local
-          echo "SEND_TIMEOUT=10" >> .env.local
-          echo "USE_FIREBASE_AUTH=true" >> .env.local
+          echo "DEBUG_TOKEN=example" > .env.local
           echo "GOOGLE_REVERSED_CLIENT_ID=example" >> .env.local
-          echo "DEBUG_TOKEN=example" >> .env.local
-          echo "AI_MODEL=gemini-2.5-flash" >> .env.local
 
       # 4.5. ダミーのFirebase設定ファイルを作成する（静的解析エラー回避）
       - name: Create dummy Firebase options
