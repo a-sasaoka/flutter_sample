@@ -110,6 +110,8 @@ dev_dependencies:
   mocktail: ^1.0.4 # モック生成
   drift_dev: ^2.29.0 # drift用コード生成
   go_router_builder: ^4.1.1 # go_router用コード生成
+  flutter_flavorizr: ^2.2.3 # Flavorの自動構成ツール
+  flutter_launcher_icons: ^0.13.1 # アイコン生成ツール（Flavor対応用）
 
 # -----------------------------------------------
 # 🎯 Flutter固有の設定
@@ -126,3 +128,37 @@ flutter:
   #   - family: NotoSansJP
   #     fonts:
   #       - asset: assets/fonts/NotoSansJP-Regular.otf
+
+flavorizr:
+  app:
+    name: "Flutter Sample"
+
+  flavors:
+    local:
+      app:
+        name: "[Local] Sample"
+      android:
+        applicationId: "jp.example.sample.local"
+      ios:
+        bundleId: "jp.example.sample.local"
+    dev:
+      app:
+        name: "[Dev] Sample"
+      android:
+        applicationId: "jp.example.sample.dev"
+      ios:
+        bundleId: "jp.example.sample.dev"
+    stg:
+      app:
+        name: "[Stg] Sample"
+      android:
+        applicationId: "jp.example.sample.stg"
+      ios:
+        bundleId: "jp.example.sample.stg"
+    prod:
+      app:
+        name: "Sample App"
+      android:
+        applicationId: "jp.example.sample"
+      ios:
+        bundleId: "jp.example.sample"
