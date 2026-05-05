@@ -12,6 +12,7 @@
 - **GoRouter Builder**: `@TypedGoRoute` による型安全なルーティング定義
 - **Envied**: `.env` ファイルからの秘匿情報（デバッグトークン等）の生成
 - **Drift (drift_dev)**: データベースのテーブル定義とクエリコードの生成
+- **flutter_launcher_icons**: 各Flavorごとのアプリアイコン生成
 
 ---
 
@@ -30,12 +31,12 @@ fvm flutter run -t lib/main_dev.dart --flavor dev --dart-define-from-file=config
 
 各環境の対応ファイルは以下の通りです：
 
-| 環境 | `--flavor` | JSON 設定ファイル | `.env` ファイル |
-| :--- | :--- | :--- | :--- |
-| **local** | `local` | `config/flavor_local.json` | `.env.local` |
-| **dev** | `dev` | `config/flavor_dev.json` | `.env.dev` |
-| **stg** | `stg` | `config/flavor_stg.json` | `.env.stg` |
-| **prod** | `prod` | `config/flavor_prod.json` | `.env.prod` |
+| 環境      | `--flavor` | JSON 設定ファイル          | `.env` ファイル |
+| :-------- | :--------- | :------------------------- | :-------------- |
+| **local** | `local`    | `config/flavor_local.json` | `.env.local`    |
+| **dev**   | `dev`      | `config/flavor_dev.json`   | `.env.dev`      |
+| **stg**   | `stg`      | `config/flavor_stg.json`   | `.env.stg`      |
+| **prod**  | `prod`     | `config/flavor_prod.json`  | `.env.prod`     |
 
 ---
 
@@ -58,6 +59,16 @@ fvm dart run build_runner watch
 ```bash
 # dev環境の設定（.env.dev）を反映させて生成
 fvm dart run build_runner build --define "envied_generator:envied=path=.env.dev"
+```
+
+---
+
+## 🎨 アプリアイコンの生成 (flutter_launcher_icons)
+
+アイコン画像や設定を更新した場合は、以下のコマンドを実行します。
+
+```bash
+fvm flutter pub run flutter_launcher_icons
 ```
 
 これにより、難読化された秘密情報が対象環境のものに差し替わります。
