@@ -7,11 +7,11 @@ FLAVOR=$(echo "${CONFIGURATION}" | cut -d "-" -f 2 | tr '[:upper:]' '[:lower:]')
 # 有効な Flavor 名であるかチェック
 case "${FLAVOR}" in
     local|dev|stg|prod)
-        echo "Firebase config found for flavor: ${FLAVOR}. Copying to destination..."
+        echo "✅ [Firebase Config] Target flavor detected: ${FLAVOR}"
         ;;
     *)
         # 該当しない場合（標準の Debug/Release 設定など）は、コピーをスキップ
-        echo "Warning: No valid flavor detected in configuration '${CONFIGURATION}'. Skipping Firebase config copy."
+        echo "⚠️ [Firebase Config] No valid flavor detected in configuration '${CONFIGURATION}'. Skipping Firebase config copy."
         exit 0
         ;;
 esac
@@ -24,8 +24,9 @@ DEST_FILE="${SRCROOT}/Runner/GoogleService-Info.plist"
 
 # 指定された Flavor の設定ファイルが存在するか確認
 if [ -f "$SOURCE_FILE" ]; then
+    echo "✅ [Firebase Config] Copying ${FLAVOR} config to: ${DEST_FILE}"
     cp -f "$SOURCE_FILE" "$DEST_FILE"
 else
-    echo "Error: Firebase config NOT found at ${SOURCE_FILE}."
+    echo "❌ [Firebase Config] Error: Config NOT found at ${SOURCE_FILE}."
     exit 1
 fi

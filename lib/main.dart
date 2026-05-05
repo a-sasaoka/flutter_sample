@@ -11,6 +11,7 @@ import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/config/app_config_provider.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/config/app_theme.dart';
+import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/firebase_options.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/network/token_interceptor.dart';
@@ -103,14 +104,20 @@ Future<void> mainCommon(Flavor flavor) async {
     return true;
   };
 
-  // 10. コンテナからアナリティクスを読み込んで送信
+  // 10. コンテナから設定を読み込んで起動ログを出力
+  final config = container.read(envConfigProvider);
+  talker.info(
+    '🚀 App Started [${flavor.name}]\n${config.getDebugReport(packageInfo)}',
+  );
+
+  // 11. アナリティクスを送信
   final analytics = container.read(analyticsServiceProvider);
   await analytics.logEvent(
     event: AnalyticsEvent.appStarted,
     parameters: {'env': flavor.name},
   );
 
-  // 11. コンテナは破棄 (dispose) せず、そのままアプリに渡して起動
+  // 12. コンテナは破棄 (dispose) せず、そのままアプリに渡して起動
   runApp(
     UncontrolledProviderScope(
       container: container,

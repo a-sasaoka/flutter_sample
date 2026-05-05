@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'env_config.freezed.dart';
@@ -27,6 +28,19 @@ sealed class EnvConfigState with _$EnvConfigState {
     /// Firebase Auth を使用するかどうか
     required bool useFirebaseAuth,
   }) = _EnvConfigState;
+
+  const EnvConfigState._();
+
+  /// 設定内容をデバッグ用の文字列として整形して返します。
+  String getDebugReport(PackageInfo packageInfo) =>
+      '''
+📱 App Name          : ${packageInfo.appName}
+🆔 Package Name      : ${packageInfo.packageName}
+✨ Version           : ${packageInfo.version} (${packageInfo.buildNumber})
+📍 API Base URL      : $baseUrl
+🤖 AI Model          : $aiModel
+⏱️ Timeouts (C/R/S)  : $connectTimeout / $receiveTimeout / $sendTimeout
+🔥 Firebase Auth     : $useFirebaseAuth''';
 }
 
 /// デフォルトの API ベース URL（サンプルの動作確認用）

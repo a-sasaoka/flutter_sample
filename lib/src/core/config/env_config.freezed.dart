@@ -210,8 +210,8 @@ return $default(_that.baseUrl,_that.aiModel,_that.connectTimeout,_that.receiveTi
 /// @nodoc
 
 
-class _EnvConfigState implements EnvConfigState {
-  const _EnvConfigState({required this.baseUrl, required this.aiModel, required this.connectTimeout, required this.receiveTimeout, required this.sendTimeout, required this.useFirebaseAuth});
+class _EnvConfigState extends EnvConfigState {
+  const _EnvConfigState({required this.baseUrl, required this.aiModel, required this.connectTimeout, required this.receiveTimeout, required this.sendTimeout, required this.useFirebaseAuth}): super._();
   
 
 /// API ベース URL
