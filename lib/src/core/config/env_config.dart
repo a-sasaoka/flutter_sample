@@ -29,7 +29,7 @@ sealed class EnvConfigState with _$EnvConfigState {
   }) = _EnvConfigState;
 }
 
-/// デフォルトの API ベース URL
+/// デフォルトの API ベース URL（サンプルの動作確認用）
 const defaultBaseUrl = 'https://jsonplaceholder.typicode.com';
 
 /// デフォルトの AI モデル名
