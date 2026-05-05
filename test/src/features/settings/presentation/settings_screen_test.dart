@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/config/app_config_provider.dart';
-import 'package:flutter_sample/src/core/config/app_env.dart';
+import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
@@ -139,7 +139,16 @@ void main() {
             );
           }
         }),
-        useFirebaseAuthProvider.overrideWithValue(useAuth),
+        envConfigProvider.overrideWithValue(
+          EnvConfigState(
+            baseUrl: 'https://test.example.com',
+            aiModel: 'test-model',
+            connectTimeout: 10,
+            receiveTimeout: 15,
+            sendTimeout: 10,
+            useFirebaseAuth: useAuth,
+          ),
+        ),
         firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
         themeModeProvider.overrideWith(() => fakeThemeModeNotifier),
         localeProvider.overrideWith(() => fakeLocaleNotifier),

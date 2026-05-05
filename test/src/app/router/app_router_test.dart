@@ -5,7 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
-import 'package:flutter_sample/src/core/config/app_env.dart';
+import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
@@ -46,7 +46,6 @@ class _FakeAuthStateNotifier extends AuthStateNotifier {
   @override
   Future<bool> build() async => isLoggedIn;
 
-  // 外部から状態を強制的に変更するメソッド
   void changeState({required bool value}) {
     state = AsyncData(value);
   }
@@ -110,7 +109,16 @@ void main() {
         firebaseAnalyticsProvider.overrideWithValue(mockAnalytics),
         loggerProvider.overrideWithValue(mockTalker),
         flavorProvider.overrideWithValue(Flavor.dev),
-        useFirebaseAuthProvider.overrideWithValue(useFirebase),
+        envConfigProvider.overrideWithValue(
+          EnvConfigState(
+            baseUrl: 'https://test.example.com',
+            aiModel: 'test-model',
+            connectTimeout: 10,
+            receiveTimeout: 15,
+            sendTimeout: 10,
+            useFirebaseAuth: useFirebase,
+          ),
+        ),
         authStateProvider.overrideWith(
           () => _FakeAuthStateNotifier(isLoggedIn: isLoggedIn),
         ),
@@ -229,7 +237,18 @@ void main() {
       tester,
     ) async {
       final container = ProviderContainer(
-        overrides: [useFirebaseAuthProvider.overrideWithValue(true)],
+        overrides: [
+          envConfigProvider.overrideWithValue(
+            const EnvConfigState(
+              baseUrl: 'https://test.example.com',
+              aiModel: 'test-model',
+              connectTimeout: 10,
+              receiveTimeout: 15,
+              sendTimeout: 10,
+              useFirebaseAuth: true,
+            ),
+          ),
+        ],
       );
 
       await tester.pumpWidget(

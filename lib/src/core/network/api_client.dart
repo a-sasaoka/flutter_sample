@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_sample/src/core/config/app_env.dart';
+import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
 import 'package:flutter_sample/src/core/network/token_interceptor.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
@@ -17,12 +17,13 @@ part 'api_client.g.dart';
 /// - 必要に応じてトークン認証もここで実装可能
 @Riverpod(keepAlive: true)
 Dio dio(Ref ref) {
+  final config = ref.watch(envConfigProvider);
   final dio = Dio(
     BaseOptions(
-      baseUrl: AppEnv.baseUrl,
-      connectTimeout: Duration(seconds: AppEnv.connectTimeout),
-      receiveTimeout: Duration(seconds: AppEnv.receiveTimeout),
-      sendTimeout: Duration(seconds: AppEnv.sendTimeout),
+      baseUrl: config.baseUrl,
+      connectTimeout: Duration(seconds: config.connectTimeout),
+      receiveTimeout: Duration(seconds: config.receiveTimeout),
+      sendTimeout: Duration(seconds: config.sendTimeout),
       headers: {
         'Content-Type': 'application/json',
       },

@@ -56,8 +56,8 @@ lib/src/core/config/app_env.g.dart
 
 # Firebase config (ignored)
 firebase.json
-android/app/google-services.json
-ios/Runner/GoogleService-Info.plist
+**/google-services.json
+**/GoogleService-Info.plist
 lib/firebase_options*.dart
 
 # AI prompt

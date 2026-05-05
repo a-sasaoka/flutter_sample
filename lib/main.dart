@@ -22,23 +22,23 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 import 'package:talker_riverpod_logger/talker_riverpod_logger.dart';
 
-Future<void> main() async {
+/// 各 Flavor のエントリポイントから呼び出される共通の初期化・起動関数。
+Future<void> mainCommon(Flavor flavor) async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Flavorを取得（文字列で扱うとエラーの原因になるので、enumに変換する）
-  final flavor = Flavor.fromString(AppEnv.flavor);
+  // 1. Flavorの設定
   final isProd = flavor == Flavor.prod;
 
-  // アプリのパッケージ情報を取得
+  // 2. アプリのパッケージ情報を取得
   final packageInfo = await PackageInfo.fromPlatform();
 
-  // Firebaseの初期化（DefaultFirebaseOptionsは環境別の内容を読み込む）
+  // 3. Firebaseの初期化（DefaultFirebaseOptionsは環境別の内容を読み込む）
   await Firebase.initializeApp(options: firebaseOptionsWithFlavor(flavor));
 
-  // デバッグ用のトークン
+  // 4. デバッグ用のトークン（秘匿情報のため Envied から取得を維持）
   final myDebugToken = AppEnv.debugToken;
 
-  // App Checkの有効化（デバッグモード）
+  // 5. App Checkの有効化（デバッグモード）
   await FirebaseAppCheck.instance.activate(
     // Androidのエミュレータ/実機用のデバッグプロバイダ
     providerAndroid: AndroidDebugProvider(debugToken: myDebugToken),
@@ -46,7 +46,7 @@ Future<void> main() async {
     providerApple: AppleDebugProvider(debugToken: myDebugToken),
   );
 
-  // コンテナ生成の前に Talker を初期化
+  // 6. コンテナ生成の前に Talker を初期化
   final talker = TalkerFlutter.init(
     settings: TalkerSettings(
       useConsoleLogs: !isProd,
@@ -55,7 +55,7 @@ Future<void> main() async {
     observer: CustomTalkerObserver(
       isProd: isProd,
       recordError: (error, stack, {required fatal}) async {
-        // CustomTalkerObserver 側で指定された fatal フラグ (false) をそのまま渡す
+        // CustomTalkerObserver 側で指定された fatal フラグ をそのまま渡す
         await FirebaseCrashlytics.instance.recordError(
           error,
           stack,
@@ -65,6 +65,7 @@ Future<void> main() async {
     ),
   );
 
+  // 7. ProviderContainer の設定
   final container = ProviderContainer(
     overrides: [
       // プロバイダーにFlavorを設定
@@ -87,13 +88,13 @@ Future<void> main() async {
     ],
   );
 
-  // Flutterフレームワークのエラー
+  // 8. Flutterフレームワークのエラーハンドリング
   FlutterError.onError = (details) {
     talker.error('Flutter Error', details.exception, details.stack);
     unawaited(FirebaseCrashlytics.instance.recordFlutterFatalError(details));
   };
 
-  // Dartの未処理例外
+  // 9. Dartの未処理例外ハンドリング
   PlatformDispatcher.instance.onError = (error, stack) {
     talker.error('Uncaught Exception', error, stack);
     unawaited(
@@ -102,14 +103,14 @@ Future<void> main() async {
     return true;
   };
 
-  // コンテナからアナリティクスを読み込んで送信
+  // 10. コンテナからアナリティクスを読み込んで送信
   final analytics = container.read(analyticsServiceProvider);
   await analytics.logEvent(
     event: AnalyticsEvent.appStarted,
     parameters: {'env': flavor.name},
   );
 
-  // コンテナは破棄 (dispose) せず、そのままアプリに渡す
+  // 11. コンテナは破棄 (dispose) せず、そのままアプリに渡して起動
   runApp(
     UncontrolledProviderScope(
       container: container,
@@ -134,7 +135,7 @@ class MyApp extends ConsumerWidget {
           locale: tuple.locale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          title: '',
+          title: '', // タイトルは _AppTitleWrapper 内で設定するため空文字
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
           themeMode: tuple.theme,

@@ -2,32 +2,60 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Local",
+      "name": "flutter_sample (local)",
       "request": "launch",
       "type": "dart",
-      "program": "lib/main.dart",
-      "args": ["--dart-define-from-file=.env.local"]
+      "program": "lib/main_local.dart",
+      "args": [
+        "--flavor",
+        "local",
+        "--dart-define-from-file",
+        "config/flavor_local.json",
+        "--dart-define-from-file",
+        ".env.local"
+      ]
     },
     {
-      "name": "Dev",
+      "name": "flutter_sample (dev)",
       "request": "launch",
       "type": "dart",
-      "program": "lib/main.dart",
-      "args": ["--dart-define-from-file=.env.dev"]
+      "program": "lib/main_dev.dart",
+      "args": [
+        "--flavor",
+        "dev",
+        "--dart-define-from-file",
+        "config/flavor_dev.json",
+        "--dart-define-from-file",
+        ".env.dev"
+      ]
     },
     {
-      "name": "Staging",
+      "name": "flutter_sample (stg)",
       "request": "launch",
       "type": "dart",
-      "program": "lib/main.dart",
-      "args": ["--dart-define-from-file=.env.stg"]
+      "program": "lib/main_stg.dart",
+      "args": [
+        "--flavor",
+        "stg",
+        "--dart-define-from-file",
+        "config/flavor_stg.json",
+        "--dart-define-from-file",
+        ".env.stg"
+      ]
     },
     {
-      "name": "Prod",
+      "name": "flutter_sample (prod)",
       "request": "launch",
       "type": "dart",
-      "program": "lib/main.dart",
-      "args": ["--dart-define-from-file=.env.prod"]
+      "program": "lib/main_prod.dart",
+      "args": [
+        "--flavor",
+        "prod",
+        "--dart-define-from-file",
+        "config/flavor_prod.json",
+        "--dart-define-from-file",
+        ".env.prod"
+      ]
     }
   ]
 }

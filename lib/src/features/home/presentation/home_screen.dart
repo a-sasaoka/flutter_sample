@@ -4,7 +4,7 @@ import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
-import 'package:flutter_sample/src/core/config/app_env.dart';
+import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 import 'package:flutter_sample/src/core/network/firebase_crashlytics_provider.dart';
@@ -29,7 +29,7 @@ class HomeScreen extends HookConsumerWidget {
     final bundleId = useState('');
 
     final flavor = ref.watch(flavorProvider);
-    final useFirebaseAuth = ref.watch(useFirebaseAuthProvider);
+    final useFirebaseAuth = ref.watch(envConfigProvider).useFirebaseAuth;
 
     // データの変化を「監視」し、アップデート情報が届いた時だけ1回ダイアログを出します
     ref.listen(updateRequestControllerProvider, (previous, next) async {
