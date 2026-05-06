@@ -1,3 +1,4 @@
+import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'flavor_provider.g.dart';
@@ -9,6 +10,9 @@ Flavor flavor(Ref ref) {
 }
 
 /// Flavorの定義
+///
+/// この enum は環境の種類の識別のみを担当します。
+/// 環境ごとの具体的な設定値は [envConfig] を参照してください。
 enum Flavor {
   /// ローカル環境
   local,
@@ -20,16 +24,5 @@ enum Flavor {
   stg,
 
   /// 本番環境
-  prod;
-
-  /// 文字列からFlavorに変換する
-  static Flavor fromString(String value) {
-    return values.firstWhere(
-      (e) => e.name == value.toLowerCase(),
-      orElse: () => throw ArgumentError(
-        'Invalid flavor: "$value". Available flavors are: '
-        '${values.map((f) => f.name).join(', ')}',
-      ),
-    );
-  }
+  prod,
 }

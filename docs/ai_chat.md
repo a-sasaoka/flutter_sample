@@ -8,7 +8,7 @@
 ## 技術スタック
 
 - **AI SDK**: `firebase_ai` パッケージ（Firebase AI Logic）
-- **モデル**: 環境変数 (`.env`) に定義された `AI_MODEL` （例: `gemini-2.5-flash`）を Envied で安全に読み込み
+- **モデル**: 公開設定ファイル (`config/flavor_*.json`) に定義された `AI_MODEL` （例: `gemini-2.5-flash`）を `envConfigProvider` で読み込み
 - **状態管理**: Riverpod (`@riverpod`), Freezed
 - **UI制御**: Flutter Hooks (`flutter_hooks`)
 - **セキュリティ**: Firebase App Check
@@ -70,7 +70,7 @@ Riverpod の `autoDispose` の特性を活かし、**「チャット画面を開
 
 本機能のAPI呼び出しは、不正なクライアントからのアクセスを防ぐため **Firebase App Check** によって保護されています。
 
-- **開発環境（デバッグ時）**: `main.dart` にて `AndroidDebugProvider` および `AppleDebugProvider` を有効化し、固定のデバッグトークンを環境変数（`.env` の `DEBUG_TOKEN`）から注入して通信を許可しています。
+- **開発環境（デバッグ時）**: `main.dart` にて `AndroidDebugProvider` および `AppleDebugProvider` を有効化し、秘匿情報として管理されているデバッグトークン（`.env` の `DEBUG_TOKEN`）から注入して通信を許可しています。
 - **本番環境**: リリース時には Play Integrity (Android) や DeviceCheck (iOS) を用いた強力な端末認証が適用されます。
 
 ---

@@ -63,7 +63,7 @@ final class DioProvider extends $FunctionalProvider<Dio, Dio, Dio>
   }
 }
 
-String _$dioHash() => r'21b6b35089eed9fc4b851139e9c4833088549815';
+String _$dioHash() => r'07166d399c57f89d76727fdf2c62d4b2e235de1c';
 
 /// ApiClient を Riverpod 経由で提供する Provider
 ///

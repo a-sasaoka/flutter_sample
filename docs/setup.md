@@ -43,127 +43,80 @@ cd ..
 
 ## 4️⃣ 環境設定ファイルの準備
 
-`env.example`をコピーして、以下の4ファイルを作成します。
+本プロジェクトでは、**「公開設定（JSON）」**と**「秘匿情報（.env）」**を使い分けています。
+
+### 1. 公開設定 (Git管理対象)
+
+`config/flavor_*.json` を確認し、必要に応じて値を修正してください。
+（通常はデフォルトのままで動作しますが、APIのURLなどを変更したい場合に編集します）
+
+### 2. 秘匿情報 (Git管理外)
+
+`env.example` をコピーして、以下の4ファイルを作成します。
 
 - `.env.local`
-
 - `.env.dev`
-
 - `.env.stg`
-
 - `.env.prod`
 
-設定内容は以下の通りです。
+各ファイルには、各自の環境に応じた以下の値を設定してください。
 
-| 項目                      | 設定値                                                                                                                              |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| FLAVOR                    | 環境（prod, stg, dev, local のいずれか）                                                                                            |
-| APP_NAME                  | アプリケーション名（とりあえず任意の値で問題ありません）                                                                            |
-| APP_ID                    | Androidのパッケージ名、iOSのバンドルID（Firebaseプロジェクトにアプリを登録する際にも利用する値になります）                          |
-| BASE_URL                  | APIリクエストのベースとなるURL（サンプルを動かすには`https://jsonplaceholder.typicode.com`としてください）                          |
-| CONNECT_TIMEOUT           | サーバーとの接続が確立されるまでの最大待機時間（ミリ秒）                                                                            |
-| RECEIVE_TIMEOUT           | レスポンスデータの受信におけるタイムアウト時間（ミリ秒）                                                                            |
-| SEND_TIMEOUT              | リクエストデータの送信におけるタイムアウト時間（ミリ秒）                                                                            |
-| USE_FIREBASE_AUTH         | 認証でFirebase Authenticationを使う場合は`true`、使わない場合は`false`                                                              |
-| GOOGLE_REVERSED_CLIENT_ID | `ios/Runner/GoogleService-Info.plist` 内の `REVERSED_CLIENT_ID` の値（Googleログインを利用する場合、iOSのURL Scheme設定に必要です） |
-| DEBUG_TOKEN               | App Checkのデバッグトークン（App Checkのデバッグトークン管理で生成・登録したトークンを設定します。使わない場合は未設定でOKです）    |
-| AI_MODEL                  | AIチャットで使用するモデル名（例: `gemini-2.5-flash` など）                                                                         |
+| 項目                        | 説明                                            |
+| :-------------------------- | :---------------------------------------------- |
+| `DEBUG_TOKEN`               | Firebase App Check のデバッグトークン           |
+| `GOOGLE_REVERSED_CLIENT_ID` | iOS の URL Scheme 設定に必要な逆クライアント ID |
 
 ## 5️⃣ Firebase利用準備
 
-本プロジェクトではFirebaseの機能をデフォルトで使っているため必要な設定を行います。
-Firebase自体についての説明等は本プロジェクトの趣旨とは外れてしまうのでここでは割愛します。
+1. Firebase Consoleにてプロジェクトを作成し、`pubspec.yaml` の `flavorizr` セクションに記載されている `applicationId` / `bundleId` と一致するようにアプリを追加します。
 
-1. Firebase Consoleにてプロジェクトを作成し、環境設定ファイルの`APP_ID`に記載した値と同じパッケージ名、バンドルIDでアプリを追加します。
-   - ※ AndroidでGoogleログインを利用する場合は、Firebase ConsoleにSHA-1フィンガープリントの登録も必要です。
+2. Firebase コンソールから設定ファイルをダウンロードし、以下の**Flavor別のディレクトリ**に配置してください。
+   - **Android**: `android/app/src/{flavor}/google-services.json`
+   - **iOS**: `ios/Runner/Firebase/{flavor}/GoogleService-Info.plist`
 
-2. `flutterfire configure --project={firebaseのプロジェクト名}`を実行します。
+> 💡 **自動切り替え**: 配置したファイルは、ビルド時に選択された Flavor に応じた自動的に適用されます。
 
-3. 生成された `lib/firebase_options.dart` を `lib/firebase_options_local.dart` のように環境毎のファイル名に変更してください。
+3. `flutterfire configure` 等で生成された `lib/firebase_options.dart` は、環境ごとに `lib/firebase_options_local.dart` のようにリネームして配置してください。
 
-現在、`android/app/google-services.json`と`ios/Runner/GoogleService-Info.plist`を環境に合わせて自動で切り替える仕組みは組み込まれていません。
-そのため、`flutterfire configure` を実行する度に上記2ファイルが上書きされるので注意してください。
+## 6️⃣ アプリの実行・デバッグ
 
-Firebaseの環境設定は最終的に各環境ごとに行うことになりますが、まずは`local`環境のみで十分です。
-その場合、buildエラーが解消されないと思うので、その他の環境用は以下の内容でファイル（例: `firebase_options_dev.dart` 等）を作成してください。
+### VS Code から実行（推奨）
 
-```dart
-// ignore_for_file: type=lint
-import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
-import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, kIsWeb, TargetPlatform;
+`.vscode/launch.json` に各 Flavor の設定が登録されています。
 
-class DefaultFirebaseOptions {
-  static FirebaseOptions get currentPlatform {
-    if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
-    }
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for android - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
-      case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for iOS - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
-      case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
-      case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
-      case TargetPlatform.linux:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for linux - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
-      default:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions are not supported for this platform.',
-        );
-    }
-  }
-}
+1. 「実行とデバッグ」タブ（`Ctrl+Shift+D`）を開く。
+2. 上部のプルダウンから `flutter_sample (local)` 等、実行したい環境を選択。
+3. `F5` キーでデバッグ開始。
+
+### コマンドラインから実行
+
+以下の形式で実行します。
+
+```bash
+# dev環境の実行例
+fvm flutter run -t lib/main_dev.dart --flavor dev --dart-define-from-file=config/flavor_dev.json --dart-define-from-file=.env.dev
 ```
 
-## 6️⃣ コード生成コマンドの実行
+---
 
-`.env` の内容をアプリに反映（Enviedのコード生成）するためにも、[こちら](https://www.google.com/search?q=docs/code_generation.md)を参考にコード生成（build_runner）を実行してください。
+## 7️⃣ コード生成コマンドの実行
+
+モデルの定義や Riverpod プロバイダを変更した場合は、以下のコマンドを実行します。
+
+```bash
+# 一括生成
+fvm dart run build_runner build
+```
 
 ---
 
 ## Git Hooksでコミット前にLintチェックを自動実行
 
-このプロジェクトでは、コミット時に自動で `flutter analyze` と `dart format` チェックを実行する仕組みを導入しています。\
-これにより、Lintエラーやフォーマット漏れを防ぎ、常にクリーンな状態でコードをコミットできます。
+このプロジェクトでは、コミット時に自動で `flutter analyze` と `dart format` チェックを実行する仕組みを導入しています。
 
 ### セットアップ
 
 ```bash
-chmod +x tool/hooks/pre-commit tool/setup_git_hooks.sh
+chmod +x tool/hooks/pre-commit tool/setup_git_hooks.sh ios/scripts/*.sh
 ./tool/setup_git_hooks.sh
 ```
-
-これにより、Gitのフック設定が自動的に更新され、\
-`tool/hooks/pre-commit` がリポジトリ全体で共有されます。
-
-### 動作内容
-
-- コミット前に以下を自動実行：
-  - `flutter analyze`（静的解析）
-
-  - `dart format --set-exit-if-changed`（フォーマットチェック）
-
-- どちらかに問題がある場合、コミットは中断されます。
-
----

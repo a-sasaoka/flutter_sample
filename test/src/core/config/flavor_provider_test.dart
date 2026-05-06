@@ -3,32 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 void main() {
-  group('Flavor enum テスト', () {
-    test('fromString() が正しい文字列から Flavor を返すこと（大文字小文字区別なし）', () {
-      // Assert: 完全一致
-      expect(Flavor.fromString('local'), equals(Flavor.local));
-      expect(Flavor.fromString('dev'), equals(Flavor.dev));
-      expect(Flavor.fromString('stg'), equals(Flavor.stg));
-      expect(Flavor.fromString('prod'), equals(Flavor.prod));
-
-      // Assert: 大文字が混ざっていても .toLowerCase() により正常に変換されること
-      expect(Flavor.fromString('DEV'), equals(Flavor.dev));
-      expect(Flavor.fromString('Stg'), equals(Flavor.stg));
-    });
-
-    test('fromString() が無効な文字列を渡された時に ArgumentError を投げること', () {
-      // Assert: 想定外の文字列が来たら、意図通りにクラッシュすることを確認
-      expect(
-        () => Flavor.fromString('qa'),
-        throwsA(isA<ArgumentError>()),
-      );
-      expect(
-        () => Flavor.fromString(''), // 空文字
-        throwsA(isA<ArgumentError>()),
-      );
-    });
-  });
-
   group('flavorProvider テスト', () {
     test('デフォルトのまま読み取ろうとすると UnimplementedError が投げられること', () {
       final container = ProviderContainer();

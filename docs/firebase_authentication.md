@@ -9,6 +9,12 @@
 
 ---
 
+## 🏗️ 構成と機能フラグ
+
+本プロジェクトでは、Firebase Authentication を使用するかどうかを `config/flavor_*.json` 内の **`USE_FIREBASE_AUTH`** フラグで制御しています。この値は `envConfigProvider` を通じて参照されます。
+
+---
+
 ## 📁 関連ファイル構成（レイヤードアーキテクチャ）
 
 ```plaintext
