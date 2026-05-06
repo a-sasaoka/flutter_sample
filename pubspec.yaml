@@ -162,32 +162,3 @@ flavorizr:
         applicationId: "jp.example.sample"
       ios:
         bundleId: "jp.example.sample"
-
-flutter_launcher_icons:
-  android: true
-  ios: true
-  image_path: "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png"
-
-  flavors:
-    local:
-      android: true
-      ios: true
-      image_path: "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png"
-      adaptive_icon_background: "#9E9E9E"
-      adaptive_icon_foreground: "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png"
-    dev:
-      android: true
-      ios: true
-      image_path: "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png"
-      adaptive_icon_background: "#F44336"
-      adaptive_icon_foreground: "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png"
-    stg:
-      android: true
-      ios: true
-      image_path: "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png"
-      adaptive_icon_background: "#2196F3"
-      adaptive_icon_foreground: "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png"
-    prod:
-      android: true
-      ios: true
-      image_path: "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png"

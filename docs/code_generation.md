@@ -61,17 +61,18 @@ fvm dart run build_runner watch
 fvm dart run build_runner build --define "envied_generator:envied=path=.env.dev"
 ```
 
+これにより、難読化された秘密情報が対象環境のものに差し替わります。
+
 ---
 
 ## 🎨 アプリアイコンの生成 (flutter_launcher_icons)
 
-アイコン画像や設定を更新した場合は、以下のコマンドを実行します。
+アイコン画像や設定（`flutter_launcher_icons-*.yaml`）を更新した場合は、以下のコマンドを実行します。
 
 ```bash
-fvm flutter pub run flutter_launcher_icons
+# プロジェクト内の全環境（local, dev, stg, prod）のアイコンを一括生成
+fvm dart run flutter_launcher_icons
 ```
-
-これにより、難読化された秘密情報が対象環境のものに差し替わります。
 
 ---
 

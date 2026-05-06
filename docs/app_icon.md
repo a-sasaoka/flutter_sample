@@ -1,6 +1,7 @@
 # アプリアイコンの変更手順
 
-本プロジェクトでは、`flutter_launcher_icons` パッケージを利用して、各環境（Flavor）ごとのアプリアイコンを一括管理・自動生成しています。
+本プロジェクトでは、`flutter_launcher_icons` パッケージを利用して、各環境（Flavor）ごとのアプリアイコンを一括管理しています。
+安定性の向上のため、環境ごとに個別の設定ファイルを用意しています。
 
 ---
 
@@ -8,58 +9,51 @@
 
 1. **アイコン画像の作成**:
    - 1024x1024 px の PNG ファイルを推奨します。
-   - 各環境（local, dev, stg, prod）ごとに異なるデザインにする場合は、それぞれの画像を準備してください。
 2. **画像の配置**:
-   - プロジェクト内の `assets/images/` 等のディレクトリに画像を配置します（ディレクトリがない場合は作成してください）。
+   - `assets/icons/` ディレクトリに、各環境用の画像を配置します。
+   - `local.png`, `dev.png`, `stg.png`, `prod.png`
 
 ---
 
-## ⚙️ 1. pubspec.yaml の設定
+## ⚙️ 1. 設定ファイルの編集
 
-`pubspec.yaml` の `flutter_launcher_icons` セクションを編集します。
+プロジェクト直下にある、以下の各環境用設定ファイルを編集します。
+
+- `flutter_launcher_icons-local.yaml`
+- `flutter_launcher_icons-dev.yaml`
+- `flutter_launcher_icons-stg.yaml`
+- `flutter_launcher_icons-prod.yaml`
+
+### 設定例 (`flutter_launcher_icons-dev.yaml`)
 
 ```yaml
 flutter_launcher_icons:
   android: true
   ios: true
-  # 全環境共通のデフォルト（または本番用）
-  image_path: "assets/images/app_icon_prod.png"
-
-  flavors:
-    local:
-      image_path: "assets/images/app_icon_local.png"
-      adaptive_icon_background: "#9E9E9E" # Android用背景色
-      adaptive_icon_foreground: "assets/images/app_icon_local.png" # Android用前面ロゴ
-    dev:
-      image_path: "assets/images/app_icon_dev.png"
-      adaptive_icon_background: "#F44336"
-      adaptive_icon_foreground: "assets/images/app_icon_dev.png"
-    # ... stg, prod も同様に設定
+  image_path: "assets/icons/dev.png"
+  adaptive_icon_background: "#F44336" # Android用背景色
+  adaptive_icon_foreground: "assets/icons/dev.png" # Android用前面ロゴ
 ```
-
-### 💡 設定のポイント
-
-- **`flavors:` 配下の名前**: `flavorizr` で定義した環境名（`local`, `dev` 等）と一致させる必要があります。
-- **Android アダプティブアイコン**: `adaptive_icon_background`（背景色または画像）と `adaptive_icon_foreground`（前面のロゴ画像）を指定することで、Android 8.0 以降の動的なアイコン形状に対応できます。
 
 ---
 
 ## 🚀 2. アイコン生成コマンドの実行
 
-設定を更新した後、以下のコマンドを実行してネイティブ側のアイコンファイルを更新します。
+設定を更新した後、以下のコマンドを実行してネイティブ側のアイコンファイルを一括更新します。
 
 ```bash
-fvm flutter pub run flutter_launcher_icons
+# 全環境のアイコンを生成
+fvm dart run flutter_launcher_icons
 ```
 
-このコマンドを実行すると、以下の処理が自動で行われます：
+このコマンドを実行すると、ツールが `flutter_launcher_icons-*.yaml` ファイルを自動的に検知し、それぞれの環境に対応するアイコンを以下の場所に生成します：
 
-- **Android**: `android/app/src/{flavor}/res/` 配下に各解像度のアイコンが生成される。
-- **iOS**: `Assets.xcassets` 内に `{flavor}AppIcon` という名前のアイコンセットが生成される。
+- **Android**: `android/app/src/{flavor}/res/`
+- **iOS**: `ios/Runner/Assets.xcassets/AppIcon-{flavor}.appiconset`
 
 ---
 
 ## ⚠️ 注意事項
 
-- **手動修正は不要**: `android/app/src/.../mipmap-*` フォルダや iOS のアセットカタログを手動で編集する必要はありません。常に `pubspec.yaml` を正として、コマンドで上書き生成してください。
-- **iOS の反映確認**: アイコンを変更してもシミュレータ上で反映されない場合は、一度アプリをアンインストールしてから再ビルドしてください。
+- **個別実行も可能**: 特定の環境だけ更新したい場合は `fvm flutter pub run flutter_launcher_icons -f flutter_launcher_icons-dev.yaml` のようにファイルを指定して実行してください。
+- **手動修正は不要**: ネイティブフォルダ内の画像を直接編集しないでください。常に設定ファイルを正として、コマンドで生成してください。
