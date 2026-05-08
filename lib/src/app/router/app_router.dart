@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/app/router/auth_guard.dart';
 import 'package:flutter_sample/src/app/router/firebase_auth_guard.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
-import 'package:flutter_sample/src/core/config/app_env.dart';
+import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
@@ -150,7 +150,7 @@ class LoginRoute extends GoRouteData with $LoginRoute {
     return Consumer(
       builder: (context, ref, child) {
         // Firebase Authenticationの利用有無で遷移先画面を切り替える
-        final useFirebase = ref.watch(useFirebaseAuthProvider);
+        final useFirebase = ref.watch(envConfigProvider).useFirebaseAuth;
         if (useFirebase) {
           return const FirebaseLoginScreen();
         }
@@ -248,7 +248,7 @@ class TypedRouteAnalyticsObserver extends NavigatorObserver {
 /// 🌐 GoRouterのインスタンスをRiverpodで提供
 @riverpod
 GoRouter router(Ref ref) {
-  final useFirebase = ref.watch(useFirebaseAuthProvider);
+  final useFirebase = ref.watch(envConfigProvider).useFirebaseAuth;
 
   // 認証状態の変更を検知して GoRouter にルーティングの再評価を促すための Listenable
   final routerListenable = ValueNotifier<bool>(false);

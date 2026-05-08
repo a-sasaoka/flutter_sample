@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
 import 'package:flutter_sample/src/core/network/token_interceptor.dart';
@@ -146,6 +147,16 @@ void main() {
 
       final testContainer = ProviderContainer(
         overrides: [
+          envConfigProvider.overrideWithValue(
+            const EnvConfigState(
+              baseUrl: 'https://api.example.com',
+              aiModel: 'test-model',
+              connectTimeout: 10,
+              receiveTimeout: 15,
+              sendTimeout: 10,
+              useFirebaseAuth: true,
+            ),
+          ),
           tokenInterceptorProvider.overrideWithValue(mockTokenInterceptor),
           dioInterceptorProvider.overrideWithValue(mockDioInterceptor),
           loggerProvider.overrideWithValue(mockTalker),

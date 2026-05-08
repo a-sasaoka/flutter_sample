@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/config/app_config_provider.dart';
-import 'package:flutter_sample/src/core/config/app_env.dart';
+import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
@@ -18,7 +18,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final configAsync = ref.watch(appConfigProvider);
     final l10n = AppLocalizations.of(context)!;
-    final useAuth = ref.watch(useFirebaseAuthProvider);
+    final useAuth = ref.watch(envConfigProvider).useFirebaseAuth;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),

@@ -1,0 +1,8 @@
+{
+  "BASE_URL": "https://development.example.com/api",
+  "AI_MODEL": "gemini-2.5-flash",
+  "CONNECT_TIMEOUT": 10,
+  "RECEIVE_TIMEOUT": 15,
+  "SEND_TIMEOUT": 10,
+  "USE_FIREBASE_AUTH": true
+}

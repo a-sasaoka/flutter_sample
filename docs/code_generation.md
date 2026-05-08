@@ -10,79 +10,86 @@
 - **Riverpod Generator**: 状態管理のプロバイダ生成
 - **Freezed / json_serializable**: イミュータブルなデータモデルとJSONパース処理
 - **GoRouter Builder**: `@TypedGoRoute` による型安全なルーティング定義
-- **Envied**: `.env` ファイルからの環境変数クラス（難読化付き）の生成
+- **Envied**: `.env` ファイルからの秘匿情報（デバッグトークン等）の生成
 - **Drift (drift_dev)**: データベースのテーブル定義とクエリコードの生成
+- **flutter_launcher_icons**: 各Flavorごとのアプリアイコン生成
 
 ---
 
-## ⚙️ 環境の切り替えとコード生成コマンド
+## ⚙️ 環境の切り替えと実行コマンド
 
-コード生成時に使用する `.env` ファイルを環境（Flavor）ごとに切り替えることができます。
-以下のコマンドを使用して、対象の環境設定に合わせて生成してください。
+本プロジェクトでは、環境設定（Flavor）の切り替えに Flutter 標準の `--dart-define-from-file` を採用しています。
 
-> ⚠️ **注意**: `.env` ファイル内の値（APIキーやURLなど）を書き換えただけではアプリには反映されません。変更した場合は、**必ず対象環境の `build_runner` コマンドを再実行**して `app_env.g.dart` を更新してください。
+### 実行コマンドの構成
 
-（※ `envied_generator:envied` の指定がない場合は、デフォルトで Local 環境用 `.env.local` 等が参照されます。）
-
-### Local環境
+実行時には、**「対象の Flavor 用 JSON」** と **「個人の .env ファイル」** に加え、対象Flavorの **「エントリーポイント (-t)」** を指定する必要があります。
 
 ```bash
-fvm dart run build_runner build --define "envied_generator:envied=path=.env.local"
+# 例: dev環境で実行する場合
+fvm flutter run -t lib/main_dev.dart --flavor dev --dart-define-from-file=config/flavor_dev.json --dart-define-from-file=.env.dev
 ```
 
-### Dev環境
+各環境の対応ファイルは以下の通りです：
+
+| 環境      | `--flavor` | JSON 設定ファイル          | `.env` ファイル |
+| :-------- | :--------- | :------------------------- | :-------------- |
+| **local** | `local`    | `config/flavor_local.json` | `.env.local`    |
+| **dev**   | `dev`      | `config/flavor_dev.json`   | `.env.dev`      |
+| **stg**   | `stg`      | `config/flavor_stg.json`   | `.env.stg`      |
+| **prod**  | `prod`     | `config/flavor_prod.json`  | `.env.prod`     |
+
+---
+
+## 🏗️ コード生成コマンド (build_runner)
+
+モデルの定義や Riverpod プロバイダを変更した場合は、以下のコマンドを実行します。
 
 ```bash
+# 一括生成（デフォルトは .env.local を使用）
+fvm dart run build_runner build
+
+# 監視モード
+fvm dart run build_runner watch
+```
+
+### 特定の環境（.env）を指定して生成する
+
+特定の環境（例: `dev`）のシークレットを反映させて `app_env.g.dart` を生成したい場合は、以下のフラグを組み合わせて実行します。
+
+```bash
+# dev環境の設定（.env.dev）を反映させて生成
 fvm dart run build_runner build --define "envied_generator:envied=path=.env.dev"
 ```
 
-### Staging環境
-
-```bash
-fvm dart run build_runner build --define "envied_generator:envied=path=.env.stg"
-```
-
-### Production環境
-
-```bash
-fvm dart run build_runner build --define "envied_generator:envied=path=.env.prod"
-```
+これにより、難読化された秘密情報が対象環境のものに差し替わります。
 
 ---
 
-## 👀 監視モード（開発中推奨）
+## 🎨 アプリアイコンの生成 (flutter_launcher_icons)
 
-`build` の代わりに `watch` を使用すると、ファイルの変更を監視し、保存するたびに自動で差分のみコード生成が行われます。
-UI開発やモデル定義を連続して行う場合はこちらが便利です。
+アイコン画像や設定（`flutter_launcher_icons-*.yaml`）を更新した場合は、以下のコマンドを実行します。
 
 ```bash
-fvm dart run build_runner watch --define "envied_generator:envied=path=.env.local"
+# プロジェクト内の全環境（local, dev, stg, prod）のアイコンを一括生成
+fvm dart run flutter_launcher_icons
 ```
 
 ---
 
 ## 📱 ネイティブ部分の環境による切り替え（Flavor対応）
 
-Flutter側だけでなく、iOS / Android のネイティブ側の設定（アプリ名やバンドルIDなど）も、単一の `.env` ファイルを正として環境ごとに切り替える仕組みを構築しています。
+iOS / Android のネイティブ側の設定（アプリ名やバンドルIDなど）は、`pubspec.yaml` の `flavorizr` 設定を正として、環境ごとに完全に分離されています。
 
 ### 🍎 iOS
 
-Xcodeのビルドプロセスに介入し、コンパイル前に環境変数を注入します。
+Xcode のビルドプロセスは `ios/Flutter/*.xcconfig` ファイル群に定義されています。
 
-1. `ios/scripts/extract_dart_defines.sh` を Build Phases (PreActions) として実行し、指定された `.env` ファイルから値を取得します。
-2. 取得した値は `ios/Runner/Info.plist` や `ios/Runner.xcodeproj/project.pbxproj` 内で `$(APP_NAME)` や `$(APP_ID)` のように参照され、アプリアイコン名やFirebase設定などに利用されます。
-
-### 🤖 Android
-
-Gradleのビルドスクリプトで環境変数を読み込みます。
-\_defines.sh`を Build Phases (PreActions) として実行し、指定された`.env`ファイルから値を取得します。
-2. 取得した値は`ios/Runner/Info.plist`や`ios/Runner.xcodeproj/project.pbxproj`内で`$(APP_NAME)` や `$(APP_ID)` のように参照され、アプリアイコン名やFirebase設定などに利用されます。
+1. **Firebase 設定**: ビルド時に `ios/scripts/copy_firebase_config.sh` が走り、選択された Flavor に応じた `GoogleService-Info.plist` を自動的に `Runner/` フォルダへコピーします。
+2. **情報の流し込み**: `Dart-Defines.xcconfig` 経由で、`.env` ファイルや JSON 内の環境変数が `Info.plist` へ自動的に反映されます。
 
 ### 🤖 Android
 
-Gradleのビルドスクリプトで環境変数を読み込みます。
+Android の Flavor 設定は `android/app/flavorizr.gradle.kts` に定義されています。
 
-1. `android/app/build.gradle.kts` 内で `.env` ファイルをパースし、`dartDefines["APP_NAME"]` のようにマップとして保持します。
-2. `resValue("string", "app_name", dartDefines["APP_NAME"] ?: "Flutter Sample")` のようにリソースを動的生成することで、`android/app/src/main/AndroidManifest.xml` 内にて `@string/app_name` のように安全に参照できます。
-
----
+1. **Firebase 設定**: Android ビルドシステムが、選択された Flavor に対応する `android/app/src/{flavor}/google-services.json` を自動的に読み込みます。
+2. **リソース**: アプリ名などは `flavorizr` により生成された文字列リソース (`@string/app_name`) を参照します。

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
-import 'package:flutter_sample/src/core/config/app_env.dart';
+import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 import 'package:flutter_sample/src/core/network/firebase_crashlytics_provider.dart';
@@ -120,7 +120,16 @@ void main() {
       ProviderScope(
         overrides: [
           flavorProvider.overrideWithValue(Flavor.local),
-          useFirebaseAuthProvider.overrideWithValue(true),
+          envConfigProvider.overrideWithValue(
+            const EnvConfigState(
+              baseUrl: 'https://test.example.com',
+              aiModel: 'test-model',
+              connectTimeout: 10,
+              receiveTimeout: 15,
+              sendTimeout: 10,
+              useFirebaseAuth: true,
+            ),
+          ),
           updateRequestControllerProvider.overrideWith(
             FakeUpdateRequestController.new,
           ),
