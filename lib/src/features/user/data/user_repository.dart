@@ -59,4 +59,49 @@ class UserRepository {
 
     return users;
   }
+
+  /// ユーザーを新規作成する (POSTのサンプル)
+  Future<UserModel> createUser(String name, String email) async {
+    final response = await api.post<Map<String, dynamic>>(
+      '/users',
+      data: {
+        'name': name,
+        'email': email,
+        'phone': '000-0000-0000',
+        'website': 'example.com',
+        'address': {
+          'city': '未設定',
+          'street': '未設定',
+          'suite': '未設定',
+        },
+      },
+    );
+
+    final data = response.data;
+    if (data == null) {
+      throw Exception('Failed to create user');
+    }
+
+    return UserModel.fromJson(data);
+  }
+
+  /// ユーザー名を更新する (PATCHのサンプル)
+  Future<UserModel> updateUserName(int id, String newName) async {
+    final response = await api.patch<Map<String, dynamic>>(
+      '/users/$id',
+      data: {'name': newName},
+    );
+
+    final data = response.data;
+    if (data == null) {
+      throw Exception('Failed to update user');
+    }
+
+    return UserModel.fromJson(data);
+  }
+
+  /// ユーザーを削除する (DELETEのサンプル)
+  Future<void> deleteUser(int id) async {
+    await api.delete<void>('/users/$id');
+  }
 }
