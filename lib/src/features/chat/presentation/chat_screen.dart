@@ -8,22 +8,44 @@ import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// チャット画面
-class ChatScreen extends HookConsumerWidget {
+/// 画面全体のレイアウトを定義しますが、自身は状態を監視しないため、
+/// メッセージの更新による不要なリビルドを防ぎます。
+class ChatScreen extends StatelessWidget {
   /// コンストラクタ
   const ChatScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final chatState = ref.watch(chatProvider);
-    final messages = chatState.messages;
-    final isGenerating = chatState.isGenerating;
-
-    final textController = useTextEditingController();
-    final scrollController = useScrollController();
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    // メッセージリスト（state）の変更を監視して、自動スクロールを実行する
-    ref.listen(chatProvider, (previous, next) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.chatTitle),
+      ),
+      body: const Column(
+        children: [
+          // メッセージリスト部分
+          Expanded(child: _ChatListView()),
+          // 下部の入力フォーム
+          _ChatInputArea(),
+        ],
+      ),
+    );
+  }
+}
+
+/// メッセージリストを表示するウィジェット
+class _ChatListView extends HookConsumerWidget {
+  const _ChatListView();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // メッセージのリスト「だけ」を監視する
+    final messages = ref.watch(chatProvider.select((s) => s.messages));
+    final scrollController = useScrollController();
+
+    // メッセージリストの変更を監視して、自動スクロールを実行する
+    ref.listen(chatProvider.select((s) => s.messages), (previous, next) {
       // 画面の描画（レイアウト）が完了するのを一瞬待ってからスクロールさせる
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (scrollController.hasClients) {
@@ -37,132 +59,61 @@ class ChatScreen extends HookConsumerWidget {
       });
     });
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.chatTitle),
-      ),
-      body: Column(
-        children: [
-          // メッセージリスト表示部分
-          Expanded(
-            child: ListView.builder(
-              controller: scrollController,
-              padding: const EdgeInsets.all(16),
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final msg = messages[index];
+    return ListView.builder(
+      controller: scrollController,
+      padding: const EdgeInsets.all(16),
+      itemCount: messages.length,
+      itemBuilder: (context, index) {
+        final msg = messages[index];
 
-                // Dart3のパターンマッチングでUIを出し分ける
-                // sealedクラスなので、全パターン網羅しないとコンパイルエラーになり安全
-                // 追加した id と createdAt を取り出してUIに適用する
-                return switch (msg) {
-                  ChatMessageLoading(:final id) => Padding(
-                    key: Key(id), // Keyを設定してUIのチラつきを防止
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: const Align(
-                      alignment: Alignment.centerLeft,
-                      child: CircularProgressIndicator(),
-                    ),
-                  ),
-                  ChatMessageUser(:final id, :final text, :final createdAt) =>
-                    _buildBubble(
-                      key: Key(id),
-                      text: text,
-                      isUser: true,
-                      color: Colors.blueAccent,
-                      textColor: Colors.white,
-                      createdAt: createdAt,
-                      context: context,
-                    ),
-                  ChatMessageAi(:final id, :final text, :final createdAt) =>
-                    _buildBubble(
-                      key: Key(id),
-                      text: text,
-                      isUser: false,
-                      color: Colors.grey[300]!,
-                      textColor: Theme.of(context).colorScheme.onSurface,
-                      createdAt: createdAt,
-                      context: context,
-                    ),
-                  ChatMessageError(:final id, :final error, :final createdAt) =>
-                    _buildBubble(
-                      key: Key(id),
-                      text: error is ChatEmptyResponseException
-                          ? l10n.chatEmptyMessage
-                          : l10n.chatError(error.toString()),
-                      isUser: false,
-                      color: Colors.red[100]!,
-                      textColor: Colors.red[900]!,
-                      createdAt: createdAt,
-                      context: context,
-                    ),
-                };
-              },
+        // Dart3のパターンマッチングでUIを出し分ける
+        return switch (msg) {
+          ChatMessageLoading(:final id) => Padding(
+            key: Key(id), // Keyを設定してUIのチラつきを防止
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: const Align(
+              alignment: Alignment.centerLeft,
+              child: CircularProgressIndicator(),
             ),
           ),
-          // 下部の入力フォーム
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: textController,
-                      // 生成中は TextField への入力を無効化する
-                      enabled: !isGenerating,
-                      decoration: InputDecoration(
-                        hintText: isGenerating ? l10n.thinking : l10n.chatHint,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                        ),
-                      ),
-                      // Enterキー（完了）を押した時も送信できるようにする
-                      onSubmitted: (text) async {
-                        // 生成中は送信できないようにブロック
-                        if (text.trim().isEmpty || isGenerating) return;
-                        textController.clear();
-                        await ref
-                            .read(chatProvider.notifier)
-                            .sendMessageStream(text);
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  CircleAvatar(
-                    backgroundColor: isGenerating
-                        ? Colors.grey
-                        : Colors.blueAccent,
-                    child: IconButton(
-                      icon: const Icon(Icons.send, color: Colors.white),
-                      // 生成中は onPressed を null にして完全にボタンを無効化する
-                      onPressed: isGenerating
-                          ? null
-                          : () async {
-                              final text = textController.text;
-                              if (text.trim().isEmpty) return;
-
-                              textController.clear();
-
-                              await ref
-                                  .read(chatProvider.notifier)
-                                  .sendMessageStream(text);
-                            },
-                    ),
-                  ),
-                ],
-              ),
+          ChatMessageUser(:final id, :final text, :final createdAt) =>
+            _buildBubble(
+              key: Key(id),
+              text: text,
+              isUser: true,
+              color: Colors.blueAccent,
+              textColor: Colors.white,
+              createdAt: createdAt,
+              context: context,
             ),
-          ),
-        ],
-      ),
+          ChatMessageAi(:final id, :final text, :final createdAt) =>
+            _buildBubble(
+              key: Key(id),
+              text: text,
+              isUser: false,
+              color: Colors.grey[300]!,
+              textColor: Theme.of(context).colorScheme.onSurface,
+              createdAt: createdAt,
+              context: context,
+            ),
+          ChatMessageError(:final id, :final error, :final createdAt) =>
+            _buildBubble(
+              key: Key(id),
+              text: error is ChatEmptyResponseException
+                  ? AppLocalizations.of(context)!.chatEmptyMessage
+                  : AppLocalizations.of(context)!.chatError(error.toString()),
+              isUser: false,
+              color: Colors.red[100]!,
+              textColor: Colors.red[900]!,
+              createdAt: createdAt,
+              context: context,
+            ),
+        };
+      },
     );
   }
 
-  // 共通の吹き出しUIウィジェット
+  // 共通の吹き出しUI
   Widget _buildBubble({
     required Key key,
     required String text,
@@ -176,7 +127,27 @@ class ChatScreen extends HookConsumerWidget {
         '${createdAt.hour.toString().padLeft(2, '0')}:'
         '${createdAt.minute.toString().padLeft(2, '0')}';
 
-    final timeWidget = Padding(
+    return Padding(
+      key: key,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (isUser) _buildTime(timeString, context),
+          if (isUser) const SizedBox(width: 8),
+          _buildBubbleContainer(text, color, textColor, isUser, context),
+          if (!isUser) const SizedBox(width: 8),
+          if (!isUser) _buildTime(timeString, context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTime(String timeString, BuildContext context) {
+    return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Text(
         timeString,
@@ -186,8 +157,16 @@ class ChatScreen extends HookConsumerWidget {
         ),
       ),
     );
+  }
 
-    final bubble = Container(
+  Widget _buildBubbleContainer(
+    String text,
+    Color color,
+    Color textColor,
+    bool isUser,
+    BuildContext context,
+  ) {
+    return Container(
       constraints: BoxConstraints(
         maxWidth: MediaQuery.sizeOf(context).width * 0.75,
       ),
@@ -215,25 +194,68 @@ class ChatScreen extends HookConsumerWidget {
               ),
             ),
     );
+  }
+}
 
-    return Padding(
-      key: key,
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: isUser
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (isUser) timeWidget,
-          if (isUser) const SizedBox(width: 8),
+/// チャット入力エリア
+class _ChatInputArea extends HookConsumerWidget {
+  const _ChatInputArea();
 
-          bubble,
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 生成中かどうかのフラグ「だけ」を監視する
+    final isGenerating = ref.watch(chatProvider.select((s) => s.isGenerating));
+    final textController = useTextEditingController();
+    final l10n = AppLocalizations.of(context)!;
 
-          if (!isUser) const SizedBox(width: 8),
-          if (!isUser) timeWidget,
-        ],
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: textController,
+                enabled: !isGenerating,
+                decoration: InputDecoration(
+                  hintText: isGenerating ? l10n.thinking : l10n.chatHint,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                  ),
+                ),
+                onSubmitted: (text) =>
+                    _onSend(ref, textController, isGenerating),
+              ),
+            ),
+            const SizedBox(width: 8),
+            CircleAvatar(
+              backgroundColor: isGenerating ? Colors.grey : Colors.blueAccent,
+              child: IconButton(
+                icon: const Icon(Icons.send, color: Colors.white),
+                onPressed: isGenerating
+                    ? null
+                    : () => _onSend(ref, textController, isGenerating),
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  Future<void> _onSend(
+    WidgetRef ref,
+    TextEditingController controller,
+    bool isGenerating,
+  ) async {
+    final text = controller.text;
+    if (text.trim().isEmpty || isGenerating) return;
+
+    controller.clear();
+
+    await ref.read(chatProvider.notifier).sendMessageStream(text);
   }
 }
