@@ -23,7 +23,11 @@ lib/src/app/database/
  └── app_database.dart                 # Driftデータベース本体（テーブルの統合管理）
 
 lib/src/core/database/
- └── database_provider.dart            # AppDatabaseのインスタンスを提供するRiverpod
+ ├── database_provider.dart            # AppDatabaseの提供とリソース管理
+ └── drift_talker_interceptor.dart     # Talkerへのクエリログ出力
+
+lib/src/features/memos/data/
+ └── memos_dao.dart                    # メモ固有のクエリを分離（DAO）
 ```
 
 ---
@@ -32,17 +36,35 @@ lib/src/core/database/
 
 複雑なデータ構造や、オフライン環境でもデータを自由に操作（作成・更新・削除）したい場合は、**Drift** を採用しています。
 
-### 1. 型安全なテーブル定義と生成
+### 1. 型安全なテーブル定義とDAOの活用
 
-Dartのクラスとしてテーブルを定義でき、`build_runner` によって型安全なクエリコードが自動生成されます。
+Dartのクラスとしてテーブルを定義でき、`build_runner` によって型安全なクエリコードが自動生成されます。\
+本プロジェクトでは、クエリロジックが Repository 層に溢れないよう、機能ごとに **DAO (Data Access Object)** を作成してカプセル化しています。
 
-### 2. Streamによるリアルタイム同期
+### 2. リソース管理とライフサイクル
+
+`app_database_provider.dart` では、Riverpod の `ref.onDispose` を利用して、プロバイダーが破棄された際にデータベース接続を確実に閉じる（`db.close()`）よう実装されています。
+
+### 3. 統合ロギング（Talker）との連携
+
+`DriftTalkerInterceptor` を通じて、実行されたすべての SQL クエリとその引数が `Talker` ログに出力されます。これにより、DB操作のデバッグが容易になっています。
+
+### 4. Streamによるリアルタイム同期
 
 DBの値が変更されると、それを監視しているUIが自動的に更新される `watch` 機能を備えています。これにより、複雑な状態管理をDB層に委ねることができ、コードがシンプルになります。
 
-### 3. オフラインファースト設計
+### 5. オフラインファースト設計
 
 リモート（API）から取得したデータを一度DBに保存し、UIは常にDBを参照する構成にすることで、電波のない場所でもアプリを快適に利用できる「オフラインファースト」な設計を実現しています。
+
+---
+
+## 💡 マイグレーション戦略 (MigrationStrategy)
+
+`AppDatabase` 内で `MigrationStrategy` を定義しています。
+
+- **onCreate**: 初回起動時に全テーブルを作成。
+- **onUpgrade**: スキーマバージョンが上がった際の移行処理（カラム追加等）を安全に記述可能。
 
 ---
 
@@ -129,10 +151,6 @@ void main() {
     // 必要に応じて Repository や Storage クラス自体を mocktail でモック化して注入します。
     await tester.pumpWidget(
       ProviderScope(
-        child: const MyApp(),
-      ),
-    );
-  ProviderScope(
         child: const MyApp(),
       ),
     );

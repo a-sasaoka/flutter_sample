@@ -16,7 +16,8 @@
 
 ### 特徴と使用方法
 
-UIやRepositoryでログを出力したい場合は、`ref.watch(loggerProvider)` または `ref.read(loggerProvider)` を使用します。
+UIやRepositoryでログを出力したい場合は、`ref.watch(loggerProvider)` または `ref.read(loggerProvider)` を使用します。\
+また、本プロジェクトでは **Drift（ローカルDB）のクエリログ** も Talker に統合されており、実行された SQL やその引数が自動的にログ出力されます。
 
 ```dart
 final logger = ref.read(loggerProvider);

@@ -39,7 +39,7 @@ flutter_sample
         ├── core                                                # アプリ全体で共通的に利用される基盤コード
         │   ├── analytics                                       # イベント計測関連
         │   ├── config                                          # 環境設定（EnvConfig, AppEnv）、テーマ等
-        │   ├── database                                        # データベースインスタンスの提供
+        │   ├── database                                        # データベースインスタンスの提供、Talker連携
         │   ├── exceptions                                      # 共通の例外クラス定義
         │   ├── network                                         # APIクライアント、Interceptor
         │   ├── storage                                         # 永続化関連（SharedPreferences・SecureStorage・キャッシュ）
