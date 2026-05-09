@@ -11,7 +11,12 @@ void main() {
   late MockGoRouterState mockState;
 
   setUp(() {
-    helper = const AuthGuardHelper();
+    helper = AuthGuardHelper(
+      loginLocation: const LoginRoute().location,
+      homeLocation: const HomeRoute().location,
+      splashLocation: const SplashRoute().location,
+      signUpLocation: const SignUpRoute().location,
+    );
     mockState = MockGoRouterState();
   });
 

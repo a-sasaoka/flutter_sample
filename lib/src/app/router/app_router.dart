@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/app/router/auth_guard.dart';
 import 'package:flutter_sample/src/app/router/firebase_auth_guard.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
+import 'package:flutter_sample/src/core/analytics/typed_route_analytics_observer.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
@@ -26,7 +26,6 @@ import 'package:flutter_sample/src/features/user/presentation/user_list_screen.d
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:talker_flutter/talker_flutter.dart';
 
 part 'app_router.g.dart';
 
@@ -195,56 +194,6 @@ class EmailVerificationRoute extends GoRouteData with $EmailVerificationRoute {
   }
 }
 
-/// Firebase Analytics の screen_class をカスタマイズして送信するカスタム Observer
-class TypedRouteAnalyticsObserver extends NavigatorObserver {
-  /// コンストラクタ
-  TypedRouteAnalyticsObserver({required this.analytics, required this.talker});
-
-  /// Firebase Analytics インスタンス
-  final FirebaseAnalytics analytics;
-
-  /// Talker インスタンス
-  final Talker talker;
-
-  @override
-  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    _sendScreenView(route);
-    super.didPush(route, previousRoute);
-  }
-
-  @override
-  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
-    if (newRoute != null) {
-      _sendScreenView(newRoute);
-    }
-    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
-  }
-
-  @override
-  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    if (previousRoute != null) {
-      _sendScreenView(previousRoute);
-    }
-    super.didPop(route, previousRoute);
-  }
-
-  void _sendScreenView(Route<dynamic> route) {
-    final settings = route.settings;
-    final runtimeTypeName = settings.name ?? route.runtimeType.toString();
-
-    final screenClass = runtimeTypeName.replaceAll(r'$', '');
-
-    unawaited(
-      analytics.logScreenView(
-        screenClass: screenClass,
-        screenName: screenClass,
-      ),
-    );
-
-    talker.debug('📊 screen_view → $screenClass');
-  }
-}
-
 /// 🌐 GoRouterのインスタンスをRiverpodで提供
 @riverpod
 GoRouter router(Ref ref) {
@@ -253,16 +202,20 @@ GoRouter router(Ref ref) {
   // 認証状態の変更を検知して GoRouter にルーティングの再評価を促すための Listenable
   final routerListenable = ValueNotifier<bool>(false);
 
-  ref
-    ..listen(
-      authStateProvider,
-      (_, _) => routerListenable.value = !routerListenable.value,
-    )
-    ..listen(
+  // 使用している認証方式のみを監視対象にする
+  if (useFirebase) {
+    ref.listen(
       firebaseAuthStateProvider,
       (_, _) => routerListenable.value = !routerListenable.value,
-    )
-    ..onDispose(routerListenable.dispose);
+    );
+  } else {
+    ref.listen(
+      authStateProvider,
+      (_, _) => routerListenable.value = !routerListenable.value,
+    );
+  }
+
+  ref.onDispose(routerListenable.dispose);
 
   return GoRouter(
     refreshListenable: routerListenable,
