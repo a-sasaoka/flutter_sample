@@ -192,6 +192,9 @@ void main() {
         ),
       ).thenAnswer((_) async => mockResponse);
 
+      // 💡 キャッシュクリアをスタブ化
+      when(() => mockCache.clear(any())).thenAnswer((_) async {});
+
       // Act
       final result = await repository.createUser(
         'Test User 1',
@@ -214,6 +217,8 @@ void main() {
           ),
         ),
       ).called(1);
+      // キャッシュがクリアされたことを確認
+      verify(() => mockCache.clear('users')).called(1);
     });
 
     test('updateUserName: 正しいIDとデータでPATCHを呼び出し、更新されたUserModelを返すこと', () async {
@@ -228,6 +233,9 @@ void main() {
         ),
       ).thenAnswer((_) async => mockResponse);
 
+      // 💡 キャッシュクリアをスタブ化
+      when(() => mockCache.clear(any())).thenAnswer((_) async {});
+
       // Act
       final result = await repository.updateUserName(1, 'Updated Name');
 
@@ -240,6 +248,8 @@ void main() {
           data: {'name': 'Updated Name'},
         ),
       ).called(1);
+      // キャッシュがクリアされたことを確認
+      verify(() => mockCache.clear('users')).called(1);
     });
 
     test('deleteUser: 正しいIDでDELETEを呼び出すこと', () async {
@@ -249,11 +259,16 @@ void main() {
         () => mockApi.delete<void>('/users/1'),
       ).thenAnswer((_) async => mockResponse);
 
+      // 💡 キャッシュクリアをスタブ化
+      when(() => mockCache.clear(any())).thenAnswer((_) async {});
+
       // Act
       await repository.deleteUser(1);
 
       // Assert
       verify(() => mockApi.delete<void>('/users/1')).called(1);
+      // キャッシュがクリアされたことを確認
+      verify(() => mockCache.clear('users')).called(1);
     });
 
     test('createUser: レスポンスデータがnullの場合、例外を投げること', () async {
