@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
@@ -40,21 +42,32 @@ class _ChatListView extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 翻訳データを変数に入れておきます。リストの中で何度も計算しなくて済むようになり、動作が軽くなります。
+    final l10n = AppLocalizations.of(context)!;
+
     // メッセージのリスト「だけ」を監視する
     final messages = ref.watch(chatProvider.select((s) => s.messages));
     final scrollController = useScrollController();
 
-    // メッセージリストの変更を監視して、自動スクロールを実行する
+    // メッセージの更新（新しい発言や、AIが文字を書いている最中）に合わせて、スクロール位置を調整します。
     ref.listen(chatProvider.select((s) => s.messages), (previous, next) {
       // 画面の描画（レイアウト）が完了するのを一瞬待ってからスクロールさせる
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         if (scrollController.hasClients) {
-          await scrollController.animateTo(
-            // リストの一番下（最大スクロール位置）を指定
-            scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 300), // アニメーションの秒数
-            curve: Curves.easeOut,
-          );
+          // メッセージの「数」が変わった（新規発言やローディング開始）時はアニメーション
+          if (previous?.length != next.length) {
+            unawaited(
+              scrollController.animateTo(
+                scrollController.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+              ),
+            );
+          } else {
+            // メッセージの「中身」が更新されている（AIがストリーミング中）時は、
+            // アニメーションなしで即座に末尾へ移動（jumpTo）して、最新の文字を表示し続ける
+            scrollController.jumpTo(scrollController.position.maxScrollExtent);
+          }
         }
       });
     });
@@ -65,89 +78,104 @@ class _ChatListView extends HookConsumerWidget {
       itemCount: messages.length,
       itemBuilder: (context, index) {
         final msg = messages[index];
-
-        // Dart3のパターンマッチングでUIを出し分ける
-        return switch (msg) {
-          ChatMessageLoading(:final id) => Padding(
-            key: Key(id), // Keyを設定してUIのチラつきを防止
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: const Align(
-              alignment: Alignment.centerLeft,
-              child: CircularProgressIndicator(),
-            ),
-          ),
-          ChatMessageUser(:final id, :final text, :final createdAt) =>
-            _buildBubble(
-              key: Key(id),
-              text: text,
-              isUser: true,
-              color: Colors.blueAccent,
-              textColor: Colors.white,
-              createdAt: createdAt,
-              context: context,
-            ),
-          ChatMessageAi(:final id, :final text, :final createdAt) =>
-            _buildBubble(
-              key: Key(id),
-              text: text,
-              isUser: false,
-              color: Colors.grey[300]!,
-              textColor: Theme.of(context).colorScheme.onSurface,
-              createdAt: createdAt,
-              context: context,
-            ),
-          ChatMessageError(:final id, :final error, :final createdAt) =>
-            _buildBubble(
-              key: Key(id),
-              text: error is ChatEmptyResponseException
-                  ? AppLocalizations.of(context)!.chatEmptyMessage
-                  : AppLocalizations.of(context)!.chatError(error.toString()),
-              isUser: false,
-              color: Colors.red[100]!,
-              textColor: Colors.red[900]!,
-              createdAt: createdAt,
-              context: context,
-            ),
-        };
+        // 各メッセージを専用のクラスとして描画します。
+        // Flutterが「描き直す必要がない場所」を賢く判断できるようになり、パフォーマンスが向上します。
+        return _ChatBubble(
+          key: ValueKey(msg.id),
+          message: msg,
+          l10n: l10n,
+        );
       },
     );
   }
+}
 
-  // 共通の吹き出しUI
-  Widget _buildBubble({
-    required Key key,
-    required String text,
-    required bool isUser,
-    required Color color,
-    required Color textColor,
-    required DateTime createdAt,
-    required BuildContext context,
-  }) {
+/// 1つのメッセージ吹き出しを表示するウィジェット
+class _ChatBubble extends StatelessWidget {
+  /// コンストラクタ
+  const _ChatBubble({
+    required this.message,
+    required this.l10n,
+    super.key,
+  });
+
+  /// 表示するメッセージ
+  final ChatMessage message;
+
+  /// ローカライズ
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    // Dart3のパターンマッチングでUIを出し分ける
+    return switch (message) {
+      ChatMessageLoading() => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      ChatMessageUser(:final text, :final createdAt) => _BubbleLayout(
+        text: text,
+        isUser: true,
+        color: Colors.blueAccent,
+        textColor: Colors.white,
+        createdAt: createdAt,
+      ),
+      ChatMessageAi(:final text, :final createdAt) => _BubbleLayout(
+        text: text,
+        isUser: false,
+        color: Colors.grey[300]!,
+        textColor: Theme.of(context).colorScheme.onSurface,
+        createdAt: createdAt,
+      ),
+      ChatMessageError(:final error, :final createdAt) => _BubbleLayout(
+        text: error is ChatEmptyResponseException
+            ? l10n.chatEmptyMessage
+            : l10n.chatError(error.toString()),
+        isUser: false,
+        color: Colors.red[100]!,
+        textColor: Colors.red[900]!,
+        createdAt: createdAt,
+      ),
+    };
+  }
+}
+
+/// 吹き出しの共通レイアウト
+class _BubbleLayout extends StatelessWidget {
+  /// コンストラクタ
+  const _BubbleLayout({
+    required this.text,
+    required this.isUser,
+    required this.color,
+    required this.textColor,
+    required this.createdAt,
+  });
+
+  /// 表示するテキスト
+  final String text;
+
+  /// ユーザーのメッセージかどうか
+  final bool isUser;
+
+  /// 吹き出しの背景色
+  final Color color;
+
+  /// テキストの色
+  final Color textColor;
+
+  /// 作成日時
+  final DateTime createdAt;
+
+  @override
+  Widget build(BuildContext context) {
     final timeString =
         '${createdAt.hour.toString().padLeft(2, '0')}:'
         '${createdAt.minute.toString().padLeft(2, '0')}';
 
-    return Padding(
-      key: key,
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: isUser
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (isUser) _buildTime(timeString, context),
-          if (isUser) const SizedBox(width: 8),
-          _buildBubbleContainer(text, color, textColor, isUser, context),
-          if (!isUser) const SizedBox(width: 8),
-          if (!isUser) _buildTime(timeString, context),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTime(String timeString, BuildContext context) {
-    return Padding(
+    final timeWidget = Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Text(
         timeString,
@@ -157,15 +185,55 @@ class _ChatListView extends HookConsumerWidget {
         ),
       ),
     );
-  }
 
-  Widget _buildBubbleContainer(
-    String text,
-    Color color,
-    Color textColor,
-    bool isUser,
-    BuildContext context,
-  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (isUser) timeWidget,
+          if (isUser) const SizedBox(width: 8),
+          _BubbleContainer(
+            text: text,
+            color: color,
+            textColor: textColor,
+            isUser: isUser,
+          ),
+          if (!isUser) const SizedBox(width: 8),
+          if (!isUser) timeWidget,
+        ],
+      ),
+    );
+  }
+}
+
+/// 吹き出しのコンテナ（文字装飾を含む）
+class _BubbleContainer extends StatelessWidget {
+  /// コンストラクタ
+  const _BubbleContainer({
+    required this.text,
+    required this.color,
+    required this.textColor,
+    required this.isUser,
+  });
+
+  /// 表示するテキスト
+  final String text;
+
+  /// 背景色
+  final Color color;
+
+  /// テキスト色
+  final Color textColor;
+
+  /// ユーザーメッセージかどうか
+  final bool isUser;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       constraints: BoxConstraints(
         maxWidth: MediaQuery.sizeOf(context).width * 0.75,
