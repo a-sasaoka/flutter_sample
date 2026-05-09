@@ -1,3 +1,4 @@
+import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/storage/cache_manager.dart';
 import 'package:flutter_sample/src/features/user/domain/user_model.dart';
@@ -28,11 +29,12 @@ class UserRepository {
   /// キャッシュマネージャー
   final CacheManager cache;
 
+  /// キャッシュのキー
+  static const cacheKey = 'users';
+
   /// ユーザー一覧を取得
   /// [forceRefresh] true の場合はキャッシュを無視してAPIから再取得する
   Future<List<UserModel>> fetchUsers({bool forceRefresh = false}) async {
-    const cacheKey = 'users';
-
     // 強制更新でない場合のみ、キャッシュを確認する
     if (!forceRefresh) {
       final cachedData = await cache.get(cacheKey);
@@ -79,8 +81,11 @@ class UserRepository {
 
     final data = response.data;
     if (data == null) {
-      throw Exception('Failed to create user');
+      throw const UnknownException(message: 'Failed to create user');
     }
+
+    // キャッシュをクリア
+    await cache.clear(cacheKey);
 
     return UserModel.fromJson(data);
   }
@@ -94,8 +99,11 @@ class UserRepository {
 
     final data = response.data;
     if (data == null) {
-      throw Exception('Failed to update user');
+      throw const UnknownException(message: 'Failed to update user');
     }
+
+    // キャッシュをクリア
+    await cache.clear(cacheKey);
 
     return UserModel.fromJson(data);
   }
@@ -103,5 +111,8 @@ class UserRepository {
   /// ユーザーを削除する (DELETEのサンプル)
   Future<void> deleteUser(int id) async {
     await api.delete<void>('/users/$id');
+
+    // キャッシュをクリア
+    await cache.clear(cacheKey);
   }
 }
