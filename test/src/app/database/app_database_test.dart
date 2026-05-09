@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_sample/src/app/database/app_database.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -62,31 +61,6 @@ void main() {
       await database.delete(database.memos).delete(memos.first);
       memos = await database.select(database.memos).get();
       expect(memos.isEmpty, true);
-    });
-
-    test('_openConnection は正しくLazyDatabaseを初期化する', () async {
-      // path_provider のモックを設定
-      const channel = MethodChannel('plugins.flutter.io/path_provider');
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, (methodCall) async {
-            if (methodCall.method == 'getApplicationDocumentsDirectory') {
-              return '.';
-            }
-            return null;
-          });
-
-      // デフォルトコンストラクタを呼び出す
-      final defaultDb = AppDatabase();
-
-      // LazyDatabaseのコールバックをトリガーするために一度クエリを実行する
-      // エラーがスローされても、LazyDatabaseの中身が実行されればカバレッジは通る
-      try {
-        await defaultDb.select(defaultDb.memos).get();
-      } on Object catch (_) {
-        // NativeDatabaseの初期化に関連するエラーなどはここでは無視する
-      }
-
-      await defaultDb.close();
     });
   });
 }

@@ -56,7 +56,7 @@ dependencies:
   shared_preferences: ^2.5.3
   flutter_secure_storage: ^10.0.0
   drift: ^2.29.0
-  sqlite3_flutter_libs: ^0.6.0+eol
+  drift_flutter: ^0.2.8
 
   # --- 🧱 JSONシリアライズ・デシリアライズ ---
   freezed_annotation: ^3.1.0
