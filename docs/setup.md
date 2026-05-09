@@ -93,9 +93,16 @@ cd ..
 以下の形式で実行します。
 
 ```bash
-# dev環境の実行例
+# 例: dev環境で実行する場合
 fvm flutter run -t lib/main_dev.dart --flavor dev --dart-define-from-file=config/flavor_dev.json --dart-define-from-file=.env.dev
 ```
+
+### 💡 ローカルモックサーバーの活用
+
+本物のAPIサーバーが利用できない場合や、ローカルで自由にデータを操作してテストしたい場合は、以下の手順でモックサーバーを利用できます。詳細は [モックサーバーのドキュメント](./mock_server.md) を参照してください。
+
+1. ターミナルで `./mock/start.sh` を実行してサーバーを起動する。
+2. Flutterアプリを `local` フレーバーで起動する。
 
 ---
 
@@ -117,6 +124,6 @@ fvm dart run build_runner build
 ### セットアップ
 
 ```bash
-chmod +x tool/hooks/pre-commit tool/setup_git_hooks.sh ios/scripts/*.sh
+chmod +x tool/hooks/pre-commit tool/setup_git_hooks.sh ios/scripts/*.sh mock/*.sh
 ./tool/setup_git_hooks.sh
 ```

@@ -119,6 +119,22 @@ void main() {
       verify(() => mockDio.put<dynamic>(path, data: {'key': 'val'})).called(1);
     });
 
+    test('patch() が正しく呼び出されること', () async {
+      const path = '/patch-path';
+      final patchData = {'key': 'val'};
+      when(
+        () => mockDio.patch<dynamic>(any(), data: any(named: 'data')),
+      ).thenAnswer(
+        (_) async => Response(requestOptions: RequestOptions(path: path)),
+      );
+
+      await container
+          .read(apiClientProvider)
+          .patch<dynamic>(path, data: patchData);
+
+      verify(() => mockDio.patch<dynamic>(path, data: patchData)).called(1);
+    });
+
     test('delete() が正しく呼び出されること', () async {
       const path = '/delete-path';
       when(

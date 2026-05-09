@@ -1,6 +1,6 @@
 # API通信とエラーハンドリング
 
-[Dio](https://pub.dev/packages/dio) と [Riverpod](https://pub.dev/packages/flutter_riverpod) を組み合わせ、外部APIからデータを取得してUIに表示する堅牢な仕組みを実装しています。
+[Dio](https://pub.dev/packages/dio) と [Riverpod](https://pub.dev/packages/flutter_riverpod) を組み合わせ、外部APIからデータを取得してUIに表示する堅牢な仕組みを実装しています。\
 以下は `https://jsonplaceholder.typicode.com/users` を利用したユーザー一覧取得のデモアーキテクチャです。
 
 ## 📁 構成例（レイヤードアーキテクチャ）
@@ -22,12 +22,13 @@ lib/src/features/user/
 
 ## 🌐 ネットワーク基盤とインターセプタ
 
-このプロジェクトでは、Dioを利用した通信基盤に共通エラーハンドリング、トークン管理、ロギング処理を追加しています。
+このプロジェクトでは、Dioを利用した通信基盤に共通エラーハンドリング、トークン管理、ロギング処理を追加しています。\
+また、`ApiClient` は **GET, POST, PUT, PATCH, DELETE** の主要なHTTPメソッドをすべてサポートしており、複雑なCRUD操作にも対応可能です。
 
 ```plaintext
 lib/src/core/
   ├── network/
-  │   ├── api_client.dart        # Dioの共通インスタンス
+  │   ├── api_client.dart        # Dioの共通インスタンス（主要メソッド完備）
   │   ├── dio_interceptor.dart   # 共通の通信ログ・エラー変換
   │   └── token_interceptor.dart # 認証トークン(Bearer)の自動リフレッシュ・付与
   └── utils/

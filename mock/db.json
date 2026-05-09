@@ -1,0 +1,35 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "山田 太郎",
+      "email": "taro@example.com",
+      "phone": "090-1234-5678",
+      "website": "example.com",
+      "address": {
+        "city": "東京都",
+        "street": "渋谷区1-1-1",
+        "suite": "マンション101"
+      }
+    },
+    {
+      "id": 2,
+      "name": "佐藤 花子",
+      "email": "hanako@example.com",
+      "phone": "080-9876-5432",
+      "website": "example.net",
+      "address": {
+        "city": "大阪府",
+        "street": "北区2-2-2",
+        "suite": "アパート202"
+      }
+    }
+  ],
+  "login": {
+    "access_token": "dummy_access_token_123",
+    "refresh_token": "dummy_refresh_token_456"
+  },
+  "refresh": {
+    "access_token": "dummy_new_access_token_789"
+  }
+}

@@ -1,3 +1,4 @@
+import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/storage/cache_manager.dart';
 import 'package:flutter_sample/src/features/user/domain/user_model.dart';
@@ -28,11 +29,12 @@ class UserRepository {
   /// キャッシュマネージャー
   final CacheManager cache;
 
+  /// キャッシュのキー
+  static const cacheKey = 'users';
+
   /// ユーザー一覧を取得
   /// [forceRefresh] true の場合はキャッシュを無視してAPIから再取得する
   Future<List<UserModel>> fetchUsers({bool forceRefresh = false}) async {
-    const cacheKey = 'users';
-
     // 強制更新でない場合のみ、キャッシュを確認する
     if (!forceRefresh) {
       final cachedData = await cache.get(cacheKey);
@@ -58,5 +60,59 @@ class UserRepository {
     await cache.save(cacheKey, response.data);
 
     return users;
+  }
+
+  /// ユーザーを新規作成する (POSTのサンプル)
+  Future<UserModel> createUser(String name, String email) async {
+    final response = await api.post<Map<String, dynamic>>(
+      '/users',
+      data: {
+        'name': name,
+        'email': email,
+        'phone': '000-0000-0000',
+        'website': 'example.com',
+        'address': {
+          'city': '未設定',
+          'street': '未設定',
+          'suite': '未設定',
+        },
+      },
+    );
+
+    final data = response.data;
+    if (data == null) {
+      throw const UnknownException(message: 'Failed to create user');
+    }
+
+    // キャッシュをクリア
+    await cache.clear(cacheKey);
+
+    return UserModel.fromJson(data);
+  }
+
+  /// ユーザー名を更新する (PATCHのサンプル)
+  Future<UserModel> updateUserName(int id, String newName) async {
+    final response = await api.patch<Map<String, dynamic>>(
+      '/users/$id',
+      data: {'name': newName},
+    );
+
+    final data = response.data;
+    if (data == null) {
+      throw const UnknownException(message: 'Failed to update user');
+    }
+
+    // キャッシュをクリア
+    await cache.clear(cacheKey);
+
+    return UserModel.fromJson(data);
+  }
+
+  /// ユーザーを削除する (DELETEのサンプル)
+  Future<void> deleteUser(int id) async {
+    await api.delete<void>('/users/$id');
+
+    // キャッシュをクリア
+    await cache.clear(cacheKey);
   }
 }

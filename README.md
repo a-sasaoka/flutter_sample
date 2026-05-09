@@ -18,6 +18,7 @@ Flutter開発のサンプルプロジェクトです。\
 ### B. 開発準備
 
 - [初期セットアップ](docs/setup.md)
+- [ローカルモックサーバー (json-server)](docs/mock_server.md)
 
 ### C. アプリ基盤
 

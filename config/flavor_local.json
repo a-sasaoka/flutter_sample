@@ -1,5 +1,5 @@
 {
-  "BASE_URL": "https://jsonplaceholder.typicode.com",
+  "BASE_URL": "http://localhost:3000",
   "AI_MODEL": "gemini-2.5-flash",
   "CONNECT_TIMEOUT": 10,
   "RECEIVE_TIMEOUT": 15,

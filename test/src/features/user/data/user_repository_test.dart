@@ -14,10 +14,18 @@ class MockCacheManager extends Mock implements CacheManager {}
 
 class MockResponse extends Mock implements Response<List<dynamic>> {}
 
+class MockMapResponse extends Mock implements Response<Map<String, dynamic>> {}
+
+class MockVoidResponse extends Mock implements Response<void> {}
+
 void main() {
   late MockApiClient mockApi;
   late MockCacheManager mockCache;
   late UserRepository repository;
+
+  setUpAll(() {
+    registerFallbackValue(Options());
+  });
 
   setUp(() {
     mockApi = MockApiClient();
@@ -30,25 +38,25 @@ void main() {
   });
 
   // テスト用のダミーJSONデータ
-  final dummyJsonList = [
-    {
-      'id': 1,
-      'name': 'Test User 1',
-      'email': 'test1@example.com',
-      'phone': '123-456-7890',
-      'website': 'https://example.com',
-      'address': {
-        'street': 'Test Street',
-        'suite': 'Suite 1',
-        'city': 'Tokyo',
-        'zipcode': '100-0000',
-        'geo': {
-          'lat': '35.6895',
-          'lng': '139.6917',
-        },
+  final dummyJson = {
+    'id': 1,
+    'name': 'Test User 1',
+    'email': 'test1@example.com',
+    'phone': '123-456-7890',
+    'website': 'https://example.com',
+    'address': {
+      'street': 'Test Street',
+      'suite': 'Suite 1',
+      'city': 'Tokyo',
+      'zipcode': '100-0000',
+      'geo': {
+        'lat': '35.6895',
+        'lng': '139.6917',
       },
     },
-  ];
+  };
+
+  final dummyJsonList = [dummyJson];
 
   group('UserRepository - fetchUsers', () {
     test('キャッシュが存在する場合、APIは呼ばれずにキャッシュからデータが返されること', () async {
@@ -169,6 +177,144 @@ void main() {
 
       // エラーが起きたので、キャッシュ保存は絶対に呼ばれていないことを確認
       verifyNever(() => mockCache.save(any<String>(), any<dynamic>()));
+    });
+  });
+
+  group('UserRepository - CRUD operations', () {
+    test('createUser: 正しい引数でPOSTを呼び出し、UserModelを返すこと', () async {
+      // Arrange
+      final mockResponse = MockMapResponse();
+      when(() => mockResponse.data).thenReturn(dummyJson);
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/users',
+          data: any(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockResponse);
+
+      // 💡 キャッシュクリアをスタブ化
+      when(() => mockCache.clear(any())).thenAnswer((_) async {});
+
+      // Act
+      final result = await repository.createUser(
+        'Test User 1',
+        'test1@example.com',
+      );
+
+      // Assert
+      expect(result.id, 1);
+      expect(result.name, 'Test User 1');
+      verify(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/users',
+          data: any(
+            named: 'data',
+            that: isA<Map<String, dynamic>>().having(
+              (m) => m['name'],
+              'name',
+              'Test User 1',
+            ),
+          ),
+        ),
+      ).called(1);
+      // キャッシュがクリアされたことを確認
+      verify(() => mockCache.clear('users')).called(1);
+    });
+
+    test('updateUserName: 正しいIDとデータでPATCHを呼び出し、更新されたUserModelを返すこと', () async {
+      // Arrange
+      final updatedJson = {...dummyJson, 'name': 'Updated Name'};
+      final mockResponse = MockMapResponse();
+      when(() => mockResponse.data).thenReturn(updatedJson);
+      when(
+        () => mockApi.patch<Map<String, dynamic>>(
+          '/users/1',
+          data: any(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockResponse);
+
+      // 💡 キャッシュクリアをスタブ化
+      when(() => mockCache.clear(any())).thenAnswer((_) async {});
+
+      // Act
+      final result = await repository.updateUserName(1, 'Updated Name');
+
+      // Assert
+      expect(result.id, 1);
+      expect(result.name, 'Updated Name');
+      verify(
+        () => mockApi.patch<Map<String, dynamic>>(
+          '/users/1',
+          data: {'name': 'Updated Name'},
+        ),
+      ).called(1);
+      // キャッシュがクリアされたことを確認
+      verify(() => mockCache.clear('users')).called(1);
+    });
+
+    test('deleteUser: 正しいIDでDELETEを呼び出すこと', () async {
+      // Arrange
+      final mockResponse = MockVoidResponse();
+      when(
+        () => mockApi.delete<void>('/users/1'),
+      ).thenAnswer((_) async => mockResponse);
+
+      // 💡 キャッシュクリアをスタブ化
+      when(() => mockCache.clear(any())).thenAnswer((_) async {});
+
+      // Act
+      await repository.deleteUser(1);
+
+      // Assert
+      verify(() => mockApi.delete<void>('/users/1')).called(1);
+      // キャッシュがクリアされたことを確認
+      verify(() => mockCache.clear('users')).called(1);
+    });
+
+    test('createUser: レスポンスデータがnullの場合、例外を投げること', () async {
+      // Arrange
+      final mockResponse = MockMapResponse();
+      when(() => mockResponse.data).thenReturn(null);
+      when(
+        () =>
+            mockApi.post<Map<String, dynamic>>(any(), data: any(named: 'data')),
+      ).thenAnswer((_) async => mockResponse);
+
+      // Act & Assert
+      expect(
+        () => repository.createUser('Name', 'email@example.com'),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            contains('Failed to create user'),
+          ),
+        ),
+      );
+    });
+
+    test('updateUserName: レスポンスデータがnullの場合、例外を投げること', () async {
+      // Arrange
+      final mockResponse = MockMapResponse();
+      when(() => mockResponse.data).thenReturn(null);
+      when(
+        () => mockApi.patch<Map<String, dynamic>>(
+          any(),
+          data: any(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockResponse);
+
+      // Act & Assert
+      expect(
+        () => repository.updateUserName(1, 'New Name'),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            contains('Failed to update user'),
+          ),
+        ),
+      );
     });
   });
 
