@@ -43,49 +43,52 @@ void main() {
   });
 
   group('AnalyticsService テスト', () {
-    test('logEvent が正しいイベント名とパラメータ(null除外, 固定のtimestamp付与)で呼び出されること', () async {
-      // Arrange
-      when(
-        () => mockAnalytics.logEvent(
-          name: any(named: 'name'),
-          parameters: any(named: 'parameters'),
-        ),
-      ).thenAnswer((_) async {});
+    test(
+      'logEvent が正しいイベント名とパラメータ(null除外, 固定のtimestamp付与)で呼び出されること',
+      () async {
+        // Arrange
+        when(
+          () => mockAnalytics.logEvent(
+            name: any(named: 'name'),
+            parameters: any(named: 'parameters'),
+          ),
+        ).thenAnswer((_) async {});
 
-      final service = container.read(analyticsServiceProvider);
+        final service = container.read(analyticsServiceProvider);
 
-      // Act
-      await service.logEvent(
-        event: AnalyticsEvent.loginSuccess,
-        parameters: {
-          'user_id': 123,
-          'user_type': 'premium',
-          'null_value': null, // 除外対象
-        },
-      );
+        // Act
+        await service.logEvent(
+          event: AnalyticsEvent.loginSuccess,
+          parameters: {
+            'user_id': 123,
+            'user_type': 'premium',
+            'null_value': null, // 除外対象
+          },
+        );
 
-      // Assert
-      final captured = verify(
-        () => mockAnalytics.logEvent(
-          name: captureAny(named: 'name'),
-          parameters: captureAny(named: 'parameters'),
-        ),
-      ).captured;
+        // Assert
+        final captured = verify(
+          () => mockAnalytics.logEvent(
+            name: captureAny(named: 'name'),
+            parameters: captureAny(named: 'parameters'),
+          ),
+        ).captured;
 
-      expect(captured[0], 'login_success');
+        expect(captured[0], 'login_success');
 
-      final params = captured[1] as Map<String, Object>;
+        final params = captured[1] as Map<String, Object>;
 
-      // ① 正常な値が渡されているか
-      expect(params['user_id'], 123);
-      expect(params['user_type'], 'premium');
+        // ① 正常な値が渡されているか
+        expect(params['user_id'], 123);
+        expect(params['user_type'], 'premium');
 
-      // ② null の値が正しく除外されているか
-      expect(params.containsKey('null_value'), isFalse);
+        // ② null の値が正しく除外されているか
+        expect(params.containsKey('null_value'), isFalse);
 
-      // ③ 【進化ポイント】timestamp がモックで固定した日時と「完全に一致」しているか！
-      expect(params['timestamp'], mockDateTime.millisecondsSinceEpoch);
-    });
+        // ③ 【進化ポイント】timestamp がモックで固定した日時と「完全に一致」しているか！
+        expect(params['timestamp'], mockDateTime.millisecondsSinceEpoch);
+      },
+    );
 
     test('logEvent 実行時に例外が発生した場合、クラッシュせずに処理が完了すること', () async {
       // Arrange
@@ -104,6 +107,114 @@ void main() {
         service.logEvent(event: AnalyticsEvent.loginSuccess),
         completes,
       );
+    });
+
+    test('setUserId が正しいIDで呼び出されること', () async {
+      // Arrange
+      when(
+        () => mockAnalytics.setUserId(id: any(named: 'id')),
+      ).thenAnswer((_) async {});
+      final service = container.read(analyticsServiceProvider);
+
+      // Act
+      await service.setUserId('user_123');
+
+      // Assert
+      verify(() => mockAnalytics.setUserId(id: 'user_123')).called(1);
+    });
+
+    test('setUserProperty が正しい名前と値で呼び出されること', () async {
+      // Arrange
+      when(
+        () => mockAnalytics.setUserProperty(
+          name: any(named: 'name'),
+          value: any(named: 'value'),
+        ),
+      ).thenAnswer((_) async {});
+      final service = container.read(analyticsServiceProvider);
+
+      // Act
+      await service.setUserProperty(name: 'plan', value: 'gold');
+
+      // Assert
+      verify(
+        () => mockAnalytics.setUserProperty(name: 'plan', value: 'gold'),
+      ).called(1);
+    });
+
+    test('setUserId 実行時に例外が発生した場合、警告ログを出力し、クラッシュしないこと', () async {
+      // Arrange
+      when(
+        () => mockAnalytics.setUserId(id: any(named: 'id')),
+      ).thenAnswer((_) async => throw Exception('SetUserId Error'));
+      final service = container.read(analyticsServiceProvider);
+
+      // Act & Assert
+      await expectLater(service.setUserId('user_123'), completes);
+      verify(
+        () => mockTalker.warning(
+          any<String>(that: contains('SetUserId Error')),
+        ),
+      ).called(1);
+    });
+
+    test('setUserProperty 実行時に例外が発生した場合、警告ログを出力し、クラッシュしないこと', () async {
+      // Arrange
+      when(
+        () => mockAnalytics.setUserProperty(
+          name: any(named: 'name'),
+          value: any(named: 'value'),
+        ),
+      ).thenAnswer((_) async => throw Exception('SetUserProperty Error'));
+      final service = container.read(analyticsServiceProvider);
+
+      // Act & Assert
+      await expectLater(
+        service.setUserProperty(name: 'plan', value: 'gold'),
+        completes,
+      );
+      verify(
+        () => mockTalker.warning(
+          any<String>(that: contains('SetUserProperty Error')),
+        ),
+      ).called(1);
+    });
+  });
+
+  group('AnalyticsService ユニットテスト (Providerなし)', () {
+    test('DIにより、ProviderContainerなしでも単体テストが可能なこと', () async {
+      // Arrange
+      final mockAnalytics = MockFirebaseAnalytics();
+      final mockTalker = MockTalker();
+      final fixedDate = DateTime(2026);
+
+      when(
+        () => mockAnalytics.logEvent(
+          name: any(named: 'name'),
+          parameters: any(named: 'parameters'),
+        ),
+      ).thenAnswer((_) async {});
+
+      // コンストラクタで直接依存を注入
+      final service = AnalyticsService(
+        firebaseAnalytics: mockAnalytics,
+        talker: mockTalker,
+        getCurrentDateTime: () => fixedDate,
+      );
+
+      // Act
+      await service.logEvent(event: AnalyticsEvent.appStarted);
+
+      // Assert
+      final captured = verify(
+        () => mockAnalytics.logEvent(
+          name: any(named: 'name'),
+          parameters: captureAny(named: 'parameters'),
+        ),
+      ).captured;
+
+      final params = captured.first as Map<String, Object>;
+      expect(params['timestamp'], fixedDate.millisecondsSinceEpoch);
     });
   });
 }
