@@ -57,6 +57,24 @@ Firebase Console の Remote Config にて、パラメータキー **`update_info
 }
 ```
 
+## 🎨 UIの実装（VersionUpDialog）
+
+アップデートの通知には、`lib/src/core/widgets/version_up_dialog.dart` を使用します。
+
+### 1. 疎結合な設計（Pure UI）
+
+このダイアログは Riverpod や特定の Provider に依存していません。
+呼び出し側（通常は `HomeScreen`）が状態を監視し、必要なコールバック（`onUpdate`, `onCancel`）とフラグを渡すことで、表示のみを担当します。
+
+これにより、UI 単体での確認やテストが極めて容易になっています。
+
+### 2. キャンセル制御
+
+Remote Config の `canCancel` 設定に基づき、ダイアログの挙動が自動で切り替わります。
+
+- `true` の場合：キャンセルボタンを表示し、ダイアログ外タップや戻るボタンでの閉鎖を許可。
+- `false` の場合：キャンセル不可（強制アップデート）となり、ストアへ誘導するボタンのみを配置。
+
 ---
 
 ## 🧪 テスト・動作検証

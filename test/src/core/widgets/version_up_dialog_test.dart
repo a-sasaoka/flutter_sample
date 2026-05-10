@@ -1,177 +1,139 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
-import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 import 'package:flutter_sample/src/core/widgets/version_up_dialog.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart'; // 💡 追加: GoRouterをインポート
-
-// `CancelController`をテスト用に拡張し、メソッド呼び出しを追跡できるようにします。
-class TestCancelController extends CancelController {
-  bool clickCancelCalled = false;
-
-  @override
-  void clickCancel() {
-    super.clickCancel();
-    clickCancelCalled = true;
-  }
-}
 
 void main() {
   group('VersionUpDialog', () {
     // テスト用のウィジェットを構築するヘルパー関数
     Widget createTestWidget(
-      void Function(BuildContext, WidgetRef) showDialogCallback,
+      void Function(BuildContext) showDialogCallback,
     ) {
-      return ProviderScope(
-        overrides: [
-          // `cancelControllerProvider`をテスト用のコントローラで上書きします。
-          cancelControllerProvider.overrideWith(TestCancelController.new),
-        ],
-        child: Consumer(
-          builder: (context, ref, _) {
-            // 💡 修正: context.pop() が動くように GoRouter を設定
-            final router = GoRouter(
-              routes: [
-                GoRoute(
-                  path: '/',
-                  builder: (context, state) => Scaffold(
-                    body: Center(
-                      child: ElevatedButton(
-                        onPressed: () => showDialogCallback(context, ref),
-                        child: const Text('Show Dialog'),
-                      ),
-                    ),
-                  ),
+      final router = GoRouter(
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (context, state) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => showDialogCallback(context),
+                  child: const Text('Show Dialog'),
                 ),
-              ],
-            );
+              ),
+            ),
+          ),
+        ],
+      );
 
-            // 💡 修正: MaterialApp.router に変更
-            return MaterialApp.router(
-              routerConfig: router,
-              localizationsDelegates: const [
-                AppLocalizations.delegate,
-                GlobalMaterialLocalizations.delegate,
-                GlobalWidgetsLocalizations.delegate,
-                GlobalCupertinoLocalizations.delegate,
-              ],
-              supportedLocales: AppLocalizations.supportedLocales,
-            );
-          },
-        ),
+      return MaterialApp.router(
+        routerConfig: router,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
       );
     }
 
-    testWidgets('UpdateRequestType.notの場合、ダイアログは表示されない', (tester) async {
+    testWidgets('キャンセル可能なダイアログが表示され、各ボタンが動作すること', (tester) async {
+      var onUpdateCalled = false;
+      var onCancelCalled = false;
+
       await tester.pumpWidget(
-        createTestWidget((context, ref) async {
-          await VersionUpDialog.show(context, UpdateRequestType.not, ref);
-        }),
-      );
-
-      // ダイアログ表示ボタンをタップ
-      await tester.tap(find.byType(ElevatedButton));
-      await tester.pump();
-
-      // ダイアログが表示されていないことを確認
-      expect(find.byType(AlertDialog), findsNothing);
-    });
-
-    testWidgets('UpdateRequestType.cancelableの場合、キャンセル可能なダイアログが表示される', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        createTestWidget((context, ref) async {
+        createTestWidget((context) async {
           await VersionUpDialog.show(
             context,
-            UpdateRequestType.cancelable,
-            ref,
+            isCancelable: true,
+            onUpdate: () => onUpdateCalled = true,
+            onCancel: () => onCancelCalled = true,
           );
         }),
       );
 
-      // ダイアログ表示ボタンをタップ
+      // ダイアログ表示
       await tester.tap(find.byType(ElevatedButton));
       await tester.pumpAndSettle();
 
-      // ダイアログと各要素が表示されていることを確認
       expect(find.byType(AlertDialog), findsOneWidget);
-      expect(
-        find.text('A new version is available.\nPlease update.'),
-        findsOneWidget,
-      );
-      expect(find.widgetWithText(TextButton, 'Cancel'), findsOneWidget);
+      expect(find.text('A new version is available.'), findsOneWidget);
+      expect(find.widgetWithText(TextButton, 'Later'), findsOneWidget);
       expect(find.widgetWithText(TextButton, 'Update'), findsOneWidget);
 
-      // キャンセルボタンをタップ
-      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      // アップデートボタン
+      await tester.tap(find.widgetWithText(TextButton, 'Update'));
       await tester.pumpAndSettle();
+      expect(onUpdateCalled, isTrue);
+      expect(find.byType(AlertDialog), findsNothing);
 
-      // ダイアログが閉じていることを確認
+      // 再表示してキャンセルボタン
+      await tester.tap(find.byType(ElevatedButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Later'));
+      await tester.pumpAndSettle();
+      expect(onCancelCalled, isTrue);
       expect(find.byType(AlertDialog), findsNothing);
     });
 
-    testWidgets(
-      'UpdateRequestType.cancelableでダイアログ外をタップするとダイアログが閉じ、キャンセルが記録される',
-      (tester) async {
-        WidgetRef? widgetRef;
-        await tester.pumpWidget(
-          createTestWidget((context, ref) async {
-            widgetRef = ref;
-            await VersionUpDialog.show(
-              context,
-              UpdateRequestType.cancelable,
-              ref,
-            );
-          }),
-        );
+    testWidgets('強制アップデートダイアログが表示され、キャンセル不可であること', (tester) async {
+      var onUpdateCalled = false;
 
-        // ダイアログ表示ボタンをタップ
-        await tester.tap(find.byType(ElevatedButton));
-        await tester.pumpAndSettle();
-
-        expect(find.byType(AlertDialog), findsOneWidget);
-
-        // ダイアログの外側をタップ
-        await tester.tapAt(Offset.zero);
-        await tester.pumpAndSettle();
-
-        // ダイアログが閉じていることを確認
-        expect(find.byType(AlertDialog), findsNothing);
-        // `clickCancel`が呼ばれたことを確認
-        final controller =
-            widgetRef!.read(cancelControllerProvider.notifier)
-                as TestCancelController;
-        expect(controller.clickCancelCalled, isTrue);
-      },
-    );
-
-    testWidgets('UpdateRequestType.forciblyの場合、強制アップデートダイアログが表示される', (
-      tester,
-    ) async {
       await tester.pumpWidget(
-        createTestWidget((context, ref) async {
-          await VersionUpDialog.show(context, UpdateRequestType.forcibly, ref);
+        createTestWidget((context) async {
+          await VersionUpDialog.show(
+            context,
+            isCancelable: false,
+            onUpdate: () => onUpdateCalled = true,
+            onCancel: () {},
+          );
         }),
       );
 
-      // ダイアログ表示ボタンをタップ
+      // ダイアログ表示
       await tester.tap(find.byType(ElevatedButton));
       await tester.pumpAndSettle();
 
-      // ダイアログと各要素が表示されていることを確認
       expect(find.byType(AlertDialog), findsOneWidget);
-      // キャンセルボタンが表示されていないことを確認
-      expect(find.widgetWithText(TextButton, 'Cancel'), findsNothing);
-      expect(find.widgetWithText(TextButton, 'Update'), findsOneWidget);
+      expect(find.text('A new version is required.'), findsOneWidget);
+      expect(find.widgetWithText(TextButton, 'Later'), findsNothing);
 
-      // アップデートボタンをタップ
+      // ダイアログ外タップで閉じないこと
+      await tester.tapAt(Offset.zero);
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsOneWidget);
+
+      // アップデート
       await tester.tap(find.widgetWithText(TextButton, 'Update'));
       await tester.pumpAndSettle();
+      expect(onUpdateCalled, isTrue);
+      expect(find.byType(AlertDialog), findsNothing);
+    });
 
-      // ダイアログが閉じていることを確認
+    testWidgets('キャンセル可能な場合にダイアログ外をタップするとキャンセル扱いになること', (tester) async {
+      var onCancelCalled = false;
+
+      await tester.pumpWidget(
+        createTestWidget((context) async {
+          await VersionUpDialog.show(
+            context,
+            isCancelable: true,
+            onUpdate: () {},
+            onCancel: () => onCancelCalled = true,
+          );
+        }),
+      );
+
+      await tester.tap(find.byType(ElevatedButton));
+      await tester.pumpAndSettle();
+
+      // ダイアログ外タップ
+      await tester.tapAt(Offset.zero);
+      await tester.pumpAndSettle();
+
+      expect(onCancelCalled, isTrue);
       expect(find.byType(AlertDialog), findsNothing);
     });
   });

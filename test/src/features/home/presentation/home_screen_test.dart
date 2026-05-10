@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
@@ -46,9 +48,25 @@ class MockTalkerFilter extends Mock implements TalkerFilter {}
 // --- Fake Notifier ---
 // UpdateRequestController の状態をコントロールするFake
 class FakeUpdateRequestController extends UpdateRequestController {
+  FakeUpdateRequestController({bool startLoading = false})
+    : _startLoading = startLoading;
+  final bool _startLoading;
+  final _completer = Completer<UpdateRequestType>();
+
   @override
   Future<UpdateRequestType> build() async {
+    if (_startLoading) {
+      return _completer.future;
+    }
     return UpdateRequestType.not;
+  }
+
+  void emit(UpdateRequestType type) {
+    state = AsyncData(type);
+  }
+
+  void complete(UpdateRequestType type) {
+    _completer.complete(type);
   }
 }
 
@@ -87,10 +105,18 @@ void main() {
     when(() => mockL10n.homeCrashTest).thenReturn('クラッシュテスト');
     when(() => mockL10n.homeAnalyticsTest).thenReturn('分析イベント送信テスト');
     when(() => mockL10n.developerLogTitle).thenReturn('開発者ログ');
+    when(() => mockL10n.versionUpTitle).thenReturn('アップデート');
+    when(() => mockL10n.versionUpMessageOptional).thenReturn('オプション');
+    when(() => mockL10n.versionUpMessageMandatory).thenReturn('必須');
+    when(() => mockL10n.versionUpUpdate).thenReturn('更新');
+    when(() => mockL10n.versionUpCancel).thenReturn('後で');
   });
 
   /// テスト環境のセットアップヘルパー
-  Future<void> setupWidget(WidgetTester tester) async {
+  Future<void> setupWidget(
+    WidgetTester tester, {
+    FakeUpdateRequestController? controller,
+  }) async {
     attemptedPath = null;
 
     final dummyPackageInfo = PackageInfo(
@@ -131,7 +157,7 @@ void main() {
             ),
           ),
           updateRequestControllerProvider.overrideWith(
-            FakeUpdateRequestController.new,
+            () => controller ?? FakeUpdateRequestController(),
           ),
           firebaseCrashlyticsProvider.overrideWithValue(mockCrashlytics),
           loggerProvider.overrideWithValue(mockTalker),
@@ -144,12 +170,14 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    // 初期化の非同期処理を待機
+    await tester.pump();
   }
 
   group('HomeScreen', () {
     testWidgets('初期表示: タイトルや各種ボタンが正しく表示されていること', (tester) async {
       await setupWidget(tester);
+      await tester.pumpAndSettle();
 
       expect(find.text('ホーム'), findsOneWidget);
       final expectedEnvText = '現在の環境: ${Flavor.local.name.toUpperCase()}';
@@ -173,10 +201,69 @@ void main() {
       expect(find.text('Bundle ID: '), findsOneWidget);
     });
 
+    testWidgets('アップデート通知: 新しいバージョンがある場合にダイアログが表示されること', (tester) async {
+      final controller = FakeUpdateRequestController();
+      await setupWidget(tester, controller: controller);
+      await tester.pumpAndSettle();
+
+      // Stateをキャンセル可能アップデートに変更
+      controller.emit(UpdateRequestType.cancelable);
+      await tester.pumpAndSettle();
+
+      // ダイアログが表示されていることを確認
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.text('アップデート'), findsOneWidget);
+      expect(find.text('オプション'), findsOneWidget);
+
+      // 「後で」ボタンで閉じる
+      await tester.tap(find.text('後で'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+
+    testWidgets('アップデート通知: 強制アップデートの場合に適切に表示されること', (tester) async {
+      final controller = FakeUpdateRequestController();
+      await setupWidget(tester, controller: controller);
+      await tester.pumpAndSettle();
+
+      // Stateを強制アップデートに変更
+      controller.emit(UpdateRequestType.forcibly);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.text('必須'), findsOneWidget);
+      expect(find.text('後で'), findsNothing); // キャンセル不可
+
+      // 更新ボタンタップ
+      when(() => mockTalker.info(any<dynamic>())).thenReturn(null);
+      await tester.tap(find.text('更新'));
+      await tester.pumpAndSettle();
+
+      verify(() => mockTalker.info('Update button tapped')).called(1);
+    });
+
+    testWidgets('ローディング状態: アップデート情報の取得中はインジケータが表示されること', (tester) async {
+      // build() が完了しない（Futureが未完了）状態を作る
+      final controller = FakeUpdateRequestController(startLoading: true);
+      await setupWidget(tester, controller: controller);
+
+      // AsyncLoading状態であることを確認
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(ListView), findsNothing);
+
+      // 完了させる
+      controller.complete(UpdateRequestType.not);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byType(ListView), findsOneWidget);
+    });
+
     testWidgets('PackageInfo: アプリ情報取得ボタンを押すと、情報が読み込まれてUIが更新されること', (
       tester,
     ) async {
       await setupWidget(tester);
+      await tester.pumpAndSettle();
 
       // Act: アプリ情報取得ボタンをタップ
       final button = find.text('アプリ情報取得');
@@ -204,6 +291,7 @@ void main() {
       tester,
     ) async {
       await setupWidget(tester);
+      await tester.pumpAndSettle();
 
       final button = find.text('クラッシュテスト');
       await tester.dragUntilVisible(
@@ -227,6 +315,7 @@ void main() {
         ).thenAnswer((_) async {});
 
         await setupWidget(tester);
+        await tester.pumpAndSettle();
 
         final button = find.text('分析イベント送信テスト');
         await tester.dragUntilVisible(
@@ -256,6 +345,7 @@ void main() {
         ).thenThrow(Exception('Analytics Error'));
 
         await setupWidget(tester);
+        await tester.pumpAndSettle();
 
         final button = find.text('分析イベント送信テスト');
         await tester.dragUntilVisible(
@@ -288,6 +378,7 @@ void main() {
         String expectedPathFragment,
       ) async {
         await setupWidget(tester);
+        await tester.pumpAndSettle();
 
         attemptedPath = null;
         final button = find.text(buttonText);
@@ -324,6 +415,7 @@ void main() {
       when(() => mockTalker.filter).thenReturn(mockFilter);
 
       await setupWidget(tester);
+      await tester.pumpAndSettle();
 
       final button = find.text('開発者ログ');
 

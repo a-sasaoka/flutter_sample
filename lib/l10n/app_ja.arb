@@ -117,8 +117,10 @@
   "notFoundTitle": "ページが見つかりません",
   "notFoundMessage": "ページが見つかりませんでした。",
   "notFoundBackToHome": "ホームへ戻る",
-  "versionUpTitle": "最新の更新があります。\nアップデートをお願いします。",
-  "versionUpCancel": "キャンセル",
+  "versionUpTitle": "最新版への更新",
+  "versionUpMessageOptional": "新しいバージョンが利用可能です。アップデートしますか？",
+  "versionUpMessageMandatory": "アプリを利用するには最新版へのアップデートが必要です。",
+  "versionUpCancel": "あとで",
   "versionUpUpdate": "アップデート",
   "developerLogTitle": "開発者用ログ"
 }

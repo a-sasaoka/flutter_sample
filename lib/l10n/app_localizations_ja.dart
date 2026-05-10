@@ -289,10 +289,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get notFoundBackToHome => 'ホームへ戻る';
 
   @override
-  String get versionUpTitle => '最新の更新があります。\nアップデートをお願いします。';
+  String get versionUpTitle => '最新版への更新';
 
   @override
-  String get versionUpCancel => 'キャンセル';
+  String get versionUpMessageOptional => '新しいバージョンが利用可能です。アップデートしますか？';
+
+  @override
+  String get versionUpMessageMandatory => 'アプリを利用するには最新版へのアップデートが必要です。';
+
+  @override
+  String get versionUpCancel => 'あとで';
 
   @override
   String get versionUpUpdate => 'アップデート';

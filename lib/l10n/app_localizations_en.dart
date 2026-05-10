@@ -301,10 +301,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notFoundBackToHome => 'Back to Home';
 
   @override
-  String get versionUpTitle => 'A new version is available.\nPlease update.';
+  String get versionUpTitle => 'Update Available';
 
   @override
-  String get versionUpCancel => 'Cancel';
+  String get versionUpMessageOptional => 'A new version is available.';
+
+  @override
+  String get versionUpMessageMandatory => 'A new version is required.';
+
+  @override
+  String get versionUpCancel => 'Later';
 
   @override
   String get versionUpUpdate => 'Update';

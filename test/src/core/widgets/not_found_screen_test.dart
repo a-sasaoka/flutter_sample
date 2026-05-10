@@ -19,6 +19,7 @@ void main() {
     Future<void> pumpWidget(WidgetTester tester, {String? unknownPath}) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(useMaterial3: true),
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
@@ -40,9 +41,10 @@ void main() {
     testWidgets('unknownPathがなくても正しく描画される', (tester) async {
       await pumpWidget(tester);
 
-      expect(find.text('Page Not Found'), findsOneWidget);
+      expect(find.text('Page Not Found'), findsNWidgets(2)); // Title and Header
       expect(find.text('The page could not be found.'), findsOneWidget);
       expect(find.text('Back to Home'), findsOneWidget);
+      expect(find.byIcon(Icons.search_off_outlined), findsOneWidget);
       expect(find.byType(FilledButton), findsOneWidget);
     });
 
@@ -50,11 +52,11 @@ void main() {
       const path = '/test_path';
       await pumpWidget(tester, unknownPath: path);
 
-      expect(find.text('Page Not Found'), findsOneWidget);
+      expect(find.text('Page Not Found'), findsNWidgets(2));
       expect(find.text('The page could not be found.'), findsOneWidget);
       expect(find.text('path: $path'), findsOneWidget);
       expect(find.text('Back to Home'), findsOneWidget);
-      expect(find.byType(FilledButton), findsOneWidget);
+      expect(find.byIcon(Icons.search_off_outlined), findsOneWidget);
     });
 
     testWidgets('ボタンをタップするとホーム画面に遷移する', (tester) async {

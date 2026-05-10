@@ -653,13 +653,25 @@ abstract class AppLocalizations {
   /// No description provided for @versionUpTitle.
   ///
   /// In en, this message translates to:
-  /// **'A new version is available.\nPlease update.'**
+  /// **'Update Available'**
   String get versionUpTitle;
+
+  /// No description provided for @versionUpMessageOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'A new version is available.'**
+  String get versionUpMessageOptional;
+
+  /// No description provided for @versionUpMessageMandatory.
+  ///
+  /// In en, this message translates to:
+  /// **'A new version is required.'**
+  String get versionUpMessageMandatory;
 
   /// No description provided for @versionUpCancel.
   ///
   /// In en, this message translates to:
-  /// **'Cancel'**
+  /// **'Later'**
   String get versionUpCancel;
 
   /// No description provided for @versionUpUpdate.

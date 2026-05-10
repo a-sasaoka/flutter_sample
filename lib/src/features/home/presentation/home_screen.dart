@@ -33,8 +33,26 @@ class HomeScreen extends HookConsumerWidget {
 
     // データの変化を「監視」し、アップデート情報が届いた時だけ1回ダイアログを出します
     ref.listen(updateRequestControllerProvider, (previous, next) async {
-      if (next.hasValue && next.value != null) {
-        await VersionUpDialog.show(context, next.value!, ref);
+      final requestType = next.value;
+      if (next.hasValue &&
+          requestType != null &&
+          requestType != UpdateRequestType.not) {
+        // すでにキャンセル済み（「後で」を押した）の場合は表示しない
+        if (ref.read(cancelControllerProvider)) {
+          return;
+        }
+
+        await VersionUpDialog.show(
+          context,
+          isCancelable: requestType == UpdateRequestType.cancelable,
+          onCancel: () {
+            ref.read(cancelControllerProvider.notifier).clickCancel();
+          },
+          onUpdate: () {
+            // 本来はここで各OSのストアに飛ばす.
+            ref.read(loggerProvider).info('Update button tapped');
+          },
+        );
       }
     });
 

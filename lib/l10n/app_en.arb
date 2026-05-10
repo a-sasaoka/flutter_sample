@@ -117,8 +117,10 @@
   "notFoundTitle": "Page Not Found",
   "notFoundMessage": "The page could not be found.",
   "notFoundBackToHome": "Back to Home",
-  "versionUpTitle": "A new version is available.\nPlease update.",
-  "versionUpCancel": "Cancel",
+  "versionUpTitle": "Update Available",
+  "versionUpMessageOptional": "A new version is available.",
+  "versionUpMessageMandatory": "A new version is required.",
+  "versionUpCancel": "Later",
   "versionUpUpdate": "Update",
   "developerLogTitle": "Developer Log"
 }
