@@ -30,12 +30,15 @@ extension SnackBarExtension on BuildContext {
       SnackBar(
         content: Row(
           children: [
-            Icon(_getIcon(type), color: Colors.white),
+            Icon(
+              _getIcon(type),
+              color: _getOnBackgroundColor(type),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: _getOnBackgroundColor(type)),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -50,7 +53,7 @@ extension SnackBarExtension on BuildContext {
         ),
         action: SnackBarAction(
           label: l10n.close,
-          textColor: Colors.white70,
+          textColor: _getOnBackgroundColor(type).withValues(alpha: 0.8),
           onPressed: () {
             ScaffoldMessenger.of(this).hideCurrentSnackBar();
           },
@@ -70,13 +73,30 @@ extension SnackBarExtension on BuildContext {
   }
 
   Color _getBackgroundColor(SnackBarType type) {
+    final theme = Theme.of(this);
+    final colorScheme = theme.colorScheme;
+
     switch (type) {
       case SnackBarType.info:
-        return Colors.grey.shade800;
+        return colorScheme.secondaryContainer;
       case SnackBarType.success:
-        return Colors.green.shade700;
+        return colorScheme.primaryContainer;
       case SnackBarType.error:
-        return Colors.red.shade700;
+        return colorScheme.errorContainer;
+    }
+  }
+
+  Color _getOnBackgroundColor(SnackBarType type) {
+    final theme = Theme.of(this);
+    final colorScheme = theme.colorScheme;
+
+    switch (type) {
+      case SnackBarType.info:
+        return colorScheme.onSecondaryContainer;
+      case SnackBarType.success:
+        return colorScheme.onPrimaryContainer;
+      case SnackBarType.error:
+        return colorScheme.onErrorContainer;
     }
   }
 

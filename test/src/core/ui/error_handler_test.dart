@@ -114,7 +114,7 @@ void main() {
               context,
               const AppException.server(statusCode: 500),
             ),
-            'errorServer',
+            'errorServer (500)',
           );
           expect(
             ErrorHandler.message(context, const AppException.unauthenticated()),
@@ -133,8 +133,11 @@ void main() {
             'errorDatabase',
           );
           expect(
-            ErrorHandler.message(context, const AppException.badRequest()),
-            'errorBadRequest',
+            ErrorHandler.message(
+              context,
+              const AppException.badRequest(statusCode: 400),
+            ),
+            'errorBadRequest (400)',
           );
           expect(
             ErrorHandler.message(context, const AppException.timeout()),

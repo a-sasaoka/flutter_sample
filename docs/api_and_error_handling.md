@@ -49,9 +49,14 @@ lib/src/core/
 
 ```plaintext
 lib/src/core/ui/
- ├── error_handler.dart        # エラー表示の司令塔
- └── snackbar_extension.dart   # Contextの拡張メソッド（スナックバーの簡略化）
+ ├── error_handler.dart        # エラー表示の司令塔（詳細コード付与機能あり）
+ └── snackbar_extension.dart   # テーマ連動型スナックバー
 ```
+
+### 💡 役割と特徴
+
+- **`ErrorHandler`**: `AppException` の種類に基づき、最適な多言語化メッセージを生成します。また、デバッグ効率向上のため、メッセージの末尾に **ステータスコード（例: (404)）を自動的に付与** します。
+- **`SnackBarExtension`**: アプリ全体の `Theme` (ColorScheme) に完全に連動します。エラー時は `errorContainer`、成功時は `primaryContainer` の色を自動で使用し、視覚的な一貫性を保ちます。
 
 ### 💡 Riverpodのベストプラクティス： `ref.listen` の活用
 

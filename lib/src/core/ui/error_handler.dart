@@ -58,7 +58,7 @@ class ErrorHandler {
 
     // AppException のエラー処理
     if (actualError is AppException) {
-      return actualError.when(
+      final baseMessage = actualError.when(
         network: (message) => message ?? l10n.errorNetwork,
         server: (code, message) => message ?? l10n.errorServer,
         badRequest: (code, message) => message ?? l10n.errorBadRequest,
@@ -70,6 +70,10 @@ class ErrorHandler {
         cancel: (message) => message ?? l10n.errorUnknown,
         unknown: (message, error) => message ?? l10n.errorUnknown,
       );
+
+      // ステータスコードがあれば付与する (デバッグや詳細確認用)
+      final statusCode = actualError.statusCode;
+      return statusCode != null ? '$baseMessage ($statusCode)' : baseMessage;
     }
 
     // Firebase Authentication のエラー処理
