@@ -12,17 +12,50 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 /// チャット画面
 /// 画面全体のレイアウトを定義しますが、自身は状態を監視しないため、
 /// メッセージの更新による不要なリビルドを防ぎます。
-class ChatScreen extends StatelessWidget {
+class ChatScreen extends ConsumerWidget {
   /// コンストラクタ
   const ChatScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.chatTitle),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_sweep_outlined),
+            onPressed: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text(l10n.chartClearAll),
+                  content: Text(l10n.chartClearConfirm),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: Text(l10n.close),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: Text(
+                        l10n.chartClearAll,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed == true) {
+                ref.read(chatProvider.notifier).clearHistory();
+              }
+            },
+            tooltip: l10n.chartClearAll,
+          ),
+        ],
       ),
       body: const Column(
         children: [
@@ -119,14 +152,14 @@ class _ChatBubble extends StatelessWidget {
       ChatMessageUser(:final text, :final createdAt) => _BubbleLayout(
         text: text,
         isUser: true,
-        color: Colors.blueAccent,
-        textColor: Colors.white,
+        color: Theme.of(context).colorScheme.primaryContainer,
+        textColor: Theme.of(context).colorScheme.onPrimaryContainer,
         createdAt: createdAt,
       ),
       ChatMessageAi(:final text, :final createdAt) => _BubbleLayout(
         text: text,
         isUser: false,
-        color: Colors.grey[300]!,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         textColor: Theme.of(context).colorScheme.onSurface,
         createdAt: createdAt,
       ),
@@ -135,8 +168,8 @@ class _ChatBubble extends StatelessWidget {
             ? l10n.chatEmptyMessage
             : l10n.chatError(error.toString()),
         isUser: false,
-        color: Colors.red[100]!,
-        textColor: Colors.red[900]!,
+        color: Theme.of(context).colorScheme.errorContainer,
+        textColor: Theme.of(context).colorScheme.onErrorContainer,
         createdAt: createdAt,
       ),
     };
@@ -300,7 +333,9 @@ class _ChatInputArea extends HookConsumerWidget {
             ),
             const SizedBox(width: 8),
             CircleAvatar(
-              backgroundColor: isGenerating ? Colors.grey : Colors.blueAccent,
+              backgroundColor: isGenerating
+                  ? Theme.of(context).colorScheme.outline
+                  : Theme.of(context).colorScheme.primary,
               child: IconButton(
                 icon: const Icon(Icons.send, color: Colors.white),
                 onPressed: isGenerating

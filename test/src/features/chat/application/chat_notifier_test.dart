@@ -253,5 +253,22 @@ void main() {
         expect(state.messages.last, isA<ChatMessageError>());
       });
     });
+
+    test('clearHistory: 履歴が削除され初期状態に戻ること', () async {
+      final fakeRepo = FakeChatRepository();
+      final container = createContainer(fakeRepo);
+      final notifier = container.read(chatProvider.notifier);
+
+      // まずメッセージを1つ追加
+      await notifier.sendMessage('テスト');
+      expect(container.read(chatProvider).messages, isNotEmpty);
+
+      // クリア実行
+      notifier.clearHistory();
+
+      final state = container.read(chatProvider);
+      expect(state.messages, isEmpty);
+      expect(state.isGenerating, isFalse);
+    });
   });
 }

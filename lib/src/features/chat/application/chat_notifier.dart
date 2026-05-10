@@ -9,13 +9,18 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'chat_notifier.g.dart';
 
 /// チャットのやり取りを管理するプロバイダー
-@riverpod
+@Riverpod(keepAlive: true)
 class ChatNotifier extends _$ChatNotifier {
   @override
   ChatState build() {
     // 画面（Notifier）が生きている間は、Repositoryも監視（watch）して破棄させない
     ref.watch(chatRepositoryProvider);
     return const ChatState();
+  }
+
+  /// 履歴をクリアするメソッド
+  void clearHistory() {
+    state = const ChatState();
   }
 
   /// メッセージを送信するメソッド
@@ -36,9 +41,7 @@ class ChatNotifier extends _$ChatNotifier {
       final promptWithTime = _buildPromptWithTime(text);
       final responseText = await repository.sendMessage(promptWithTime);
 
-      if (!ref.mounted) {
-        return;
-      }
+      if (!ref.mounted) return;
 
       final now = ref.read(clockProvider)();
 
@@ -52,9 +55,7 @@ class ChatNotifier extends _$ChatNotifier {
         ),
       );
     } on Exception catch (e) {
-      if (!ref.mounted) {
-        return;
-      }
+      if (!ref.mounted) return;
 
       final now = ref.read(clockProvider)();
       _updateMessageById(
@@ -66,7 +67,9 @@ class ChatNotifier extends _$ChatNotifier {
         ),
       );
     } finally {
-      state = state.copyWith(isGenerating: false);
+      if (ref.mounted) {
+        state = state.copyWith(isGenerating: false);
+      }
     }
   }
 
@@ -94,9 +97,7 @@ class ChatNotifier extends _$ChatNotifier {
       final buffer = StringBuffer();
 
       await for (final chunk in stream) {
-        if (!ref.mounted) {
-          return;
-        }
+        if (!ref.mounted) return;
 
         if (isFirstChunk) {
           // 最初のチャンクが届いた瞬間の時刻を記録
@@ -122,9 +123,7 @@ class ChatNotifier extends _$ChatNotifier {
         throw ChatEmptyResponseException(); // 空のままStreamが終わった場合
       }
     } on Exception catch (e) {
-      if (!ref.mounted) {
-        return;
-      }
+      if (!ref.mounted) return;
 
       final now = ref.read(clockProvider)();
       _updateMessageById(
@@ -136,7 +135,9 @@ class ChatNotifier extends _$ChatNotifier {
         ),
       );
     } finally {
-      state = state.copyWith(isGenerating: false);
+      if (ref.mounted) {
+        state = state.copyWith(isGenerating: false);
+      }
     }
   }
 
