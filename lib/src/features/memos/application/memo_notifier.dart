@@ -14,15 +14,23 @@ class MemoNotifier extends _$MemoNotifier {
   }
 
   /// 新しいメモを追加する
-  ///
-  /// [title] はメモのタイトル、[content] はメモの中身
   Future<void> addMemo(String title, String content) async {
     final repository = ref.read(memoRepositoryProvider);
-
-    // データベースにメモを保存
     await repository.addMemo(title, content);
+    ref.invalidateSelf();
+  }
 
-    // 状態を更新（最新のメモ一覧を再取得）
+  /// メモを削除する
+  Future<void> deleteMemo(String id) async {
+    final repository = ref.read(memoRepositoryProvider);
+    await repository.deleteMemo(id);
+    ref.invalidateSelf();
+  }
+
+  /// 手動同期を実行する
+  Future<void> sync() async {
+    final repository = ref.read(memoRepositoryProvider);
+    await repository.syncUnsentMemos();
     ref.invalidateSelf();
   }
 }

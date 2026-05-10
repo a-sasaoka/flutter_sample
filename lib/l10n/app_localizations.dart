@@ -533,7 +533,7 @@ abstract class AppLocalizations {
   /// No description provided for @memoTitle.
   ///
   /// In en, this message translates to:
-  /// **'Offline Notepad'**
+  /// **'Offline Memos'**
   String get memoTitle;
 
   /// No description provided for @memoEmpty.
@@ -553,6 +553,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Content'**
   String get memoInputContentHint;
+
+  /// No description provided for @memoAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Memo'**
+  String get memoAdd;
+
+  /// No description provided for @memoSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get memoSave;
+
+  /// No description provided for @memoSyncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing...'**
+  String get memoSyncing;
+
+  /// No description provided for @memoSynced.
+  ///
+  /// In en, this message translates to:
+  /// **'Synced'**
+  String get memoSynced;
+
+  /// No description provided for @memoUnsynced.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Synced'**
+  String get memoUnsynced;
+
+  /// No description provided for @memoDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this memo?'**
+  String get memoDeleteConfirm;
 
   /// No description provided for @chartLine.
   ///

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
@@ -45,6 +46,14 @@ void main() {
     when(() => mockL10n.errorUnknown).thenReturn('エラーが発生しました');
     when(() => mockL10n.memoInputTitleHint).thenReturn('タイトル');
     when(() => mockL10n.memoInputContentHint).thenReturn('内容');
+    when(() => mockL10n.memoAdd).thenReturn('メモを追加');
+    when(() => mockL10n.memoSave).thenReturn('保存');
+    when(() => mockL10n.memoSyncing).thenReturn('同期中');
+    when(() => mockL10n.memoSynced).thenReturn('同期済み');
+    when(() => mockL10n.memoUnsynced).thenReturn('未同期');
+    when(() => mockL10n.memoDeleteConfirm).thenReturn('削除しますか？');
+    when(() => mockL10n.close).thenReturn('閉じる');
+    when(() => mockL10n.logout).thenReturn('削除');
   });
 
   /// テスト環境のセットアップヘルパー
@@ -52,12 +61,14 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          // リポジトリをモックに差し替え（これでNotifier側でもモックが使われる）
           memoRepositoryProvider.overrideWithValue(mockMemoRepository),
         ],
         child: MaterialApp(
           localizationsDelegates: [
             _MockLocalizationsDelegate(mockL10n),
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
           ],
           home: const MemoScreen(),
         ),
@@ -68,7 +79,6 @@ void main() {
 
   group('MemoScreen', () {
     testWidgets('ローディング状態が正しく表示されること', (tester) async {
-      // Completerを使って完了しないFutureを返し、ローディング状態を再現
       final completer = Completer<List<MemoModel>>();
       when(
         () => mockMemoRepository.getAllMemos(),
@@ -80,7 +90,6 @@ void main() {
     });
 
     testWidgets('エラー状態が正しく表示されること', (tester) async {
-      // エラーを投げるように設定
       when(
         () => mockMemoRepository.getAllMemos(),
       ).thenAnswer((_) => Future.error(Exception('Test Error')));
@@ -91,32 +100,26 @@ void main() {
       expect(find.text('エラーが発生しました'), findsOneWidget);
     });
 
-    testWidgets('データが空の場合、「メモがありません」と表示されること', (tester) async {
-      // 空のリストを返すように設定
+    testWidgets('データが空の場合、空の状態が表示されること', (tester) async {
       when(() => mockMemoRepository.getAllMemos()).thenAnswer((_) async => []);
 
       await setupWidget(tester);
       await tester.pumpAndSettle();
 
       expect(find.text('メモがありません'), findsOneWidget);
+      expect(find.byIcon(Icons.note_alt_outlined), findsOneWidget);
     });
 
-    testWidgets('データが存在する場合、リストとして表示されること', (tester) async {
-      // 取得されるデータのスタブ
+    testWidgets('データが存在する場合、カードリストとして表示されること', (tester) async {
+      final now = DateTime(2026, 5, 10, 10, 30);
       final memoList = [
         MemoModel(
           id: '1',
-          title: 'テストタイトル1',
-          content: 'テスト内容1',
-          createdAt: DateTime(2026, 5),
-          updatedAt: DateTime(2026, 5),
-        ),
-        MemoModel(
-          id: '2',
-          title: 'テストタイトル2',
-          content: 'テスト内容2',
-          createdAt: DateTime(2026, 5, 2),
-          updatedAt: DateTime(2026, 5, 2),
+          title: 'タイトル1',
+          content: '内容1',
+          createdAt: now,
+          updatedAt: now,
+          isSynced: true,
         ),
       ];
       when(
@@ -126,19 +129,14 @@ void main() {
       await setupWidget(tester);
       await tester.pumpAndSettle();
 
-      // 各要素が表示されているか検証
-      expect(find.text('テストタイトル1'), findsOneWidget);
-      expect(find.text('テスト内容1'), findsOneWidget);
-      expect(find.text('5/1'), findsOneWidget);
-
-      expect(find.text('テストタイトル2'), findsOneWidget);
-      expect(find.text('テスト内容2'), findsOneWidget);
-      expect(find.text('5/2'), findsOneWidget);
+      expect(find.text('タイトル1'), findsOneWidget);
+      expect(find.text('内容1'), findsOneWidget);
+      expect(find.text('同期済み'), findsOneWidget);
+      expect(find.byIcon(Icons.cloud_done), findsOneWidget);
     });
 
-    testWidgets('新しいメモを入力して送信ボタンを押すと、追加処理が呼ばれ入力欄がクリアされること', (tester) async {
+    testWidgets('FABを押すとボトムシートが開き、メモを追加できること', (tester) async {
       when(() => mockMemoRepository.getAllMemos()).thenAnswer((_) async => []);
-      // addMemoが呼ばれた時は何もせずに完了するように設定
       when(
         () => mockMemoRepository.addMemo(any(), any()),
       ).thenAnswer((_) async {});
@@ -146,47 +144,113 @@ void main() {
       await setupWidget(tester);
       await tester.pumpAndSettle();
 
-      // タイトルと内容のTextFieldを取得して入力
-      final titleField = find.widgetWithText(TextField, 'タイトル');
-      final contentField = find.widgetWithText(TextField, '内容');
-
-      await tester.enterText(titleField, '新しいタイトル');
-      await tester.enterText(contentField, '新しい内容');
-
-      // 送信ボタンをタップ
-      await tester.tap(find.byIcon(Icons.send));
+      // FABをタップ
+      await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
-      // addMemoが期待された引数で呼ばれたことを検証
-      verify(() => mockMemoRepository.addMemo('新しいタイトル', '新しい内容')).called(1);
+      // ボトムシートが表示されていることを確認
+      expect(find.byType(TextField), findsNWidgets(2));
 
-      // 送信後、TextFieldがクリアされていることを検証
-      expect(
-        tester.widget<TextField>(find.byType(TextField).at(0)).controller?.text,
-        isEmpty,
-      );
-      expect(
-        tester.widget<TextField>(find.byType(TextField).at(1)).controller?.text,
-        isEmpty,
-      );
+      await tester.enterText(find.widgetWithText(TextField, 'タイトル'), '新タイトル');
+      await tester.enterText(find.widgetWithText(TextField, '内容'), '新内容');
+
+      // 保存ボタンをタップ
+      await tester.tap(find.byIcon(Icons.save));
+      await tester.pumpAndSettle();
+
+      verify(() => mockMemoRepository.addMemo('新タイトル', '新内容')).called(1);
+      // ボトムシートが閉じていることを確認
+      expect(find.byType(TextField), findsNothing);
     });
 
-    testWidgets('タイトルが空の場合、送信ボタンを押しても処理が行われないこと', (tester) async {
+    testWidgets('削除ボタンを押すとダイアログが表示され、キャンセルすると何も起きないこと', (tester) async {
+      final now = DateTime.now();
+      final memo = MemoModel(
+        id: '1',
+        title: '消さないメモ',
+        content: '内容',
+        createdAt: now,
+        updatedAt: now,
+      );
+      when(
+        () => mockMemoRepository.getAllMemos(),
+      ).thenAnswer((_) async => [memo]);
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.delete_outline));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+
+      // 「閉じる」ボタンをタップしてキャンセル
+      await tester.tap(find.widgetWithText(TextButton, '閉じる'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsNothing);
+      verifyNever(() => mockMemoRepository.deleteMemo(any()));
+    });
+
+    testWidgets('削除ボタンを押すとダイアログが表示され、実行すると削除処理が呼ばれること', (tester) async {
+      final now = DateTime.now();
+      final memo = MemoModel(
+        id: '1',
+        title: '消すメモ',
+        content: '内容',
+        createdAt: now,
+        updatedAt: now,
+      );
+      when(
+        () => mockMemoRepository.getAllMemos(),
+      ).thenAnswer((_) async => [memo]);
+      when(() => mockMemoRepository.deleteMemo(any())).thenAnswer((_) async {});
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      // 削除アイコンをタップ
+      await tester.tap(find.byIcon(Icons.delete_outline));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+
+      // 「削除」ボタンをタップ
+      await tester.tap(find.widgetWithText(TextButton, '削除'));
+      await tester.pumpAndSettle();
+
+      verify(() => mockMemoRepository.deleteMemo('1')).called(1);
+    });
+
+    testWidgets('同期ボタンを押すと同期処理が呼ばれること', (tester) async {
+      when(() => mockMemoRepository.getAllMemos()).thenAnswer((_) async => []);
+      when(
+        () => mockMemoRepository.syncUnsentMemos(),
+      ).thenAnswer((_) async {});
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.sync));
+      await tester.pumpAndSettle();
+
+      verify(() => mockMemoRepository.syncUnsentMemos()).called(1);
+    });
+
+    testWidgets('引っ張って更新（Pull to Refresh）が動作すること', (tester) async {
       when(() => mockMemoRepository.getAllMemos()).thenAnswer((_) async => []);
 
       await setupWidget(tester);
       await tester.pumpAndSettle();
 
-      // 内容だけ入力
-      final contentField = find.widgetWithText(TextField, '内容');
-      await tester.enterText(contentField, '新しい内容');
-
-      // 送信ボタンをタップ
-      await tester.tap(find.byIcon(Icons.send));
+      // リストを下に引っ張る
+      await tester.fling(find.byType(ListView), const Offset(0, 300), 1000);
+      await tester.pump(); // インジケータ表示開始
+      await tester.pump(const Duration(seconds: 1)); // 完了待ち
       await tester.pumpAndSettle();
 
-      // addMemoが呼ばれないことを検証
-      verifyNever(() => mockMemoRepository.addMemo(any(), any()));
+      // リロードのために getAllMemos が再度呼ばれることを確認
+      verify(() => mockMemoRepository.getAllMemos()).called(2);
     });
   });
 }

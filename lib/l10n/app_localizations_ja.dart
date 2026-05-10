@@ -236,7 +236,25 @@ class AppLocalizationsJa extends AppLocalizations {
   String get memoInputTitleHint => 'タイトル';
 
   @override
-  String get memoInputContentHint => '中身';
+  String get memoInputContentHint => '内容';
+
+  @override
+  String get memoAdd => 'メモを追加';
+
+  @override
+  String get memoSave => '保存';
+
+  @override
+  String get memoSyncing => '同期中...';
+
+  @override
+  String get memoSynced => '同期済み';
+
+  @override
+  String get memoUnsynced => '未同期';
+
+  @override
+  String get memoDeleteConfirm => 'このメモを削除しますか？';
 
   @override
   String get chartLine => '折れ線グラフ';

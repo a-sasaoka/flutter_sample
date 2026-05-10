@@ -238,7 +238,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLocaleEn => 'English (en)';
 
   @override
-  String get memoTitle => 'Offline Notepad';
+  String get memoTitle => 'Offline Memos';
 
   @override
   String get memoEmpty => 'No memos yet!';
@@ -248,6 +248,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get memoInputContentHint => 'Content';
+
+  @override
+  String get memoAdd => 'Add Memo';
+
+  @override
+  String get memoSave => 'Save';
+
+  @override
+  String get memoSyncing => 'Syncing...';
+
+  @override
+  String get memoSynced => 'Synced';
+
+  @override
+  String get memoUnsynced => 'Not Synced';
+
+  @override
+  String get memoDeleteConfirm => 'Are you sure you want to delete this memo?';
 
   @override
   String get chartLine => 'Line Chart';
