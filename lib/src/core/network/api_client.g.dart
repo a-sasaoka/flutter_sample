@@ -66,22 +66,16 @@ final class DioProvider extends $FunctionalProvider<Dio, Dio, Dio>
 String _$dioHash() => r'07166d399c57f89d76727fdf2c62d4b2e235de1c';
 
 /// ApiClient を Riverpod 経由で提供する Provider
-///
-/// `ref.watch(apiClientProvider)` でどこからでも取得可能。
 
 @ProviderFor(apiClient)
 final apiClientProvider = ApiClientProvider._();
 
 /// ApiClient を Riverpod 経由で提供する Provider
-///
-/// `ref.watch(apiClientProvider)` でどこからでも取得可能。
 
 final class ApiClientProvider
     extends $FunctionalProvider<ApiClient, ApiClient, ApiClient>
     with $Provider<ApiClient> {
   /// ApiClient を Riverpod 経由で提供する Provider
-  ///
-  /// `ref.watch(apiClientProvider)` でどこからでも取得可能。
   ApiClientProvider._()
     : super(
         from: null,
@@ -115,4 +109,4 @@ final class ApiClientProvider
   }
 }
 
-String _$apiClientHash() => r'83fd3390ee90e05992fa2af8226c2e9b3a56ec35';
+String _$apiClientHash() => r'5ac0fa46e426cc68396727c752a17e43343ed504';

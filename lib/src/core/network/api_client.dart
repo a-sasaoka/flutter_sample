@@ -54,16 +54,71 @@ Dio dio(Ref ref) {
   return dio;
 }
 
-/// API呼び出し用の共通クライアントクラス
+/// API呼び出し用の共通クライアントインターフェース
 ///
-/// 各リポジトリやデータソース層から利用します。
-class ApiClient {
+/// 各リポジトリやデータソース層からはこのインターフェースを利用します。
+abstract interface class ApiClient {
+  /// GETリクエスト
+  Future<Response<T>> get<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+    ProgressCallback? onReceiveProgress,
+  });
+
+  /// POSTリクエスト
+  Future<Response<T>> post<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  });
+
+  /// PUTリクエスト
+  Future<Response<T>> put<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  });
+
+  /// PATCHリクエスト
+  Future<Response<T>> patch<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  });
+
+  /// DELETEリクエスト
+  Future<Response<T>> delete<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  });
+}
+
+/// [ApiClient] の Dio による実装
+class DioApiClient implements ApiClient {
   /// コンストラクタ
-  ApiClient._(this._dio);
+  DioApiClient(this._dio);
 
   final Dio _dio;
 
-  /// GETリクエスト
+  @override
   Future<Response<T>> get<T>(
     String path, {
     Object? data,
@@ -82,7 +137,7 @@ class ApiClient {
     );
   }
 
-  /// POSTリクエスト
+  @override
   Future<Response<T>> post<T>(
     String path, {
     Object? data,
@@ -103,7 +158,7 @@ class ApiClient {
     );
   }
 
-  /// PUTリクエスト
+  @override
   Future<Response<T>> put<T>(
     String path, {
     Object? data,
@@ -124,7 +179,7 @@ class ApiClient {
     );
   }
 
-  /// PATCHリクエスト
+  @override
   Future<Response<T>> patch<T>(
     String path, {
     Object? data,
@@ -145,7 +200,7 @@ class ApiClient {
     );
   }
 
-  /// DELETEリクエスト
+  @override
   Future<Response<T>> delete<T>(
     String path, {
     Object? data,
@@ -164,10 +219,8 @@ class ApiClient {
 }
 
 /// ApiClient を Riverpod 経由で提供する Provider
-///
-/// `ref.watch(apiClientProvider)` でどこからでも取得可能。
 @Riverpod(keepAlive: true)
 ApiClient apiClient(Ref ref) {
   final dioInstance = ref.watch(dioProvider);
-  return ApiClient._(dioInstance);
+  return DioApiClient(dioInstance);
 }

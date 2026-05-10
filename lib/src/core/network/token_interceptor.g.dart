@@ -130,18 +130,21 @@ String _$tokenStorageInternalHash() =>
     r'3e0364f9cdf9fc50fa6eb985833831eb3f1557e8';
 
 /// 再リクエスト（リトライ）用のDioインスタンスを提供するProvider
-/// テスト時にモックへ差し替え可能にするために切り出し
+///
+/// メインの `dioProvider` と同じタイムアウト設定を適用します。
 
 @ProviderFor(retryDio)
 final retryDioProvider = RetryDioProvider._();
 
 /// 再リクエスト（リトライ）用のDioインスタンスを提供するProvider
-/// テスト時にモックへ差し替え可能にするために切り出し
+///
+/// メインの `dioProvider` と同じタイムアウト設定を適用します。
 
 final class RetryDioProvider extends $FunctionalProvider<Dio, Dio, Dio>
     with $Provider<Dio> {
   /// 再リクエスト（リトライ）用のDioインスタンスを提供するProvider
-  /// テスト時にモックへ差し替え可能にするために切り出し
+  ///
+  /// メインの `dioProvider` と同じタイムアウト設定を適用します。
   RetryDioProvider._()
     : super(
         from: null,
@@ -175,7 +178,7 @@ final class RetryDioProvider extends $FunctionalProvider<Dio, Dio, Dio>
   }
 }
 
-String _$retryDioHash() => r'8c75a1e5ad1d201e04db4c26b9f655a848b4784a';
+String _$retryDioHash() => r'57e06865667e1f8b4e43fff5b8dcf14345b145fc';
 
 /// トークンを自動で付与・更新するDioのインターセプター
 
@@ -185,13 +188,8 @@ final tokenInterceptorProvider = TokenInterceptorProvider._();
 /// トークンを自動で付与・更新するDioのインターセプター
 
 final class TokenInterceptorProvider
-    extends
-        $FunctionalProvider<
-          InterceptorsWrapper,
-          InterceptorsWrapper,
-          InterceptorsWrapper
-        >
-    with $Provider<InterceptorsWrapper> {
+    extends $FunctionalProvider<Interceptor, Interceptor, Interceptor>
+    with $Provider<Interceptor> {
   /// トークンを自動で付与・更新するDioのインターセプター
   TokenInterceptorProvider._()
     : super(
@@ -209,22 +207,21 @@ final class TokenInterceptorProvider
 
   @$internal
   @override
-  $ProviderElement<InterceptorsWrapper> $createElement(
-    $ProviderPointer pointer,
-  ) => $ProviderElement(pointer);
+  $ProviderElement<Interceptor> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
 
   @override
-  InterceptorsWrapper create(Ref ref) {
+  Interceptor create(Ref ref) {
     return tokenInterceptor(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(InterceptorsWrapper value) {
+  Override overrideWithValue(Interceptor value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<InterceptorsWrapper>(value),
+      providerOverride: $SyncValueProvider<Interceptor>(value),
     );
   }
 }
 
-String _$tokenInterceptorHash() => r'62ef4495afcf37ce98c09b9e9d6f5931c39645c4';
+String _$tokenInterceptorHash() => r'f3f37ff290a4afef4e2f1e50a7a3a09f28b93993';

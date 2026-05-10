@@ -33,7 +33,7 @@ class FakeRequestOptions extends Fake implements RequestOptions {}
 
 class FakeDioException extends Fake implements DioException {}
 
-class FakeResponse extends Fake implements Response<Map<String, dynamic>> {}
+class FakeResponse<T> extends Fake implements Response<T> {}
 
 void main() {
   late MockTokenStorage mockStorage;
@@ -44,7 +44,7 @@ void main() {
   setUpAll(() {
     registerFallbackValue(FakeRequestOptions());
     registerFallbackValue(FakeDioException());
-    registerFallbackValue(FakeResponse());
+    registerFallbackValue(FakeResponse<dynamic>());
   });
 
   setUp(() {
@@ -75,8 +75,8 @@ void main() {
       final handler = MockRequestInterceptorHandler();
       final options = RequestOptions(path: '/test');
 
-      interceptor.onRequest(options, handler);
-      await Future<void>.delayed(Duration.zero);
+      // 内部で await されるため、dynamic で受けて await する
+      await (interceptor as dynamic).onRequest(options, handler);
 
       expect(options.headers['Authorization'], equals('Bearer valid_token'));
       verify(() => handler.next(options)).called(1);
@@ -98,18 +98,17 @@ void main() {
         () => mockStorage.getAccessToken(),
       ).thenAnswer((_) async => 'new_token');
 
-      final mockResponse = Response<Map<String, dynamic>>(
+      final mockResponse = Response<dynamic>(
         requestOptions: options,
         data: {'success': true},
         statusCode: 200,
       );
 
       when(
-        () => mockRetryDio.fetch<Map<String, dynamic>>(any()),
+        () => mockRetryDio.fetch<dynamic>(any()),
       ).thenAnswer((_) async => mockResponse);
 
-      interceptor.onError(error401, handler);
-      await Future<void>.delayed(Duration.zero);
+      await (interceptor as dynamic).onError(error401, handler);
 
       expect(options.headers['Authorization'], equals('Bearer new_token'));
       verify(() => handler.resolve(mockResponse)).called(1);
@@ -126,11 +125,44 @@ void main() {
       // モック関数が false を返すように設定
       when(() => mockRefreshToken.call()).thenAnswer((_) async => false);
 
-      interceptor.onError(error401, handler);
-      await Future<void>.delayed(Duration.zero);
+      await (interceptor as dynamic).onError(error401, handler);
 
       verify(() => handler.next(error401)).called(1);
       verifyNever(() => mockRetryDio.fetch<dynamic>(any()));
+    });
+
+    test('二重リフレッシュ防止: 同時に 401 が発生しても、リフレッシュ関数は1回しか呼ばれないこと', () async {
+      final interceptor = container.read(tokenInterceptorProvider);
+      final handler1 = MockErrorInterceptorHandler();
+      final handler2 = MockErrorInterceptorHandler();
+      final options = RequestOptions(path: '/test');
+      final error401 = DioException(
+        requestOptions: options,
+        response: Response(requestOptions: options, statusCode: 401),
+      );
+
+      // 1回目の呼び出しで少し待たせるように設定
+      when(() => mockRefreshToken.call()).thenAnswer((_) async {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        return true;
+      });
+      when(
+        () => mockStorage.getAccessToken(),
+      ).thenAnswer((_) async => 'new_token');
+      when(() => mockRetryDio.fetch<dynamic>(any())).thenAnswer(
+        (_) async => Response(requestOptions: options, statusCode: 200),
+      );
+
+      // 同時に2つのエラー処理を開始
+      await Future.wait<void>([
+        (interceptor as dynamic).onError(error401, handler1) as Future<void>,
+        (interceptor as dynamic).onError(error401, handler2) as Future<void>,
+      ]);
+
+      // リフレッシュ関数は「1回だけ」しか呼ばれていないことを検証
+      verify(() => mockRefreshToken.call()).called(1);
+      verify(() => handler1.resolve(any())).called(1);
+      verify(() => handler2.resolve(any())).called(1);
     });
   });
 
@@ -141,8 +173,7 @@ void main() {
     final handler = MockRequestInterceptorHandler();
     final options = RequestOptions(path: '/test');
 
-    interceptor.onRequest(options, handler);
-    await Future<void>.delayed(Duration.zero);
+    await (interceptor as dynamic).onRequest(options, handler);
 
     expect(options.headers.containsKey('Authorization'), isFalse);
     verify(() => handler.next(options)).called(1);
@@ -157,8 +188,7 @@ void main() {
       response: Response(requestOptions: options, statusCode: 500),
     );
 
-    interceptor.onError(error500, handler);
-    await Future<void>.delayed(Duration.zero);
+    await (interceptor as dynamic).onError(error500, handler);
 
     // リフレッシュ関数が一度も呼ばれていないことを検証
     verifyNever(() => mockRefreshToken.call());
@@ -184,11 +214,10 @@ void main() {
       error: 'Retry failed',
     );
     when(
-      () => mockRetryDio.fetch<Map<String, dynamic>>(any()),
+      () => mockRetryDio.fetch<dynamic>(any()),
     ).thenThrow(retryError);
 
-    interceptor.onError(error401, handler);
-    await Future<void>.delayed(Duration.zero);
+    await (interceptor as dynamic).onError(error401, handler);
 
     verify(() => handler.next(retryError)).called(1);
   });

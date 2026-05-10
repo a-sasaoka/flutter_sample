@@ -23,23 +23,22 @@ lib/src/features/user/
 ## 🌐 ネットワーク基盤とインターセプタ
 
 このプロジェクトでは、Dioを利用した通信基盤に共通エラーハンドリング、トークン管理、ロギング処理を追加しています。\
-また、`ApiClient` は **GET, POST, PUT, PATCH, DELETE** の主要なHTTPメソッドをすべてサポートしており、複雑なCRUD操作にも対応可能です。
+また、`ApiClient` はインターフェースとして抽象化されており、**GET, POST, PUT, PATCH, DELETE** の主要なHTTPメソッドをすべてサポートしています。
 
 ```plaintext
 lib/src/core/
   ├── network/
-  │   ├── api_client.dart        # Dioの共通インスタンス（主要メソッド完備）
+  │   ├── api_client.dart        # 通信の抽象インターフェースとDioによる実装
   │   ├── dio_interceptor.dart   # 共通の通信ログ・エラー変換
-  │   └── token_interceptor.dart # 認証トークン(Bearer)の自動リフレッシュ・付与
-  └── utils/
-      └── logger_provider.dart   # Talkerを用いた統合ロギング用プロバイダ
+  │   └── token_interceptor.dart # 認証トークンの自動付与・排他リフレッシュ制御
 ```
 
 | 項目           | 内容                                                                          |
 | -------------- | ----------------------------------------------------------------------------- |
+| 抽象化の徹底   | `ApiClient` をインターフェース化。通信ライブラリ(Dio)への直接依存を排除       |
 | 自動トークン   | `TokenInterceptor` により、全APIリクエストに安全にトークンを付与              |
+| 二重更新防止   | 複数の401エラーが同時に発生しても、リフレッシュAPIの呼び出しを1回に集約       |
 | 環境別設定     | `envConfigProvider` (JSON) より、環境に応じた `BASE_URL` やタイムアウトを適用 |
-| デバッグ効率   | 環境別ログ制御でノイズを削減                                                  |
 | エラーの一元化 | `AppException` に変換することで、UI層でのエラー分岐をシンプル化               |
 
 ---
@@ -78,7 +77,14 @@ ref.listen(userProvider, (previous, next) {
 
 ## 🧪 通信とUIのテスト（モック化手法）
 
-このアーキテクチャの最大のメリットは「テストのしやすさ」です。\
+このアーキテクチャの最大のメリットは「テストのしやすさ」です。
+
+### 1. Repository層のテスト (ApiClientのモック)
+
+`ApiClient` がインターフェース化されているため、Data層（Repository）のテストにおいて Dio の複雑な振る舞いをモックする必要がありません。`MockApiClient` を作成し、抽象化されたメソッドをスタブ化するだけで、純粋なデータ処理のテストが可能です。
+
+### 2. UI層のテスト (Repositoryのモック)
+
 UIの振る舞いをテストする際、Notifierをごまかすのではなく、一番奥の **`UserRepository`（データ層）だけをモック化** することで、実際のアプリと全く同じ「通信→ロード→表示」のライフサイクルをテストできます。
 
 ```dart

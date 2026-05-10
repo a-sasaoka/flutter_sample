@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/storage/token_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -33,49 +34,97 @@ TokenStorage tokenStorageInternal(Ref ref) {
 }
 
 /// 再リクエスト（リトライ）用のDioインスタンスを提供するProvider
-/// テスト時にモックへ差し替え可能にするために切り出し
+///
+/// メインの `dioProvider` と同じタイムアウト設定を適用します。
 @Riverpod(keepAlive: true)
 Dio retryDio(Ref ref) {
-  return Dio();
+  final config = ref.watch(envConfigProvider);
+  return Dio(
+    BaseOptions(
+      connectTimeout: Duration(seconds: config.connectTimeout),
+      receiveTimeout: Duration(seconds: config.receiveTimeout),
+      sendTimeout: Duration(seconds: config.sendTimeout),
+    ),
+  );
 }
 // coverage:ignore-end
 
 /// トークンを自動で付与・更新するDioのインターセプター
 @Riverpod(keepAlive: true)
-InterceptorsWrapper tokenInterceptor(Ref ref) {
-  return InterceptorsWrapper(
-    onRequest: (options, handler) async {
-      final storage = ref.read(tokenStorageInternalProvider);
-      final token = await storage.getAccessToken();
+Interceptor tokenInterceptor(Ref ref) {
+  return _TokenInterceptor(ref);
+}
 
-      if (token != null) {
-        options.headers['Authorization'] = 'Bearer $token';
-      }
-      return handler.next(options);
-    },
-    onError: (e, handler) async {
-      if (e.response?.statusCode == 401) {
-        final refreshTokenFn = ref.read(tokenRefreshCallbackProvider);
-        final refreshed = await refreshTokenFn();
+/// トークン制御の実装クラス
+class _TokenInterceptor extends Interceptor {
+  _TokenInterceptor(this._ref);
 
-        if (refreshed) {
-          final storage = ref.read(tokenStorageInternalProvider);
-          final newToken = await storage.getAccessToken();
+  final Ref _ref;
 
-          e.requestOptions.headers['Authorization'] = 'Bearer $newToken';
+  /// 同時実行されるリフレッシュ処理を1つにまとめるための Future
+  Future<bool>? _refreshFuture;
 
-          final dio = ref.read(retryDioProvider);
-          try {
-            final retryResponse = await dio.fetch<Map<String, dynamic>>(
-              e.requestOptions,
-            );
-            return handler.resolve(retryResponse);
-          } on DioException catch (retryError) {
-            return handler.next(retryError);
-          }
+  @override
+  Future<void> onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
+    final storage = _ref.read(tokenStorageInternalProvider);
+    final token = await storage.getAccessToken();
+
+    if (token != null) {
+      options.headers['Authorization'] = 'Bearer $token';
+    }
+    handler.next(options);
+  }
+
+  @override
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
+    // 401 Unauthorized (認証切れ) の場合にリフレッシュを試みる
+    if (err.response?.statusCode == 401) {
+      final success = await _refreshTokens();
+
+      if (success) {
+        // 新しいトークンを取得してヘッダーを更新
+        final storage = _ref.read(tokenStorageInternalProvider);
+        final newToken = await storage.getAccessToken();
+        err.requestOptions.headers['Authorization'] = 'Bearer $newToken';
+
+        // リトライ用のDioでリクエストを再実行
+        final dio = _ref.read(retryDioProvider);
+        try {
+          final retryResponse = await dio.fetch<dynamic>(err.requestOptions);
+          return handler.resolve(retryResponse);
+        } on DioException catch (retryError) {
+          return handler.next(retryError);
         }
       }
-      return handler.next(e);
-    },
-  );
+    }
+    // 401以外、またはリフレッシュ失敗時はそのままエラーを流す
+    handler.next(err);
+  }
+
+  /// トークンのリフレッシュを実行する（同時呼び出し時は1つに統合）
+  Future<bool> _refreshTokens() async {
+    // すでに他のリクエストがリフレッシュ中なら、その完了を待つ
+    if (_refreshFuture != null) {
+      return _refreshFuture!;
+    }
+
+    final refreshTokenFn = _ref.read(tokenRefreshCallbackProvider);
+
+    // 新規にリフレッシュ処理を開始
+    _refreshFuture = refreshTokenFn();
+
+    try {
+      final result = await _refreshFuture!;
+      return result;
+    } finally {
+      // 完了（成功・失敗問わず）したらリセット
+      _refreshFuture = null;
+    }
+  }
 }
