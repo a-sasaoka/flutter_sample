@@ -52,4 +52,4 @@ final class CacheManagerProvider
   }
 }
 
-String _$cacheManagerHash() => r'769c036f0d76cfd9dc41b17733514438e611e893';
+String _$cacheManagerHash() => r'f1c3cd01a87e97e81f525af348ac329d06002ede';

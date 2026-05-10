@@ -17,10 +17,7 @@ void main() {
     mockPrefs = MockSharedPreferencesAsync();
     container = ProviderContainer(
       overrides: [
-        // sharedPreferencesProvider をモックで上書き
-        sharedPreferencesProvider.overrideWith(
-          (ref) => Future.value(mockPrefs),
-        ),
+        sharedPreferencesProvider.overrideWithValue(mockPrefs),
       ],
     );
   });
@@ -110,6 +107,25 @@ void main() {
       // Assert
       expect(access, isNull);
       expect(refresh, isNull);
+    });
+  });
+
+  group('TokenStorage ユニットテスト (Providerなし)', () {
+    test('DIにより、ProviderContainerなしでも単体テストが可能なこと', () async {
+      // Arrange
+      final mockPrefs = MockSharedPreferencesAsync();
+      when(
+        () => mockPrefs.getString(any()),
+      ).thenAnswer((_) async => 'raw_token');
+
+      final storage = TokenStorage(prefs: mockPrefs);
+
+      // Act
+      final token = await storage.getAccessToken();
+
+      // Assert
+      expect(token, 'raw_token');
+      verify(() => mockPrefs.getString('access_token')).called(1);
     });
   });
 }

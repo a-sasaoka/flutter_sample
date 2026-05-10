@@ -12,7 +12,7 @@ class ThemeModeNotifier extends _$ThemeModeNotifier {
   @override
   Future<ThemeMode> build() async {
     // SharedPreferencesから設定を取得
-    final prefs = await ref.watch(sharedPreferencesProvider.future);
+    final prefs = ref.watch(sharedPreferencesProvider);
     final value = await prefs.getString(_key);
 
     // 保存されていなければシステム設定を返す
@@ -26,7 +26,7 @@ class ThemeModeNotifier extends _$ThemeModeNotifier {
   /// モードを変更して保存
   Future<void> set(ThemeMode mode) async {
     state = AsyncData(mode); // 即時反映
-    final prefs = await ref.read(sharedPreferencesProvider.future);
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString(_key, mode.name);
   }
 
