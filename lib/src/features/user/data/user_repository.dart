@@ -44,11 +44,10 @@ class UserRepository {
   Future<List<UserModel>> fetchUsers({bool forceRefresh = false}) async {
     // 強制更新でない場合のみ、キャッシュを確認する
     if (!forceRefresh) {
-      final cachedData = await cache.get(cacheKey);
-      if (cachedData != null) {
+      if (await cache.get(cacheKey) case final List<dynamic> cachedData) {
         // キャッシュから読み込む
         talker.debug('Loaded users from cache.');
-        return (cachedData as List)
+        return cachedData
             .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
             .toList(growable: false);
       }

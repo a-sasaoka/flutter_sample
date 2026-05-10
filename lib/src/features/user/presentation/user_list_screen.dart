@@ -16,8 +16,8 @@ class UserListScreen extends ConsumerWidget {
 
     // エラー時のスナックバー表示は `ref.listen` で監視する
     ref.listen(userProvider, (previous, next) {
-      if (!next.isLoading && next.hasError) {
-        ErrorHandler.showSnackBar(context, next.error!);
+      if (next case AsyncError(:final error) when !next.isLoading) {
+        ErrorHandler.showSnackBar(context, error);
       }
     });
 
@@ -145,14 +145,18 @@ class _IconText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Row(
       children: [
-        Icon(icon, size: 16, color: Theme.of(context).colorScheme.outline),
+        Icon(icon, size: 16, color: colorScheme.outline),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
-            style: Theme.of(context).textTheme.bodySmall,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
             overflow: TextOverflow.ellipsis,
           ),
         ),

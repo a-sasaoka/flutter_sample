@@ -26,20 +26,21 @@ class SettingsScreen extends ConsumerWidget {
         loading: () =>
             const Center(child: CircularProgressIndicator.adaptive()),
         error: (err, _) => Center(child: Text('Error: $err')),
-        data: (tuple) {
+        data: (config) {
+          final (:theme, :locale, :router) = config;
           return ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             children: [
               // テーマ設定セクション
               _SectionHeader(title: l10n.settingsThemeSection),
               const SizedBox(height: 8),
-              _ThemeCard(currentMode: tuple.theme),
+              _ThemeCard(currentMode: theme),
               const SizedBox(height: 32),
 
               // 言語設定セクション
               _SectionHeader(title: l10n.settingsLocaleSection),
               const SizedBox(height: 8),
-              _LocaleCard(currentLocale: tuple.locale),
+              _LocaleCard(currentLocale: locale),
 
               if (useAuth) ...[
                 const SizedBox(height: 48),
