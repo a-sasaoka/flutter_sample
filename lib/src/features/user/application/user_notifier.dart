@@ -10,7 +10,7 @@ class UserNotifier extends _$UserNotifier {
   @override
   Future<List<UserModel>> build() async {
     // 初回表示時は通常通り（キャッシュがあればキャッシュを使う）
-    return ref.read(userRepositoryProvider).fetchUsers();
+    return ref.watch(userRepositoryProvider).fetchUsers();
   }
 
   /// 引っ張って更新などで強制的にAPIから再取得する

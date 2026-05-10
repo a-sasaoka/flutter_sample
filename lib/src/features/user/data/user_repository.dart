@@ -1,8 +1,10 @@
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/storage/cache_manager.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/user/domain/user_model.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 part 'user_repository.g.dart';
 
@@ -12,6 +14,7 @@ UserRepository userRepository(Ref ref) {
   return UserRepository(
     api: ref.watch(apiClientProvider),
     cache: ref.watch(cacheManagerProvider),
+    talker: ref.watch(loggerProvider),
   );
 }
 
@@ -21,6 +24,7 @@ class UserRepository {
   const UserRepository({
     required this.api,
     required this.cache,
+    required this.talker,
   });
 
   /// APIクライアント
@@ -28,6 +32,9 @@ class UserRepository {
 
   /// キャッシュマネージャー
   final CacheManager cache;
+
+  /// ロガー
+  final Talker talker;
 
   /// キャッシュのキー
   static const cacheKey = 'users';
@@ -40,6 +47,7 @@ class UserRepository {
       final cachedData = await cache.get(cacheKey);
       if (cachedData != null) {
         // キャッシュから読み込む
+        talker.debug('Loaded users from cache.');
         return (cachedData as List)
             .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
             .toList(growable: false);
@@ -58,6 +66,7 @@ class UserRepository {
 
     // キャッシュに保存（上書き）
     await cache.save(cacheKey, response.data);
+    talker.debug('Fetched users from API and saved to cache.');
 
     return users;
   }
@@ -86,6 +95,7 @@ class UserRepository {
 
     // キャッシュをクリア
     await cache.clear(cacheKey);
+    talker.debug('Created user and cleared cache.');
 
     return UserModel.fromJson(data);
   }
@@ -104,6 +114,7 @@ class UserRepository {
 
     // キャッシュをクリア
     await cache.clear(cacheKey);
+    talker.debug('Updated user name and cleared cache.');
 
     return UserModel.fromJson(data);
   }
@@ -114,5 +125,6 @@ class UserRepository {
 
     // キャッシュをクリア
     await cache.clear(cacheKey);
+    talker.debug('Deleted user and cleared cache.');
   }
 }

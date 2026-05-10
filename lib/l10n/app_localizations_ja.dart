@@ -307,6 +307,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get userListTitle => 'ユーザー一覧';
 
   @override
+  String get userListEmpty => 'ユーザーが見つかりませんでした。';
+
+  @override
+  String get retry => '再試行';
+
+  @override
   String get notFoundTitle => 'ページが見つかりません';
 
   @override

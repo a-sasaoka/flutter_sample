@@ -25,13 +25,14 @@ Flutter開発のサンプルプロジェクトです。\
 - [GoRouter（型安全ルーティング）](docs/routing.md)
 - [Flavor管理（マルチ環境対応）](docs/flavor.md)
 - [多言語対応（Localization）](docs/localization.md)
+- [API通信とエラーハンドリング（Dio）](docs/api_and_error_handling.md)
 - [データ永続化・ローカルDB（SharedPreferences / Drift / Secure Storage）](docs/persistence.md)
 - [テーマ設定（FlexColorScheme）](docs/theme.md)
 - [共通ユーティリティ（ログ・通信状態・ライフサイクル）](docs/core_utilities.md)
 
 ### D. 機能別実装
 
-- [API通信デモ（UserList）](docs/api_and_error_handling.md)
+- [ユーザー一覧機能 (User List)](docs/user.md)
 - [ホーム画面 (Navigation Hub)](docs/home.md)
 - [トークン認証（Bearer + Refresh）](docs/auth.md)
 - [Firebase Authenticationによる認証対応](docs/firebase_authentication.md)
@@ -43,7 +44,6 @@ Flutter開発のサンプルプロジェクトです。\
 - [fl_chart によるグラフ表示デモ](docs/chart.md)
 - [オフラインメモ機能（Memos）](docs/memos.md)
 - [設定機能（Settings）](docs/settings.md)
-- [Drift / SharedPreferences（データ永続化）](docs/persistence.md)
 
 ### E. 開発運用
 

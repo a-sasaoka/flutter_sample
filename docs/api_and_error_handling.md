@@ -13,11 +13,11 @@ lib/src/features/user/
   │   ├── user_model.dart       # Freezedで定義したユーザーモデル
   │   └── address.dart          # ネストされたモデルの分離
   ├── data/
-  │   └── user_repository.dart  # API呼び出しとキャッシュ管理
+  │   └── user_repository.dart  # API呼び出しとキャッシュ管理（DI最適化済み）
   ├── application/
   │   └── user_notifier.dart    # 状態管理（ロード中・成功・エラー）
   └── presentation/
-      └── user_list_screen.dart # 一覧表示画面
+      └── user_list_screen.dart. # 一覧表示画面（Cardデザイン採用）
 ```
 
 ## 🌐 ネットワーク基盤とインターセプタ
@@ -56,27 +56,17 @@ lib/src/core/ui/
 ### 💡 役割と特徴
 
 - **`ErrorHandler`**: `AppException` の種類に基づき、最適な多言語化メッセージを生成します。また、デバッグ効率向上のため、メッセージの末尾に **ステータスコード（例: (404)）を自動的に付与** します。
-- **`SnackBarExtension`**: アプリ全体の `Theme` (ColorScheme) に完全に連動します。エラー時は `errorContainer`、成功時は `primaryContainer` の色を自動で使用し、視覚的な一貫性を保ちます。
+- **`SnackBarExtension`**: アプリ全体の `Theme` (ColorScheme) に完全に連動します。エラー時は `errorContainer`、成功時は `primaryContainer` の色を自動で使用し、視覚的な一貫性を保ます。
 
-### 💡 Riverpodのベストプラクティス： `ref.listen` の活用
+---
 
-画面描画中（`build`メソッド内）に直接スナックバーを呼ぶと、エラーや無限ループの原因になります。
-本プロジェクトでは、**`ref.listen`** を使用して状態変化を検知し、安全にエラーUIを表示します。
+## 🎨 ユーザー一覧 UI (UserListScreen)
 
-```dart
-// user_list_screen.dart などの build メソッド内
-ref.listen(userProvider, (previous, next) {
-  // ローディングが終わり、かつエラーがある時だけ1回実行
-  if (!next.isLoading && next.hasError) {
-    ErrorHandler.showSnackBar(context, next.error!);
-  }
-});
-```
+ユーザー一覧画面では、Material 3 のデザインガイドラインに沿った **Card デザイン** を採用しています。
 
-### 使い分け例
-
-- **軽い通信エラー（Snackbar）**: `ErrorHandler.showSnackBar(context, e);`
-- **致命的なエラー（Dialog）**: `await ErrorHandler.showDialogError(context, e);`
+- **視覚的な整理**: `CircleAvatar` や `Icons` を活用し、各ユーザーの情報を整理して表示。
+- **テーマ連動**: 配色は `ColorScheme` に追随し、ダークモード時も最適なコントラストを保ちます。
+- **操作性**: `RefreshIndicator` によるスワイプ更新をサポートしており、`AlwaysScrollableScrollPhysics` により項目が少ない場合でも確実に動作します。
 
 ---
 
@@ -86,7 +76,7 @@ ref.listen(userProvider, (previous, next) {
 
 ### 1. Repository層のテスト (ApiClientのモック)
 
-`ApiClient` がインターフェース化されているため、Data層（Repository）のテストにおいて Dio の複雑な振る舞いをモックする必要がありません。`MockApiClient` を作成し、抽象化されたメソッドをスタブ化するだけで、純粋なデータ処理のテストが可能です。
+`ApiClient` や `CacheManager`, `Talker` がコンストラクタ注入されているため、リポジトリ層のテストにおいてフレームワークを介さずに純粋なビジネスロジックのテストが可能です。
 
 ### 2. UI層のテスト (Repositoryのモック)
 
@@ -109,7 +99,7 @@ await tester.pumpWidget(
 
 // 画面の描画を待って検証
 await tester.pumpAndSettle();
-expect(find.text('Test User'), findsOneWidget);
+expect(find.byType(Card), findsNWidgets(dummyUsers.length));
 ```
 
 このように、レイヤーを綺麗に分離することで、単体テストからウィジェットテストまで、カバレッジ100%を安全に達成できる構造になっています。

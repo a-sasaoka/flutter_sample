@@ -1,10 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/storage/cache_manager.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/user/data/user_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 // --- モッククラスの定義 ---
 
@@ -18,9 +20,12 @@ class MockMapResponse extends Mock implements Response<Map<String, dynamic>> {}
 
 class MockVoidResponse extends Mock implements Response<void> {}
 
+class MockTalker extends Mock implements Talker {}
+
 void main() {
   late MockApiClient mockApi;
   late MockCacheManager mockCache;
+  late MockTalker mockTalker;
   late UserRepository repository;
 
   setUpAll(() {
@@ -30,10 +35,15 @@ void main() {
   setUp(() {
     mockApi = MockApiClient();
     mockCache = MockCacheManager();
+    mockTalker = MockTalker();
+
+    when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
+    when(() => mockTalker.error(any<dynamic>())).thenReturn(null);
 
     repository = UserRepository(
       api: mockApi,
       cache: mockCache,
+      talker: mockTalker,
     );
   });
 
@@ -331,6 +341,7 @@ void main() {
           overrides: [
             apiClientProvider.overrideWithValue(mockApi),
             cacheManagerProvider.overrideWithValue(mockCache),
+            loggerProvider.overrideWithValue(mockTalker),
           ],
         );
         addTearDown(container.dispose);

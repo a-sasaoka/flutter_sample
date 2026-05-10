@@ -686,10 +686,22 @@ abstract class AppLocalizations {
   /// **'User List'**
   String get userListTitle;
 
+  /// No description provided for @userListEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No users found.'**
+  String get userListEmpty;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
   /// No description provided for @notFoundTitle.
   ///
   /// In en, this message translates to:
-  /// **'Page Not Found'**
+  /// **'Page not found'**
   String get notFoundTitle;
 
   /// No description provided for @notFoundMessage.

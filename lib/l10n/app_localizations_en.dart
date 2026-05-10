@@ -319,7 +319,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get userListTitle => 'User List';
 
   @override
-  String get notFoundTitle => 'Page Not Found';
+  String get userListEmpty => 'No users found.';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get notFoundTitle => 'Page not found';
 
   @override
   String get notFoundMessage => 'The page could not be found.';
