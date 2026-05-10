@@ -28,17 +28,21 @@ class SettingsScreen extends ConsumerWidget {
         error: (err, _) => Center(child: Text('Error: $err')),
         data: (tuple) {
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             children: [
               // テーマ設定セクション
-              _ThemeSection(currentMode: tuple.theme),
+              _SectionHeader(title: l10n.settingsThemeSection),
+              const SizedBox(height: 8),
+              _ThemeCard(currentMode: tuple.theme),
               const SizedBox(height: 32),
 
               // 言語設定セクション
-              _LocaleSection(currentLocale: tuple.locale),
+              _SectionHeader(title: l10n.settingsLocaleSection),
+              const SizedBox(height: 8),
+              _LocaleCard(currentLocale: tuple.locale),
 
               if (useAuth) ...[
-                const SizedBox(height: 32),
+                const SizedBox(height: 48),
                 // ログアウトボタン
                 const _LogoutButton(),
               ],
@@ -50,9 +54,28 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-/// テーマ設定セクション
-class _ThemeSection extends ConsumerWidget {
-  const _ThemeSection({required this.currentMode});
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title});
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
+    );
+  }
+}
+
+/// テーマ設定カード
+class _ThemeCard extends ConsumerWidget {
+  const _ThemeCard({required this.currentMode});
 
   final ThemeMode currentMode;
 
@@ -61,45 +84,56 @@ class _ThemeSection extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final themeModeNotifier = ref.read(themeModeProvider.notifier);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(l10n.settingsThemeSection),
-        const SizedBox(height: 8),
-        DropdownButton<ThemeMode>(
-          value: currentMode,
-          onChanged: (v) async {
-            if (v != null) await themeModeNotifier.set(v);
-          },
-          items: [
-            DropdownMenuItem(
-              value: ThemeMode.system,
-              child: Text(l10n.settingsThemeSystem),
+    return Card(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SegmentedButton<ThemeMode>(
+                  segments: [
+                    ButtonSegment(
+                      value: ThemeMode.system,
+                      label: Text(l10n.settingsThemeSystem),
+                      icon: const Icon(Icons.brightness_auto_outlined),
+                    ),
+                    ButtonSegment(
+                      value: ThemeMode.light,
+                      label: Text(l10n.settingsThemeLight),
+                      icon: const Icon(Icons.light_mode_outlined),
+                    ),
+                    ButtonSegment(
+                      value: ThemeMode.dark,
+                      label: Text(l10n.settingsThemeDark),
+                      icon: const Icon(Icons.dark_mode_outlined),
+                    ),
+                  ],
+                  selected: {currentMode},
+                  onSelectionChanged: (selection) async {
+                    await themeModeNotifier.set(selection.first);
+                  },
+                ),
+              ],
             ),
-            DropdownMenuItem(
-              value: ThemeMode.light,
-              child: Text(l10n.settingsThemeLight),
-            ),
-            DropdownMenuItem(
-              value: ThemeMode.dark,
-              child: Text(l10n.settingsThemeDark),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        SwitchListTile(
-          title: Text(l10n.settingsThemeToggle),
-          value: currentMode == ThemeMode.dark,
-          onChanged: (_) => themeModeNotifier.toggleLightDark(),
-        ),
-      ],
+          ),
+          const Divider(height: 1),
+          SwitchListTile(
+            title: Text(l10n.settingsThemeToggle),
+            secondary: const Icon(Icons.contrast),
+            value: currentMode == ThemeMode.dark,
+            onChanged: (_) => themeModeNotifier.toggleLightDark(),
+          ),
+        ],
+      ),
     );
   }
 }
 
-/// 言語（ロケール）設定セクション
-class _LocaleSection extends ConsumerWidget {
-  const _LocaleSection({required this.currentLocale});
+/// 言語（ロケール）設定カード
+class _LocaleCard extends ConsumerWidget {
+  const _LocaleCard({required this.currentLocale});
 
   final Locale? currentLocale;
 
@@ -108,32 +142,42 @@ class _LocaleSection extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final localeNotifier = ref.read(localeProvider.notifier);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(l10n.settingsLocaleSection),
-        DropdownButton<String>(
-          value: currentLocale?.languageCode,
-          onChanged: (v) async {
-            await localeNotifier.setLocale(v);
-          },
-          items: [
-            DropdownMenuItem(
-              child: Text(l10n.settingsLocaleSystem),
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SegmentedButton<String?>(
+              segments: [
+                ButtonSegment(
+                  value: null,
+                  label: Text(l10n.settingsLocaleSystem),
+                ),
+                const ButtonSegment(
+                  value: 'ja',
+                  label: Text('日本語'),
+                ),
+                const ButtonSegment(
+                  value: 'en',
+                  label: Text('English'),
+                ),
+              ],
+              selected: {currentLocale?.languageCode},
+              onSelectionChanged: (selection) async {
+                await localeNotifier.setLocale(selection.first);
+              },
             ),
-            DropdownMenuItem(
-              value: 'ja',
-              child: Text(l10n.settingsLocaleJa),
-            ),
-            DropdownMenuItem(
-              value: 'en',
-              child: Text(l10n.settingsLocaleEn),
+            const SizedBox(height: 16),
+            Center(
+              child: Text(
+                'Preview: ${l10n.hello}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        Text(l10n.hello),
-      ],
+      ),
     );
   }
 }
@@ -142,7 +186,6 @@ class _LocaleSection extends ConsumerWidget {
 class _LogoutButton extends ConsumerWidget {
   const _LogoutButton();
 
-  // ログアウトの「ロジック」だけを独立したメソッドとして定義
   Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
     try {
       await ref.read(firebaseAuthRepositoryProvider).signOut();
@@ -161,13 +204,13 @@ class _LogoutButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
 
-    return ElevatedButton.icon(
+    return FilledButton.icon(
       key: const Key('logout_button'),
       icon: const Icon(Icons.logout),
       label: Text(l10n.logout),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.redAccent,
-        foregroundColor: Colors.white,
+      style: FilledButton.styleFrom(
+        backgroundColor: Theme.of(context).colorScheme.error,
+        foregroundColor: Theme.of(context).colorScheme.onError,
       ),
       onPressed: () => _handleLogout(context, ref),
     );
