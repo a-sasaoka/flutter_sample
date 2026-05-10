@@ -109,6 +109,9 @@
   "chartViewGraph": "View Graph",
   "chartNoData": "No data available. Please add items first.",
   "chartAddItem": "Add Item",
+  "chartDataList": "Data List",
+  "chartClearAll": "Clear All",
+  "chartClearConfirm": "Are you sure you want to clear all data?",
 
   "@_OTHER": {},
   "sampleTitle": "Sample Feature",

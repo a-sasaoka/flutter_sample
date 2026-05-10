@@ -271,6 +271,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chartAddItem => '項目を追加';
 
   @override
+  String get chartDataList => 'データ一覧';
+
+  @override
+  String get chartClearAll => 'すべて削除';
+
+  @override
+  String get chartClearConfirm => '全てのデータを削除しますか？';
+
+  @override
   String get sampleTitle => 'サンプル機能';
 
   @override

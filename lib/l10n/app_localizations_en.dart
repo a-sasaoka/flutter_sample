@@ -282,6 +282,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chartAddItem => 'Add Item';
 
   @override
+  String get chartDataList => 'Data List';
+
+  @override
+  String get chartClearAll => 'Clear All';
+
+  @override
+  String get chartClearConfirm => 'Are you sure you want to clear all data?';
+
+  @override
   String get sampleTitle => 'Sample Feature';
 
   @override

@@ -23,7 +23,7 @@ final class ChartNotifierProvider
         argument: null,
         retry: null,
         name: r'chartProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -44,7 +44,7 @@ final class ChartNotifierProvider
   }
 }
 
-String _$chartNotifierHash() => r'78384f3c4d2d175a11ccb2b06d32aacd21a8a404';
+String _$chartNotifierHash() => r'0f305e979773bf777d8624a8e0f317f5b97285ba';
 
 /// グラフデータの状態を管理するNotifier
 

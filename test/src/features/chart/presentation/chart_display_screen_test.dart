@@ -40,7 +40,18 @@ void main() {
 
       expect(find.byType(LineChart), findsOneWidget);
       expect(find.text('Item1'), findsWidgets);
-      expect(find.text('10.0'), findsWidgets);
+
+      // 数値テキストをスクロールして見つける
+      final valueText = find.text('10.0');
+      await tester.dragUntilVisible(
+        valueText,
+        find.byType(CustomScrollView),
+        const Offset(0, -300),
+      );
+      expect(valueText, findsOneWidget);
+
+      // 新しいデザイン要素の確認
+      expect(find.text('データ一覧'), findsOneWidget);
     });
 
     testWidgets('棒グラフが正しく表示されること', (tester) async {
@@ -51,7 +62,14 @@ void main() {
 
       expect(find.byType(BarChart), findsOneWidget);
       expect(find.text('Item2'), findsWidgets);
-      expect(find.text('20.0'), findsWidgets);
+
+      final valueText = find.text('20.0');
+      await tester.dragUntilVisible(
+        valueText,
+        find.byType(CustomScrollView),
+        const Offset(0, -300),
+      );
+      expect(valueText, findsOneWidget);
     });
 
     testWidgets('円グラフが正しく表示され、カラーのループが動作すること', (tester) async {
@@ -75,10 +93,7 @@ void main() {
 
     testWidgets('データが空の場合にメッセージが表示されること', (tester) async {
       // 項目をすべて削除
-      final items = container.read(chartProvider).items;
-      for (final item in items) {
-        container.read(chartProvider.notifier).removeItem(item.id);
-      }
+      container.read(chartProvider.notifier).reset();
 
       await tester.pumpWidget(createWidgetUnderTest(container));
       await tester.pumpAndSettle();

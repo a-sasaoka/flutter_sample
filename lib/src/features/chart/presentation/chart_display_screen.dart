@@ -22,45 +22,86 @@ class ChartDisplayScreen extends ConsumerWidget {
           l10n.chartDisplayTitle(state.chartType.getLocalizedLabel(l10n)),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: state.items.isEmpty
-            ? Center(
-                child: Text(
-                  l10n.chartNoData,
-                  style: Theme.of(context).textTheme.bodyLarge,
+      body: state.items.isEmpty
+          ? Center(
+              child: Text(
+                l10n.chartNoData,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.outline,
                 ),
-              )
-            : Column(
-                children: [
-                  Expanded(
-                    child: Center(
-                      child: AspectRatio(
-                        aspectRatio: 1.5,
-                        child: _buildChart(state),
-                      ),
+              ),
+            )
+          : CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.all(24),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        AspectRatio(
+                          aspectRatio: 1.5,
+                          child: _buildChart(state),
+                        ),
+                        const SizedBox(height: 40),
+                        const Divider(),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            const Icon(Icons.list_alt_outlined),
+                            const SizedBox(width: 8),
+                            Text(
+                              l10n.chartDataList,
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 32),
-                  // データ一覧の簡易表示
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: state.items.length,
-                      itemBuilder: (context, index) {
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
                         final item = state.items[index];
-                        return ListTile(
-                          title: Text(item.label),
-                          trailing: Text(
-                            item.value.toString(),
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                        final color = _colors[index % _colors.length];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          child: ListTile(
+                            leading: Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            title: Text(
+                              item.label,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            trailing: Text(
+                              item.value.toString(),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    fontFamily: 'monospace',
+                                  ),
+                            ),
                           ),
                         );
                       },
+                      childCount: state.items.length,
                     ),
                   ),
-                ],
-              ),
-      ),
+                ),
+              ],
+            ),
     );
   }
 

@@ -109,6 +109,9 @@
   "chartViewGraph": "グラフを表示",
   "chartNoData": "データがありません。まず項目を追加してください。",
   "chartAddItem": "項目を追加",
+  "chartDataList": "データ一覧",
+  "chartClearAll": "すべて削除",
+  "chartClearConfirm": "全てのデータを削除しますか？",
 
   "@_OTHER": {},
   "sampleTitle": "サンプル機能",

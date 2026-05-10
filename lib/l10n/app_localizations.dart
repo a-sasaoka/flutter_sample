@@ -614,6 +614,24 @@ abstract class AppLocalizations {
   /// **'Add Item'**
   String get chartAddItem;
 
+  /// No description provided for @chartDataList.
+  ///
+  /// In en, this message translates to:
+  /// **'Data List'**
+  String get chartDataList;
+
+  /// No description provided for @chartClearAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear All'**
+  String get chartClearAll;
+
+  /// No description provided for @chartClearConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to clear all data?'**
+  String get chartClearConfirm;
+
   /// No description provided for @sampleTitle.
   ///
   /// In en, this message translates to:

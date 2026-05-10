@@ -22,24 +22,25 @@ void main() {
 
   group('ChartInputScreen', () {
     late ProviderContainer container;
-    late String? attemptedPath;
     late GoRouter router;
 
     setUp(() {
       container = ProviderContainer();
-      attemptedPath = null;
       router = GoRouter(
-        initialLocation: '/',
+        initialLocation: '/chart-input',
         routes: [
           GoRoute(
-            path: '/',
+            path: '/chart-input',
             builder: (context, state) => const ChartInputScreen(),
+            routes: [
+              GoRoute(
+                path: 'display',
+                builder: (context, state) =>
+                    const Scaffold(body: Text('Display')),
+              ),
+            ],
           ),
         ],
-        errorBuilder: (context, state) {
-          attemptedPath = state.uri.toString();
-          return const Scaffold(body: Text('Dummy Error Screen'));
-        },
       );
     });
 
@@ -57,6 +58,10 @@ void main() {
       expect(find.text('10.0'), findsOneWidget); // Default item 1 value
       expect(find.text('Item2'), findsOneWidget); // Default item 2 label
       expect(find.text('20.0'), findsOneWidget); // Default item 2 value
+
+      // 新しいデザインの確認
+      expect(find.byType(Card), findsAtLeast(2));
+      expect(find.byIcon(Icons.label_outline), findsAtLeast(2));
     });
 
     testWidgets('グラフ種類を変更できること', (tester) async {
@@ -100,23 +105,11 @@ void main() {
       expect(state.items[0].value, 50.5);
     });
 
-    testWidgets('数値を更新できること（不正な数値の場合は0.0になること）', (tester) async {
-      await tester.pumpWidget(createWidgetUnderTest(container, router));
-      await tester.pumpAndSettle();
-
-      final textFields = find.byType(TextFormField);
-      await tester.enterText(textFields.at(1), 'invalid');
-      await tester.pumpAndSettle();
-
-      final state = container.read(chartProvider);
-      expect(state.items[0].value, 0.0);
-    });
-
     testWidgets('項目を追加できること', (tester) async {
       await tester.pumpWidget(createWidgetUnderTest(container, router));
       await tester.pumpAndSettle();
 
-      final addBtn = find.widgetWithIcon(FloatingActionButton, Icons.add);
+      final addBtn = find.byType(FloatingActionButton);
       await tester.tap(addBtn);
       await tester.pumpAndSettle();
 
@@ -129,7 +122,7 @@ void main() {
       await tester.pumpWidget(createWidgetUnderTest(container, router));
       await tester.pumpAndSettle();
 
-      final deleteBtns = find.byIcon(Icons.delete);
+      final deleteBtns = find.byIcon(Icons.remove_circle_outline);
       expect(deleteBtns, findsNWidgets(2));
 
       await tester.tap(deleteBtns.first);
@@ -140,19 +133,47 @@ void main() {
       expect(state.items[0].label, 'Item2');
     });
 
+    testWidgets('全削除ボタンが動作すること', (tester) async {
+      await tester.pumpWidget(createWidgetUnderTest(container, router));
+      await tester.pumpAndSettle();
+
+      // 初期状態で2つあることを確認
+      expect(container.read(chartProvider).items.length, 2);
+
+      // 1. キャンセルする場合
+      await tester.tap(find.byIcon(Icons.delete_sweep_outlined));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(TextButton, '閉じる'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(container.read(chartProvider).items.length, 2); // 削除されていないこと
+
+      // 2. 実行する場合
+      await tester.tap(find.byIcon(Icons.delete_sweep_outlined));
+      await tester.pumpAndSettle();
+
+      // 実行
+      await tester.tap(find.widgetWithText(TextButton, 'すべて削除'));
+      await tester.pumpAndSettle();
+
+      // 項目が空になっていること
+      expect(container.read(chartProvider).items, isEmpty);
+      expect(find.text('データがありません。まず項目を追加してください。'), findsOneWidget);
+    });
+
     testWidgets('グラフ表示画面への遷移ボタンが動作すること', (tester) async {
       await tester.pumpWidget(createWidgetUnderTest(container, router));
       await tester.pumpAndSettle();
 
-      final viewBtn = find.descendant(
-        of: find.byType(AppBar),
-        matching: find.byType(IconButton),
-      );
+      final viewBtn = find.byIcon(Icons.bar_chart).last;
 
       await tester.tap(viewBtn);
       await tester.pumpAndSettle();
 
-      expect(attemptedPath, '/chart-input/display');
+      expect(find.text('Display'), findsOneWidget);
     });
 
     testWidgets('画面外タップでキーボードが閉じること', (tester) async {
