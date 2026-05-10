@@ -61,6 +61,52 @@ final class FirebaseRemoteConfigProvider
 String _$firebaseRemoteConfigHash() =>
     r'b77ccb5a415dded5f97912f191756d9103cc4faf';
 
+/// UpdateServiceを提供するプロバイダ
+
+@ProviderFor(updateService)
+final updateServiceProvider = UpdateServiceProvider._();
+
+/// UpdateServiceを提供するプロバイダ
+
+final class UpdateServiceProvider
+    extends $FunctionalProvider<UpdateService, UpdateService, UpdateService>
+    with $Provider<UpdateService> {
+  /// UpdateServiceを提供するプロバイダ
+  UpdateServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'updateServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$updateServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<UpdateService> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  UpdateService create(Ref ref) {
+    return updateService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(UpdateService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<UpdateService>(value),
+    );
+  }
+}
+
+String _$updateServiceHash() => r'40139ac4944c0020820611881438da9759567fff';
+
 /// RemoteConfigからアップデート情報を取得するコントローラ
 
 @ProviderFor(UpdateRequestController)
@@ -90,7 +136,7 @@ final class UpdateRequestControllerProvider
 }
 
 String _$updateRequestControllerHash() =>
-    r'68978a67a7318b713cdf93b9a7bf4396deef8a43';
+    r'022b6c7e8ba2a9140eb07afeae92c30643d86915';
 
 /// RemoteConfigからアップデート情報を取得するコントローラ
 

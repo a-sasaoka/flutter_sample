@@ -5,7 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'locale_provider.g.dart';
 
 /// アプリ全体のロケールを管理するプロバイダ
-@riverpod
+@Riverpod(keepAlive: true)
 class LocaleNotifier extends _$LocaleNotifier {
   static const _key = 'locale_key';
 

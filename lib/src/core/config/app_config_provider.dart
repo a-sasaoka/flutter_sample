@@ -8,7 +8,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'app_config_provider.g.dart';
 
 /// アプリ全体の設定をまとめて取得するプロバイダ
-@riverpod
+@Riverpod(keepAlive: true)
 Future<({GoRouter router, ThemeMode theme, Locale? locale})> appConfig(
   Ref ref,
 ) async {

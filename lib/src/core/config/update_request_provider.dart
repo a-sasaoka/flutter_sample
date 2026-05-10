@@ -1,13 +1,10 @@
-import 'dart:convert';
-
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
-import 'package:flutter_sample/src/core/config/update_info.dart';
+import 'package:flutter_sample/src/core/config/update_service.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:version/version.dart';
 
 part 'update_request_provider.g.dart';
 
@@ -19,6 +16,17 @@ FirebaseRemoteConfig firebaseRemoteConfig(Ref ref) {
 }
 // coverage:ignore-end
 
+/// UpdateServiceを提供するプロバイダ
+@Riverpod(keepAlive: true)
+UpdateService updateService(Ref ref) {
+  return UpdateService(
+    remoteConfig: ref.watch(firebaseRemoteConfigProvider),
+    packageInfo: ref.watch(packageInfoProvider),
+    getCurrentDateTime: () => ref.read(currentDateTimeProvider),
+    talker: ref.watch(loggerProvider),
+  );
+}
+
 /// RemoteConfigからアップデート情報を取得するコントローラ
 @Riverpod(keepAlive: true)
 class UpdateRequestController extends _$UpdateRequestController {
@@ -26,6 +34,7 @@ class UpdateRequestController extends _$UpdateRequestController {
   Future<UpdateRequestType> build() async {
     // DIでモックを注入できるように、プロバイダ経由で取得
     final remoteConfig = ref.watch(firebaseRemoteConfigProvider);
+    final service = ref.watch(updateServiceProvider);
 
     // タイムアウトとフェッチのインターバル時間を設定
     final flavor = ref.watch(flavorProvider);
@@ -52,7 +61,7 @@ class UpdateRequestController extends _$UpdateRequestController {
       state = const AsyncValue.loading();
       // 変更した状態をstateに設定
       state = await AsyncValue.guard(() async {
-        return _getRemoteConfigData(ref);
+        return service.getUpdateRequestType();
       });
     });
 
@@ -61,52 +70,7 @@ class UpdateRequestController extends _$UpdateRequestController {
     // アクティベート
     await remoteConfig.fetchAndActivate();
 
-    return _getRemoteConfigData(ref);
-  }
-
-  /// RemoteConfigからアップデート情報を取得
-  Future<UpdateRequestType> _getRemoteConfigData(Ref ref) async {
-    try {
-      final remoteConfig = ref.read(firebaseRemoteConfigProvider);
-      // RemoteConfigから情報を取得
-      final string = remoteConfig.getString('update_info');
-      if (string.isEmpty) {
-        return UpdateRequestType.not;
-      }
-
-      // JSONをMapに変換
-      final map = json.decode(string) as Map<String, Object?>;
-      // JSONの情報からアップデート情報を作成
-      final entity = UpdateInfo.fromJson(map);
-
-      // 現在のアプリバージョンを取得
-      final appPackageInfo = ref.read(packageInfoProvider);
-      final currentVersion = Version.parse(appPackageInfo.version);
-
-      // RemoteConfigに設定されているバージョンと適用日を取得
-      final requiredVersion = Version.parse(entity.requiredVersion);
-      final enabledAt = entity.enabledAt;
-
-      // 現在のバージョンより新しいバージョンが指定されているか
-      final hasNewVersion = requiredVersion > currentVersion;
-      // 強制アップデート有効期間内かどうか
-      final isEnabled =
-          enabledAt.compareTo(ref.read(currentDateTimeProvider)) < 0;
-
-      if (!isEnabled || !hasNewVersion) {
-        // 有効期間外、もしくは新しいバージョンは無い
-        return UpdateRequestType.not;
-      }
-      return entity.canCancel
-          ? UpdateRequestType.cancelable
-          : UpdateRequestType.forcibly;
-    } on Exception catch (e) {
-      ref
-          .read(loggerProvider)
-          .warning('Failed to retrieve or parse the update information: $e');
-      // パース失敗時はアップデートなしとして扱う
-      return UpdateRequestType.not;
-    }
+    return service.getUpdateRequestType();
   }
 }
 

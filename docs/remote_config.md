@@ -9,7 +9,8 @@
 ```plaintext
 lib/src/core/config/
  ├── update_info.dart              # Freezedによるアップデート情報のモデル（JSONパース）
- └── update_request_provider.dart  # Remote Configの監視・バージョン比較ロジック
+ ├── update_service.dart           # バージョン比較・判定ロジック（純粋なDartクラス）
+ └── update_request_provider.dart  # Remote Configの監視・状態管理
 ```
 
 ---
@@ -18,11 +19,15 @@ lib/src/core/config/
 
 ただ値を取得するだけでなく、実運用を想定した高度な仕組みが組み込まれています。
 
-### 1. リアルタイム監視 (`onConfigUpdated`)
+### 1. 判定ロジックの分離とテスト容易性
 
-アプリの起動時だけでなく、**アプリを使用している最中でも** Remote Config の変更をリアルタイムで検知（`onConfigUpdated.listen`）し、即座にアップデートダイアログを表示させることができます。
+バージョン比較や日付チェックなどの判定ロジックを `UpdateService` として独立させています。これにより、Riverpod や Firebase の環境に依存せず、純粋な単体テストで「境界値のテスト（同じバージョンの挙動など）」を確実に実施できます。
 
-### 2. 環境（Flavor）によるフェッチ間隔の自動制御
+### 2. リアルタイム監視 (`onConfigUpdated`)
+
+アプリの起動時だけでなく、**アプリを使用している最中でも** Remote Config の変更をリアルタイムで検知し、即座にアップデートダイアログを表示させることができます。
+
+### 3. 環境（Flavor）によるフェッチ間隔の自動制御
 
 無駄なAPI通信やFirebaseのスロットリング（制限）を防ぐため、本番環境（`prod`）では12時間のインターバルを設け、開発環境（`dev` 等）では即時（`Duration.zero`）に設定が反映されるよう、`Flavor` を使って切り替えています。
 

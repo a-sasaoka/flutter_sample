@@ -195,7 +195,7 @@ class EmailVerificationRoute extends GoRouteData with $EmailVerificationRoute {
 }
 
 /// 🌐 GoRouterのインスタンスをRiverpodで提供
-@riverpod
+@Riverpod(keepAlive: true)
 GoRouter router(Ref ref) {
   final useFirebase = ref.watch(envConfigProvider).useFirebaseAuth;
 

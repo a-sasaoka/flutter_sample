@@ -109,4 +109,4 @@ final class AnalyticsServiceProvider
   }
 }
 
-String _$analyticsServiceHash() => r'5a7f6fec4ce30df8eb080ad67c17bb1bd7faa3a1';
+String _$analyticsServiceHash() => r'399b4e8d9e0a0d5062c15599ef72f12f3ebe39cd';

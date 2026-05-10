@@ -5,7 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'theme_mode_provider.g.dart';
 
 /// テーマモードの状態を管理・保存するプロバイダー
-@riverpod
+@Riverpod(keepAlive: true)
 class ThemeModeNotifier extends _$ThemeModeNotifier {
   static const _key = 'theme_mode'; // 保存用キー
 

@@ -23,7 +23,7 @@ final class ThemeModeNotifierProvider
         argument: null,
         retry: null,
         name: r'themeModeProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -36,7 +36,7 @@ final class ThemeModeNotifierProvider
   ThemeModeNotifier create() => ThemeModeNotifier();
 }
 
-String _$themeModeNotifierHash() => r'f664498ee30bf6ab4141af47bdb127034469f4f6';
+String _$themeModeNotifierHash() => r'e0d86b768f8db64d51b7e4604b451f80ab7ed1a7';
 
 /// テーマモードの状態を管理・保存するプロバイダー
 
