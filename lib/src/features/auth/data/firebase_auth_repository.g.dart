@@ -117,7 +117,7 @@ final class AuthStateChangesProvider
         argument: null,
         retry: null,
         name: r'authStateChangesProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -136,7 +136,7 @@ final class AuthStateChangesProvider
   }
 }
 
-String _$authStateChangesHash() => r'c7af77d8677dab52fbf7e97ba783186b3b67e1ee';
+String _$authStateChangesHash() => r'37743559f25b40bb97338dac2346cefb22ab69f0';
 
 /// Firebase Authenticationを使用した認証リポジトリ
 
@@ -189,4 +189,4 @@ final class FirebaseAuthRepositoryProvider
 }
 
 String _$firebaseAuthRepositoryHash() =>
-    r'd4ae548d4237ae737acd93959adfa0b1764bccf5';
+    r'9f4f6ff2fd244e66420f68e05eea3b5101b7dec2';

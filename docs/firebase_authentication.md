@@ -33,14 +33,24 @@ lib/src/features/auth/
 
 ```dart
 // lib/src/features/auth/data/firebase_auth_repository.dart
-@riverpod
+@Riverpod(keepAlive: true)
 Stream<User?> authStateChanges(Ref ref) {
   // 💡 user.reload() が呼ばれた時にも自動的にストリームが発火する！
+  // 💡 keepAlive: true により、画面遷移の合間に状態がリセットされるのを防ぎます。
   return ref.watch(firebaseAuthProvider).userChanges();
 }
 ```
 
 これにより、「バックグラウンドで `reloadCurrentUser()` を呼ぶだけで、UI側（Riverpod）が自動的にユーザー状態の変更（メール認証完了など）を検知して画面を切り替える」という、非常にクリーンでリアクティブな設計を実現しています。
+
+---
+
+## 🏗️ リポジトリの設計と DI の最適化
+
+`FirebaseAuthRepository` は、Riverpod の環境から独立した**純粋な Dart クラス**として実装されています。
+
+- **コンストラクタ注入**: `FirebaseAuth` や `GoogleSignIn` だけでなく、ロギング用の `Talker` もコンストラクタで直接受け取ります。
+- **テスタビリティ**: `Ref` への直接的な依存を排除したことで、モックを用いた単体テストが極めて容易になっています。
 
 ---
 

@@ -75,6 +75,11 @@ void main() {
   }
 
   group('FirebaseLoginScreen', () {
+    test('コンストラクタでインスタンスが生成できること', () {
+      const screen = FirebaseLoginScreen();
+      expect(screen, isA<FirebaseLoginScreen>());
+    });
+
     testWidgets('UIが正しくレンダリングされること', (tester) async {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
