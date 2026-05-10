@@ -137,7 +137,7 @@ class MemosRoute extends GoRouteData with $MemosRoute {
 @TypedGoRoute<LoginRoute>(
   path: '/login',
   routes: [
-    TypedGoRoute<SignUpRoute>(path: '/signup'),
+    TypedGoRoute<SignUpRoute>(path: 'signup'),
   ],
 )
 class LoginRoute extends GoRouteData with $LoginRoute {

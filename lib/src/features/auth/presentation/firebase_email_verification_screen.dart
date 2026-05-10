@@ -50,18 +50,39 @@ class FirebaseEmailVerificationScreen extends HookConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.emailVerificationTitle)),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(l10n.emailVerificationDescription),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
+            Icon(
+              Icons.mark_email_read_outlined,
+              size: 80,
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              l10n.emailVerificationTitle,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.emailVerificationDescription,
+              style: Theme.of(context).textTheme.bodyLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
 
-            // 手動リロードボタン（ローディングとエラーハンドリング対応）
+            // 手動リロードボタン
             FilledButton.icon(
               onPressed: isReloading.value || isResending.value
-                  ? null // 処理中はボタンを無効化（連打防止）
+                  ? null
                   : () async {
                       isReloading.value = true;
                       try {
@@ -73,10 +94,11 @@ class FirebaseEmailVerificationScreen extends HookConsumerWidget {
                           ErrorHandler.showSnackBar(context, e);
                         }
                       } finally {
-                        isReloading.value = false;
+                        if (context.mounted) {
+                          isReloading.value = false;
+                        }
                       }
                     },
-              // 処理中はインジケーターを表示
               icon: isReloading.value
                   ? const SizedBox(
                       width: 16,
@@ -92,7 +114,7 @@ class FirebaseEmailVerificationScreen extends HookConsumerWidget {
 
             const SizedBox(height: 16),
 
-            // 再送信ボタン（成功フィードバックとエラーハンドリング対応）
+            // 再送信ボタン
             OutlinedButton.icon(
               onPressed: isReloading.value || isResending.value
                   ? null
@@ -103,10 +125,9 @@ class FirebaseEmailVerificationScreen extends HookConsumerWidget {
                             .read(firebaseAuthRepositoryProvider)
                             .sendEmailVerification();
 
-                        // 成功したことをユーザーに伝える！
                         if (context.mounted) {
                           context.showSuccessSnackBar(
-                            l10n.emailVerificationDescription,
+                            l10n.resendVerificationMailSuccess,
                           );
                         }
                       } on Exception catch (e) {
@@ -114,7 +135,9 @@ class FirebaseEmailVerificationScreen extends HookConsumerWidget {
                           ErrorHandler.showSnackBar(context, e);
                         }
                       } finally {
-                        isResending.value = false;
+                        if (context.mounted) {
+                          isResending.value = false;
+                        }
                       }
                     },
               icon: isResending.value
@@ -127,11 +150,23 @@ class FirebaseEmailVerificationScreen extends HookConsumerWidget {
               label: Text(l10n.resendVerificationMail),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
             Text(
               l10n.emailVerificationWaiting,
               style: Theme.of(context).textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 32),
+
+            // サインアウトして戻るボタン
+            TextButton.icon(
+              onPressed: () async {
+                await ref.read(firebaseAuthRepositoryProvider).signOut();
+              },
+              icon: const Icon(Icons.logout),
+              label: Text(l10n.logout),
             ),
           ],
         ),

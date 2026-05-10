@@ -23,24 +23,42 @@ class FirebaseLoginScreen extends HookConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.loginTitle)),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const SizedBox(height: 32),
+            Icon(
+              Icons.lock_outline,
+              size: 80,
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 32),
             TextField(
               controller: emailCtrl,
-              decoration: InputDecoration(labelText: l10n.loginEmailLabel),
-              enabled: !isLoading.value, // 通信中は入力不可にする
+              decoration: InputDecoration(
+                labelText: l10n.loginEmailLabel,
+                prefixIcon: const Icon(Icons.email_outlined),
+              ),
+              keyboardType: TextInputType.emailAddress,
+              enabled: !isLoading.value,
             ),
+            const SizedBox(height: 16),
             TextField(
               controller: passwordCtrl,
               obscureText: true,
-              decoration: InputDecoration(labelText: l10n.loginPasswordLabel),
+              decoration: InputDecoration(
+                labelText: l10n.loginPasswordLabel,
+                prefixIcon: const Icon(Icons.password_outlined),
+              ),
               enabled: !isLoading.value,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
-            // メールログインボタン (ローディング対応)
+            // メールログインボタン
             FilledButton.icon(
               onPressed: isLoading.value
                   ? null
@@ -53,8 +71,6 @@ class FirebaseLoginScreen extends HookConsumerWidget {
                               emailCtrl.text,
                               passwordCtrl.text,
                             );
-
-                        // 成功 → ホームへ遷移
                         if (context.mounted) {
                           const HomeRoute().go(context);
                         }
@@ -63,7 +79,9 @@ class FirebaseLoginScreen extends HookConsumerWidget {
                           ErrorHandler.showSnackBar(context, e);
                         }
                       } finally {
-                        isLoading.value = false;
+                        if (context.mounted) {
+                          isLoading.value = false;
+                        }
                       }
                     },
               icon: isLoading.value
@@ -79,20 +97,10 @@ class FirebaseLoginScreen extends HookConsumerWidget {
               label: Text(l10n.login),
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
 
-            // 新規登録画面へ遷移
-            OutlinedButton(
-              onPressed: isLoading.value
-                  ? null
-                  : () => const SignUpRoute().push<void>(context),
-              child: Text(l10n.signUp),
-            ),
-
-            const SizedBox(height: 32),
-
-            // Googleログインボタン (ローディング対応)
-            ElevatedButton(
+            // Googleログインボタン
+            ElevatedButton.icon(
               onPressed: isLoading.value
                   ? null
                   : () async {
@@ -102,9 +110,7 @@ class FirebaseLoginScreen extends HookConsumerWidget {
                             .read(firebaseAuthRepositoryProvider)
                             .signInWithGoogle();
 
-                        if (!isSignedIn) {
-                          return; // ユーザーがキャンセルした場合は何もしない
-                        }
+                        if (!isSignedIn) return;
 
                         if (context.mounted) {
                           const HomeRoute().go(context);
@@ -114,11 +120,42 @@ class FirebaseLoginScreen extends HookConsumerWidget {
                           ErrorHandler.showSnackBar(context, e);
                         }
                       } finally {
-                        // キャンセル時やエラー時にも確実にローディングを解除する
-                        isLoading.value = false;
+                        if (context.mounted) {
+                          isLoading.value = false;
+                        }
                       }
                     },
-              child: Text(l10n.googleSignUp),
+              icon: isLoading.value
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.account_circle_outlined),
+              label: Text(l10n.googleSignUp),
+            ),
+
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 24),
+
+            // 新規登録画面へ遷移
+            OutlinedButton.icon(
+              onPressed: isLoading.value
+                  ? null
+                  : () => const SignUpRoute().push<void>(context),
+              icon: const Icon(Icons.person_add_outlined),
+              label: Text(l10n.signUp),
+            ),
+
+            const SizedBox(height: 8),
+
+            // パスワードリセット画面へ遷移
+            TextButton(
+              onPressed: isLoading.value
+                  ? null
+                  : () => const ResetPasswordRoute().push<void>(context),
+              child: Text(l10n.resetPassword),
             ),
           ],
         ),

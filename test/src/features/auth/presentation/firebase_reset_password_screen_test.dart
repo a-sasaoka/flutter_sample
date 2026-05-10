@@ -91,7 +91,7 @@ void main() {
     testWidgets('UIが正しくレンダリングされること', (tester) async {
       await navigateToResetScreen(tester);
 
-      expect(find.text('パスワード再設定'), findsOneWidget);
+      expect(find.widgetWithText(AppBar, 'パスワード再設定'), findsOneWidget);
       expect(find.text('メールアドレス'), findsOneWidget);
       expect(find.text('送信する'), findsOneWidget);
     });
@@ -163,7 +163,7 @@ void main() {
 
       // 💡 元のダミーホーム画面に戻っていること（= popが成功していること）を確認
       expect(find.text('Go Reset'), findsOneWidget);
-      expect(find.text('パスワード再設定'), findsNothing);
+      expect(find.widgetWithText(AppBar, 'パスワード再設定'), findsNothing);
     });
 
     testWidgets('送信失敗時(Exception発生時)、汎用のエラーSnackBarが表示されること', (tester) async {
@@ -183,7 +183,7 @@ void main() {
       expect(find.text('予期しないエラーが発生しました'), findsOneWidget);
 
       // エラー時は画面が pop されず残っていることを確認
-      expect(find.text('パスワード再設定'), findsOneWidget);
+      expect(find.widgetWithText(AppBar, 'パスワード再設定'), findsOneWidget);
     });
   });
 }

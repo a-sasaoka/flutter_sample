@@ -4,6 +4,7 @@ import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// Firebase版のサインアップ画面
@@ -23,47 +24,59 @@ class FirebaseSignUpScreen extends HookConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.signUpTitle)),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const SizedBox(height: 32),
+            Icon(
+              Icons.person_add_outlined,
+              size: 80,
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 32),
             TextField(
               controller: emailCtrl,
-              decoration: InputDecoration(labelText: l10n.loginEmailLabel),
-              enabled: !isLoading.value, // 通信中は入力をロック
+              decoration: InputDecoration(
+                labelText: l10n.loginEmailLabel,
+                prefixIcon: const Icon(Icons.email_outlined),
+              ),
+              keyboardType: TextInputType.emailAddress,
+              enabled: !isLoading.value,
             ),
+            const SizedBox(height: 16),
             TextField(
               controller: passwordCtrl,
               obscureText: true,
-              decoration: InputDecoration(labelText: l10n.loginPasswordLabel),
-              enabled: !isLoading.value, // 通信中は入力をロック
+              decoration: InputDecoration(
+                labelText: l10n.loginPasswordLabel,
+                prefixIcon: const Icon(Icons.password_outlined),
+              ),
+              enabled: !isLoading.value,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
-            // ボタンを FilledButton.icon に変更し、共通のローディングUIに
             FilledButton.icon(
               onPressed: isLoading.value
                   ? null
                   : () async {
-                      // 簡易バリデーション
                       if (emailCtrl.text.isEmpty || passwordCtrl.text.isEmpty) {
                         return;
                       }
 
                       isLoading.value = true;
-
                       try {
-                        // サインアップ
                         await ref
                             .read(firebaseAuthRepositoryProvider)
                             .signUp(emailCtrl.text, passwordCtrl.text);
 
-                        // 確認メール送信
                         await ref
                             .read(firebaseAuthRepositoryProvider)
                             .sendEmailVerification();
 
-                        // メール認証待ち画面へ遷移
                         if (context.mounted) {
                           const EmailVerificationRoute().go(context);
                         }
@@ -72,8 +85,9 @@ class FirebaseSignUpScreen extends HookConsumerWidget {
                           ErrorHandler.showSnackBar(context, e);
                         }
                       } finally {
-                        // 画面遷移後やエラー後にも確実にローディングを解除する
-                        isLoading.value = false;
+                        if (context.mounted) {
+                          isLoading.value = false;
+                        }
                       }
                     },
               icon: isLoading.value
@@ -87,6 +101,15 @@ class FirebaseSignUpScreen extends HookConsumerWidget {
                     )
                   : const Icon(Icons.person_add),
               label: Text(l10n.signUp),
+            ),
+
+            const SizedBox(height: 16),
+
+            // ログイン画面へ戻るボタン
+            TextButton.icon(
+              onPressed: isLoading.value ? null : () => context.pop(),
+              icon: const Icon(Icons.arrow_back),
+              label: Text(l10n.login),
             ),
           ],
         ),

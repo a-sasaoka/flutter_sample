@@ -24,46 +24,65 @@ class FirebaseResetPasswordScreen extends HookConsumerWidget {
     // メールアドレスを入力してリセットメールを送る簡易フォーム
     return Scaffold(
       appBar: AppBar(title: Text(l10n.resetPassword)),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const SizedBox(height: 32),
+            Icon(
+              Icons.mail_lock_outlined,
+              size: 80,
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              l10n.resetPassword,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
             TextField(
               controller: emailCtrl,
-              decoration: InputDecoration(labelText: l10n.loginEmailLabel),
-              // 通信中は入力をロックする
+              decoration: InputDecoration(
+                labelText: l10n.loginEmailLabel,
+                prefixIcon: const Icon(Icons.email_outlined),
+              ),
+              keyboardType: TextInputType.emailAddress,
               enabled: !isLoading.value,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
-            // ボタンを FilledButton.icon にし、ローディングUIを組み込む
             FilledButton.icon(
               onPressed: isLoading.value
-                  ? null // 通信中はボタンを無効化（連打防止）
+                  ? null
                   : () async {
-                      // 未入力の場合は弾く（簡易バリデーション）
                       if (emailCtrl.text.isEmpty) return;
 
                       isLoading.value = true;
                       try {
-                        // Riverpod経由でFirebaseのパスワードリセットを実行
                         await ref
                             .read(firebaseAuthRepositoryProvider)
                             .sendPasswordResetEmail(emailCtrl.text);
-
                         if (context.mounted) {
-                          context
-                            ..showSuccessSnackBar(
-                              l10n.resetPasswordMailSent,
-                            )
-                            ..pop();
+                          final l10nMessage = l10n.resetPasswordMailSent;
+                          context.showSuccessSnackBar(l10nMessage);
+                        }
+                        if (context.mounted) {
+                          context.pop();
                         }
                       } on Exception catch (e) {
                         if (context.mounted) {
                           ErrorHandler.showSnackBar(context, e);
                         }
                       } finally {
-                        isLoading.value = false;
+                        if (context.mounted) {
+                          isLoading.value = false;
+                        }
                       }
                     },
               icon: isLoading.value

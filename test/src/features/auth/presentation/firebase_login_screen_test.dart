@@ -43,6 +43,7 @@ void main() {
     when(() => mockL10n.login).thenReturn('ログインする');
     when(() => mockL10n.signUp).thenReturn('新規登録へ');
     when(() => mockL10n.googleSignUp).thenReturn('Googleでログイン');
+    when(() => mockL10n.resetPassword).thenReturn('パスワードをお忘れですか？');
     when(() => mockL10n.errorLoginFailed).thenReturn('ログインに失敗しました');
     when(() => mockL10n.errorUnknown).thenReturn('予期しないエラーが発生しました');
     when(() => mockL10n.close).thenReturn('閉じる');
@@ -84,12 +85,13 @@ void main() {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
-      expect(find.text('ログイン'), findsOneWidget);
+      expect(find.widgetWithText(AppBar, 'ログイン'), findsOneWidget);
       expect(find.text('メールアドレス'), findsOneWidget);
       expect(find.text('パスワード'), findsOneWidget);
       expect(find.text('ログインする'), findsOneWidget);
       expect(find.text('新規登録へ'), findsOneWidget);
       expect(find.text('Googleでログイン'), findsOneWidget);
+      expect(find.text('パスワードをお忘れですか？'), findsOneWidget);
     });
 
     group('メール・パスワードログイン', () {
@@ -139,8 +141,14 @@ void main() {
         // ポンプして画面を再描画（処理はまだ終わっていない）
         await tester.pump();
 
-        // インジケーターが表示されていること
-        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+        // インジケーターが表示されていること（特定のボタン内を探す）
+        expect(
+          find.descendant(
+            of: find.widgetWithText(FilledButton, 'ログインする'),
+            matching: find.byType(CircularProgressIndicator),
+          ),
+          findsOneWidget,
+        );
 
         // 非同期処理を完了させる
         await tester.pumpAndSettle();
@@ -232,7 +240,13 @@ void main() {
         await tester.tap(find.text('Googleでログイン'));
         await tester.pump();
 
-        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.widgetWithText(ElevatedButton, 'Googleでログイン'),
+            matching: find.byType(CircularProgressIndicator),
+          ),
+          findsOneWidget,
+        );
 
         await tester.pumpAndSettle();
       });
@@ -255,6 +269,27 @@ void main() {
         // 一般的な Exception なので ErrorHandler が「予期しないエラー」にフォールバックすることを確認
         expect(find.byType(SnackBar), findsOneWidget);
         expect(find.text('予期しないエラーが発生しました'), findsOneWidget);
+      });
+    });
+
+    group('パスワードリセット', () {
+      testWidgets('パスワードをお忘れですか？ボタンタップ時、ResetPasswordRouteに遷移すること', (
+        tester,
+      ) async {
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
+
+        final button = find.text('パスワードをお忘れですか？');
+        await tester.dragUntilVisible(
+          button,
+          find.byType(SingleChildScrollView),
+          const Offset(0, -300),
+        );
+        await tester.tap(button);
+        await tester.pumpAndSettle();
+
+        // 画面遷移したことを確認
+        expect(find.textContaining('Navigated to'), findsOneWidget);
       });
     });
   });

@@ -205,7 +205,7 @@ RouteBase get $loginRoute => GoRouteData.$route(
   path: '/login',
   factory: $LoginRoute._fromState,
   routes: [
-    GoRouteData.$route(path: '/signup', factory: $SignUpRoute._fromState),
+    GoRouteData.$route(path: 'signup', factory: $SignUpRoute._fromState),
   ],
 );
 
@@ -233,7 +233,7 @@ mixin $SignUpRoute on GoRouteData {
   static SignUpRoute _fromState(GoRouterState state) => const SignUpRoute();
 
   @override
-  String get location => GoRouteData.$location('/signup');
+  String get location => GoRouteData.$location('/login/signup');
 
   @override
   void go(BuildContext context) => context.go(location);

@@ -8,6 +8,7 @@ class AuthGuardHelper {
     required this.homeLocation,
     this.splashLocation,
     this.signUpLocation,
+    this.resetPasswordLocation,
   });
 
   /// ログイン画面のパス
@@ -22,6 +23,9 @@ class AuthGuardHelper {
   /// サインアップ画面のパス（オプション）
   final String? signUpLocation;
 
+  /// パスワードリセット画面のパス（オプション）
+  final String? resetPasswordLocation;
+
   /// 認証状態と遷移先からリダイレクト先を決定する
   String? redirect({
     required bool isLoggedIn,
@@ -32,6 +36,7 @@ class AuthGuardHelper {
       loginLocation,
       if (splashLocation != null) splashLocation,
       if (signUpLocation != null) signUpLocation,
+      if (resetPasswordLocation != null) resetPasswordLocation,
     };
 
     // 認証済みの場合はアクセスさせない画面のパス（再ログイン防止用）

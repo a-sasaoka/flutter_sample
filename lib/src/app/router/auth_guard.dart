@@ -23,6 +23,7 @@ String? authGuard(Ref ref, GoRouterState state) {
     homeLocation: const HomeRoute().location,
     splashLocation: const SplashRoute().location,
     signUpLocation: const SignUpRoute().location,
+    resetPasswordLocation: const ResetPasswordRoute().location,
   ).redirect(
     isLoggedIn: isLoggedIn,
     state: state,

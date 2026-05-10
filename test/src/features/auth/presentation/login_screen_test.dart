@@ -114,7 +114,7 @@ void main() {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
-      expect(find.text('ログイン'), findsOneWidget);
+      expect(find.widgetWithText(AppBar, 'ログイン'), findsOneWidget);
       expect(find.text('メールアドレス'), findsOneWidget);
       expect(find.text('パスワード'), findsOneWidget);
       expect(find.text('ログインする'), findsOneWidget);
