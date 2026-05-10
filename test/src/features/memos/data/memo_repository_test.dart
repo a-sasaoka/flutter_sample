@@ -58,7 +58,7 @@ void main() {
         overrides: [
           appDatabaseProvider.overrideWithValue(database),
           memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
-          currentDateTimeProvider.overrideWithValue(now),
+          clockProvider.overrideWithValue(() => now),
           isOnlineProvider.overrideWithValue(isOnline),
           loggerProvider.overrideWithValue(mockTalker),
         ],

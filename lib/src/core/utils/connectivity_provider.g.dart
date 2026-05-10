@@ -8,6 +8,59 @@ part of 'connectivity_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// [ConnectivityService] を提供するプロバイダー
+
+@ProviderFor(connectivityService)
+final connectivityServiceProvider = ConnectivityServiceProvider._();
+
+/// [ConnectivityService] を提供するプロバイダー
+
+final class ConnectivityServiceProvider
+    extends
+        $FunctionalProvider<
+          ConnectivityService,
+          ConnectivityService,
+          ConnectivityService
+        >
+    with $Provider<ConnectivityService> {
+  /// [ConnectivityService] を提供するプロバイダー
+  ConnectivityServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'connectivityServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$connectivityServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<ConnectivityService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  ConnectivityService create(Ref ref) {
+    return connectivityService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ConnectivityService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ConnectivityService>(value),
+    );
+  }
+}
+
+String _$connectivityServiceHash() =>
+    r'95e1b48f96e075c047a46e92aa33a19a18e68e05';
+
 /// ネットワークの接続状態を監視するStreamProvider
 
 @ProviderFor(connectivity)
@@ -32,7 +85,7 @@ final class ConnectivityProvider
         argument: null,
         retry: null,
         name: r'connectivityProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -52,18 +105,18 @@ final class ConnectivityProvider
   }
 }
 
-String _$connectivityHash() => r'69c6e2db8337a9ff832358c4a079a4846fa6f28c';
+String _$connectivityHash() => r'bf12454d78bf3189236d0c99e4f0d5afc772458f';
 
-/// 「現在オンラインかどうか」だけを返すProvider
+/// 「現在オンラインかどうか」をリアクティブに返すProvider
 
 @ProviderFor(isOnline)
 final isOnlineProvider = IsOnlineProvider._();
 
-/// 「現在オンラインかどうか」だけを返すProvider
+/// 「現在オンラインかどうか」をリアクティブに返すProvider
 
 final class IsOnlineProvider extends $FunctionalProvider<bool, bool, bool>
     with $Provider<bool> {
-  /// 「現在オンラインかどうか」だけを返すProvider
+  /// 「現在オンラインかどうか」をリアクティブに返すProvider
   IsOnlineProvider._()
     : super(
         from: null,
@@ -97,4 +150,4 @@ final class IsOnlineProvider extends $FunctionalProvider<bool, bool, bool>
   }
 }
 
-String _$isOnlineHash() => r'dfaf6299187348da91e1ac511481065a941fb963';
+String _$isOnlineHash() => r'f8f34c58d41e52e46642fd81db1ddd3361281e20';

@@ -21,7 +21,7 @@ AnalyticsService analyticsService(Ref ref) {
   return AnalyticsService(
     firebaseAnalytics: ref.watch(firebaseAnalyticsProvider),
     talker: ref.watch(loggerProvider),
-    getCurrentDateTime: () => ref.read(currentDateTimeProvider),
+    getCurrentDateTime: ref.watch(clockProvider),
   );
 }
 

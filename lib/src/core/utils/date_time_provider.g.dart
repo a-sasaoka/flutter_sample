@@ -8,51 +8,66 @@ part of 'date_time_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// 現在の日時を提供するプロバイダー
-/// テスト時にはこのプロバイダーを override することで、任意の日時でテストが可能になります。
+/// 現在の日時を取得する関数を提供するプロバイダー
+///
+/// 以前の方式（DateTimeを直接返す）では、一度取得した値がキャッシュされてしまい
+/// 時間が更新されない問題がありましたが、この方式（関数を返す）にすることで
+/// 呼び出すたびに最新の時刻を取得できます。
 
-@ProviderFor(currentDateTime)
-final currentDateTimeProvider = CurrentDateTimeProvider._();
+@ProviderFor(clock)
+final clockProvider = ClockProvider._();
 
-/// 現在の日時を提供するプロバイダー
-/// テスト時にはこのプロバイダーを override することで、任意の日時でテストが可能になります。
+/// 現在の日時を取得する関数を提供するプロバイダー
+///
+/// 以前の方式（DateTimeを直接返す）では、一度取得した値がキャッシュされてしまい
+/// 時間が更新されない問題がありましたが、この方式（関数を返す）にすることで
+/// 呼び出すたびに最新の時刻を取得できます。
 
-final class CurrentDateTimeProvider
-    extends $FunctionalProvider<DateTime, DateTime, DateTime>
-    with $Provider<DateTime> {
-  /// 現在の日時を提供するプロバイダー
-  /// テスト時にはこのプロバイダーを override することで、任意の日時でテストが可能になります。
-  CurrentDateTimeProvider._()
+final class ClockProvider
+    extends
+        $FunctionalProvider<
+          DateTime Function(),
+          DateTime Function(),
+          DateTime Function()
+        >
+    with $Provider<DateTime Function()> {
+  /// 現在の日時を取得する関数を提供するプロバイダー
+  ///
+  /// 以前の方式（DateTimeを直接返す）では、一度取得した値がキャッシュされてしまい
+  /// 時間が更新されない問題がありましたが、この方式（関数を返す）にすることで
+  /// 呼び出すたびに最新の時刻を取得できます。
+  ClockProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'currentDateTimeProvider',
-        isAutoDispose: true,
+        name: r'clockProvider',
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$currentDateTimeHash();
+  String debugGetCreateSourceHash() => _$clockHash();
 
   @$internal
   @override
-  $ProviderElement<DateTime> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
+  $ProviderElement<DateTime Function()> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
 
   @override
-  DateTime create(Ref ref) {
-    return currentDateTime(ref);
+  DateTime Function() create(Ref ref) {
+    return clock(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(DateTime value) {
+  Override overrideWithValue(DateTime Function() value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<DateTime>(value),
+      providerOverride: $SyncValueProvider<DateTime Function()>(value),
     );
   }
 }
 
-String _$currentDateTimeHash() => r'6f5fa7406d578f6c9ede8b55b8c08ea9c7d92b9d';
+String _$clockHash() => r'c3e4569d7dfec1ffefaec061d2912433598ee599';

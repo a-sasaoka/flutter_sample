@@ -13,7 +13,7 @@ CacheManager cacheManager(Ref ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return CacheManager(
     prefs: prefs,
-    getCurrentDateTime: () => ref.read(currentDateTimeProvider),
+    getCurrentDateTime: ref.watch(clockProvider),
   );
 }
 

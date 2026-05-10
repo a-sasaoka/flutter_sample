@@ -105,7 +105,7 @@ final class UpdateServiceProvider
   }
 }
 
-String _$updateServiceHash() => r'40139ac4944c0020820611881438da9759567fff';
+String _$updateServiceHash() => r'da40c261044e542e0e753e04057ae07d8a3bb97e';
 
 /// RemoteConfigからアップデート情報を取得するコントローラ
 

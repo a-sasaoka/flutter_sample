@@ -67,6 +67,10 @@ Widget build(BuildContext context, WidgetRef ref) {
 }
 ```
 
+### 💡 判定ロジックの分離
+
+通信状態の判定ルールを `ConnectivityService` に集約しています。これにより、特定の接続（例：VPN）をどう扱うかといったロジックの変更やテストが、UI から独立して行えるようになっています。
+
 ---
 
 ## 🔄 3. アプリライフサイクルの監視
@@ -79,18 +83,35 @@ Widget build(BuildContext context, WidgetRef ref) {
 
 ### 特徴と使用方法
 
-Flutter標準の `WidgetsBindingObserver` を Riverpod でラップし、現在の状態（`AppLifecycleState`）を安全に監視できるようにしています。
+Flutter標準の `WidgetsBindingObserver` を Riverpod でラップし、現在の状態（`AppLifecycleState`）を安全に監視できるようにしています。プロバイダーは `keepAlive: true` に設定されており、アプリ実行中に安定して監視を継続します。
 
-**【実用例】メール認証完了の自動検知**
-ユーザーが「メールアプリを開いて認証リンクを踏み、再びこのアプリに戻ってきた（`resumed`）」瞬間に、Firebaseのユーザー情報を自動更新する処理などで活用されています。
+---
+
+## ⏰ 4. 時間の取得 (Clock)
+
+テストの容易性と正確な時刻取得のため、現在時刻を直接取得するのではなく、プロバイダーを介して取得します。
+
+### 📁 関連ファイル
+
+- `lib/src/core/utils/date_time_provider.dart`
+
+### 特徴と使用方法
+
+`clockProvider` は **「現在の時刻を返す関数 (`DateTime Function()`)」** を提供します。
+Riverpod のキャッシュによる「時刻の固定」を防ぎ、呼び出すたびに必ず最新の時刻を取得できます。
 
 ```dart
-ref.listen(appLifecycleProvider, (previous, next) {
-  if (next == AppLifecycleState.resumed) {
-    // アプリがフォアグラウンドに戻ってきた瞬間に実行したい処理
-    ref.read(authRepositoryProvider).reloadCurrentUser();
-  }
-});
+// Repositoryなどでの利用例
+final now = ref.read(clockProvider)();
+```
+
+### テストでの利点
+
+テストコードにおいて、時間を進めたり固定したりすることが容易になります。
+
+```dart
+// テストでの上書き例
+clockProvider.overrideWithValue(() => DateTime(2026, 5, 10)),
 ```
 
 ---

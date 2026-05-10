@@ -31,7 +31,7 @@ void main() {
         // 1. Analyticsのモックを注入
         firebaseAnalyticsProvider.overrideWithValue(mockAnalytics),
         // 2. 現在日時を固定の日時に差し替え（DIの真骨頂！）
-        currentDateTimeProvider.overrideWithValue(mockDateTime),
+        clockProvider.overrideWithValue(() => mockDateTime),
         // 3. Loggerをモック化（flavorProvider のエラー回避 & ログのノイズ軽減）
         loggerProvider.overrideWithValue(mockTalker),
       ],

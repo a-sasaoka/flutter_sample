@@ -81,7 +81,7 @@ void main() {
         flavorProvider.overrideWithValue(flavor),
         firebaseRemoteConfigProvider.overrideWithValue(mockRemoteConfig),
         // プロバイダ経由で現在時刻を注入！
-        currentDateTimeProvider.overrideWithValue(mockCurrentTime),
+        clockProvider.overrideWithValue(() => mockCurrentTime),
         packageInfoProvider.overrideWithValue(mockPackageInfo),
         loggerProvider.overrideWithValue(mockLogger),
       ],

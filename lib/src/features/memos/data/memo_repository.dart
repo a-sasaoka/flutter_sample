@@ -25,7 +25,7 @@ class MemoRepository {
 
   /// 新しいメモをデータベースに追加する
   Future<void> addMemo(String title, String content) async {
-    final now = _ref.read(currentDateTimeProvider);
+    final now = _ref.read(clockProvider)();
     final logger = _ref.read(loggerProvider);
 
     // UUIDを作る
@@ -69,7 +69,7 @@ class MemoRepository {
 
   /// メモを更新する
   Future<void> updateMemo(String id, String title, String content) async {
-    final now = _ref.read(currentDateTimeProvider);
+    final now = _ref.read(clockProvider)();
     final logger = _ref.read(loggerProvider);
 
     // まずはスマホ側のデータを更新し、未送信状態に戻す
@@ -111,7 +111,7 @@ class MemoRepository {
 
   /// メモを削除（論理削除）する
   Future<void> deleteMemo(String id) async {
-    final now = _ref.read(currentDateTimeProvider);
+    final now = _ref.read(clockProvider)();
     final logger = _ref.read(loggerProvider);
 
     // スマホ側で論理削除マークをつける

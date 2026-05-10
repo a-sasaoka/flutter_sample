@@ -40,7 +40,7 @@ class ChatNotifier extends _$ChatNotifier {
         return;
       }
 
-      final now = ref.read(currentDateTimeProvider);
+      final now = ref.read(clockProvider)();
 
       // IDを指定してAIのメッセージに差し替え（競合対策）
       _updateMessageById(
@@ -56,7 +56,7 @@ class ChatNotifier extends _$ChatNotifier {
         return;
       }
 
-      final now = ref.read(currentDateTimeProvider);
+      final now = ref.read(clockProvider)();
       _updateMessageById(
         targetAiId,
         ChatMessage.error(
@@ -100,7 +100,7 @@ class ChatNotifier extends _$ChatNotifier {
 
         if (isFirstChunk) {
           // 最初のチャンクが届いた瞬間の時刻を記録
-          aiMessageCreatedAt = ref.read(currentDateTimeProvider);
+          aiMessageCreatedAt = ref.read(clockProvider)();
           isFirstChunk = false;
         }
 
@@ -126,7 +126,7 @@ class ChatNotifier extends _$ChatNotifier {
         return;
       }
 
-      final now = ref.read(currentDateTimeProvider);
+      final now = ref.read(clockProvider)();
       _updateMessageById(
         targetAiId,
         ChatMessage.error(
@@ -143,7 +143,7 @@ class ChatNotifier extends _$ChatNotifier {
   /// ユーザーメッセージとローディング状態をセットで追加する
   /// [targetAiId] は後で上書き検索するための目印
   void _addMessageAndLoading(String text, String targetAiId) {
-    final now = ref.read(currentDateTimeProvider);
+    final now = ref.read(clockProvider)();
     state = state.copyWith(
       messages: [
         ...state.messages,
@@ -172,7 +172,7 @@ class ChatNotifier extends _$ChatNotifier {
 
   /// AIに送るプロンプトにシステム日時を付加する
   String _buildPromptWithTime(String originalText) {
-    final now = ref.read(currentDateTimeProvider);
+    final now = ref.read(clockProvider)();
 
     final year = now.year;
     final month = now.month.toString().padLeft(2, '0');

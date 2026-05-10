@@ -22,7 +22,7 @@ void main() {
     container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(mockPrefs),
-        currentDateTimeProvider.overrideWithValue(fixedDateTime),
+        clockProvider.overrideWithValue(() => fixedDateTime),
       ],
     );
   });

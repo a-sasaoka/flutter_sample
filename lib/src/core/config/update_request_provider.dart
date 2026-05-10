@@ -22,7 +22,7 @@ UpdateService updateService(Ref ref) {
   return UpdateService(
     remoteConfig: ref.watch(firebaseRemoteConfigProvider),
     packageInfo: ref.watch(packageInfoProvider),
-    getCurrentDateTime: () => ref.read(currentDateTimeProvider),
+    getCurrentDateTime: ref.watch(clockProvider),
     talker: ref.watch(loggerProvider),
   );
 }

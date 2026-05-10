@@ -73,7 +73,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         chatRepositoryProvider.overrideWithValue(fakeRepo),
-        currentDateTimeProvider.overrideWithValue(fixedDateTime),
+        clockProvider.overrideWithValue(() => fixedDateTime),
         uuidProvider.overrideWithValue(FakeUuid()),
       ],
     );
