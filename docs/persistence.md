@@ -41,13 +41,23 @@ lib/src/features/memos/data/
 Dartのクラスとしてテーブルを定義でき、`build_runner` によって型安全なクエリコードが自動生成されます。\
 本プロジェクトでは、クエリロジックが Repository 層に溢れないよう、機能ごとに **DAO (Data Access Object)** を作成してカプセル化しています。
 
+また、`AppDatabase` クラス自体は「データベースの構造（テーブル定義）」にのみ責任を持ち、具体的な接続方法（スマホのファイルシステムやメモリ等）は一切知りません。この設計（疎結合）により、後述のテストが非常に容易になっています。
+
 ### 2. リソース管理とライフサイクル
 
-`app_database_provider.dart` では、Riverpod の `ref.onDispose` を利用して、プロバイダーが破棄された際にデータベース接続を確実に閉じる（`db.close()`）よう実装されています。
+`database_provider.dart` では、データベース接続（Executor）の作成と DB インスタンスの生成を分離しています。
+
+- **`databaseExecutorProvider`**: データベースの接続そのものを提供（`drift_flutter` を使用）。
+- **`appDatabaseProvider`**: 上記の Executor を受け取って `AppDatabase` を初期化します。Riverpod の `ref.onDispose` を利用して、プロバイダーが破棄された際にデータベース接続を確実に閉じる（`db.close()`）よう実装されています。
+
+この構成により、`AppDatabase` のインスタンス化には必ず有効な Executor が必要となり、ロギング（Interceptor）の適用漏れなどを防ぐことができます。
 
 ### 3. 統合ロギング（Talker）との連携
 
-`DriftTalkerInterceptor` を通じて、実行されたすべての SQL クエリとその引数が `Talker` ログに出力されます。これにより、DB操作のデバッグが容易になっています。
+`DriftTalkerInterceptor` を通じて、実行されたすべての SQL クエリが `Talker` ログに出力されます。
+
+- **パフォーマンス監視**: 各クエリの実行時間（ミリ秒）が記録され、スロークエリの特定に役立ちます。
+- **エラー詳細**: 例外発生時、失敗した SQL 文と引数が詳細にログ出力され、デバッグ効率が向上しています。
 
 ### 4. Streamによるリアルタイム同期
 

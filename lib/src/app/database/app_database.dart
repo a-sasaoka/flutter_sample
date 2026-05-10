@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart';
-import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_table.dart';
 import 'package:flutter_sample/src/features/memos/data/memos_dao.dart';
 
@@ -9,8 +8,9 @@ part 'app_database.g.dart';
 @DriftDatabase(tables: [Memos], daos: [MemosDao])
 class AppDatabase extends _$AppDatabase {
   /// コンストラクタ
-  AppDatabase([QueryExecutor? e])
-    : super(e ?? driftDatabase(name: 'my_app_db'));
+  ///
+  /// データベースの接続（[QueryExecutor]）を外部から注入します。
+  AppDatabase(super.e);
 
   @override
   int get schemaVersion => 1;

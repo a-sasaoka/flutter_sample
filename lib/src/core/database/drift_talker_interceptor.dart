@@ -2,11 +2,41 @@ import 'package:drift/drift.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 /// DriftのクエリをTalkerでログ出力するためのインターセプター
+///
+/// クエリの実行時間の計測と、エラー発生時の詳細なログ出力を担当します。
 class DriftTalkerInterceptor extends QueryInterceptor {
   /// コンストラクタ
   DriftTalkerInterceptor(this._talker);
 
   final Talker _talker;
+
+  /// クエリ実行をラップしてログ出力する共通処理
+  Future<T> _run<T>(
+    String method,
+    String statement,
+    List<Object?> args,
+    Future<T> Function() action,
+  ) async {
+    final sw = Stopwatch()..start();
+    try {
+      final result = await action();
+      sw.stop();
+      _talker.debug(
+        '[Drift] $method (${sw.elapsedMilliseconds}ms): '
+        '$statement | Args: $args',
+      );
+      return result;
+    } on Exception catch (e, st) {
+      sw.stop();
+      _talker.error(
+        '[Drift] $method Error after ${sw.elapsedMilliseconds}ms: '
+        '$statement | Args: $args',
+        e,
+        st,
+      );
+      rethrow;
+    }
+  }
 
   @override
   Future<void> runCustom(
@@ -14,8 +44,12 @@ class DriftTalkerInterceptor extends QueryInterceptor {
     String statement,
     List<Object?> args,
   ) {
-    _talker.debug('Drift Custom: $statement | Args: $args');
-    return executor.runCustom(statement, args);
+    return _run(
+      'Custom',
+      statement,
+      args,
+      () => executor.runCustom(statement, args),
+    );
   }
 
   @override
@@ -24,8 +58,12 @@ class DriftTalkerInterceptor extends QueryInterceptor {
     String statement,
     List<Object?> args,
   ) {
-    _talker.debug('Drift Insert: $statement | Args: $args');
-    return executor.runInsert(statement, args);
+    return _run(
+      'Insert',
+      statement,
+      args,
+      () => executor.runInsert(statement, args),
+    );
   }
 
   @override
@@ -34,8 +72,12 @@ class DriftTalkerInterceptor extends QueryInterceptor {
     String statement,
     List<Object?> args,
   ) {
-    _talker.debug('Drift Update: $statement | Args: $args');
-    return executor.runUpdate(statement, args);
+    return _run(
+      'Update',
+      statement,
+      args,
+      () => executor.runUpdate(statement, args),
+    );
   }
 
   @override
@@ -44,8 +86,12 @@ class DriftTalkerInterceptor extends QueryInterceptor {
     String statement,
     List<Object?> args,
   ) {
-    _talker.debug('Drift Delete: $statement | Args: $args');
-    return executor.runDelete(statement, args);
+    return _run(
+      'Delete',
+      statement,
+      args,
+      () => executor.runDelete(statement, args),
+    );
   }
 
   @override
@@ -54,16 +100,36 @@ class DriftTalkerInterceptor extends QueryInterceptor {
     String statement,
     List<Object?> args,
   ) {
-    _talker.debug('Drift Select: $statement | Args: $args');
-    return executor.runSelect(statement, args);
+    return _run(
+      'Select',
+      statement,
+      args,
+      () => executor.runSelect(statement, args),
+    );
   }
 
   @override
   Future<void> runBatched(
     QueryExecutor executor,
     BatchedStatements statements,
-  ) {
-    _talker.debug('Drift Batched: ${statements.statements.length} statements');
-    return executor.runBatched(statements);
+  ) async {
+    final sw = Stopwatch()..start();
+    final count = statements.statements.length;
+    try {
+      await executor.runBatched(statements);
+      sw.stop();
+      _talker.debug(
+        '[Drift] Batched (${sw.elapsedMilliseconds}ms): $count statements',
+      );
+    } on Exception catch (e, st) {
+      sw.stop();
+      _talker.error(
+        '[Drift] Batched Error after ${sw.elapsedMilliseconds}ms: '
+        '$count statements',
+        e,
+        st,
+      );
+      rethrow;
+    }
   }
 }

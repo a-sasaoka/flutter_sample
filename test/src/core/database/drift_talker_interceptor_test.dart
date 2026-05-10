@@ -34,8 +34,7 @@ void main() {
       await interceptor.runCustom(mockExecutor, sql, args);
 
       verify(
-        () =>
-            mockTalker.debug(any<String>(that: contains('Drift Custom: $sql'))),
+        () => mockTalker.debug(any<String>(that: contains('[Drift] Custom'))),
       ).called(1);
       verify(() => mockExecutor.runCustom(sql, args)).called(1);
     });
@@ -50,8 +49,7 @@ void main() {
 
       expect(result, 1);
       verify(
-        () =>
-            mockTalker.debug(any<String>(that: contains('Drift Insert: $sql'))),
+        () => mockTalker.debug(any<String>(that: contains('[Drift] Insert'))),
       ).called(1);
       verify(() => mockExecutor.runInsert(sql, args)).called(1);
     });
@@ -66,8 +64,7 @@ void main() {
 
       expect(result, 1);
       verify(
-        () =>
-            mockTalker.debug(any<String>(that: contains('Drift Update: $sql'))),
+        () => mockTalker.debug(any<String>(that: contains('[Drift] Update'))),
       ).called(1);
       verify(() => mockExecutor.runUpdate(sql, args)).called(1);
     });
@@ -82,8 +79,7 @@ void main() {
 
       expect(result, 1);
       verify(
-        () =>
-            mockTalker.debug(any<String>(that: contains('Drift Delete: $sql'))),
+        () => mockTalker.debug(any<String>(that: contains('[Drift] Delete'))),
       ).called(1);
       verify(() => mockExecutor.runDelete(sql, args)).called(1);
     });
@@ -103,8 +99,7 @@ void main() {
 
       expect(result, expectedResult);
       verify(
-        () =>
-            mockTalker.debug(any<String>(that: contains('Drift Select: $sql'))),
+        () => mockTalker.debug(any<String>(that: contains('[Drift] Select'))),
       ).called(1);
       verify(() => mockExecutor.runSelect(sql, args)).called(1);
     });
@@ -117,9 +112,50 @@ void main() {
       await interceptor.runBatched(mockExecutor, statements);
 
       verify(
-        () => mockTalker.debug(any<String>(that: contains('Drift Batched:'))),
+        () => mockTalker.debug(any<String>(that: contains('[Drift] Batched'))),
       ).called(1);
       verify(() => mockExecutor.runBatched(statements)).called(1);
+    });
+
+    test('エラー発生時に Talker.error が呼び出されること', () async {
+      const sql = 'SELECT * FROM error_table';
+      final args = <Object?>[];
+      final exception = Exception('DB Error');
+
+      when(() => mockExecutor.runSelect(sql, args)).thenThrow(exception);
+
+      await expectLater(
+        interceptor.runSelect(mockExecutor, sql, args),
+        throwsA(exception),
+      );
+
+      verify(
+        () => mockTalker.error(
+          any<String>(that: contains('[Drift] Select Error')),
+          exception,
+          any(),
+        ),
+      ).called(1);
+    });
+
+    test('runBatched でエラーが発生した場合、Talker.error が呼び出されること', () async {
+      final statements = FakeBatchedStatements();
+      final exception = Exception('Batch Error');
+
+      when(() => mockExecutor.runBatched(statements)).thenThrow(exception);
+
+      await expectLater(
+        interceptor.runBatched(mockExecutor, statements),
+        throwsA(exception),
+      );
+
+      verify(
+        () => mockTalker.error(
+          any<String>(that: contains('[Drift] Batched Error')),
+          exception,
+          any(),
+        ),
+      ).called(1);
     });
   });
 }
