@@ -81,7 +81,7 @@ class UserRepository {
 
     final data = response.data;
     if (data == null) {
-      throw const UnknownException(message: 'Failed to create user');
+      throw const AppException.dataParse(message: 'Failed to create user');
     }
 
     // キャッシュをクリア
@@ -99,7 +99,7 @@ class UserRepository {
 
     final data = response.data;
     if (data == null) {
-      throw const UnknownException(message: 'Failed to update user');
+      throw const AppException.dataParse(message: 'Failed to update user');
     }
 
     // キャッシュをクリア

@@ -28,14 +28,12 @@ InterceptorsWrapper dioInterceptor(Ref ref) {
       final exception = switch (e.type) {
         DioExceptionType.connectionTimeout ||
         DioExceptionType.receiveTimeout ||
-        DioExceptionType.sendTimeout => const TimeoutException(),
-        DioExceptionType.badResponse => NetworkException(
-          statusCode: e.response?.statusCode,
-        ),
-        DioExceptionType.badCertificate ||
-        DioExceptionType.cancel ||
-        DioExceptionType.connectionError ||
-        DioExceptionType.unknown => UnknownException(message: e.message),
+        DioExceptionType.sendTimeout => const AppException.timeout(),
+        DioExceptionType.badResponse => _mapResponseError(e),
+        DioExceptionType.cancel => const AppException.cancel(),
+        DioExceptionType.connectionError => const AppException.network(),
+        DioExceptionType.badCertificate || DioExceptionType.unknown =>
+          AppException.unknown(message: e.message, error: e.error),
       };
 
       return handler.reject(
@@ -46,4 +44,20 @@ InterceptorsWrapper dioInterceptor(Ref ref) {
       );
     },
   );
+}
+
+/// レスポンスエラー（400-500系）の変換
+AppException _mapResponseError(DioException e) {
+  final statusCode = e.response?.statusCode;
+  final message = e.message;
+
+  if (statusCode == null) return AppException.unknown(message: message);
+
+  return switch (statusCode) {
+    401 => const AppException.unauthenticated(),
+    403 => const AppException.unauthorized(),
+    >= 400 && < 500 => AppException.badRequest(statusCode: statusCode),
+    >= 500 => AppException.server(statusCode: statusCode),
+    _ => AppException.unknown(message: message),
+  };
 }

@@ -81,19 +81,34 @@ class AppLocalizationsJa extends AppLocalizations {
   String get resetPasswordMailSent => '再設定メールを送信しました';
 
   @override
-  String get errorNetwork => 'ネットワークエラーが発生しました。';
+  String get errorNetwork => 'インターネット接続を確認してください。';
 
   @override
-  String get errorTimeout => '通信がタイムアウトしました。';
+  String get errorTimeout => '通信に時間がかかっています。電波の良い場所で再度お試しください。';
 
   @override
-  String get errorUnknown => '予期しないエラーが発生しました。';
+  String get errorUnknown => 'エラーが発生しました。アプリの再起動や、時間をおいての実行をお試しください。';
 
   @override
   String get errorOccurred => 'エラーが発生しました。';
 
   @override
-  String get errorServer => 'サーバーエラーが発生しました。';
+  String get errorServer => 'サーバーで一時的な問題が発生しました。時間をおいて再度お試しください。';
+
+  @override
+  String get errorUnauthenticated => 'ログインが必要です。再度ログインしてください。';
+
+  @override
+  String get errorUnauthorized => 'この操作を行う権限がありません。';
+
+  @override
+  String get errorDataParse => 'データの解析に失敗しました。最新版への更新をお試しください。';
+
+  @override
+  String get errorDatabase => 'ローカルデータの保存または読み込みに失敗しました。';
+
+  @override
+  String get errorBadRequest => 'リクエストが正しくありません。';
 
   @override
   String get errorDialogTitle => 'エラーが発生しました';

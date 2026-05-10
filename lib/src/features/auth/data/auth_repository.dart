@@ -42,7 +42,7 @@ class AuthRepository {
     final refresh = response.data?['refresh_token'] as String?;
 
     if (access == null || refresh == null) {
-      throw const UnknownException(
+      throw const AppException.dataParse(
         message: 'Invalid token response from server',
       );
     }

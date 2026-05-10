@@ -93,11 +93,103 @@ void main() {
         final captured =
             verify(() => handler.reject(captureAny())).captured.first
                 as DioException;
-        expect(captured.error, isA<NetworkException>());
-        final appEx = captured.error! as NetworkException;
+        expect(captured.error, isA<BadRequestException>());
+        final appEx = captured.error! as AppException;
         expect(appEx.statusCode, equals(404));
       },
     );
+
+    test('onError: badResponse(401) が UnauthenticatedException に変換されること', () {
+      // Arrange
+      final interceptor = container.read(dioInterceptorProvider);
+      final handler = MockErrorInterceptorHandler();
+      final dioException = DioException(
+        requestOptions: RequestOptions(),
+        type: DioExceptionType.badResponse,
+        response: Response(
+          requestOptions: RequestOptions(),
+          statusCode: 401,
+        ),
+      );
+
+      // Act
+      interceptor.onError(dioException, handler);
+
+      // Assert
+      final captured =
+          verify(() => handler.reject(captureAny())).captured.first
+              as DioException;
+      expect(captured.error, isA<UnauthenticatedException>());
+    });
+
+    test('onError: badResponse(500) が ServerException に変換されること', () {
+      // Arrange
+      final interceptor = container.read(dioInterceptorProvider);
+      final handler = MockErrorInterceptorHandler();
+      final dioException = DioException(
+        requestOptions: RequestOptions(),
+        type: DioExceptionType.badResponse,
+        response: Response(
+          requestOptions: RequestOptions(),
+          statusCode: 500,
+        ),
+      );
+
+      // Act
+      interceptor.onError(dioException, handler);
+
+      // Assert
+      final captured =
+          verify(() => handler.reject(captureAny())).captured.first
+              as DioException;
+      expect(captured.error, isA<ServerException>());
+    });
+
+    test('onError: badResponse 且つ statusCode が null の場合は '
+        'UnknownException になること', () {
+      // Arrange
+      final interceptor = container.read(dioInterceptorProvider);
+      final handler = MockErrorInterceptorHandler();
+      final dioException = DioException(
+        requestOptions: RequestOptions(),
+        type: DioExceptionType.badResponse,
+        response: Response(
+          requestOptions: RequestOptions(),
+        ),
+      );
+
+      // Act
+      interceptor.onError(dioException, handler);
+
+      // Assert
+      final captured =
+          verify(() => handler.reject(captureAny())).captured.first
+              as DioException;
+      expect(captured.error, isA<UnknownException>());
+    });
+
+    test('onError: 未定義の statusCode の場合は UnknownException になること', () {
+      // Arrange
+      final interceptor = container.read(dioInterceptorProvider);
+      final handler = MockErrorInterceptorHandler();
+      final dioException = DioException(
+        requestOptions: RequestOptions(),
+        type: DioExceptionType.badResponse,
+        response: Response(
+          requestOptions: RequestOptions(),
+          statusCode: 299, // 定義外
+        ),
+      );
+
+      // Act
+      interceptor.onError(dioException, handler);
+
+      // Assert
+      final captured =
+          verify(() => handler.reject(captureAny())).captured.first
+              as DioException;
+      expect(captured.error, isA<UnknownException>());
+    });
 
     test('onError: unknownエラーが UnknownException に変換されること', () {
       // Arrange
@@ -117,7 +209,7 @@ void main() {
               as DioException;
       expect(captured.error, isA<UnknownException>());
       expect(
-        (captured.error! as UnknownException).message,
+        (captured.error! as AppException).whenOrNull(unknown: (msg, _) => msg),
         contains('unknown error'),
       );
     });

@@ -245,19 +245,19 @@ abstract class AppLocalizations {
   /// No description provided for @errorNetwork.
   ///
   /// In en, this message translates to:
-  /// **'A network error has occurred.'**
+  /// **'Please check your internet connection.'**
   String get errorNetwork;
 
   /// No description provided for @errorTimeout.
   ///
   /// In en, this message translates to:
-  /// **'The request timed out.'**
+  /// **'The request is taking too long. Please try again in a place with better signal.'**
   String get errorTimeout;
 
   /// No description provided for @errorUnknown.
   ///
   /// In en, this message translates to:
-  /// **'An unexpected error occurred.'**
+  /// **'An error occurred. Please try restarting the app or try again later.'**
   String get errorUnknown;
 
   /// No description provided for @errorOccurred.
@@ -269,8 +269,38 @@ abstract class AppLocalizations {
   /// No description provided for @errorServer.
   ///
   /// In en, this message translates to:
-  /// **'A server error occurred.'**
+  /// **'A temporary server problem occurred. Please try again later.'**
   String get errorServer;
+
+  /// No description provided for @errorUnauthenticated.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication required. Please login again.'**
+  String get errorUnauthenticated;
+
+  /// No description provided for @errorUnauthorized.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to perform this action.'**
+  String get errorUnauthorized;
+
+  /// No description provided for @errorDataParse.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to process data. Please try updating the app.'**
+  String get errorDataParse;
+
+  /// No description provided for @errorDatabase.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save or load local data.'**
+  String get errorDatabase;
+
+  /// No description provided for @errorBadRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'The request is invalid.'**
+  String get errorBadRequest;
 
   /// No description provided for @errorDialogTitle.
   ///

@@ -84,19 +84,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resetPasswordMailSent => 'Password reset email has been sent.';
 
   @override
-  String get errorNetwork => 'A network error has occurred.';
+  String get errorNetwork => 'Please check your internet connection.';
 
   @override
-  String get errorTimeout => 'The request timed out.';
+  String get errorTimeout =>
+      'The request is taking too long. Please try again in a place with better signal.';
 
   @override
-  String get errorUnknown => 'An unexpected error occurred.';
+  String get errorUnknown =>
+      'An error occurred. Please try restarting the app or try again later.';
 
   @override
   String get errorOccurred => 'An error has occurred.';
 
   @override
-  String get errorServer => 'A server error occurred.';
+  String get errorServer =>
+      'A temporary server problem occurred. Please try again later.';
+
+  @override
+  String get errorUnauthenticated =>
+      'Authentication required. Please login again.';
+
+  @override
+  String get errorUnauthorized =>
+      'You don\'t have permission to perform this action.';
+
+  @override
+  String get errorDataParse =>
+      'Failed to process data. Please try updating the app.';
+
+  @override
+  String get errorDatabase => 'Failed to save or load local data.';
+
+  @override
+  String get errorBadRequest => 'The request is invalid.';
 
   @override
   String get errorDialogTitle => 'An error has occurred';

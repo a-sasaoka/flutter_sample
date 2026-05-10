@@ -58,10 +58,18 @@ class ErrorHandler {
 
     // AppException のエラー処理
     if (actualError is AppException) {
-      if (actualError is UnknownException && actualError.message != null) {
-        return actualError.message!;
-      }
-      return _localizeAppException(l10n, actualError);
+      return actualError.when(
+        network: (message) => message ?? l10n.errorNetwork,
+        server: (code, message) => message ?? l10n.errorServer,
+        badRequest: (code, message) => message ?? l10n.errorBadRequest,
+        unauthenticated: (message) => message ?? l10n.errorUnauthenticated,
+        unauthorized: (message) => message ?? l10n.errorUnauthorized,
+        timeout: (message) => message ?? l10n.errorTimeout,
+        dataParse: (message) => message ?? l10n.errorDataParse,
+        database: (message, error) => message ?? l10n.errorDatabase,
+        cancel: (message) => message ?? l10n.errorUnknown,
+        unknown: (message, error) => message ?? l10n.errorUnknown,
+      );
     }
 
     // Firebase Authentication のエラー処理
@@ -71,19 +79,6 @@ class ErrorHandler {
 
     // それ以外の一般エラー
     return l10n.errorUnknown;
-  }
-
-  /// AppExceptionの翻訳
-  static String _localizeAppException(
-    AppLocalizations l10n,
-    AppException error,
-  ) {
-    return switch (error.type) {
-      AppErrorType.network => l10n.errorNetwork,
-      AppErrorType.timeout => l10n.errorTimeout,
-      AppErrorType.server => l10n.errorServer,
-      AppErrorType.unknown => l10n.errorUnknown,
-    };
   }
 
   /// FirebaseAuthExceptionの翻訳
