@@ -7,11 +7,85 @@ part of 'app_router.dart';
 // **************************************************************************
 
 List<RouteBase> get $appRoutes => [
-  $homeRoute,
   $loginRoute,
-  $splashRoute,
   $emailVerificationRoute,
+  $homeRoute,
+  $splashRoute,
 ];
+
+RouteBase get $loginRoute => GoRouteData.$route(
+  path: '/login',
+  factory: $LoginRoute._fromState,
+  routes: [
+    GoRouteData.$route(path: 'signup', factory: $SignUpRoute._fromState),
+  ],
+);
+
+mixin $LoginRoute on GoRouteData {
+  static LoginRoute _fromState(GoRouterState state) => const LoginRoute();
+
+  @override
+  String get location => GoRouteData.$location('/login');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $SignUpRoute on GoRouteData {
+  static SignUpRoute _fromState(GoRouterState state) => const SignUpRoute();
+
+  @override
+  String get location => GoRouteData.$location('/login/signup');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $emailVerificationRoute => GoRouteData.$route(
+  path: '/email-verification',
+  factory: $EmailVerificationRoute._fromState,
+);
+
+mixin $EmailVerificationRoute on GoRouteData {
+  static EmailVerificationRoute _fromState(GoRouterState state) =>
+      const EmailVerificationRoute();
+
+  @override
+  String get location => GoRouteData.$location('/email-verification');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
 
 RouteBase get $homeRoute => GoRouteData.$route(
   path: '/',
@@ -201,54 +275,6 @@ mixin $ChartDisplayRoute on GoRouteData {
   void replace(BuildContext context) => context.replace(location);
 }
 
-RouteBase get $loginRoute => GoRouteData.$route(
-  path: '/login',
-  factory: $LoginRoute._fromState,
-  routes: [
-    GoRouteData.$route(path: 'signup', factory: $SignUpRoute._fromState),
-  ],
-);
-
-mixin $LoginRoute on GoRouteData {
-  static LoginRoute _fromState(GoRouterState state) => const LoginRoute();
-
-  @override
-  String get location => GoRouteData.$location('/login');
-
-  @override
-  void go(BuildContext context) => context.go(location);
-
-  @override
-  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
-
-  @override
-  void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location);
-
-  @override
-  void replace(BuildContext context) => context.replace(location);
-}
-
-mixin $SignUpRoute on GoRouteData {
-  static SignUpRoute _fromState(GoRouterState state) => const SignUpRoute();
-
-  @override
-  String get location => GoRouteData.$location('/login/signup');
-
-  @override
-  void go(BuildContext context) => context.go(location);
-
-  @override
-  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
-
-  @override
-  void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location);
-
-  @override
-  void replace(BuildContext context) => context.replace(location);
-}
-
 RouteBase get $splashRoute =>
     GoRouteData.$route(path: '/splash', factory: $SplashRoute._fromState);
 
@@ -257,32 +283,6 @@ mixin $SplashRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/splash');
-
-  @override
-  void go(BuildContext context) => context.go(location);
-
-  @override
-  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
-
-  @override
-  void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location);
-
-  @override
-  void replace(BuildContext context) => context.replace(location);
-}
-
-RouteBase get $emailVerificationRoute => GoRouteData.$route(
-  path: '/email-verification',
-  factory: $EmailVerificationRoute._fromState,
-);
-
-mixin $EmailVerificationRoute on GoRouteData {
-  static EmailVerificationRoute _fromState(GoRouterState state) =>
-      const EmailVerificationRoute();
-
-  @override
-  String get location => GoRouteData.$location('/email-verification');
 
   @override
   void go(BuildContext context) => context.go(location);
