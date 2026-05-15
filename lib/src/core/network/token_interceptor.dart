@@ -52,14 +52,26 @@ Dio retryDio(Ref ref) {
 /// トークンを自動で付与・更新するDioのインターセプター
 @Riverpod(keepAlive: true)
 Interceptor tokenInterceptor(Ref ref) {
-  return _TokenInterceptor(ref);
+  return _TokenInterceptor(
+    storage: ref.watch(tokenStorageInternalProvider),
+    retryDio: ref.watch(retryDioProvider),
+    refreshCallback: ref.watch(tokenRefreshCallbackProvider),
+  );
 }
 
 /// トークン制御の実装クラス
 class _TokenInterceptor extends Interceptor {
-  _TokenInterceptor(this._ref);
+  _TokenInterceptor({
+    required TokenStorage storage,
+    required Dio retryDio,
+    required TokenRefreshCallback refreshCallback,
+  }) : _storage = storage,
+       _retryDio = retryDio,
+       _refreshCallback = refreshCallback;
 
-  final Ref _ref;
+  final TokenStorage _storage;
+  final Dio _retryDio;
+  final TokenRefreshCallback _refreshCallback;
 
   /// 同時実行されるリフレッシュ処理を1つにまとめるための Future
   Future<bool>? _refreshFuture;
@@ -69,8 +81,7 @@ class _TokenInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    final storage = _ref.read(tokenStorageInternalProvider);
-    final token = await storage.getAccessToken();
+    final token = await _storage.getAccessToken();
 
     if (token != null) {
       options.headers['Authorization'] = 'Bearer $token';
@@ -89,14 +100,14 @@ class _TokenInterceptor extends Interceptor {
 
       if (success) {
         // 新しいトークンを取得してヘッダーを更新
-        final storage = _ref.read(tokenStorageInternalProvider);
-        final newToken = await storage.getAccessToken();
+        final newToken = await _storage.getAccessToken();
         err.requestOptions.headers['Authorization'] = 'Bearer $newToken';
 
         // リトライ用のDioでリクエストを再実行
-        final dio = _ref.read(retryDioProvider);
         try {
-          final retryResponse = await dio.fetch<dynamic>(err.requestOptions);
+          final retryResponse = await _retryDio.fetch<dynamic>(
+            err.requestOptions,
+          );
           return handler.resolve(retryResponse);
         } on DioException catch (retryError) {
           return handler.next(retryError);
@@ -114,10 +125,8 @@ class _TokenInterceptor extends Interceptor {
       return _refreshFuture!;
     }
 
-    final refreshTokenFn = _ref.read(tokenRefreshCallbackProvider);
-
     // 新規にリフレッシュ処理を開始
-    _refreshFuture = refreshTokenFn();
+    _refreshFuture = _refreshCallback();
 
     try {
       final result = await _refreshFuture!;
