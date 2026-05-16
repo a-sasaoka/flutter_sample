@@ -40,6 +40,7 @@ void main() {
     when(() => mockL10n.retry).thenReturn('Retry');
     when(() => mockL10n.close).thenReturn('Close');
     when(() => mockL10n.checkVerificationStatus).thenReturn('Retry');
+    when(() => mockL10n.emailVerificationWaiting).thenReturn('Pull to refresh');
 
     mockRepository = MockUserRepository();
   });

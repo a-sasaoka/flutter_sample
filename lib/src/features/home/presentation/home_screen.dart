@@ -193,35 +193,37 @@ class _HomeBody extends ConsumerWidget {
                     ),
                   ),
                 ),
-              if (flavor != Flavor.prod) const Divider(height: 1, indent: 56),
-              _MenuTile(
-                icon: Icons.running_with_errors_outlined,
-                title: l10n.homeToNotFound,
-                onTap: () => context.go('/undefined/path'),
-              ),
-              const Divider(height: 1, indent: 56),
-              _MenuTile(
-                icon: Icons.bug_report_outlined,
-                title: l10n.homeCrashTest,
-                onTap: () => ref.read(firebaseCrashlyticsProvider).crash(),
-              ),
-              const Divider(height: 1, indent: 56),
-              _MenuTile(
-                icon: Icons.analytics_outlined,
-                title: l10n.homeAnalyticsTest,
-                onTap: () async {
-                  final logger = ref.read(loggerProvider);
-                  final analytics = ref.read(analyticsServiceProvider);
-                  try {
-                    await analytics.logEvent(
-                      event: AnalyticsEvent.homeButtonTapped,
-                    );
-                    logger.debug('🎯 logEvent sent via AnalyticsService');
-                  } on Exception catch (e, st) {
-                    logger.error('❌ AnalyticsService error: $e\n$st');
-                  }
-                },
-              ),
+              if (flavor != Flavor.prod) ...[
+                const Divider(height: 1, indent: 56),
+                _MenuTile(
+                  icon: Icons.running_with_errors_outlined,
+                  title: l10n.homeToNotFound,
+                  onTap: () => context.go('/undefined/path'),
+                ),
+                const Divider(height: 1, indent: 56),
+                _MenuTile(
+                  icon: Icons.bug_report_outlined,
+                  title: l10n.homeCrashTest,
+                  onTap: () => ref.read(firebaseCrashlyticsProvider).crash(),
+                ),
+                const Divider(height: 1, indent: 56),
+                _MenuTile(
+                  icon: Icons.analytics_outlined,
+                  title: l10n.homeAnalyticsTest,
+                  onTap: () async {
+                    final logger = ref.read(loggerProvider);
+                    final analytics = ref.read(analyticsServiceProvider);
+                    try {
+                      await analytics.logEvent(
+                        event: AnalyticsEvent.homeButtonTapped,
+                      );
+                      logger.debug('🎯 logEvent sent via AnalyticsService');
+                    } on Exception catch (e, st) {
+                      logger.error('❌ AnalyticsService error: $e\n$st');
+                    }
+                  },
+                ),
+              ],
             ],
           ),
         ),

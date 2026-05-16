@@ -79,7 +79,7 @@ jobs:
 
       # 4.6. build_runnerで自動生成コード（Riverpod, Freezed, Envied等）を生成する
       - name: Run build_runner
-        run: dart run build_runner build --delete-conflicting-outputs --define "envied_generator:envied=path=.env.local"
+        run: dart run build_runner build --define "envied_generator:envied=path=.env.local"
 
       # 5. コードの整形チェック
       #    整形が正しくない場合、ここで失敗させてコードの美しさを保ちます
@@ -107,20 +107,22 @@ jobs:
       - name: Install lcov
         run: sudo apt-get update && sudo apt-get install -y lcov
 
-      # 7.8. カバレッジパスの修正（環境に依存しない相対パスへ変換）
-      # genhtml やレポートツールがファイルを正しく認識できるように、絶対パスをプロジェクトルートからの相対パスに変換します。
-      - name: Fix coverage paths
-        run: sed -i "s|SF:$GITHUB_WORKSPACE/|SF:|g" coverage/lcov.info
-
-      # 7.9. カバレッジデータから自動生成ファイルや設定ファイルを除外
+      # 7.8. カバレッジデータから自動生成ファイルや設定ファイルを除外
+      # 絶対パスの状態でもマッチするように、アスタリスクを多用したパターンを指定します。
       - name: Remove excluded files from coverage
         run: |
           lcov --ignore-errors unused --remove coverage/lcov.info \
-          'lib/firebase_options_*.dart' \
-          'lib/l10n/*' \
+          '**/firebase_options_*.dart' \
+          '**/lib/l10n/*' \
           '**/*.g.dart' \
           '**/*.freezed.dart' \
           -o coverage/lcov.info
+
+      # 7.9. カバレッジパスの修正（環境に依存しない相対パスへ変換）
+      # genhtml やレポートツールがファイルを正しく認識できるように、絶対パスをプロジェクトルートからの相対パスに変換します。
+      # lcov コマンドがパスを書き換える可能性があるため、必ず除外処理の後に実行します。
+      - name: Fix coverage paths
+        run: sed -i "s|SF:$GITHUB_WORKSPACE/|SF:|g" coverage/lcov.info
 
       # 8. カバレッジ結果の可視化
       #    GitHub Actionsの実行結果画面に、どのファイルがテストされたかの表を表示します

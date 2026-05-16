@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/user/application/user_notifier.dart';
@@ -6,7 +7,7 @@ import 'package:flutter_sample/src/features/user/domain/user_model.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// ユーザー一覧画面
-class UserListScreen extends ConsumerWidget {
+class UserListScreen extends HookConsumerWidget {
   /// コンストラクタ
   const UserListScreen({super.key});
 
@@ -22,26 +23,40 @@ class UserListScreen extends ConsumerWidget {
     });
 
     final usersAsync = ref.watch(userProvider);
+    final isRetrying = useState(false);
+
+    // リフレッシュ処理の共通化
+    Future<void> onRefresh() => ref.read(userProvider.notifier).refresh();
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.userListTitle)),
       body: usersAsync.when(
         data: (list) {
           if (list.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+            return RefreshIndicator(
+              onRefresh: onRefresh,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 children: [
-                  Icon(
-                    Icons.people_outline,
-                    size: 64,
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    l10n.userListEmpty,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.outline,
+                  SizedBox(height: MediaQuery.sizeOf(context).height * 0.3),
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.people_outline,
+                          size: 64,
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          l10n.userListEmpty,
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.outline,
+                              ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -49,38 +64,74 @@ class UserListScreen extends ConsumerWidget {
             );
           }
           return RefreshIndicator(
-            onRefresh: () => ref.read(userProvider.notifier).refresh(),
+            onRefresh: onRefresh,
             child: ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               itemCount: list.length,
               itemBuilder: (context, index) {
                 final user = list[index];
-                return _UserCard(user: user);
+                return _UserCard(key: ValueKey(user.id), user: user);
               },
             ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+        error: (error, _) => RefreshIndicator(
+          onRefresh: onRefresh,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              Icon(
-                Icons.error_outline,
-                size: 48,
-                color: Theme.of(context).colorScheme.error,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.errorUnknown,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: () => ref.read(userProvider.notifier).refresh(),
-                icon: const Icon(Icons.refresh),
-                label: Text(l10n.retry),
+              SizedBox(height: MediaQuery.sizeOf(context).height * 0.25),
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.errorUnknown,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: isRetrying.value
+                          ? null
+                          : () async {
+                              isRetrying.value = true;
+                              try {
+                                await onRefresh();
+                              } finally {
+                                if (context.mounted) {
+                                  isRetrying.value = false;
+                                }
+                              }
+                            },
+                      icon: isRetrying.value
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white70,
+                              ),
+                            )
+                          : const Icon(Icons.refresh),
+                      label: Text(l10n.retry),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.emailVerificationWaiting, // 「または画面を引っ張って更新」的な意味で流用
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -91,7 +142,7 @@ class UserListScreen extends ConsumerWidget {
 }
 
 class _UserCard extends StatelessWidget {
-  const _UserCard({required this.user});
+  const _UserCard({required this.user, super.key});
   final UserModel user;
 
   @override
