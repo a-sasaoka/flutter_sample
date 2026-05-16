@@ -136,22 +136,35 @@ class MyApp extends ConsumerWidget {
     // アプリ全体の設定をまとめて取得
     final configAsync = ref.watch(appConfigProvider);
 
-    return configAsync.when(
-      data: (tuple) {
-        return MaterialApp.router(
-          locale: tuple.locale,
+    return switch (configAsync) {
+      AsyncData(value: (:final locale, :final theme, :final router)) =>
+        MaterialApp.router(
+          locale: locale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           title: '', // タイトルは _AppTitleWrapper 内で設定するため空文字
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
-          themeMode: tuple.theme,
-          routerConfig: tuple.router,
+          themeMode: theme,
+          routerConfig: router,
           debugShowCheckedModeBanner: false,
           builder: (context, child) => _AppTitleWrapper(child: child),
-        );
-      },
-      loading: () => const Directionality(
+        ),
+      AsyncError(:final error) => Directionality(
+        // MaterialAppやMaterialApp.routerを使わない
+        textDirection: TextDirection.ltr,
+        child: ColoredBox(
+          color: Colors.white,
+          child: Center(
+            child: Text(
+              'Fatal Error / A fatal error has occurred.\n$error',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.black, fontSize: 14),
+            ),
+          ),
+        ),
+      ),
+      _ => const Directionality(
         // MaterialAppやMaterialApp.routerを使わない
         textDirection: TextDirection.ltr,
         child: ColoredBox(
@@ -159,21 +172,7 @@ class MyApp extends ConsumerWidget {
           child: Center(child: CircularProgressIndicator()),
         ),
       ),
-      error: (err, _) => Directionality(
-        // MaterialAppやMaterialApp.routerを使わない
-        textDirection: TextDirection.ltr,
-        child: ColoredBox(
-          color: Colors.white,
-          child: Center(
-            child: Text(
-              'Fatal Error / A fatal error has occurred.\n$err',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.black, fontSize: 14),
-            ),
-          ),
-        ),
-      ),
-    );
+    };
   }
 }
 

@@ -38,19 +38,19 @@ class AuthRepository {
       },
     );
 
-    final access = response.data?['access_token'] as String?;
-    final refresh = response.data?['refresh_token'] as String?;
-
-    if (access == null || refresh == null) {
+    if (response.data case {
+      'access_token': final String access,
+      'refresh_token': final String refresh,
+    }) {
+      await tokenStorage.saveTokens(
+        accessToken: access,
+        refreshToken: refresh,
+      );
+    } else {
       throw const AppException.dataParse(
         message: 'Invalid token response from server',
       );
     }
-
-    await tokenStorage.saveTokens(
-      accessToken: access,
-      refreshToken: refresh,
-    );
   }
 
   /// リフレッシュトークンAPIを呼び出し、アクセストークンを更新する

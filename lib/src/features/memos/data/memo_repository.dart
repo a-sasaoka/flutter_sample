@@ -215,23 +215,30 @@ class MemoRepository {
         final companionsToUpsert = <MemosCompanion>[];
 
         for (final remoteMemo in remoteData) {
-          final id = remoteMemo['id'] as String;
-          final updatedAt = remoteMemo['updatedAt'] as DateTime;
-          final localMemo = localMemosMap[id];
+          if (remoteMemo case {
+            'id': final String id,
+            'title': final String title,
+            'content': final String content,
+            'createdAt': final DateTime createdAt,
+            'updatedAt': final DateTime updatedAt,
+            'isDeleted': final bool isDeleted,
+          }) {
+            final localMemo = localMemosMap[id];
 
-          // サーバーのデータが新しい場合、またはローカルに存在しない場合に更新/挿入対象とする
-          if (localMemo == null || updatedAt.isAfter(localMemo.updatedAt)) {
-            companionsToUpsert.add(
-              MemosCompanion.insert(
-                id: id,
-                title: remoteMemo['title'] as String,
-                content: remoteMemo['content'] as String,
-                createdAt: remoteMemo['createdAt'] as DateTime,
-                updatedAt: updatedAt,
-                isDeleted: drift.Value(remoteMemo['isDeleted'] as bool),
-                isSynced: const drift.Value(true),
-              ),
-            );
+            // サーバーのデータが新しい場合、またはローカルに存在しない場合に更新/挿入対象とする
+            if (localMemo == null || updatedAt.isAfter(localMemo.updatedAt)) {
+              companionsToUpsert.add(
+                MemosCompanion.insert(
+                  id: id,
+                  title: title,
+                  content: content,
+                  createdAt: createdAt,
+                  updatedAt: updatedAt,
+                  isDeleted: drift.Value(isDeleted),
+                  isSynced: const drift.Value(true),
+                ),
+              );
+            }
           }
         }
 

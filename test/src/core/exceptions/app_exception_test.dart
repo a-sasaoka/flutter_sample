@@ -78,20 +78,20 @@ void main() {
       expect(exception.error, innerError);
     });
 
-    test('pattern matching (when) が正しく動作すること', () {
+    test('pattern matching (switch expression) が正しく動作すること', () {
       const exception = AppException.timeout();
-      final result = exception.when(
-        network: (_) => 'network',
-        server: (_, _) => 'server',
-        badRequest: (_, _) => 'badRequest',
-        unauthenticated: (_) => 'unauthenticated',
-        unauthorized: (_) => 'unauthorized',
-        timeout: (_) => 'timeout',
-        dataParse: (_) => 'dataParse',
-        database: (_, _) => 'database',
-        cancel: (_) => 'cancel',
-        unknown: (_, _) => 'unknown',
-      );
+      final result = switch (exception) {
+        NetworkException() => 'network',
+        ServerException() => 'server',
+        BadRequestException() => 'badRequest',
+        UnauthenticatedException() => 'unauthenticated',
+        UnauthorizedException() => 'unauthorized',
+        TimeoutException() => 'timeout',
+        DataParseException() => 'dataParse',
+        DatabaseException() => 'database',
+        CancelException() => 'cancel',
+        UnknownException() => 'unknown',
+      };
       expect(result, 'timeout');
     });
   });

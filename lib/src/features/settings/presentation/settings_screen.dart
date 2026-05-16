@@ -22,11 +22,8 @@ class SettingsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),
-      body: configAsync.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator.adaptive()),
-        error: (err, _) => Center(child: Text('Error: $err')),
-        data: (config) {
+      body: switch (configAsync) {
+        AsyncData(value: final config) => () {
           final (:theme, :locale, :router) = config;
           return ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -49,8 +46,10 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ],
           );
-        },
-      ),
+        }(),
+        AsyncError(:final error) => Center(child: Text('Error: $error')),
+        _ => const Center(child: CircularProgressIndicator.adaptive()),
+      },
     );
   }
 }
