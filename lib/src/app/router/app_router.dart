@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/app/router/auth_guard.dart';
 import 'package:flutter_sample/src/app/router/firebase_auth_guard.dart';
+import 'package:flutter_sample/src/app/router/snackbar_navigation_observer.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/analytics/typed_route_analytics_observer.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
@@ -69,6 +70,7 @@ GoRouter router(Ref ref) {
         NotFoundScreen(unknownPath: state.uri.toString()),
     debugLogDiagnostics: true,
     observers: [
+      SnackBarNavigationObserver(),
       TypedRouteAnalyticsObserver(
         analytics: ref.watch(firebaseAnalyticsProvider),
         talker: ref.watch(loggerProvider),
