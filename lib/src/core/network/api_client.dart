@@ -1,58 +1,8 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter_sample/src/core/config/env_config.dart';
-import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
-import 'package:flutter_sample/src/core/network/token_interceptor.dart';
-import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/core/network/dio_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:talker_dio_logger/talker_dio_logger.dart';
-import 'package:talker_flutter/talker_flutter.dart';
 
 part 'api_client.g.dart';
-
-/// 共通Dioインスタンスを提供するProvider
-///
-/// - Base URLやタイムアウトを設定
-/// - インターセプタでログ出力
-/// - 必要に応じてトークン認証もここで実装可能
-@Riverpod(keepAlive: true)
-Dio dio(Ref ref) {
-  final config = ref.watch(envConfigProvider);
-  final dio = Dio(
-    BaseOptions(
-      baseUrl: config.baseUrl,
-      connectTimeout: Duration(seconds: config.connectTimeout),
-      receiveTimeout: Duration(seconds: config.receiveTimeout),
-      sendTimeout: Duration(seconds: config.sendTimeout),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    ),
-  );
-
-  // トークン付与・更新
-  dio.interceptors.add(ref.watch(tokenInterceptorProvider));
-
-  // ログ出力・例外処理
-  dio.interceptors.add(ref.watch(dioInterceptorProvider));
-
-  // 開発時のみリクエスト・レスポンスログを出力
-  if (kDebugMode) {
-    dio.interceptors.add(
-      TalkerDioLogger(
-        talker: ref.watch(loggerProvider),
-        settings: TalkerDioLoggerSettings(
-          printRequestHeaders: true,
-          errorPen: AnsiPen()..red(),
-          requestPen: AnsiPen()..yellow(),
-          responsePen: AnsiPen()..green(),
-        ),
-      ),
-    );
-  }
-
-  return dio;
-}
 
 /// API呼び出し用の共通クライアントインターフェース
 ///

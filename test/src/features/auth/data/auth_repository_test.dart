@@ -1,7 +1,8 @@
 import 'package:dio/dio.dart'; // Responseクラス用
 import 'package:flutter_sample/src/core/network/api_client.dart';
+import 'package:flutter_sample/src/core/network/dio_provider.dart';
 import 'package:flutter_sample/src/core/storage/token_storage.dart';
-import 'package:flutter_sample/src/features/auth/data/auth_repository.dart'; // パスは適宜合わせてください
+import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
@@ -10,6 +11,9 @@ import 'package:mocktail/mocktail.dart';
 
 // ApiClientのモック
 class MockApiClient extends Mock implements ApiClient {}
+
+// Dioのモック
+class MockDio extends Mock implements Dio {}
 
 // DioのResponseのモック
 class MockResponse extends Mock implements Response<Map<String, dynamic>> {}
@@ -48,7 +52,7 @@ void main() {
   ProviderContainer createContainer(FakeTokenStorage fakeStorage) {
     final container = ProviderContainer(
       overrides: [
-        apiClientProvider.overrideWithValue(mockApi),
+        authApiClientProvider.overrideWithValue(mockApi),
         // 💡 修正: tokenStorageProvider は Notifier ではないので (ref) => の形でオーバーライドする
         tokenStorageProvider.overrideWith((ref) => fakeStorage),
       ],
@@ -226,6 +230,22 @@ void main() {
         expect(fakeStorage.savedAccessToken, 'refreshed_access');
         expect(fakeStorage.savedRefreshToken, 'valid_refresh');
       });
+    });
+  });
+
+  group('authApiClientProvider', () {
+    test('baseDioProvider を使用した ApiClient を提供すること', () {
+      final mockDio = MockDio();
+      final container = ProviderContainer(
+        overrides: [
+          baseDioProvider.overrideWithValue(mockDio),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final apiClient = container.read(authApiClientProvider);
+
+      expect(apiClient, isA<DioApiClient>());
     });
   });
 

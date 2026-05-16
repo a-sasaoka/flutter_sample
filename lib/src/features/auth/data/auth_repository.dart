@@ -1,15 +1,22 @@
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
+import 'package:flutter_sample/src/core/network/dio_provider.dart';
 import 'package:flutter_sample/src/core/storage/token_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'auth_repository.g.dart';
 
+/// AuthRepository専用のAPIクライアント（無限ループを防ぐためトークンインターセプタを除外）
+@Riverpod(keepAlive: true)
+ApiClient authApiClient(Ref ref) {
+  return DioApiClient(ref.watch(baseDioProvider));
+}
+
 /// 認証リポジトリ
 @Riverpod(keepAlive: true)
 AuthRepository authRepository(Ref ref) {
   return AuthRepository(
-    api: ref.watch(apiClientProvider),
+    api: ref.watch(authApiClientProvider),
     tokenStorage: ref.watch(tokenStorageProvider),
   );
 }

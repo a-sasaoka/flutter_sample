@@ -46,11 +46,15 @@ tokenRefreshCallbackProvider.overrideWith(
 
 ## 🧩 Dioへの組み込み順序（重要）
 
-`api_client.dart` にて、Interceptorの登録順序は以下の通りに設定されています👇
+`dio_provider.dart` にて、Interceptorの登録順序は以下の通りに設定されています👇
 
 ```dart
-dio.interceptors.add(ref.read(tokenInterceptorProvider)); // ① トークン付与・リフレッシュ
-dio.interceptors.add(ref.read(dioInterceptorProvider));   // ② ログ出力・エラーハンドリング
+// ① トークン付与・リフレッシュ（追加のインターセプターとして先頭に挿入）
+if (additionalInterceptors.isNotEmpty) {
+  dio.interceptors.addAll(additionalInterceptors);
+}
+// ② ログ出力・エラーハンドリング（共通の例外処理）
+dio.interceptors.add(ref.watch(dioInterceptorProvider));
 ```
 
 ### 💡 理由

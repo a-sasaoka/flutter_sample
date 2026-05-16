@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_sample/src/core/config/env_config.dart';
-import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
+import 'package:flutter_sample/src/core/network/dio_provider.dart';
 import 'package:flutter_sample/src/core/storage/token_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -33,26 +32,6 @@ TokenRefreshCallback tokenRefreshCallback(Ref ref) {
 TokenStorage tokenStorageInternal(Ref ref) {
   return ref.watch(tokenStorageProvider);
 }
-
-/// 再リクエスト（リトライ）用のDioインスタンスを提供するProvider
-///
-/// メインの `dioProvider` と同じタイムアウト設定を適用します。
-@Riverpod(keepAlive: true)
-Dio retryDio(Ref ref) {
-  final config = ref.watch(envConfigProvider);
-  final dio = Dio(
-    BaseOptions(
-      connectTimeout: Duration(seconds: config.connectTimeout),
-      receiveTimeout: Duration(seconds: config.receiveTimeout),
-      sendTimeout: Duration(seconds: config.sendTimeout),
-    ),
-  );
-
-  // 共通のログ出力・エラー変換を適用
-  dio.interceptors.add(ref.watch(dioInterceptorProvider));
-
-  return dio;
-}
 // coverage:ignore-end
 
 /// トークンを自動で付与・更新するDioのインターセプター
@@ -60,7 +39,7 @@ Dio retryDio(Ref ref) {
 Interceptor tokenInterceptor(Ref ref) {
   return _TokenInterceptor(
     storage: ref.watch(tokenStorageInternalProvider),
-    retryDio: ref.watch(retryDioProvider),
+    baseDio: ref.watch(baseDioProvider),
     refreshCallback: ref.watch(tokenRefreshCallbackProvider),
   );
 }
@@ -69,14 +48,14 @@ Interceptor tokenInterceptor(Ref ref) {
 class _TokenInterceptor extends Interceptor {
   _TokenInterceptor({
     required TokenStorage storage,
-    required Dio retryDio,
+    required Dio baseDio,
     required TokenRefreshCallback refreshCallback,
   }) : _storage = storage,
-       _retryDio = retryDio,
+       _baseDio = baseDio,
        _refreshCallback = refreshCallback;
 
   final TokenStorage _storage;
-  final Dio _retryDio;
+  final Dio _baseDio;
   final TokenRefreshCallback _refreshCallback;
 
   /// 同時実行されるリフレッシュ処理を1つにまとめるための Future
@@ -111,7 +90,7 @@ class _TokenInterceptor extends Interceptor {
 
         // リトライ用のDioでリクエストを再実行
         try {
-          final retryResponse = await _retryDio.fetch<dynamic>(
+          final retryResponse = await _baseDio.fetch<dynamic>(
             err.requestOptions,
           );
           return handler.resolve(retryResponse);

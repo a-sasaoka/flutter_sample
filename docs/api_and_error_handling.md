@@ -29,6 +29,7 @@ lib/src/features/user/
 lib/src/core/
   ├── network/
   │   ├── api_client.dart        # 通信の抽象インターフェースとDioによる実装
+  │   ├── dio_provider.dart      # Dioインスタンスの生成と共通設定 (baseDio, dio)
   │   ├── dio_interceptor.dart   # 共通の通信ログ・エラー変換
   │   └── token_interceptor.dart # 認証トークンの自動付与・排他リフレッシュ制御
 ```
