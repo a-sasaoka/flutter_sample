@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
+import 'package:flutter_sample/src/core/exceptions/firebase_auth_error_codes.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
