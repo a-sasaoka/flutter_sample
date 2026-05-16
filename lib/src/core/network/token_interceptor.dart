@@ -131,12 +131,15 @@ class _TokenInterceptor extends Interceptor {
       return future;
     }
 
-    // 新規にリフレッシュ処理を開始
-    final future = _refreshCallback();
-    _refreshFuture = future;
-
     try {
+      // 新規にリフレッシュ処理を開始
+      final future = _refreshCallback();
+      _refreshFuture = future;
       return await future;
+    } on Exception catch (_) {
+      // リフレッシュ自体が例外（タイムアウト等）で失敗した場合は false を返す
+      // これにより、元の 401 エラーが handler.next(err) へ渡される
+      return false;
     } finally {
       // 完了（成功・失敗問わず）したらリセット
       _refreshFuture = null;

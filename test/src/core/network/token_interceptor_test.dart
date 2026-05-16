@@ -131,6 +131,26 @@ void main() {
       verifyNever(() => mockRetryDio.fetch<dynamic>(any()));
     });
 
+    test('onError: リフレッシュ処理中に例外が発生した場合、安全に false を返し元のエラーを流すこと', () async {
+      final interceptor = container.read(tokenInterceptorProvider);
+      final handler = MockErrorInterceptorHandler();
+      final error401 = DioException(
+        requestOptions: RequestOptions(),
+        response: Response(requestOptions: RequestOptions(), statusCode: 401),
+      );
+
+      // リフレッシュ処理で例外を投げるように設定
+      when(
+        () => mockRefreshToken.call(),
+      ).thenThrow(Exception('Network unstable'));
+
+      await (interceptor as dynamic).onError(error401, handler);
+
+      // 例外がキャッチされ、handler.next(error401) が呼ばれていることを確認
+      verify(() => handler.next(error401)).called(1);
+      verifyNever(() => mockRetryDio.fetch<dynamic>(any()));
+    });
+
     test('二重リフレッシュ防止: 同時に 401 が発生しても、リフレッシュ関数は1回しか呼ばれないこと', () async {
       final interceptor = container.read(tokenInterceptorProvider);
       final handler1 = MockErrorInterceptorHandler();
