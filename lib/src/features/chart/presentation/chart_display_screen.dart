@@ -176,9 +176,11 @@ class ChartDisplayScreen extends ConsumerWidget {
         ),
         lineBarsData: [
           LineChartBarData(
-            spots: state.items.asMap().entries.map((entry) {
-              return FlSpot(entry.key.toDouble(), entry.value.value);
-            }).toList(),
+            spots: [
+              for (final MapEntry(key: i, value: item)
+                  in state.items.asMap().entries)
+                FlSpot(i.toDouble(), item.value),
+            ],
             isCurved: true,
             color: Colors.blue,
             barWidth: 4,
@@ -245,18 +247,20 @@ class ChartDisplayScreen extends ConsumerWidget {
             ),
           ),
         ),
-        barGroups: state.items.asMap().entries.map((entry) {
-          return BarChartGroupData(
-            x: entry.key,
-            barRods: [
-              BarChartRodData(
-                toY: entry.value.value,
-                color: Colors.green,
-                width: barWidth,
-              ),
-            ],
-          );
-        }).toList(),
+        barGroups: [
+          for (final MapEntry(key: i, value: item)
+              in state.items.asMap().entries)
+            BarChartGroupData(
+              x: i,
+              barRods: [
+                BarChartRodData(
+                  toY: item.value,
+                  color: Colors.green,
+                  width: barWidth,
+                ),
+              ],
+            ),
+        ],
       ),
     );
   }
@@ -273,20 +277,21 @@ class ChartDisplayScreen extends ConsumerWidget {
   Widget _buildPieChart(ChartState state) {
     return PieChart(
       PieChartData(
-        sections: state.items.asMap().entries.map((entry) {
-          final color = _colors[entry.key % _colors.length];
-          return PieChartSectionData(
-            value: entry.value.value,
-            title: entry.value.label,
-            color: color,
-            radius: 50,
-            titleStyle: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+        sections: [
+          for (final MapEntry(key: i, value: item)
+              in state.items.asMap().entries)
+            PieChartSectionData(
+              value: item.value,
+              title: item.label,
+              color: _colors[i % _colors.length],
+              radius: 50,
+              titleStyle: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
-          );
-        }).toList(),
+        ],
       ),
     );
   }

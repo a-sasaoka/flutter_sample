@@ -55,19 +55,19 @@ class UserRepository {
 
     // APIから取得
     final response = await api.get<List<dynamic>>('/users');
-    final data = response.data;
-    if (data == null) {
-      return [];
+    if (response.data case final List<dynamic> data) {
+      final users = data
+          .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
+          .toList(growable: false);
+
+      // キャッシュに保存（上書き）
+      await cache.save(cacheKey, data);
+      talker.debug('Fetched users from API and saved to cache.');
+
+      return users;
     }
-    final users = data
-        .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
-        .toList(growable: false);
 
-    // キャッシュに保存（上書き）
-    await cache.save(cacheKey, response.data);
-    talker.debug('Fetched users from API and saved to cache.');
-
-    return users;
+    return [];
   }
 
   /// ユーザーを新規作成する (POSTのサンプル)
@@ -87,16 +87,15 @@ class UserRepository {
       },
     );
 
-    final data = response.data;
-    if (data == null) {
-      throw const AppException.dataParse(message: 'Failed to create user');
+    if (response.data case final Map<String, dynamic> data) {
+      // キャッシュをクリア
+      await cache.clear(cacheKey);
+      talker.debug('Created user and cleared cache.');
+
+      return UserModel.fromJson(data);
     }
 
-    // キャッシュをクリア
-    await cache.clear(cacheKey);
-    talker.debug('Created user and cleared cache.');
-
-    return UserModel.fromJson(data);
+    throw const AppException.dataParse(message: 'Failed to create user');
   }
 
   /// ユーザー名を更新する (PATCHのサンプル)
@@ -106,16 +105,15 @@ class UserRepository {
       data: {'name': newName},
     );
 
-    final data = response.data;
-    if (data == null) {
-      throw const AppException.dataParse(message: 'Failed to update user');
+    if (response.data case final Map<String, dynamic> data) {
+      // キャッシュをクリア
+      await cache.clear(cacheKey);
+      talker.debug('Updated user name and cleared cache.');
+
+      return UserModel.fromJson(data);
     }
 
-    // キャッシュをクリア
-    await cache.clear(cacheKey);
-    talker.debug('Updated user name and cleared cache.');
-
-    return UserModel.fromJson(data);
+    throw const AppException.dataParse(message: 'Failed to update user');
   }
 
   /// ユーザーを削除する (DELETEのサンプル)

@@ -30,54 +30,51 @@ class UserListScreen extends HookConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.userListTitle)),
-      body: usersAsync.when(
-        data: (list) {
-          if (list.isEmpty) {
-            return RefreshIndicator(
-              onRefresh: onRefresh,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: [
-                  SizedBox(height: MediaQuery.sizeOf(context).height * 0.3),
-                  Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.people_outline,
-                          size: 64,
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.userListEmpty,
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(
-                                color: Theme.of(context).colorScheme.outline,
-                              ),
-                        ),
-                      ],
+      body: switch (usersAsync) {
+        // 💡 データが空の場合
+        AsyncData(value: final list) when list.isEmpty => RefreshIndicator(
+          onRefresh: onRefresh,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              SizedBox(height: MediaQuery.sizeOf(context).height * 0.3),
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.people_outline,
+                      size: 64,
+                      color: Theme.of(context).colorScheme.outline,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.userListEmpty,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: onRefresh,
-            child: ListView.builder(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              itemCount: list.length,
-              itemBuilder: (context, index) {
-                final user = list[index];
-                return _UserCard(key: ValueKey(user.id), user: user);
-              },
-            ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => RefreshIndicator(
+            ],
+          ),
+        ),
+        // 💡 データがある場合
+        AsyncData(value: final list) => RefreshIndicator(
+          onRefresh: onRefresh,
+          child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            itemCount: list.length,
+            itemBuilder: (context, index) {
+              final user = list[index];
+              return _UserCard(key: ValueKey(user.id), user: user);
+            },
+          ),
+        ),
+        // 💡 エラー状態
+        AsyncError() => RefreshIndicator(
           onRefresh: onRefresh,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -127,7 +124,7 @@ class UserListScreen extends HookConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      l10n.emailVerificationWaiting, // 「または画面を引っ張って更新」的な意味で流用
+                      l10n.emailVerificationWaiting,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -136,7 +133,9 @@ class UserListScreen extends HookConsumerWidget {
             ],
           ),
         ),
-      ),
+        // 💡 ローディング状態
+        _ => const Center(child: CircularProgressIndicator()),
+      },
     );
   }
 }

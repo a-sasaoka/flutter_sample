@@ -67,8 +67,8 @@ class HomeScreen extends HookConsumerWidget {
           ),
         ],
       ),
-      body: updateRequest.when(
-        data: (_) => _HomeBody(
+      body: switch (updateRequest) {
+        AsyncData() || AsyncError() => _HomeBody(
           flavor: flavor,
           useFirebaseAuth: envConfig.useFirebaseAuth,
           appName: appName.value,
@@ -79,19 +79,8 @@ class HomeScreen extends HookConsumerWidget {
             bundleId.value = info.packageName;
           },
         ),
-        error: (e, st) => _HomeBody(
-          flavor: flavor,
-          useFirebaseAuth: envConfig.useFirebaseAuth,
-          appName: appName.value,
-          bundleId: bundleId.value,
-          onGetAppInfo: () {
-            final info = ref.read(packageInfoProvider);
-            appName.value = info.appName;
-            bundleId.value = info.packageName;
-          },
-        ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-      ),
+        _ => const Center(child: CircularProgressIndicator()),
+      },
     );
   }
 }

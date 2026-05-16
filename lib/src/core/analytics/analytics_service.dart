@@ -46,8 +46,8 @@ class AnalyticsService {
     Map<String, Object?> parameters = const {},
   }) async {
     final data = <String, Object>{
-      for (final entry in parameters.entries)
-        if (entry.value case final Object val) entry.key: val,
+      for (final MapEntry(:key, :value) in parameters.entries)
+        if (value case final Object val) key: val,
       'timestamp': _getCurrentDateTime().millisecondsSinceEpoch,
     };
 

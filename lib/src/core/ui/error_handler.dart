@@ -26,18 +26,20 @@ class ErrorHandler {
 
     // AppException のエラー処理
     if (actualError is AppException) {
-      final baseMessage = actualError.when(
-        network: (message) => message ?? l10n.errorNetwork,
-        server: (code, message) => message ?? l10n.errorServer,
-        badRequest: (code, message) => message ?? l10n.errorBadRequest,
-        unauthenticated: (message) => message ?? l10n.errorUnauthenticated,
-        unauthorized: (message) => message ?? l10n.errorUnauthorized,
-        timeout: (message) => message ?? l10n.errorTimeout,
-        dataParse: (message) => message ?? l10n.errorDataParse,
-        database: (message, error) => message ?? l10n.errorDatabase,
-        cancel: (message) => message ?? l10n.errorUnknown,
-        unknown: (message, error) => message ?? l10n.errorUnknown,
-      );
+      final baseMessage = switch (actualError) {
+        NetworkException(:final message) => message ?? l10n.errorNetwork,
+        ServerException(:final message) => message ?? l10n.errorServer,
+        BadRequestException(:final message) => message ?? l10n.errorBadRequest,
+        UnauthenticatedException(:final message) =>
+          message ?? l10n.errorUnauthenticated,
+        UnauthorizedException(:final message) =>
+          message ?? l10n.errorUnauthorized,
+        TimeoutException(:final message) => message ?? l10n.errorTimeout,
+        DataParseException(:final message) => message ?? l10n.errorDataParse,
+        DatabaseException(:final message) => message ?? l10n.errorDatabase,
+        CancelException(:final message) => message ?? l10n.errorUnknown,
+        UnknownException(:final message) => message ?? l10n.errorUnknown,
+      };
 
       // ステータスコードがあれば付与する (デバッグや詳細確認用)
       final statusCode = actualError.statusCode;

@@ -139,44 +139,39 @@ class _MemoListView extends ConsumerWidget {
     final l10n = context.l10n;
     final memosAsyncValue = ref.watch(memoProvider);
 
-    return memosAsyncValue.when(
-      data: (memos) {
-        if (memos.isEmpty) {
-          return ListView(
-            children: [
-              SizedBox(height: MediaQuery.sizeOf(context).height * 0.3),
-              Center(
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.note_alt_outlined,
-                      size: 64,
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      l10n.memoEmpty,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                    ),
-                  ],
+    return switch (memosAsyncValue) {
+      AsyncData(value: final memos) when memos.isEmpty => ListView(
+        children: [
+          SizedBox(height: MediaQuery.sizeOf(context).height * 0.3),
+          Center(
+            child: Column(
+              children: [
+                Icon(
+                  Icons.note_alt_outlined,
+                  size: 64,
+                  color: Theme.of(context).colorScheme.outline,
                 ),
-              ),
-            ],
-          );
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-          itemCount: memos.length,
-          itemBuilder: (context, index) {
-            final memo = memos[index];
-            return _MemoCard(memo: memo);
-          },
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, st) => Center(
+                const SizedBox(height: 16),
+                Text(
+                  l10n.memoEmpty,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      AsyncData(value: final memos) => ListView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+        itemCount: memos.length,
+        itemBuilder: (context, index) {
+          final memo = memos[index];
+          return _MemoCard(key: ValueKey(memo.id), memo: memo);
+        },
+      ),
+      AsyncError() => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -186,12 +181,13 @@ class _MemoListView extends ConsumerWidget {
           ],
         ),
       ),
-    );
+      _ => const Center(child: CircularProgressIndicator()),
+    };
   }
 }
 
 class _MemoCard extends ConsumerWidget {
-  const _MemoCard({required this.memo});
+  const _MemoCard({required this.memo, super.key});
   final MemoModel memo;
 
   @override
