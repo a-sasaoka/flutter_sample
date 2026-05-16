@@ -124,7 +124,7 @@ class UserListScreen extends HookConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      l10n.emailVerificationWaiting,
+                      l10n.userListFetchError,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],

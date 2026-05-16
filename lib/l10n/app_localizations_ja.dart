@@ -313,6 +313,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get userListEmpty => 'ユーザーが見つかりませんでした。';
 
   @override
+  String get userListFetchError => 'ユーザー一覧の取得に失敗しました。下へスクロールして更新してください。';
+
+  @override
   String get retry => '再試行';
 
   @override

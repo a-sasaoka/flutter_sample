@@ -698,6 +698,12 @@ abstract class AppLocalizations {
   /// **'No users found.'**
   String get userListEmpty;
 
+  /// No description provided for @userListFetchError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to fetch users. Please pull down to refresh.'**
+  String get userListFetchError;
+
   /// No description provided for @retry.
   ///
   /// In en, this message translates to:

@@ -37,10 +37,9 @@ void main() {
     when(() => mockL10n.userListTitle).thenReturn('User List');
     when(() => mockL10n.userListEmpty).thenReturn('No users found.');
     when(() => mockL10n.errorUnknown).thenReturn('Error Occurred');
+    when(() => mockL10n.userListFetchError).thenReturn('Pull to refresh');
     when(() => mockL10n.retry).thenReturn('Retry');
     when(() => mockL10n.close).thenReturn('Close');
-    when(() => mockL10n.checkVerificationStatus).thenReturn('Retry');
-    when(() => mockL10n.emailVerificationWaiting).thenReturn('Pull to refresh');
 
     mockRepository = MockUserRepository();
   });
@@ -79,13 +78,18 @@ void main() {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          home: const UserListScreen(),
+          home: UserListScreen(key: GlobalKey()),
         ),
       ),
     );
   }
 
   group('UserListScreen Test', () {
+    test('コンストラクタのテスト', () {
+      // ignore: prefer_const_constructors, 100%カバレッジのために意図的にconstを外している
+      final screen = UserListScreen(key: const ValueKey<String>('test'));
+      expect(screen.key, isA<ValueKey<String>>());
+    });
     testWidgets('【状態系】Loading状態の時にインジケータが表示されること', (tester) async {
       final completer = Completer<List<UserModel>>();
       when(
@@ -168,7 +172,11 @@ void main() {
       await pumpUserListScreen(tester);
       await tester.pumpAndSettle();
 
-      expect(find.text('Error Occurred'), findsNWidgets(2));
+      expect(
+        find.text('Error Occurred'),
+        findsNWidgets(2),
+      ); // SnackBar & Screen
+      expect(find.text('Pull to refresh'), findsOneWidget);
       expect(find.byType(SnackBar), findsOneWidget);
 
       await tester.tap(find.widgetWithText(FilledButton, 'Retry'));

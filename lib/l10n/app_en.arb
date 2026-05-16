@@ -125,6 +125,7 @@
   "sampleDescription": "This is the sample feature screen. UI and state management will be added here.",
   "userListTitle": "User List",
   "userListEmpty": "No users found.",
+  "userListFetchError": "Failed to fetch users. Please pull down to refresh.",
   "retry": "Retry",
   "notFoundTitle": "Page not found",
   "notFoundMessage": "The page could not be found.",
