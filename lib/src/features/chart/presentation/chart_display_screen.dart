@@ -70,6 +70,7 @@ class ChartDisplayScreen extends ConsumerWidget {
                         final item = state.items[index];
                         final color = _colors[index % _colors.length];
                         return Card(
+                          key: ValueKey(item.id),
                           margin: const EdgeInsets.symmetric(vertical: 4),
                           child: ListTile(
                             leading: Container(
@@ -177,8 +178,7 @@ class ChartDisplayScreen extends ConsumerWidget {
         lineBarsData: [
           LineChartBarData(
             spots: [
-              for (final MapEntry(key: i, value: item)
-                  in state.items.asMap().entries)
+              for (final (i, item) in state.items.indexed)
                 FlSpot(i.toDouble(), item.value),
             ],
             isCurved: true,
@@ -248,8 +248,7 @@ class ChartDisplayScreen extends ConsumerWidget {
           ),
         ),
         barGroups: [
-          for (final MapEntry(key: i, value: item)
-              in state.items.asMap().entries)
+          for (final (i, item) in state.items.indexed)
             BarChartGroupData(
               x: i,
               barRods: [
@@ -278,8 +277,7 @@ class ChartDisplayScreen extends ConsumerWidget {
     return PieChart(
       PieChartData(
         sections: [
-          for (final MapEntry(key: i, value: item)
-              in state.items.asMap().entries)
+          for (final (i, item) in state.items.indexed)
             PieChartSectionData(
               value: item.value,
               title: item.label,

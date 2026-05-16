@@ -137,18 +137,19 @@ class MyApp extends ConsumerWidget {
     final configAsync = ref.watch(appConfigProvider);
 
     return switch (configAsync) {
-      AsyncData(value: final tuple) => MaterialApp.router(
-        locale: tuple.locale,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        title: '', // タイトルは _AppTitleWrapper 内で設定するため空文字
-        theme: AppTheme.light(),
-        darkTheme: AppTheme.dark(),
-        themeMode: tuple.theme,
-        routerConfig: tuple.router,
-        debugShowCheckedModeBanner: false,
-        builder: (context, child) => _AppTitleWrapper(child: child),
-      ),
+      AsyncData(value: (:final locale, :final theme, :final router)) =>
+        MaterialApp.router(
+          locale: locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          title: '', // タイトルは _AppTitleWrapper 内で設定するため空文字
+          theme: AppTheme.light(),
+          darkTheme: AppTheme.dark(),
+          themeMode: theme,
+          routerConfig: router,
+          debugShowCheckedModeBanner: false,
+          builder: (context, child) => _AppTitleWrapper(child: child),
+        ),
       AsyncError(:final error) => Directionality(
         // MaterialAppやMaterialApp.routerを使わない
         textDirection: TextDirection.ltr,
