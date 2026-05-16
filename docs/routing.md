@@ -120,13 +120,16 @@ SplashScreen表示（認証状態チェック）
 
 ### 🚀 スナックバーの自動消去 (SnackBarNavigationObserver)
 
-Flutterのデフォルト仕様では、画面遷移してもスナックバーが残り続けてしまいます。これを防ぐため、遷移（Push/Pop）が発生したタイミングで表示中のスナックバーをすべて自動消去する仕組みを導入しています。
+Flutterのデフォルト仕様では、画面遷移してもスナックバーが残り続けてしまいます。これを防ぐため、画面遷移が発生したタイミングで表示中のスナックバーをすべて自動消去する仕組みを導入しています。
 
 - **実装場所**: `lib/src/app/router/snackbar_navigation_observer.dart`
+- **特徴**:
+  - **DIの徹底**: コンストラクタで `scaffoldMessengerKey` を受け取り、テスト容易性を確保しています。
+  - **網羅的な検知**: `didPush`, `didPop` に加え、`context.go()` などで使用される `didReplace` にも対応しています。
+  - **スマートな判定**: `PageRoute`（通常の画面）の遷移時のみ消去し、ダイアログやボトムシート（`PopupRoute`）の開閉時にはスナックバーを維持するように工夫されています。
 - **仕組み**:
   1. `scaffoldMessengerKey` を `MaterialApp` に登録。
-  2. `GoRouter` の `observers` に `SnackBarNavigationObserver` を追加。
-  3. 遷移のたびに `scaffoldMessengerKey.currentState?.clearSnackBars()` を実行。
+  2. `GoRouter` の `observers` に `SnackBarNavigationObserver(scaffoldMessengerKey)` を追加。
 
 これにより、開発者が各画面で手動でお掃除コードを書く手間とミスを排除しています。
 

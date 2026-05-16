@@ -8,6 +8,7 @@ import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/analytics/typed_route_analytics_observer.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/core/utils/scaffold_messenger_key.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
@@ -70,7 +71,7 @@ GoRouter router(Ref ref) {
         NotFoundScreen(unknownPath: state.uri.toString()),
     debugLogDiagnostics: true,
     observers: [
-      SnackBarNavigationObserver(),
+      SnackBarNavigationObserver(scaffoldMessengerKey),
       TypedRouteAnalyticsObserver(
         analytics: ref.watch(firebaseAnalyticsProvider),
         talker: ref.watch(loggerProvider),

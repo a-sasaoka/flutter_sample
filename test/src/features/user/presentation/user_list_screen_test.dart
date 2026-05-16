@@ -78,7 +78,7 @@ void main() {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          home: UserListScreen(key: GlobalKey()),
+          home: const UserListScreen(),
         ),
       ),
     );
