@@ -129,57 +129,6 @@ final class TokenStorageInternalProvider
 String _$tokenStorageInternalHash() =>
     r'3e0364f9cdf9fc50fa6eb985833831eb3f1557e8';
 
-/// 再リクエスト（リトライ）用のDioインスタンスを提供するProvider
-///
-/// メインの `dioProvider` と同じタイムアウト設定を適用します。
-
-@ProviderFor(retryDio)
-final retryDioProvider = RetryDioProvider._();
-
-/// 再リクエスト（リトライ）用のDioインスタンスを提供するProvider
-///
-/// メインの `dioProvider` と同じタイムアウト設定を適用します。
-
-final class RetryDioProvider extends $FunctionalProvider<Dio, Dio, Dio>
-    with $Provider<Dio> {
-  /// 再リクエスト（リトライ）用のDioインスタンスを提供するProvider
-  ///
-  /// メインの `dioProvider` と同じタイムアウト設定を適用します。
-  RetryDioProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'retryDioProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$retryDioHash();
-
-  @$internal
-  @override
-  $ProviderElement<Dio> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  Dio create(Ref ref) {
-    return retryDio(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(Dio value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<Dio>(value),
-    );
-  }
-}
-
-String _$retryDioHash() => r'f8e8b1064b7d6de5e7156b1f605476b52219fa3a';
-
 /// トークンを自動で付与・更新するDioのインターセプター
 
 @ProviderFor(tokenInterceptor)
@@ -224,4 +173,4 @@ final class TokenInterceptorProvider
   }
 }
 
-String _$tokenInterceptorHash() => r'03e1ea0243bf48d92bc27cfe50575a01bebb0b06';
+String _$tokenInterceptorHash() => r'1a72ec73ce9f55929489e9a0b0b175c88d879dfa';

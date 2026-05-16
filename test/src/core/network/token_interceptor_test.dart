@@ -1,6 +1,7 @@
 // ignore_for_file: one_member_abstracts, document_ignores
 
 import 'package:dio/dio.dart';
+import 'package:flutter_sample/src/core/network/dio_provider.dart';
 import 'package:flutter_sample/src/core/network/token_interceptor.dart';
 import 'package:flutter_sample/src/core/storage/token_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -37,7 +38,7 @@ class FakeResponse<T> extends Fake implements Response<T> {}
 
 void main() {
   late MockTokenStorage mockStorage;
-  late MockDio mockRetryDio;
+  late MockDio mockBaseDio;
   late MockTokenRefreshCallback mockRefreshToken;
   late ProviderContainer container;
 
@@ -49,13 +50,13 @@ void main() {
 
   setUp(() {
     mockStorage = MockTokenStorage();
-    mockRetryDio = MockDio();
+    mockBaseDio = MockDio();
     mockRefreshToken = MockTokenRefreshCallback();
 
     container = ProviderContainer(
       overrides: [
         tokenStorageInternalProvider.overrideWithValue(mockStorage),
-        retryDioProvider.overrideWithValue(mockRetryDio),
+        baseDioProvider.overrideWithValue(mockBaseDio),
         tokenRefreshCallbackProvider.overrideWith(
           (ref) => mockRefreshToken.call,
         ),
@@ -105,7 +106,7 @@ void main() {
       );
 
       when(
-        () => mockRetryDio.fetch<dynamic>(any()),
+        () => mockBaseDio.fetch<dynamic>(any()),
       ).thenAnswer((_) async => mockResponse);
 
       await (interceptor as dynamic).onError(error401, handler);
@@ -128,7 +129,7 @@ void main() {
       await (interceptor as dynamic).onError(error401, handler);
 
       verify(() => handler.next(error401)).called(1);
-      verifyNever(() => mockRetryDio.fetch<dynamic>(any()));
+      verifyNever(() => mockBaseDio.fetch<dynamic>(any()));
     });
 
     test('onError: リフレッシュ処理中に例外が発生した場合、安全に false を返し元のエラーを流すこと', () async {
@@ -148,7 +149,7 @@ void main() {
 
       // 例外がキャッチされ、handler.next(error401) が呼ばれていることを確認
       verify(() => handler.next(error401)).called(1);
-      verifyNever(() => mockRetryDio.fetch<dynamic>(any()));
+      verifyNever(() => mockBaseDio.fetch<dynamic>(any()));
     });
 
     test('二重リフレッシュ防止: 同時に 401 が発生しても、リフレッシュ関数は1回しか呼ばれないこと', () async {
@@ -169,7 +170,7 @@ void main() {
       when(
         () => mockStorage.getAccessToken(),
       ).thenAnswer((_) async => 'new_token');
-      when(() => mockRetryDio.fetch<dynamic>(any())).thenAnswer(
+      when(() => mockBaseDio.fetch<dynamic>(any())).thenAnswer(
         (_) async => Response(requestOptions: options, statusCode: 200),
       );
 
@@ -234,7 +235,7 @@ void main() {
       error: 'Retry failed',
     );
     when(
-      () => mockRetryDio.fetch<dynamic>(any()),
+      () => mockBaseDio.fetch<dynamic>(any()),
     ).thenThrow(retryError);
 
     await (interceptor as dynamic).onError(error401, handler);
