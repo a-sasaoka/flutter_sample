@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
@@ -18,7 +19,7 @@ class ChatScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
@@ -76,7 +77,7 @@ class _ChatListView extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // 翻訳データを変数に入れておきます。リストの中で何度も計算しなくて済むようになり、動作が軽くなります。
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
 
     // メッセージのリスト「だけ」を監視する
     final messages = ref.watch(chatProvider.select((s) => s.messages));
@@ -307,7 +308,7 @@ class _ChatInputArea extends HookConsumerWidget {
     // 生成中かどうかのフラグ「だけ」を監視する
     final isGenerating = ref.watch(chatProvider.select((s) => s.isGenerating));
     final textController = useTextEditingController();
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
 
     return SafeArea(
       child: Padding(

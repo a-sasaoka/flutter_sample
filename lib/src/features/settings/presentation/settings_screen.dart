@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/config/app_config_provider.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
+import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -17,7 +17,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final configAsync = ref.watch(appConfigProvider);
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
     final useAuth = ref.watch(envConfigProvider).useFirebaseAuth;
 
     return Scaffold(
@@ -82,7 +82,7 @@ class _ThemeCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
     final themeModeNotifier = ref.read(themeModeProvider.notifier);
 
     return Card(
@@ -140,7 +140,7 @@ class _LocaleCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
     final localeNotifier = ref.read(localeProvider.notifier);
 
     return Card(
@@ -203,7 +203,7 @@ class _LogoutButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
 
     return FilledButton.icon(
       key: const Key('logout_button'),

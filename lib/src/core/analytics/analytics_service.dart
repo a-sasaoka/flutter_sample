@@ -47,7 +47,7 @@ class AnalyticsService {
   }) async {
     final data = <String, Object>{
       for (final entry in parameters.entries)
-        if (entry.value != null) entry.key: entry.value!,
+        if (entry.value case final Object val) entry.key: val,
       'timestamp': _getCurrentDateTime().millisecondsSinceEpoch,
     };
 

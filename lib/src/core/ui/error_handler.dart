@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/exceptions/firebase_auth_error_codes.dart';
+import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:go_router/go_router.dart';
 
@@ -13,12 +14,14 @@ class ErrorHandler {
 
   /// 共通メッセージ変換
   static String message(BuildContext context, Object error) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
 
     // DioException で包まれている場合は、中身の AppException を取り出す
     var actualError = error;
-    if (error is DioException && error.error != null) {
-      actualError = error.error!;
+    if (error is DioException) {
+      if (error.error case final Object err) {
+        actualError = err;
+      }
     }
 
     // AppException のエラー処理
@@ -85,7 +88,8 @@ class ErrorHandler {
     Object error,
   ) async {
     final messageText = message(context, error);
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
+
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(

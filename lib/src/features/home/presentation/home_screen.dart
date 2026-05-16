@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
@@ -8,6 +7,7 @@ import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 import 'package:flutter_sample/src/core/network/firebase_crashlytics_provider.dart';
+import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:flutter_sample/src/core/widgets/version_up_dialog.dart';
@@ -23,7 +23,7 @@ class HomeScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final updateRequest = ref.watch(updateRequestControllerProvider);
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
 
     final appName = useState('');
     final bundleId = useState('');
@@ -113,7 +113,7 @@ class _HomeBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
     final colorScheme = Theme.of(context).colorScheme;
 
     return ListView(
@@ -273,9 +273,9 @@ class _SectionHeader extends StatelessWidget {
             color: Theme.of(context).colorScheme.primary,
           ),
         ),
-        if (trailing != null) ...[
+        if (trailing case final Widget widget) ...[
           const Spacer(),
-          trailing!,
+          widget,
         ],
       ],
     );

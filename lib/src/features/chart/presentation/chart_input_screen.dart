@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
+import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/chart/application/chart_notifier.dart';
 import 'package:flutter_sample/src/features/chart/domain/chart_type.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -20,7 +20,7 @@ class ChartInputScreen extends HookConsumerWidget {
     );
 
     final notifier = ref.read(chartProvider.notifier);
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -163,7 +163,7 @@ class _ChartItemInput extends ConsumerWidget {
     }
 
     final notifier = ref.read(chartProvider.notifier);
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),

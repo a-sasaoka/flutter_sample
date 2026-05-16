@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:go_router/go_router.dart';
 
 /// NotFoundScreen ウィジェット
@@ -12,7 +12,7 @@ class NotFoundScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.notFoundTitle)),

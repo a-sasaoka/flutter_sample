@@ -121,16 +121,16 @@ class _TokenInterceptor extends Interceptor {
   /// トークンのリフレッシュを実行する（同時呼び出し時は1つに統合）
   Future<bool> _refreshTokens() async {
     // すでに他のリクエストがリフレッシュ中なら、その完了を待つ
-    if (_refreshFuture != null) {
-      return _refreshFuture!;
+    if (_refreshFuture case final Future<bool> future) {
+      return future;
     }
 
     // 新規にリフレッシュ処理を開始
-    _refreshFuture = _refreshCallback();
+    final future = _refreshCallback();
+    _refreshFuture = future;
 
     try {
-      final result = await _refreshFuture!;
-      return result;
+      return await future;
     } finally {
       // 完了（成功・失敗問わず）したらリセット
       _refreshFuture = null;

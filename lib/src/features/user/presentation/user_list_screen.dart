@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
+import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/user/application/user_notifier.dart';
 import 'package:flutter_sample/src/features/user/domain/user_model.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -12,7 +12,7 @@ class UserListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
 
     // エラー時のスナックバー表示は `ref.listen` で監視する
     ref.listen(userProvider, (previous, next) {

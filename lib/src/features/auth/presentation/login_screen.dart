@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
+import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -23,7 +23,7 @@ class LoginScreen extends HookConsumerWidget {
     // ローディング状態の管理を追加
     final isLoading = useState(false);
 
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
 
     Future<void> onLogin() async {
       // 簡易バリデーション（空なら弾く）

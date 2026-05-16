@@ -1,6 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/chart/application/chart_notifier.dart';
 import 'package:flutter_sample/src/features/chart/application/chart_state.dart';
 import 'package:flutter_sample/src/features/chart/domain/chart_type.dart';
@@ -14,7 +14,7 @@ class ChartDisplayScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(chartProvider);
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(

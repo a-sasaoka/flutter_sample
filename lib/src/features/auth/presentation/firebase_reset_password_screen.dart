@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
+import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:go_router/go_router.dart';
@@ -19,7 +19,7 @@ class FirebaseResetPasswordScreen extends HookConsumerWidget {
     // ローディング状態を管理するフラグ
     final isLoading = useState(false);
 
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
 
     // メールアドレスを入力してリセットメールを送る簡易フォーム
     return Scaffold(

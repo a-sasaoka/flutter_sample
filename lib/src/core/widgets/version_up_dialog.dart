@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:go_router/go_router.dart';
 
 /// バージョンアップダイアログの表示
@@ -18,7 +18,7 @@ class VersionUpDialog {
     required VoidCallback onUpdate,
     required VoidCallback onCancel,
   }) async {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
 
     await showDialog<void>(
       context: context,

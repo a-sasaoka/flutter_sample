@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 
 /// スナックバーの種類
 enum SnackBarType {
@@ -21,7 +21,7 @@ extension SnackBarExtension on BuildContext {
     SnackBarType type = SnackBarType.info,
     Duration duration = const Duration(seconds: 3),
   }) {
-    final l10n = AppLocalizations.of(this)!;
+    final l10n = this.l10n;
 
     // 連続でタップされた時に、前のスナックバーを消してすぐ次を表示する
     ScaffoldMessenger.of(this).hideCurrentSnackBar();
