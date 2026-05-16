@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
@@ -12,17 +13,50 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 /// チャット画面
 /// 画面全体のレイアウトを定義しますが、自身は状態を監視しないため、
 /// メッセージの更新による不要なリビルドを防ぎます。
-class ChatScreen extends StatelessWidget {
+class ChatScreen extends ConsumerWidget {
   /// コンストラクタ
   const ChatScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.chatTitle),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_sweep_outlined),
+            onPressed: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text(l10n.chartClearAll),
+                  content: Text(l10n.chartClearConfirm),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: Text(l10n.close),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: Text(
+                        l10n.chartClearAll,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed == true) {
+                ref.read(chatProvider.notifier).clearHistory();
+              }
+            },
+            tooltip: l10n.chartClearAll,
+          ),
+        ],
       ),
       body: const Column(
         children: [
@@ -43,7 +77,7 @@ class _ChatListView extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // 翻訳データを変数に入れておきます。リストの中で何度も計算しなくて済むようになり、動作が軽くなります。
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
 
     // メッセージのリスト「だけ」を監視する
     final messages = ref.watch(chatProvider.select((s) => s.messages));
@@ -119,14 +153,14 @@ class _ChatBubble extends StatelessWidget {
       ChatMessageUser(:final text, :final createdAt) => _BubbleLayout(
         text: text,
         isUser: true,
-        color: Colors.blueAccent,
-        textColor: Colors.white,
+        color: Theme.of(context).colorScheme.primaryContainer,
+        textColor: Theme.of(context).colorScheme.onPrimaryContainer,
         createdAt: createdAt,
       ),
       ChatMessageAi(:final text, :final createdAt) => _BubbleLayout(
         text: text,
         isUser: false,
-        color: Colors.grey[300]!,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         textColor: Theme.of(context).colorScheme.onSurface,
         createdAt: createdAt,
       ),
@@ -135,8 +169,8 @@ class _ChatBubble extends StatelessWidget {
             ? l10n.chatEmptyMessage
             : l10n.chatError(error.toString()),
         isUser: false,
-        color: Colors.red[100]!,
-        textColor: Colors.red[900]!,
+        color: Theme.of(context).colorScheme.errorContainer,
+        textColor: Theme.of(context).colorScheme.onErrorContainer,
         createdAt: createdAt,
       ),
     };
@@ -274,7 +308,7 @@ class _ChatInputArea extends HookConsumerWidget {
     // 生成中かどうかのフラグ「だけ」を監視する
     final isGenerating = ref.watch(chatProvider.select((s) => s.isGenerating));
     final textController = useTextEditingController();
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
 
     return SafeArea(
       child: Padding(
@@ -300,7 +334,9 @@ class _ChatInputArea extends HookConsumerWidget {
             ),
             const SizedBox(width: 8),
             CircleAvatar(
-              backgroundColor: isGenerating ? Colors.grey : Colors.blueAccent,
+              backgroundColor: isGenerating
+                  ? Theme.of(context).colorScheme.outline
+                  : Theme.of(context).colorScheme.primary,
               child: IconButton(
                 icon: const Icon(Icons.send, color: Colors.white),
                 onPressed: isGenerating

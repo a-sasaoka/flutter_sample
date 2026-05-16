@@ -25,7 +25,7 @@ final class EnvConfigProvider
         argument: null,
         retry: null,
         name: r'envConfigProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -52,4 +52,4 @@ final class EnvConfigProvider
   }
 }
 
-String _$envConfigHash() => r'1a6c88531db0cbe5e4ad0ba0b480be65f762376b';
+String _$envConfigHash() => r'b46113307a42efcb077db89d3d9b50eb22926c77';

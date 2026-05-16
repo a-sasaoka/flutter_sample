@@ -1,8 +1,10 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_sample/src/app/database/app_database.dart';
 import 'package:flutter_sample/src/core/database/database_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +21,12 @@ void main() {
             return null;
           });
 
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [
+          // Loggerのモック（または単なるインスタンス）を設定
+          loggerProvider.overrideWithValue(Talker()),
+        ],
+      );
       addTearDown(container.dispose);
 
       final db = container.read(appDatabaseProvider);

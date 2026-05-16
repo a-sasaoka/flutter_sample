@@ -21,11 +21,8 @@ void main() {
     mockPrefs = MockSharedPreferencesAsync();
     container = ProviderContainer(
       overrides: [
-        // Future.value(mockPrefs) で型を合わせる
-        sharedPreferencesProvider.overrideWith(
-          (ref) => Future.value(mockPrefs),
-        ),
-        currentDateTimeProvider.overrideWithValue(fixedDateTime),
+        sharedPreferencesProvider.overrideWithValue(mockPrefs),
+        clockProvider.overrideWithValue(() => fixedDateTime),
       ],
     );
   });
@@ -40,7 +37,6 @@ void main() {
 
     test('save: データを正しい形式（JSON）で保存すること', () async {
       // Arrange
-      // SharedPreferencesAsync は setString
       when(() => mockPrefs.setString(any(), any())).thenAnswer((_) async => {});
       final manager = container.read(cacheManagerProvider);
 
@@ -63,7 +59,6 @@ void main() {
         'timestamp': now,
         'data': testValue,
       });
-      // getString は Future を返す
       when(
         () => mockPrefs.getString(testKey),
       ).thenAnswer((_) async => cacheData);
@@ -132,7 +127,6 @@ void main() {
 
     test('get: キャッシュのデータ構造が想定と違う場合、キャッシュが壊れているとみなして削除し null を返すこと', () async {
       // Arrange
-      // timestamp が int ではなく String として保存されてしまっている異常な状態を再現
       final invalidData = jsonEncode({
         'timestamp': 'invalid_type_timestamp',
         'data': testValue,
@@ -162,6 +156,40 @@ void main() {
 
       // Assert
       verify(() => mockPrefs.remove(testKey)).called(1);
+    });
+  });
+
+  group('CacheManager ユニットテスト (Providerなし)', () {
+    test('DIにより、ProviderContainerなしでも単体テストが可能であり、設定した有効期限が機能すること', () async {
+      // Arrange
+      final mockPrefs = MockSharedPreferencesAsync();
+      final fixedDate = DateTime(2026);
+      const customDuration = Duration(minutes: 1);
+
+      // 2分前のキャッシュデータを作成
+      final oldTimestamp = fixedDate
+          .subtract(const Duration(minutes: 2))
+          .millisecondsSinceEpoch;
+      final cacheData = jsonEncode({
+        'timestamp': oldTimestamp,
+        'data': 'expired_data',
+      });
+
+      when(() => mockPrefs.getString('any')).thenAnswer((_) async => cacheData);
+      when(() => mockPrefs.remove('any')).thenAnswer((_) async => {});
+
+      final manager = CacheManager(
+        prefs: mockPrefs,
+        getCurrentDateTime: () => fixedDate,
+        cacheDuration: customDuration, // 1分に設定
+      );
+
+      // Act
+      final result = await manager.get('any');
+
+      // Assert
+      expect(result, isNull); // 1分期限に対して2分前なので null
+      verify(() => mockPrefs.remove('any')).called(1);
     });
   });
 }

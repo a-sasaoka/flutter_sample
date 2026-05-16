@@ -4,9 +4,12 @@ import 'package:flutter_sample/src/core/database/database_provider.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_remote_service.dart';
+import 'package:flutter_sample/src/features/memos/data/memos_dao.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 part 'memo_repository.g.dart';
@@ -14,36 +17,46 @@ part 'memo_repository.g.dart';
 /// メモ（Memo）のデータをデータベースに保存したり、取り出したりするためのリポジトリ
 class MemoRepository {
   /// コンストラクタ
-  MemoRepository(this._ref, this._db, this._remote);
+  const MemoRepository({
+    required MemosDao dao,
+    required MemoRemoteService remote,
+    required DateTime Function() clock,
+    required Talker talker,
+    required bool isOnline,
+    required Uuid uuid,
+  }) : _dao = dao,
+       _remote = remote,
+       _clock = clock,
+       _talker = talker,
+       _isOnline = isOnline,
+       _uuid = uuid;
 
-  final Ref _ref;
-
-  final AppDatabase _db;
-
+  final MemosDao _dao;
   final MemoRemoteService _remote;
+  final DateTime Function() _clock;
+  final Talker _talker;
+  final bool _isOnline;
+  final Uuid _uuid;
 
   /// 新しいメモをデータベースに追加する
   Future<void> addMemo(String title, String content) async {
-    final now = _ref.read(currentDateTimeProvider);
-    final logger = _ref.read(loggerProvider);
+    final now = _clock();
 
     // UUIDを作る
-    final generatedId = const Uuid().v4();
+    final generatedId = _uuid.v4();
 
     // スマホに保存する（isSynced はデフォルトで false, isDeleted も false）
-    await _db
-        .into(_db.memos)
-        .insert(
-          MemosCompanion.insert(
-            id: generatedId,
-            title: title,
-            content: content,
-            createdAt: now,
-            updatedAt: now,
-          ),
-        );
+    await _dao.insertMemo(
+      MemosCompanion.insert(
+        id: generatedId,
+        title: title,
+        content: content,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
 
-    if (_ref.read(isOnlineProvider)) {
+    if (_isOnline) {
       // オンラインの時はサーバに保存を試みる
       try {
         await _remote.uploadMemo(
@@ -56,23 +69,25 @@ class MemoRepository {
         );
 
         // 保存に成功したら「送信済み (true)」に更新
-        await (_db.update(_db.memos)..where((m) => m.id.equals(generatedId)))
-            .write(const MemosCompanion(isSynced: drift.Value(true)));
+        await _dao.updateMemo(
+          generatedId,
+          const MemosCompanion(isSynced: drift.Value(true)),
+        );
 
-        logger.debug('The data has been saved to the server.');
+        _talker.debug('The data has been saved to the server.');
       } on Exception catch (e) {
-        logger.error('Failed to save data to the server: $e');
+        _talker.error('Failed to save data to the server: $e');
       }
     }
   }
 
   /// メモを更新する
   Future<void> updateMemo(String id, String title, String content) async {
-    final now = _ref.read(currentDateTimeProvider);
-    final logger = _ref.read(loggerProvider);
+    final now = _clock();
 
     // まずはスマホ側のデータを更新し、未送信状態に戻す
-    await (_db.update(_db.memos)..where((m) => m.id.equals(id))).write(
+    await _dao.updateMemo(
+      id,
       MemosCompanion(
         title: drift.Value(title),
         content: drift.Value(content),
@@ -81,12 +96,10 @@ class MemoRepository {
       ),
     );
 
-    if (_ref.read(isOnlineProvider)) {
+    if (_isOnline) {
       // オンラインの時はサーバに保存を試みる
       try {
-        final memo = await (_db.select(
-          _db.memos,
-        )..where((m) => m.id.equals(id))).getSingle();
+        final memo = await _dao.getMemoById(id);
         await _remote.uploadMemo(
           id: id,
           title: title,
@@ -97,24 +110,25 @@ class MemoRepository {
         );
 
         // 保存に成功したら「送信済み (true)」に更新
-        await (_db.update(_db.memos)..where((m) => m.id.equals(id))).write(
+        await _dao.updateMemo(
+          id,
           const MemosCompanion(isSynced: drift.Value(true)),
         );
 
-        logger.debug('The updated data has been saved to the server.');
+        _talker.debug('The updated data has been saved to the server.');
       } on Exception catch (e) {
-        logger.error('Failed to update data to the server: $e');
+        _talker.error('Failed to update data to the server: $e');
       }
     }
   }
 
   /// メモを削除（論理削除）する
   Future<void> deleteMemo(String id) async {
-    final now = _ref.read(currentDateTimeProvider);
-    final logger = _ref.read(loggerProvider);
+    final now = _clock();
 
     // スマホ側で論理削除マークをつける
-    await (_db.update(_db.memos)..where((m) => m.id.equals(id))).write(
+    await _dao.updateMemo(
+      id,
       MemosCompanion(
         updatedAt: drift.Value(now),
         isDeleted: const drift.Value(true),
@@ -122,12 +136,10 @@ class MemoRepository {
       ),
     );
 
-    if (_ref.read(isOnlineProvider)) {
+    if (_isOnline) {
       // オンラインの時はサーバに保存を試みる
       try {
-        final memo = await (_db.select(
-          _db.memos,
-        )..where((m) => m.id.equals(id))).getSingle();
+        final memo = await _dao.getMemoById(id);
         // サーバーにも「削除済み」として送る
         await _remote.uploadMemo(
           id: id,
@@ -139,25 +151,22 @@ class MemoRepository {
         );
 
         // 保存に成功したら「送信済み (true)」に更新
-        await (_db.update(_db.memos)..where((m) => m.id.equals(id))).write(
+        await _dao.updateMemo(
+          id,
           const MemosCompanion(isSynced: drift.Value(true)),
         );
 
-        logger.debug('The deleted status has been sent to the server.');
+        _talker.debug('The deleted status has been sent to the server.');
       } on Exception catch (e) {
-        logger.error('Failed to delete data on the server: $e');
+        _talker.error('Failed to delete data on the server: $e');
       }
     }
   }
 
   /// スマホに残っている「未送信のメモ」をまとめてサーバーに送る処理
   Future<void> syncUnsentMemos() async {
-    final logger = _ref.read(loggerProvider);
-
     // スマホの中から isSynced が false のメモを探し出す
-    final unsentMemos = await (_db.select(
-      _db.memos,
-    )..where((m) => m.isSynced.equals(false))).get();
+    final unsentMemos = await _dao.getUnsyncedMemos();
 
     if (unsentMemos.isEmpty) {
       return;
@@ -176,38 +185,32 @@ class MemoRepository {
           isDeleted: memo.isDeleted,
         );
         syncedIds.add(memo.id);
-        logger.debug('Synced unsent memo to server. id: ${memo.id}');
+        _talker.debug('Synced unsent memo to server. id: ${memo.id}');
       } on Exception catch (e) {
-        logger.error('Failed to sync memo (id: ${memo.id}) to server: $e');
+        _talker.error('Failed to sync memo (id: ${memo.id}) to server: $e');
       }
     }
 
     // 成功したものをまとめてDB更新
     if (syncedIds.isNotEmpty) {
-      await (_db.update(_db.memos)..where((m) => m.id.isIn(syncedIds))).write(
-        const MemosCompanion(isSynced: drift.Value(true)),
-      );
+      await _dao.updateSyncStatus(syncedIds, isSynced: true);
     }
   }
 
   /// 保存されているすべてのメモを一覧（リスト）として取得する
   Future<List<MemoModel>> getAllMemos() async {
     // 未送信のメモがあればサーバーに送る
-    if (_ref.read(isOnlineProvider)) {
+    if (_isOnline) {
       await syncUnsentMemos();
     }
 
-    final logger = _ref.read(loggerProvider);
     try {
       final remoteData = await _remote.fetchMemos();
 
       // サーバーから取得したデータを効率的にマージする
       if (remoteData.isNotEmpty) {
-        final localMemos =
-            await (_db.select(_db.memos)..where(
-                  (m) => m.id.isIn(remoteData.map((e) => e['id'] as String)),
-                ))
-                .get();
+        final ids = remoteData.map((e) => e['id'] as String).toList();
+        final localMemos = await _dao.getMemosByIds(ids);
         final localMemosMap = {for (final m in localMemos) m.id: m};
         final companionsToUpsert = <MemosCompanion>[];
 
@@ -233,24 +236,16 @@ class MemoRepository {
         }
 
         if (companionsToUpsert.isNotEmpty) {
-          await _db.batch((batch) {
-            batch.insertAll(
-              _db.memos,
-              companionsToUpsert,
-              mode: drift.InsertMode.insertOrReplace,
-            );
-          });
+          await _dao.upsertMemos(companionsToUpsert);
         }
       }
-      logger.debug('Merged remote memos into local database.');
+      _talker.debug('Merged remote memos into local database.');
     } on Exception catch (e) {
-      logger.error('Failed to fetch data from the server: $e');
+      _talker.error('Failed to fetch data from the server: $e');
     }
 
     // データベースから「削除されていない」データを取り出す
-    final driftMemos = await (_db.select(
-      _db.memos,
-    )..where((m) => m.isDeleted.equals(false))).get();
+    final driftMemos = await _dao.getAllMemos();
 
     return driftMemos
         .map(
@@ -273,5 +268,12 @@ class MemoRepository {
 MemoRepository memoRepository(Ref ref) {
   final db = ref.watch(appDatabaseProvider);
   final remote = ref.watch(memoRemoteServiceProvider);
-  return MemoRepository(ref, db, remote);
+  return MemoRepository(
+    dao: db.memosDao,
+    remote: remote,
+    clock: ref.watch(clockProvider),
+    talker: ref.watch(loggerProvider),
+    isOnline: ref.watch(isOnlineProvider),
+    uuid: ref.watch(uuidProvider),
+  );
 }

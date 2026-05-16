@@ -1,13 +1,13 @@
+import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
 import 'package:flutter_sample/src/features/chart/application/chart_state.dart';
 import 'package:flutter_sample/src/features/chart/domain/chart_item.dart';
 import 'package:flutter_sample/src/features/chart/domain/chart_type.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:uuid/uuid.dart';
 
 part 'chart_notifier.g.dart';
 
 /// グラフデータの状態を管理するNotifier
-@riverpod
+@Riverpod(keepAlive: true)
 class ChartNotifier extends _$ChartNotifier {
   @override
   ChartState build() {
@@ -22,12 +22,14 @@ class ChartNotifier extends _$ChartNotifier {
   /// 新しい項目を追加する
   void addItem() {
     final nextCounter = state.itemCounter + 1;
+    final uuid = ref.read(uuidProvider);
+
     state = state.copyWith(
       itemCounter: nextCounter,
       items: [
         ...state.items,
         ChartItem(
-          id: const Uuid().v4(),
+          id: uuid.v4(),
           label: 'Item$nextCounter',
         ),
       ],
@@ -39,6 +41,11 @@ class ChartNotifier extends _$ChartNotifier {
     state = state.copyWith(
       items: state.items.where((item) => item.id != id).toList(),
     );
+  }
+
+  /// 全ての項目を削除（リセット）する
+  void reset() {
+    state = const ChartState(items: [], itemCounter: 0);
   }
 
   /// 指定したIDの項目の名前を更新する

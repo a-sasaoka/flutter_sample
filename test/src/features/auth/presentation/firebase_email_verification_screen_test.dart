@@ -74,6 +74,8 @@ void main() {
     when(() => mockL10n.checkVerificationStatus).thenReturn('認証を完了したか確認する');
     when(() => mockL10n.errorUnknown).thenReturn('予期しないエラーが発生しました。');
     when(() => mockL10n.close).thenReturn('閉じる');
+    when(() => mockL10n.login).thenReturn('ログイン');
+    when(() => mockL10n.logout).thenReturn('ログアウトして戻る');
     when(
       () => mockL10n.resendVerificationMailSuccess,
     ).thenReturn('確認メールを再送信しました'); // 👈 成功メッセージ用
@@ -121,10 +123,11 @@ void main() {
       await tester.pumpWidget(createTestWidget(container));
       await tester.pumpAndSettle();
 
-      expect(find.text('メール認証'), findsOneWidget);
+      expect(find.widgetWithText(AppBar, 'メール認証'), findsOneWidget);
       expect(find.text('確認メールを送信しました。'), findsOneWidget);
       expect(find.text('認証を完了したか確認する'), findsOneWidget);
-      expect(find.text('認証待ちです...'), findsOneWidget);
+      expect(find.text('再送信する'), findsOneWidget);
+      expect(find.text('ログアウトして戻る'), findsOneWidget);
     });
 
     testWidgets('手動確認ボタンタップ時、ローディング表示になりリロード処理が呼ばれること', (tester) async {
@@ -336,6 +339,34 @@ void main() {
 
       // ErrorHandler 経由でエラースナックバーが表示されることを確認（61行目の通過）
       expect(find.byType(SnackBar), findsOneWidget);
+    });
+
+    testWidgets('ログアウトして戻るボタンをタップすると、サインアウト処理が呼ばれること', (tester) async {
+      when(() => mockUser.emailVerified).thenReturn(false);
+      when(() => mockAuthRepo.signOut()).thenAnswer((_) async {});
+
+      final container = ProviderContainer(
+        overrides: [
+          firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+          firebaseAuthStateProvider.overrideWith(
+            () => FakeFirebaseAuthStateNotifier(mockUser),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(createTestWidget(container));
+      await tester.pumpAndSettle();
+
+      final button = find.text('ログアウトして戻る');
+      await tester.dragUntilVisible(
+        button,
+        find.byType(SingleChildScrollView),
+        const Offset(0, -300),
+      );
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+
+      verify(() => mockAuthRepo.signOut()).called(1);
     });
   });
 }

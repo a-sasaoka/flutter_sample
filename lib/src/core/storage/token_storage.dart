@@ -1,18 +1,22 @@
 import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 part 'token_storage.g.dart';
 
 /// トークンストレージプロバイダー
 @Riverpod(keepAlive: true)
 TokenStorage tokenStorage(Ref ref) {
-  return TokenStorage._(ref);
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return TokenStorage(prefs: prefs);
 }
 
 /// トークンストレージクラス
 class TokenStorage {
-  TokenStorage._(this._ref);
-  final Ref _ref;
+  /// コンストラクタ
+  const TokenStorage({required SharedPreferencesAsync prefs}) : _prefs = prefs;
+
+  final SharedPreferencesAsync _prefs;
 
   static const _accessTokenKey = 'access_token';
   static const _refreshTokenKey = 'refresh_token';
@@ -22,31 +26,27 @@ class TokenStorage {
     required String accessToken,
     required String refreshToken,
   }) async {
-    final prefs = await _ref.read(sharedPreferencesProvider.future);
-    await Future.wait([
-      prefs.setString(_accessTokenKey, accessToken),
-      prefs.setString(_refreshTokenKey, refreshToken),
+    await Future.wait<void>([
+      _prefs.setString(_accessTokenKey, accessToken),
+      _prefs.setString(_refreshTokenKey, refreshToken),
     ]);
   }
 
   /// アクセストークンを取得する
   Future<String?> getAccessToken() async {
-    final prefs = await _ref.read(sharedPreferencesProvider.future);
-    return prefs.getString(_accessTokenKey);
+    return _prefs.getString(_accessTokenKey);
   }
 
   /// リフレッシュトークンを取得する
   Future<String?> getRefreshToken() async {
-    final prefs = await _ref.read(sharedPreferencesProvider.future);
-    return prefs.getString(_refreshTokenKey);
+    return _prefs.getString(_refreshTokenKey);
   }
 
   /// トークンを削除する
   Future<void> clear() async {
-    final prefs = await _ref.read(sharedPreferencesProvider.future);
-    await Future.wait([
-      prefs.remove(_accessTokenKey),
-      prefs.remove(_refreshTokenKey),
+    await Future.wait<void>([
+      _prefs.remove(_accessTokenKey),
+      _prefs.remove(_refreshTokenKey),
     ]);
   }
 }

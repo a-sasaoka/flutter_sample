@@ -21,20 +21,19 @@ lib/src/core/config/
 
 ---
 
-## 🛠 テーマのカスタマイズ方法
+## 🎨 UI部品のテーマ連動（一貫性の確保）
 
-アプリ全体のカラーテーマ（配色）を変更したい場合は、`lib/src/core/config/app_theme.dart` 内の `FlexScheme` を変更してください。
+本プロジェクトでは、標準ウィジェットだけでなく、共通の UI 拡張機能もアプリのテーマに連動するように設計されています。
 
-```dart
-// app_theme.dart 内の定義例
-static ThemeData light() => FlexThemeData.light(
-      scheme: FlexScheme.blueWhale, // 💡 ここを変えるだけで配色をガラッと変更可能！
-      useMaterial3: true,
-      // ... その他の詳細なカスタマイズ
-    );
-```
+### スナックバーの自動配色 (`SnackBarExtension`)
 
-利用可能なスキーム一覧は [FlexColorScheme 公式デモ](https://www.google.com/search?q=https://rydmike.com/flexcolorschemedemo/v7/%23/) で確認でき、好みの設定をコピーして持ち込むことも可能です。
+`context.showSnackBar()` 等で表示されるスナックバーは、`Theme.of(context).colorScheme` から直接色を取得します。
+
+- **エラー**: `errorContainer` (背景) / `onErrorContainer` (文字・アイコン)
+- **成功**: `primaryContainer` (背景) / `onPrimaryContainer` (文字・アイコン)
+- **情報**: `secondaryContainer` (背景) / `onSecondaryContainer` (文字・アイコン)
+
+これにより、`FlexColorScheme` でテーマ（`FlexScheme`）を切り替えるだけで、スナックバーを含むアプリ全体の配色が自動的に最適化されます。
 
 ---
 

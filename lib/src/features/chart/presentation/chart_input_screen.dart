@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
+import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/chart/application/chart_notifier.dart';
 import 'package:flutter_sample/src/features/chart/domain/chart_type.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -20,7 +20,7 @@ class ChartInputScreen extends HookConsumerWidget {
     );
 
     final notifier = ref.read(chartProvider.notifier);
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -28,6 +28,38 @@ class ChartInputScreen extends HookConsumerWidget {
         appBar: AppBar(
           title: Text(l10n.chartInputTitle),
           actions: [
+            // 全削除ボタン
+            IconButton(
+              icon: const Icon(Icons.delete_sweep_outlined),
+              onPressed: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text(l10n.chartClearAll),
+                    content: Text(l10n.chartClearConfirm),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: Text(l10n.close),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: Text(
+                          l10n.chartClearAll,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true) {
+                  notifier.reset();
+                }
+              },
+              tooltip: l10n.chartClearAll,
+            ),
             // グラフ表示画面への遷移ボタンをAppBarに配置（FABの重複を避ける）
             IconButton(
               icon: const Icon(Icons.bar_chart),
@@ -39,6 +71,7 @@ class ChartInputScreen extends HookConsumerWidget {
           ],
         ),
         body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // グラフ種類の選択
             Padding(
@@ -49,6 +82,7 @@ class ChartInputScreen extends HookConsumerWidget {
                       (type) => ButtonSegment(
                         value: type,
                         label: Text(type.getLocalizedLabel(l10n)),
+                        icon: Icon(_getChartIcon(type)),
                       ),
                     )
                     .toList(),
@@ -58,29 +92,50 @@ class ChartInputScreen extends HookConsumerWidget {
                 },
               ),
             ),
-            const Divider(),
+            const Divider(height: 1),
             // 入力リスト
             Expanded(
-              child: ListView.builder(
-                itemCount: itemIds.length,
-                itemBuilder: (context, index) {
-                  final id = itemIds[index];
-                  return _ChartItemInput(
-                    key: ValueKey(id),
-                    id: id,
-                  );
-                },
-              ),
+              child: itemIds.isEmpty
+                  ? Center(
+                      child: Text(
+                        l10n.chartNoData,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                      itemCount: itemIds.length,
+                      itemBuilder: (context, index) {
+                        final id = itemIds[index];
+                        return _ChartItemInput(
+                          key: ValueKey(id),
+                          id: id,
+                        );
+                      },
+                    ),
             ),
           ],
         ),
-        floatingActionButton: FloatingActionButton(
+        floatingActionButton: FloatingActionButton.extended(
           onPressed: notifier.addItem,
-          tooltip: l10n.chartAddItem,
-          child: const Icon(Icons.add),
+          icon: const Icon(Icons.add),
+          label: Text(l10n.chartAddItem),
         ),
       ),
     );
+  }
+
+  IconData _getChartIcon(ChartType type) {
+    switch (type) {
+      case ChartType.line:
+        return Icons.show_chart;
+      case ChartType.bar:
+        return Icons.bar_chart;
+      case ChartType.pie:
+        return Icons.pie_chart_outline;
+    }
   }
 }
 
@@ -108,51 +163,61 @@ class _ChartItemInput extends ConsumerWidget {
     }
 
     final notifier = ref.read(chartProvider.notifier);
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 8,
-      ),
-      child: Row(
-        children: [
-          // 項目名入力
-          Expanded(
-            flex: 2,
-            child: TextFormField(
-              initialValue: item.label,
-              decoration: InputDecoration(
-                labelText: l10n.chartItemLabel,
-                border: const OutlineInputBorder(),
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 4, 12),
+        child: Row(
+          children: [
+            // 項目名入力
+            Expanded(
+              flex: 3,
+              child: TextFormField(
+                initialValue: item.label,
+                decoration: InputDecoration(
+                  labelText: l10n.chartItemLabel,
+                  prefixIcon: const Icon(Icons.label_outline, size: 20),
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onChanged: (value) => notifier.updateLabel(id, value),
               ),
-              onChanged: (value) => notifier.updateLabel(id, value),
             ),
-          ),
-          const SizedBox(width: 8),
-          // 数値入力
-          Expanded(
-            child: TextFormField(
-              initialValue: item.value.toString(),
-              decoration: InputDecoration(
-                labelText: l10n.chartItemValue,
-                border: const OutlineInputBorder(),
+            const SizedBox(width: 12),
+            // 数値入力
+            Expanded(
+              flex: 2,
+              child: TextFormField(
+                initialValue: item.value.toString(),
+                decoration: InputDecoration(
+                  labelText: l10n.chartItemValue,
+                  prefixIcon: const Icon(Icons.pin_outlined, size: 20),
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                onChanged: (value) {
+                  final doubleValue = double.tryParse(value) ?? 0.0;
+                  notifier.updateValue(id, doubleValue);
+                },
               ),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              onChanged: (value) {
-                final doubleValue = double.tryParse(value) ?? 0.0;
-                notifier.updateValue(id, doubleValue);
-              },
             ),
-          ),
-          // 削除ボタン
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: () => notifier.removeItem(id),
-          ),
-        ],
+            // 削除ボタン
+            IconButton(
+              icon: Icon(
+                Icons.remove_circle_outline,
+                color: Theme.of(
+                  context,
+                ).colorScheme.error.withValues(alpha: 0.7),
+              ),
+              onPressed: () => notifier.removeItem(id),
+            ),
+          ],
+        ),
       ),
     );
   }

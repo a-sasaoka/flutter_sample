@@ -27,6 +27,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get close => 'Close';
 
   @override
+  String get delete => 'Delete';
+
+  @override
   String get login => 'Login';
 
   @override
@@ -84,19 +87,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resetPasswordMailSent => 'Password reset email has been sent.';
 
   @override
-  String get errorNetwork => 'A network error has occurred.';
+  String get errorNetwork => 'Please check your internet connection.';
 
   @override
-  String get errorTimeout => 'The request timed out.';
+  String get errorTimeout =>
+      'The request is taking too long. Please try again in a place with better signal.';
 
   @override
-  String get errorUnknown => 'An unexpected error occurred.';
+  String get errorUnknown =>
+      'An error occurred. Please try restarting the app or try again later.';
 
   @override
   String get errorOccurred => 'An error has occurred.';
 
   @override
-  String get errorServer => 'A server error occurred.';
+  String get errorServer =>
+      'A temporary server problem occurred. Please try again later.';
+
+  @override
+  String get errorUnauthenticated =>
+      'Authentication required. Please login again.';
+
+  @override
+  String get errorUnauthorized =>
+      'You don\'t have permission to perform this action.';
+
+  @override
+  String get errorDataParse =>
+      'Failed to process data. Please try updating the app.';
+
+  @override
+  String get errorDatabase => 'Failed to save or load local data.';
+
+  @override
+  String get errorBadRequest => 'The request is invalid.';
 
   @override
   String get errorDialogTitle => 'An error has occurred';
@@ -217,7 +241,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLocaleEn => 'English (en)';
 
   @override
-  String get memoTitle => 'Offline Notepad';
+  String get memoTitle => 'Offline Memos';
 
   @override
   String get memoEmpty => 'No memos yet!';
@@ -227,6 +251,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get memoInputContentHint => 'Content';
+
+  @override
+  String get memoAdd => 'Add Memo';
+
+  @override
+  String get memoSave => 'Save';
+
+  @override
+  String get memoSyncing => 'Syncing...';
+
+  @override
+  String get memoSynced => 'Synced';
+
+  @override
+  String get memoUnsynced => 'Not Synced';
+
+  @override
+  String get memoDeleteConfirm => 'Are you sure you want to delete this memo?';
 
   @override
   String get chartLine => 'Line Chart';
@@ -261,6 +303,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chartAddItem => 'Add Item';
 
   @override
+  String get chartDataList => 'Data List';
+
+  @override
+  String get chartClearAll => 'Clear All';
+
+  @override
+  String get chartClearConfirm => 'Are you sure you want to clear all data?';
+
+  @override
   String get sampleTitle => 'Sample Feature';
 
   @override
@@ -271,7 +322,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get userListTitle => 'User List';
 
   @override
-  String get notFoundTitle => 'Page Not Found';
+  String get userListEmpty => 'No users found.';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get notFoundTitle => 'Page not found';
 
   @override
   String get notFoundMessage => 'The page could not be found.';
@@ -280,10 +337,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notFoundBackToHome => 'Back to Home';
 
   @override
-  String get versionUpTitle => 'A new version is available.\nPlease update.';
+  String get versionUpTitle => 'Update Available';
 
   @override
-  String get versionUpCancel => 'Cancel';
+  String get versionUpMessageOptional => 'A new version is available.';
+
+  @override
+  String get versionUpMessageMandatory => 'A new version is required.';
+
+  @override
+  String get versionUpCancel => 'Later';
 
   @override
   String get versionUpUpdate => 'Update';

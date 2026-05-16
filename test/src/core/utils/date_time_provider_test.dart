@@ -3,44 +3,34 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 void main() {
-  // groupを使って、関連するテストをひとまとめにします
-  group('currentDateTimeProvider テスト', () {
-    test('デフォルトでは現在時刻（DateTime）を返すこと', () {
-      // 1. Riverpodのプロバイダーを管理する空の箱（コンテナ）を作成
+  group('clockProvider テスト', () {
+    test('デフォルトの clockProvider が現在の時刻に近い値を返すこと', () {
       final container = ProviderContainer();
-
-      // テスト終了後にコンテナを破棄する（メモリリーク防止のベストプラクティス）
       addTearDown(container.dispose);
 
-      // 2. プロバイダーから値を読み取る
-      final dateTime = container.read(currentDateTimeProvider);
-
-      // 3. 現在日時を保存
+      final clock = container.read(clockProvider);
       final now = DateTime.now();
+      final clockNow = clock();
 
-      // 3. 結果の検証（Assertion）
-      expect(dateTime, isA<DateTime>()); // DateTime型であること
-      // テスト実行時の現在時刻との誤差が1秒未満であること
-      expect(now.difference(dateTime).inSeconds, lessThan(1));
+      // 数ミリ秒の誤差は許容する
+      expect(
+        clockNow.difference(now).inMilliseconds.abs(),
+        lessThan(100),
+      );
     });
 
-    test('overrideWithValue で任意の時間を注入（DI）できること', () {
-      // 1. テスト用の固定された時間（モック）を用意
-      final mockDate = DateTime(2024, 1, 1, 12);
-
-      // 2. コンテナ作成時に、プロバイダーの値をモックに「上書き（override）」する！
+    test('clockProvider を関数のモックで上書きできること', () {
+      final mockDate = DateTime(2026, 5, 10);
       final container = ProviderContainer(
         overrides: [
-          currentDateTimeProvider.overrideWithValue(mockDate),
+          // 関数を返すプロバイダを、固定値を返す関数で上書き！
+          clockProvider.overrideWithValue(() => mockDate),
         ],
       );
       addTearDown(container.dispose);
 
-      // 3. プロバイダーから値を読み取る
-      final dateTime = container.read(currentDateTimeProvider);
-
-      // 4. 結果の検証（値がモックの日時と完全に一致すること）
-      expect(dateTime, equals(mockDate));
+      final clock = container.read(clockProvider);
+      expect(clock(), mockDate);
     });
   });
 }

@@ -23,7 +23,7 @@ final class LocaleNotifierProvider
         argument: null,
         retry: null,
         name: r'localeProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -36,7 +36,7 @@ final class LocaleNotifierProvider
   LocaleNotifier create() => LocaleNotifier();
 }
 
-String _$localeNotifierHash() => r'aa51a43f892bc4574221a88440b77e24278e43db';
+String _$localeNotifierHash() => r'c41c3804b3002d1175dffb841e731a5cdfeea954';
 
 /// アプリ全体のロケールを管理するプロバイダ
 

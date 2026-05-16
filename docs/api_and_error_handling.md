@@ -13,33 +13,32 @@ lib/src/features/user/
   │   ├── user_model.dart       # Freezedで定義したユーザーモデル
   │   └── address.dart          # ネストされたモデルの分離
   ├── data/
-  │   └── user_repository.dart  # API呼び出しとキャッシュ管理
+  │   └── user_repository.dart  # API呼び出しとキャッシュ管理（DI最適化済み）
   ├── application/
   │   └── user_notifier.dart    # 状態管理（ロード中・成功・エラー）
   └── presentation/
-      └── user_list_screen.dart # 一覧表示画面
+      └── user_list_screen.dart. # 一覧表示画面（Cardデザイン採用）
 ```
 
 ## 🌐 ネットワーク基盤とインターセプタ
 
 このプロジェクトでは、Dioを利用した通信基盤に共通エラーハンドリング、トークン管理、ロギング処理を追加しています。\
-また、`ApiClient` は **GET, POST, PUT, PATCH, DELETE** の主要なHTTPメソッドをすべてサポートしており、複雑なCRUD操作にも対応可能です。
+また、`ApiClient` はインターフェースとして抽象化されており、**GET, POST, PUT, PATCH, DELETE** の主要なHTTPメソッドをすべてサポートしています。
 
 ```plaintext
 lib/src/core/
   ├── network/
-  │   ├── api_client.dart        # Dioの共通インスタンス（主要メソッド完備）
+  │   ├── api_client.dart        # 通信の抽象インターフェースとDioによる実装
   │   ├── dio_interceptor.dart   # 共通の通信ログ・エラー変換
-  │   └── token_interceptor.dart # 認証トークン(Bearer)の自動リフレッシュ・付与
-  └── utils/
-      └── logger_provider.dart   # Talkerを用いた統合ロギング用プロバイダ
+  │   └── token_interceptor.dart # 認証トークンの自動付与・排他リフレッシュ制御
 ```
 
 | 項目           | 内容                                                                          |
 | -------------- | ----------------------------------------------------------------------------- |
+| 抽象化の徹底   | `ApiClient` をインターフェース化。通信ライブラリ(Dio)への直接依存を排除       |
 | 自動トークン   | `TokenInterceptor` により、全APIリクエストに安全にトークンを付与              |
+| 二重更新防止   | 複数の401エラーが同時に発生しても、リフレッシュAPIの呼び出しを1回に集約       |
 | 環境別設定     | `envConfigProvider` (JSON) より、環境に応じた `BASE_URL` やタイムアウトを適用 |
-| デバッグ効率   | 環境別ログ制御でノイズを削減                                                  |
 | エラーの一元化 | `AppException` に変換することで、UI層でのエラー分岐をシンプル化               |
 
 ---
@@ -50,35 +49,37 @@ lib/src/core/
 
 ```plaintext
 lib/src/core/ui/
- ├── error_handler.dart        # エラー表示の司令塔
- └── snackbar_extension.dart   # Contextの拡張メソッド（スナックバーの簡略化）
+ ├── error_handler.dart        # エラー表示の司令塔（詳細コード付与機能あり）
+ └── snackbar_extension.dart   # テーマ連動型スナックバー
 ```
 
-### 💡 Riverpodのベストプラクティス： `ref.listen` の活用
+### 💡 役割と特徴
 
-画面描画中（`build`メソッド内）に直接スナックバーを呼ぶと、エラーや無限ループの原因になります。
-本プロジェクトでは、**`ref.listen`** を使用して状態変化を検知し、安全にエラーUIを表示します。
+- **`ErrorHandler`**: `AppException` の種類に基づき、最適な多言語化メッセージを生成します。また、デバッグ効率向上のため、メッセージの末尾に **ステータスコード（例: (404)）を自動的に付与** します。
+- **`SnackBarExtension`**: アプリ全体の `Theme` (ColorScheme) に完全に連動します。エラー時は `errorContainer`、成功時は `primaryContainer` の色を自動で使用し、視覚的な一貫性を保ます。
 
-```dart
-// user_list_screen.dart などの build メソッド内
-ref.listen(userProvider, (previous, next) {
-  // ローディングが終わり、かつエラーがある時だけ1回実行
-  if (!next.isLoading && next.hasError) {
-    ErrorHandler.showSnackBar(context, next.error!);
-  }
-});
-```
+---
 
-### 使い分け例
+## 🎨 ユーザー一覧 UI (UserListScreen)
 
-- **軽い通信エラー（Snackbar）**: `ErrorHandler.showSnackBar(context, e);`
-- **致命的なエラー（Dialog）**: `await ErrorHandler.showDialogError(context, e);`
+ユーザー一覧画面では、Material 3 のデザインガイドラインに沿った **Card デザイン** を採用しています。
+
+- **視覚的な整理**: `CircleAvatar` や `Icons` を活用し、各ユーザーの情報を整理して表示。
+- **テーマ連動**: 配色は `ColorScheme` に追随し、ダークモード時も最適なコントラストを保ちます。
+- **操作性**: `RefreshIndicator` によるスワイプ更新をサポートしており、`AlwaysScrollableScrollPhysics` により項目が少ない場合でも確実に動作します。
 
 ---
 
 ## 🧪 通信とUIのテスト（モック化手法）
 
-このアーキテクチャの最大のメリットは「テストのしやすさ」です。\
+このアーキテクチャの最大のメリットは「テストのしやすさ」です。
+
+### 1. Repository層のテスト (ApiClientのモック)
+
+`ApiClient` や `CacheManager`, `Talker` がコンストラクタ注入されているため、リポジトリ層のテストにおいてフレームワークを介さずに純粋なビジネスロジックのテストが可能です。
+
+### 2. UI層のテスト (Repositoryのモック)
+
 UIの振る舞いをテストする際、Notifierをごまかすのではなく、一番奥の **`UserRepository`（データ層）だけをモック化** することで、実際のアプリと全く同じ「通信→ロード→表示」のライフサイクルをテストできます。
 
 ```dart
@@ -98,7 +99,7 @@ await tester.pumpWidget(
 
 // 画面の描画を待って検証
 await tester.pumpAndSettle();
-expect(find.text('Test User'), findsOneWidget);
+expect(find.byType(Card), findsNWidgets(dummyUsers.length));
 ```
 
 このように、レイヤーを綺麗に分離することで、単体テストからウィジェットテストまで、カバレッジ100%を安全に達成できる構造になっています。

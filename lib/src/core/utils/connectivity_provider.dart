@@ -3,24 +3,36 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'connectivity_provider.g.dart';
 
+/// ネットワーク接続状態の判定ロジックを管理するサービス
+class ConnectivityService {
+  /// 現在の接続状態リストから、オンラインかどうかを判定する
+  bool isOnline(List<ConnectivityResult> results) {
+    // どの接続手段（Wi-Fi, モバイル等）も確立されていない（none）でなければオンライン
+    return results.isNotEmpty && !results.contains(ConnectivityResult.none);
+  }
+}
+
+/// [ConnectivityService] を提供するプロバイダー
+@Riverpod(keepAlive: true)
+ConnectivityService connectivityService(Ref ref) {
+  return ConnectivityService();
+}
+
 // coverage:ignore-start
 /// ネットワークの接続状態を監視するStreamProvider
-@riverpod
+@Riverpod(keepAlive: true)
 Stream<List<ConnectivityResult>> connectivity(Ref ref) {
   return Connectivity().onConnectivityChanged;
 }
 // coverage:ignore-end
 
-/// 「現在オンラインかどうか」だけを返すProvider
+/// 「現在オンラインかどうか」をリアクティブに返すProvider
 @riverpod
 bool isOnline(Ref ref) {
-  // 最新の接続状態を取得
-  final connectivityStatus = ref.watch(connectivityProvider).value;
-  if (connectivityStatus == null) {
-    return true; // 判定前はとりあえずtrueにしておく
+  final results = ref.watch(connectivityProvider).value;
+  if (results == null) {
+    return true; // 初期状態（ロード中）はとりあえずtrueとして扱う
   }
 
-  // どれにも繋がっていない（none）でなければオンラインと判定
-  return connectivityStatus.isNotEmpty &&
-      !connectivityStatus.contains(ConnectivityResult.none);
+  return ref.watch(connectivityServiceProvider).isOnline(results);
 }

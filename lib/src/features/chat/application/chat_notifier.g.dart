@@ -23,7 +23,7 @@ final class ChatNotifierProvider
         argument: null,
         retry: null,
         name: r'chatProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -44,7 +44,7 @@ final class ChatNotifierProvider
   }
 }
 
-String _$chatNotifierHash() => r'3aa7ceaf590081d9ea0ebd3409c26ffcf1f86e8f';
+String _$chatNotifierHash() => r'8502019a14695bde43aa33de74670425e179fb7d';
 
 /// チャットのやり取りを管理するプロバイダー
 

@@ -62,7 +62,7 @@ const defaultSendTimeout = 10;
 const defaultUseFirebaseAuth = true;
 
 /// JSON から読み込んだ環境設定を提供するプロバイダー。
-@riverpod
+@Riverpod(keepAlive: true)
 EnvConfigState envConfig(Ref ref) {
   return const EnvConfigState(
     baseUrl: String.fromEnvironment(

@@ -5,14 +5,14 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'locale_provider.g.dart';
 
 /// アプリ全体のロケールを管理するプロバイダ
-@riverpod
+@Riverpod(keepAlive: true)
 class LocaleNotifier extends _$LocaleNotifier {
   static const _key = 'locale_key';
 
   @override
   Future<Locale?> build() async {
     // SharedPreferences を読み込み、保存されていればその Locale を返す
-    final prefs = await ref.watch(sharedPreferencesProvider.future);
+    final prefs = ref.watch(sharedPreferencesProvider);
     final code = await prefs.getString(_key);
 
     if (code == null || code.isEmpty) {
@@ -23,7 +23,7 @@ class LocaleNotifier extends _$LocaleNotifier {
 
   /// ロケールを設定（"ja", "en" など）
   Future<void> setLocale(String? languageCode) async {
-    final prefs = await ref.read(sharedPreferencesProvider.future);
+    final prefs = ref.read(sharedPreferencesProvider);
 
     if (languageCode == null) {
       // システム設定に戻す

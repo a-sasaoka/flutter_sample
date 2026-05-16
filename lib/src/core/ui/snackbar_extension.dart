@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 
 /// スナックバーの種類
 enum SnackBarType {
@@ -21,7 +21,7 @@ extension SnackBarExtension on BuildContext {
     SnackBarType type = SnackBarType.info,
     Duration duration = const Duration(seconds: 3),
   }) {
-    final l10n = AppLocalizations.of(this)!;
+    final l10n = this.l10n;
 
     // 連続でタップされた時に、前のスナックバーを消してすぐ次を表示する
     ScaffoldMessenger.of(this).hideCurrentSnackBar();
@@ -30,12 +30,15 @@ extension SnackBarExtension on BuildContext {
       SnackBar(
         content: Row(
           children: [
-            Icon(_getIcon(type), color: Colors.white),
+            Icon(
+              _getIcon(type),
+              color: _getOnBackgroundColor(type),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: _getOnBackgroundColor(type)),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -50,7 +53,7 @@ extension SnackBarExtension on BuildContext {
         ),
         action: SnackBarAction(
           label: l10n.close,
-          textColor: Colors.white70,
+          textColor: _getOnBackgroundColor(type).withValues(alpha: 0.8),
           onPressed: () {
             ScaffoldMessenger.of(this).hideCurrentSnackBar();
           },
@@ -70,13 +73,30 @@ extension SnackBarExtension on BuildContext {
   }
 
   Color _getBackgroundColor(SnackBarType type) {
+    final theme = Theme.of(this);
+    final colorScheme = theme.colorScheme;
+
     switch (type) {
       case SnackBarType.info:
-        return Colors.grey.shade800;
+        return colorScheme.secondaryContainer;
       case SnackBarType.success:
-        return Colors.green.shade700;
+        return colorScheme.primaryContainer;
       case SnackBarType.error:
-        return Colors.red.shade700;
+        return colorScheme.errorContainer;
+    }
+  }
+
+  Color _getOnBackgroundColor(SnackBarType type) {
+    final theme = Theme.of(this);
+    final colorScheme = theme.colorScheme;
+
+    switch (type) {
+      case SnackBarType.info:
+        return colorScheme.onSecondaryContainer;
+      case SnackBarType.success:
+        return colorScheme.onPrimaryContainer;
+      case SnackBarType.error:
+        return colorScheme.onErrorContainer;
     }
   }
 

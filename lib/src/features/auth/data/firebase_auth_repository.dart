@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 part 'firebase_auth_repository.g.dart';
 
@@ -16,7 +17,7 @@ GoogleSignIn googleSignIn(Ref ref) => GoogleSignIn.instance;
 // coverage:ignore-end
 
 /// Firebase Authenticationの認証状態（ユーザー変更含む）を監視するプロバイダー
-@riverpod
+@Riverpod(keepAlive: true)
 Stream<User?> authStateChanges(Ref ref) {
   // authStateChanges ではなく userChanges を使うことで、
   // user.reload() が呼ばれた時にも自動的にストリームが発火するようになります。
@@ -26,18 +27,27 @@ Stream<User?> authStateChanges(Ref ref) {
 /// Firebase Authenticationを使用した認証リポジトリ
 @riverpod
 FirebaseAuthRepository firebaseAuthRepository(Ref ref) {
-  final firebaseAuth = ref.watch(firebaseAuthProvider);
-  final googleSignIn = ref.watch(googleSignInProvider);
-  return FirebaseAuthRepository(firebaseAuth, googleSignIn, ref);
+  return FirebaseAuthRepository(
+    firebaseAuth: ref.watch(firebaseAuthProvider),
+    googleSignIn: ref.watch(googleSignInProvider),
+    talker: ref.watch(loggerProvider),
+  );
 }
 
 /// Firebase Authenticationを使用した認証リポジトリの実装クラス
 class FirebaseAuthRepository {
   /// コンストラクタ
-  FirebaseAuthRepository(this._firebaseAuth, this._googleSignIn, this._ref);
+  FirebaseAuthRepository({
+    required FirebaseAuth firebaseAuth,
+    required GoogleSignIn googleSignIn,
+    required Talker talker,
+  }) : _firebaseAuth = firebaseAuth,
+       _googleSignIn = googleSignIn,
+       _talker = talker;
+
   final FirebaseAuth _firebaseAuth;
   final GoogleSignIn _googleSignIn;
-  final Ref _ref;
+  final Talker _talker;
 
   // Google認証初期化フラグ
   bool _googleSignInInitialized = false;
@@ -90,7 +100,7 @@ class FirebaseAuthRepository {
 
       return true;
     } on Exception catch (e) {
-      _ref.read(loggerProvider).warning('SignInWithGoogle Error: $e');
+      _talker.warning('SignInWithGoogle Error: $e');
 
       // ユーザーキャンセル等もここに入ることがあります
       return false;

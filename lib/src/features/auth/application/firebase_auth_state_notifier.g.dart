@@ -23,7 +23,7 @@ final class FirebaseAuthStateNotifierProvider
         argument: null,
         retry: null,
         name: r'firebaseAuthStateProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -45,7 +45,7 @@ final class FirebaseAuthStateNotifierProvider
 }
 
 String _$firebaseAuthStateNotifierHash() =>
-    r'071d14f547d0e1b9f212f72782c9e1127d6b2cb5';
+    r'b71b585b543232c8b81e018a86f02a729ce972f6';
 
 /// Firebase Authenticationの認証状態を管理するStateNotifier
 

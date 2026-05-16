@@ -23,7 +23,7 @@ final class AppLifecycleProvider
         argument: null,
         retry: null,
         name: r'appLifecycleProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -44,7 +44,7 @@ final class AppLifecycleProvider
   }
 }
 
-String _$appLifecycleHash() => r'17e569964b4790acdc6837de6054e56482332283';
+String _$appLifecycleHash() => r'c8777dadfed4bef5df4f6dbb37a0c863d046216c';
 
 /// アプリのライフサイクル（フォアグラウンド/バックグラウンド等）を監視するプロバイダー
 

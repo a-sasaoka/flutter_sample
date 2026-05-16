@@ -9,13 +9,18 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'chat_notifier.g.dart';
 
 /// チャットのやり取りを管理するプロバイダー
-@riverpod
+@Riverpod(keepAlive: true)
 class ChatNotifier extends _$ChatNotifier {
   @override
   ChatState build() {
     // 画面（Notifier）が生きている間は、Repositoryも監視（watch）して破棄させない
     ref.watch(chatRepositoryProvider);
     return const ChatState();
+  }
+
+  /// 履歴をクリアするメソッド
+  void clearHistory() {
+    state = const ChatState();
   }
 
   /// メッセージを送信するメソッド
@@ -36,11 +41,9 @@ class ChatNotifier extends _$ChatNotifier {
       final promptWithTime = _buildPromptWithTime(text);
       final responseText = await repository.sendMessage(promptWithTime);
 
-      if (!ref.mounted) {
-        return;
-      }
+      if (!ref.mounted) return;
 
-      final now = ref.read(currentDateTimeProvider);
+      final now = ref.read(clockProvider)();
 
       // IDを指定してAIのメッセージに差し替え（競合対策）
       _updateMessageById(
@@ -52,11 +55,9 @@ class ChatNotifier extends _$ChatNotifier {
         ),
       );
     } on Exception catch (e) {
-      if (!ref.mounted) {
-        return;
-      }
+      if (!ref.mounted) return;
 
-      final now = ref.read(currentDateTimeProvider);
+      final now = ref.read(clockProvider)();
       _updateMessageById(
         targetAiId,
         ChatMessage.error(
@@ -66,7 +67,9 @@ class ChatNotifier extends _$ChatNotifier {
         ),
       );
     } finally {
-      state = state.copyWith(isGenerating: false);
+      if (ref.mounted) {
+        state = state.copyWith(isGenerating: false);
+      }
     }
   }
 
@@ -94,13 +97,11 @@ class ChatNotifier extends _$ChatNotifier {
       final buffer = StringBuffer();
 
       await for (final chunk in stream) {
-        if (!ref.mounted) {
-          return;
-        }
+        if (!ref.mounted) return;
 
         if (isFirstChunk) {
           // 最初のチャンクが届いた瞬間の時刻を記録
-          aiMessageCreatedAt = ref.read(currentDateTimeProvider);
+          aiMessageCreatedAt = ref.read(clockProvider)();
           isFirstChunk = false;
         }
 
@@ -122,11 +123,9 @@ class ChatNotifier extends _$ChatNotifier {
         throw ChatEmptyResponseException(); // 空のままStreamが終わった場合
       }
     } on Exception catch (e) {
-      if (!ref.mounted) {
-        return;
-      }
+      if (!ref.mounted) return;
 
-      final now = ref.read(currentDateTimeProvider);
+      final now = ref.read(clockProvider)();
       _updateMessageById(
         targetAiId,
         ChatMessage.error(
@@ -136,14 +135,16 @@ class ChatNotifier extends _$ChatNotifier {
         ),
       );
     } finally {
-      state = state.copyWith(isGenerating: false);
+      if (ref.mounted) {
+        state = state.copyWith(isGenerating: false);
+      }
     }
   }
 
   /// ユーザーメッセージとローディング状態をセットで追加する
   /// [targetAiId] は後で上書き検索するための目印
   void _addMessageAndLoading(String text, String targetAiId) {
-    final now = ref.read(currentDateTimeProvider);
+    final now = ref.read(clockProvider)();
     state = state.copyWith(
       messages: [
         ...state.messages,
@@ -172,7 +173,7 @@ class ChatNotifier extends _$ChatNotifier {
 
   /// AIに送るプロンプトにシステム日時を付加する
   String _buildPromptWithTime(String originalText) {
-    final now = ref.read(currentDateTimeProvider);
+    final now = ref.read(clockProvider)();
 
     final year = now.year;
     final month = now.month.toString().padLeft(2, '0');

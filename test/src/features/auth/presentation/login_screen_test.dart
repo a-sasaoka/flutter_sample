@@ -105,11 +105,16 @@ void main() {
   }
 
   group('LoginScreen (API)', () {
+    test('コンストラクタでインスタンスが生成できること', () {
+      const screen = LoginScreen();
+      expect(screen, isA<LoginScreen>());
+    });
+
     testWidgets('UIが正しくレンダリングされること', (tester) async {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
-      expect(find.text('ログイン'), findsOneWidget);
+      expect(find.widgetWithText(AppBar, 'ログイン'), findsOneWidget);
       expect(find.text('メールアドレス'), findsOneWidget);
       expect(find.text('パスワード'), findsOneWidget);
       expect(find.text('ログインする'), findsOneWidget);

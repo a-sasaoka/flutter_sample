@@ -4,8 +4,11 @@ import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  final theme = ThemeData(useMaterial3: true);
+
   Widget buildTestApp(void Function(BuildContext) onPressed) {
     return MaterialApp(
+      theme: theme,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
@@ -47,7 +50,7 @@ void main() {
 
     // Verify background color
     final snackBar = tester.widget<SnackBar>(find.byType(SnackBar));
-    expect(snackBar.backgroundColor, Colors.grey.shade800);
+    expect(snackBar.backgroundColor, theme.colorScheme.secondaryContainer);
 
     // Tap 'Close' action to dismiss
     await tester.tap(find.text('Close'));
@@ -77,7 +80,7 @@ void main() {
     expect(find.byIcon(Icons.check_circle_outline), findsOneWidget);
 
     final snackBar = tester.widget<SnackBar>(find.byType(SnackBar));
-    expect(snackBar.backgroundColor, Colors.green.shade700);
+    expect(snackBar.backgroundColor, theme.colorScheme.primaryContainer);
   });
 
   testWidgets('showErrorSnackBar displays an error SnackBar', (
@@ -100,7 +103,7 @@ void main() {
     expect(find.byIcon(Icons.error_outline), findsOneWidget);
 
     final snackBar = tester.widget<SnackBar>(find.byType(SnackBar));
-    expect(snackBar.backgroundColor, Colors.red.shade700);
+    expect(snackBar.backgroundColor, theme.colorScheme.errorContainer);
   });
 
   testWidgets(
@@ -111,6 +114,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: theme,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(

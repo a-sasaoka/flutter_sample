@@ -3,41 +3,50 @@ import 'dart:convert';
 import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 part 'cache_manager.g.dart';
 
 /// キャッシュマネージャープロバイダー
 @Riverpod(keepAlive: true)
 CacheManager cacheManager(Ref ref) {
-  return CacheManager._(ref);
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return CacheManager(
+    prefs: prefs,
+    getCurrentDateTime: ref.watch(clockProvider),
+  );
 }
 
 /// キャッシュマネージャー
 class CacheManager {
   /// コンストラクタ
-  CacheManager._(this.ref);
+  const CacheManager({
+    required SharedPreferencesAsync prefs,
+    required DateTime Function() getCurrentDateTime,
+    Duration cacheDuration = const Duration(minutes: 10),
+  }) : _prefs = prefs,
+       _getCurrentDateTime = getCurrentDateTime,
+       _cacheDuration = cacheDuration;
 
-  static const _cacheDuration = Duration(minutes: 10);
+  final SharedPreferencesAsync _prefs;
+  final DateTime Function() _getCurrentDateTime;
+  final Duration _cacheDuration;
+
   static const _keyTimestamp = 'timestamp';
   static const _keyData = 'data';
 
-  /// RiverpodのRef
-  final Ref ref;
-
   /// キャッシュを保存
   Future<void> save(String key, dynamic value) async {
-    final prefs = await ref.read(sharedPreferencesProvider.future);
     final data = {
-      _keyTimestamp: ref.read(currentDateTimeProvider).millisecondsSinceEpoch,
+      _keyTimestamp: _getCurrentDateTime().millisecondsSinceEpoch,
       _keyData: value,
     };
-    await prefs.setString(key, jsonEncode(data));
+    await _prefs.setString(key, jsonEncode(data));
   }
 
   /// キャッシュを取得（期限切れならnull）
   Future<dynamic> get(String key) async {
-    final prefs = await ref.read(sharedPreferencesProvider.future);
-    final raw = await prefs.getString(key);
+    final raw = await _prefs.getString(key);
     if (raw == null) return null;
 
     try {
@@ -45,22 +54,20 @@ class CacheManager {
       final timestamp = DateTime.fromMillisecondsSinceEpoch(
         decoded[_keyTimestamp] as int,
       );
-      if (ref.read(currentDateTimeProvider).difference(timestamp) >
-          _cacheDuration) {
-        await prefs.remove(key);
+      if (_getCurrentDateTime().difference(timestamp) > _cacheDuration) {
+        await _prefs.remove(key);
         return null; // キャッシュ期限切れ
       }
       return decoded[_keyData];
     } on Object catch (_) {
       // JSONパースエラーや型の不一致などが起きた場合は、キャッシュが壊れているとみなして削除
-      await prefs.remove(key);
+      await _prefs.remove(key);
       return null;
     }
   }
 
   /// キャッシュを削除
   Future<void> clear(String key) async {
-    final prefs = await ref.read(sharedPreferencesProvider.future);
-    await prefs.remove(key);
+    await _prefs.remove(key);
   }
 }

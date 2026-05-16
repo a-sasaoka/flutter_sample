@@ -4,7 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'app_lifecycle_provider.g.dart';
 
 /// アプリのライフサイクル（フォアグラウンド/バックグラウンド等）を監視するプロバイダー
-@riverpod
+@Riverpod(keepAlive: true)
 class AppLifecycle extends _$AppLifecycle {
   @override
   AppLifecycleState build() {

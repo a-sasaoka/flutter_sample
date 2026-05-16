@@ -3,57 +3,96 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('AppException テスト', () {
-    group('NetworkException', () {
-      test('通常のネットワークエラーの場合、正しい AppErrorType を返すこと', () {
-        const exception = NetworkException(statusCode: 404);
-
-        expect(exception.type, equals(AppErrorType.network));
-        expect(exception.statusCode, equals(404));
-      });
-
-      test('statusCodeが500以上の場合、type が AppErrorType.server になること', () {
-        const exception = NetworkException(statusCode: 500);
-
-        expect(exception.type, equals(AppErrorType.server));
-      });
-
-      test('statusCodeがnullの場合、デフォルトの AppErrorType.network を返すこと', () {
-        const exception = NetworkException();
-
-        expect(exception.type, equals(AppErrorType.network));
-      });
+    test('NetworkException が正しく生成されること', () {
+      const exception = AppException.network(message: 'offline');
+      expect(exception, isA<NetworkException>());
+      expect(exception.message, 'offline');
     });
 
-    group('TimeoutException', () {
-      test('正しい AppErrorType を返すこと', () {
-        const exception = TimeoutException();
-
-        expect(exception.type, equals(AppErrorType.timeout));
-      });
+    test('ServerException が正しく生成されること', () {
+      const exception = AppException.server(statusCode: 500, message: 'error');
+      expect(exception, isA<ServerException>());
+      expect(exception.statusCode, 500);
+      expect(exception.message, 'error');
     });
 
-    group('UnknownException', () {
-      test('正しい AppErrorType、および任意のメッセージを保持できること', () {
-        const exception = UnknownException(message: 'some error');
-
-        expect(exception.type, equals(AppErrorType.unknown));
-        expect(exception.message, equals('some error'));
-      });
+    test('BadRequestException が正しく生成されること', () {
+      const exception = AppException.badRequest(
+        statusCode: 400,
+        message: 'invalid',
+      );
+      expect(exception, isA<BadRequestException>());
+      expect(exception.statusCode, 400);
+      expect(exception.message, 'invalid');
     });
 
-    test('toString() が正しい文字列表現を返すこと', () {
-      expect(
-        const NetworkException().toString(),
-        equals('NetworkException(statusCode: null, code: null)'),
+    test('UnauthenticatedException が正しく生成されること', () {
+      const exception = AppException.unauthenticated(message: 'not logged in');
+      expect(exception, isA<UnauthenticatedException>());
+      expect(exception.message, 'not logged in');
+    });
+
+    test('UnauthorizedException が正しく生成されること', () {
+      const exception = AppException.unauthorized(message: 'forbidden');
+      expect(exception, isA<UnauthorizedException>());
+      expect(exception.message, 'forbidden');
+    });
+
+    test('TimeoutException が正しく生成されること', () {
+      const exception = AppException.timeout(message: 'timeout');
+      expect(exception, isA<TimeoutException>());
+      expect(exception.message, 'timeout');
+    });
+
+    test('DataParseException が正しく生成されること', () {
+      const exception = AppException.dataParse(message: 'parse error');
+      expect(exception, isA<DataParseException>());
+      expect(exception.message, 'parse error');
+    });
+
+    test('DatabaseException が正しく生成されること', () {
+      final innerError = StateError('db error');
+      final exception = AppException.database(
+        message: 'storage error',
+        error: innerError,
       );
-      expect(
-        const TimeoutException().toString(),
-        equals('TimeoutException(code: null)'),
+      expect(exception, isA<DatabaseException>());
+      expect(exception.message, 'storage error');
+      expect(exception.error, innerError);
+    });
+
+    test('CancelException が正しく生成されること', () {
+      const exception = AppException.cancel(message: 'canceled');
+      expect(exception, isA<CancelException>());
+      expect(exception.message, 'canceled');
+    });
+
+    test('UnknownException が正しく生成されること', () {
+      final innerError = StateError('bad state');
+      final exception = AppException.unknown(
+        message: 'unknown',
+        error: innerError,
       );
-      expect(
-        const UnknownException().toString(),
-        equals('UnknownException(message: null, code: null)'),
+      expect(exception, isA<UnknownException>());
+      expect(exception.message, 'unknown');
+      expect(exception.error, innerError);
+    });
+
+    test('pattern matching (when) が正しく動作すること', () {
+      const exception = AppException.timeout();
+      final result = exception.when(
+        network: (_) => 'network',
+        server: (_, _) => 'server',
+        badRequest: (_, _) => 'badRequest',
+        unauthenticated: (_) => 'unauthenticated',
+        unauthorized: (_) => 'unauthorized',
+        timeout: (_) => 'timeout',
+        dataParse: (_) => 'dataParse',
+        database: (_, _) => 'database',
+        cancel: (_) => 'cancel',
+        unknown: (_, _) => 'unknown',
       );
+      expect(result, 'timeout');
     });
   });
 }

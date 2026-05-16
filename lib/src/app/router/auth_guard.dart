@@ -18,7 +18,13 @@ String? authGuard(Ref ref, GoRouterState state) {
   // ユーザーがログイン済みかどうか
   final isLoggedIn = authState.value ?? false;
 
-  return const AuthGuardHelper().redirect(
+  return AuthGuardHelper(
+    loginLocation: const LoginRoute().location,
+    homeLocation: const HomeRoute().location,
+    splashLocation: const SplashRoute().location,
+    signUpLocation: const SignUpRoute().location,
+    resetPasswordLocation: const ResetPasswordRoute().location,
+  ).redirect(
     isLoggedIn: isLoggedIn,
     state: state,
   );

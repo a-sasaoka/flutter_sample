@@ -1,75 +1,76 @@
-// API・通信系の共通例外クラス
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-/// エラーの種類を定義する列挙型
-enum AppErrorType {
-  /// ネットワークエラー
-  network,
+part 'app_exception.freezed.dart';
 
-  /// タイムアウト
-  timeout,
+/// アプリケーション共通の例外クラス (Union型)
+@freezed
+sealed class AppException with _$AppException implements Exception {
+  /// ネットワーク接続エラー (オフラインなど)
+  const factory AppException.network({
+    String? message,
+  }) = NetworkException;
 
-  /// サーバーエラー
-  server,
+  /// サーバーエラー (500系)
+  const factory AppException.server({
+    int? statusCode,
+    String? message,
+  }) = ServerException;
 
-  /// その他のエラー
-  unknown,
+  /// クライアントエラー (400系, validation等)
+  const factory AppException.badRequest({
+    int? statusCode,
+    String? message,
+  }) = BadRequestException;
+
+  /// 認証エラー (401: 未ログイン, セッション切れ)
+  const factory AppException.unauthenticated({
+    String? message,
+  }) = UnauthenticatedException;
+
+  /// 認可エラー (403: 権限不足)
+  const factory AppException.unauthorized({
+    String? message,
+  }) = UnauthorizedException;
+
+  /// 通信タイムアウト
+  const factory AppException.timeout({
+    String? message,
+  }) = TimeoutException;
+
+  /// データ解析エラー (レスポンスが空、不正なJSONなど)
+  const factory AppException.dataParse({
+    String? message,
+  }) = DataParseException;
+
+  /// データベースエラー (ローカルDB操作失敗)
+  const factory AppException.database({
+    String? message,
+    Object? error,
+  }) = DatabaseException;
+
+  /// キャンセル (リクエストの中断)
+  const factory AppException.cancel({
+    String? message,
+  }) = CancelException;
+
+  /// その他の予期せぬエラー
+  const factory AppException.unknown({
+    String? message,
+    Object? error,
+  }) = UnknownException;
 }
 
-/// アプリケーション共通の例外基底クラス
-sealed class AppException implements Exception {
-  const AppException({this.code});
+/// AppException の拡張メソッド
+extension AppExceptionX on AppException {
+  /// ステータスコードを取得する (存在する場合のみ)
+  int? get statusCode => whenOrNull(
+    server: (code, _) => code,
+    badRequest: (code, _) => code,
+  );
 
-  /// エラーコード（任意）
-  final int? code;
-
-  /// 多言語化用のメッセージキー
-  AppErrorType get type;
-}
-
-/// ネットワーク関連の例外
-class NetworkException extends AppException {
-  /// コンストラクタ
-  const NetworkException({this.statusCode, super.code});
-
-  /// ステータスコード（任意）
-  final int? statusCode;
-
-  @override
-  AppErrorType get type {
-    // 500番台はサーバーエラーとして扱う
-    if (statusCode != null && statusCode! >= 500) {
-      return AppErrorType.server;
-    }
-    return AppErrorType.network;
-  }
-
-  @override
-  String toString() => 'NetworkException(statusCode: $statusCode, code: $code)';
-}
-
-/// タイムアウト
-class TimeoutException extends AppException {
-  /// コンストラクタ
-  const TimeoutException({super.code});
-
-  @override
-  AppErrorType get type => AppErrorType.timeout;
-
-  @override
-  String toString() => 'TimeoutException(code: $code)';
-}
-
-/// 不明なエラー
-class UnknownException extends AppException {
-  /// コンストラクタ
-  const UnknownException({this.message, super.code});
-
-  /// 任意のメッセージ
-  final String? message;
-
-  @override
-  AppErrorType get type => AppErrorType.unknown;
-
-  @override
-  String toString() => 'UnknownException(message: $message, code: $code)';
+  /// 内部エラーオブジェクトを取得する (UnknownException または DatabaseException の場合のみ)
+  Object? get error => whenOrNull(
+    database: (_, err) => err,
+    unknown: (_, err) => err,
+  );
 }

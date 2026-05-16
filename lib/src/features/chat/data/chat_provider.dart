@@ -11,7 +11,7 @@ part 'chat_provider.g.dart';
 /// チャットのリポジトリを提供するプロバイダー
 @riverpod
 ChatRepository chatRepository(Ref ref) {
-  final now = ref.watch(currentDateTimeProvider);
+  final now = ref.watch(clockProvider)();
   final config = ref.watch(envConfigProvider);
   final year = now.year;
   final month = now.month.toString().padLeft(2, '0');

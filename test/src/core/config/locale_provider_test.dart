@@ -22,7 +22,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         // SharedPreferencesAsync をモックに差し替え（DI）
-        sharedPreferencesProvider.overrideWith((ref) async => mockPrefs),
+        sharedPreferencesProvider.overrideWithValue(mockPrefs),
       ],
     );
     addTearDown(container.dispose);

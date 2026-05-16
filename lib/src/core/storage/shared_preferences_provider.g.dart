@@ -26,13 +26,11 @@ final sharedPreferencesProvider = SharedPreferencesProvider._();
 final class SharedPreferencesProvider
     extends
         $FunctionalProvider<
-          AsyncValue<SharedPreferencesAsync>,
           SharedPreferencesAsync,
-          FutureOr<SharedPreferencesAsync>
+          SharedPreferencesAsync,
+          SharedPreferencesAsync
         >
-    with
-        $FutureModifier<SharedPreferencesAsync>,
-        $FutureProvider<SharedPreferencesAsync> {
+    with $Provider<SharedPreferencesAsync> {
   /// SharedPreferencesAsync をアプリ全体で共有する Provider
   ///
   /// - 非同期で安全に利用可能
@@ -54,14 +52,22 @@ final class SharedPreferencesProvider
 
   @$internal
   @override
-  $FutureProviderElement<SharedPreferencesAsync> $createElement(
+  $ProviderElement<SharedPreferencesAsync> $createElement(
     $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  ) => $ProviderElement(pointer);
 
   @override
-  FutureOr<SharedPreferencesAsync> create(Ref ref) {
+  SharedPreferencesAsync create(Ref ref) {
     return sharedPreferences(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SharedPreferencesAsync value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SharedPreferencesAsync>(value),
+    );
   }
 }
 
-String _$sharedPreferencesHash() => r'cd881b133554c44e76bebc53d340b7dc2ec8f01a';
+String _$sharedPreferencesHash() => r'27f75883fdfa5699515101e124521cad2de328e6';

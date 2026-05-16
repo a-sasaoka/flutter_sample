@@ -36,10 +36,11 @@ flutter_sample
         ├── app                                                 # アプリケーション全体の構成要素
         │   ├── database                                        # Driftデータベース本体（テーブル統合管理）
         │   └── router                                          # ルーティング（GoRouter）関連・認証ガード
+        │       └── routes/                                     # 親ルートごとに分割されたルート定義（part of）
         ├── core                                                # アプリ全体で共通的に利用される基盤コード
-        │   ├── analytics                                       # イベント計測関連
+        │   ├── analytics                                       # イベント計測関連、カスタムObserver
         │   ├── config                                          # 環境設定（EnvConfig, AppEnv）、テーマ等
-        │   ├── database                                        # データベースインスタンスの提供
+        │   ├── database                                        # データベースインスタンスの提供、Talker連携
         │   ├── exceptions                                      # 共通の例外クラス定義
         │   ├── network                                         # APIクライアント、Interceptor
         │   ├── storage                                         # 永続化関連（SharedPreferences・SecureStorage・キャッシュ）

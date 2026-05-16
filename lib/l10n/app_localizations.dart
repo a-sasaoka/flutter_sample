@@ -134,6 +134,12 @@ abstract class AppLocalizations {
   /// **'Close'**
   String get close;
 
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
   /// No description provided for @login.
   ///
   /// In en, this message translates to:
@@ -245,19 +251,19 @@ abstract class AppLocalizations {
   /// No description provided for @errorNetwork.
   ///
   /// In en, this message translates to:
-  /// **'A network error has occurred.'**
+  /// **'Please check your internet connection.'**
   String get errorNetwork;
 
   /// No description provided for @errorTimeout.
   ///
   /// In en, this message translates to:
-  /// **'The request timed out.'**
+  /// **'The request is taking too long. Please try again in a place with better signal.'**
   String get errorTimeout;
 
   /// No description provided for @errorUnknown.
   ///
   /// In en, this message translates to:
-  /// **'An unexpected error occurred.'**
+  /// **'An error occurred. Please try restarting the app or try again later.'**
   String get errorUnknown;
 
   /// No description provided for @errorOccurred.
@@ -269,8 +275,38 @@ abstract class AppLocalizations {
   /// No description provided for @errorServer.
   ///
   /// In en, this message translates to:
-  /// **'A server error occurred.'**
+  /// **'A temporary server problem occurred. Please try again later.'**
   String get errorServer;
+
+  /// No description provided for @errorUnauthenticated.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication required. Please login again.'**
+  String get errorUnauthenticated;
+
+  /// No description provided for @errorUnauthorized.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to perform this action.'**
+  String get errorUnauthorized;
+
+  /// No description provided for @errorDataParse.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to process data. Please try updating the app.'**
+  String get errorDataParse;
+
+  /// No description provided for @errorDatabase.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save or load local data.'**
+  String get errorDatabase;
+
+  /// No description provided for @errorBadRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'The request is invalid.'**
+  String get errorBadRequest;
 
   /// No description provided for @errorDialogTitle.
   ///
@@ -503,7 +539,7 @@ abstract class AppLocalizations {
   /// No description provided for @memoTitle.
   ///
   /// In en, this message translates to:
-  /// **'Offline Notepad'**
+  /// **'Offline Memos'**
   String get memoTitle;
 
   /// No description provided for @memoEmpty.
@@ -523,6 +559,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Content'**
   String get memoInputContentHint;
+
+  /// No description provided for @memoAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Memo'**
+  String get memoAdd;
+
+  /// No description provided for @memoSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get memoSave;
+
+  /// No description provided for @memoSyncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing...'**
+  String get memoSyncing;
+
+  /// No description provided for @memoSynced.
+  ///
+  /// In en, this message translates to:
+  /// **'Synced'**
+  String get memoSynced;
+
+  /// No description provided for @memoUnsynced.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Synced'**
+  String get memoUnsynced;
+
+  /// No description provided for @memoDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this memo?'**
+  String get memoDeleteConfirm;
 
   /// No description provided for @chartLine.
   ///
@@ -584,6 +656,24 @@ abstract class AppLocalizations {
   /// **'Add Item'**
   String get chartAddItem;
 
+  /// No description provided for @chartDataList.
+  ///
+  /// In en, this message translates to:
+  /// **'Data List'**
+  String get chartDataList;
+
+  /// No description provided for @chartClearAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear All'**
+  String get chartClearAll;
+
+  /// No description provided for @chartClearConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to clear all data?'**
+  String get chartClearConfirm;
+
   /// No description provided for @sampleTitle.
   ///
   /// In en, this message translates to:
@@ -602,10 +692,22 @@ abstract class AppLocalizations {
   /// **'User List'**
   String get userListTitle;
 
+  /// No description provided for @userListEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No users found.'**
+  String get userListEmpty;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
   /// No description provided for @notFoundTitle.
   ///
   /// In en, this message translates to:
-  /// **'Page Not Found'**
+  /// **'Page not found'**
   String get notFoundTitle;
 
   /// No description provided for @notFoundMessage.
@@ -623,13 +725,25 @@ abstract class AppLocalizations {
   /// No description provided for @versionUpTitle.
   ///
   /// In en, this message translates to:
-  /// **'A new version is available.\nPlease update.'**
+  /// **'Update Available'**
   String get versionUpTitle;
+
+  /// No description provided for @versionUpMessageOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'A new version is available.'**
+  String get versionUpMessageOptional;
+
+  /// No description provided for @versionUpMessageMandatory.
+  ///
+  /// In en, this message translates to:
+  /// **'A new version is required.'**
+  String get versionUpMessageMandatory;
 
   /// No description provided for @versionUpCancel.
   ///
   /// In en, this message translates to:
-  /// **'Cancel'**
+  /// **'Later'**
   String get versionUpCancel;
 
   /// No description provided for @versionUpUpdate.

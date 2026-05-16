@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
+import 'package:flutter_sample/src/core/exceptions/firebase_auth_error_codes.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -33,6 +34,13 @@ void main() {
     when(() => mockL10n.errorTimeout).thenReturn('errorTimeout');
     when(() => mockL10n.errorUnknown).thenReturn('errorUnknown');
     when(() => mockL10n.errorServer).thenReturn('errorServer');
+    when(
+      () => mockL10n.errorUnauthenticated,
+    ).thenReturn('errorUnauthenticated');
+    when(() => mockL10n.errorUnauthorized).thenReturn('errorUnauthorized');
+    when(() => mockL10n.errorDataParse).thenReturn('errorDataParse');
+    when(() => mockL10n.errorDatabase).thenReturn('errorDatabase');
+    when(() => mockL10n.errorBadRequest).thenReturn('errorBadRequest');
     when(() => mockL10n.errorDialogTitle).thenReturn('errorDialogTitle');
     when(() => mockL10n.errorInvalidEmail).thenReturn('errorInvalidEmail');
     when(() => mockL10n.errorUserDisabled).thenReturn('errorUserDisabled');
@@ -84,7 +92,7 @@ void main() {
         onBuild: (context) {
           result = ErrorHandler.message(
             context,
-            const UnknownException(message: 'UNIQUE_CUSTOM_MSG'),
+            const AppException.unknown(message: 'UNIQUE_CUSTOM_MSG'),
           );
         },
       );
@@ -99,23 +107,65 @@ void main() {
         onBuild: (context) {
           // それぞれの Enum (型) に応じて正しい多言語化キーが返るか検証
           expect(
-            ErrorHandler.message(context, const NetworkException()),
+            ErrorHandler.message(context, const AppException.network()),
             'errorNetwork',
           );
           expect(
             ErrorHandler.message(
               context,
-              const NetworkException(statusCode: 500),
+              const AppException.server(statusCode: 500),
             ),
-            'errorServer',
+            'errorServer (500)',
           );
           expect(
-            ErrorHandler.message(context, const TimeoutException()),
+            ErrorHandler.message(context, const AppException.unauthenticated()),
+            'errorUnauthenticated',
+          );
+          expect(
+            ErrorHandler.message(context, const AppException.unauthorized()),
+            'errorUnauthorized',
+          );
+          expect(
+            ErrorHandler.message(context, const AppException.dataParse()),
+            'errorDataParse',
+          );
+          expect(
+            ErrorHandler.message(context, const AppException.database()),
+            'errorDatabase',
+          );
+          expect(
+            ErrorHandler.message(
+              context,
+              const AppException.badRequest(statusCode: 400),
+            ),
+            'errorBadRequest (400)',
+          );
+          expect(
+            ErrorHandler.message(context, const AppException.timeout()),
             'errorTimeout',
           );
           expect(
-            ErrorHandler.message(context, const UnknownException()),
+            ErrorHandler.message(context, const AppException.cancel()),
             'errorUnknown',
+          );
+          expect(
+            ErrorHandler.message(context, const AppException.unknown()),
+            'errorUnknown',
+          );
+        },
+      );
+    });
+
+    testWidgets('2-2. AppException (カスタムメッセージ優先) の分岐が正しいこと', (tester) async {
+      await setupWidget(
+        tester,
+        onBuild: (context) {
+          expect(
+            ErrorHandler.message(
+              context,
+              const AppException.network(message: 'CUSTOM_NETWORK'),
+            ),
+            'CUSTOM_NETWORK',
           );
         },
       );
@@ -131,7 +181,7 @@ void main() {
           // DioException の中に TimeoutException を仕込む
           final dioError = DioException(
             requestOptions: RequestOptions(path: '/'),
-            error: const TimeoutException(),
+            error: const AppException.timeout(),
           );
           result = ErrorHandler.message(context, dioError);
         },
@@ -217,7 +267,7 @@ void main() {
           builder: (context) => ElevatedButton(
             onPressed: () => ErrorHandler.showSnackBar(
               context,
-              const TimeoutException(),
+              const AppException.timeout(),
             ),
             child: const Text('Show'),
           ),
@@ -237,7 +287,7 @@ void main() {
           builder: (context) => ElevatedButton(
             onPressed: () => ErrorHandler.showDialogError(
               context,
-              const NetworkException(statusCode: 500),
+              const AppException.server(statusCode: 500),
             ),
             child: const Text('Show'),
           ),

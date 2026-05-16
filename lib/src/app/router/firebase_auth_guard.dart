@@ -23,7 +23,13 @@ String? firebaseAuthGuard(Ref ref, GoRouterState state) {
     return emailVerificationPath;
   }
 
-  return const AuthGuardHelper().redirect(
+  return AuthGuardHelper(
+    loginLocation: const LoginRoute().location,
+    homeLocation: const HomeRoute().location,
+    splashLocation: const SplashRoute().location,
+    signUpLocation: const SignUpRoute().location,
+    resetPasswordLocation: const ResetPasswordRoute().location,
+  ).redirect(
     isLoggedIn: isLoggedIn,
     state: state,
   );

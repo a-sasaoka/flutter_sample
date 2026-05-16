@@ -41,6 +41,8 @@ void main() {
     when(() => mockL10n.loginEmailLabel).thenReturn('メールアドレス');
     when(() => mockL10n.loginPasswordLabel).thenReturn('パスワード');
     when(() => mockL10n.signUp).thenReturn('登録する');
+    when(() => mockL10n.login).thenReturn('ログインへ戻る');
+    when(() => mockL10n.emailVerificationTitle).thenReturn('メール認証');
     when(() => mockL10n.errorUnknown).thenReturn('予期しないエラーが発生しました');
     when(
       () => mockL10n.errorEmailAlreadyInUse,
@@ -80,10 +82,11 @@ void main() {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
-      expect(find.text('新規登録'), findsOneWidget);
+      expect(find.widgetWithText(AppBar, '新規登録'), findsOneWidget);
       expect(find.text('メールアドレス'), findsOneWidget);
       expect(find.text('パスワード'), findsOneWidget);
       expect(find.text('登録する'), findsOneWidget);
+      expect(find.text('ログインへ戻る'), findsOneWidget);
     });
 
     testWidgets('未入力でボタンを押した場合は何も起きないこと(バリデーション)', (tester) async {

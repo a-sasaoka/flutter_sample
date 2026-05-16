@@ -5,14 +5,14 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'theme_mode_provider.g.dart';
 
 /// テーマモードの状態を管理・保存するプロバイダー
-@riverpod
+@Riverpod(keepAlive: true)
 class ThemeModeNotifier extends _$ThemeModeNotifier {
   static const _key = 'theme_mode'; // 保存用キー
 
   @override
   Future<ThemeMode> build() async {
     // SharedPreferencesから設定を取得
-    final prefs = await ref.watch(sharedPreferencesProvider.future);
+    final prefs = ref.watch(sharedPreferencesProvider);
     final value = await prefs.getString(_key);
 
     // 保存されていなければシステム設定を返す
@@ -26,7 +26,7 @@ class ThemeModeNotifier extends _$ThemeModeNotifier {
   /// モードを変更して保存
   Future<void> set(ThemeMode mode) async {
     state = AsyncData(mode); // 即時反映
-    final prefs = await ref.read(sharedPreferencesProvider.future);
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString(_key, mode.name);
   }
 

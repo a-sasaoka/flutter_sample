@@ -10,6 +10,6 @@ part 'shared_preferences_provider.g.dart';
 /// - 起動時に待ち時間が発生しない
 /// - テスト時に差し替えやすい
 @Riverpod(keepAlive: true)
-Future<SharedPreferencesAsync> sharedPreferences(Ref ref) async {
+SharedPreferencesAsync sharedPreferences(Ref ref) {
   return SharedPreferencesAsync();
 }

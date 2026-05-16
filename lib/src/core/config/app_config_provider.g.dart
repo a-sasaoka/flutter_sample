@@ -32,7 +32,7 @@ final class AppConfigProvider
         argument: null,
         retry: null,
         name: r'appConfigProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -53,4 +53,4 @@ final class AppConfigProvider
   }
 }
 
-String _$appConfigHash() => r'db1b57dbca1851c6be2d6c2b5d442d57cb0be79d';
+String _$appConfigHash() => r'c273de9ab09689ad485799cc7fb1f500cd0518c0';
