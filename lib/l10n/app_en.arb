@@ -8,6 +8,7 @@
   "loading": "Loading...",
   "send": "Send",
   "close": "Close",
+  "delete": "Delete",
 
   "@_AUTH": {},
   "login": "Login",

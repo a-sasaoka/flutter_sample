@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
+import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
 import 'package:flutter_sample/src/core/storage/token_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -39,13 +40,18 @@ TokenStorage tokenStorageInternal(Ref ref) {
 @Riverpod(keepAlive: true)
 Dio retryDio(Ref ref) {
   final config = ref.watch(envConfigProvider);
-  return Dio(
+  final dio = Dio(
     BaseOptions(
       connectTimeout: Duration(seconds: config.connectTimeout),
       receiveTimeout: Duration(seconds: config.receiveTimeout),
       sendTimeout: Duration(seconds: config.sendTimeout),
     ),
   );
+
+  // 共通のログ出力・エラー変換を適用
+  dio.interceptors.add(ref.watch(dioInterceptorProvider));
+
+  return dio;
 }
 // coverage:ignore-end
 

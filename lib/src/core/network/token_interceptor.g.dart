@@ -178,7 +178,7 @@ final class RetryDioProvider extends $FunctionalProvider<Dio, Dio, Dio>
   }
 }
 
-String _$retryDioHash() => r'57e06865667e1f8b4e43fff5b8dcf14345b145fc';
+String _$retryDioHash() => r'f8e8b1064b7d6de5e7156b1f605476b52219fa3a';
 
 /// トークンを自動で付与・更新するDioのインターセプター
 

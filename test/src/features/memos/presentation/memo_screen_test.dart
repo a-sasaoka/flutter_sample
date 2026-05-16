@@ -53,7 +53,7 @@ void main() {
     when(() => mockL10n.memoUnsynced).thenReturn('未同期');
     when(() => mockL10n.memoDeleteConfirm).thenReturn('削除しますか？');
     when(() => mockL10n.close).thenReturn('閉じる');
-    when(() => mockL10n.logout).thenReturn('削除');
+    when(() => mockL10n.delete).thenReturn('削除');
   });
 
   /// テスト環境のセットアップヘルパー

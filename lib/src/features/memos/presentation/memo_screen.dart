@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
@@ -37,68 +38,93 @@ class MemoScreen extends ConsumerWidget {
   }
 
   Future<void> _showAddMemoDialog(BuildContext context, WidgetRef ref) async {
-    final l10n = context.l10n;
-    final titleController = TextEditingController();
-    final contentController = TextEditingController();
-
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          24,
-          24,
-          24,
-          MediaQuery.of(context).viewInsets.bottom + 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              l10n.memoAdd,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+      builder: (context) => HookBuilder(
+        builder: (context) {
+          final l10n = context.l10n;
+          final titleController = useTextEditingController();
+          final contentController = useTextEditingController();
+          final isLoading = useState(false);
+
+          return Padding(
+            padding: EdgeInsets.fromLTRB(
+              24,
+              24,
+              24,
+              MediaQuery.of(context).viewInsets.bottom + 24,
             ),
-            const SizedBox(height: 24),
-            TextField(
-              controller: titleController,
-              decoration: InputDecoration(
-                labelText: l10n.memoInputTitleHint,
-                prefixIcon: const Icon(Icons.title),
-                border: const OutlineInputBorder(),
-              ),
-              autofocus: true,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  l10n.memoAdd,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                TextField(
+                  controller: titleController,
+                  decoration: InputDecoration(
+                    labelText: l10n.memoInputTitleHint,
+                    prefixIcon: const Icon(Icons.title),
+                    border: const OutlineInputBorder(),
+                  ),
+                  autofocus: true,
+                  enabled: !isLoading.value,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: contentController,
+                  decoration: InputDecoration(
+                    labelText: l10n.memoInputContentHint,
+                    prefixIcon: const Icon(Icons.notes),
+                    border: const OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                  enabled: !isLoading.value,
+                ),
+                const SizedBox(height: 24),
+                FilledButton.icon(
+                  onPressed: isLoading.value
+                      ? null
+                      : () async {
+                          final title = titleController.text;
+                          if (title.isNotEmpty) {
+                            isLoading.value = true;
+                            try {
+                              await ref
+                                  .read(memoProvider.notifier)
+                                  .addMemo(title, contentController.text);
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                              }
+                            } finally {
+                              if (context.mounted) {
+                                isLoading.value = false;
+                              }
+                            }
+                          }
+                        },
+                  icon: isLoading.value
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white70,
+                          ),
+                        )
+                      : const Icon(Icons.save),
+                  label: Text(l10n.memoSave),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: contentController,
-              decoration: InputDecoration(
-                labelText: l10n.memoInputContentHint,
-                prefixIcon: const Icon(Icons.notes),
-                border: const OutlineInputBorder(),
-              ),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: () async {
-                final title = titleController.text;
-                if (title.isNotEmpty) {
-                  await ref
-                      .read(memoProvider.notifier)
-                      .addMemo(title, contentController.text);
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                  }
-                }
-              },
-              icon: const Icon(Icons.save),
-              label: Text(l10n.memoSave),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -150,8 +176,15 @@ class _MemoListView extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(
-        child: Text(l10n.errorUnknown),
+      error: (e, st) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(l10n.errorUnknown),
+          ],
+        ),
       ),
     );
   }
@@ -225,7 +258,7 @@ class _MemoCard extends ConsumerWidget {
                   TextButton(
                     onPressed: () => Navigator.pop(context, true),
                     child: Text(
-                      l10n.logout, // "削除" がないので既存キー流用するか追加
+                      l10n.delete,
                       style: TextStyle(color: colorScheme.error),
                     ),
                   ),

@@ -27,6 +27,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get close => 'Close';
 
   @override
+  String get delete => 'Delete';
+
+  @override
   String get login => 'Login';
 
   @override

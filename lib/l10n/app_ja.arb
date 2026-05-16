@@ -8,6 +8,7 @@
   "loading": "読み込み中",
   "send": "送信",
   "close": "閉じる",
+  "delete": "削除",
 
   "@_AUTH": {},
   "login": "ログイン",
