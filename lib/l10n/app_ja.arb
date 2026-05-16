@@ -125,6 +125,7 @@
   "sampleDescription": "サンプル機能の画面です。ここにUIや状態管理を追加します。",
   "userListTitle": "ユーザー一覧",
   "userListEmpty": "ユーザーが見つかりませんでした。",
+  "userListFetchError": "ユーザー一覧の取得に失敗しました。下へスクロールして更新してください。",
   "retry": "再試行",
   "notFoundTitle": "ページが見つかりません",
   "notFoundMessage": "ページが見つかりませんでした。",

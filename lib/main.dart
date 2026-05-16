@@ -17,6 +17,7 @@ import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/network/token_interceptor.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
+import 'package:flutter_sample/src/core/utils/scaffold_messenger_key.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -139,6 +140,7 @@ class MyApp extends ConsumerWidget {
     return switch (configAsync) {
       AsyncData(value: (:final locale, :final theme, :final router)) =>
         MaterialApp.router(
+          scaffoldMessengerKey: scaffoldMessengerKey,
           locale: locale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,

@@ -113,3 +113,24 @@ SplashScreen表示（認証状態チェック）
 この構成により、ログイン状態を常に監視し、起動時・ログイン時・ログアウト時の画面遷移を完全に自動化・型安全化できます。
 
 ---
+
+## 🛠️ 画面遷移時の共通処理（NavigatorObserver）
+
+本プロジェクトでは、画面遷移をフックして共通の処理を行うために `NavigatorObserver` を活用しています。
+
+### 🚀 スナックバーの自動消去 (SnackBarNavigationObserver)
+
+Flutterのデフォルト仕様では、画面遷移してもスナックバーが残り続けてしまいます。これを防ぐため、画面遷移が発生したタイミングで表示中のスナックバーをすべて自動消去する仕組みを導入しています。
+
+- **実装場所**: `lib/src/app/router/snackbar_navigation_observer.dart`
+- **特徴**:
+  - **DIの徹底**: コンストラクタで `scaffoldMessengerKey` を受け取り、テスト容易性を確保しています。
+  - **網羅的な検知**: `didPush`, `didPop` に加え、`context.go()` などで使用される `didReplace` にも対応しています。
+  - **スマートな判定**: `PageRoute`（通常の画面）の遷移時のみ消去し、ダイアログやボトムシート（`PopupRoute`）の開閉時にはスナックバーを維持するように工夫されています。
+- **仕組み**:
+  1. `scaffoldMessengerKey` を `MaterialApp` に登録。
+  2. `GoRouter` の `observers` に `SnackBarNavigationObserver(scaffoldMessengerKey)` を追加。
+
+これにより、開発者が各画面で手動でお掃除コードを書く手間とミスを排除しています。
+
+---

@@ -325,6 +325,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get userListEmpty => 'No users found.';
 
   @override
+  String get userListFetchError =>
+      'Failed to fetch users. Please pull down to refresh.';
+
+  @override
   String get retry => 'Retry';
 
   @override
