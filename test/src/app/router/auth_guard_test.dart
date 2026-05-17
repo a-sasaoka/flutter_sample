@@ -87,7 +87,8 @@ void main() {
         const AsyncData<bool>(false),
         location: const HomeRoute().location,
       );
-      expect(result, const LoginRoute().location);
+      expect(result, startsWith(const LoginRoute().location));
+      expect(result, contains('from=${Uri.encodeComponent('/')}'));
     });
 
     test('未ログイン（Data: false）で、すでにログイン画面にいる場合、リダイレクトしないこと', () {
@@ -103,7 +104,8 @@ void main() {
         AsyncValue<bool>.error(Exception('Auth Error'), StackTrace.empty),
         location: const HomeRoute().location,
       );
-      expect(result, const LoginRoute().location);
+      expect(result, startsWith(const LoginRoute().location));
+      expect(result, contains('from=${Uri.encodeComponent('/')}'));
     });
   });
 }

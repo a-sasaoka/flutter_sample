@@ -9,7 +9,10 @@ part of '../app_router.dart';
 )
 class LoginRoute extends GoRouteData with $LoginRoute {
   /// コンストラクタ
-  const LoginRoute();
+  const LoginRoute({this.from});
+
+  /// ログイン後に遷移する元のパス
+  final String? from;
 
   @override
   Widget build(BuildContext context, GoRouterState state) {
