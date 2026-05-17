@@ -27,10 +27,8 @@ class TokenStorage {
     required String accessToken,
     required String refreshToken,
   }) async {
-    await Future.wait<void>([
-      _secureStorage.write(key: _accessTokenKey, value: accessToken),
-      _secureStorage.write(key: _refreshTokenKey, value: refreshToken),
-    ]);
+    await _secureStorage.write(key: _accessTokenKey, value: accessToken);
+    await _secureStorage.write(key: _refreshTokenKey, value: refreshToken);
   }
 
   /// アクセストークンを取得する
@@ -45,9 +43,7 @@ class TokenStorage {
 
   /// トークンを削除する
   Future<void> clear() async {
-    await Future.wait<void>([
-      _secureStorage.delete(key: _accessTokenKey),
-      _secureStorage.delete(key: _refreshTokenKey),
-    ]);
+    await _secureStorage.delete(key: _accessTokenKey);
+    await _secureStorage.delete(key: _refreshTokenKey);
   }
 }
