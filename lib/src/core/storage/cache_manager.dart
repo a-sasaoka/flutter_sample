@@ -46,24 +46,8 @@ class CacheManager {
 
   /// キャッシュを取得（期限切れならnull）
   Future<dynamic> get(String key) async {
-    final raw = await _prefs.getString(key);
-    if (raw == null) return null;
-
-    try {
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
-      final timestamp = DateTime.fromMillisecondsSinceEpoch(
-        decoded[_keyTimestamp] as int,
-      );
-      if (_getCurrentDateTime().difference(timestamp) > _cacheDuration) {
-        await _prefs.remove(key);
-        return null; // キャッシュ期限切れ
-      }
-      return decoded[_keyData];
-    } on Object catch (_) {
-      // JSONパースエラーや型の不一致などが起きた場合は、キャッシュが壊れているとみなして削除
-      await _prefs.remove(key);
-      return null;
-    }
+    final (data, _) = await getWithTimestamp(key);
+    return data;
   }
 
   /// キャッシュを削除
@@ -71,19 +55,31 @@ class CacheManager {
     await _prefs.remove(key);
   }
 
-  /// キャッシュの保存日時を取得
-  Future<DateTime?> getTimestamp(String key) async {
+  /// キャッシュデータと保存日時を同時に取得
+  /// 期限切れやエラーの場合は (null, null) を返す
+  Future<(dynamic data, DateTime? timestamp)> getWithTimestamp(
+    String key,
+  ) async {
     final raw = await _prefs.getString(key);
-    if (raw == null) return null;
+    if (raw == null) return (null, null);
 
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
-      return DateTime.fromMillisecondsSinceEpoch(
+      final timestamp = DateTime.fromMillisecondsSinceEpoch(
         decoded[_keyTimestamp] as int,
       );
+
+      // 有効期限チェック
+      if (_getCurrentDateTime().difference(timestamp) > _cacheDuration) {
+        await _prefs.remove(key);
+        return (null, null);
+      }
+
+      return (decoded[_keyData], timestamp);
     } on Object catch (_) {
-      // JSONパースエラーや型の不一致などが起きた場合はnullを返す
-      return null;
+      // JSONパースエラーや型の不一致などが起きた場合は、キャッシュが壊れているとみなして削除
+      await _prefs.remove(key);
+      return (null, null);
     }
   }
 }

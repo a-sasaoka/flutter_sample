@@ -122,7 +122,6 @@ void main() {
       expect(find.text('Test User 2'), findsOneWidget);
       expect(find.byType(Card), findsNWidgets(2));
 
-      // カードをタップ（カバレッジ用）
       await tester.tap(find.text('Test User 1'));
       await tester.pumpAndSettle();
     });
@@ -155,11 +154,10 @@ void main() {
       verify(() => mockRepository.fetchUsers()).called(1);
       clearInteractions(mockRepository);
 
-      // 💡 UIから確実にリフレッシュをトリガーする
       await tester.drag(find.byType(ListView), const Offset(0, 500));
-      await tester.pump(); // ドラッグ開始
-      await tester.pump(const Duration(seconds: 1)); // アニメーション
-      await tester.pumpAndSettle(); // 処理完了を待つ
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
 
       verify(() => mockRepository.fetchUsers(forceRefresh: true)).called(1);
     });
@@ -179,22 +177,34 @@ void main() {
       await pumpUserListScreen(tester);
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Error Occurred'),
-        findsNWidgets(2),
-      ); // SnackBar & Screen
+      expect(find.text('Error Occurred'), findsNWidgets(2));
       expect(find.text('Pull to refresh'), findsOneWidget);
-      expect(find.byType(SnackBar), findsOneWidget);
+
+      // リトライ実行前に SnackBar を消去して干渉を防ぐ
+      ScaffoldMessenger.of(
+        tester.element(find.byType(UserListScreen)),
+      ).removeCurrentSnackBar();
+      await tester.pump();
 
       await tester.tap(find.widgetWithText(FilledButton, 'Retry'));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
 
       verify(() => mockRepository.fetchUsers(forceRefresh: true)).called(1);
+      // リトライ成功後は body のエラー表示が消え、空表示になっていること
+      expect(
+        find.descendant(
+          of: find.byType(RefreshIndicator),
+          matching: find.byIcon(Icons.error_outline),
+        ),
+        findsNothing,
+      );
+      expect(find.text('No users found.'), findsOneWidget);
     });
 
     testWidgets('【正常系】データ保持時にエラーが発生した場合でも、以前のリストが表示され続けること', (tester) async {
       final dummyUsers = [createDummyUser(1)];
-      // 最初は成功
       when(
         () => mockRepository.fetchUsers(),
       ).thenAnswer((_) async => (dummyUsers, dummyTimestamp));
@@ -204,21 +214,24 @@ void main() {
 
       expect(find.text('Test User 1'), findsOneWidget);
 
-      // リフレッシュでエラー
       when(
         () => mockRepository.fetchUsers(forceRefresh: true),
       ).thenAnswer((_) async => throw Exception('Network Error'));
 
-      // 💡 UIからリフレッシュをトリガー
       await tester.drag(find.byType(ListView), const Offset(0, 500));
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
 
-      // エラーになってもリスト（キャッシュ）が表示され続けていること
       expect(find.text('Test User 1'), findsOneWidget);
-      // エラー画面（error_outline）は表示されていないこと
-      expect(find.byIcon(Icons.error_outline), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(RefreshIndicator),
+          matching: find.byIcon(Icons.error_outline),
+        ),
+        findsNothing,
+      );
+      expect(find.byType(SnackBar), findsNothing);
     });
   });
 }

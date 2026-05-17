@@ -52,16 +52,15 @@ class UserRepository {
   }) async {
     // 強制更新でない場合のみ、キャッシュを確認する
     if (!forceRefresh) {
-      if (await cache.get(cacheKey) case final List<dynamic> cachedData) {
-        // キャッシュの保存日時も取得
-        final timestamp = await cache.getTimestamp(cacheKey) ?? clock();
+      final (cachedData, timestamp) = await cache.getWithTimestamp(cacheKey);
+      if (cachedData case final List<dynamic> data) {
         // キャッシュから読み込む
         talker.debug('Loaded users from cache.');
         return (
-          cachedData
+          data
               .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
               .toList(growable: false),
-          timestamp,
+          timestamp ?? clock(),
         );
       }
     }

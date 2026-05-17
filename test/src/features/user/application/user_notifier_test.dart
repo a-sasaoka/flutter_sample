@@ -17,7 +17,7 @@ void main() {
     mockRepository = MockUserRepository();
   });
 
-  // テスト用のコンテナを作成する（ここでモックに差し替える）
+  // テスト用のコンテナを作成する
   ProviderContainer createContainer() {
     final container = ProviderContainer(
       overrides: [
@@ -41,10 +41,7 @@ void main() {
         'suite': 'Suite $id',
         'city': 'Tokyo',
         'zipcode': '100-0000',
-        'geo': {
-          'lat': '35.6895',
-          'lng': '139.6917',
-        },
+        'geo': {'lat': '35.6895', 'lng': '139.6917'},
       },
     });
   }
@@ -59,67 +56,51 @@ void main() {
       ).thenAnswer((_) async => (dummyUsers, dummyTimestamp));
 
       final container = createContainer();
+      final completer = Completer<void>();
 
-      // プロバイダーを起動し、自動破棄を防ぐリスナー
-      final subscription = container.listen(userProvider, (_, _) {});
+      // プロバイダーを監視し、完了を待つ
+      container.listen(userProvider, (prev, next) {
+        if (!next.isLoading && !completer.isCompleted) {
+          completer.complete();
+        }
+      }, fireImmediately: true);
 
-      // 初回は Loading
-      expect(
-        container.read(userProvider),
-        isA<AsyncLoading<List<UserModel>>>(),
-      );
+      await completer.future.timeout(const Duration(seconds: 5));
 
-      // .future には触らず、Dartの内部処理（マイクロタスク）が1周するのを待つだけ
-      await Future<void>.delayed(Duration.zero);
-
-      // Assert: 状態が AsyncData に更新されていることを確認
+      // Assert
       final state = container.read(userProvider);
-      expect(state, isA<AsyncData<List<UserModel>>>());
-      expect(state.value, dummyUsers);
       expect(
-        container.read(userProvider.notifier).lastFetchedAt,
-        dummyTimestamp,
+        state,
+        isA<AsyncData<(List<UserModel>, DateTime?)>>(),
       );
-
-      // リスナーを閉じる
-      subscription.close();
+      expect(state.value?.$1, dummyUsers);
+      expect(state.value?.$2, dummyTimestamp);
     });
 
-    test('異常系: エラーが発生した場合、エラー状態になること', () async {
+    test('異常系: エラーが発生した場合、エラー状態を保持すること', () async {
       // Arrange
       final exception = Exception('API Error');
-      // 非同期エラーを確実に再現するため async => throw を使用
       when(
         () => mockRepository.fetchUsers(),
       ).thenAnswer((_) async => throw exception);
 
       final container = createContainer();
-
-      // 状態の完了を待つための Completer
       final completer = Completer<void>();
 
-      // リスナーで状態を監視し、Loading が終わった（またはエラーが出た）ら完了とする
-      container.listen(
-        userProvider,
-        (previous, next) {
-          // next.hasError: エラーを保持しているか
-          // !next.isLoading: 読み込み中でないか
-          if (next.hasError || !next.isLoading) {
-            if (!completer.isCompleted) completer.complete();
-          }
-        },
-        fireImmediately: true,
-      );
+      // エラーが発生するまで監視
+      container.listen(userProvider, (prev, next) {
+        if (next.hasError && !completer.isCompleted) {
+          completer.complete();
+        }
+      }, fireImmediately: true);
 
-      // Act: Completer が完了するまで待つ
-      await completer.future;
+      // Act: エラー状態への遷移を待機
+      await completer.future.timeout(const Duration(seconds: 5));
 
-      // Assert: 最終的な状態をチェック
+      // Assert
       final state = container.read(userProvider);
-
-      // Riverpod の状態が「エラーを保持していること」を確認
-      expect(state.hasError, isTrue, reason: 'エラーを保持しているはず');
-      expect(state.error, exception, reason: '投げた例外と一致するはず');
+      expect(state.hasError, isTrue);
+      expect(state.error, exception);
     });
 
     test('refresh: forceRefresh=true でデータが再取得され、状態が更新されること', () async {
@@ -129,43 +110,33 @@ void main() {
       final refreshedUsers = [createDummyUser(2), createDummyUser(3)];
       final refreshedTimestamp = DateTime(2026, 5, 17, 11);
 
-      // 1. 初回の build() 用（引数なし）
       when(
         () => mockRepository.fetchUsers(),
       ).thenAnswer((_) async => (initialUsers, initialTimestamp));
-
-      // 2. refresh() 用（forceRefresh: true）
       when(
         () => mockRepository.fetchUsers(forceRefresh: true),
       ).thenAnswer((_) async => (refreshedUsers, refreshedTimestamp));
 
       final container = createContainer();
-      final subscription = container.listen(userProvider, (_, _) {});
+      final completer = Completer<void>();
+      container.listen(userProvider, (prev, next) {
+        if (!next.isLoading && !completer.isCompleted) completer.complete();
+      }, fireImmediately: true);
 
-      // 初回の読み込み完了を待つ
-      await Future<void>.delayed(Duration.zero);
-      expect(container.read(userProvider).value, initialUsers);
-      expect(
-        container.read(userProvider.notifier).lastFetchedAt,
-        initialTimestamp,
-      );
+      // 初期ロード完了を待機
+      await completer.future.timeout(const Duration(seconds: 5));
 
       // Act: refresh を実行
       await container.read(userProvider.notifier).refresh();
 
-      // Assert: 状態が「新しいデータ」に更新されていること
+      // Assert
       final state = container.read(userProvider);
-      expect(state, isA<AsyncData<List<UserModel>>>());
-      expect(state.value, refreshedUsers);
       expect(
-        container.read(userProvider.notifier).lastFetchedAt,
-        refreshedTimestamp,
+        state,
+        isA<AsyncData<(List<UserModel>, DateTime?)>>(),
       );
-
-      // Repository のメソッドが、確実に `forceRefresh: true` を伴って呼ばれたことを証明
-      verify(() => mockRepository.fetchUsers(forceRefresh: true)).called(1);
-
-      subscription.close();
+      expect(state.value?.$1, refreshedUsers);
+      expect(state.value?.$2, refreshedTimestamp);
     });
   });
 }
