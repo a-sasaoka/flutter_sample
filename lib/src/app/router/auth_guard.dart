@@ -20,10 +20,13 @@ String? authGuard(Ref ref, GoRouterState state) {
 
   return AuthGuardHelper(
     loginLocation: const LoginRoute().location,
-    homeLocation: const HomeRoute().location,
-    splashLocation: const SplashRoute().location,
-    signUpLocation: const SignUpRoute().location,
-    resetPasswordLocation: const ResetPasswordRoute().location,
+    defaultLocation: const HomeRoute().location,
+    guestOnlyPaths: {
+      const LoginRoute().location,
+    },
+    alwaysPublicPaths: {
+      const SplashRoute().location,
+    },
   ).redirect(
     isLoggedIn: isLoggedIn,
     state: state,

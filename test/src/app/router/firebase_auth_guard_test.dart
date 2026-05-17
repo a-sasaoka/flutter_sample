@@ -74,8 +74,9 @@ void main() {
       // ユーザーが null (未ログイン)
       final result = executeGuard(null);
 
-      // AuthGuardHelper によりログイン画面へリダイレクトされることを確認
-      expect(result, const LoginRoute().location);
+      // AuthGuardHelper によりログイン画面へリダイレクトされることを確認（fromパラメータ付き）
+      expect(result, startsWith(const LoginRoute().location));
+      expect(result, contains('from=${Uri.encodeComponent('/')}'));
     });
   });
 }

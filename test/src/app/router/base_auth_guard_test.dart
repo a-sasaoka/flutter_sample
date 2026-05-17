@@ -13,9 +13,14 @@ void main() {
   setUp(() {
     helper = AuthGuardHelper(
       loginLocation: const LoginRoute().location,
-      homeLocation: const HomeRoute().location,
-      splashLocation: const SplashRoute().location,
-      signUpLocation: const SignUpRoute().location,
+      defaultLocation: const HomeRoute().location,
+      guestOnlyPaths: {
+        const LoginRoute().location,
+        const SignUpRoute().location,
+      },
+      alwaysPublicPaths: {
+        const SplashRoute().location,
+      },
     );
     mockState = MockGoRouterState();
   });
@@ -26,20 +31,23 @@ void main() {
   }
 
   group('AuthGuardHelper.redirect', () {
-    test('未ログインで非公開画面（ホーム）に行こうとした場合、ログイン画面にリダイレクトすること', () {
+    test('未ログインで非公開画面（ホーム）に行こうとした場合、fromパラメータ付きでログイン画面にリダイレクトすること', () {
       // Arrange
-      setLocation(const HomeRoute().location); // '/'
+      const destination = '/'; // HomeRoute().location
+      setLocation(destination);
 
       // Act
       final result = helper.redirect(isLoggedIn: false, state: mockState);
 
       // Assert
-      expect(result, const LoginRoute().location); // '/login'
+      // '/login?from=%2F' のような形式になるはず
+      expect(result, contains(const LoginRoute().location));
+      expect(result, contains('from=${Uri.encodeComponent(destination)}'));
     });
 
-    test('未ログインでも公開画面（サインアップ）に行こうとした場合、リダイレクトしないこと', () {
+    test('未ログインでもゲスト専用画面（サインアップ）に行こうとした場合、リダイレクトしないこと', () {
       // Arrange
-      setLocation(const SignUpRoute().location); // '/signup'
+      setLocation(const SignUpRoute().location);
 
       // Act
       final result = helper.redirect(isLoggedIn: false, state: mockState);
@@ -48,20 +56,43 @@ void main() {
       expect(result, isNull);
     });
 
-    test('ログイン済みでログイン画面に行こうとした場合、ホームにリダイレクトすること', () {
+    test('未ログインでも常に公開されている画面（スプラッシュ）に行こうとした場合、リダイレクトしないこと', () {
       // Arrange
-      setLocation(const LoginRoute().location); // '/login'
+      setLocation(const SplashRoute().location);
+
+      // Act
+      final result = helper.redirect(isLoggedIn: false, state: mockState);
+
+      // Assert
+      expect(result, isNull);
+    });
+
+    test('ログイン済みでゲスト専用画面（ログイン画面）に行こうとした場合、ホームにリダイレクトすること', () {
+      // Arrange
+      setLocation(const LoginRoute().location);
 
       // Act
       final result = helper.redirect(isLoggedIn: true, state: mockState);
 
       // Assert
-      expect(result, const HomeRoute().location); // '/'
+      expect(result, const HomeRoute().location);
     });
 
-    test('ログイン済みで非公開画面（ホーム）に行く場合、リダイレクトしないこと', () {
+    test('ログイン済みかつfromパラメータがある状態でゲスト専用画面に行こうとした場合、fromの場所へリダイレクトすること', () {
       // Arrange
-      setLocation(const HomeRoute().location); // '/'
+      const fromPath = '/settings';
+      setLocation('${const LoginRoute().location}?from=$fromPath');
+
+      // Act
+      final result = helper.redirect(isLoggedIn: true, state: mockState);
+
+      // Assert
+      expect(result, fromPath);
+    });
+
+    test('ログイン済みで認証必須画面（ホーム）に行く場合、リダイレクトしないこと', () {
+      // Arrange
+      setLocation(const HomeRoute().location);
 
       // Act
       final result = helper.redirect(isLoggedIn: true, state: mockState);
@@ -70,9 +101,9 @@ void main() {
       expect(result, isNull);
     });
 
-    test('ログイン済みで公開画面（スプラッシュ）に行く場合、条件に合致しないためリダイレクトしないこと', () {
+    test('ログイン済みで常に公開されている画面（スプラッシュ）に行く場合、リダイレクトしないこと', () {
       // Arrange
-      setLocation(const SplashRoute().location); // '/splash'
+      setLocation(const SplashRoute().location);
 
       // Act
       final result = helper.redirect(isLoggedIn: true, state: mockState);

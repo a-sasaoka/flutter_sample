@@ -71,9 +71,6 @@ class FirebaseLoginScreen extends HookConsumerWidget {
                               emailCtrl.text,
                               passwordCtrl.text,
                             );
-                        if (context.mounted) {
-                          const HomeRoute().go(context);
-                        }
                       } on Exception catch (e) {
                         if (context.mounted) {
                           ErrorHandler.showSnackBar(context, e);
@@ -111,10 +108,6 @@ class FirebaseLoginScreen extends HookConsumerWidget {
                             .signInWithGoogle();
 
                         if (!isSignedIn) return;
-
-                        if (context.mounted) {
-                          const HomeRoute().go(context);
-                        }
                       } on Exception catch (e) {
                         if (context.mounted) {
                           ErrorHandler.showSnackBar(context, e);

@@ -95,7 +95,7 @@ void main() {
     });
 
     group('メール・パスワードログイン', () {
-      testWidgets('入力値が Repository に渡され、成功時に HomeRoute に遷移すること', (
+      testWidgets('入力値が Repository に渡されること', (
         tester,
       ) async {
         when(
@@ -120,9 +120,6 @@ void main() {
         verify(
           () => mockAuthRepo.signIn('test@example.com', 'password123'),
         ).called(1);
-
-        // 画面遷移したことを確認
-        expect(find.textContaining('Navigated to'), findsOneWidget);
       });
 
       testWidgets('ログイン処理中、ローディング表示になり入力がロックされること', (tester) async {
@@ -193,7 +190,7 @@ void main() {
     });
 
     group('Googleログイン', () {
-      testWidgets('ログイン成功時(trueを返す場合)、HomeRouteに遷移すること', (tester) async {
+      testWidgets('ログイン成功時(trueを返す場合)、Repositoryが呼ばれること', (tester) async {
         when(
           () => mockAuthRepo.signInWithGoogle(),
         ).thenAnswer((_) async => true);
@@ -205,7 +202,6 @@ void main() {
         await tester.pumpAndSettle();
 
         verify(() => mockAuthRepo.signInWithGoogle()).called(1);
-        expect(find.textContaining('Navigated to'), findsOneWidget);
       });
 
       testWidgets('ログインキャンセル時(falseを返す場合)、何も起きないこと', (tester) async {
