@@ -692,6 +692,12 @@ abstract class AppLocalizations {
   /// **'User List'**
   String get userListTitle;
 
+  /// No description provided for @userListLastFetched.
+  ///
+  /// In en, this message translates to:
+  /// **'Last fetched: {dateTime}'**
+  String userListLastFetched(String dateTime);
+
   /// No description provided for @userListEmpty.
   ///
   /// In en, this message translates to:

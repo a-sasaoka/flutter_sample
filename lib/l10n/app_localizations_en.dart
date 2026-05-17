@@ -322,6 +322,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get userListTitle => 'User List';
 
   @override
+  String userListLastFetched(String dateTime) {
+    return 'Last fetched: $dateTime';
+  }
+
+  @override
   String get userListEmpty => 'No users found.';
 
   @override

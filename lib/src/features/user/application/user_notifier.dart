@@ -7,10 +7,17 @@ part 'user_notifier.g.dart';
 /// UserNotifier
 @riverpod
 class UserNotifier extends _$UserNotifier {
+  /// 最後にデータを取得した日時
+  DateTime? lastFetchedAt;
+
   @override
   Future<List<UserModel>> build() async {
     // 初回表示時は通常通り（キャッシュがあればキャッシュを使う）
-    return ref.watch(userRepositoryProvider).fetchUsers();
+    final (users, fetchedAt) = await ref
+        .watch(userRepositoryProvider)
+        .fetchUsers();
+    lastFetchedAt = fetchedAt;
+    return users;
   }
 
   /// 引っ張って更新などで強制的にAPIから再取得する
@@ -20,7 +27,11 @@ class UserNotifier extends _$UserNotifier {
 
     // 非同期で状態を上書きする（forceRefresh: true）
     state = await AsyncValue.guard(() async {
-      return ref.read(userRepositoryProvider).fetchUsers(forceRefresh: true);
+      final (users, fetchedAt) = await ref
+          .read(userRepositoryProvider)
+          .fetchUsers(forceRefresh: true);
+      lastFetchedAt = fetchedAt;
+      return users;
     });
   }
 }

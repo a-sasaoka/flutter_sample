@@ -17,22 +17,60 @@ class UserListScreen extends HookConsumerWidget {
 
     // エラー時のスナックバー表示は `ref.listen` で監視する
     ref.listen(userProvider, (previous, next) {
+      // すでにデータ（キャッシュ）がある場合は、エラーのスナックバーを出さないようにする
+      if (next.hasValue) return;
+
       if (next case AsyncError(:final error) when !next.isLoading) {
         ErrorHandler.showSnackBar(context, error);
       }
     });
 
     final usersAsync = ref.watch(userProvider);
+    final lastFetchedAt = ref.watch(userProvider.notifier).lastFetchedAt;
     final isRetrying = useState(false);
 
     // リフレッシュ処理の共通化
     Future<void> onRefresh() => ref.read(userProvider.notifier).refresh();
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.userListTitle)),
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.userListTitle),
+            if (lastFetchedAt != null)
+              Text(
+                l10n.userListLastFetched(
+                  '${lastFetchedAt.year}/'
+                  '${lastFetchedAt.month.toString().padLeft(2, '0')}/'
+                  '${lastFetchedAt.day.toString().padLeft(2, '0')} '
+                  '${lastFetchedAt.hour.toString().padLeft(2, '0')}:'
+                  '${lastFetchedAt.minute.toString().padLeft(2, '0')}',
+                ),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.normal,
+                ),
+              ),
+          ],
+        ),
+      ),
       body: switch (usersAsync) {
+        // 💡 データがある場合 (エラーやローディング中でも、データがあれば表示)
+        AsyncValue(:final value?) when value.isNotEmpty => RefreshIndicator(
+          onRefresh: onRefresh,
+          child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            itemCount: value.length,
+            itemBuilder: (context, index) {
+              final user = value[index];
+              return _UserCard(key: ValueKey(user.id), user: user);
+            },
+          ),
+        ),
         // 💡 データが空の場合
-        AsyncData(value: final list) when list.isEmpty => RefreshIndicator(
+        AsyncValue(:final value?) when value.isEmpty => RefreshIndicator(
           onRefresh: onRefresh,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -60,20 +98,7 @@ class UserListScreen extends HookConsumerWidget {
             ],
           ),
         ),
-        // 💡 データがある場合
-        AsyncData(value: final list) => RefreshIndicator(
-          onRefresh: onRefresh,
-          child: ListView.builder(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            itemCount: list.length,
-            itemBuilder: (context, index) {
-              final user = list[index];
-              return _UserCard(key: ValueKey(user.id), user: user);
-            },
-          ),
-        ),
-        // 💡 エラー状態
+        // 💡 エラー状態 (データがない場合)
         AsyncError() => RefreshIndicator(
           onRefresh: onRefresh,
           child: ListView(

@@ -1,6 +1,7 @@
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/storage/cache_manager.dart';
+import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/user/domain/user_model.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -15,6 +16,7 @@ UserRepository userRepository(Ref ref) {
     api: ref.watch(apiClientProvider),
     cache: ref.watch(cacheManagerProvider),
     talker: ref.watch(loggerProvider),
+    clock: ref.watch(clockProvider),
   );
 }
 
@@ -25,6 +27,7 @@ class UserRepository {
     required this.api,
     required this.cache,
     required this.talker,
+    required this.clock,
   });
 
   /// APIクライアント
@@ -36,20 +39,30 @@ class UserRepository {
   /// ロガー
   final Talker talker;
 
+  /// 現在日時取得関数
+  final DateTime Function() clock;
+
   /// キャッシュのキー
   static const cacheKey = 'users';
 
   /// ユーザー一覧を取得
   /// [forceRefresh] true の場合はキャッシュを無視してAPIから再取得する
-  Future<List<UserModel>> fetchUsers({bool forceRefresh = false}) async {
+  Future<(List<UserModel>, DateTime)> fetchUsers({
+    bool forceRefresh = false,
+  }) async {
     // 強制更新でない場合のみ、キャッシュを確認する
     if (!forceRefresh) {
       if (await cache.get(cacheKey) case final List<dynamic> cachedData) {
+        // キャッシュの保存日時も取得
+        final timestamp = await cache.getTimestamp(cacheKey) ?? clock();
         // キャッシュから読み込む
         talker.debug('Loaded users from cache.');
-        return cachedData
-            .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
-            .toList(growable: false);
+        return (
+          cachedData
+              .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
+              .toList(growable: false),
+          timestamp,
+        );
       }
     }
 
@@ -64,10 +77,10 @@ class UserRepository {
       await cache.save(cacheKey, data);
       talker.debug('Fetched users from API and saved to cache.');
 
-      return users;
+      return (users, clock());
     }
 
-    return [];
+    return (<UserModel>[], clock());
   }
 
   /// ユーザーを新規作成する (POSTのサンプル)

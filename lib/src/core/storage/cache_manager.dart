@@ -70,4 +70,20 @@ class CacheManager {
   Future<void> clear(String key) async {
     await _prefs.remove(key);
   }
+
+  /// キャッシュの保存日時を取得
+  Future<DateTime?> getTimestamp(String key) async {
+    final raw = await _prefs.getString(key);
+    if (raw == null) return null;
+
+    try {
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      return DateTime.fromMillisecondsSinceEpoch(
+        decoded[_keyTimestamp] as int,
+      );
+    } on Object catch (_) {
+      // JSONパースエラーや型の不一致などが起きた場合はnullを返す
+      return null;
+    }
+  }
 }

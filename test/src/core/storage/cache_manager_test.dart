@@ -157,6 +157,52 @@ void main() {
       // Assert
       verify(() => mockPrefs.remove(testKey)).called(1);
     });
+
+    test('getTimestamp: キャッシュの保存日時を正しく取得できること', () async {
+      // Arrange
+      final timestamp = DateTime(2026, 5, 17, 10).millisecondsSinceEpoch;
+      final cacheData = jsonEncode({
+        'timestamp': timestamp,
+        'data': testValue,
+      });
+      when(
+        () => mockPrefs.getString(testKey),
+      ).thenAnswer((_) async => cacheData);
+      final manager = container.read(cacheManagerProvider);
+
+      // Act
+      final result = await manager.getTimestamp(testKey);
+
+      // Assert
+      expect(result, DateTime.fromMillisecondsSinceEpoch(timestamp));
+    });
+
+    test('getTimestamp: キャッシュが存在しない場合は null を返すこと', () async {
+      // Arrange
+      when(() => mockPrefs.getString(testKey)).thenAnswer((_) async => null);
+      final manager = container.read(cacheManagerProvider);
+
+      // Act
+      final result = await manager.getTimestamp(testKey);
+
+      // Assert
+      expect(result, isNull);
+    });
+
+    test('getTimestamp: JSONパースエラーが発生した場合は null を返すこと', () async {
+      // Arrange
+      const invalidJson = '{ invalid }';
+      when(
+        () => mockPrefs.getString(testKey),
+      ).thenAnswer((_) async => invalidJson);
+      final manager = container.read(cacheManagerProvider);
+
+      // Act
+      final result = await manager.getTimestamp(testKey);
+
+      // Assert
+      expect(result, isNull);
+    });
   });
 
   group('CacheManager ユニットテスト (Providerなし)', () {

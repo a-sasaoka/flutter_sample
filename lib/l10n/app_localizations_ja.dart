@@ -310,6 +310,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get userListTitle => 'ユーザー一覧';
 
   @override
+  String userListLastFetched(String dateTime) {
+    return '最終取得: $dateTime';
+  }
+
+  @override
   String get userListEmpty => 'ユーザーが見つかりませんでした。';
 
   @override

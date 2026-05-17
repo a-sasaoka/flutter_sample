@@ -124,6 +124,14 @@
   "sampleTitle": "サンプル機能",
   "sampleDescription": "サンプル機能の画面です。ここにUIや状態管理を追加します。",
   "userListTitle": "ユーザー一覧",
+  "userListLastFetched": "最終取得: {dateTime}",
+  "@userListLastFetched": {
+    "placeholders": {
+      "dateTime": {
+        "type": "String"
+      }
+    }
+  },
   "userListEmpty": "ユーザーが見つかりませんでした。",
   "userListFetchError": "ユーザー一覧の取得に失敗しました。下へスクロールして更新してください。",
   "retry": "再試行",

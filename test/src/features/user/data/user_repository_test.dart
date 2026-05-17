@@ -44,6 +44,7 @@ void main() {
       api: mockApi,
       cache: mockCache,
       talker: mockTalker,
+      clock: () => DateTime(2026, 5, 17, 10),
     );
   });
 
@@ -67,19 +68,24 @@ void main() {
   };
 
   final dummyJsonList = [dummyJson];
+  final dummyTimestamp = DateTime(2026, 5, 17, 9);
 
   group('UserRepository - fetchUsers', () {
     test('キャッシュが存在する場合、APIは呼ばれずにキャッシュからデータが返されること', () async {
       // Arrange (準備)
       // キャッシュマネージャーがデータ（JSONリスト）を返すように設定
       when(() => mockCache.get('users')).thenAnswer((_) async => dummyJsonList);
+      when(
+        () => mockCache.getTimestamp('users'),
+      ).thenAnswer((_) async => dummyTimestamp);
 
       // Act (実行)
-      final result = await repository.fetchUsers();
+      final (users, fetchedAt) = await repository.fetchUsers();
 
       // Assert (検証)
-      expect(result.length, 1);
-      expect(result.first.name, 'Test User 1');
+      expect(users.length, 1);
+      expect(users.first.name, 'Test User 1');
+      expect(fetchedAt, dummyTimestamp);
 
       // API通信とキャッシュ保存が「絶対に呼ばれていないこと」を確認
       verifyNever(() => mockApi.get<List<dynamic>>(any()));
@@ -107,11 +113,12 @@ void main() {
       ).thenAnswer((_) async {});
 
       // Act (実行)
-      final result = await repository.fetchUsers();
+      final (users, fetchedAt) = await repository.fetchUsers();
 
       // Assert (検証)
-      expect(result.length, 1);
-      expect(result.first.name, 'Test User 1');
+      expect(users.length, 1);
+      expect(users.first.name, 'Test User 1');
+      expect(fetchedAt, DateTime(2026, 5, 17, 10));
 
       // API通信が1回呼ばれ、取得したデータがキャッシュに1回保存されていることを確認
       verify(() => mockApi.get<List<dynamic>>('/users')).called(1);
@@ -131,10 +138,10 @@ void main() {
       ).thenAnswer((_) async => mockResponse);
 
       // Act (実行)
-      final result = await repository.fetchUsers();
+      final (users, _) = await repository.fetchUsers();
 
       // Assert (検証)
-      expect(result, isEmpty);
+      expect(users, isEmpty);
 
       verify(() => mockApi.get<List<dynamic>>('/users')).called(1);
       verifyNever(() => mockCache.save(any<String>(), any<dynamic>()));
@@ -155,11 +162,14 @@ void main() {
 
       // Act (実行)
       // 引数に forceRefresh: true を渡す
-      final result = await repository.fetchUsers(forceRefresh: true);
+      final (users, fetchedAt) = await repository.fetchUsers(
+        forceRefresh: true,
+      );
 
       // Assert (検証)
-      expect(result.length, 1);
-      expect(result.first.name, 'Test User 1');
+      expect(users.length, 1);
+      expect(users.first.name, 'Test User 1');
+      expect(fetchedAt, DateTime(2026, 5, 17, 10));
 
       verifyNever(() => mockCache.get(any<String>()));
 

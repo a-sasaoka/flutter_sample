@@ -53,9 +53,10 @@ void main() {
     test('正常系: データが正しく取得でき、AsyncData になること', () async {
       // Arrange
       final dummyUsers = [createDummyUser(1)];
+      final dummyTimestamp = DateTime(2026, 5, 17, 10);
       when(
         () => mockRepository.fetchUsers(),
-      ).thenAnswer((_) async => dummyUsers);
+      ).thenAnswer((_) async => (dummyUsers, dummyTimestamp));
 
       final container = createContainer();
 
@@ -75,6 +76,10 @@ void main() {
       final state = container.read(userProvider);
       expect(state, isA<AsyncData<List<UserModel>>>());
       expect(state.value, dummyUsers);
+      expect(
+        container.read(userProvider.notifier).lastFetchedAt,
+        dummyTimestamp,
+      );
 
       // リスナーを閉じる
       subscription.close();
@@ -120,17 +125,19 @@ void main() {
     test('refresh: forceRefresh=true でデータが再取得され、状態が更新されること', () async {
       // Arrange
       final initialUsers = [createDummyUser(1)];
+      final initialTimestamp = DateTime(2026, 5, 17, 10);
       final refreshedUsers = [createDummyUser(2), createDummyUser(3)];
+      final refreshedTimestamp = DateTime(2026, 5, 17, 11);
 
       // 1. 初回の build() 用（引数なし）
       when(
         () => mockRepository.fetchUsers(),
-      ).thenAnswer((_) async => initialUsers);
+      ).thenAnswer((_) async => (initialUsers, initialTimestamp));
 
       // 2. refresh() 用（forceRefresh: true）
       when(
         () => mockRepository.fetchUsers(forceRefresh: true),
-      ).thenAnswer((_) async => refreshedUsers);
+      ).thenAnswer((_) async => (refreshedUsers, refreshedTimestamp));
 
       final container = createContainer();
       final subscription = container.listen(userProvider, (_, _) {});
@@ -138,6 +145,10 @@ void main() {
       // 初回の読み込み完了を待つ
       await Future<void>.delayed(Duration.zero);
       expect(container.read(userProvider).value, initialUsers);
+      expect(
+        container.read(userProvider.notifier).lastFetchedAt,
+        initialTimestamp,
+      );
 
       // Act: refresh を実行
       await container.read(userProvider.notifier).refresh();
@@ -146,6 +157,10 @@ void main() {
       final state = container.read(userProvider);
       expect(state, isA<AsyncData<List<UserModel>>>());
       expect(state.value, refreshedUsers);
+      expect(
+        container.read(userProvider.notifier).lastFetchedAt,
+        refreshedTimestamp,
+      );
 
       // Repository のメソッドが、確実に `forceRefresh: true` を伴って呼ばれたことを証明
       verify(() => mockRepository.fetchUsers(forceRefresh: true)).called(1);
