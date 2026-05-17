@@ -90,6 +90,42 @@ void main() {
       expect(result, fromPath);
     });
 
+    test('【セキュリティ】ログイン済みでfromに外部サイト(http)が指定された場合、無視してホームにリダイレクトすること', () {
+      // Arrange
+      const maliciousUrl = 'https://example.com';
+      setLocation('${const LoginRoute().location}?from=$maliciousUrl');
+
+      // Act
+      final result = helper.redirect(isLoggedIn: true, state: mockState);
+
+      // Assert
+      expect(result, const HomeRoute().location);
+    });
+
+    test('【セキュリティ】ログイン済みでfromに外部サイト(//)が指定された場合、無視してホームにリダイレクトすること', () {
+      // Arrange
+      const maliciousUrl = '//example.com';
+      setLocation('${const LoginRoute().location}?from=$maliciousUrl');
+
+      // Act
+      final result = helper.redirect(isLoggedIn: true, state: mockState);
+
+      // Assert
+      expect(result, const HomeRoute().location);
+    });
+
+    test('【無限ループ防止】ログイン済みでfromにゲスト専用画面(/login)が指定された場合、無視してホームにリダイレクトすること', () {
+      // Arrange
+      const guestPath = '/login';
+      setLocation('${const LoginRoute().location}?from=$guestPath');
+
+      // Act
+      final result = helper.redirect(isLoggedIn: true, state: mockState);
+
+      // Assert
+      expect(result, const HomeRoute().location);
+    });
+
     test('ログイン済みで認証必須画面（ホーム）に行く場合、リダイレクトしないこと', () {
       // Arrange
       setLocation(const HomeRoute().location);

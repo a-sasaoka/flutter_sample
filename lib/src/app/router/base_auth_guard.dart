@@ -74,7 +74,20 @@ class AuthGuardHelper {
     if (isGuestOnly) {
       // from パラメータ（元々の目的地）があればそこへ、なければデフォルト（ホーム）へ
       final from = state.uri.queryParameters['from'];
-      return from ?? defaultLocation;
+
+      // 🛡️ セキュリティバリデーション
+      // 1. from が存在し、
+      // 2. 外部サイトへのリダイレクトではない（/から始まり、//で始まらない内部パス）こと
+      // 3. 遷移先がゲスト専用画面ではない（無限ループ防止）こと
+      // を確認します。
+      if (from != null &&
+          from.startsWith('/') &&
+          !from.startsWith('//') &&
+          !guestOnlyPaths.contains(Uri.parse(from).path)) {
+        return from;
+      }
+
+      return defaultLocation;
     }
 
     // それ以外の画面（認証必須画面）ならOK、そのまま遷移
