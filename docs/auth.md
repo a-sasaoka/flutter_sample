@@ -71,7 +71,7 @@ dio.interceptors.add(ref.watch(dioInterceptorProvider));
 ## ✅ 動作確認手順
 
 1. 任意のログイン画面から、有効なユーザー情報でログイン処理を実行。
-2. `TokenStorage` (SharedPreferencesAsync) にアクセストークンとリフレッシュトークンが保存されることを確認。
+2. `TokenStorage` (FlutterSecureStorage) にアクセストークンとリフレッシュトークンが保存されることを確認。
 3. 以降のAPI通信（例: ユーザー一覧取得など）で、`Authorization: Bearer <token>` ヘッダーが自動付与されることをログで確認。
 4. トークンの有効期限が切れた状態でAPIを叩き、401エラーをフックして自動的にリフレッシュAPIが呼ばれ、元のリクエストが再試行されることを確認。
 

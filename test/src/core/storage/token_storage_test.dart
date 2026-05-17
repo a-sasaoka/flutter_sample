@@ -1,23 +1,22 @@
-import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
+import 'package:flutter_sample/src/core/storage/secure_storage_provider.dart';
 import 'package:flutter_sample/src/core/storage/token_storage.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-// SharedPreferencesAsync のモック
-class MockSharedPreferencesAsync extends Mock
-    implements SharedPreferencesAsync {}
+// FlutterSecureStorage のモック
+class MockFlutterSecureStorage extends Mock implements FlutterSecureStorage {}
 
 void main() {
-  late MockSharedPreferencesAsync mockPrefs;
+  late MockFlutterSecureStorage mockStorage;
   late ProviderContainer container;
 
   setUp(() {
-    mockPrefs = MockSharedPreferencesAsync();
+    mockStorage = MockFlutterSecureStorage();
     container = ProviderContainer(
       overrides: [
-        sharedPreferencesProvider.overrideWithValue(mockPrefs),
+        secureStorageProvider.overrideWithValue(mockStorage),
       ],
     );
   });
@@ -34,7 +33,12 @@ void main() {
 
     test('saveTokens: アクセストークンとリフレッシュトークンを正しいキーで保存すること', () async {
       // Arrange
-      when(() => mockPrefs.setString(any(), any())).thenAnswer((_) async => {});
+      when(
+        () => mockStorage.write(
+          key: any(named: 'key'),
+          value: any(named: 'value'),
+        ),
+      ).thenAnswer((_) async => {});
       final storage = container.read(tokenStorageProvider);
 
       // Act
@@ -45,17 +49,17 @@ void main() {
 
       // Assert
       verify(
-        () => mockPrefs.setString(accessTokenKey, testAccessToken),
+        () => mockStorage.write(key: accessTokenKey, value: testAccessToken),
       ).called(1);
       verify(
-        () => mockPrefs.setString(refreshTokenKey, testRefreshToken),
+        () => mockStorage.write(key: refreshTokenKey, value: testRefreshToken),
       ).called(1);
     });
 
     test('getAccessToken: 保存されているアクセストークンを取得できること', () async {
       // Arrange
       when(
-        () => mockPrefs.getString(accessTokenKey),
+        () => mockStorage.read(key: accessTokenKey),
       ).thenAnswer((_) async => testAccessToken);
       final storage = container.read(tokenStorageProvider);
 
@@ -64,13 +68,13 @@ void main() {
 
       // Assert
       expect(result, testAccessToken);
-      verify(() => mockPrefs.getString(accessTokenKey)).called(1);
+      verify(() => mockStorage.read(key: accessTokenKey)).called(1);
     });
 
     test('getRefreshToken: 保存されているリフレッシュトークンを取得できること', () async {
       // Arrange
       when(
-        () => mockPrefs.getString(refreshTokenKey),
+        () => mockStorage.read(key: refreshTokenKey),
       ).thenAnswer((_) async => testRefreshToken);
       final storage = container.read(tokenStorageProvider);
 
@@ -79,25 +83,29 @@ void main() {
 
       // Assert
       expect(result, testRefreshToken);
-      verify(() => mockPrefs.getString(refreshTokenKey)).called(1);
+      verify(() => mockStorage.read(key: refreshTokenKey)).called(1);
     });
 
     test('clear: 両方のトークンを削除すること', () async {
       // Arrange
-      when(() => mockPrefs.remove(any())).thenAnswer((_) async => {});
+      when(
+        () => mockStorage.delete(key: any(named: 'key')),
+      ).thenAnswer((_) async => {});
       final storage = container.read(tokenStorageProvider);
 
       // Act
       await storage.clear();
 
       // Assert
-      verify(() => mockPrefs.remove(accessTokenKey)).called(1);
-      verify(() => mockPrefs.remove(refreshTokenKey)).called(1);
+      verify(() => mockStorage.delete(key: accessTokenKey)).called(1);
+      verify(() => mockStorage.delete(key: refreshTokenKey)).called(1);
     });
 
     test('トークンが保存されていない場合、get メソッドが null を返すこと', () async {
       // Arrange
-      when(() => mockPrefs.getString(any())).thenAnswer((_) async => null);
+      when(
+        () => mockStorage.read(key: any(named: 'key')),
+      ).thenAnswer((_) async => null);
       final storage = container.read(tokenStorageProvider);
 
       // Act
@@ -113,19 +121,19 @@ void main() {
   group('TokenStorage ユニットテスト (Providerなし)', () {
     test('DIにより、ProviderContainerなしでも単体テストが可能なこと', () async {
       // Arrange
-      final mockPrefs = MockSharedPreferencesAsync();
+      final mockStorage = MockFlutterSecureStorage();
       when(
-        () => mockPrefs.getString(any()),
+        () => mockStorage.read(key: any(named: 'key')),
       ).thenAnswer((_) async => 'raw_token');
 
-      final storage = TokenStorage(prefs: mockPrefs);
+      final storage = TokenStorage(secureStorage: mockStorage);
 
       // Act
       final token = await storage.getAccessToken();
 
       // Assert
       expect(token, 'raw_token');
-      verify(() => mockPrefs.getString('access_token')).called(1);
+      verify(() => mockStorage.read(key: 'access_token')).called(1);
     });
   });
 }

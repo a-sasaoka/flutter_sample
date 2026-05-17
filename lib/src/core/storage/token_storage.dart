@@ -1,22 +1,23 @@
-import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
+import 'package:flutter_sample/src/core/storage/secure_storage_provider.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 part 'token_storage.g.dart';
 
 /// トークンストレージプロバイダー
 @Riverpod(keepAlive: true)
 TokenStorage tokenStorage(Ref ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return TokenStorage(prefs: prefs);
+  final secureStorage = ref.watch(secureStorageProvider);
+  return TokenStorage(secureStorage: secureStorage);
 }
 
 /// トークンストレージクラス
 class TokenStorage {
   /// コンストラクタ
-  const TokenStorage({required SharedPreferencesAsync prefs}) : _prefs = prefs;
+  const TokenStorage({required FlutterSecureStorage secureStorage})
+    : _secureStorage = secureStorage;
 
-  final SharedPreferencesAsync _prefs;
+  final FlutterSecureStorage _secureStorage;
 
   static const _accessTokenKey = 'access_token';
   static const _refreshTokenKey = 'refresh_token';
@@ -27,26 +28,26 @@ class TokenStorage {
     required String refreshToken,
   }) async {
     await Future.wait<void>([
-      _prefs.setString(_accessTokenKey, accessToken),
-      _prefs.setString(_refreshTokenKey, refreshToken),
+      _secureStorage.write(key: _accessTokenKey, value: accessToken),
+      _secureStorage.write(key: _refreshTokenKey, value: refreshToken),
     ]);
   }
 
   /// アクセストークンを取得する
   Future<String?> getAccessToken() async {
-    return _prefs.getString(_accessTokenKey);
+    return _secureStorage.read(key: _accessTokenKey);
   }
 
   /// リフレッシュトークンを取得する
   Future<String?> getRefreshToken() async {
-    return _prefs.getString(_refreshTokenKey);
+    return _secureStorage.read(key: _refreshTokenKey);
   }
 
   /// トークンを削除する
   Future<void> clear() async {
     await Future.wait<void>([
-      _prefs.remove(_accessTokenKey),
-      _prefs.remove(_refreshTokenKey),
+      _secureStorage.delete(key: _accessTokenKey),
+      _secureStorage.delete(key: _refreshTokenKey),
     ]);
   }
 }
