@@ -5,6 +5,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
+import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
@@ -307,6 +308,9 @@ class _ChatInputArea extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // 生成中かどうかのフラグ「だけ」を監視する
     final isGenerating = ref.watch(chatProvider.select((s) => s.isGenerating));
+    // オンライン状態を監視
+    final isOnline = ref.watch(isOnlineProvider);
+
     final textController = useTextEditingController();
     final l10n = context.l10n;
 
@@ -329,19 +333,20 @@ class _ChatInputArea extends HookConsumerWidget {
                   ),
                 ),
                 onSubmitted: (text) =>
-                    _onSend(ref, textController, isGenerating),
+                    _onSend(ref, textController, isGenerating, isOnline),
               ),
             ),
             const SizedBox(width: 8),
             CircleAvatar(
-              backgroundColor: isGenerating
+              backgroundColor: isGenerating || !isOnline
                   ? Theme.of(context).colorScheme.outline
                   : Theme.of(context).colorScheme.primary,
               child: IconButton(
                 icon: const Icon(Icons.send, color: Colors.white),
-                onPressed: isGenerating
+                onPressed: isGenerating || !isOnline
                     ? null
-                    : () => _onSend(ref, textController, isGenerating),
+                    : () =>
+                          _onSend(ref, textController, isGenerating, isOnline),
               ),
             ),
           ],
@@ -354,9 +359,10 @@ class _ChatInputArea extends HookConsumerWidget {
     WidgetRef ref,
     TextEditingController controller,
     bool isGenerating,
+    bool isOnline,
   ) async {
     final text = controller.text;
-    if (text.trim().isEmpty || isGenerating) return;
+    if (text.trim().isEmpty || isGenerating || !isOnline) return;
 
     controller.clear();
 

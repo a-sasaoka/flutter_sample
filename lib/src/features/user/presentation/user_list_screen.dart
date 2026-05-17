@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
+import 'package:flutter_sample/src/core/utils/date_time_extension.dart';
 import 'package:flutter_sample/src/features/user/application/user_notifier.dart';
 import 'package:flutter_sample/src/features/user/domain/user_model.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -17,6 +18,9 @@ class UserListScreen extends HookConsumerWidget {
 
     // エラー時のスナックバー表示は `ref.listen` で監視する
     ref.listen(userProvider, (previous, next) {
+      // すでにデータ（キャッシュ）がある場合は、エラーのスナックバーを出さないようにする
+      if (next.hasValue) return;
+
       if (next case AsyncError(:final error) when !next.isLoading) {
         ErrorHandler.showSnackBar(context, error);
       }
@@ -29,51 +33,68 @@ class UserListScreen extends HookConsumerWidget {
     Future<void> onRefresh() => ref.read(userProvider.notifier).refresh();
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.userListTitle)),
-      body: switch (usersAsync) {
-        // 💡 データが空の場合
-        AsyncData(value: final list) when list.isEmpty => RefreshIndicator(
-          onRefresh: onRefresh,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              SizedBox(height: MediaQuery.sizeOf(context).height * 0.3),
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.people_outline,
-                      size: 64,
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      l10n.userListEmpty,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                    ),
-                  ],
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.userListTitle),
+            if (usersAsync.value case (_, final DateTime lastFetchedAt))
+              Text(
+                l10n.userListLastFetched(lastFetchedAt.toFormattedString()),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.normal,
                 ),
               ),
-            ],
-          ),
+          ],
         ),
-        // 💡 データがある場合
-        AsyncData(value: final list) => RefreshIndicator(
-          onRefresh: onRefresh,
-          child: ListView.builder(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            itemCount: list.length,
-            itemBuilder: (context, index) {
-              final user = list[index];
-              return _UserCard(key: ValueKey(user.id), user: user);
-            },
+      ),
+      body: switch (usersAsync) {
+        // 💡 データがある場合 (エラーやローディング中でも、データがあれば表示)
+        AsyncValue(value: (final value, _)?) when value.isNotEmpty =>
+          RefreshIndicator(
+            onRefresh: onRefresh,
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              itemCount: value.length,
+              itemBuilder: (context, index) {
+                final user = value[index];
+                return _UserCard(key: ValueKey(user.id), user: user);
+              },
+            ),
           ),
-        ),
-        // 💡 エラー状態
+        // 💡 データが空の場合
+        AsyncValue(value: (final value, _)?) when value.isEmpty =>
+          RefreshIndicator(
+            onRefresh: onRefresh,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                SizedBox(height: MediaQuery.sizeOf(context).height * 0.3),
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.people_outline,
+                        size: 64,
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        l10n.userListEmpty,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        // 💡 エラー状態 (データがない場合)
         AsyncError() => RefreshIndicator(
           onRefresh: onRefresh,
           child: ListView(

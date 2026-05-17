@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/storage/cache_manager.dart';
+import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/user/data/user_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,11 +9,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
-// --- モッククラスの定義 ---
+// --- モックの定義 ---
 
 class MockApiClient extends Mock implements ApiClient {}
 
 class MockCacheManager extends Mock implements CacheManager {}
+
+class MockTalker extends Mock implements Talker {}
 
 class MockResponse extends Mock implements Response<List<dynamic>> {}
 
@@ -20,17 +23,11 @@ class MockMapResponse extends Mock implements Response<Map<String, dynamic>> {}
 
 class MockVoidResponse extends Mock implements Response<void> {}
 
-class MockTalker extends Mock implements Talker {}
-
 void main() {
   late MockApiClient mockApi;
   late MockCacheManager mockCache;
   late MockTalker mockTalker;
   late UserRepository repository;
-
-  setUpAll(() {
-    registerFallbackValue(Options());
-  });
 
   setUp(() {
     mockApi = MockApiClient();
@@ -44,6 +41,7 @@ void main() {
       api: mockApi,
       cache: mockCache,
       talker: mockTalker,
+      clock: () => DateTime(2026, 5, 17, 10),
     );
   });
 
@@ -67,29 +65,51 @@ void main() {
   };
 
   final dummyJsonList = [dummyJson];
+  final dummyTimestamp = DateTime(2026, 5, 17, 9);
 
   group('UserRepository - fetchUsers', () {
     test('キャッシュが存在する場合、APIは呼ばれずにキャッシュからデータが返されること', () async {
       // Arrange (準備)
-      // キャッシュマネージャーがデータ（JSONリスト）を返すように設定
-      when(() => mockCache.get('users')).thenAnswer((_) async => dummyJsonList);
+      // キャッシュマネージャーがデータ（JSONリスト）とタイムスタンプを1回で返すように設定
+      when(
+        () => mockCache.getWithTimestamp('users'),
+      ).thenAnswer((_) async => (dummyJsonList, dummyTimestamp));
 
       // Act (実行)
-      final result = await repository.fetchUsers();
+      final (users, fetchedAt) = await repository.fetchUsers();
 
       // Assert (検証)
-      expect(result.length, 1);
-      expect(result.first.name, 'Test User 1');
+      expect(users.length, 1);
+      expect(users.first.name, 'Test User 1');
+      expect(fetchedAt, dummyTimestamp);
 
       // API通信とキャッシュ保存が「絶対に呼ばれていないこと」を確認
       verifyNever(() => mockApi.get<List<dynamic>>(any()));
       verifyNever(() => mockCache.save(any<String>(), any<dynamic>()));
     });
 
+    test('キャッシュデータは存在するが、タイムスタンプが null の場合、現在時刻が返されること', () async {
+      // Arrange (準備)
+      // データはあるがタイムスタンプが null という状況をモックで再現
+      when(
+        () => mockCache.getWithTimestamp('users'),
+      ).thenAnswer((_) async => (dummyJsonList, null));
+
+      // Act (実行)
+      final (users, fetchedAt) = await repository.fetchUsers();
+
+      // Assert (検証)
+      expect(users.length, 1);
+      // clock() で設定している 10:00 が返ることを確認
+      expect(fetchedAt, DateTime(2026, 5, 17, 10));
+    });
+
     test('キャッシュが存在しない場合、APIからデータを取得してキャッシュに保存されること', () async {
       // Arrange (準備)
-      // 1. キャッシュマネージャーは null（空）を返す
-      when(() => mockCache.get('users')).thenAnswer((_) async => null);
+      // 1. キャッシュマネージャーは (null, null) を返す
+      when(
+        () => mockCache.getWithTimestamp('users'),
+      ).thenAnswer((_) async => (null, null));
 
       // 2. APIクライアントは、ダミーデータが入ったレスポンスを返す
       final mockResponse = MockResponse();
@@ -107,11 +127,12 @@ void main() {
       ).thenAnswer((_) async {});
 
       // Act (実行)
-      final result = await repository.fetchUsers();
+      final (users, fetchedAt) = await repository.fetchUsers();
 
       // Assert (検証)
-      expect(result.length, 1);
-      expect(result.first.name, 'Test User 1');
+      expect(users.length, 1);
+      expect(users.first.name, 'Test User 1');
+      expect(fetchedAt, DateTime(2026, 5, 17, 10));
 
       // API通信が1回呼ばれ、取得したデータがキャッシュに1回保存されていることを確認
       verify(() => mockApi.get<List<dynamic>>('/users')).called(1);
@@ -121,7 +142,9 @@ void main() {
     test('APIからのレスポンスデータが null の場合、空のリストが返され、キャッシュは保存されないこと', () async {
       // Arrange (準備)
       // キャッシュが存在しないように設定
-      when(() => mockCache.get('users')).thenAnswer((_) async => null);
+      when(
+        () => mockCache.getWithTimestamp('users'),
+      ).thenAnswer((_) async => (null, null));
 
       // APIクライアントは、data が null のレスポンスを返す
       final mockResponse = MockResponse();
@@ -131,10 +154,10 @@ void main() {
       ).thenAnswer((_) async => mockResponse);
 
       // Act (実行)
-      final result = await repository.fetchUsers();
+      final (users, _) = await repository.fetchUsers();
 
       // Assert (検証)
-      expect(result, isEmpty);
+      expect(users, isEmpty);
 
       verify(() => mockApi.get<List<dynamic>>('/users')).called(1);
       verifyNever(() => mockCache.save(any<String>(), any<dynamic>()));
@@ -155,13 +178,16 @@ void main() {
 
       // Act (実行)
       // 引数に forceRefresh: true を渡す
-      final result = await repository.fetchUsers(forceRefresh: true);
+      final (users, fetchedAt) = await repository.fetchUsers(
+        forceRefresh: true,
+      );
 
       // Assert (検証)
-      expect(result.length, 1);
-      expect(result.first.name, 'Test User 1');
+      expect(users.length, 1);
+      expect(users.first.name, 'Test User 1');
+      expect(fetchedAt, DateTime(2026, 5, 17, 10));
 
-      verifyNever(() => mockCache.get(any<String>()));
+      verifyNever(() => mockCache.getWithTimestamp(any<String>()));
 
       // API通信が1回呼ばれ、取得したデータがキャッシュに1回保存されていることを確認
       verify(() => mockApi.get<List<dynamic>>('/users')).called(1);
@@ -173,7 +199,9 @@ void main() {
       final exception = Exception('API Error');
 
       // キャッシュは空
-      when(() => mockCache.get('users')).thenAnswer((_) async => null);
+      when(
+        () => mockCache.getWithTimestamp('users'),
+      ).thenAnswer((_) async => (null, null));
 
       // APIが例外を投げる
       when(() => mockApi.get<List<dynamic>>('/users')).thenThrow(exception);
@@ -330,7 +358,8 @@ void main() {
 
   group('userRepositoryProvider', () {
     test(
-      '依存関係（APIクライアントとキャッシュマネージャー）が正しく注入された UserRepository のインスタンスを提供すること',
+      '依存関係（APIクライアントとキャッシュマネージャー）が正しく注入された '
+      'UserRepository のインスタンスを提供すること',
       () {
         // 1. Arrange (準備)
         final mockApi = MockApiClient();
@@ -342,6 +371,7 @@ void main() {
             apiClientProvider.overrideWithValue(mockApi),
             cacheManagerProvider.overrideWithValue(mockCache),
             loggerProvider.overrideWithValue(mockTalker),
+            clockProvider.overrideWithValue(DateTime.now),
           ],
         );
         addTearDown(container.dispose);

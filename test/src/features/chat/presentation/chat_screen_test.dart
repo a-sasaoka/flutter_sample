@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_state.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
@@ -86,11 +87,13 @@ void main() {
   Future<void> setupWidget(
     WidgetTester tester, {
     ChatNotifier? notifier,
+    bool isOnline = true,
   }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           chatRepositoryProvider.overrideWithValue(mockRepo),
+          isOnlineProvider.overrideWithValue(isOnline),
           if (notifier != null) chatProvider.overrideWith(() => notifier),
         ],
         child: MaterialApp(
@@ -109,6 +112,30 @@ void main() {
   }
 
   group('ChatScreen', () {
+    testWidgets('オフライン時: 送信ボタンが非活性になり、背景色が適切に設定されること', (tester) async {
+      await setupWidget(tester, isOnline: false);
+
+      final sendButton = tester.widget<IconButton>(
+        find.descendant(
+          of: find.byType(CircleAvatar),
+          matching: find.byType(IconButton),
+        ),
+      );
+      expect(sendButton.onPressed, isNull);
+
+      final circleAvatar = tester.widget<CircleAvatar>(
+        find.byType(CircleAvatar),
+      );
+      // オフライン時は colorScheme.outline になるはず
+      expect(
+        circleAvatar.backgroundColor,
+        ThemeData(useMaterial3: true).colorScheme.outline,
+      );
+
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(textField.enabled, isTrue); // テキスト入力は可能なはず
+    });
+
     testWidgets('初期表示: タイトルと入力フォームが表示され、メッセージリストは空であること', (tester) async {
       await setupWidget(tester);
 

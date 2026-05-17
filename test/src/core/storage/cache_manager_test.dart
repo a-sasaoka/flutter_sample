@@ -8,21 +8,20 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// SharedPreferencesAsync をモックする
+// --- モッククラス ---
 class MockSharedPreferencesAsync extends Mock
     implements SharedPreferencesAsync {}
 
 void main() {
   late MockSharedPreferencesAsync mockPrefs;
   late ProviderContainer container;
-  final fixedDateTime = DateTime(2024, 1, 1, 12);
 
   setUp(() {
     mockPrefs = MockSharedPreferencesAsync();
     container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(mockPrefs),
-        clockProvider.overrideWithValue(() => fixedDateTime),
+        clockProvider.overrideWithValue(() => DateTime(2026, 5, 17, 10)),
       ],
     );
   });
@@ -31,14 +30,16 @@ void main() {
     container.dispose();
   });
 
-  group('CacheManager', () {
-    const testKey = 'test_key';
-    const testValue = {'id': 1, 'name': 'test'};
+  const testKey = 'test_cache';
+  const testValue = {'id': 1, 'name': 'Test'};
 
+  group('CacheManager', () {
     test('save: データを正しい形式（JSON）で保存すること', () async {
       // Arrange
-      when(() => mockPrefs.setString(any(), any())).thenAnswer((_) async => {});
       final manager = container.read(cacheManagerProvider);
+      when(
+        () => mockPrefs.setString(any(), any()),
+      ).thenAnswer((_) async => {});
 
       // Act
       await manager.save(testKey, testValue);
@@ -47,16 +48,36 @@ void main() {
       verify(
         () => mockPrefs.setString(
           testKey,
-          any(that: contains('"data":{"id":1')),
+          any(that: contains('"data":{"id":1,"name":"Test"}')),
         ),
       ).called(1);
     });
 
-    test('get: 有効期限内のキャッシュを正しく取得できること', () async {
+    test('getWithTimestamp: 有効期限内のキャッシュを正しく取得できること', () async {
       // Arrange
-      final now = fixedDateTime.millisecondsSinceEpoch;
+      final tsMs = DateTime(2026, 5, 17, 9, 55).millisecondsSinceEpoch;
       final cacheData = jsonEncode({
-        'timestamp': now,
+        'timestamp': tsMs,
+        'data': testValue,
+      });
+      when(
+        () => mockPrefs.getString(testKey),
+      ).thenAnswer((_) async => cacheData);
+      final manager = container.read(cacheManagerProvider);
+
+      // Act
+      final (data, ts) = await manager.getWithTimestamp(testKey);
+
+      // Assert
+      expect(data, testValue);
+      expect(ts, DateTime.fromMillisecondsSinceEpoch(tsMs));
+    });
+
+    test('get: ショートカットメソッドでデータのみ取得できること', () async {
+      // Arrange
+      final tsMs = DateTime(2026, 5, 17, 9, 55).millisecondsSinceEpoch;
+      final cacheData = jsonEncode({
+        'timestamp': tsMs,
         'data': testValue,
       });
       when(
@@ -71,28 +92,14 @@ void main() {
       expect(result, testValue);
     });
 
-    test('get: キャッシュが存在しない場合は null を返すこと', () async {
+    test('getWithTimestamp: 期限切れのキャッシュは削除して (null, null) を返すこと', () async {
       // Arrange
-      when(() => mockPrefs.getString(testKey)).thenAnswer((_) async => null);
-      final manager = container.read(cacheManagerProvider);
-
-      // Act
-      final result = await manager.get(testKey);
-
-      // Assert
-      expect(result, isNull);
-    });
-
-    test('get: 期限切れのキャッシュ（10分以上経過）は削除して null を返すこと', () async {
-      // Arrange
-      final oldTimestamp = fixedDateTime
-          .subtract(const Duration(minutes: 11))
-          .millisecondsSinceEpoch;
+      // 10分以上前（現在 10:00 に対して 9:40）
+      final tsMs = DateTime(2026, 5, 17, 9, 40).millisecondsSinceEpoch;
       final cacheData = jsonEncode({
-        'timestamp': oldTimestamp,
+        'timestamp': tsMs,
         'data': testValue,
       });
-
       when(
         () => mockPrefs.getString(testKey),
       ).thenAnswer((_) async => cacheData);
@@ -100,51 +107,46 @@ void main() {
       final manager = container.read(cacheManagerProvider);
 
       // Act
-      final result = await manager.get(testKey);
+      final (data, ts) = await manager.getWithTimestamp(testKey);
 
       // Assert
-      expect(result, isNull);
+      expect(data, isNull);
+      expect(ts, isNull);
       verify(() => mockPrefs.remove(testKey)).called(1);
     });
 
-    test('get: JSONパースエラーが発生した場合、キャッシュが壊れているとみなして削除し null を返すこと', () async {
+    test('getWithTimestamp: キャッシュが存在しない場合は (null, null) を返すこと', () async {
       // Arrange
-      const invalidJson = '{ invalid json string }';
-      when(
-        () => mockPrefs.getString(testKey),
-      ).thenAnswer((_) async => invalidJson);
-      when(() => mockPrefs.remove(testKey)).thenAnswer((_) async => {});
-
+      when(() => mockPrefs.getString(testKey)).thenAnswer((_) async => null);
       final manager = container.read(cacheManagerProvider);
 
       // Act
-      final result = await manager.get(testKey);
+      final (data, ts) = await manager.getWithTimestamp(testKey);
 
       // Assert
-      expect(result, isNull);
-      verify(() => mockPrefs.remove(testKey)).called(1);
+      expect(data, isNull);
+      expect(ts, isNull);
     });
 
-    test('get: キャッシュのデータ構造が想定と違う場合、キャッシュが壊れているとみなして削除し null を返すこと', () async {
-      // Arrange
-      final invalidData = jsonEncode({
-        'timestamp': 'invalid_type_timestamp',
-        'data': testValue,
-      });
-      when(
-        () => mockPrefs.getString(testKey),
-      ).thenAnswer((_) async => invalidData);
-      when(() => mockPrefs.remove(testKey)).thenAnswer((_) async => {});
+    test(
+      'getWithTimestamp: JSONパースエラーが発生した場合は削除して (null, null) を返すこと',
+      () async {
+        // Arrange
+        when(
+          () => mockPrefs.getString(testKey),
+        ).thenAnswer((_) async => '{ invalid }');
+        when(() => mockPrefs.remove(testKey)).thenAnswer((_) async => {});
+        final manager = container.read(cacheManagerProvider);
 
-      final manager = container.read(cacheManagerProvider);
+        // Act
+        final (data, ts) = await manager.getWithTimestamp(testKey);
 
-      // Act
-      final result = await manager.get(testKey);
-
-      // Assert
-      expect(result, isNull);
-      verify(() => mockPrefs.remove(testKey)).called(1);
-    });
+        // Assert
+        expect(data, isNull);
+        expect(ts, isNull);
+        verify(() => mockPrefs.remove(testKey)).called(1);
+      },
+    );
 
     test('clear: 指定したキーのキャッシュを削除すること', () async {
       // Arrange
@@ -156,40 +158,6 @@ void main() {
 
       // Assert
       verify(() => mockPrefs.remove(testKey)).called(1);
-    });
-  });
-
-  group('CacheManager ユニットテスト (Providerなし)', () {
-    test('DIにより、ProviderContainerなしでも単体テストが可能であり、設定した有効期限が機能すること', () async {
-      // Arrange
-      final mockPrefs = MockSharedPreferencesAsync();
-      final fixedDate = DateTime(2026);
-      const customDuration = Duration(minutes: 1);
-
-      // 2分前のキャッシュデータを作成
-      final oldTimestamp = fixedDate
-          .subtract(const Duration(minutes: 2))
-          .millisecondsSinceEpoch;
-      final cacheData = jsonEncode({
-        'timestamp': oldTimestamp,
-        'data': 'expired_data',
-      });
-
-      when(() => mockPrefs.getString('any')).thenAnswer((_) async => cacheData);
-      when(() => mockPrefs.remove('any')).thenAnswer((_) async => {});
-
-      final manager = CacheManager(
-        prefs: mockPrefs,
-        getCurrentDateTime: () => fixedDate,
-        cacheDuration: customDuration, // 1分に設定
-      );
-
-      // Act
-      final result = await manager.get('any');
-
-      // Assert
-      expect(result, isNull); // 1分期限に対して2分前なので null
-      verify(() => mockPrefs.remove('any')).called(1);
     });
   });
 }

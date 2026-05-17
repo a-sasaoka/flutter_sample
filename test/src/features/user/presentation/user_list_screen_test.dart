@@ -31,10 +31,14 @@ class _MockLocalizationsDelegate
 void main() {
   late MockAppLocalizations mockL10n;
   late MockUserRepository mockRepository;
+  final dummyTimestamp = DateTime(2026, 5, 17, 10, 30);
 
   setUp(() {
     mockL10n = MockAppLocalizations();
     when(() => mockL10n.userListTitle).thenReturn('User List');
+    when(
+      () => mockL10n.userListLastFetched(any()),
+    ).thenReturn('Last fetched: 2026/05/17 10:30');
     when(() => mockL10n.userListEmpty).thenReturn('No users found.');
     when(() => mockL10n.errorUnknown).thenReturn('Error Occurred');
     when(() => mockL10n.userListFetchError).thenReturn('Pull to refresh');
@@ -91,7 +95,7 @@ void main() {
       expect(screen.key, isA<ValueKey<String>>());
     });
     testWidgets('【状態系】Loading状態の時にインジケータが表示されること', (tester) async {
-      final completer = Completer<List<UserModel>>();
+      final completer = Completer<(List<UserModel>, DateTime)>();
       when(
         () => mockRepository.fetchUsers(),
       ).thenAnswer((_) => completer.future);
@@ -106,24 +110,26 @@ void main() {
       final dummyUsers = [createDummyUser(1), createDummyUser(2)];
       when(
         () => mockRepository.fetchUsers(),
-      ).thenAnswer((_) async => dummyUsers);
+      ).thenAnswer((_) async => (dummyUsers, dummyTimestamp));
 
       await pumpUserListScreen(tester);
       await tester.pumpAndSettle();
 
       expect(find.text('User List'), findsOneWidget);
+      expect(find.text('Last fetched: 2026/05/17 10:30'), findsOneWidget);
       expect(find.text('Test User 1'), findsOneWidget);
       expect(find.text('test1@example.com'), findsOneWidget);
       expect(find.text('Test User 2'), findsOneWidget);
       expect(find.byType(Card), findsNWidgets(2));
 
-      // カードをタップ（カバレッジ用）
       await tester.tap(find.text('Test User 1'));
       await tester.pumpAndSettle();
     });
 
     testWidgets('【正常系】データが空の場合、専用の表示がされること', (tester) async {
-      when(() => mockRepository.fetchUsers()).thenAnswer((_) async => []);
+      when(
+        () => mockRepository.fetchUsers(),
+      ).thenAnswer((_) async => (<UserModel>[], dummyTimestamp));
 
       await pumpUserListScreen(tester);
       await tester.pumpAndSettle();
@@ -137,10 +143,10 @@ void main() {
 
       when(
         () => mockRepository.fetchUsers(),
-      ).thenAnswer((_) async => dummyUsers);
+      ).thenAnswer((_) async => (dummyUsers, dummyTimestamp));
       when(
         () => mockRepository.fetchUsers(forceRefresh: true),
-      ).thenAnswer((_) async => dummyUsers);
+      ).thenAnswer((_) async => (dummyUsers, dummyTimestamp));
 
       await pumpUserListScreen(tester);
       await tester.pumpAndSettle();
@@ -148,11 +154,10 @@ void main() {
       verify(() => mockRepository.fetchUsers()).called(1);
       clearInteractions(mockRepository);
 
-      // 💡 UIから確実にリフレッシュをトリガーする
       await tester.drag(find.byType(ListView), const Offset(0, 500));
-      await tester.pump(); // ドラッグ開始
-      await tester.pump(const Duration(seconds: 1)); // アニメーション
-      await tester.pumpAndSettle(); // 処理完了を待つ
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
 
       verify(() => mockRepository.fetchUsers(forceRefresh: true)).called(1);
     });
@@ -167,22 +172,66 @@ void main() {
 
       when(
         () => mockRepository.fetchUsers(forceRefresh: true),
-      ).thenAnswer((_) async => []);
+      ).thenAnswer((_) async => (<UserModel>[], dummyTimestamp));
 
       await pumpUserListScreen(tester);
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Error Occurred'),
-        findsNWidgets(2),
-      ); // SnackBar & Screen
+      expect(find.text('Error Occurred'), findsNWidgets(2));
       expect(find.text('Pull to refresh'), findsOneWidget);
-      expect(find.byType(SnackBar), findsOneWidget);
+
+      // リトライ実行前に SnackBar を消去して干渉を防ぐ
+      ScaffoldMessenger.of(
+        tester.element(find.byType(UserListScreen)),
+      ).removeCurrentSnackBar();
+      await tester.pump();
 
       await tester.tap(find.widgetWithText(FilledButton, 'Retry'));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
 
       verify(() => mockRepository.fetchUsers(forceRefresh: true)).called(1);
+      // リトライ成功後は body のエラー表示が消え、空表示になっていること
+      expect(
+        find.descendant(
+          of: find.byType(RefreshIndicator),
+          matching: find.byIcon(Icons.error_outline),
+        ),
+        findsNothing,
+      );
+      expect(find.text('No users found.'), findsOneWidget);
+    });
+
+    testWidgets('【正常系】データ保持時にエラーが発生した場合でも、以前のリストが表示され続けること', (tester) async {
+      final dummyUsers = [createDummyUser(1)];
+      when(
+        () => mockRepository.fetchUsers(),
+      ).thenAnswer((_) async => (dummyUsers, dummyTimestamp));
+
+      await pumpUserListScreen(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Test User 1'), findsOneWidget);
+
+      when(
+        () => mockRepository.fetchUsers(forceRefresh: true),
+      ).thenAnswer((_) async => throw Exception('Network Error'));
+
+      await tester.drag(find.byType(ListView), const Offset(0, 500));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Test User 1'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(RefreshIndicator),
+          matching: find.byIcon(Icons.error_outline),
+        ),
+        findsNothing,
+      );
+      expect(find.byType(SnackBar), findsNothing);
     });
   });
 }

@@ -8,7 +8,7 @@ part 'user_notifier.g.dart';
 @riverpod
 class UserNotifier extends _$UserNotifier {
   @override
-  Future<List<UserModel>> build() async {
+  Future<(List<UserModel>, DateTime?)> build() async {
     // 初回表示時は通常通り（キャッシュがあればキャッシュを使う）
     return ref.watch(userRepositoryProvider).fetchUsers();
   }

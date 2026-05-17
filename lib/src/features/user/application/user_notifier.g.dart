@@ -15,7 +15,7 @@ final userProvider = UserNotifierProvider._();
 
 /// UserNotifier
 final class UserNotifierProvider
-    extends $AsyncNotifierProvider<UserNotifier, List<UserModel>> {
+    extends $AsyncNotifierProvider<UserNotifier, (List<UserModel>, DateTime?)> {
   /// UserNotifier
   UserNotifierProvider._()
     : super(
@@ -36,21 +36,30 @@ final class UserNotifierProvider
   UserNotifier create() => UserNotifier();
 }
 
-String _$userNotifierHash() => r'4a575bee9035f2ec45f0fea2588f51e221274cb9';
+String _$userNotifierHash() => r'dd5aa3c8c2f1267a1cfe03bc304e847cae8dd2a0';
 
 /// UserNotifier
 
-abstract class _$UserNotifier extends $AsyncNotifier<List<UserModel>> {
-  FutureOr<List<UserModel>> build();
+abstract class _$UserNotifier
+    extends $AsyncNotifier<(List<UserModel>, DateTime?)> {
+  FutureOr<(List<UserModel>, DateTime?)> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<List<UserModel>>, List<UserModel>>;
+    final ref =
+        this.ref
+            as $Ref<
+              AsyncValue<(List<UserModel>, DateTime?)>,
+              (List<UserModel>, DateTime?)
+            >;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<List<UserModel>>, List<UserModel>>,
-              AsyncValue<List<UserModel>>,
+              AnyNotifier<
+                AsyncValue<(List<UserModel>, DateTime?)>,
+                (List<UserModel>, DateTime?)
+              >,
+              AsyncValue<(List<UserModel>, DateTime?)>,
               Object?,
               Object?
             >;
