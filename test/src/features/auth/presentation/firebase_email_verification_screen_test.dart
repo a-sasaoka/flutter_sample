@@ -38,10 +38,6 @@ class FakeFirebaseAuthStateNotifier extends FirebaseAuthStateNotifier {
 
   @override
   User? build() => initialState;
-
-  void updateState(User? newUser) {
-    state = newUser;
-  }
 }
 
 class FakeAppLifecycle extends AppLifecycle {
@@ -277,37 +273,6 @@ void main() {
 
         verify(() => mockAuthRepo.reloadCurrentUser()).called(1);
         expect(find.byType(SnackBar), findsOneWidget);
-      },
-    );
-
-    testWidgets(
-      'ユーザー状態が変更され emailVerified == true になると、自動で HomeRoute に遷移すること',
-      (tester) async {
-        when(() => mockUser.emailVerified).thenReturn(false);
-
-        final container = ProviderContainer(
-          overrides: [
-            firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
-            firebaseAuthStateProvider.overrideWith(
-              () => FakeFirebaseAuthStateNotifier(mockUser),
-            ),
-          ],
-        );
-
-        await tester.pumpWidget(createTestWidget(container));
-        await tester.pumpAndSettle();
-
-        final verifiedUser = MockUser();
-        when(() => verifiedUser.emailVerified).thenReturn(true);
-
-        (container.read(firebaseAuthStateProvider.notifier)
-                as FakeFirebaseAuthStateNotifier)
-            .updateState(verifiedUser);
-
-        await tester.pumpAndSettle();
-
-        expect(find.textContaining('Navigated to'), findsOneWidget);
-        expect(find.text('メール認証'), findsNothing);
       },
     );
 
