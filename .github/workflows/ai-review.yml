@@ -27,14 +27,16 @@ jobs:
           cat prompts/review-rules.md >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-      # ② レビューを実行するAction (正しい Action 名に修正し、環境変数の展開方法を変更)
-      - name: Run AI Reviewer
-        uses: coderabbitai/ai-pr-reviewer@main
+      # ② PR-Agent を実行するステップ
+      - name: Run PR Agent
+        uses: Codium-ai/pr-agent@main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        with:
-          debug: false
-          openai_base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
-          openai_model: "gemini-3.5-flash"
-          system_message: ${{ env.SYSTEM_MESSAGE }}
+          # GeminiのAPIキーを設定
+          GOOGLE_AI_STUDIO.GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # 使用するモデルを指定 (gemini/プレフィックスが必要です)
+          config.model: "gemini/gemini-3.5-flash"
+          # 自動レビュー機能をオンにします
+          github_action_config.auto_review: "true"
+          # prompts/review-rules.md の中身をカスタム指示として渡します
+          pr_review.extra_instructions: ${{ env.SYSTEM_MESSAGE }}
