@@ -3,6 +3,9 @@ name: Gemini AI PR Reviewer
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review]
+  # コメントでAIを呼び出せるようにするための設定 (手動テストに便利です)
+  issue_comment:
+    types: [created]
 
 # PRにコメントを書き込み、ファイルを適切に読み書きするための権限を追加
 permissions:
@@ -12,7 +15,8 @@ permissions:
 
 jobs:
   review:
-    if: github.event.pull_request.draft == false
+    # ボットのコメントには反応しないようにし、かつ下書きPRを除外します
+    if: ${{ github.event.sender.type != 'Bot' && github.event.pull_request.draft == false }}
     runs-on: ubuntu-latest
     env:
       SYSTEM_MESSAGE: ""
@@ -28,15 +32,15 @@ jobs:
           cat prompts/review-rules.md >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-      # ② PR-Agent を実行するステップ (ダブルアンダースコア __ を使用した正しい環境変数指定)
+      # ② 最新の公式リポジトリ the-pr-agent/pr-agent を使用 (ダブルアンダースコア __ を使用した正しい環境変数指定)
       - name: Run PR Agent
-        uses: Codium-ai/pr-agent@main
+        uses: the-pr-agent/pr-agent@main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # GeminiのAPIキーを設定 (ツールが認識できる複数の環境変数に対応させています)
-          GOOGLE_AI_STUDIO__GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # GeminiのAPIキーを設定 (LiteLLMが直接認識する標準名)
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          # 使用するモデルを指定 (gemini/プレフィックスが必要です)
+          GOOGLE_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # 使用するモデルを指定 (最新の3.5-flash)
           CONFIG__MODEL: "gemini/gemini-3.5-flash"
           # 自動レビュー機能をオンにします
           GITHUB_ACTION_CONFIG__AUTO_REVIEW: "true"

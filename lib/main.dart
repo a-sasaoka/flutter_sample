@@ -67,6 +67,8 @@ Future<void> mainCommon(Flavor flavor) async {
     ),
   );
 
+  talker.debug(talker.settings.toString());
+
   // 7. ProviderContainer の設定
   final container = ProviderContainer(
     overrides: [
