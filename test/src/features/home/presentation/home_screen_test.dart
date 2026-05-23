@@ -208,11 +208,6 @@ void main() {
       expect(find.text('ホーム'), findsOneWidget);
       expect(find.text('現在の環境'), findsOneWidget);
       expect(find.text('LOCAL'), findsOneWidget);
-
-      expect(find.widgetWithText(ListTile, 'AIチャット'), findsOneWidget);
-      expect(find.widgetWithText(ListTile, 'メモ帳'), findsOneWidget);
-      expect(find.widgetWithText(ListTile, 'グラフ'), findsOneWidget);
-      expect(find.widgetWithText(ListTile, 'ユーザー一覧'), findsOneWidget);
     });
 
     testWidgets('アップデート通知: 新しいバージョンがある場合にダイアログが表示されること', (tester) async {
@@ -272,9 +267,6 @@ void main() {
 
       controller.state = const AsyncError('Fetch Error', StackTrace.empty);
       await tester.pumpAndSettle();
-
-      // エラー時も buildBody() が呼ばれ、メニューが表示されていることを確認
-      expect(find.widgetWithText(ListTile, 'AIチャット'), findsOneWidget);
 
       final buttonFinder = find.widgetWithText(FilledButton, 'アプリ情報取得');
       await tester.dragUntilVisible(
@@ -424,27 +416,18 @@ void main() {
   });
 
   group('画面遷移 (Routing)', () {
-    testWidgets('各画面への遷移アクションが動作すること', (tester) async {
-      Future<void> tapAndVerify(String text, String path) async {
-        await setupWidget(tester);
-        await tester.pumpAndSettle();
-        final finder = find.widgetWithText(ListTile, text);
-        await tester.dragUntilVisible(
-          finder,
-          find.byType(ListView),
-          const Offset(0, -500),
-        );
-        await tester.tap(finder);
-        await tester.pumpAndSettle();
-        expect(attemptedPath, contains(path));
-      }
-
-      await tapAndVerify('AIチャット', 'chat');
-      await tapAndVerify('メモ帳', 'memos');
-      await tapAndVerify('グラフ', 'chart-input');
-      await tapAndVerify('ユーザー一覧', 'user');
-      await tapAndVerify('パスワードリセット', 'reset');
-      await tapAndVerify('404テスト', 'undefined');
+    testWidgets('404テスト画面への遷移アクションが動作すること', (tester) async {
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+      final finder = find.widgetWithText(ListTile, '404テスト');
+      await tester.dragUntilVisible(
+        finder,
+        find.byType(ListView),
+        const Offset(0, -500),
+      );
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+      expect(attemptedPath, contains('undefined'));
     });
 
     testWidgets('AppBarの設定アイコンから設定画面へ遷移すること', (tester) async {

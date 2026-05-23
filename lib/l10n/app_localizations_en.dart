@@ -362,4 +362,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get developerLogTitle => 'Developer Log';
+
+  @override
+  String get navHome => 'Home';
+
+  @override
+  String get navChat => 'Chat';
+
+  @override
+  String get navMemos => 'Memos';
+
+  @override
+  String get navChart => 'Chart';
+
+  @override
+  String get navUsers => 'Users';
 }

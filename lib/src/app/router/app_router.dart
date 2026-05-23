@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/app/router/auth_guard.dart';
 import 'package:flutter_sample/src/app/router/firebase_auth_guard.dart';
+import 'package:flutter_sample/src/app/router/main_shell_screen.dart';
 import 'package:flutter_sample/src/app/router/snackbar_navigation_observer.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/analytics/typed_route_analytics_observer.dart';
@@ -32,8 +33,13 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'app_router.g.dart';
 part 'routes/auth_routes.dart';
-part 'routes/home_routes.dart';
+part 'routes/chat_tab_routes.dart';
+part 'routes/chart_tab_routes.dart';
+part 'routes/home_tab_routes.dart';
+part 'routes/memos_tab_routes.dart';
+part 'routes/shell_routes.dart';
 part 'routes/splash_routes.dart';
+part 'routes/user_tab_routes.dart';
 
 /// 🌐 GoRouterのインスタンスをRiverpodで提供
 @Riverpod(keepAlive: true)

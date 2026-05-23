@@ -769,6 +769,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Developer Log'**
   String get developerLogTitle;
+
+  /// No description provided for @navHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get navHome;
+
+  /// No description provided for @navChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat'**
+  String get navChat;
+
+  /// No description provided for @navMemos.
+  ///
+  /// In en, this message translates to:
+  /// **'Memos'**
+  String get navMemos;
+
+  /// No description provided for @navChart.
+  ///
+  /// In en, this message translates to:
+  /// **'Chart'**
+  String get navChart;
+
+  /// No description provided for @navUsers.
+  ///
+  /// In en, this message translates to:
+  /// **'Users'**
+  String get navUsers;
 }
 
 class _AppLocalizationsDelegate

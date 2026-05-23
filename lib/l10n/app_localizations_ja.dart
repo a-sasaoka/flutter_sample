@@ -349,4 +349,19 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get developerLogTitle => '開発者用ログ';
+
+  @override
+  String get navHome => 'ホーム';
+
+  @override
+  String get navChat => 'チャット';
+
+  @override
+  String get navMemos => 'メモ';
+
+  @override
+  String get navChart => 'グラフ';
+
+  @override
+  String get navUsers => 'ユーザー';
 }

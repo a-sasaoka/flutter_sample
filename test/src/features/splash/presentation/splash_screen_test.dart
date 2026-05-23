@@ -1,3 +1,6 @@
+// We need to SplashScreen class without const
+// so that this constructor code execution is counted in test coverage.
+// ignore_for_file: prefer_const_constructors
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
@@ -34,8 +37,7 @@ void main() {
 
   group('SplashScreenのテスト', () {
     test('コンストラクタでインスタンスが生成できること', () {
-      const screen = SplashScreen();
-      expect(screen, isNotNull);
+      expect(SplashScreen(), isNotNull);
     });
 
     testWidgets('初期表示のテスト: 背景グラデーションとロゴが表示されること', (tester) async {

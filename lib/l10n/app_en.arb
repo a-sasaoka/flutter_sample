@@ -143,5 +143,12 @@
   "versionUpMessageMandatory": "A new version is required.",
   "versionUpCancel": "Later",
   "versionUpUpdate": "Update",
-  "developerLogTitle": "Developer Log"
+
+  "@_NAVIGATOR": {},
+  "developerLogTitle": "Developer Log",
+  "navHome": "Home",
+  "navChat": "Chat",
+  "navMemos": "Memos",
+  "navChart": "Chart",
+  "navUsers": "Users"
 }

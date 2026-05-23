@@ -143,5 +143,12 @@
   "versionUpMessageMandatory": "アプリを利用するには最新版へのアップデートが必要です。",
   "versionUpCancel": "あとで",
   "versionUpUpdate": "アップデート",
-  "developerLogTitle": "開発者用ログ"
+
+  "@_NAVIGATOR": {},
+  "developerLogTitle": "開発者用ログ",
+  "navHome": "ホーム",
+  "navChat": "チャット",
+  "navMemos": "メモ",
+  "navChart": "グラフ",
+  "navUsers": "ユーザー"
 }
