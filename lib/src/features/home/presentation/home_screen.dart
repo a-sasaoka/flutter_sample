@@ -120,47 +120,6 @@ class _HomeBody extends ConsumerWidget {
             side: BorderSide.none,
           ),
         ),
-        const SizedBox(height: 16),
-
-        // メイン機能カード
-        Card(
-          child: Column(
-            children: [
-              _MenuTile(
-                icon: Icons.chat_outlined,
-                title: l10n.homeToChat,
-                onTap: () => const ChatRoute().push<void>(context),
-              ),
-              const Divider(height: 1, indent: 56),
-              _MenuTile(
-                icon: Icons.edit_note_outlined,
-                title: l10n.homeToMemos,
-                onTap: () => const MemosRoute().push<void>(context),
-              ),
-              const Divider(height: 1, indent: 56),
-              _MenuTile(
-                icon: Icons.bar_chart_outlined,
-                title: l10n.homeToGraph,
-                onTap: () => const ChartInputRoute().push<void>(context),
-              ),
-              const Divider(height: 1, indent: 56),
-              _MenuTile(
-                icon: Icons.people_outline,
-                title: l10n.homeToUserList,
-                onTap: () => const UserListRoute().push<void>(context),
-              ),
-              if (useFirebaseAuth) ...[
-                const Divider(height: 1, indent: 56),
-                _MenuTile(
-                  icon: Icons.lock_reset_outlined,
-                  title: l10n.homeToResetPassword,
-                  onTap: () => const ResetPasswordRoute().push<void>(context),
-                ),
-              ],
-            ],
-          ),
-        ),
-
         const SizedBox(height: 32),
         _SectionHeader(title: l10n.developerLogTitle),
         const SizedBox(height: 8),

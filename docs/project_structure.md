@@ -8,6 +8,8 @@
 flutter_sample
 ├── .env*                                                       # 秘匿情報・個人設定ファイル（Git管理外。env.example参照）
 ├── .github/                                                    # GitHub ActionsによるCI/CDワークフロー設定
+├── assets/                                                     # アプリで使用する画像やアプリアイコンなどのアセット
+│   └── icons/                                                 # 各環境（Flavor）用の元アプリアイコン画像
 ├── android/
 │   └── app/src/
 │       └── {flavor}/                                           # Android用の環境別Firebase設定等を格納
@@ -36,7 +38,7 @@ flutter_sample
         ├── app                                                 # アプリケーション全体の構成要素
         │   ├── database                                        # Driftデータベース本体（テーブル統合管理）
         │   └── router                                          # ルーティング（GoRouter）関連・認証ガード
-        │       └── routes/                                     # 親ルートごとに分割されたルート定義（part of）
+        │       └── routes/                                     # 各機能・タブごとに分割されたルート定義（part of）
         ├── core                                                # アプリ全体で共通的に利用される基盤コード
         │   ├── analytics                                       # イベント計測関連、カスタムObserver
         │   ├── config                                          # 環境設定（EnvConfig, AppEnv）、テーマ等

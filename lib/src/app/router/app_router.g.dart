@@ -9,7 +9,7 @@ part of 'app_router.dart';
 List<RouteBase> get $appRoutes => [
   $loginRoute,
   $emailVerificationRoute,
-  $homeRoute,
+  $appShellRouteData,
   $splashRoute,
 ];
 
@@ -93,30 +93,63 @@ mixin $EmailVerificationRoute on GoRouteData {
   void replace(BuildContext context) => context.replace(location);
 }
 
-RouteBase get $homeRoute => GoRouteData.$route(
-  path: '/',
-  factory: $HomeRoute._fromState,
-  routes: [
-    GoRouteData.$route(path: 'settings', factory: $SettingsRoute._fromState),
-    GoRouteData.$route(path: 'users', factory: $UserListRoute._fromState),
-    GoRouteData.$route(
-      path: 'reset-password',
-      factory: $ResetPasswordRoute._fromState,
-    ),
-    GoRouteData.$route(path: 'chat', factory: $ChatRoute._fromState),
-    GoRouteData.$route(path: 'memos', factory: $MemosRoute._fromState),
-    GoRouteData.$route(
-      path: 'chart-input',
-      factory: $ChartInputRoute._fromState,
+RouteBase get $appShellRouteData => StatefulShellRouteData.$route(
+  factory: $AppShellRouteDataExtension._fromState,
+  branches: [
+    StatefulShellBranchData.$branch(
       routes: [
         GoRouteData.$route(
-          path: 'display',
-          factory: $ChartDisplayRoute._fromState,
+          path: '/',
+          factory: $HomeRoute._fromState,
+          routes: [
+            GoRouteData.$route(
+              path: 'settings',
+              factory: $SettingsRoute._fromState,
+            ),
+            GoRouteData.$route(
+              path: 'reset-password',
+              factory: $ResetPasswordRoute._fromState,
+            ),
+          ],
         ),
+      ],
+    ),
+    StatefulShellBranchData.$branch(
+      routes: [
+        GoRouteData.$route(path: '/chat', factory: $ChatRoute._fromState),
+      ],
+    ),
+    StatefulShellBranchData.$branch(
+      routes: [
+        GoRouteData.$route(path: '/memos', factory: $MemosRoute._fromState),
+      ],
+    ),
+    StatefulShellBranchData.$branch(
+      routes: [
+        GoRouteData.$route(
+          path: '/chart-input',
+          factory: $ChartInputRoute._fromState,
+          routes: [
+            GoRouteData.$route(
+              path: 'display',
+              factory: $ChartDisplayRoute._fromState,
+            ),
+          ],
+        ),
+      ],
+    ),
+    StatefulShellBranchData.$branch(
+      routes: [
+        GoRouteData.$route(path: '/users', factory: $UserListRoute._fromState),
       ],
     ),
   ],
 );
+
+extension $AppShellRouteDataExtension on AppShellRouteData {
+  static AppShellRouteData _fromState(GoRouterState state) =>
+      const AppShellRouteData();
+}
 
 mixin $HomeRoute on GoRouteData {
   static HomeRoute _fromState(GoRouterState state) => const HomeRoute();
@@ -143,26 +176,6 @@ mixin $SettingsRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/settings');
-
-  @override
-  void go(BuildContext context) => context.go(location);
-
-  @override
-  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
-
-  @override
-  void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location);
-
-  @override
-  void replace(BuildContext context) => context.replace(location);
-}
-
-mixin $UserListRoute on GoRouteData {
-  static UserListRoute _fromState(GoRouterState state) => const UserListRoute();
-
-  @override
-  String get location => GoRouteData.$location('/users');
 
   @override
   void go(BuildContext context) => context.go(location);
@@ -266,6 +279,26 @@ mixin $ChartDisplayRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/chart-input/display');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $UserListRoute on GoRouteData {
+  static UserListRoute _fromState(GoRouterState state) => const UserListRoute();
+
+  @override
+  String get location => GoRouteData.$location('/users');
 
   @override
   void go(BuildContext context) => context.go(location);

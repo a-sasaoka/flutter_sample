@@ -1,9 +1,13 @@
+// We need to instantiate branch data classes without const
+// so that their constructor code execution is counted in test coverage.
+// ignore_for_file: prefer_const_constructors
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
+import 'package:flutter_sample/src/app/router/main_shell_screen.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/analytics/typed_route_analytics_observer.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
@@ -19,8 +23,12 @@ import 'package:flutter_sample/src/features/auth/presentation/firebase_sign_up_s
 import 'package:flutter_sample/src/features/auth/presentation/login_screen.dart';
 import 'package:flutter_sample/src/features/chart/presentation/chart_display_screen.dart';
 import 'package:flutter_sample/src/features/chart/presentation/chart_input_screen.dart';
+import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
+import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
+import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
+import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
@@ -41,6 +49,17 @@ class MockGoRouterState extends Mock implements GoRouterState {}
 class MockBuildContext extends Mock implements BuildContext {}
 
 class MockUser extends Mock implements User {}
+
+class MockStatefulNavigationShell extends Mock
+    implements StatefulNavigationShell {
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) =>
+      super.toString();
+}
+
+class MockChatRepository extends Mock implements ChatRepository {}
+
+class MockMemoRepository extends Mock implements MemoRepository {}
 
 // --- SplashStateのフェイク定義 ---
 class FakeSplashState extends SplashState {
@@ -80,11 +99,19 @@ void main() {
   late MockFirebaseAnalytics mockAnalytics;
   late MockTalker mockTalker;
   late MockUser mockUser;
+  late MockChatRepository mockChatRepository;
+  late MockMemoRepository mockMemoRepository;
 
   setUp(() {
     mockAnalytics = MockFirebaseAnalytics();
     mockTalker = MockTalker();
     mockUser = MockUser();
+    mockChatRepository = MockChatRepository();
+    mockMemoRepository = MockMemoRepository();
+
+    when(
+      () => mockMemoRepository.getAllMemos(),
+    ).thenAnswer((_) async => <MemoModel>[]);
 
     when(() => mockUser.uid).thenReturn('dummy_uid_123');
     when(() => mockUser.emailVerified).thenReturn(true);
@@ -118,6 +145,8 @@ void main() {
   }) {
     final container = ProviderContainer(
       overrides: [
+        chatRepositoryProvider.overrideWithValue(mockChatRepository),
+        memoRepositoryProvider.overrideWithValue(mockMemoRepository),
         firebaseAnalyticsProvider.overrideWithValue(mockAnalytics),
         loggerProvider.overrideWithValue(mockTalker),
         flavorProvider.overrideWithValue(Flavor.dev),
@@ -495,6 +524,36 @@ void main() {
         expect(widget, isA<FirebaseEmailVerificationScreen>());
       },
     );
+
+    test('AppShellRouteData.builder: MainShellScreen を返すこと', () {
+      final mockShell = MockStatefulNavigationShell();
+      final widget = const AppShellRouteData().builder(
+        MockBuildContext(),
+        MockGoRouterState(),
+        mockShell,
+      );
+      expect(widget, isA<MainShellScreen>());
+    });
+
+    test('HomeBranch: インスタンス化できること', () {
+      expect(HomeBranch(), isNotNull);
+    });
+
+    test('ChatBranch: インスタンス化できること', () {
+      expect(ChatBranch(), isNotNull);
+    });
+
+    test('MemosBranch: インスタンス化できること', () {
+      expect(MemosBranch(), isNotNull);
+    });
+
+    test('ChartBranch: インスタンス化できること', () {
+      expect(ChartBranch(), isNotNull);
+    });
+
+    test('UserBranch: インスタンス化できること', () {
+      expect(UserBranch(), isNotNull);
+    });
   });
 
   group('TypedRouteAnalyticsObserver テスト', () {
@@ -555,6 +614,69 @@ void main() {
           screenName: 'PreviousScreen',
         ),
       ).called(1);
+    });
+  });
+
+  group('MainShellScreen Widgetテスト', () {
+    testWidgets('ボトムナビゲーションバーが正しく描画され、タブをタップすると各画面に遷移すること', (
+      tester,
+    ) async {
+      final container = createContainer(isLoggedIn: true, useFirebase: true);
+
+      await tester.pumpWidget(createTestWidget(tester, container));
+      await tester.pumpAndSettle();
+
+      // 初期表示は HomeScreen が表示されていること
+      expect(find.byType(MainShellScreen), findsOneWidget);
+      expect(find.byType(HomeScreen), findsOneWidget);
+
+      // 各タブが表示されていることの確認（NavigationBar内のテキストを検索）
+      expect(find.byType(NavigationBar), findsOneWidget);
+      final navBar = find.byType(NavigationBar);
+      expect(
+        find.descendant(of: navBar, matching: find.text('ホーム')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: navBar, matching: find.text('チャット')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: navBar, matching: find.text('メモ')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: navBar, matching: find.text('グラフ')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: navBar, matching: find.text('ユーザー')),
+        findsOneWidget,
+      );
+
+      // チャットタブ（インデックス1）をタップする
+      await tester.tap(
+        find.descendant(of: navBar, matching: find.text('チャット')),
+      );
+      await tester.pumpAndSettle();
+
+      // ChatScreen に切り替わっていることを確認
+      expect(find.byType(ChatScreen), findsOneWidget);
+
+      // 同じチャットタブを再度タップする（initialLocation: true の分岐をテストするため）
+      await tester.tap(
+        find.descendant(of: navBar, matching: find.text('チャット')),
+      );
+      await tester.pumpAndSettle();
+
+      // メモタブ（インデックス2）をタップする
+      await tester.tap(find.descendant(of: navBar, matching: find.text('メモ')));
+      await tester.pumpAndSettle();
+
+      // MemoScreen に切り替わっていることを確認
+      expect(find.byType(MemoScreen), findsOneWidget);
+
+      await teardownWidget(tester, container);
     });
   });
 }
