@@ -4,10 +4,11 @@ on:
   pull_request:
     types: [opened, synchronize, ready_for_review]
 
-# PRにレビューコメントを書き込むための権限を追加
+# PRにコメントを書き込み、ファイルを適切に読み書きするための権限を追加
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
+  issues: write
 
 jobs:
   review:
@@ -27,16 +28,17 @@ jobs:
           cat prompts/review-rules.md >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-      # ② PR-Agent を実行するステップ
+      # ② PR-Agent を実行するステップ (ダブルアンダースコア __ を使用した正しい環境変数指定)
       - name: Run PR Agent
         uses: Codium-ai/pr-agent@main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # GeminiのAPIキーを設定
-          GOOGLE_AI_STUDIO.GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # GeminiのAPIキーを設定 (ツールが認識できる複数の環境変数に対応させています)
+          GOOGLE_AI_STUDIO__GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           # 使用するモデルを指定 (gemini/プレフィックスが必要です)
-          config.model: "gemini/gemini-3.5-flash"
+          CONFIG__MODEL: "gemini/gemini-3.5-flash"
           # 自動レビュー機能をオンにします
-          github_action_config.auto_review: "true"
+          GITHUB_ACTION_CONFIG__AUTO_REVIEW: "true"
           # prompts/review-rules.md の中身をカスタム指示として渡します
-          pr_review.extra_instructions: ${{ env.SYSTEM_MESSAGE }}
+          PR_REVIEW__EXTRA_INSTRUCTIONS: ${{ env.SYSTEM_MESSAGE }}
