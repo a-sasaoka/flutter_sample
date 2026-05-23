@@ -24,6 +24,7 @@ import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
+import 'package:flutter_sample/src/features/splash/presentation/splash_state_provider.dart';
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -40,6 +41,15 @@ class MockGoRouterState extends Mock implements GoRouterState {}
 class MockBuildContext extends Mock implements BuildContext {}
 
 class MockUser extends Mock implements User {}
+
+// --- SplashStateのフェイク定義 ---
+class FakeSplashState extends SplashState {
+  FakeSplashState({required this.initialValue});
+  final bool initialValue;
+
+  @override
+  bool build() => initialValue;
+}
 
 class _FakeAuthStateNotifier extends AuthStateNotifier {
   _FakeAuthStateNotifier({required this.isLoggedIn});
@@ -104,6 +114,7 @@ void main() {
   ProviderContainer createContainer({
     required bool isLoggedIn,
     required bool useFirebase,
+    bool isSplashFinished = true,
   }) {
     final container = ProviderContainer(
       overrides: [
@@ -128,6 +139,9 @@ void main() {
             isLoggedIn: isLoggedIn,
             mockUser: mockUser,
           ),
+        ),
+        splashStateProvider.overrideWith(
+          () => FakeSplashState(initialValue: isSplashFinished),
         ),
       ],
     )..listen(routerProvider, (_, _) {});
@@ -216,19 +230,43 @@ void main() {
       await tester.pumpWidget(createTestWidget(container));
       await tester.pumpAndSettle();
 
-      // authStateProvider の状態を強制的に変更する
-      (container.read(authStateProvider.notifier) as _FakeAuthStateNotifier)
-          .changeState(value: true);
-      await tester.pump();
+      // 最初は未ログインなので FirebaseLoginScreen が表示されていること
+      expect(find.byType(FirebaseLoginScreen), findsOneWidget);
 
       // firebaseAuthStateProvider の状態を強制的に変更する
       (container.read(firebaseAuthStateProvider.notifier)
               as _FakeFirebaseAuthStateNotifier)
           .changeState(mockUser);
+
+      // 遷移が完了するまで待つ
+      await tester.pumpAndSettle();
+
+      // ログイン状態になったので HomeScreen に遷移することを確認
+      expect(find.byType(HomeScreen), findsOneWidget);
+
+      await teardownWidget(tester, container);
+    });
+
+    testWidgets('スプラッシュ画面完了時にルーターが再評価されること', (tester) async {
+      final container = createContainer(
+        isLoggedIn: true,
+        useFirebase: false,
+        isSplashFinished: false,
+      );
+
+      await tester.pumpWidget(createTestWidget(container));
       await tester.pump();
 
-      // エラーが起きず正常に動作していればOK
-      expect(tester.takeException(), isNull);
+      // 最初はスプラッシュ未完了なので SplashScreen が表示されていること
+      expect(find.byType(SplashScreen), findsOneWidget);
+
+      // スプラッシュ完了状態にする
+      container.read(splashStateProvider.notifier).finishSplash();
+      await tester.pumpAndSettle();
+
+      // スプラッシュが完了したので HomeScreen に遷移すること
+      expect(find.byType(HomeScreen), findsOneWidget);
+
       await teardownWidget(tester, container);
     });
 

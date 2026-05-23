@@ -24,6 +24,7 @@ import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
+import 'package:flutter_sample/src/features/splash/presentation/splash_state_provider.dart';
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -41,6 +42,12 @@ GoRouter router(Ref ref) {
 
   // 認証状態の変更を検知して GoRouter にルーティングの再評価を促すための Listenable
   final routerListenable = ValueNotifier<bool>(false);
+
+  // スプラッシュ画面の表示が完了したときも、画面遷移を再評価する
+  ref.listen(
+    splashStateProvider,
+    (_, _) => routerListenable.value = !routerListenable.value,
+  );
 
   // 使用している認証方式のみを監視対象にする
   if (useFirebase) {

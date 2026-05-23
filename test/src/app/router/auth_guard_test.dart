@@ -4,12 +4,22 @@ import 'package:flutter/foundation.dart'; // SynchronousFuture 用
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/app/router/auth_guard.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
+import 'package:flutter_sample/src/features/splash/presentation/splash_state_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockGoRouterState extends Mock implements GoRouterState {}
+
+// --- SplashStateのフェイク定義 ---
+class FakeSplashState extends SplashState {
+  FakeSplashState({required this.initialValue});
+  final bool initialValue;
+
+  @override
+  bool build() => initialValue;
+}
 
 // --- Notifierのモック定義 ---
 class _FakeAuthStateNotifier extends AuthStateNotifier {
@@ -42,7 +52,11 @@ void main() {
     when(() => mockState.uri).thenReturn(Uri.parse('/'));
   });
 
-  String? executeGuard(AsyncValue<bool> authState, {String location = '/'}) {
+  String? executeGuard(
+    AsyncValue<bool> authState, {
+    String location = '/',
+    bool isSplashFinished = true,
+  }) {
     when(() => mockState.matchedLocation).thenReturn(location);
     when(() => mockState.uri).thenReturn(Uri.parse(location));
 
@@ -51,6 +65,9 @@ void main() {
         // 💡 修正ポイント: 引数なしの overrideWith
         authStateProvider.overrideWith(
           () => _FakeAuthStateNotifier(authState),
+        ),
+        splashStateProvider.overrideWith(
+          () => FakeSplashState(initialValue: isSplashFinished),
         ),
       ],
     );
@@ -106,6 +123,30 @@ void main() {
       );
       expect(result, startsWith(const LoginRoute().location));
       expect(result, contains('from=${Uri.encodeComponent('/')}'));
+    });
+
+    test('スプラッシュ未完了の場合、常に SplashRoute にリダイレクトすること', () {
+      final result = executeGuard(
+        const AsyncData<bool>(true),
+        isSplashFinished: false,
+      );
+      expect(result, const SplashRoute().location);
+    });
+
+    test('スプラッシュ完了後、スプラッシュ画面にいて未ログインの場合、ログイン画面へリダイレクトすること', () {
+      final result = executeGuard(
+        const AsyncData<bool>(false),
+        location: const SplashRoute().location,
+      );
+      expect(result, const LoginRoute().location);
+    });
+
+    test('スプラッシュ完了後、スプラッシュ画面にいてログイン済みの場合、ホーム画面へリダイレクトすること', () {
+      final result = executeGuard(
+        const AsyncData<bool>(true),
+        location: const SplashRoute().location,
+      );
+      expect(result, const HomeRoute().location);
     });
   });
 }
