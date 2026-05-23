@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
@@ -22,21 +20,15 @@ class FirebaseEmailVerificationScreen extends HookConsumerWidget {
     final isReloading = useState(false);
     final isResending = useState(false);
 
-    ref.listen(appLifecycleProvider, (previous, next) {
+    ref.listen(appLifecycleProvider, (previous, next) async {
       if (next == AppLifecycleState.resumed) {
-        unawaited(
-          () async {
-            try {
-              await ref
-                  .read(firebaseAuthRepositoryProvider)
-                  .reloadCurrentUser();
-            } on Exception catch (e) {
-              if (context.mounted) {
-                ErrorHandler.showSnackBar(context, e);
-              }
-            }
-          }(),
-        );
+        try {
+          await ref.read(firebaseAuthRepositoryProvider).reloadCurrentUser();
+        } on Exception catch (e) {
+          if (context.mounted) {
+            ErrorHandler.showSnackBar(context, e);
+          }
+        }
       }
     });
 
