@@ -104,16 +104,25 @@ lib/src/app/router/
 
 ---
 
-### 🧪 動作フロー
+### 🧪 動作フローとスプラッシュ画面表示時間保証
+
+スプラッシュ画面のチラつきを防ぎ、かつリッチなアニメーション（最低2秒）をユーザーに確実に見せるため、以下のフローで制御を行っています。
 
 ```plaintext
-アプリ起動
+アプリ起動（初期ルートは /splash）
    ↓
-SplashScreen表示（認証状態チェック）
+SplashScreen表示 ＆ アニメーション開始（最低2秒間表示）
    ↓
-【認証済み】 → HomeRoute("/")へ
-【未認証】   → LoginRoute("/login")へ
+2秒経過後にスプラッシュ完了（splashStateProvider = true に更新）
+   ↓
+GoRouter のリダイレクト処理（authGuard / firebaseAuthGuard）が再評価
+   ↓
+現在地が /splash かつスプラッシュ完了済みの場合：
+   ├─【認証済み】 ──→ HomeRoute("/") へ自動遷移
+   └─【未認証】   ──→ LoginRoute("/login") へ自動遷移
 ```
+
+この制御を行うため、`app_router.dart` 内で `splashStateProvider` をリッスンし、状態が完了（`true`）に変わったタイミングでルーターの更新（リダイレクト処理の再判定をトリガー）を行っています。
 
 ---
 
