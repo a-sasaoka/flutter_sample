@@ -24,6 +24,7 @@ import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
+import 'package:flutter_sample/src/features/splash/presentation/splash_state_provider.dart';
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -40,6 +41,15 @@ class MockGoRouterState extends Mock implements GoRouterState {}
 class MockBuildContext extends Mock implements BuildContext {}
 
 class MockUser extends Mock implements User {}
+
+// --- SplashStateのフェイク定義 ---
+class FakeSplashState extends SplashState {
+  FakeSplashState({required this.initialValue});
+  final bool initialValue;
+
+  @override
+  bool build() => initialValue;
+}
 
 class _FakeAuthStateNotifier extends AuthStateNotifier {
   _FakeAuthStateNotifier({required this.isLoggedIn});
@@ -104,6 +114,7 @@ void main() {
   ProviderContainer createContainer({
     required bool isLoggedIn,
     required bool useFirebase,
+    bool isSplashFinished = true,
   }) {
     final container = ProviderContainer(
       overrides: [
@@ -129,12 +140,23 @@ void main() {
             mockUser: mockUser,
           ),
         ),
+        splashStateProvider.overrideWith(
+          () => FakeSplashState(initialValue: isSplashFinished),
+        ),
       ],
     )..listen(routerProvider, (_, _) {});
     return container;
   }
 
-  Widget createTestWidget(ProviderContainer container) {
+  Widget createTestWidget(WidgetTester tester, ProviderContainer container) {
+    // 画面サイズを固定し、テスト終了時にリセットする
+    tester.view.physicalSize = const Size(1080, 1920);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
     return UncontrolledProviderScope(
       container: container,
       child: MaterialApp.router(
@@ -159,7 +181,7 @@ void main() {
     testWidgets('ログイン済みの時、HomeScreen が表示されること', (tester) async {
       final container = createContainer(isLoggedIn: true, useFirebase: true);
 
-      await tester.pumpWidget(createTestWidget(container));
+      await tester.pumpWidget(createTestWidget(tester, container));
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
@@ -172,7 +194,7 @@ void main() {
     ) async {
       final container = createContainer(isLoggedIn: false, useFirebase: false);
 
-      await tester.pumpWidget(createTestWidget(container));
+      await tester.pumpWidget(createTestWidget(tester, container));
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
@@ -185,7 +207,7 @@ void main() {
     ) async {
       final container = createContainer(isLoggedIn: false, useFirebase: true);
 
-      await tester.pumpWidget(createTestWidget(container));
+      await tester.pumpWidget(createTestWidget(tester, container));
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
@@ -196,7 +218,7 @@ void main() {
     testWidgets('存在しないパスにアクセスした時、NotFoundScreenが表示されること', (tester) async {
       final container = createContainer(isLoggedIn: true, useFirebase: false);
 
-      await tester.pumpWidget(createTestWidget(container));
+      await tester.pumpWidget(createTestWidget(tester, container));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
 
@@ -213,22 +235,46 @@ void main() {
     testWidgets('認証状態の変更を検知してルーターが更新（Listen）されること', (tester) async {
       final container = createContainer(isLoggedIn: false, useFirebase: true);
 
-      await tester.pumpWidget(createTestWidget(container));
+      await tester.pumpWidget(createTestWidget(tester, container));
       await tester.pumpAndSettle();
 
-      // authStateProvider の状態を強制的に変更する
-      (container.read(authStateProvider.notifier) as _FakeAuthStateNotifier)
-          .changeState(value: true);
-      await tester.pump();
+      // 最初は未ログインなので FirebaseLoginScreen が表示されていること
+      expect(find.byType(FirebaseLoginScreen), findsOneWidget);
 
       // firebaseAuthStateProvider の状態を強制的に変更する
       (container.read(firebaseAuthStateProvider.notifier)
               as _FakeFirebaseAuthStateNotifier)
           .changeState(mockUser);
+
+      // 遷移が完了するまで待つ
+      await tester.pumpAndSettle();
+
+      // ログイン状態になったので HomeScreen に遷移することを確認
+      expect(find.byType(HomeScreen), findsOneWidget);
+
+      await teardownWidget(tester, container);
+    });
+
+    testWidgets('スプラッシュ画面完了時にルーターが再評価されること', (tester) async {
+      final container = createContainer(
+        isLoggedIn: true,
+        useFirebase: false,
+        isSplashFinished: false,
+      );
+
+      await tester.pumpWidget(createTestWidget(tester, container));
       await tester.pump();
 
-      // エラーが起きず正常に動作していればOK
-      expect(tester.takeException(), isNull);
+      // 最初はスプラッシュ未完了なので SplashScreen が表示されていること
+      expect(find.byType(SplashScreen), findsOneWidget);
+
+      // スプラッシュ完了状態にする
+      container.read(splashStateProvider.notifier).finishSplash();
+      await tester.pumpAndSettle();
+
+      // スプラッシュが完了したので HomeScreen に遷移すること
+      expect(find.byType(HomeScreen), findsOneWidget);
+
       await teardownWidget(tester, container);
     });
 
@@ -241,7 +287,7 @@ void main() {
 
         final container = createContainer(isLoggedIn: true, useFirebase: true);
 
-        await tester.pumpWidget(createTestWidget(container));
+        await tester.pumpWidget(createTestWidget(tester, container));
         await tester.pump();
         await tester.pump(const Duration(seconds: 1));
 
@@ -257,7 +303,7 @@ void main() {
 
       final container = createContainer(isLoggedIn: true, useFirebase: true);
 
-      await tester.pumpWidget(createTestWidget(container));
+      await tester.pumpWidget(createTestWidget(tester, container));
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
@@ -290,7 +336,7 @@ void main() {
     ) async {
       final container = createContainer(isLoggedIn: true, useFirebase: true);
 
-      await tester.pumpWidget(createTestWidget(container));
+      await tester.pumpWidget(createTestWidget(tester, container));
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
@@ -312,6 +358,14 @@ void main() {
     testWidgets('LoginRoute.build: 直接 build メソッドを呼んだ時に正しいWidgetを返すこと', (
       tester,
     ) async {
+      // 画面サイズを固定し、テスト終了時にリセットする
+      tester.view.physicalSize = const Size(1080, 1920);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       final container = ProviderContainer(
         overrides: [
           envConfigProvider.overrideWithValue(

@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/app/router/firebase_auth_guard.dart';
 import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
+import 'package:flutter_sample/src/features/splash/presentation/splash_state_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -11,6 +12,15 @@ class MockGoRouterState extends Mock implements GoRouterState {}
 
 class MockUser extends Mock implements User {}
 
+// --- SplashStateのフェイク定義 ---
+class FakeSplashState extends SplashState {
+  FakeSplashState({required this.initialValue});
+  final bool initialValue;
+
+  @override
+  bool build() => initialValue;
+}
+
 void main() {
   late MockGoRouterState mockState;
 
@@ -19,13 +29,20 @@ void main() {
     when(() => mockState.uri).thenReturn(Uri.parse('/'));
   });
 
-  String? executeGuard(User? user, {String location = '/'}) {
+  String? executeGuard(
+    User? user, {
+    String location = '/',
+    bool isSplashFinished = true,
+  }) {
     when(() => mockState.uri).thenReturn(Uri.parse(location));
 
     final container = ProviderContainer(
       overrides: [
         // firebaseAuthStateProvider を指定した User オブジェクトで上書き
         firebaseAuthStateProvider.overrideWithValue(user),
+        splashStateProvider.overrideWith(
+          () => FakeSplashState(initialValue: isSplashFinished),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -77,6 +94,32 @@ void main() {
       // AuthGuardHelper によりログイン画面へリダイレクトされることを確認（fromパラメータ付き）
       expect(result, startsWith(const LoginRoute().location));
       expect(result, contains('from=${Uri.encodeComponent('/')}'));
+    });
+
+    test('スプラッシュ未完了の場合、常に SplashRoute にリダイレクトすること', () {
+      final mockUser = MockUser();
+      final result = executeGuard(
+        mockUser,
+        isSplashFinished: false,
+      );
+      expect(result, const SplashRoute().location);
+    });
+
+    test('スプラッシュ完了後、スプラッシュ画面にいてログイン済みの場合、ホーム画面へリダイレクトすること', () {
+      final mockUser = MockUser();
+      final result = executeGuard(
+        mockUser,
+        location: const SplashRoute().location,
+      );
+      expect(result, const HomeRoute().location);
+    });
+
+    test('スプラッシュ完了後、スプラッシュ画面にいて未ログインの場合、ログイン画面へリダイレクトすること', () {
+      final result = executeGuard(
+        null,
+        location: const SplashRoute().location,
+      );
+      expect(result, const LoginRoute().location);
     });
   });
 }
