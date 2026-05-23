@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_state_provider.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -120,20 +121,20 @@ class SplashLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         // ロゴのアイコン
-        Icon(
+        const Icon(
           Icons.flutter_dash,
           size: SplashConfig.logoSize,
           color: SplashConfig.logoColor,
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
         // アプリタイトル
         Text(
-          'Flutter Sample App',
-          style: TextStyle(
+          context.l10n.appTitle,
+          style: const TextStyle(
             color: SplashConfig.logoColor,
             fontSize: 24,
             fontWeight: FontWeight.bold,
