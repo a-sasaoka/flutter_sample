@@ -33,6 +33,11 @@ void main() {
   });
 
   group('SplashScreenのテスト', () {
+    test('コンストラクタでインスタンスが生成できること', () {
+      const screen = SplashScreen();
+      expect(screen, isNotNull);
+    });
+
     testWidgets('初期表示のテスト: 背景グラデーションとロゴが表示されること', (tester) async {
       // 画面サイズを固定し、テスト終了時にリセットする
       tester.view.physicalSize = const Size(1080, 1920);
