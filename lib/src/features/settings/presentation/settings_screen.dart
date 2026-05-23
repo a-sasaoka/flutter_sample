@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/config/app_config_provider.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
@@ -189,10 +188,6 @@ class _LogoutButton extends ConsumerWidget {
   Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
     try {
       await ref.read(firebaseAuthRepositoryProvider).signOut();
-
-      if (context.mounted) {
-        const LoginRoute().go(context);
-      }
     } on Exception catch (e) {
       if (context.mounted) {
         ErrorHandler.showSnackBar(context, e);

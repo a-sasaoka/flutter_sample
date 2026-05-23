@@ -231,6 +231,81 @@ void main() {
       expect(tester.takeException(), isNull);
       await teardownWidget(tester, container);
     });
+
+    testWidgets(
+      'ログイン中かつメール未認証の時、FirebaseEmailVerificationScreen にリダイレクトされること',
+      (
+        tester,
+      ) async {
+        when(() => mockUser.emailVerified).thenReturn(false);
+
+        final container = createContainer(isLoggedIn: true, useFirebase: true);
+
+        await tester.pumpWidget(createTestWidget(container));
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+
+        expect(find.byType(FirebaseEmailVerificationScreen), findsOneWidget);
+        await teardownWidget(tester, container);
+      },
+    );
+
+    testWidgets('メール未認証画面からメール認証完了になった時、自動で HomeScreen に遷移すること', (
+      tester,
+    ) async {
+      when(() => mockUser.emailVerified).thenReturn(false);
+
+      final container = createContainer(isLoggedIn: true, useFirebase: true);
+
+      await tester.pumpWidget(createTestWidget(container));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.byType(FirebaseEmailVerificationScreen), findsOneWidget);
+
+      final verifiedUser = MockUser();
+      when(() => verifiedUser.uid).thenReturn('dummy_uid_123');
+      when(() => verifiedUser.emailVerified).thenReturn(true);
+      when(() => verifiedUser.isAnonymous).thenReturn(false);
+      when(() => verifiedUser.email).thenReturn('test@example.com');
+      when(() => verifiedUser.displayName).thenReturn('Test User');
+      when(() => verifiedUser.phoneNumber).thenReturn(null);
+      when(() => verifiedUser.photoURL).thenReturn(null);
+      when(() => verifiedUser.tenantId).thenReturn(null);
+      when(() => verifiedUser.refreshToken).thenReturn('dummy_token');
+
+      (container.read(firebaseAuthStateProvider.notifier)
+              as _FakeFirebaseAuthStateNotifier)
+          .changeState(verifiedUser);
+
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.byType(HomeScreen), findsOneWidget);
+      await teardownWidget(tester, container);
+    });
+
+    testWidgets('ログイン状態からログアウトした時、自動で FirebaseLoginScreen に戻ること', (
+      tester,
+    ) async {
+      final container = createContainer(isLoggedIn: true, useFirebase: true);
+
+      await tester.pumpWidget(createTestWidget(container));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.byType(HomeScreen), findsOneWidget);
+
+      (container.read(firebaseAuthStateProvider.notifier)
+              as _FakeFirebaseAuthStateNotifier)
+          .changeState(null);
+
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.byType(FirebaseLoginScreen), findsOneWidget);
+      await teardownWidget(tester, container);
+    });
   });
 
   group('RouteData ユニットテスト', () {

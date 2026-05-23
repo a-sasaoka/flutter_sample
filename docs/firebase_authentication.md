@@ -70,37 +70,28 @@ final authRepo = ref.read(firebaseAuthRepositoryProvider);
 await authRepo.signUp(emailCtrl.text, passwordCtrl.text);
 await authRepo.sendEmailVerification();
 
-// メール認証待ち画面へ遷移
-if (context.mounted) {
-    const FirebaseEmailVerificationRoute().go(context);
-}
+// 💡 登録が成功すると、認証状態の変更をルーター（GoRouter）が検知し、
+// 💡 認証ガード（firebaseAuthGuard）の働きによって自動的にメール認証画面へリダイレクトされます。
 ```
 
-### 2. メールアプリから戻った際の自動チェック（Hooksの活用）
+### 2. メールアプリから戻った際の自動チェック（ライフサイクルの監視）
 
-ユーザーが「メールアプリを開いてリンクを踏み、再びこのアプリに戻ってくる」という行動を前提とし、`flutter_hooks` の `useAppLifecycleState` を使って **フォアグラウンド復帰時（resumed）** に自動でリロードをかけます。
+ユーザーが「メールアプリを開いてリンクを踏み、再びこのアプリに戻ってくる」という行動を前提とし、アプリのライフサイクルを監視して **フォアグラウンド復帰時（resumed）** に自動でユーザー情報をリロードします。
 
 ```dart
 // lib/src/features/auth/presentation/firebase_email_verification_screen.dart
 
-// 💡 1. ライフサイクルを監視
-final lifecycleState = useAppLifecycleState();
-
-useEffect(() {
-  // アプリに復帰した瞬間に、Firebaseのユーザー状態をリロード
-  if (lifecycleState == AppLifecycleState.resumed) {
-    unawaited(ref.read(firebaseAuthRepositoryProvider).reloadCurrentUser());
-  }
-  return null;
-}, [lifecycleState]);
-
-// 💡 2. 状態の変更を検知して自動遷移
-ref.listen(firebaseAuthStateProvider, (previous, next) {
-  if (next != null && next.emailVerified) {
-    // 認証完了！ホーム画面へ
-    const HomeRoute().go(context);
+// 💡 1. ライフサイクルを監視して、フォアグラウンド復帰時にリロードを実行
+ref.listen(appLifecycleProvider, (previous, next) {
+  if (next == AppLifecycleState.resumed) {
+    unawaited(
+      ref.read(firebaseAuthRepositoryProvider).reloadCurrentUser(),
+    );
   }
 });
+
+// 💡 2. 状態の変更（メール認証の完了）はルーター（app_router.dart / firebaseAuthGuard）が自動検知し、
+// 💡    自動でホーム画面（HomeRoute）へリダイレクトするため、画面側での監視・遷移処理は不要です。
 ```
 
 この実装により、無駄な通信を一切行わず、ユーザーがアプリに戻ってきた瞬間にスッと次の画面へ進む最高クラスのUXを提供しています。

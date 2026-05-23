@@ -23,6 +23,11 @@ String? firebaseAuthGuard(Ref ref, GoRouterState state) {
     return emailVerificationPath;
   }
 
+  // メール認証が完了した状態でメール認証画面にアクセスした場合は、ホーム画面へリダイレクトする
+  if (isLoggedIn && isEmailVerified && goingToEmailVerification) {
+    return const HomeRoute().location;
+  }
+
   return AuthGuardHelper(
     loginLocation: const LoginRoute().location,
     defaultLocation: const HomeRoute().location,

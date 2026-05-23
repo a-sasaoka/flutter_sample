@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
@@ -76,10 +75,6 @@ class FirebaseSignUpScreen extends HookConsumerWidget {
                         await ref
                             .read(firebaseAuthRepositoryProvider)
                             .sendEmailVerification();
-
-                        if (context.mounted) {
-                          const EmailVerificationRoute().go(context);
-                        }
                       } on Exception catch (e) {
                         if (context.mounted) {
                           ErrorHandler.showSnackBar(context, e);

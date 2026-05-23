@@ -250,7 +250,7 @@ void main() {
           expect(find.byKey(const Key('logout_button')), findsNothing);
         });
 
-        testWidgets('useAuth == true でログアウト成功時、LoginRouteに遷移すること', (
+        testWidgets('useAuth == true でログアウト成功時、signOut処理が呼ばれること', (
           tester,
         ) async {
           // ビューポートサイズを固定
@@ -275,7 +275,6 @@ void main() {
           await tester.pumpAndSettle();
 
           verify(() => mockAuthRepo.signOut()).called(1);
-          expect(find.textContaining('Navigated to'), findsOneWidget);
         });
 
         testWidgets('ログアウト時に例外が発生した場合、SnackBarでエラーが表示されること', (tester) async {

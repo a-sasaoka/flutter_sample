@@ -102,7 +102,7 @@ void main() {
       verifyNever(() => mockAuthRepo.sendEmailVerification());
     });
 
-    testWidgets('入力値が Repository に渡され、成功時に確認メールを送信して画面遷移すること', (tester) async {
+    testWidgets('入力値が Repository に渡され、成功時に確認メールを送信すること', (tester) async {
       when(
         () => mockAuthRepo.signUp('test@example.com', 'password123'),
       ).thenAnswer((_) async {});
@@ -129,9 +129,6 @@ void main() {
         () => mockAuthRepo.signUp('test@example.com', 'password123'),
       ).called(1);
       verify(() => mockAuthRepo.sendEmailVerification()).called(1);
-
-      // 画面遷移したことを確認
-      expect(find.textContaining('Navigated to'), findsOneWidget);
     });
 
     testWidgets('サインアップ処理中、ローディング表示になり入力がロックされること', (tester) async {

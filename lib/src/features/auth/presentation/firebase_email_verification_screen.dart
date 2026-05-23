@@ -1,13 +1,9 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:flutter_sample/src/core/utils/app_lifecycle_provider.dart';
-import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -24,29 +20,17 @@ class FirebaseEmailVerificationScreen extends HookConsumerWidget {
     final isReloading = useState(false);
     final isResending = useState(false);
 
-    ref
-      ..listen(appLifecycleProvider, (previous, next) {
-        if (next == AppLifecycleState.resumed) {
-          unawaited(
-            () async {
-              try {
-                await ref
-                    .read(firebaseAuthRepositoryProvider)
-                    .reloadCurrentUser();
-              } on Exception catch (e) {
-                if (context.mounted) {
-                  ErrorHandler.showSnackBar(context, e);
-                }
-              }
-            }(),
-          );
+    ref.listen(appLifecycleProvider, (previous, next) async {
+      if (next == AppLifecycleState.resumed) {
+        try {
+          await ref.read(firebaseAuthRepositoryProvider).reloadCurrentUser();
+        } on Exception catch (e) {
+          if (context.mounted) {
+            ErrorHandler.showSnackBar(context, e);
+          }
         }
-      })
-      ..listen(firebaseAuthStateProvider, (previous, next) {
-        if (next != null && next.emailVerified) {
-          const HomeRoute().go(context);
-        }
-      });
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.emailVerificationTitle)),
