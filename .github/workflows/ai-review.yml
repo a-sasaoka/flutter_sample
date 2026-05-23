@@ -1,0 +1,40 @@
+name: Gemini AI PR Reviewer
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+
+# PRにレビューコメントを書き込むための権限を追加
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    env:
+      SYSTEM_MESSAGE: ""
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ① 外部の Markdown ファイルを読み込んで一時的な環境変数に格納する
+      - name: Read review prompt
+        run: |
+          echo "SYSTEM_MESSAGE<<EOF" >> $GITHUB_ENV
+          cat prompts/review-rules.md >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      # ② レビューを実行するAction (正しい Action 名に修正し、環境変数の展開方法を変更)
+      - name: Run AI Reviewer
+        uses: coderabbitai/ai-pr-reviewer@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        with:
+          debug: false
+          openai_base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
+          openai_model: "gemini-3.5-flash"
+          system_message: ${{ env.SYSTEM_MESSAGE }}
