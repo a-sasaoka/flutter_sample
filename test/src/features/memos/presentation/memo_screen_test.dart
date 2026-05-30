@@ -366,12 +366,12 @@ void main() {
       await tester.pumpAndSettle();
 
       var context = tester.element(searchField);
-      expect(FocusScope.of(context).hasFocus, isTrue);
+      expect(FocusScope.of(context).focusedChild, isNotNull);
 
       // 2. AppBar(画面外)をタップしてフォーカスが外れるか確認
       await tester.tap(find.byType(AppBar));
       await tester.pumpAndSettle();
-      expect(FocusScope.of(context).hasFocus, isFalse);
+      expect(FocusScope.of(context).focusedChild, isNull);
 
       // 3. 追加ボトムシートでのテスト: FABをタップしてボトムシートを開く
       await tester.tap(find.byType(FloatingActionButton));
@@ -383,13 +383,13 @@ void main() {
       await tester.pumpAndSettle();
 
       context = tester.element(titleField);
-      expect(FocusScope.of(context).hasFocus, isTrue);
+      expect(FocusScope.of(context).focusedChild, isNotNull);
 
       // 4. ボトムシート内の余白部分(GestureDetector)をタップしてフォーカスが外れるか確認
       // GestureDetectorを特定するためにボトムシートの要素をタップします
       await tester.tap(find.text('メモを追加').last);
       await tester.pumpAndSettle();
-      expect(FocusScope.of(context).hasFocus, isFalse);
+      expect(FocusScope.of(context).focusedChild, isNull);
     });
 
     testWidgets('外部から検索クエリが変更された場合に入力欄の文字が同期して更新されること', (tester) async {

@@ -49,24 +49,26 @@ class MemoNotifier extends _$MemoNotifier {
       }).toList();
     } else {
       // 破壊的変更（sort）を避けるためにリストをコピーする
-      filteredMemos = List.from(allMemos);
+      filteredMemos = [...allMemos];
     }
 
     // 2. 指定されたルールに基づいて並び替える
-    switch (sortOrder) {
-      case MemoSortOrder.createdAtDesc:
-        filteredMemos.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      case MemoSortOrder.createdAtAsc:
-        filteredMemos.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-      case MemoSortOrder.updatedAtDesc:
-        filteredMemos.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-      case MemoSortOrder.updatedAtAsc:
-        filteredMemos.sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
-      case MemoSortOrder.titleAsc:
-        filteredMemos.sort((a, b) => a.title.compareTo(b.title));
-      case MemoSortOrder.titleDesc:
-        filteredMemos.sort((a, b) => b.title.compareTo(a.title));
-    }
+    final comparator = switch (sortOrder) {
+      MemoSortOrder.createdAtDesc =>
+        (MemoModel a, MemoModel b) => b.createdAt.compareTo(a.createdAt),
+      MemoSortOrder.createdAtAsc =>
+        (MemoModel a, MemoModel b) => a.createdAt.compareTo(b.createdAt),
+      MemoSortOrder.updatedAtDesc =>
+        (MemoModel a, MemoModel b) => b.updatedAt.compareTo(a.updatedAt),
+      MemoSortOrder.updatedAtAsc =>
+        (MemoModel a, MemoModel b) => a.updatedAt.compareTo(b.updatedAt),
+      MemoSortOrder.titleAsc => (MemoModel a, MemoModel b) => a.title.compareTo(
+        b.title,
+      ),
+      MemoSortOrder.titleDesc =>
+        (MemoModel a, MemoModel b) => b.title.compareTo(a.title),
+    };
+    filteredMemos.sort(comparator);
 
     return filteredMemos;
   }

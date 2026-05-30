@@ -17,7 +17,7 @@ class MemoScreen extends ConsumerWidget {
     final l10n = context.l10n;
 
     return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       behavior: HitTestBehavior.opaque,
       child: Scaffold(
         appBar: AppBar(
@@ -63,7 +63,7 @@ class MemoScreen extends ConsumerWidget {
           final isLoading = useState(false);
 
           return GestureDetector(
-            onTap: () => FocusScope.of(context).unfocus(),
+            onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
             behavior: HitTestBehavior.opaque,
             child: Padding(
               padding: EdgeInsets.fromLTRB(

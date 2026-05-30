@@ -61,7 +61,7 @@ class LoginScreen extends HookConsumerWidget {
     }
 
     return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       behavior: HitTestBehavior.opaque,
       child: Scaffold(
         appBar: AppBar(title: Text(l10n.loginTitle)),
