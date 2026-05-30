@@ -11,7 +11,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 /// ログイン画面
 class LoginScreen extends HookConsumerWidget {
   /// コンストラクタ
-  const LoginScreen({super.key});
+  const LoginScreen({super.key}); // coverage:ignore-line
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -60,67 +60,71 @@ class LoginScreen extends HookConsumerWidget {
       }
     }
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.loginTitle)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 32),
-            Icon(
-              Icons.login_outlined,
-              size: 80,
-              color: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 32),
-            Text(
-              l10n.loginTitle,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
+    return GestureDetector(
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      behavior: HitTestBehavior.opaque,
+      child: Scaffold(
+        appBar: AppBar(title: Text(l10n.loginTitle)),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 32),
+              Icon(
+                Icons.login_outlined,
+                size: 80,
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.5),
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            TextField(
-              controller: emailController,
-              decoration: InputDecoration(
-                labelText: l10n.loginEmailLabel,
-                prefixIcon: const Icon(Icons.email_outlined),
+              const SizedBox(height: 32),
+              Text(
+                l10n.loginTitle,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
               ),
-              keyboardType: TextInputType.emailAddress,
-              enabled: !isLoading.value,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: passwordController,
-              decoration: InputDecoration(
-                labelText: l10n.loginPasswordLabel,
-                prefixIcon: const Icon(Icons.password_outlined),
+              const SizedBox(height: 24),
+              TextField(
+                controller: emailController,
+                decoration: InputDecoration(
+                  labelText: l10n.loginEmailLabel,
+                  prefixIcon: const Icon(Icons.email_outlined),
+                ),
+                keyboardType: TextInputType.emailAddress,
+                enabled: !isLoading.value,
               ),
-              obscureText: true,
-              enabled: !isLoading.value,
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 16),
+              TextField(
+                controller: passwordController,
+                decoration: InputDecoration(
+                  labelText: l10n.loginPasswordLabel,
+                  prefixIcon: const Icon(Icons.password_outlined),
+                ),
+                obscureText: true,
+                enabled: !isLoading.value,
+              ),
+              const SizedBox(height: 24),
 
-            // ログインボタン
-            FilledButton.icon(
-              onPressed: isLoading.value ? null : onLogin,
-              icon: isLoading.value
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white70,
-                      ),
-                    )
-                  : const Icon(Icons.login),
-              label: Text(l10n.loginButton),
-            ),
-          ],
+              // ログインボタン
+              FilledButton.icon(
+                onPressed: isLoading.value ? null : onLogin,
+                icon: isLoading.value
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white70,
+                        ),
+                      )
+                    : const Icon(Icons.login),
+                label: Text(l10n.loginButton),
+              ),
+            ],
+          ),
         ),
       ),
     );

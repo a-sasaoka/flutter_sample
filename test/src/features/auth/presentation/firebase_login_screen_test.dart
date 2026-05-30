@@ -288,5 +288,23 @@ void main() {
         expect(find.textContaining('Navigated to'), findsOneWidget);
       });
     });
+
+    testWidgets('画面外タップでキーボードが閉じること', (tester) async {
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      final textFields = find.byType(TextField);
+      await tester.tap(textFields.first);
+      await tester.pumpAndSettle();
+
+      final BuildContext context = tester.element(textFields.first);
+      expect(FocusScope.of(context).focusedChild, isNotNull);
+
+      // AppBarなど画面外をタップ
+      await tester.tap(find.byType(AppBar));
+      await tester.pumpAndSettle();
+
+      expect(FocusScope.of(context).focusedChild, isNull);
+    });
   });
 }

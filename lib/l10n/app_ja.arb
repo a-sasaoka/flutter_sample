@@ -97,6 +97,13 @@
   "memoSynced": "同期済み",
   "memoUnsynced": "未同期",
   "memoDeleteConfirm": "このメモを削除しますか？",
+  "memoSearchHint": "メモを検索...",
+  "memoSortCreatedAtDesc": "作成日時：新しい順",
+  "memoSortCreatedAtAsc": "作成日時：古い順",
+  "memoSortUpdatedAtDesc": "更新日時：新しい順",
+  "memoSortUpdatedAtAsc": "更新日時：古い順",
+  "memoSortTitleAsc": "タイトル：昇順",
+  "memoSortTitleDesc": "タイトル：降順",
 
   "@_CHART": {},
   "chartLine": "折れ線グラフ",

@@ -185,5 +185,22 @@ void main() {
       // エラー時は画面が pop されず残っていることを確認
       expect(find.widgetWithText(AppBar, 'パスワード再設定'), findsOneWidget);
     });
+
+    testWidgets('画面外タップでキーボードが閉じること', (tester) async {
+      await navigateToResetScreen(tester);
+
+      final textFields = find.byType(TextField);
+      await tester.tap(textFields.first);
+      await tester.pumpAndSettle();
+
+      final BuildContext context = tester.element(textFields.first);
+      expect(FocusScope.of(context).focusedChild, isNotNull);
+
+      // AppBarなど画面外をタップ
+      await tester.tap(find.byType(AppBar));
+      await tester.pumpAndSettle();
+
+      expect(FocusScope.of(context).focusedChild, isNull);
+    });
   });
 }

@@ -313,5 +313,23 @@ void main() {
       await tester.pump();
       expect(notifier.lastSentText, isNull);
     });
+
+    testWidgets('画面外タップでキーボードが閉じること', (tester) async {
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      final textFields = find.byType(TextField);
+      await tester.tap(textFields.first);
+      await tester.pumpAndSettle();
+
+      final BuildContext context = tester.element(textFields.first);
+      expect(FocusScope.of(context).focusedChild, isNotNull);
+
+      // AppBarなど画面外をタップ
+      await tester.tap(find.byType(AppBar));
+      await tester.pumpAndSettle();
+
+      expect(FocusScope.of(context).focusedChild, isNull);
+    });
   });
 }

@@ -186,14 +186,14 @@ void main() {
 
       // Focusが当たっていることを確認
       final BuildContext context = tester.element(textFields.first);
-      expect(FocusScope.of(context).hasFocus, isTrue);
+      expect(FocusScope.of(context).focusedChild, isNotNull);
 
       // AppBarなど画面外をタップ
       await tester.tap(find.byType(AppBar));
       await tester.pumpAndSettle();
 
       // Focusが外れていることを確認
-      expect(FocusScope.of(context).hasFocus, isFalse);
+      expect(FocusScope.of(context).focusedChild, isNull);
     });
   });
 }

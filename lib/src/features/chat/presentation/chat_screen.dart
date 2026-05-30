@@ -23,50 +23,54 @@ class ChatScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.chatTitle),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_sweep_outlined),
-            onPressed: () async {
-              final confirmed = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text(l10n.chartClearAll),
-                  content: Text(l10n.chartClearConfirm),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: Text(l10n.close),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: Text(
-                        l10n.chartClearAll,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
+    return GestureDetector(
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      behavior: HitTestBehavior.opaque,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.chatTitle),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.delete_sweep_outlined),
+              onPressed: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text(l10n.chartClearAll),
+                    content: Text(l10n.chartClearConfirm),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: Text(l10n.close),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: Text(
+                          l10n.chartClearAll,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-              if (confirmed == true) {
-                ref.read(chatProvider.notifier).clearHistory();
-              }
-            },
-            tooltip: l10n.chartClearAll,
-          ),
-        ],
-      ),
-      body: const Column(
-        children: [
-          // メッセージリスト部分
-          Expanded(child: _ChatListView()),
-          // 下部の入力フォーム
-          _ChatInputArea(),
-        ],
+                    ],
+                  ),
+                );
+                if (confirmed == true) {
+                  ref.read(chatProvider.notifier).clearHistory();
+                }
+              },
+              tooltip: l10n.chartClearAll,
+            ),
+          ],
+        ),
+        body: const Column(
+          children: [
+            // メッセージリスト部分
+            Expanded(child: _ChatListView()),
+            // 下部の入力フォーム
+            _ChatInputArea(),
+          ],
+        ),
       ),
     );
   }
