@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,10 +10,10 @@ void main() {
       // Arrange & Act & Assert
 
       // App Checkのデバッグトークン（秘匿情報）が取得できること
-      expect(AppEnv.debugToken, isA<String>());
+      check(AppEnv.debugToken).isA<String>();
 
       // Google 逆クライアント ID（秘匿情報）が取得できること
-      expect(AppEnv.googleReversedClientId, isA<String>());
+      check(AppEnv.googleReversedClientId).isA<String>();
 
       // 認証設定のProviderが真偽値を返すこと
       final container = ProviderContainer(
@@ -30,7 +31,7 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
-      expect(container.read(envConfigProvider).useFirebaseAuth, isA<bool>());
+      check(container.read(envConfigProvider).useFirebaseAuth).isA<bool>();
     });
   });
 }

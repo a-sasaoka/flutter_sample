@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/storage/cache_manager.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/user/data/user_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:legacy_checks/legacy_checks.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
@@ -79,9 +81,9 @@ void main() {
       final (users, fetchedAt) = await repository.fetchUsers();
 
       // Assert (検証)
-      expect(users.length, 1);
-      expect(users.first.name, 'Test User 1');
-      expect(fetchedAt, dummyTimestamp);
+      check(users.length).equals(1);
+      check(users.first.name).equals('Test User 1');
+      check(fetchedAt).equals(dummyTimestamp);
 
       // API通信とキャッシュ保存が「絶対に呼ばれていないこと」を確認
       verifyNever(() => mockApi.get<List<dynamic>>(any()));
@@ -99,9 +101,9 @@ void main() {
       final (users, fetchedAt) = await repository.fetchUsers();
 
       // Assert (検証)
-      expect(users.length, 1);
+      check(users.length).equals(1);
       // clock() で設定している 10:00 が返ることを確認
-      expect(fetchedAt, DateTime(2026, 5, 17, 10));
+      check(fetchedAt).equals(DateTime(2026, 5, 17, 10));
     });
 
     test('キャッシュが存在しない場合、APIからデータを取得してキャッシュに保存されること', () async {
@@ -130,9 +132,9 @@ void main() {
       final (users, fetchedAt) = await repository.fetchUsers();
 
       // Assert (検証)
-      expect(users.length, 1);
-      expect(users.first.name, 'Test User 1');
-      expect(fetchedAt, DateTime(2026, 5, 17, 10));
+      check(users.length).equals(1);
+      check(users.first.name).equals('Test User 1');
+      check(fetchedAt).equals(DateTime(2026, 5, 17, 10));
 
       // API通信が1回呼ばれ、取得したデータがキャッシュに1回保存されていることを確認
       verify(() => mockApi.get<List<dynamic>>('/users')).called(1);
@@ -157,7 +159,7 @@ void main() {
       final (users, _) = await repository.fetchUsers();
 
       // Assert (検証)
-      expect(users, isEmpty);
+      check(users).isEmpty();
 
       verify(() => mockApi.get<List<dynamic>>('/users')).called(1);
       verifyNever(() => mockCache.save(any<String>(), any<dynamic>()));
@@ -183,9 +185,9 @@ void main() {
       );
 
       // Assert (検証)
-      expect(users.length, 1);
-      expect(users.first.name, 'Test User 1');
-      expect(fetchedAt, DateTime(2026, 5, 17, 10));
+      check(users.length).equals(1);
+      check(users.first.name).equals('Test User 1');
+      check(fetchedAt).equals(DateTime(2026, 5, 17, 10));
 
       verifyNever(() => mockCache.getWithTimestamp(any<String>()));
 
@@ -208,10 +210,9 @@ void main() {
 
       // Act & Assert (実行と検証)
       // エラーがリポジトリで握りつぶされず、そのまま上位（Notifier）に伝播することを確認
-      await expectLater(
+      check(
         () => repository.fetchUsers(),
-        throwsA(exception),
-      );
+      ).legacyMatcher(throwsA(exception));
 
       // エラーが起きたので、キャッシュ保存は絶対に呼ばれていないことを確認
       verifyNever(() => mockCache.save(any<String>(), any<dynamic>()));
@@ -240,8 +241,8 @@ void main() {
       );
 
       // Assert
-      expect(result.id, 1);
-      expect(result.name, 'Test User 1');
+      check(result.id).equals(1);
+      check(result.name).equals('Test User 1');
       verify(
         () => mockApi.post<Map<String, dynamic>>(
           '/users',
@@ -278,8 +279,8 @@ void main() {
       final result = await repository.updateUserName(1, 'Updated Name');
 
       // Assert
-      expect(result.id, 1);
-      expect(result.name, 'Updated Name');
+      check(result.id).equals(1);
+      check(result.name).equals('Updated Name');
       verify(
         () => mockApi.patch<Map<String, dynamic>>(
           '/users/1',
@@ -319,8 +320,9 @@ void main() {
       ).thenAnswer((_) async => mockResponse);
 
       // Act & Assert
-      expect(
+      check(
         () => repository.createUser('Name', 'email@example.com'),
+      ).legacyMatcher(
         throwsA(
           isA<Exception>().having(
             (e) => e.toString(),
@@ -343,8 +345,7 @@ void main() {
       ).thenAnswer((_) async => mockResponse);
 
       // Act & Assert
-      expect(
-        () => repository.updateUserName(1, 'New Name'),
+      check(() => repository.updateUserName(1, 'New Name')).legacyMatcher(
         throwsA(
           isA<Exception>().having(
             (e) => e.toString(),
@@ -381,10 +382,10 @@ void main() {
         final repository = container.read(userRepositoryProvider);
 
         // 3. Assert (検証)
-        expect(repository, isA<UserRepository>());
+        check(repository).isA<UserRepository>();
 
-        expect(repository.api, equals(mockApi));
-        expect(repository.cache, equals(mockCache));
+        check(repository.api).equals(mockApi);
+        check(repository.cache).equals(mockCache);
       },
     );
   });

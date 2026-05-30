@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:checks/checks.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 import 'package:flutter_sample/src/core/config/update_service.dart';
@@ -43,7 +44,7 @@ void main() {
 
       final result = await service.getUpdateRequestType();
 
-      expect(result, UpdateRequestType.not);
+      check(result).equals(UpdateRequestType.not);
     });
 
     test('新バージョンがあり、かつ有効期限を過ぎている場合、適切な種別を返すこと', () async {
@@ -61,7 +62,7 @@ void main() {
       final service = createService();
       final result = await service.getUpdateRequestType();
 
-      expect(result, UpdateRequestType.forcibly);
+      check(result).equals(UpdateRequestType.forcibly);
     });
 
     test('新バージョンがあり、有効期限を過ぎているが、キャンセル可能な場合', () async {
@@ -78,7 +79,7 @@ void main() {
       final service = createService();
       final result = await service.getUpdateRequestType();
 
-      expect(result, UpdateRequestType.cancelable);
+      check(result).equals(UpdateRequestType.cancelable);
     });
 
     test('新バージョンがあるが、有効期限前の場合、UpdateRequestType.not を返すこと', () async {
@@ -95,7 +96,7 @@ void main() {
       final service = createService();
       final result = await service.getUpdateRequestType();
 
-      expect(result, UpdateRequestType.not);
+      check(result).equals(UpdateRequestType.not);
     });
 
     test('バージョンが同じか古い場合、UpdateRequestType.not を返すこと', () async {
@@ -112,7 +113,7 @@ void main() {
       final service = createService();
       final result = await service.getUpdateRequestType();
 
-      expect(result, UpdateRequestType.not);
+      check(result).equals(UpdateRequestType.not);
     });
 
     test('JSONのパースに失敗した場合、例外をキャッチして not を返し、警告ログを出すこと', () async {
@@ -123,7 +124,7 @@ void main() {
 
       final result = await service.getUpdateRequestType();
 
-      expect(result, UpdateRequestType.not);
+      check(result).equals(UpdateRequestType.not);
       verify(
         () => mockTalker.warning(any<String>(that: contains('Failed'))),
       ).called(1);

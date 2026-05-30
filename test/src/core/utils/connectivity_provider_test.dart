@@ -1,5 +1,6 @@
 import 'dart:async'; // StreamControllerを使うために追加
 
+import 'package:checks/checks.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,7 +31,7 @@ void main() {
       final subscription = container.listen(isOnlineProvider, (_, _) {});
 
       // 監視員経由で現在の値を読み取る
-      expect(subscription.read(), isTrue);
+      check(subscription.read()).equals(true);
     });
 
     test('接続状態が「none（未接続）」の場合は、falseを返すこと', () async {
@@ -49,7 +50,7 @@ void main() {
       await container.read(connectivityProvider.future);
 
       // 監視員経由で値を確認
-      expect(subscription.read(), isFalse);
+      check(subscription.read()).equals(false);
     });
 
     test('接続状態に「none」が含まれていない（Wi-Fi等に接続中）場合は、trueを返すこと', () async {
@@ -67,7 +68,7 @@ void main() {
       // 値が流れてくるのを待つ
       await container.read(connectivityProvider.future);
 
-      expect(subscription.read(), isTrue);
+      check(subscription.read()).equals(true);
     });
 
     test('複数の接続状態があり、「none」が含まれていない場合は、trueを返すこと', () async {
@@ -88,7 +89,7 @@ void main() {
       // 値が流れてくるのを待つ
       await container.read(connectivityProvider.future);
 
-      expect(subscription.read(), isTrue);
+      check(subscription.read()).equals(true);
     });
   });
 }

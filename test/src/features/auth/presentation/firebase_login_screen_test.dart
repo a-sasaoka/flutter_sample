@@ -1,5 +1,7 @@
+import 'package:checks/checks.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_login_screen.dart';
@@ -78,20 +80,20 @@ void main() {
   group('FirebaseLoginScreen', () {
     test('コンストラクタでインスタンスが生成できること', () {
       const screen = FirebaseLoginScreen();
-      expect(screen, isA<FirebaseLoginScreen>());
+      check(screen).isA<FirebaseLoginScreen>();
     });
 
     testWidgets('UIが正しくレンダリングされること', (tester) async {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(AppBar, 'ログイン'), findsOneWidget);
-      expect(find.text('メールアドレス'), findsOneWidget);
-      expect(find.text('パスワード'), findsOneWidget);
-      expect(find.text('ログインする'), findsOneWidget);
-      expect(find.text('新規登録へ'), findsOneWidget);
-      expect(find.text('Googleでログイン'), findsOneWidget);
-      expect(find.text('パスワードをお忘れですか？'), findsOneWidget);
+      check(find.widgetWithText(AppBar, 'ログイン')).findsOne();
+      check(find.text('メールアドレス')).findsOne();
+      check(find.text('パスワード')).findsOne();
+      check(find.text('ログインする')).findsOne();
+      check(find.text('新規登録へ')).findsOne();
+      check(find.text('Googleでログイン')).findsOne();
+      check(find.text('パスワードをお忘れですか？')).findsOne();
     });
 
     group('メール・パスワードログイン', () {
@@ -139,19 +141,18 @@ void main() {
         await tester.pump();
 
         // インジケーターが表示されていること（特定のボタン内を探す）
-        expect(
+        check(
           find.descendant(
             of: find.widgetWithText(FilledButton, 'ログインする'),
             matching: find.byType(CircularProgressIndicator),
           ),
-          findsOneWidget,
-        );
+        ).findsOne();
 
         // 非同期処理を完了させる
         await tester.pumpAndSettle();
 
         // ローディングが終了していること
-        expect(find.byType(CircularProgressIndicator), findsNothing);
+        check(find.byType(CircularProgressIndicator)).findsNothing();
       });
 
       testWidgets('ログイン失敗時(FirebaseAuthException発生時)、専用のSnackBarが表示されること', (
@@ -171,8 +172,8 @@ void main() {
         await tester.pump();
 
         // SnackBar とテキストが表示されているか確認
-        expect(find.byType(SnackBar), findsOneWidget);
-        expect(find.text('ログインに失敗しました'), findsOneWidget);
+        check(find.byType(SnackBar)).findsOne();
+        check(find.text('ログインに失敗しました')).findsOne();
       });
     });
 
@@ -185,7 +186,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // 画面遷移したことを確認
-        expect(find.textContaining('Navigated to'), findsOneWidget);
+        check(find.textContaining('Navigated to')).findsOne();
       });
     });
 
@@ -218,8 +219,8 @@ void main() {
         verify(() => mockAuthRepo.signInWithGoogle()).called(1);
 
         // 画面遷移せず、エラーSnackBarも出ないことを確認
-        expect(find.textContaining('Navigated to'), findsNothing);
-        expect(find.byType(SnackBar), findsNothing);
+        check(find.textContaining('Navigated to')).findsNothing();
+        check(find.byType(SnackBar)).findsNothing();
       });
 
       testWidgets('ログイン処理中、ローディングインジケーターが表示されること', (tester) async {
@@ -236,13 +237,12 @@ void main() {
         await tester.tap(find.text('Googleでログイン'));
         await tester.pump();
 
-        expect(
+        check(
           find.descendant(
             of: find.widgetWithText(ElevatedButton, 'Googleでログイン'),
             matching: find.byType(CircularProgressIndicator),
           ),
-          findsOneWidget,
-        );
+        ).findsOne();
 
         await tester.pumpAndSettle();
       });
@@ -263,8 +263,8 @@ void main() {
         verify(() => mockAuthRepo.signInWithGoogle()).called(1);
 
         // 一般的な Exception なので ErrorHandler が「予期しないエラー」にフォールバックすることを確認
-        expect(find.byType(SnackBar), findsOneWidget);
-        expect(find.text('予期しないエラーが発生しました'), findsOneWidget);
+        check(find.byType(SnackBar)).findsOne();
+        check(find.text('予期しないエラーが発生しました')).findsOne();
       });
     });
 
@@ -285,7 +285,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // 画面遷移したことを確認
-        expect(find.textContaining('Navigated to'), findsOneWidget);
+        check(find.textContaining('Navigated to')).findsOne();
       });
     });
 
@@ -298,13 +298,13 @@ void main() {
       await tester.pumpAndSettle();
 
       final BuildContext context = tester.element(textFields.first);
-      expect(FocusScope.of(context).focusedChild, isNotNull);
+      check(FocusScope.of(context).focusedChild).isNotNull();
 
       // AppBarなど画面外をタップ
       await tester.tap(find.byType(AppBar));
       await tester.pumpAndSettle();
 
-      expect(FocusScope.of(context).focusedChild, isNull);
+      check(FocusScope.of(context).focusedChild).isNull();
     });
   });
 }

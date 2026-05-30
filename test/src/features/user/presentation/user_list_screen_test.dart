@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/user/data/user_repository.dart';
@@ -90,9 +92,8 @@ void main() {
 
   group('UserListScreen Test', () {
     test('コンストラクタのテスト', () {
-      // ignore: prefer_const_constructors, 100%カバレッジのために意図的にconstを外している
-      final screen = UserListScreen(key: const ValueKey<String>('test'));
-      expect(screen.key, isA<ValueKey<String>>());
+      const screen = UserListScreen(key: ValueKey<String>('test'));
+      check(screen.key).isA<ValueKey<String>>();
     });
     testWidgets('【状態系】Loading状態の時にインジケータが表示されること', (tester) async {
       final completer = Completer<(List<UserModel>, DateTime)>();
@@ -103,7 +104,7 @@ void main() {
       await pumpUserListScreen(tester);
       await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      check(find.byType(CircularProgressIndicator)).findsOne();
     });
 
     testWidgets('【正常系】Data状態でユーザー一覧が正しく表示され、カードをタップできること', (tester) async {
@@ -115,12 +116,12 @@ void main() {
       await pumpUserListScreen(tester);
       await tester.pumpAndSettle();
 
-      expect(find.text('User List'), findsOneWidget);
-      expect(find.text('Last fetched: 2026/05/17 10:30'), findsOneWidget);
-      expect(find.text('Test User 1'), findsOneWidget);
-      expect(find.text('test1@example.com'), findsOneWidget);
-      expect(find.text('Test User 2'), findsOneWidget);
-      expect(find.byType(Card), findsNWidgets(2));
+      check(find.text('User List')).findsOne();
+      check(find.text('Last fetched: 2026/05/17 10:30')).findsOne();
+      check(find.text('Test User 1')).findsOne();
+      check(find.text('test1@example.com')).findsOne();
+      check(find.text('Test User 2')).findsOne();
+      check(find.byType(Card)).findsExactly(2);
 
       await tester.tap(find.text('Test User 1'));
       await tester.pumpAndSettle();
@@ -134,8 +135,8 @@ void main() {
       await pumpUserListScreen(tester);
       await tester.pumpAndSettle();
 
-      expect(find.text('No users found.'), findsOneWidget);
-      expect(find.byIcon(Icons.people_outline), findsOneWidget);
+      check(find.text('No users found.')).findsOne();
+      check(find.byIcon(Icons.people_outline)).findsOne();
     });
 
     testWidgets('【正常系】引っ張って更新（Pull-to-Refresh）でデータが再取得されること', (tester) async {
@@ -177,8 +178,8 @@ void main() {
       await pumpUserListScreen(tester);
       await tester.pumpAndSettle();
 
-      expect(find.text('Error Occurred'), findsNWidgets(2));
-      expect(find.text('Pull to refresh'), findsOneWidget);
+      check(find.text('Error Occurred')).findsExactly(2);
+      check(find.text('Pull to refresh')).findsOne();
 
       // リトライ実行前に SnackBar を消去して干渉を防ぐ
       ScaffoldMessenger.of(
@@ -193,14 +194,13 @@ void main() {
 
       verify(() => mockRepository.fetchUsers(forceRefresh: true)).called(1);
       // リトライ成功後は body のエラー表示が消え、空表示になっていること
-      expect(
+      check(
         find.descendant(
           of: find.byType(RefreshIndicator),
           matching: find.byIcon(Icons.error_outline),
         ),
-        findsNothing,
-      );
-      expect(find.text('No users found.'), findsOneWidget);
+      ).findsNothing();
+      check(find.text('No users found.')).findsOne();
     });
 
     testWidgets('【正常系】データ保持時にエラーが発生した場合でも、以前のリストが表示され続けること', (tester) async {
@@ -212,7 +212,7 @@ void main() {
       await pumpUserListScreen(tester);
       await tester.pumpAndSettle();
 
-      expect(find.text('Test User 1'), findsOneWidget);
+      check(find.text('Test User 1')).findsOne();
 
       when(
         () => mockRepository.fetchUsers(forceRefresh: true),
@@ -223,15 +223,14 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
 
-      expect(find.text('Test User 1'), findsOneWidget);
-      expect(
+      check(find.text('Test User 1')).findsOne();
+      check(
         find.descendant(
           of: find.byType(RefreshIndicator),
           matching: find.byIcon(Icons.error_outline),
         ),
-        findsNothing,
-      );
-      expect(find.byType(SnackBar), findsNothing);
+      ).findsNothing();
+      check(find.byType(SnackBar)).findsNothing();
     });
   });
 }

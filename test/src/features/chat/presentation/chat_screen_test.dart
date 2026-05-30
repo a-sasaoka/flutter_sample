@@ -1,6 +1,8 @@
 // ignore_for_file: document_ignores, use_setters_to_change_properties
 
+import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
@@ -122,28 +124,27 @@ void main() {
           matching: find.byType(IconButton),
         ),
       );
-      expect(sendButton.onPressed, isNull);
+      check(sendButton.onPressed).isNull();
 
       final circleAvatar = tester.widget<CircleAvatar>(
         find.byType(CircleAvatar),
       );
       // オフライン時は colorScheme.outline になるはず
-      expect(
+      check(
         circleAvatar.backgroundColor,
-        ThemeData(useMaterial3: true).colorScheme.outline,
-      );
+      ).equals(ThemeData(useMaterial3: true).colorScheme.outline);
 
       final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.enabled, isTrue); // テキスト入力は可能なはず
+      check(textField.enabled).equals(true); // テキスト入力は可能なはず
     });
 
     testWidgets('初期表示: タイトルと入力フォームが表示され、メッセージリストは空であること', (tester) async {
       await setupWidget(tester);
 
-      expect(find.text('チャット'), findsOneWidget);
-      expect(find.byType(TextField), findsOneWidget);
-      expect(find.byType(ListView), findsOneWidget);
-      expect(find.byIcon(Icons.delete_sweep_outlined), findsOneWidget);
+      check(find.text('チャット')).findsOne();
+      check(find.byType(TextField)).findsOne();
+      check(find.byType(ListView)).findsOne();
+      check(find.byIcon(Icons.delete_sweep_outlined)).findsOne();
     });
 
     testWidgets('メッセージ描画: ユーザーとAIのメッセージが正しく表示されること', (tester) async {
@@ -159,9 +160,9 @@ void main() {
       await setupWidget(tester, notifier: notifier);
       await tester.pumpAndSettle();
 
-      expect(find.text('Hello'), findsOneWidget);
-      expect(find.text('Hi there!'), findsOneWidget);
-      expect(find.text('10:30'), findsNWidgets(2));
+      check(find.text('Hello')).findsOne();
+      check(find.text('Hi there!')).findsOne();
+      check(find.text('10:30')).findsExactly(2);
     });
 
     testWidgets('メッセージ描画: ローディングメッセージが正しく表示されること', (tester) async {
@@ -173,7 +174,7 @@ void main() {
       final notifier = FakeChatNotifier(state);
 
       await setupWidget(tester, notifier: notifier);
-      expect(find.byType(ChatBubbleShimmer), findsOneWidget);
+      check(find.byType(ChatBubbleShimmer)).findsOne();
     });
 
     testWidgets(
@@ -185,8 +186,8 @@ void main() {
         await setupWidget(tester, notifier: notifier);
 
         final textField = tester.widget<TextField>(find.byType(TextField));
-        expect(textField.enabled, isFalse);
-        expect(find.text('考え中...'), findsOneWidget);
+        check(textField.enabled).equals(false);
+        check(find.text('考え中...')).findsOne();
 
         final sendButton = tester.widget<IconButton>(
           find.descendant(
@@ -194,7 +195,7 @@ void main() {
             matching: find.byType(IconButton),
           ),
         );
-        expect(sendButton.onPressed, isNull);
+        check(sendButton.onPressed).isNull();
       },
     );
 
@@ -208,9 +209,9 @@ void main() {
       await tester.tap(find.byIcon(Icons.send));
       await tester.pump();
 
-      expect(notifier.lastSentText, 'Test Message');
+      check(notifier.lastSentText).equals('Test Message');
       final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.controller?.text, isEmpty);
+      check(textField.controller?.text).isNotNull().isEmpty();
     });
 
     testWidgets('全削除ボタン: キャンセルした場合は何も起きないこと', (tester) async {
@@ -223,7 +224,7 @@ void main() {
       await tester.tap(find.widgetWithText(TextButton, '閉じる'));
       await tester.pumpAndSettle();
 
-      expect(notifier.clearHistoryCalled, isFalse);
+      check(notifier.clearHistoryCalled).equals(false);
     });
 
     testWidgets('全削除ボタン: 「すべて削除」を選択すると履歴がクリアされること', (tester) async {
@@ -240,7 +241,7 @@ void main() {
       await tester.tap(confirmButton);
       await tester.pumpAndSettle();
 
-      expect(notifier.clearHistoryCalled, isTrue);
+      check(notifier.clearHistoryCalled).equals(true);
     });
 
     testWidgets('メッセージ描画: エラーメッセージが正しく表示されること', (tester) async {
@@ -259,7 +260,7 @@ void main() {
       await setupWidget(tester, notifier: notifier);
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('エラー発生'), findsOneWidget);
+      check(find.textContaining('エラー発生')).findsOne();
     });
 
     testWidgets('メッセージ描画: 空の返答エラーが正しく表示されること', (tester) async {
@@ -278,7 +279,7 @@ void main() {
       await setupWidget(tester, notifier: notifier);
       await tester.pumpAndSettle();
 
-      expect(find.text('空の返答'), findsOneWidget);
+      check(find.text('空の返答')).findsOne();
     });
 
     testWidgets('オートスクロール: メッセージが増えた時にスクロールされること', (tester) async {
@@ -311,7 +312,7 @@ void main() {
       await tester.enterText(find.byType(TextField), '   ');
       await tester.testTextInput.receiveAction(TextInputAction.send);
       await tester.pump();
-      expect(notifier.lastSentText, isNull);
+      check(notifier.lastSentText).isNull();
     });
 
     testWidgets('画面外タップでキーボードが閉じること', (tester) async {
@@ -323,13 +324,13 @@ void main() {
       await tester.pumpAndSettle();
 
       final BuildContext context = tester.element(textFields.first);
-      expect(FocusScope.of(context).focusedChild, isNotNull);
+      check(FocusScope.of(context).focusedChild).isNotNull();
 
       // AppBarなど画面外をタップ
       await tester.tap(find.byType(AppBar));
       await tester.pumpAndSettle();
 
-      expect(FocusScope.of(context).focusedChild, isNull);
+      check(FocusScope.of(context).focusedChild).isNull();
     });
   });
 }

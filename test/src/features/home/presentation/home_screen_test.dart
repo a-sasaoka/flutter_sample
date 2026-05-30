@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:checks/checks.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
@@ -205,9 +207,9 @@ void main() {
       await setupWidget(tester);
       await tester.pumpAndSettle();
 
-      expect(find.text('ホーム'), findsOneWidget);
-      expect(find.text('現在の環境'), findsOneWidget);
-      expect(find.text('LOCAL'), findsOneWidget);
+      check(find.text('ホーム')).findsOne();
+      check(find.text('現在の環境')).findsOne();
+      check(find.text('LOCAL')).findsOne();
     });
 
     testWidgets('アップデート通知: 新しいバージョンがある場合にダイアログが表示されること', (tester) async {
@@ -218,12 +220,12 @@ void main() {
       controller.emit(UpdateRequestType.cancelable);
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsOneWidget);
-      expect(find.text('アップデート'), findsOneWidget);
+      check(find.byType(AlertDialog)).findsOne();
+      check(find.text('アップデート')).findsOne();
 
       await tester.tap(find.text('後で'));
       await tester.pumpAndSettle();
-      expect(find.byType(AlertDialog), findsNothing);
+      check(find.byType(AlertDialog)).findsNothing();
     });
 
     testWidgets('アップデート通知: 強制アップデートの場合に「後で」ボタンがないこと', (tester) async {
@@ -234,8 +236,8 @@ void main() {
       controller.emit(UpdateRequestType.forcibly);
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsOneWidget);
-      expect(find.text('後で'), findsNothing);
+      check(find.byType(AlertDialog)).findsOne();
+      check(find.text('後で')).findsNothing();
 
       when(() => mockTalker.info(any<dynamic>())).thenReturn(null);
       await tester.tap(find.text('更新'));
@@ -255,7 +257,7 @@ void main() {
       controller.emit(UpdateRequestType.cancelable);
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsNothing);
+      check(find.byType(AlertDialog)).findsNothing();
     });
 
     testWidgets('エラー表示: アップデート情報の取得に失敗した場合でもアプリ情報取得が動作すること', (
@@ -277,18 +279,18 @@ void main() {
       await tester.tap(buttonFinder);
       await tester.pumpAndSettle();
 
-      expect(find.text('テストアプリ'), findsOneWidget);
+      check(find.text('テストアプリ')).findsOne();
     });
 
     testWidgets('ローディング状態: インジケータが表示されること', (tester) async {
       final controller = FakeUpdateRequestController(startLoading: true);
       await setupWidget(tester, controller: controller);
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      check(find.byType(CircularProgressIndicator)).findsOne();
 
       controller.complete(UpdateRequestType.not);
       await tester.pumpAndSettle();
-      expect(find.byType(CircularProgressIndicator), findsNothing);
+      check(find.byType(CircularProgressIndicator)).findsNothing();
     });
 
     testWidgets('PackageInfo: アプリ情報取得ボタンを押すと、情報が読み込まれてUIが更新されること', (
@@ -306,8 +308,8 @@ void main() {
       await tester.tap(buttonFinder);
       await tester.pumpAndSettle();
 
-      expect(find.text('テストアプリ'), findsOneWidget);
-      expect(find.text('com.example.testapp'), findsOneWidget);
+      check(find.text('テストアプリ')).findsOne();
+      check(find.text('com.example.testapp')).findsOne();
     });
 
     testWidgets('開発者ログ: ボタンを押すとTalkerScreenへ遷移すること', (tester) async {
@@ -330,7 +332,7 @@ void main() {
       await tester.tap(menuBtn);
       await tester.pumpAndSettle();
 
-      expect(find.byType(TalkerScreen), findsOneWidget);
+      check(find.byType(TalkerScreen)).findsOne();
     });
 
     testWidgets('Crashlytics: クラッシュテストボタンを押すと、crash メソッドが呼ばれること', (
@@ -411,7 +413,7 @@ void main() {
       await setupWidget(tester, flavor: Flavor.prod);
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(ListTile, '開発者ログ'), findsNothing);
+      check(find.widgetWithText(ListTile, '開発者ログ')).findsNothing();
     });
   });
 
@@ -427,7 +429,7 @@ void main() {
       );
       await tester.tap(finder);
       await tester.pumpAndSettle();
-      expect(attemptedPath, contains('undefined'));
+      check(attemptedPath).isNotNull().contains('undefined');
     });
 
     testWidgets('AppBarの設定アイコンから設定画面へ遷移すること', (tester) async {
@@ -437,7 +439,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.settings_outlined));
       await tester.pumpAndSettle();
 
-      expect(attemptedPath, contains('settings'));
+      check(attemptedPath).isNotNull().contains('settings');
     });
   });
 }

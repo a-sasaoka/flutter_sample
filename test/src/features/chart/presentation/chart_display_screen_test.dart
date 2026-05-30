@@ -1,5 +1,7 @@
+import 'package:checks/checks.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/chart/application/chart_notifier.dart';
 import 'package:flutter_sample/src/features/chart/domain/chart_type.dart';
@@ -38,8 +40,8 @@ void main() {
       await tester.pumpWidget(createWidgetUnderTest(container));
       await tester.pumpAndSettle();
 
-      expect(find.byType(LineChart), findsOneWidget);
-      expect(find.text('Item1'), findsWidgets);
+      check(find.byType(LineChart)).findsOne();
+      check(find.text('Item1')).findsAny();
 
       // 数値テキストをスクロールして見つける
       final valueText = find.text('10.0');
@@ -48,10 +50,10 @@ void main() {
         find.byType(CustomScrollView),
         const Offset(0, -300),
       );
-      expect(valueText, findsOneWidget);
+      check(valueText).findsOne();
 
       // 新しいデザイン要素の確認
-      expect(find.text('データ一覧'), findsOneWidget);
+      check(find.text('データ一覧')).findsOne();
     });
 
     testWidgets('棒グラフが正しく表示されること', (tester) async {
@@ -60,8 +62,8 @@ void main() {
       await tester.pumpWidget(createWidgetUnderTest(container));
       await tester.pumpAndSettle();
 
-      expect(find.byType(BarChart), findsOneWidget);
-      expect(find.text('Item2'), findsWidgets);
+      check(find.byType(BarChart)).findsOne();
+      check(find.text('Item2')).findsAny();
 
       final valueText = find.text('20.0');
       await tester.dragUntilVisible(
@@ -69,7 +71,7 @@ void main() {
         find.byType(CustomScrollView),
         const Offset(0, -300),
       );
-      expect(valueText, findsOneWidget);
+      check(valueText).findsOne();
     });
 
     testWidgets('円グラフが正しく表示され、カラーのループが動作すること', (tester) async {
@@ -82,13 +84,12 @@ void main() {
       await tester.pumpWidget(createWidgetUnderTest(container));
       await tester.pumpAndSettle();
 
-      expect(find.byType(PieChart), findsOneWidget);
+      check(find.byType(PieChart)).findsOne();
       final pieChart = tester.widget<PieChart>(find.byType(PieChart));
       // 0番目と6番目の色が同じであることを確認 (moduloの検証)
-      expect(
+      check(
         pieChart.data.sections[0].color,
-        pieChart.data.sections[6].color,
-      );
+      ).equals(pieChart.data.sections[6].color);
     });
 
     testWidgets('データが空の場合にメッセージが表示されること', (tester) async {
@@ -98,8 +99,8 @@ void main() {
       await tester.pumpWidget(createWidgetUnderTest(container));
       await tester.pumpAndSettle();
 
-      expect(find.text('データがありません。まず項目を追加してください。'), findsOneWidget);
-      expect(find.byType(LineChart), findsNothing);
+      check(find.text('データがありません。まず項目を追加してください。')).findsOne();
+      check(find.byType(LineChart)).findsNothing();
     });
 
     testWidgets('LineChartのX軸タイトル: 整数以外、間引き、範囲外の検証', (tester) async {
@@ -112,16 +113,16 @@ void main() {
       final mockMeta = MockTitleMeta();
 
       // 1. 整数以外は SizedBox.shrink
-      expect(titlesData.getTitlesWidget(0.5, mockMeta), isA<SizedBox>());
+      check(titlesData.getTitlesWidget(0.5, mockMeta)).isA<SizedBox>();
 
       // 2. 正常なインデックス
       final valid = titlesData.getTitlesWidget(0, mockMeta);
-      expect(valid, isA<SideTitleWidget>());
-      expect(((valid as SideTitleWidget).child as Text).data, 'Item1');
+      check(valid).isA<SideTitleWidget>();
+      check(((valid as SideTitleWidget).child as Text).data).equals('Item1');
 
       // 3. 範囲外
-      expect(titlesData.getTitlesWidget(-1, mockMeta), isA<SizedBox>());
-      expect(titlesData.getTitlesWidget(100, mockMeta), isA<SizedBox>());
+      check(titlesData.getTitlesWidget(-1, mockMeta)).isA<SizedBox>();
+      check(titlesData.getTitlesWidget(100, mockMeta)).isA<SizedBox>();
 
       // 4. 間引きの検証 (項目を11個にして interval=2 にする)
       for (var i = 0; i < 9; i++) {
@@ -133,7 +134,7 @@ void main() {
       final titlesData2 = lineChart2.data.titlesData.bottomTitles.sideTitles;
 
       // index 1 は間引かれる (1 % 2 != 0)
-      expect(titlesData2.getTitlesWidget(1, mockMeta), isA<SizedBox>());
+      check(titlesData2.getTitlesWidget(1, mockMeta)).isA<SizedBox>();
     });
 
     testWidgets('BarChartのX軸タイトル: 整数以外、間引き、範囲外の検証', (tester) async {
@@ -146,14 +147,14 @@ void main() {
       final mockMeta = MockTitleMeta();
 
       // 1. 整数以外
-      expect(titlesData.getTitlesWidget(0.1, mockMeta), isA<SizedBox>());
+      check(titlesData.getTitlesWidget(0.1, mockMeta)).isA<SizedBox>();
 
       // 2. 正常
       final valid = titlesData.getTitlesWidget(0, mockMeta);
-      expect(valid, isA<SideTitleWidget>());
+      check(valid).isA<SideTitleWidget>();
 
       // 3. 範囲外
-      expect(titlesData.getTitlesWidget(99, mockMeta), isA<SizedBox>());
+      check(titlesData.getTitlesWidget(99, mockMeta)).isA<SizedBox>();
 
       // 4. 間引き (21個にして interval=5 にする)
       for (var i = 0; i < 19; i++) {
@@ -165,7 +166,7 @@ void main() {
       final titlesData2 = barChart2.data.titlesData.bottomTitles.sideTitles;
 
       // index 1 は間引かれる (1 % 5 != 0)
-      expect(titlesData2.getTitlesWidget(1, mockMeta), isA<SizedBox>());
+      check(titlesData2.getTitlesWidget(1, mockMeta)).isA<SizedBox>();
     });
 
     testWidgets('左軸(Y軸)のラベルが正しくレンダリングされること', (tester) async {
@@ -176,8 +177,8 @@ void main() {
       final leftTitles = lineChart.data.titlesData.leftTitles.sideTitles;
 
       final widget = leftTitles.getTitlesWidget(10, MockTitleMeta());
-      expect(widget, isA<Text>());
-      expect((widget as Text).data, '10');
+      check(widget).isA<Text>();
+      check((widget as Text).data).equals('10');
     });
   });
 }

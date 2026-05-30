@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -13,10 +14,10 @@ void main() {
         updatedAt: now,
       );
 
-      expect(memo.id, '1');
-      expect(memo.title, 'テスト');
-      expect(memo.content, '内容');
-      expect(memo.createdAt, now);
+      check(memo.id).equals('1');
+      check(memo.title).equals('テスト');
+      check(memo.content).equals('内容');
+      check(memo.createdAt).equals(now);
     });
 
     test('同じ値を持つインスタンスは等価と判定されること (Equatable)', () {
@@ -36,8 +37,8 @@ void main() {
         updatedAt: now,
       );
 
-      expect(memo1, memo2);
-      expect(memo1.hashCode, memo2.hashCode);
+      check(memo1).equals(memo2);
+      check(memo1.hashCode).equals(memo2.hashCode);
     });
   });
 }

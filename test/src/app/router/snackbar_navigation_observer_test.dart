@@ -1,7 +1,10 @@
+import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_sample/src/app/router/snackbar_navigation_observer.dart';
 import 'package:flutter_sample/src/core/utils/scaffold_messenger_key.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:legacy_checks/legacy_checks.dart';
 import 'package:mocktail/mocktail.dart';
 
 /// [PageRoute] のモッククラス
@@ -32,13 +35,13 @@ void main() {
         const SnackBar(content: Text('Test SnackBar')),
       );
       await tester.pump();
-      expect(find.byType(SnackBar), findsOneWidget);
+      check(find.byType(SnackBar)).findsOne();
 
       // PageRoute の遷移をシミュレート
       observer.didPush(MockPageRoute(), null);
 
       await tester.pump();
-      expect(find.byType(SnackBar), findsNothing);
+      check(find.byType(SnackBar)).findsNothing();
     });
 
     testWidgets('【正常系】didPop の際に PageRoute であれば clearSnackBars が呼ばれること', (
@@ -55,13 +58,13 @@ void main() {
         const SnackBar(content: Text('Test SnackBar')),
       );
       await tester.pump();
-      expect(find.byType(SnackBar), findsOneWidget);
+      check(find.byType(SnackBar)).findsOne();
 
       // PageRoute の遷移をシミュレート
       observer.didPop(MockPageRoute(), null);
 
       await tester.pump();
-      expect(find.byType(SnackBar), findsNothing);
+      check(find.byType(SnackBar)).findsNothing();
     });
 
     testWidgets('【正常系】didReplace の際に PageRoute であれば clearSnackBars が呼ばれること', (
@@ -78,13 +81,13 @@ void main() {
         const SnackBar(content: Text('Test SnackBar')),
       );
       await tester.pump();
-      expect(find.byType(SnackBar), findsOneWidget);
+      check(find.byType(SnackBar)).findsOne();
 
       // PageRoute の置換をシミュレート
       observer.didReplace(newRoute: MockPageRoute());
 
       await tester.pump();
-      expect(find.byType(SnackBar), findsNothing);
+      check(find.byType(SnackBar)).findsNothing();
     });
 
     testWidgets('【ガード】PopupRoute（ダイアログ等）の遷移ではスナックバーが消えないこと', (tester) async {
@@ -99,14 +102,14 @@ void main() {
         const SnackBar(content: Text('Test SnackBar')),
       );
       await tester.pump();
-      expect(find.byType(SnackBar), findsOneWidget);
+      check(find.byType(SnackBar)).findsOne();
 
       // PopupRoute の遷移をシミュレート
       observer.didPush(MockPopupRoute(), null);
 
       await tester.pump();
       // まだ表示されているはず
-      expect(find.byType(SnackBar), findsOneWidget);
+      check(find.byType(SnackBar)).findsOne();
     });
 
     test('currentState が null の場合にエラーにならないこと', () {
@@ -114,10 +117,9 @@ void main() {
       final dummyKey = GlobalKey<ScaffoldMessengerState>();
       final dummyObserver = SnackBarNavigationObserver(dummyKey);
 
-      expect(
+      check(
         () => dummyObserver.didPush(MockPageRoute(), null),
-        returnsNormally,
-      );
+      ).legacyMatcher(returnsNormally);
     });
   });
 }

@@ -1,7 +1,9 @@
+import 'package:checks/checks.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_sample/src/core/utils/app_lifecycle_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:legacy_checks/legacy_checks.dart';
 
 void main() {
   // 【重要】WidgetsBinding（Flutterのコア機能）を使うテストでは、
@@ -26,7 +28,7 @@ void main() {
       final initialState = subscription.read();
 
       // テスト環境起動時はデフォルトで resumed になる仕様です
-      expect(initialState, AppLifecycleState.resumed);
+      check(initialState).equals(AppLifecycleState.resumed);
     });
 
     test('システムのライフサイクルが変化した時、プロバイダーのStateが正しく更新されること', () {
@@ -39,21 +41,21 @@ void main() {
       );
 
       // 状態が paused に更新されていることを確認
-      expect(subscription.read(), AppLifecycleState.paused);
+      check(subscription.read()).equals(AppLifecycleState.paused);
 
       // 2. アプリが非アクティブ（inactive: スワイプでタスク一覧を出している時など）をシミュレート
       WidgetsBinding.instance.handleAppLifecycleStateChanged(
         AppLifecycleState.inactive,
       );
 
-      expect(subscription.read(), AppLifecycleState.inactive);
+      check(subscription.read()).equals(AppLifecycleState.inactive);
 
       // 3. アプリが再びフォアグラウンドに戻ってきた（resumed）状態をシミュレート
       WidgetsBinding.instance.handleAppLifecycleStateChanged(
         AppLifecycleState.resumed,
       );
 
-      expect(subscription.read(), AppLifecycleState.resumed);
+      check(subscription.read()).equals(AppLifecycleState.resumed);
     });
 
     test('プロバイダーが破棄(dispose)された時、エラーが発生しないこと', () {
@@ -69,12 +71,11 @@ void main() {
         ..dispose();
 
       // 破棄後にライフサイクルが変わってもエラー（メモリリーク等）が起きないことを確認
-      expect(
+      check(
         () => WidgetsBinding.instance.handleAppLifecycleStateChanged(
           AppLifecycleState.paused,
         ),
-        returnsNormally,
-      );
+      ).legacyMatcher(returnsNormally);
     });
   });
 }

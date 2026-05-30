@@ -1,4 +1,6 @@
+import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/chart/application/chart_notifier.dart';
 import 'package:flutter_sample/src/features/chart/domain/chart_type.dart';
@@ -52,16 +54,16 @@ void main() {
       await tester.pumpWidget(createWidgetUnderTest(container, router));
       await tester.pumpAndSettle();
 
-      expect(find.byType(ChartInputScreen), findsOneWidget);
-      expect(find.byType(SegmentedButton<ChartType>), findsOneWidget);
-      expect(find.text('Item1'), findsOneWidget); // Default item 1 label
-      expect(find.text('10.0'), findsOneWidget); // Default item 1 value
-      expect(find.text('Item2'), findsOneWidget); // Default item 2 label
-      expect(find.text('20.0'), findsOneWidget); // Default item 2 value
+      check(find.byType(ChartInputScreen)).findsOne();
+      check(find.byType(SegmentedButton<ChartType>)).findsOne();
+      check(find.text('Item1')).findsOne(); // Default item 1 label
+      check(find.text('10.0')).findsOne(); // Default item 1 value
+      check(find.text('Item2')).findsOne(); // Default item 2 label
+      check(find.text('20.0')).findsOne(); // Default item 2 value
 
       // 新しいデザインの確認
-      expect(find.byType(Card), findsAtLeast(2));
-      expect(find.byIcon(Icons.label_outline), findsAtLeast(2));
+      check(find.byType(Card)).findsAtLeast(2);
+      check(find.byIcon(Icons.label_outline)).findsAtLeast(2);
     });
 
     testWidgets('グラフ種類を変更できること', (tester) async {
@@ -69,14 +71,14 @@ void main() {
       await tester.pumpAndSettle();
 
       final stateBefore = container.read(chartProvider);
-      expect(stateBefore.chartType, ChartType.line);
+      check(stateBefore.chartType).equals(ChartType.line);
 
       // 棒グラフを選択
       await tester.tap(find.text('棒グラフ'));
       await tester.pumpAndSettle();
 
       final stateAfter = container.read(chartProvider);
-      expect(stateAfter.chartType, ChartType.bar);
+      check(stateAfter.chartType).equals(ChartType.bar);
     });
 
     testWidgets('ラベルを更新できること', (tester) async {
@@ -90,7 +92,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final state = container.read(chartProvider);
-      expect(state.items[0].label, 'UpdatedLabel');
+      check(state.items[0].label).equals('UpdatedLabel');
     });
 
     testWidgets('数値を更新できること（正常な数値）', (tester) async {
@@ -102,7 +104,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final state = container.read(chartProvider);
-      expect(state.items[0].value, 50.5);
+      check(state.items[0].value).equals(50.5);
     });
 
     testWidgets('項目を追加できること', (tester) async {
@@ -114,8 +116,8 @@ void main() {
       await tester.pumpAndSettle();
 
       final state = container.read(chartProvider);
-      expect(state.items.length, 3);
-      expect(state.items[2].label, 'Item3');
+      check(state.items.length).equals(3);
+      check(state.items[2].label).equals('Item3');
     });
 
     testWidgets('項目を削除できること', (tester) async {
@@ -123,14 +125,14 @@ void main() {
       await tester.pumpAndSettle();
 
       final deleteBtns = find.byIcon(Icons.remove_circle_outline);
-      expect(deleteBtns, findsNWidgets(2));
+      check(deleteBtns).findsExactly(2);
 
       await tester.tap(deleteBtns.first);
       await tester.pumpAndSettle();
 
       final state = container.read(chartProvider);
-      expect(state.items.length, 1);
-      expect(state.items[0].label, 'Item2');
+      check(state.items.length).equals(1);
+      check(state.items[0].label).equals('Item2');
     });
 
     testWidgets('全削除ボタンが動作すること', (tester) async {
@@ -138,18 +140,18 @@ void main() {
       await tester.pumpAndSettle();
 
       // 初期状態で2つあることを確認
-      expect(container.read(chartProvider).items.length, 2);
+      check(container.read(chartProvider).items.length).equals(2);
 
       // 1. キャンセルする場合
       await tester.tap(find.byIcon(Icons.delete_sweep_outlined));
       await tester.pumpAndSettle();
-      expect(find.byType(AlertDialog), findsOneWidget);
+      check(find.byType(AlertDialog)).findsOne();
 
       await tester.tap(find.widgetWithText(TextButton, '閉じる'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsNothing);
-      expect(container.read(chartProvider).items.length, 2); // 削除されていないこと
+      check(find.byType(AlertDialog)).findsNothing();
+      check(container.read(chartProvider).items.length).equals(2); // 削除されていないこと
 
       // 2. 実行する場合
       await tester.tap(find.byIcon(Icons.delete_sweep_outlined));
@@ -160,8 +162,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // 項目が空になっていること
-      expect(container.read(chartProvider).items, isEmpty);
-      expect(find.text('データがありません。まず項目を追加してください。'), findsOneWidget);
+      check(container.read(chartProvider).items).isEmpty();
+      check(find.text('データがありません。まず項目を追加してください。')).findsOne();
     });
 
     testWidgets('グラフ表示画面への遷移ボタンが動作すること', (tester) async {
@@ -173,7 +175,7 @@ void main() {
       await tester.tap(viewBtn);
       await tester.pumpAndSettle();
 
-      expect(find.text('Display'), findsOneWidget);
+      check(find.text('Display')).findsOne();
     });
 
     testWidgets('画面外タップでキーボードが閉じること', (tester) async {
@@ -186,14 +188,14 @@ void main() {
 
       // Focusが当たっていることを確認
       final BuildContext context = tester.element(textFields.first);
-      expect(FocusScope.of(context).focusedChild, isNotNull);
+      check(FocusScope.of(context).focusedChild).isNotNull();
 
       // AppBarなど画面外をタップ
       await tester.tap(find.byType(AppBar));
       await tester.pumpAndSettle();
 
       // Focusが外れていることを確認
-      expect(FocusScope.of(context).focusedChild, isNull);
+      check(FocusScope.of(context).focusedChild).isNull();
     });
   });
 }

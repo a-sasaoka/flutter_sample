@@ -1,5 +1,7 @@
+import 'package:checks/checks.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_sign_up_screen.dart';
@@ -82,11 +84,11 @@ void main() {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(AppBar, '新規登録'), findsOneWidget);
-      expect(find.text('メールアドレス'), findsOneWidget);
-      expect(find.text('パスワード'), findsOneWidget);
-      expect(find.text('登録する'), findsOneWidget);
-      expect(find.text('ログインへ戻る'), findsOneWidget);
+      check(find.widgetWithText(AppBar, '新規登録')).findsOne();
+      check(find.text('メールアドレス')).findsOne();
+      check(find.text('パスワード')).findsOne();
+      check(find.text('登録する')).findsOne();
+      check(find.text('ログインへ戻る')).findsOne();
     });
 
     testWidgets('未入力でボタンを押した場合は何も起きないこと(バリデーション)', (tester) async {
@@ -153,13 +155,13 @@ void main() {
       await tester.pump();
 
       // インジケーターが表示されていること
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      check(find.byType(CircularProgressIndicator)).findsOne();
 
       // 非同期処理を完了させる
       await tester.pumpAndSettle();
 
       // ローディングが終了していること
-      expect(find.byType(CircularProgressIndicator), findsNothing);
+      check(find.byType(CircularProgressIndicator)).findsNothing();
     });
 
     testWidgets('サインアップ失敗時(Firebaseエラー)、専用のSnackBarが表示され画面遷移しないこと', (
@@ -182,12 +184,12 @@ void main() {
       await tester.pump();
 
       // ErrorHandler が翻訳した「既に登録されています」の文言が表示されることを確認
-      expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('このメールアドレスは既に登録されています'), findsOneWidget);
+      check(find.byType(SnackBar)).findsOne();
+      check(find.text('このメールアドレスは既に登録されています')).findsOne();
 
       // 確認メール送信が呼ばれていないこと、画面遷移していないことを確認
       verifyNever(() => mockAuthRepo.sendEmailVerification());
-      expect(find.textContaining('Navigated to'), findsNothing);
+      check(find.textContaining('Navigated to')).findsNothing();
     });
 
     testWidgets('画面外タップでキーボードが閉じること', (tester) async {
@@ -199,13 +201,13 @@ void main() {
       await tester.pumpAndSettle();
 
       final BuildContext context = tester.element(textFields.first);
-      expect(FocusScope.of(context).focusedChild, isNotNull);
+      check(FocusScope.of(context).focusedChild).isNotNull();
 
       // AppBarなど画面外をタップ
       await tester.tap(find.byType(AppBar));
       await tester.pumpAndSettle();
 
-      expect(FocusScope.of(context).focusedChild, isNull);
+      check(FocusScope.of(context).focusedChild).isNull();
     });
   });
 }

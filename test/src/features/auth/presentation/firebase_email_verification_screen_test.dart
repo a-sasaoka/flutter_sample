@@ -1,7 +1,9 @@
 // ignore_for_file: use_setters_to_change_properties, document_ignores
 
+import 'package:checks/checks.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/utils/app_lifecycle_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
@@ -119,11 +121,11 @@ void main() {
       await tester.pumpWidget(createTestWidget(container));
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(AppBar, 'メール認証'), findsOneWidget);
-      expect(find.text('確認メールを送信しました。'), findsOneWidget);
-      expect(find.text('認証を完了したか確認する'), findsOneWidget);
-      expect(find.text('再送信する'), findsOneWidget);
-      expect(find.text('ログアウトして戻る'), findsOneWidget);
+      check(find.widgetWithText(AppBar, 'メール認証')).findsOne();
+      check(find.text('確認メールを送信しました。')).findsOne();
+      check(find.text('認証を完了したか確認する')).findsOne();
+      check(find.text('再送信する')).findsOne();
+      check(find.text('ログアウトして戻る')).findsOne();
     });
 
     testWidgets('手動確認ボタンタップ時、ローディング表示になりリロード処理が呼ばれること', (tester) async {
@@ -153,13 +155,13 @@ void main() {
       // ポンプして画面を再描画（まだ非同期処理は終わっていない）
       await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      check(find.byType(CircularProgressIndicator)).findsOne();
 
       // 非同期処理を最後まで完了させる
       await tester.pumpAndSettle();
 
       // ローディングが消え、処理が呼ばれたことを確認
-      expect(find.byType(CircularProgressIndicator), findsNothing);
+      check(find.byType(CircularProgressIndicator)).findsNothing();
       verify(() => mockAuthRepo.reloadCurrentUser()).called(1);
     });
 
@@ -183,7 +185,7 @@ void main() {
 
       verify(() => mockAuthRepo.sendEmailVerification()).called(1);
       // 処理成功後にスナックバーが表示されていることを確認
-      expect(find.byType(SnackBar), findsOneWidget);
+      check(find.byType(SnackBar)).findsOne();
     });
 
     testWidgets('再送信処理でエラーが起きた場合、エラースナックバーが表示されること', (tester) async {
@@ -211,7 +213,7 @@ void main() {
 
       verify(() => mockAuthRepo.sendEmailVerification()).called(1);
       // ErrorHandler 経由でエラースナックバーが表示されることを確認
-      expect(find.byType(SnackBar), findsOneWidget);
+      check(find.byType(SnackBar)).findsOne();
     });
 
     testWidgets('アプリがバックグラウンドから復帰(resumed)した時、ユーザー情報がリロードされること', (
@@ -272,7 +274,7 @@ void main() {
         await tester.pumpAndSettle();
 
         verify(() => mockAuthRepo.reloadCurrentUser()).called(1);
-        expect(find.byType(SnackBar), findsOneWidget);
+        check(find.byType(SnackBar)).findsOne();
       },
     );
 
@@ -303,7 +305,7 @@ void main() {
       verify(() => mockAuthRepo.reloadCurrentUser()).called(1);
 
       // ErrorHandler 経由でエラースナックバーが表示されることを確認（61行目の通過）
-      expect(find.byType(SnackBar), findsOneWidget);
+      check(find.byType(SnackBar)).findsOne();
     });
 
     testWidgets('ログアウトして戻るボタンをタップすると、サインアウト処理が呼ばれること', (tester) async {

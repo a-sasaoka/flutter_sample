@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/storage/token_storage.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -65,7 +66,7 @@ void main() {
       final authState = await container.read(authStateProvider.future);
 
       // Assert
-      expect(authState, isTrue);
+      check(authState).equals(true);
     });
 
     test('初期化: トークンがない場合、state が false になること', () async {
@@ -77,7 +78,7 @@ void main() {
       final authState = await container.read(authStateProvider.future);
 
       // Assert
-      expect(authState, isFalse);
+      check(authState).equals(false);
     });
   });
 
@@ -92,11 +93,10 @@ void main() {
       await notifier.login('access', 'refresh');
 
       // Assert
-      expect(fakeStorage.isSaveTokensCalled, isTrue); // saveTokens が呼ばれたか
-      expect(
+      check(fakeStorage.isSaveTokensCalled).equals(true); // saveTokens が呼ばれたか
+      check(
         container.read(authStateProvider).value,
-        isTrue,
-      ); // state が true か
+      ).equals(true); // state が true か
     });
 
     test('login: トークンの保存に失敗した場合、例外がスローされ state が AsyncError になること', () async {
@@ -106,17 +106,13 @@ void main() {
       final notifier = container.read(authStateProvider.notifier);
 
       // Act & Assert
-      await expectLater(
-        () => notifier.login('access', 'refresh'),
-        throwsException,
-      );
+      await check(notifier.login('access', 'refresh')).throws<Exception>();
 
       // Assert
-      expect(fakeStorage.isSaveTokensCalled, isTrue); // saveTokens が呼ばれたか
-      expect(
+      check(fakeStorage.isSaveTokensCalled).equals(true); // saveTokens が呼ばれたか
+      check(
         container.read(authStateProvider).hasError,
-        isTrue,
-      ); // state が AsyncError か
+      ).equals(true); // state が AsyncError か
     });
 
     test('logout: トークンを削除し、state を false に更新すること', () async {
@@ -133,11 +129,10 @@ void main() {
       await notifier.logout();
 
       // Assert
-      expect(fakeStorage.isClearCalled, isTrue); // clear が呼ばれたか
-      expect(
+      check(fakeStorage.isClearCalled).equals(true); // clear が呼ばれたか
+      check(
         container.read(authStateProvider).value,
-        isFalse,
-      ); // state が false か
+      ).equals(false); // state が false か
     });
 
     test('logout: トークンの削除に失敗した場合、例外がスローされ state が AsyncError になること', () async {
@@ -153,14 +148,13 @@ void main() {
       await container.read(authStateProvider.future);
 
       // Act & Assert
-      await expectLater(notifier.logout, throwsException);
+      await check(notifier.logout()).throws<Exception>();
 
       // Assert
-      expect(fakeStorage.isClearCalled, isTrue); // clear が呼ばれたか
-      expect(
+      check(fakeStorage.isClearCalled).equals(true); // clear が呼ばれたか
+      check(
         container.read(authStateProvider).hasError,
-        isTrue,
-      ); // state が AsyncError か
+      ).equals(true); // state が AsyncError か
     });
   });
 }

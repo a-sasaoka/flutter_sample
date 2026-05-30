@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,10 +12,9 @@ void main() {
       addTearDown(container.dispose);
 
       // 💡 修正: Riverpodは内部エラーをProviderExceptionで包んで投げる仕様なので、それを検知する
-      expect(
+      check(
         () => container.read(packageInfoProvider),
-        throwsA(isA<ProviderException>()),
-      );
+      ).throws<ProviderException>();
     });
 
     test('【正常系】オーバーライドしたPackageInfoのモックデータが正しく取得できること', () {
@@ -34,11 +34,11 @@ void main() {
 
       final result = container.read(packageInfoProvider);
 
-      expect(result, equals(mockPackageInfo));
-      expect(result.appName, 'Test App');
-      expect(result.packageName, 'com.example.test_app');
-      expect(result.version, '1.0.0');
-      expect(result.buildNumber, '100');
+      check(result).equals(mockPackageInfo);
+      check(result.appName).equals('Test App');
+      check(result.packageName).equals('com.example.test_app');
+      check(result.version).equals('1.0.0');
+      check(result.buildNumber).equals('100');
     });
   });
 }

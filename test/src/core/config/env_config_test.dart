@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -12,12 +13,12 @@ void main() {
       final config = container.read(envConfigProvider);
 
       // 環境変数が指定されていないテスト実行時、デフォルト値が返ることを確認
-      expect(config.baseUrl, defaultBaseUrl);
-      expect(config.aiModel, defaultAiModel);
-      expect(config.connectTimeout, defaultConnectTimeout);
-      expect(config.receiveTimeout, defaultReceiveTimeout);
-      expect(config.sendTimeout, defaultSendTimeout);
-      expect(config.useFirebaseAuth, defaultUseFirebaseAuth);
+      check(config.baseUrl).equals(defaultBaseUrl);
+      check(config.aiModel).equals(defaultAiModel);
+      check(config.connectTimeout).equals(defaultConnectTimeout);
+      check(config.receiveTimeout).equals(defaultReceiveTimeout);
+      check(config.sendTimeout).equals(defaultSendTimeout);
+      check(config.useFirebaseAuth).equals(defaultUseFirebaseAuth);
     });
 
     test('getDebugReport が正しいフォーマットで文字列を生成すること', () {
@@ -39,13 +40,13 @@ void main() {
 
       final report = config.getDebugReport(packageInfo);
 
-      expect(report, contains('📱 App Name          : TestApp'));
-      expect(report, contains('🆔 Package Name      : com.test.app'));
-      expect(report, contains('✨ Version           : 1.0.0 (1)'));
-      expect(report, contains('📍 API Base URL      : https://test.com'));
-      expect(report, contains('🤖 AI Model          : test-model'));
-      expect(report, contains('⏱️ Timeouts (C/R/S)  : 1 / 2 / 3'));
-      expect(report, contains('🔥 Firebase Auth     : false'));
+      check(report).contains('📱 App Name          : TestApp');
+      check(report).contains('🆔 Package Name      : com.test.app');
+      check(report).contains('✨ Version           : 1.0.0 (1)');
+      check(report).contains('📍 API Base URL      : https://test.com');
+      check(report).contains('🤖 AI Model          : test-model');
+      check(report).contains('⏱️ Timeouts (C/R/S)  : 1 / 2 / 3');
+      check(report).contains('🔥 Firebase Auth     : false');
     });
   });
 }

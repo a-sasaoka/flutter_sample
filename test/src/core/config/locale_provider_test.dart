@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
@@ -42,7 +43,7 @@ void main() {
       final locale = await container.read(localeProvider.future);
 
       // Assert
-      expect(locale, isNull);
+      check(locale).isNull();
       verify(() => mockPrefs.getString('locale_key')).called(1);
     });
 
@@ -58,7 +59,7 @@ void main() {
       final locale = await container.read(localeProvider.future);
 
       // Assert
-      expect(locale, equals(const Locale('ja')));
+      check(locale).equals(const Locale('ja'));
     });
 
     test('setLocale("en"): 英語に変更するとストレージに保存され、状態が更新されること', () async {
@@ -84,7 +85,7 @@ void main() {
       // Assert
       // 状態が Locale('en') に更新されていること
       final currentState = container.read(localeProvider).value;
-      expect(currentState, equals(const Locale('en')));
+      check(currentState).equals(const Locale('en'));
 
       // ストレージに保存するメソッドが正しく呼ばれたこと
       verify(() => mockPrefs.setString('locale_key', 'en')).called(1);
@@ -109,7 +110,7 @@ void main() {
       // Assert
       // 状態が null に戻っていること
       final currentState = container.read(localeProvider).value;
-      expect(currentState, isNull);
+      check(currentState).isNull();
 
       // ストレージの削除メソッドが呼ばれたこと
       verify(() => mockPrefs.remove('locale_key')).called(1);

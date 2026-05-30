@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_state_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -9,7 +10,7 @@ void main() {
       addTearDown(container.dispose);
 
       final splashState = container.read(splashStateProvider);
-      expect(splashState, isFalse);
+      check(splashState).equals(false);
     });
 
     test('finishSplash() を呼び出すと状態が true に変わること', () {
@@ -17,13 +18,13 @@ void main() {
       addTearDown(container.dispose);
 
       // 初期値を確認
-      expect(container.read(splashStateProvider), isFalse);
+      check(container.read(splashStateProvider)).equals(false);
 
       // 完了を通知
       container.read(splashStateProvider.notifier).finishSplash();
 
       // 変更後の値を確認
-      expect(container.read(splashStateProvider), isTrue);
+      check(container.read(splashStateProvider)).equals(true);
     });
   });
 }

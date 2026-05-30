@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/config/app_config_provider.dart';
@@ -51,9 +52,9 @@ void main() {
 
       // Assert (検証)
       // Record の各プロパティ（名前付きフィールド）がダミー値と完全に一致するか確認します
-      expect(config.router, equals(dummyRouter));
-      expect(config.theme, equals(dummyTheme));
-      expect(config.locale, equals(dummyLocale));
+      check(config.router).equals(dummyRouter);
+      check(config.theme).equals(dummyTheme);
+      check(config.locale).equals(dummyLocale);
     });
   });
 }

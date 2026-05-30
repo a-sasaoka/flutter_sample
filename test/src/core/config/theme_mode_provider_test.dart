@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
 import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
@@ -41,7 +42,7 @@ void main() {
       final theme = await container.read(themeModeProvider.future);
 
       // Assert
-      expect(theme, equals(ThemeMode.system));
+      check(theme).equals(ThemeMode.system);
       verify(() => mockPrefs.getString('theme_mode')).called(1);
     });
 
@@ -59,7 +60,7 @@ void main() {
         final theme = await container.read(themeModeProvider.future);
 
         // Assert: _ThemeModeFromString.toThemeMode() が正しく動いているかの証明になります
-        expect(theme, equals(ThemeMode.dark));
+        check(theme).equals(ThemeMode.dark);
       },
     );
 
@@ -77,7 +78,7 @@ void main() {
         final theme = await container.read(themeModeProvider.future);
 
         // Assert
-        expect(theme, equals(ThemeMode.system));
+        check(theme).equals(ThemeMode.system);
       },
     );
 
@@ -99,10 +100,7 @@ void main() {
 
       // Assert
       // 1. 状態が即時反映(AsyncData)されているか
-      expect(
-        container.read(themeModeProvider).value,
-        equals(ThemeMode.light),
-      );
+      check(container.read(themeModeProvider).value).equals(ThemeMode.light);
       // 2. ThemeMode.name 経由で 'light' という文字列に変換されて保存されたか
       verify(() => mockPrefs.setString('theme_mode', 'light')).called(1);
     });
@@ -124,10 +122,7 @@ void main() {
       await notifier.toggleLightDark();
 
       // Assert
-      expect(
-        container.read(themeModeProvider).value,
-        equals(ThemeMode.dark),
-      );
+      check(container.read(themeModeProvider).value).equals(ThemeMode.dark);
       verify(() => mockPrefs.setString('theme_mode', 'dark')).called(1);
     });
 
@@ -148,10 +143,7 @@ void main() {
       await notifier.toggleLightDark();
 
       // Assert
-      expect(
-        container.read(themeModeProvider).value,
-        equals(ThemeMode.light),
-      );
+      check(container.read(themeModeProvider).value).equals(ThemeMode.light);
       verify(() => mockPrefs.setString('theme_mode', 'light')).called(1);
     });
   });

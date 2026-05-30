@@ -1,9 +1,8 @@
-// We need to instantiate branch data classes without const
-// so that their constructor code execution is counted in test coverage.
-// ignore_for_file: prefer_const_constructors
+import 'package:checks/checks.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
@@ -214,7 +213,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
-      expect(find.byType(HomeScreen), findsOneWidget);
+      check(find.byType(HomeScreen)).findsOne();
       await teardownWidget(tester, container);
     });
 
@@ -227,7 +226,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
-      expect(find.byType(LoginScreen), findsOneWidget);
+      check(find.byType(LoginScreen)).findsOne();
       await teardownWidget(tester, container);
     });
 
@@ -240,7 +239,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
-      expect(find.byType(FirebaseLoginScreen), findsOneWidget);
+      check(find.byType(FirebaseLoginScreen)).findsOne();
       await teardownWidget(tester, container);
     });
 
@@ -257,7 +256,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 200));
       }
 
-      expect(find.byType(NotFoundScreen), findsOneWidget);
+      check(find.byType(NotFoundScreen)).findsOne();
       await teardownWidget(tester, container);
     });
 
@@ -268,7 +267,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // 最初は未ログインなので FirebaseLoginScreen が表示されていること
-      expect(find.byType(FirebaseLoginScreen), findsOneWidget);
+      check(find.byType(FirebaseLoginScreen)).findsOne();
 
       // firebaseAuthStateProvider の状態を強制的に変更する
       (container.read(firebaseAuthStateProvider.notifier)
@@ -279,7 +278,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // ログイン状態になったので HomeScreen に遷移することを確認
-      expect(find.byType(HomeScreen), findsOneWidget);
+      check(find.byType(HomeScreen)).findsOne();
 
       await teardownWidget(tester, container);
     });
@@ -295,14 +294,14 @@ void main() {
       await tester.pump();
 
       // 最初はスプラッシュ未完了なので SplashScreen が表示されていること
-      expect(find.byType(SplashScreen), findsOneWidget);
+      check(find.byType(SplashScreen)).findsOne();
 
       // スプラッシュ完了状態にする
       container.read(splashStateProvider.notifier).finishSplash();
       await tester.pumpAndSettle();
 
       // スプラッシュが完了したので HomeScreen に遷移すること
-      expect(find.byType(HomeScreen), findsOneWidget);
+      check(find.byType(HomeScreen)).findsOne();
 
       await teardownWidget(tester, container);
     });
@@ -320,7 +319,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(seconds: 1));
 
-        expect(find.byType(FirebaseEmailVerificationScreen), findsOneWidget);
+        check(find.byType(FirebaseEmailVerificationScreen)).findsOne();
         await teardownWidget(tester, container);
       },
     );
@@ -336,7 +335,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
-      expect(find.byType(FirebaseEmailVerificationScreen), findsOneWidget);
+      check(find.byType(FirebaseEmailVerificationScreen)).findsOne();
 
       final verifiedUser = MockUser();
       when(() => verifiedUser.uid).thenReturn('dummy_uid_123');
@@ -356,7 +355,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
-      expect(find.byType(HomeScreen), findsOneWidget);
+      check(find.byType(HomeScreen)).findsOne();
       await teardownWidget(tester, container);
     });
 
@@ -369,7 +368,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
-      expect(find.byType(HomeScreen), findsOneWidget);
+      check(find.byType(HomeScreen)).findsOne();
 
       (container.read(firebaseAuthStateProvider.notifier)
               as _FakeFirebaseAuthStateNotifier)
@@ -378,7 +377,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
-      expect(find.byType(FirebaseLoginScreen), findsOneWidget);
+      check(find.byType(FirebaseLoginScreen)).findsOne();
       await teardownWidget(tester, container);
     });
   });
@@ -429,7 +428,7 @@ void main() {
       );
 
       await tester.pump();
-      expect(find.byType(FirebaseLoginScreen), findsOneWidget);
+      check(find.byType(FirebaseLoginScreen)).findsOne();
 
       await teardownWidget(tester, container);
     });
@@ -439,7 +438,7 @@ void main() {
         MockBuildContext(),
         MockGoRouterState(),
       );
-      expect(widget, isA<HomeScreen>());
+      check(widget).isA<HomeScreen>();
     });
 
     test('SettingsRoute.build: SettingsScreen を返すこと', () {
@@ -447,7 +446,7 @@ void main() {
         MockBuildContext(),
         MockGoRouterState(),
       );
-      expect(widget, isA<SettingsScreen>());
+      check(widget).isA<SettingsScreen>();
     });
 
     test('UserListRoute.build: UserListScreen を返すこと', () {
@@ -455,7 +454,7 @@ void main() {
         MockBuildContext(),
         MockGoRouterState(),
       );
-      expect(widget, isA<UserListScreen>());
+      check(widget).isA<UserListScreen>();
     });
 
     test('ChatRoute.build: ChatScreen を返すこと', () {
@@ -463,7 +462,7 @@ void main() {
         MockBuildContext(),
         MockGoRouterState(),
       );
-      expect(widget, isA<ChatScreen>());
+      check(widget).isA<ChatScreen>();
     });
 
     test('ChartInputRoute.build: ChartInputScreen を返すこと', () {
@@ -471,7 +470,7 @@ void main() {
         MockBuildContext(),
         MockGoRouterState(),
       );
-      expect(widget, isA<ChartInputScreen>());
+      check(widget).isA<ChartInputScreen>();
     });
 
     test('ChartDisplayRoute.build: ChartDisplayScreen を返すこと', () {
@@ -479,7 +478,7 @@ void main() {
         MockBuildContext(),
         MockGoRouterState(),
       );
-      expect(widget, isA<ChartDisplayScreen>());
+      check(widget).isA<ChartDisplayScreen>();
     });
 
     test('MemosRoute.build: MemoScreen を返すこと', () {
@@ -487,7 +486,7 @@ void main() {
         MockBuildContext(),
         MockGoRouterState(),
       );
-      expect(widget, isA<MemoScreen>());
+      check(widget).isA<MemoScreen>();
     });
 
     test('SplashRoute.build: SplashScreen を返すこと', () {
@@ -495,7 +494,7 @@ void main() {
         MockBuildContext(),
         MockGoRouterState(),
       );
-      expect(widget, isA<SplashScreen>());
+      check(widget).isA<SplashScreen>();
     });
 
     test('SignUpRoute.build: FirebaseSignUpScreen を返すこと', () {
@@ -503,7 +502,7 @@ void main() {
         MockBuildContext(),
         MockGoRouterState(),
       );
-      expect(widget, isA<FirebaseSignUpScreen>());
+      check(widget).isA<FirebaseSignUpScreen>();
     });
 
     test('ResetPasswordRoute.build: FirebaseResetPasswordScreen を返すこと', () {
@@ -511,7 +510,7 @@ void main() {
         MockBuildContext(),
         MockGoRouterState(),
       );
-      expect(widget, isA<FirebaseResetPasswordScreen>());
+      check(widget).isA<FirebaseResetPasswordScreen>();
     });
 
     test(
@@ -521,7 +520,7 @@ void main() {
           MockBuildContext(),
           MockGoRouterState(),
         );
-        expect(widget, isA<FirebaseEmailVerificationScreen>());
+        check(widget).isA<FirebaseEmailVerificationScreen>();
       },
     );
 
@@ -532,27 +531,27 @@ void main() {
         MockGoRouterState(),
         mockShell,
       );
-      expect(widget, isA<MainShellScreen>());
+      check(widget).isA<MainShellScreen>();
     });
 
     test('HomeBranch: インスタンス化できること', () {
-      expect(HomeBranch(), isNotNull);
+      check(const HomeBranch()).isNotNull();
     });
 
     test('ChatBranch: インスタンス化できること', () {
-      expect(ChatBranch(), isNotNull);
+      check(const ChatBranch()).isNotNull();
     });
 
     test('MemosBranch: インスタンス化できること', () {
-      expect(MemosBranch(), isNotNull);
+      check(const MemosBranch()).isNotNull();
     });
 
     test('ChartBranch: インスタンス化できること', () {
-      expect(ChartBranch(), isNotNull);
+      check(const ChartBranch()).isNotNull();
     });
 
     test('UserBranch: インスタンス化できること', () {
-      expect(UserBranch(), isNotNull);
+      check(const UserBranch()).isNotNull();
     });
   });
 
@@ -627,32 +626,21 @@ void main() {
       await tester.pumpAndSettle();
 
       // 初期表示は HomeScreen が表示されていること
-      expect(find.byType(MainShellScreen), findsOneWidget);
-      expect(find.byType(HomeScreen), findsOneWidget);
+      check(find.byType(MainShellScreen)).findsOne();
+      check(find.byType(HomeScreen)).findsOne();
 
       // 各タブが表示されていることの確認（NavigationBar内のテキストを検索）
-      expect(find.byType(NavigationBar), findsOneWidget);
+      check(find.byType(NavigationBar)).findsOne();
       final navBar = find.byType(NavigationBar);
-      expect(
-        find.descendant(of: navBar, matching: find.text('ホーム')),
-        findsOneWidget,
-      );
-      expect(
+      check(find.descendant(of: navBar, matching: find.text('ホーム'))).findsOne();
+      check(
         find.descendant(of: navBar, matching: find.text('チャット')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: navBar, matching: find.text('メモ')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: navBar, matching: find.text('グラフ')),
-        findsOneWidget,
-      );
-      expect(
+      ).findsOne();
+      check(find.descendant(of: navBar, matching: find.text('メモ'))).findsOne();
+      check(find.descendant(of: navBar, matching: find.text('グラフ'))).findsOne();
+      check(
         find.descendant(of: navBar, matching: find.text('ユーザー')),
-        findsOneWidget,
-      );
+      ).findsOne();
 
       // チャットタブ（インデックス1）をタップする
       await tester.tap(
@@ -661,7 +649,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // ChatScreen に切り替わっていることを確認
-      expect(find.byType(ChatScreen), findsOneWidget);
+      check(find.byType(ChatScreen)).findsOne();
 
       // 同じチャットタブを再度タップする（initialLocation: true の分岐をテストするため）
       await tester.tap(
@@ -674,7 +662,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // MemoScreen に切り替わっていることを確認
-      expect(find.byType(MemoScreen), findsOneWidget);
+      check(find.byType(MemoScreen)).findsOne();
 
       await teardownWidget(tester, container);
     });

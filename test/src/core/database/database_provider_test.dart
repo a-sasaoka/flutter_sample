@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_sample/src/app/database/app_database.dart';
 import 'package:flutter_sample/src/core/database/database_provider.dart';
@@ -32,7 +33,7 @@ void main() {
       final db = container.read(appDatabaseProvider);
 
       // 生成されたインスタンスが AppDatabase であることを検証
-      expect(db, isA<AppDatabase>());
+      check(db).isA<AppDatabase>();
     });
   });
 }

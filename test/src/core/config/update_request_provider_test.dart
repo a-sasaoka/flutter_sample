@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:checks/checks.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/update_request_provider.dart';
@@ -108,13 +109,13 @@ void main() {
       final container = createContainer();
       final notifier = container.read(cancelControllerProvider.notifier);
 
-      expect(container.read(cancelControllerProvider), isFalse);
+      check(container.read(cancelControllerProvider)).equals(false);
 
       notifier.clickCancel();
-      expect(container.read(cancelControllerProvider), isTrue);
+      check(container.read(cancelControllerProvider)).equals(true);
 
       notifier.reset();
-      expect(container.read(cancelControllerProvider), isFalse);
+      check(container.read(cancelControllerProvider)).equals(false);
     });
   });
 
@@ -127,7 +128,7 @@ void main() {
         updateRequestControllerProvider.future,
       );
 
-      expect(state, equals(UpdateRequestType.not));
+      check(state).equals(UpdateRequestType.not);
     });
 
     test('RemoteConfigのJSONが不正(パース失敗)な場合は例外をキャッチし not を返すこと', () async {
@@ -140,7 +141,7 @@ void main() {
         updateRequestControllerProvider.future,
       );
 
-      expect(state, equals(UpdateRequestType.not));
+      check(state).equals(UpdateRequestType.not);
     });
 
     test('現在のバージョン(1.0.0) >= 要求バージョン(1.0.0) の場合は not を返すこと', () async {
@@ -158,7 +159,7 @@ void main() {
         updateRequestControllerProvider.future,
       );
 
-      expect(state, equals(UpdateRequestType.not));
+      check(state).equals(UpdateRequestType.not);
     });
 
     test('新しいバージョン(2.0.0)だが、有効期間外(未来)の場合は not を返すこと', () async {
@@ -176,7 +177,7 @@ void main() {
         updateRequestControllerProvider.future,
       );
 
-      expect(state, equals(UpdateRequestType.not));
+      check(state).equals(UpdateRequestType.not);
     });
 
     test(
@@ -198,7 +199,7 @@ void main() {
           updateRequestControllerProvider.future,
         );
 
-        expect(state, equals(UpdateRequestType.cancelable));
+        check(state).equals(UpdateRequestType.cancelable);
       },
     );
 
@@ -221,7 +222,7 @@ void main() {
           updateRequestControllerProvider.future,
         );
 
-        expect(state, equals(UpdateRequestType.forcibly));
+        check(state).equals(UpdateRequestType.forcibly);
       },
     );
 
@@ -235,7 +236,7 @@ void main() {
         () => mockRemoteConfig.setConfigSettings(captureAny()),
       ).captured;
       final settings = captured.first as RemoteConfigSettings;
-      expect(settings.minimumFetchInterval, equals(const Duration(hours: 12)));
+      check(settings.minimumFetchInterval).equals(const Duration(hours: 12));
     });
 
     test('RemoteConfigが更新されたとき、状態がloadingを経て最新データに更新されること', () async {
@@ -276,11 +277,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       // 6. 履歴の検証
-      expect(
-        states.any((s) => s.isLoading),
-        isTrue,
-        reason: '状態遷移のどこかで一度はLoadingになっているべき',
-      );
+      check(states.any((s) => s.isLoading)).equals(true);
     });
   });
 }

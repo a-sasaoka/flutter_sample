@@ -1,7 +1,6 @@
-// We need to SplashScreen class without const
-// so that this constructor code execution is counted in test coverage.
-// ignore_for_file: prefer_const_constructors
+import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
@@ -37,7 +36,7 @@ void main() {
 
   group('SplashScreenのテスト', () {
     test('コンストラクタでインスタンスが生成できること', () {
-      expect(SplashScreen(), isNotNull);
+      check(const SplashScreen()).isNotNull();
     });
 
     testWidgets('初期表示のテスト: 背景グラデーションとロゴが表示されること', (tester) async {
@@ -66,14 +65,14 @@ void main() {
       await tester.pump();
 
       // Scaffold が表示されていること
-      expect(find.byType(Scaffold), findsOneWidget);
+      check(find.byType(Scaffold)).findsOne();
 
       // SplashLogo が表示されていること
-      expect(find.byType(SplashLogo), findsOneWidget);
+      check(find.byType(SplashLogo)).findsOne();
 
       // ロゴ内のアイコンとテキストが表示されていること
-      expect(find.byIcon(Icons.flutter_dash), findsOneWidget);
-      expect(find.text('Flutter Sample App'), findsOneWidget);
+      check(find.byIcon(Icons.flutter_dash)).findsOne();
+      check(find.text('Flutter Sample App')).findsOne();
     });
 
     testWidgets('2秒経過後に SplashState が完了（true）に更新されること', (tester) async {
@@ -106,15 +105,15 @@ void main() {
       await tester.pump();
 
       // 最初は false であること
-      expect(container.read(splashStateProvider), isFalse);
+      check(container.read(splashStateProvider)).equals(false);
 
       // 1秒経過（まだ false のはず）
       await tester.pump(const Duration(seconds: 1));
-      expect(container.read(splashStateProvider), isFalse);
+      check(container.read(splashStateProvider)).equals(false);
 
       // さらに1.5秒経過（合計2.5秒。2秒を超えたため、完了になる）
       await tester.pump(const Duration(milliseconds: 1500));
-      expect(container.read(splashStateProvider), isTrue);
+      check(container.read(splashStateProvider)).equals(true);
     });
   });
 }

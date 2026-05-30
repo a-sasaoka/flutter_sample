@@ -1,4 +1,6 @@
+import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
@@ -107,17 +109,17 @@ void main() {
   group('LoginScreen (API)', () {
     test('コンストラクタでインスタンスが生成できること', () {
       const screen = LoginScreen();
-      expect(screen, isA<LoginScreen>());
+      check(screen).isA<LoginScreen>();
     });
 
     testWidgets('UIが正しくレンダリングされること', (tester) async {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(AppBar, 'ログイン'), findsOneWidget);
-      expect(find.text('メールアドレス'), findsOneWidget);
-      expect(find.text('パスワード'), findsOneWidget);
-      expect(find.text('ログインする'), findsOneWidget);
+      check(find.widgetWithText(AppBar, 'ログイン')).findsOne();
+      check(find.text('メールアドレス')).findsOne();
+      check(find.text('パスワード')).findsOne();
+      check(find.text('ログインする')).findsOne();
     });
 
     testWidgets('未入力でボタンを押した場合は何も起きないこと(バリデーション)', (tester) async {
@@ -128,7 +130,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Fakeのメソッドが呼ばれていないことと、Analyticsが呼ばれていないことを確認
-      expect(loginCallCount, 0);
+      check(loginCallCount).equals(0);
       verifyZeroInteractions(mockAnalyticsService);
     });
 
@@ -148,11 +150,11 @@ void main() {
       // ポンプして画面を再描画
       await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      check(find.byType(CircularProgressIndicator)).findsOne();
 
       await tester.pumpAndSettle();
 
-      expect(find.byType(CircularProgressIndicator), findsNothing);
+      check(find.byType(CircularProgressIndicator)).findsNothing();
     });
 
     testWidgets('ログイン成功時、SnackBarが表示され、Analyticsにログが送信されること', (tester) async {
@@ -167,15 +169,15 @@ void main() {
       await tester.pump();
 
       // Fakeメソッドが呼ばれたか
-      expect(loginCallCount, 1);
+      check(loginCallCount).equals(1);
 
       // Analyticsが呼ばれたか
       verify(
         () => mockAnalyticsService.logEvent(event: AnalyticsEvent.loginSuccess),
       ).called(1);
 
-      expect(find.byType(SnackBar), findsWidgets);
-      expect(find.text('ログイン成功！'), findsWidgets);
+      check(find.byType(SnackBar)).findsAny();
+      check(find.text('ログイン成功！')).findsAny();
 
       await tester.pumpAndSettle();
     });
@@ -198,16 +200,16 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
 
-      expect(find.byType(AlertDialog), findsOneWidget);
-      expect(find.text('エラーが発生しました'), findsOneWidget);
-      expect(find.text('予期しないエラーが発生しました'), findsOneWidget);
+      check(find.byType(AlertDialog)).findsOne();
+      check(find.text('エラーが発生しました')).findsOne();
+      check(find.text('予期しないエラーが発生しました')).findsOne();
 
       // ダイアログのOKボタンを押して閉じる
       await tester.tap(find.text('OK'));
 
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsNothing);
+      check(find.byType(AlertDialog)).findsNothing();
     });
 
     testWidgets('画面外タップでキーボードが閉じること', (tester) async {
@@ -219,13 +221,13 @@ void main() {
       await tester.pumpAndSettle();
 
       final BuildContext context = tester.element(textFields.first);
-      expect(FocusScope.of(context).focusedChild, isNotNull);
+      check(FocusScope.of(context).focusedChild).isNotNull();
 
       // AppBarなど画面外をタップ
       await tester.tap(find.byType(AppBar));
       await tester.pumpAndSettle();
 
-      expect(FocusScope.of(context).focusedChild, isNull);
+      check(FocusScope.of(context).focusedChild).isNull();
     });
   });
 }

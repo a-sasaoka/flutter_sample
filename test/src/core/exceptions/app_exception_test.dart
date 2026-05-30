@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -5,15 +6,15 @@ void main() {
   group('AppException テスト', () {
     test('NetworkException が正しく生成されること', () {
       const exception = AppException.network(message: 'offline');
-      expect(exception, isA<NetworkException>());
-      expect(exception.message, 'offline');
+      check(exception).isA<NetworkException>();
+      check(exception.message).equals('offline');
     });
 
     test('ServerException が正しく生成されること', () {
       const exception = AppException.server(statusCode: 500, message: 'error');
-      expect(exception, isA<ServerException>());
-      expect(exception.statusCode, 500);
-      expect(exception.message, 'error');
+      check(exception).isA<ServerException>();
+      check(exception.statusCode).equals(500);
+      check(exception.message).equals('error');
     });
 
     test('BadRequestException が正しく生成されること', () {
@@ -21,33 +22,33 @@ void main() {
         statusCode: 400,
         message: 'invalid',
       );
-      expect(exception, isA<BadRequestException>());
-      expect(exception.statusCode, 400);
-      expect(exception.message, 'invalid');
+      check(exception).isA<BadRequestException>();
+      check(exception.statusCode).equals(400);
+      check(exception.message).equals('invalid');
     });
 
     test('UnauthenticatedException が正しく生成されること', () {
       const exception = AppException.unauthenticated(message: 'not logged in');
-      expect(exception, isA<UnauthenticatedException>());
-      expect(exception.message, 'not logged in');
+      check(exception).isA<UnauthenticatedException>();
+      check(exception.message).equals('not logged in');
     });
 
     test('UnauthorizedException が正しく生成されること', () {
       const exception = AppException.unauthorized(message: 'forbidden');
-      expect(exception, isA<UnauthorizedException>());
-      expect(exception.message, 'forbidden');
+      check(exception).isA<UnauthorizedException>();
+      check(exception.message).equals('forbidden');
     });
 
     test('TimeoutException が正しく生成されること', () {
       const exception = AppException.timeout(message: 'timeout');
-      expect(exception, isA<TimeoutException>());
-      expect(exception.message, 'timeout');
+      check(exception).isA<TimeoutException>();
+      check(exception.message).equals('timeout');
     });
 
     test('DataParseException が正しく生成されること', () {
       const exception = AppException.dataParse(message: 'parse error');
-      expect(exception, isA<DataParseException>());
-      expect(exception.message, 'parse error');
+      check(exception).isA<DataParseException>();
+      check(exception.message).equals('parse error');
     });
 
     test('DatabaseException が正しく生成されること', () {
@@ -56,15 +57,15 @@ void main() {
         message: 'storage error',
         error: innerError,
       );
-      expect(exception, isA<DatabaseException>());
-      expect(exception.message, 'storage error');
-      expect(exception.error, innerError);
+      check(exception).isA<DatabaseException>();
+      check(exception.message).equals('storage error');
+      check(exception.error).equals(innerError);
     });
 
     test('CancelException が正しく生成されること', () {
       const exception = AppException.cancel(message: 'canceled');
-      expect(exception, isA<CancelException>());
-      expect(exception.message, 'canceled');
+      check(exception).isA<CancelException>();
+      check(exception.message).equals('canceled');
     });
 
     test('UnknownException が正しく生成されること', () {
@@ -73,9 +74,9 @@ void main() {
         message: 'unknown',
         error: innerError,
       );
-      expect(exception, isA<UnknownException>());
-      expect(exception.message, 'unknown');
-      expect(exception.error, innerError);
+      check(exception).isA<UnknownException>();
+      check(exception.message).equals('unknown');
+      check(exception.error).equals(innerError);
     });
 
     test('pattern matching (switch expression) が正しく動作すること', () {
@@ -92,7 +93,7 @@ void main() {
         CancelException() => 'cancel',
         UnknownException() => 'unknown',
       };
-      expect(result, 'timeout');
+      check(result).equals('timeout');
     });
   });
 }

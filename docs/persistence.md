@@ -139,7 +139,7 @@ void main() {
     });
 
     test('schemaVersion returns 1', () {
-      expect(database.schemaVersion, 1);
+      check(database.schemaVersion).equals(1);
     });
 
     // ... その他のテストケース

@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/config/app_config_provider.dart';
@@ -173,14 +175,13 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(
+      check(
         find.byWidgetPredicate(
           (w) =>
               w is CircularProgressIndicator ||
               w.runtimeType.toString() == 'CupertinoActivityIndicator',
         ),
-        findsOneWidget,
-      );
+      ).findsOne();
     });
 
     testWidgets('エラー状態の時、エラーメッセージが表示されること', (tester) async {
@@ -189,7 +190,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Config Load Error'), findsOneWidget);
+      check(find.textContaining('Config Load Error')).findsOne();
     });
 
     group('データ取得完了後 (Data状態)', () {
@@ -197,11 +198,11 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pumpAndSettle();
 
-        expect(find.text('設定'), findsOneWidget);
-        expect(find.text('テーマ設定'), findsOneWidget);
-        expect(find.text('ライト'), findsOneWidget);
-        expect(find.text('言語設定'), findsOneWidget);
-        expect(find.text('Preview: こんにちは！'), findsOneWidget);
+        check(find.text('設定')).findsOne();
+        check(find.text('テーマ設定')).findsOne();
+        check(find.text('ライト')).findsOne();
+        check(find.text('言語設定')).findsOne();
+        check(find.text('Preview: こんにちは！')).findsOne();
       });
 
       testWidgets('テーマのSegmentedButtonを変更した時、ThemeModeNotifierのsetが呼ばれること', (
@@ -214,7 +215,7 @@ void main() {
         await tester.tap(find.text('ダーク'));
         await tester.pumpAndSettle();
 
-        expect(fakeThemeModeNotifier.calledSetMode, ThemeMode.dark);
+        check(fakeThemeModeNotifier.calledSetMode).equals(ThemeMode.dark);
       });
 
       testWidgets('テーマのSwitchを切り替えた時、toggleLightDarkが呼ばれること', (tester) async {
@@ -224,7 +225,7 @@ void main() {
         await tester.tap(find.byType(SwitchListTile));
         await tester.pumpAndSettle();
 
-        expect(fakeThemeModeNotifier.calledToggle, isTrue);
+        check(fakeThemeModeNotifier.calledToggle).equals(true);
       });
 
       testWidgets('言語のSegmentedButtonを変更した時、LocaleNotifier.setLocaleが呼ばれること', (
@@ -237,7 +238,7 @@ void main() {
         await tester.tap(find.text('English'));
         await tester.pumpAndSettle();
 
-        expect(fakeLocaleNotifier.calledSetLocale, 'en');
+        check(fakeLocaleNotifier.calledSetLocale).equals('en');
       });
 
       group('ログアウトボタン (useAuthの分岐)', () {
@@ -247,7 +248,7 @@ void main() {
           );
           await tester.pumpAndSettle();
 
-          expect(find.byKey(const Key('logout_button')), findsNothing);
+          check(find.byKey(const Key('logout_button'))).findsNothing();
         });
 
         testWidgets('useAuth == true でログアウト成功時、signOut処理が呼ばれること', (
@@ -303,8 +304,8 @@ void main() {
 
           verify(() => mockAuthRepo.signOut()).called(1);
 
-          expect(find.textContaining('不明なエラー'), findsOneWidget);
-          expect(find.textContaining('Navigated to'), findsNothing);
+          check(find.textContaining('不明なエラー')).findsOne();
+          check(find.textContaining('Navigated to')).findsNothing();
         });
       });
     });

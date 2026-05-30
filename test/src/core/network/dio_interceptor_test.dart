@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
@@ -68,7 +69,7 @@ void main() {
       final captured =
           verify(() => handler.reject(captureAny())).captured.first
               as DioException;
-      expect(captured.error, isA<TimeoutException>());
+      check(captured.error).isA<TimeoutException>();
     });
 
     test(
@@ -93,9 +94,9 @@ void main() {
         final captured =
             verify(() => handler.reject(captureAny())).captured.first
                 as DioException;
-        expect(captured.error, isA<BadRequestException>());
+        check(captured.error).isA<BadRequestException>();
         final appEx = captured.error! as AppException;
-        expect(appEx.statusCode, equals(404));
+        check(appEx.statusCode).equals(404);
       },
     );
 
@@ -119,7 +120,7 @@ void main() {
       final captured =
           verify(() => handler.reject(captureAny())).captured.first
               as DioException;
-      expect(captured.error, isA<UnauthenticatedException>());
+      check(captured.error).isA<UnauthenticatedException>();
     });
 
     test('onError: badResponse(500) が ServerException に変換されること', () {
@@ -142,7 +143,7 @@ void main() {
       final captured =
           verify(() => handler.reject(captureAny())).captured.first
               as DioException;
-      expect(captured.error, isA<ServerException>());
+      check(captured.error).isA<ServerException>();
     });
 
     test('onError: badResponse 且つ statusCode が null の場合は '
@@ -165,7 +166,7 @@ void main() {
       final captured =
           verify(() => handler.reject(captureAny())).captured.first
               as DioException;
-      expect(captured.error, isA<UnknownException>());
+      check(captured.error).isA<UnknownException>();
     });
 
     test('onError: 未定義の statusCode の場合は UnknownException になること', () {
@@ -188,7 +189,7 @@ void main() {
       final captured =
           verify(() => handler.reject(captureAny())).captured.first
               as DioException;
-      expect(captured.error, isA<UnknownException>());
+      check(captured.error).isA<UnknownException>();
     });
 
     test('onError: unknownエラーが UnknownException に変換されること', () {
@@ -207,11 +208,10 @@ void main() {
       final captured =
           verify(() => handler.reject(captureAny())).captured.first
               as DioException;
-      expect(captured.error, isA<UnknownException>());
-      expect(
+      check(captured.error).isA<UnknownException>();
+      check(
         (captured.error! as AppException).whenOrNull(unknown: (msg, _) => msg),
-        contains('unknown error'),
-      );
+      ).isNotNull().contains('unknown error');
     });
 
     test('onRequest/onResponse: ログが出力され、handler.next が呼ばれること', () {

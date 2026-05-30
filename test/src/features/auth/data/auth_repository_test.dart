@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:dio/dio.dart'; // Responseクラス用
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
@@ -5,6 +6,7 @@ import 'package:flutter_sample/src/core/storage/token_storage.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:legacy_checks/legacy_checks.dart';
 import 'package:mocktail/mocktail.dart';
 
 // --- モックとFakeクラスの定義 ---
@@ -102,8 +104,8 @@ void main() {
       ).called(1);
 
       // 2. TokenStorageに正しい値が保存されたか
-      expect(fakeStorage.savedAccessToken, 'new_access_token');
-      expect(fakeStorage.savedRefreshToken, 'new_refresh_token');
+      check(fakeStorage.savedAccessToken).equals('new_access_token');
+      check(fakeStorage.savedRefreshToken).equals('new_refresh_token');
     });
 
     test('login: APIレスポンスにトークンが含まれていない場合、Exceptionを投げること', () async {
@@ -125,8 +127,9 @@ void main() {
       ).thenAnswer((_) async => mockResponse);
 
       // Act & Assert
-      await expectLater(
+      check(
         () => repo.login('test@example.com', 'password123'),
+      ).legacyMatcher(
         throwsA(
           isA<Exception>().having(
             (e) => e.toString(),
@@ -137,7 +140,7 @@ void main() {
       );
 
       // 例外が発生し、TokenStorageに保存処理が行われていないことを確認
-      expect(fakeStorage.savedAccessToken, isNull);
+      check(fakeStorage.savedAccessToken).isNull();
     });
 
     group('refreshToken', () {
@@ -151,7 +154,7 @@ void main() {
         final result = await repo.refreshToken();
 
         // Assert
-        expect(result, isFalse);
+        check(result).equals(false);
         // APIが一切呼ばれていないことを確認
         verifyNever(
           () => mockApi.post<Map<String, dynamic>>(
@@ -184,9 +187,9 @@ void main() {
         final result = await repo.refreshToken();
 
         // Assert
-        expect(result, isFalse);
+        check(result).equals(false);
         // 保存処理が呼ばれていない（プロパティがnullのまま）ことを確認
-        expect(fakeStorage.savedAccessToken, isNull);
+        check(fakeStorage.savedAccessToken).isNull();
       });
 
       test('APIから新しいアクセストークンを取得できた場合、保存して true を返すこと', () async {
@@ -213,7 +216,7 @@ void main() {
         final result = await repo.refreshToken();
 
         // Assert
-        expect(result, isTrue);
+        check(result).equals(true);
 
         // APIが正しいリフレッシュトークンを送信したか
         verify(
@@ -227,8 +230,8 @@ void main() {
         ).called(1);
 
         // 新しいアクセストークンと、既存のリフレッシュトークンが保存されたか
-        expect(fakeStorage.savedAccessToken, 'refreshed_access');
-        expect(fakeStorage.savedRefreshToken, 'valid_refresh');
+        check(fakeStorage.savedAccessToken).equals('refreshed_access');
+        check(fakeStorage.savedRefreshToken).equals('valid_refresh');
       });
     });
   });
@@ -245,7 +248,7 @@ void main() {
 
       final apiClient = container.read(authApiClientProvider);
 
-      expect(apiClient, isA<DioApiClient>());
+      check(apiClient).isA<DioApiClient>();
     });
   });
 
@@ -264,10 +267,10 @@ void main() {
         final repository = container.read(authRepositoryProvider);
 
         // 3. Assert (検証)
-        expect(repository, isA<AuthRepository>());
+        check(repository).isA<AuthRepository>();
 
-        expect(repository.api, equals(mockApi));
-        expect(repository.tokenStorage, equals(fakeStorage));
+        check(repository.api).equals(mockApi);
+        check(repository.tokenStorage).equals(fakeStorage);
       },
     );
   });

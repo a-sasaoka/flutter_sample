@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:legacy_checks/legacy_checks.dart';
 import 'package:mocktail/mocktail.dart';
 
 // --- モッククラスの定義 ---
@@ -30,7 +32,7 @@ void main() {
         final result = await repository.sendMessage('テストプロンプト');
 
         // Assert: 結果を検証
-        expect(result, 'こんにちは！AIです。');
+        check(result).equals('こんにちは！AIです。');
         verify(() => mockApiClient.sendMessage('テストプロンプト')).called(1);
       });
 
@@ -42,10 +44,9 @@ void main() {
           ).thenAnswer((_) async => '');
 
           // 例外が投げられることを検証
-          expect(
-            () => repository.sendMessage('テスト'),
-            throwsA(isA<ChatEmptyResponseException>()),
-          );
+          await check(
+            repository.sendMessage('テスト'),
+          ).throws<ChatEmptyResponseException>();
         },
       );
 
@@ -55,10 +56,9 @@ void main() {
         ).thenAnswer((_) async => null);
 
         // nullの場合も同様に例外になることを検証
-        expect(
-          () => repository.sendMessage('テスト'),
-          throwsA(isA<ChatEmptyResponseException>()),
-        );
+        await check(
+          repository.sendMessage('テスト'),
+        ).throws<ChatEmptyResponseException>();
       });
     });
 
@@ -74,8 +74,7 @@ void main() {
 
         // Assert: Streamから流れてくる値を順番に検証
         // .map((text) => text ?? '') のロジックによって、nullが空文字に変換されることを確認
-        expect(
-          stream,
+        check(stream).legacyMatcher(
           emitsInOrder([
             'AI',
             '', // null が 空文字('') に変換されていること！

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/storage/cache_manager.dart';
 import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
@@ -69,8 +70,8 @@ void main() {
       final (data, ts) = await manager.getWithTimestamp(testKey);
 
       // Assert
-      expect(data, testValue);
-      expect(ts, DateTime.fromMillisecondsSinceEpoch(tsMs));
+      check(data as Map).deepEquals(testValue);
+      check(ts).equals(DateTime.fromMillisecondsSinceEpoch(tsMs));
     });
 
     test('get: ショートカットメソッドでデータのみ取得できること', () async {
@@ -89,7 +90,7 @@ void main() {
       final result = await manager.get(testKey);
 
       // Assert
-      expect(result, testValue);
+      check(result as Map).deepEquals(testValue);
     });
 
     test('getWithTimestamp: 期限切れのキャッシュは削除して (null, null) を返すこと', () async {
@@ -110,8 +111,8 @@ void main() {
       final (data, ts) = await manager.getWithTimestamp(testKey);
 
       // Assert
-      expect(data, isNull);
-      expect(ts, isNull);
+      check(data).isNull();
+      check(ts).isNull();
       verify(() => mockPrefs.remove(testKey)).called(1);
     });
 
@@ -124,8 +125,8 @@ void main() {
       final (data, ts) = await manager.getWithTimestamp(testKey);
 
       // Assert
-      expect(data, isNull);
-      expect(ts, isNull);
+      check(data).isNull();
+      check(ts).isNull();
     });
 
     test(
@@ -142,8 +143,8 @@ void main() {
         final (data, ts) = await manager.getWithTimestamp(testKey);
 
         // Assert
-        expect(data, isNull);
-        expect(ts, isNull);
+        check(data).isNull();
+        check(ts).isNull();
         verify(() => mockPrefs.remove(testKey)).called(1);
       },
     );

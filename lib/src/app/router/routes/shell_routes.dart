@@ -63,29 +63,29 @@ class AppShellRouteData extends StatefulShellRouteData {
 /// 🏠 ホームタブのブランチデータ
 class HomeBranch extends StatefulShellBranchData {
   /// コンストラクタ
-  const HomeBranch();
+  const HomeBranch(); // coverage:ignore-line
 }
 
 /// 🤖 チャットタブのブランチデータ
 class ChatBranch extends StatefulShellBranchData {
   /// コンストラクタ
-  const ChatBranch();
+  const ChatBranch(); // coverage:ignore-line
 }
 
 /// 📝 メモタブのブランチデータ
 class MemosBranch extends StatefulShellBranchData {
   /// コンストラクタ
-  const MemosBranch();
+  const MemosBranch(); // coverage:ignore-line
 }
 
 /// 📊 グラフタブのブランチデータ
 class ChartBranch extends StatefulShellBranchData {
   /// コンストラクタ
-  const ChartBranch();
+  const ChartBranch(); // coverage:ignore-line
 }
 
 /// 👥 ユーザー一覧タブのブランチデータ
 class UserBranch extends StatefulShellBranchData {
   /// コンストラクタ
-  const UserBranch();
+  const UserBranch(); // coverage:ignore-line
 }

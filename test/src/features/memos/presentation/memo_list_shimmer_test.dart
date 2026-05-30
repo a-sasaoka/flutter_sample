@@ -1,4 +1,6 @@
+import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_list_shimmer.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shimmer/shimmer.dart';
@@ -28,10 +30,10 @@ void main() {
 
       // 3. 画面の高さ（600px）÷ カードの高さ（100px）＝ 6 枚 のカードが表示されているはずです
       // MemoCardShimmer がちょうど6枚あるか確認します
-      expect(find.byType(MemoCardShimmer), findsNWidgets(6));
+      check(find.byType(MemoCardShimmer)).findsExactly(6);
 
       // 4. キラキラ効果（Shimmer）が使われていることを確認します
-      expect(find.byType(Shimmer), findsAtLeastNWidgets(1));
+      check(find.byType(Shimmer)).findsAtLeast(1);
     });
 
     testWidgets('ダークモードでもエラーなく骨組みカードが描画されること', (tester) async {
@@ -45,7 +47,7 @@ void main() {
       );
 
       // ダークモードでも骨組みカードが1枚以上表示されていることを確認します
-      expect(find.byType(MemoCardShimmer), findsAtLeastNWidgets(1));
+      check(find.byType(MemoCardShimmer)).findsAtLeast(1);
     });
   });
 }

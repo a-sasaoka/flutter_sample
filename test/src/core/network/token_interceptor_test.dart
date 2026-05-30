@@ -1,11 +1,13 @@
 // ignore_for_file: one_member_abstracts, document_ignores
 
+import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
 import 'package:flutter_sample/src/core/network/token_interceptor.dart';
 import 'package:flutter_sample/src/core/storage/token_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:legacy_checks/legacy_checks.dart';
 import 'package:mocktail/mocktail.dart';
 
 // --- モッククラス群 ---
@@ -79,7 +81,7 @@ void main() {
       // 内部で await されるため、dynamic で受けて await する
       await (interceptor as dynamic).onRequest(options, handler);
 
-      expect(options.headers['Authorization'], equals('Bearer valid_token'));
+      check(options.headers['Authorization']).equals('Bearer valid_token');
       verify(() => handler.next(options)).called(1);
     });
 
@@ -111,7 +113,7 @@ void main() {
 
       await (interceptor as dynamic).onError(error401, handler);
 
-      expect(options.headers['Authorization'], equals('Bearer new_token'));
+      check(options.headers['Authorization']).equals('Bearer new_token');
       verify(() => handler.resolve(mockResponse)).called(1);
     });
 
@@ -196,7 +198,7 @@ void main() {
 
     await (interceptor as dynamic).onRequest(options, handler);
 
-    expect(options.headers.containsKey('Authorization'), isFalse);
+    check(options.headers.containsKey('Authorization')).equals(false);
     verify(() => handler.next(options)).called(1);
   });
 
@@ -250,8 +252,9 @@ void main() {
 
       // Riverpodは内部のエラーを ProviderException で包んで投げる仕様があるため、
       // エラーの文字列表現 (toString) の中に目的のメッセージが含まれているかを検証します。
-      expect(
+      check(
         () => emptyContainer.read(tokenRefreshCallbackProvider),
+      ).legacyMatcher(
         throwsA(
           predicate(
             (e) => e.toString().contains(
