@@ -97,6 +97,13 @@
   "memoSynced": "Synced",
   "memoUnsynced": "Not Synced",
   "memoDeleteConfirm": "Are you sure you want to delete this memo?",
+  "memoSearchHint": "Search memos...",
+  "memoSortCreatedAtDesc": "Created: Newest",
+  "memoSortCreatedAtAsc": "Created: Oldest",
+  "memoSortUpdatedAtDesc": "Updated: Newest",
+  "memoSortUpdatedAtAsc": "Updated: Oldest",
+  "memoSortTitleAsc": "Title: A-Z",
+  "memoSortTitleDesc": "Title: Z-A",
 
   "@_CHART": {},
   "chartLine": "Line Chart",

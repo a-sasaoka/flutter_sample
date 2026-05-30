@@ -24,6 +24,7 @@ class ChartInputScreen extends HookConsumerWidget {
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
+      behavior: HitTestBehavior.opaque,
       child: Scaffold(
         appBar: AppBar(
           title: Text(l10n.chartInputTitle),

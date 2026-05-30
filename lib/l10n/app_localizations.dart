@@ -596,6 +596,48 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to delete this memo?'**
   String get memoDeleteConfirm;
 
+  /// No description provided for @memoSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search memos...'**
+  String get memoSearchHint;
+
+  /// No description provided for @memoSortCreatedAtDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Created: Newest'**
+  String get memoSortCreatedAtDesc;
+
+  /// No description provided for @memoSortCreatedAtAsc.
+  ///
+  /// In en, this message translates to:
+  /// **'Created: Oldest'**
+  String get memoSortCreatedAtAsc;
+
+  /// No description provided for @memoSortUpdatedAtDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated: Newest'**
+  String get memoSortUpdatedAtDesc;
+
+  /// No description provided for @memoSortUpdatedAtAsc.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated: Oldest'**
+  String get memoSortUpdatedAtAsc;
+
+  /// No description provided for @memoSortTitleAsc.
+  ///
+  /// In en, this message translates to:
+  /// **'Title: A-Z'**
+  String get memoSortTitleAsc;
+
+  /// No description provided for @memoSortTitleDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Title: Z-A'**
+  String get memoSortTitleDesc;
+
   /// No description provided for @chartLine.
   ///
   /// In en, this message translates to:

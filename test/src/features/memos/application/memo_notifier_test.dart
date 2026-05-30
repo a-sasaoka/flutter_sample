@@ -1,6 +1,7 @@
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
+import 'package:flutter_sample/src/features/memos/domain/memo_sort_order.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
@@ -134,6 +135,101 @@ void main() {
       expect(state.error, exception);
 
       subscription.close();
+    });
+
+    group('検索・ソート機能のテスト', () {
+      final mockMemos = [
+        MemoModel(
+          id: '1',
+          title: 'Apple',
+          content: 'This is red apple.',
+          createdAt: DateTime(2026, 5, 10),
+          updatedAt: DateTime(2026, 5, 20),
+        ),
+        MemoModel(
+          id: '2',
+          title: 'Banana',
+          content: 'Yellow banana juice.',
+          createdAt: DateTime(2026, 5, 15),
+          updatedAt: DateTime(2026, 5, 18),
+        ),
+        MemoModel(
+          id: '3',
+          title: 'Orange juice',
+          content: 'Sweet orange.',
+          createdAt: DateTime(2026, 5, 5),
+          updatedAt: DateTime(2026, 5, 25),
+        ),
+      ];
+
+      setUp(() {
+        when(
+          () => mockMemoRepository.getAllMemos(),
+        ).thenAnswer((_) async => mockMemos);
+      });
+
+      test('検索キーワードによる絞り込みができること', () async {
+        final querySub = container.listen(memoSearchQueryProvider, (_, _) {});
+        final memoSub = container.listen(memoProvider, (_, _) {});
+
+        var memos = await container.read(memoProvider.future);
+        expect(memos.length, 3);
+
+        container.read(memoSearchQueryProvider.notifier).setQuery(' BANANA ');
+        memos = await container.read(memoProvider.future);
+        expect(memos.length, 1);
+        expect(memos.first.id, '2');
+
+        container.read(memoSearchQueryProvider.notifier).setQuery('juice');
+        memos = await container.read(memoProvider.future);
+        expect(memos.length, 2);
+        expect(memos.any((m) => m.id == '2'), isTrue);
+        expect(memos.any((m) => m.id == '3'), isTrue);
+
+        querySub.close();
+        memoSub.close();
+      });
+
+      test('ソート順を指定して並び替えができること', () async {
+        final sortSub = container.listen(
+          memoSortOrderStateProvider,
+          (_, _) {},
+        );
+        final memoSub = container.listen(memoProvider, (_, _) {});
+
+        container
+            .read(memoSortOrderStateProvider.notifier)
+            .setSortOrder(MemoSortOrder.createdAtAsc);
+        var memos = await container.read(memoProvider.future);
+        expect(memos.map((m) => m.id).toList(), ['3', '1', '2']);
+
+        container
+            .read(memoSortOrderStateProvider.notifier)
+            .setSortOrder(MemoSortOrder.updatedAtDesc);
+        memos = await container.read(memoProvider.future);
+        expect(memos.map((m) => m.id).toList(), ['3', '1', '2']);
+
+        container
+            .read(memoSortOrderStateProvider.notifier)
+            .setSortOrder(MemoSortOrder.updatedAtAsc);
+        memos = await container.read(memoProvider.future);
+        expect(memos.map((m) => m.id).toList(), ['2', '1', '3']);
+
+        container
+            .read(memoSortOrderStateProvider.notifier)
+            .setSortOrder(MemoSortOrder.titleAsc);
+        memos = await container.read(memoProvider.future);
+        expect(memos.map((m) => m.id).toList(), ['1', '2', '3']);
+
+        container
+            .read(memoSortOrderStateProvider.notifier)
+            .setSortOrder(MemoSortOrder.titleDesc);
+        memos = await container.read(memoProvider.future);
+        expect(memos.map((m) => m.id).toList(), ['3', '2', '1']);
+
+        sortSub.close();
+        memoSub.close();
+      });
     });
   });
 }

@@ -271,6 +271,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memoDeleteConfirm => 'Are you sure you want to delete this memo?';
 
   @override
+  String get memoSearchHint => 'Search memos...';
+
+  @override
+  String get memoSortCreatedAtDesc => 'Created: Newest';
+
+  @override
+  String get memoSortCreatedAtAsc => 'Created: Oldest';
+
+  @override
+  String get memoSortUpdatedAtDesc => 'Updated: Newest';
+
+  @override
+  String get memoSortUpdatedAtAsc => 'Updated: Oldest';
+
+  @override
+  String get memoSortTitleAsc => 'Title: A-Z';
+
+  @override
+  String get memoSortTitleDesc => 'Title: Z-A';
+
+  @override
   String get chartLine => 'Line Chart';
 
   @override

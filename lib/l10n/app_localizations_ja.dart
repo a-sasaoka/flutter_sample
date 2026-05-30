@@ -260,6 +260,27 @@ class AppLocalizationsJa extends AppLocalizations {
   String get memoDeleteConfirm => 'このメモを削除しますか？';
 
   @override
+  String get memoSearchHint => 'メモを検索...';
+
+  @override
+  String get memoSortCreatedAtDesc => '作成日時：新しい順';
+
+  @override
+  String get memoSortCreatedAtAsc => '作成日時：古い順';
+
+  @override
+  String get memoSortUpdatedAtDesc => '更新日時：新しい順';
+
+  @override
+  String get memoSortUpdatedAtAsc => '更新日時：古い順';
+
+  @override
+  String get memoSortTitleAsc => 'タイトル：昇順';
+
+  @override
+  String get memoSortTitleDesc => 'タイトル：降順';
+
+  @override
   String get chartLine => '折れ線グラフ';
 
   @override

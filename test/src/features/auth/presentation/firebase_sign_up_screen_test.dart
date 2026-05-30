@@ -189,5 +189,23 @@ void main() {
       verifyNever(() => mockAuthRepo.sendEmailVerification());
       expect(find.textContaining('Navigated to'), findsNothing);
     });
+
+    testWidgets('画面外タップでキーボードが閉じること', (tester) async {
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      final textFields = find.byType(TextField);
+      await tester.tap(textFields.first);
+      await tester.pumpAndSettle();
+
+      final BuildContext context = tester.element(textFields.first);
+      expect(FocusScope.of(context).hasFocus, isTrue);
+
+      // AppBarなど画面外をタップ
+      await tester.tap(find.byType(AppBar));
+      await tester.pumpAndSettle();
+
+      expect(FocusScope.of(context).hasFocus, isFalse);
+    });
   });
 }
