@@ -11,8 +11,11 @@ void main() {
       // デバイスピクセル比を1にして、ピクセル計算を単純にします
       tester.view.devicePixelRatio = 1.0;
 
-      // テスト終了時に画面サイズを元に戻すようにします
-      addTearDown(tester.view.resetPhysicalSize);
+      // テスト終了時に画面サイズとデバイスピクセル比を元に戻すようにします
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
       // 2. 仮想の画面に MemoListShimmer を表示します
       await tester.pumpWidget(

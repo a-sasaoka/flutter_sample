@@ -14,8 +14,10 @@ class MemoListShimmer extends StatelessWidget {
         final screenHeight = constraints.maxHeight;
         // カード1枚の想定の高さ（余白を含めて約100ピクセル）
         const cardHeight = 100.0;
-        // 画面に収まる枚数を計算（最低1枚、最大10枚）
-        final itemCount = (screenHeight / cardHeight).ceil().clamp(1, 10);
+        // 画面に収まる枚数を計算（無限大の場合はデフォルト値、最低1枚、最大10枚）
+        final itemCount = screenHeight.isInfinite
+            ? 6
+            : (screenHeight / cardHeight).ceil().clamp(1, 10);
 
         return ListView.builder(
           // スケルトン表示中はユーザーがスクロールできないようにします
@@ -36,11 +38,10 @@ class MemoCardShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ダークモード（暗い画面設定）かどうかを判定します
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    // ダークモードとライトモードで、キラキラさせるグレーの色を切り替えます
-    final baseColor = isDark ? Colors.grey[800]! : Colors.grey[300]!;
-    final highlightColor = isDark ? Colors.grey[700]! : Colors.grey[100]!;
+    // アプリのテーマ設定から色を取得します
+    final colorScheme = Theme.of(context).colorScheme;
+    final baseColor = colorScheme.surfaceContainerHighest;
+    final highlightColor = colorScheme.surface;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
