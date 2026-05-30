@@ -29,6 +29,7 @@ chat/
  ├── application/
  │    └── chat_notifier.dart        # UI状態の管理とストリーミング処理 (Notifier)
  └── presentation/
+      ├── chat_bubble_shimmer.dart  # チャットの返答待ち骨組み（Shimmer）表示
       └── chat_screen.dart          # チャット画面のUI
 ```
 

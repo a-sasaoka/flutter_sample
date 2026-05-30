@@ -10,6 +10,7 @@ import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
+import 'package:flutter_sample/src/features/chat/presentation/chat_bubble_shimmer.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -161,6 +162,18 @@ void main() {
       expect(find.text('Hello'), findsOneWidget);
       expect(find.text('Hi there!'), findsOneWidget);
       expect(find.text('10:30'), findsNWidgets(2));
+    });
+
+    testWidgets('メッセージ描画: ローディングメッセージが正しく表示されること', (tester) async {
+      final state = ChatState(
+        messages: [
+          ChatMessage.loading(id: 'loading', createdAt: DateTime.now()),
+        ],
+      );
+      final notifier = FakeChatNotifier(state);
+
+      await setupWidget(tester, notifier: notifier);
+      expect(find.byType(ChatBubbleShimmer), findsOneWidget);
     });
 
     testWidgets(

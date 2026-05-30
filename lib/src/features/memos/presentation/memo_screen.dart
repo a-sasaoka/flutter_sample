@@ -3,6 +3,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
+import 'package:flutter_sample/src/features/memos/presentation/memo_list_shimmer.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// メモ画面
@@ -181,7 +182,7 @@ class _MemoListView extends ConsumerWidget {
           ],
         ),
       ),
-      _ => const Center(child: CircularProgressIndicator()),
+      _ => const MemoListShimmer(),
     };
   }
 }
