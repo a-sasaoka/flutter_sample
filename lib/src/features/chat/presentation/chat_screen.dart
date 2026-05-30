@@ -9,6 +9,7 @@ import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
+import 'package:flutter_sample/src/features/chat/presentation/chat_bubble_shimmer.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// チャット画面
@@ -144,13 +145,7 @@ class _ChatBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     // Dart3のパターンマッチングでUIを出し分ける
     return switch (message) {
-      ChatMessageLoading() => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 8),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: CircularProgressIndicator(),
-        ),
-      ),
+      ChatMessageLoading() => const ChatBubbleShimmer(),
       ChatMessageUser(:final text, :final createdAt) => _BubbleLayout(
         text: text,
         isUser: true,

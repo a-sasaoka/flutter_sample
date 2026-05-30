@@ -22,6 +22,7 @@ memos/
  ├── application/
  │    └── memo_notifier.dart       # 一覧の状態管理と操作 (Notifier)
  └── presentation/
+      ├── memo_list_shimmer.dart    # メモ一覧の読み込み中骨組み（Shimmer）表示
       └── memo_screen.dart          # メモ一覧画面と追加ボトムシート
 ```
 

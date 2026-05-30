@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
+import 'package:flutter_sample/src/features/memos/presentation/memo_list_shimmer.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -86,7 +87,7 @@ void main() {
 
       await setupWidget(tester);
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(MemoListShimmer), findsOneWidget);
     });
 
     testWidgets('エラー状態が正しく表示されること', (tester) async {
