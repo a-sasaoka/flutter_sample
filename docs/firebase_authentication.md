@@ -22,7 +22,7 @@ lib/src/features/auth/
  ├── data/
  │    └── firebase_auth_repository.dart       # Firebase APIの呼び出し（ログイン・登録）
  └── application/
-      └── firebase_auth_state_notifier.dart   # 現在のユーザー(User?)の状態管理
+      └── firebase_auth_state_notifier.dart   # 現在のユーザー(AsyncValue<User?>)の状態管理
 ```
 
 ---
