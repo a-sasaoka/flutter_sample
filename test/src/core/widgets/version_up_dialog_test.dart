@@ -1,4 +1,6 @@
+import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/widgets/version_up_dialog.dart';
@@ -58,24 +60,24 @@ void main() {
       await tester.tap(find.byType(ElevatedButton));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsOneWidget);
-      expect(find.text('A new version is available.'), findsOneWidget);
-      expect(find.widgetWithText(TextButton, 'Later'), findsOneWidget);
-      expect(find.widgetWithText(TextButton, 'Update'), findsOneWidget);
+      check(find.byType(AlertDialog)).findsOne();
+      check(find.text('A new version is available.')).findsOne();
+      check(find.widgetWithText(TextButton, 'Later')).findsOne();
+      check(find.widgetWithText(TextButton, 'Update')).findsOne();
 
       // アップデートボタン
       await tester.tap(find.widgetWithText(TextButton, 'Update'));
       await tester.pumpAndSettle();
-      expect(onUpdateCalled, isTrue);
-      expect(find.byType(AlertDialog), findsNothing);
+      check(onUpdateCalled).equals(true);
+      check(find.byType(AlertDialog)).findsNothing();
 
       // 再表示してキャンセルボタン
       await tester.tap(find.byType(ElevatedButton));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(TextButton, 'Later'));
       await tester.pumpAndSettle();
-      expect(onCancelCalled, isTrue);
-      expect(find.byType(AlertDialog), findsNothing);
+      check(onCancelCalled).equals(true);
+      check(find.byType(AlertDialog)).findsNothing();
     });
 
     testWidgets('強制アップデートダイアログが表示され、キャンセル不可であること', (tester) async {
@@ -96,20 +98,20 @@ void main() {
       await tester.tap(find.byType(ElevatedButton));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsOneWidget);
-      expect(find.text('A new version is required.'), findsOneWidget);
-      expect(find.widgetWithText(TextButton, 'Later'), findsNothing);
+      check(find.byType(AlertDialog)).findsOne();
+      check(find.text('A new version is required.')).findsOne();
+      check(find.widgetWithText(TextButton, 'Later')).findsNothing();
 
       // ダイアログ外タップで閉じないこと
       await tester.tapAt(Offset.zero);
       await tester.pumpAndSettle();
-      expect(find.byType(AlertDialog), findsOneWidget);
+      check(find.byType(AlertDialog)).findsOne();
 
       // アップデート
       await tester.tap(find.widgetWithText(TextButton, 'Update'));
       await tester.pumpAndSettle();
-      expect(onUpdateCalled, isTrue);
-      expect(find.byType(AlertDialog), findsNothing);
+      check(onUpdateCalled).equals(true);
+      check(find.byType(AlertDialog)).findsNothing();
     });
 
     testWidgets('キャンセル可能な場合にダイアログ外をタップするとキャンセル扱いになること', (tester) async {
@@ -133,8 +135,8 @@ void main() {
       await tester.tapAt(Offset.zero);
       await tester.pumpAndSettle();
 
-      expect(onCancelCalled, isTrue);
-      expect(find.byType(AlertDialog), findsNothing);
+      check(onCancelCalled).equals(true);
+      check(find.byType(AlertDialog)).findsNothing();
     });
   });
 }

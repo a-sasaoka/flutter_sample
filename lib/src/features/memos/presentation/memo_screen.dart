@@ -10,7 +10,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 /// メモ画面
 class MemoScreen extends ConsumerWidget {
   /// コンストラクタ
-  const MemoScreen({super.key}); // coverage:ignore-line
+  const MemoScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

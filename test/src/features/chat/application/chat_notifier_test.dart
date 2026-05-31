@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
@@ -91,7 +92,7 @@ void main() {
 
       final state = container.read(chatProvider);
 
-      expect(state.messages, isEmpty);
+      check(state.messages).isEmpty();
     });
 
     group('sendMessage (単発送信)', () {
@@ -102,8 +103,8 @@ void main() {
 
         await notifier.sendMessage('   '); // スペースのみ
 
-        expect(container.read(chatProvider).messages, isEmpty);
-        expect(fakeRepo.sendMessageCallCount, 0); // 呼ばれていないこと
+        check(container.read(chatProvider).messages).isEmpty();
+        check(fakeRepo.sendMessageCallCount).equals(0); // 呼ばれていないこと
       });
 
       test('正常系: ユーザーのメッセージとAIの返答がstateに追加されること', () async {
@@ -115,12 +116,12 @@ void main() {
 
         final state = container.read(chatProvider);
 
-        expect(state.messages.length, 2);
-        expect(state.messages.first, isA<ChatMessageUser>());
-        expect(state.messages.first.toString(), contains('こんにちは'));
+        check(state.messages.length).equals(2);
+        check(state.messages.first).isA<ChatMessageUser>();
+        check(state.messages.first.toString()).contains('こんにちは');
 
-        expect(state.messages.last, isA<ChatMessageAi>());
-        expect(state.messages.last.toString(), contains('単発のAI返答'));
+        check(state.messages.last).isA<ChatMessageAi>();
+        check(state.messages.last.toString()).contains('単発のAI返答');
       });
 
       test('排他制御: 生成中に連続で送信しても、2回目以降は無視されること', () async {
@@ -140,9 +141,9 @@ void main() {
         final state = container.read(chatProvider);
 
         // 結果検証: リポジトリは1回しか呼ばれておらず、リストも2つ（1回目の質問と答え）のみ
-        expect(fakeRepo.sendMessageCallCount, 1);
-        expect(state.messages.length, 2);
-        expect(state.messages.first.toString(), contains('1回目'));
+        check(fakeRepo.sendMessageCallCount).equals(1);
+        check(state.messages.length).equals(2);
+        check(state.messages.first.toString()).contains('1回目');
       });
 
       test('異常系: 例外が発生した場合、対象の要素がエラーメッセージに差し替わること', () async {
@@ -154,8 +155,8 @@ void main() {
 
         final state = container.read(chatProvider);
 
-        expect(state.messages.length, 2);
-        expect(state.messages.last, isA<ChatMessageError>());
+        check(state.messages.length).equals(2);
+        check(state.messages.last).isA<ChatMessageError>();
       });
     });
 
@@ -167,8 +168,8 @@ void main() {
 
         await notifier.sendMessageStream('   ');
 
-        expect(container.read(chatProvider).messages, isEmpty);
-        expect(fakeRepo.sendMessageStreamCallCount, 0);
+        check(container.read(chatProvider).messages).isEmpty();
+        check(fakeRepo.sendMessageStreamCallCount).equals(0);
       });
 
       test('正常系: システム日時が付与され、Streamから届くチャンクが結合されていくこと', () async {
@@ -183,13 +184,12 @@ void main() {
         final state = container.read(chatProvider);
 
         // 1. 結合されたメッセージの検証
-        expect(state.messages.length, 2);
-        expect(state.messages.last, isA<ChatMessageAi>());
-        expect(state.messages.last.toString(), contains('AIからの返答です'));
+        check(state.messages.length).equals(2);
+        check(state.messages.last).isA<ChatMessageAi>();
+        check(state.messages.last.toString()).contains('AIからの返答です');
 
         // 2. 日付コンテキスト（システム情報）が正しく Repository に渡されたかの検証
-        expect(
-          fakeRepo.lastStreamText,
+        check(fakeRepo.lastStreamText).equals(
           '[System Information: Current Time is 2026-03-21 10:00]\nストリームテスト',
         );
       });
@@ -202,10 +202,9 @@ void main() {
         // 1回目を await せずに実行
         final future1 = notifier.sendMessageStream('1回目のStream');
 
-        expect(
+        check(
           container.read(chatProvider).isGenerating,
-          isTrue,
-        ); // 生成中になっていること
+        ).equals(true); // 生成中になっていること
 
         // 瞬時に2回目を実行（ブロックされるはず）
         final future2 = notifier.sendMessageStream('2回目のStream');
@@ -215,9 +214,9 @@ void main() {
 
         final state = container.read(chatProvider);
 
-        expect(state.isGenerating, isFalse); // 生成が終わっていること
-        expect(fakeRepo.sendMessageStreamCallCount, 1);
-        expect(state.messages.length, 2);
+        check(state.isGenerating).equals(false); // 生成が終わっていること
+        check(fakeRepo.sendMessageStreamCallCount).equals(1);
+        check(state.messages.length).equals(2);
       });
 
       test(
@@ -231,12 +230,11 @@ void main() {
 
           final state = container.read(chatProvider);
 
-          expect(state.messages.length, 2);
-          expect(state.messages.last, isA<ChatMessageError>());
-          expect(
+          check(state.messages.length).equals(2);
+          check(state.messages.last).isA<ChatMessageError>();
+          check(
             state.messages.last.toString(),
-            contains('ChatEmptyResponseException'),
-          );
+          ).contains('ChatEmptyResponseException');
         },
       );
 
@@ -249,8 +247,8 @@ void main() {
 
         final state = container.read(chatProvider);
 
-        expect(state.messages.length, 2);
-        expect(state.messages.last, isA<ChatMessageError>());
+        check(state.messages.length).equals(2);
+        check(state.messages.last).isA<ChatMessageError>();
       });
     });
 
@@ -261,14 +259,14 @@ void main() {
 
       // まずメッセージを1つ追加
       await notifier.sendMessage('テスト');
-      expect(container.read(chatProvider).messages, isNotEmpty);
+      check(container.read(chatProvider).messages).isNotEmpty();
 
       // クリア実行
       notifier.clearHistory();
 
       final state = container.read(chatProvider);
-      expect(state.messages, isEmpty);
-      expect(state.isGenerating, isFalse);
+      check(state.messages).isEmpty();
+      check(state.isGenerating).equals(false);
     });
   });
 }

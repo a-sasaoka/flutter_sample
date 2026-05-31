@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:checks/checks.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
@@ -37,7 +38,7 @@ void main() {
         final state = container.read(firebaseAuthStateProvider);
 
         // Assert
-        expect(state, mockUser);
+        check(state).equals(mockUser);
       },
     );
 
@@ -61,7 +62,7 @@ void main() {
         final state = container.read(firebaseAuthStateProvider);
 
         // Assert
-        expect(state, isNull);
+        check(state).isNull();
       },
     );
 
@@ -88,7 +89,7 @@ void main() {
         final state = container.read(firebaseAuthStateProvider);
 
         // Assert
-        expect(state, isNull);
+        check(state).isNull();
 
         // 💡 修正2: Riverpodのエラー（Bad state）を回避するため、
         // テスト終了直前にダミーの値を流して「ロード状態」を平和に終わらせる

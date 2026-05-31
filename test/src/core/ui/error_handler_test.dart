@@ -1,6 +1,8 @@
+import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/exceptions/firebase_auth_error_codes.dart';
@@ -96,7 +98,7 @@ void main() {
           );
         },
       );
-      expect(result, 'UNIQUE_CUSTOM_MSG');
+      check(result).equals('UNIQUE_CUSTOM_MSG');
     });
 
     testWidgets('2. AppException (Network/Server/Timeout/Unknown) の分岐が正しいこと', (
@@ -106,52 +108,42 @@ void main() {
         tester,
         onBuild: (context) {
           // それぞれの Enum (型) に応じて正しい多言語化キーが返るか検証
-          expect(
+          check(
             ErrorHandler.message(context, const AppException.network()),
-            'errorNetwork',
-          );
-          expect(
+          ).equals('errorNetwork');
+          check(
             ErrorHandler.message(
               context,
               const AppException.server(statusCode: 500),
             ),
-            'errorServer (500)',
-          );
-          expect(
+          ).equals('errorServer (500)');
+          check(
             ErrorHandler.message(context, const AppException.unauthenticated()),
-            'errorUnauthenticated',
-          );
-          expect(
+          ).equals('errorUnauthenticated');
+          check(
             ErrorHandler.message(context, const AppException.unauthorized()),
-            'errorUnauthorized',
-          );
-          expect(
+          ).equals('errorUnauthorized');
+          check(
             ErrorHandler.message(context, const AppException.dataParse()),
-            'errorDataParse',
-          );
-          expect(
+          ).equals('errorDataParse');
+          check(
             ErrorHandler.message(context, const AppException.database()),
-            'errorDatabase',
-          );
-          expect(
+          ).equals('errorDatabase');
+          check(
             ErrorHandler.message(
               context,
               const AppException.badRequest(statusCode: 400),
             ),
-            'errorBadRequest (400)',
-          );
-          expect(
+          ).equals('errorBadRequest (400)');
+          check(
             ErrorHandler.message(context, const AppException.timeout()),
-            'errorTimeout',
-          );
-          expect(
+          ).equals('errorTimeout');
+          check(
             ErrorHandler.message(context, const AppException.cancel()),
-            'errorUnknown',
-          );
-          expect(
+          ).equals('errorUnknown');
+          check(
             ErrorHandler.message(context, const AppException.unknown()),
-            'errorUnknown',
-          );
+          ).equals('errorUnknown');
         },
       );
     });
@@ -160,13 +152,12 @@ void main() {
       await setupWidget(
         tester,
         onBuild: (context) {
-          expect(
+          check(
             ErrorHandler.message(
               context,
               const AppException.network(message: 'CUSTOM_NETWORK'),
             ),
-            'CUSTOM_NETWORK',
-          );
+          ).equals('CUSTOM_NETWORK');
         },
       );
     });
@@ -187,60 +178,54 @@ void main() {
         },
       );
       // TimeoutException として処理されていることを確認
-      expect(result, 'errorTimeout');
+      check(result).equals('errorTimeout');
     });
 
     testWidgets('4. FirebaseAuthException の各エラーコードが正しく変換されること', (tester) async {
       await setupWidget(
         tester,
         onBuild: (context) {
-          expect(
+          check(
             ErrorHandler.message(
               context,
               FirebaseAuthException(code: FirebaseAuthErrorCodes.invalidEmail),
             ),
-            'errorInvalidEmail',
-          );
-          expect(
+          ).equals('errorInvalidEmail');
+          check(
             ErrorHandler.message(
               context,
               FirebaseAuthException(code: FirebaseAuthErrorCodes.userDisabled),
             ),
-            'errorUserDisabled',
-          );
-          expect(
+          ).equals('errorUserDisabled');
+          check(
             ErrorHandler.message(
               context,
               FirebaseAuthException(code: FirebaseAuthErrorCodes.wrongPassword),
             ),
-            'errorLoginFailed',
-          );
-          expect(
+          ).equals('errorLoginFailed');
+          check(
             ErrorHandler.message(
               context,
               FirebaseAuthException(
                 code: FirebaseAuthErrorCodes.emailAlreadyInUse,
               ),
             ),
-            'errorEmailAlreadyInUse',
-          );
-          expect(
+          ).equals('errorEmailAlreadyInUse');
+          check(
             ErrorHandler.message(
               context,
               FirebaseAuthException(code: FirebaseAuthErrorCodes.weakPassword),
             ),
-            'errorWeakPassword',
-          );
+          ).equals('errorWeakPassword');
           // 未定義のコードは errorUnknown にフォールバックすること
-          expect(
+          check(
             ErrorHandler.message(
               context,
               FirebaseAuthException(
                 code: 'some-unknown-code',
               ),
             ),
-            'errorUnknown',
-          );
+          ).equals('errorUnknown');
         },
       );
     });
@@ -255,7 +240,7 @@ void main() {
           result = ErrorHandler.message(context, Exception('General Error'));
         },
       );
-      expect(result, 'errorUnknown');
+      check(result).equals('errorUnknown');
     });
   });
 
@@ -277,7 +262,7 @@ void main() {
       await tester.tap(find.text('Show'));
       await tester.pump();
 
-      expect(find.byType(SnackBar), findsOneWidget);
+      check(find.byType(SnackBar)).findsOne();
     });
 
     testWidgets('showDialogError が正常に表示され、OKで閉じられること', (tester) async {
@@ -297,12 +282,12 @@ void main() {
       await tester.tap(find.text('Show'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsOneWidget);
+      check(find.byType(AlertDialog)).findsOne();
 
       await tester.tap(find.text('ok'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsNothing);
+      check(find.byType(AlertDialog)).findsNothing();
     });
   });
 }

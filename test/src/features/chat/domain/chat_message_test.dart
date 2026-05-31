@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -14,13 +15,13 @@ void main() {
       );
 
       // 1. プロパティの保持確認
-      expect(message.id, 'user_1');
-      expect(message.createdAt, dummyTime);
+      check(message.id).equals('user_1');
+      check(message.createdAt).equals(dummyTime);
 
       // 2. カスタムゲッターの検証
-      expect(message.isUser, isTrue);
-      expect(message.isAi, isFalse);
-      expect(message.displayText, 'こんにちは');
+      check(message.isUser).equals(true);
+      check(message.isAi).equals(false);
+      check(message.displayText).equals('こんにちは');
     });
 
     test('ai: プロパティとカスタムゲッターが正しく機能すること', () {
@@ -30,12 +31,12 @@ void main() {
         createdAt: dummyTime,
       );
 
-      expect(message.id, 'ai_1');
-      expect(message.createdAt, dummyTime);
+      check(message.id).equals('ai_1');
+      check(message.createdAt).equals(dummyTime);
 
-      expect(message.isUser, isFalse);
-      expect(message.isAi, isTrue);
-      expect(message.displayText, 'AIの返答です');
+      check(message.isUser).equals(false);
+      check(message.isAi).equals(true);
+      check(message.displayText).equals('AIの返答です');
     });
 
     test('loading: プロパティとカスタムゲッターが正しく機能すること', () {
@@ -44,13 +45,13 @@ void main() {
         createdAt: dummyTime,
       );
 
-      expect(message.id, 'loading_1');
-      expect(message.createdAt, dummyTime);
+      check(message.id).equals('loading_1');
+      check(message.createdAt).equals(dummyTime);
 
       // loading はどちらでもなく、表示すべきテキストもない
-      expect(message.isUser, isFalse);
-      expect(message.isAi, isFalse);
-      expect(message.displayText, isNull);
+      check(message.isUser).equals(false);
+      check(message.isAi).equals(false);
+      check(message.displayText).isNull();
     });
 
     test('error: プロパティとカスタムゲッターが正しく機能すること', () {
@@ -61,15 +62,15 @@ void main() {
         createdAt: dummyTime,
       );
 
-      expect(message.id, 'error_1');
-      expect(message.createdAt, dummyTime);
+      check(message.id).equals('error_1');
+      check(message.createdAt).equals(dummyTime);
 
       // error プロパティに正しくアクセスできるか（キャストして検証）
-      expect((message as ChatMessageError).error, exception);
+      check((message as ChatMessageError).error).equals(exception);
 
-      expect(message.isUser, isFalse);
-      expect(message.isAi, isFalse);
-      expect(message.displayText, isNull);
+      check(message.isUser).equals(false);
+      check(message.isAi).equals(false);
+      check(message.displayText).isNull();
     });
 
     test('同値性(Equatable): 同じ値を持つインスタンスは等価と判定されること', () {
@@ -90,8 +91,8 @@ void main() {
         createdAt: dummyTime,
       );
 
-      expect(message1, equals(message2));
-      expect(message1, isNot(equals(message3)));
+      check(message1).equals(message2);
+      check(message1).not((it) => it.equals(message3));
     });
   });
 }

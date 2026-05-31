@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/features/user/application/user_notifier.dart';
 import 'package:flutter_sample/src/features/user/data/user_repository.dart';
 import 'package:flutter_sample/src/features/user/domain/user_model.dart';
@@ -69,12 +70,9 @@ void main() {
 
       // Assert
       final state = container.read(userProvider);
-      expect(
-        state,
-        isA<AsyncData<(List<UserModel>, DateTime?)>>(),
-      );
-      expect(state.value?.$1, dummyUsers);
-      expect(state.value?.$2, dummyTimestamp);
+      check(state).isA<AsyncData<(List<UserModel>, DateTime?)>>();
+      check(state.value?.$1).equals(dummyUsers);
+      check(state.value?.$2).equals(dummyTimestamp);
     });
 
     test('異常系: エラーが発生した場合、エラー状態を保持すること', () async {
@@ -99,8 +97,8 @@ void main() {
 
       // Assert
       final state = container.read(userProvider);
-      expect(state.hasError, isTrue);
-      expect(state.error, exception);
+      check(state.hasError).equals(true);
+      check(state.error).equals(exception);
     });
 
     test('refresh: forceRefresh=true でデータが再取得され、状態が更新されること', () async {
@@ -131,12 +129,9 @@ void main() {
 
       // Assert
       final state = container.read(userProvider);
-      expect(
-        state,
-        isA<AsyncData<(List<UserModel>, DateTime?)>>(),
-      );
-      expect(state.value?.$1, refreshedUsers);
-      expect(state.value?.$2, refreshedTimestamp);
+      check(state).isA<AsyncData<(List<UserModel>, DateTime?)>>();
+      check(state.value?.$1).equals(refreshedUsers);
+      check(state.value?.$2).equals(refreshedTimestamp);
     });
   });
 }

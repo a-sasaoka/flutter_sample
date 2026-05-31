@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_sample/src/core/config/firebase_options.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
@@ -15,11 +16,7 @@ void main() {
         final options = firebaseOptionsWithFlavor(flavor);
 
         // ちゃんと FirebaseOptions のインスタンスが返ってきているか（nullやエラーにならないか）を確認
-        expect(
-          options,
-          isA<FirebaseOptions>(),
-          reason: '${flavor.name} 環境の FirebaseOptions が正しく取得できませんでした',
-        );
+        check(options).isA<FirebaseOptions>();
       }
     });
   });

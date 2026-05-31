@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
@@ -74,19 +75,19 @@ void main() {
           ),
         ).captured;
 
-        expect(captured[0], 'login_success');
+        check(captured[0]).equals('login_success');
 
         final params = captured[1] as Map<String, Object>;
 
         // ① 正常な値が渡されているか
-        expect(params['user_id'], 123);
-        expect(params['user_type'], 'premium');
+        check(params['user_id']).equals(123);
+        check(params['user_type']).equals('premium');
 
         // ② null の値が正しく除外されているか
-        expect(params.containsKey('null_value'), isFalse);
+        check(params.containsKey('null_value')).equals(false);
 
         // ③ 【進化ポイント】timestamp がモックで固定した日時と「完全に一致」しているか！
-        expect(params['timestamp'], mockDateTime.millisecondsSinceEpoch);
+        check(params['timestamp']).equals(mockDateTime.millisecondsSinceEpoch);
       },
     );
 
@@ -103,10 +104,9 @@ void main() {
 
       // Act & Assert
       // 例外が内部で catch され、メソッドがエラーを外に漏らさず正常終了(completes)することを確認
-      await expectLater(
+      await check(
         service.logEvent(event: AnalyticsEvent.loginSuccess),
-        completes,
-      );
+      ).completes();
     });
 
     test('setUserId が正しいIDで呼び出されること', () async {
@@ -150,7 +150,7 @@ void main() {
       final service = container.read(analyticsServiceProvider);
 
       // Act & Assert
-      await expectLater(service.setUserId('user_123'), completes);
+      await check(service.setUserId('user_123')).completes();
       verify(
         () => mockTalker.warning(
           any<String>(that: contains('SetUserId Error')),
@@ -169,10 +169,9 @@ void main() {
       final service = container.read(analyticsServiceProvider);
 
       // Act & Assert
-      await expectLater(
+      await check(
         service.setUserProperty(name: 'plan', value: 'gold'),
-        completes,
-      );
+      ).completes();
       verify(
         () => mockTalker.warning(
           any<String>(that: contains('SetUserProperty Error')),
@@ -214,7 +213,7 @@ void main() {
       ).captured;
 
       final params = captured.first as Map<String, Object>;
-      expect(params['timestamp'], fixedDate.millisecondsSinceEpoch);
+      check(params['timestamp']).equals(fixedDate.millisecondsSinceEpoch);
     });
   });
 }

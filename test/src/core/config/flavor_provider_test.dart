@@ -1,3 +1,5 @@
+import 'package:checks/checks.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -10,12 +12,10 @@ void main() {
 
       // Assert: 上書きせずに read すると、Provider内部で UnimplementedError が発生し、
       // Riverpodの仕組みにより ProviderException としてラップされて投げられることを確認
-      expect(
-        () => container.read(flavorProvider),
-        throwsA(
-          predicate((e) => e.toString().contains('UnimplementedError')),
-        ),
-      );
+      check(() => container.read(flavorProvider))
+          .throws<ProviderException>()
+          .has((e) => e.exception, 'exception')
+          .isA<UnimplementedError>();
     });
 
     test('overrideWithValue で上書きすると、その Flavor を返すこと', () {
@@ -31,7 +31,7 @@ void main() {
       final flavor = container.read(flavorProvider);
 
       // Assert: 上書きした値が正しく取得できること
-      expect(flavor, equals(Flavor.stg));
+      check(flavor).equals(Flavor.stg);
     });
   });
 }

@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/app/router/firebase_auth_guard.dart';
@@ -57,7 +58,7 @@ void main() {
 
       final result = executeGuard(mockUser);
 
-      expect(result, const EmailVerificationRoute().location);
+      check(result).equals(const EmailVerificationRoute().location);
     });
 
     test('ログイン済みかつメール未認証だが、すでにメール認証画面にいる場合はリダイレクトしないこと', () {
@@ -70,7 +71,7 @@ void main() {
       );
 
       // AuthGuardHelper.redirect に判定が移る（この場合は null が期待される）
-      expect(result, isNull);
+      check(result).isNull();
     });
 
     test('ログイン済みかつメール認証済みの場合、AuthGuardHelper に判定が委譲されること', () {
@@ -84,7 +85,7 @@ void main() {
       );
 
       // AuthGuardHelper によりホームへリダイレクトされることを確認
-      expect(result, const HomeRoute().location);
+      check(result).equals(const HomeRoute().location);
     });
 
     test('未ログインの場合、AuthGuardHelper に判定が委譲されること', () {
@@ -92,8 +93,8 @@ void main() {
       final result = executeGuard(null);
 
       // AuthGuardHelper によりログイン画面へリダイレクトされることを確認（fromパラメータ付き）
-      expect(result, startsWith(const LoginRoute().location));
-      expect(result, contains('from=${Uri.encodeComponent('/')}'));
+      check(result).isNotNull().startsWith(const LoginRoute().location);
+      check(result).isNotNull().contains('from=${Uri.encodeComponent('/')}');
     });
 
     test('スプラッシュ未完了の場合、常に SplashRoute にリダイレクトすること', () {
@@ -102,7 +103,7 @@ void main() {
         mockUser,
         isSplashFinished: false,
       );
-      expect(result, const SplashRoute().location);
+      check(result).equals(const SplashRoute().location);
     });
 
     test('スプラッシュ完了後、スプラッシュ画面にいてログイン済みの場合、ホーム画面へリダイレクトすること', () {
@@ -111,7 +112,7 @@ void main() {
         mockUser,
         location: const SplashRoute().location,
       );
-      expect(result, const HomeRoute().location);
+      check(result).equals(const HomeRoute().location);
     });
 
     test('スプラッシュ完了後、スプラッシュ画面にいて未ログインの場合、ログイン画面へリダイレクトすること', () {
@@ -119,7 +120,7 @@ void main() {
         null,
         location: const SplashRoute().location,
       );
-      expect(result, const LoginRoute().location);
+      check(result).equals(const LoginRoute().location);
     });
   });
 }

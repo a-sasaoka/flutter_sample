@@ -101,7 +101,7 @@ await tester.pumpWidget(
 
 // 画面の描画を待って検証
 await tester.pumpAndSettle();
-expect(find.byType(Card), findsNWidgets(dummyUsers.length));
+check(find.byType(Card)).findsExactly(dummyUsers.length);
 ```
 
 このように、レイヤーを綺麗に分離することで、単体テストからウィジェットテストまで、カバレッジ100%を安全に達成できる構造になっています。

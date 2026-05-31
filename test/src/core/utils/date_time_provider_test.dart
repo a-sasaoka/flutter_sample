@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -13,10 +14,7 @@ void main() {
       final clockNow = clock();
 
       // 数ミリ秒の誤差は許容する
-      expect(
-        clockNow.difference(now).inMilliseconds.abs(),
-        lessThan(100),
-      );
+      check(clockNow.difference(now).inMilliseconds.abs()).isLessThan(100);
     });
 
     test('clockProvider を関数のモックで上書きできること', () {
@@ -30,7 +28,7 @@ void main() {
       addTearDown(container.dispose);
 
       final clock = container.read(clockProvider);
-      expect(clock(), mockDate);
+      check(clock()).equals(mockDate);
     });
   });
 }

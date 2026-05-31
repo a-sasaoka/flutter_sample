@@ -10,7 +10,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 /// パスワードのリセットメールを送信する画面
 class FirebaseResetPasswordScreen extends HookConsumerWidget {
   /// コンストラクタ
-  const FirebaseResetPasswordScreen({super.key}); // coverage:ignore-line
+  const FirebaseResetPasswordScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

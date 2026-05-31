@@ -1,4 +1,6 @@
+import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
@@ -62,20 +64,20 @@ void main() {
     testWidgets('unknownPathがなくても正しく描画される', (tester) async {
       await pumpWidget(tester);
 
-      expect(find.text('Page Not Found'), findsNWidgets(2));
-      expect(find.text('The page could not be found.'), findsOneWidget);
-      expect(find.text('Back to Home'), findsOneWidget);
-      expect(find.byIcon(Icons.search_off_outlined), findsOneWidget);
+      check(find.text('Page Not Found')).findsExactly(2);
+      check(find.text('The page could not be found.')).findsOne();
+      check(find.text('Back to Home')).findsOne();
+      check(find.byIcon(Icons.search_off_outlined)).findsOne();
     });
 
     testWidgets('unknownPathがあっても正しく描画される', (tester) async {
       const path = '/test_path';
       await pumpWidget(tester, unknownPath: path);
 
-      expect(find.text('Page Not Found'), findsNWidgets(2));
-      expect(find.text('The page could not be found.'), findsOneWidget);
-      expect(find.text('path: $path'), findsOneWidget);
-      expect(find.text('Back to Home'), findsOneWidget);
+      check(find.text('Page Not Found')).findsExactly(2);
+      check(find.text('The page could not be found.')).findsOne();
+      check(find.text('path: $path')).findsOne();
+      check(find.text('Back to Home')).findsOne();
     });
 
     testWidgets('ボタンをタップするとホーム画面に遷移する', (tester) async {

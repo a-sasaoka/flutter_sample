@@ -1,6 +1,9 @@
+// ignore_for_file: prefer_const_constructors, document_ignores
 import 'dart:async';
 
+import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
@@ -79,7 +82,7 @@ void main() {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          home: const MemoScreen(),
+          home: MemoScreen(),
         ),
       ),
     );
@@ -95,7 +98,7 @@ void main() {
 
       await setupWidget(tester);
 
-      expect(find.byType(MemoListShimmer), findsOneWidget);
+      check(find.byType(MemoListShimmer)).findsOne();
     });
 
     testWidgets('エラー状態が正しく表示されること', (tester) async {
@@ -106,7 +109,7 @@ void main() {
       await setupWidget(tester);
       await tester.pumpAndSettle();
 
-      expect(find.text('エラーが発生しました'), findsOneWidget);
+      check(find.text('エラーが発生しました')).findsOne();
     });
 
     testWidgets('データが空の場合、空の状態が表示されること', (tester) async {
@@ -115,8 +118,8 @@ void main() {
       await setupWidget(tester);
       await tester.pumpAndSettle();
 
-      expect(find.text('メモがありません'), findsOneWidget);
-      expect(find.byIcon(Icons.note_alt_outlined), findsOneWidget);
+      check(find.text('メモがありません')).findsOne();
+      check(find.byIcon(Icons.note_alt_outlined)).findsOne();
     });
 
     testWidgets('データが存在する場合、カードリストとして表示されること', (tester) async {
@@ -138,10 +141,10 @@ void main() {
       await setupWidget(tester);
       await tester.pumpAndSettle();
 
-      expect(find.text('タイトル1'), findsOneWidget);
-      expect(find.text('内容1'), findsOneWidget);
-      expect(find.text('同期済み'), findsOneWidget);
-      expect(find.byIcon(Icons.cloud_done), findsOneWidget);
+      check(find.text('タイトル1')).findsOne();
+      check(find.text('内容1')).findsOne();
+      check(find.text('同期済み')).findsOne();
+      check(find.byIcon(Icons.cloud_done)).findsOne();
     });
 
     testWidgets('FABを押すとボトムシートが開き、メモを追加できること', (tester) async {
@@ -158,7 +161,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // ボトムシートが表示されていることを確認（検索バー + タイトル + 内容の3つ）
-      expect(find.byType(TextField), findsNWidgets(3));
+      check(find.byType(TextField)).findsExactly(3);
 
       await tester.enterText(find.widgetWithText(TextField, 'タイトル'), '新タイトル');
       await tester.enterText(find.widgetWithText(TextField, '内容'), '新内容');
@@ -169,7 +172,7 @@ void main() {
 
       verify(() => mockMemoRepository.addMemo('新タイトル', '新内容')).called(1);
       // ボトムシートが閉じていることを確認（検索バーだけが残っている）
-      expect(find.byType(TextField), findsOneWidget);
+      check(find.byType(TextField)).findsOne();
     });
 
     testWidgets('削除ボタンを押すとダイアログが表示され、キャンセルすると何も起きないこと', (tester) async {
@@ -191,13 +194,13 @@ void main() {
       await tester.tap(find.byIcon(Icons.delete_outline));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsOneWidget);
+      check(find.byType(AlertDialog)).findsOne();
 
       // 「閉じる」ボタンをタップしてキャンセル
       await tester.tap(find.widgetWithText(TextButton, '閉じる'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsNothing);
+      check(find.byType(AlertDialog)).findsNothing();
       verifyNever(() => mockMemoRepository.deleteMemo(any()));
     });
 
@@ -222,7 +225,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.delete_outline));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsOneWidget);
+      check(find.byType(AlertDialog)).findsOne();
 
       // 「削除」ボタンをタップ
       await tester.tap(find.widgetWithText(TextButton, '削除'));
@@ -290,24 +293,24 @@ void main() {
       await tester.pumpAndSettle();
 
       // 初期状態では両方表示されている
-      expect(find.text('りんごのメモ'), findsOneWidget);
-      expect(find.text('バナナのメモ'), findsOneWidget);
+      check(find.text('りんごのメモ')).findsOne();
+      check(find.text('バナナのメモ')).findsOne();
 
       // 検索バーに「りんご」を入力
       await tester.enterText(find.byType(TextField).first, 'りんご');
       await tester.pumpAndSettle();
 
       // 「りんご」のみ表示され、「バナナ」は非表示になる
-      expect(find.text('りんごのメモ'), findsOneWidget);
-      expect(find.text('バナナのメモ'), findsNothing);
+      check(find.text('りんごのメモ')).findsOne();
+      check(find.text('バナナのメモ')).findsNothing();
 
       // クリアボタンをタップして検索をリセット
       await tester.tap(find.byIcon(Icons.clear));
       await tester.pumpAndSettle();
 
       // 再び両方表示される
-      expect(find.text('りんごのメモ'), findsOneWidget);
-      expect(find.text('バナナのメモ'), findsOneWidget);
+      check(find.text('りんごのメモ')).findsOne();
+      check(find.text('バナナのメモ')).findsOne();
     });
 
     testWidgets('ソート順を切り替えた際、指定したルールに従ってリストが並び替わること', (tester) async {
@@ -339,7 +342,7 @@ void main() {
       // デフォルトは「作成日時：新しい順」(A_Memoの方がt2で新しいので上に来るはず)
       var posA = tester.getTopLeft(find.text('A_Memo')).dy;
       var posB = tester.getTopLeft(find.text('B_Memo')).dy;
-      expect(posA < posB, isTrue); // A_Memo の方が Y 座標が小さく、上にある
+      check(posA < posB).equals(true); // A_Memo の方が Y 座標が小さく、上にある
 
       // ソートボタン（PopupMenuButton）をタップ
       await tester.tap(find.byIcon(Icons.sort));
@@ -352,7 +355,7 @@ void main() {
       // B_Memo (t1) の方が古いので上に来るはず
       posA = tester.getTopLeft(find.text('A_Memo')).dy;
       posB = tester.getTopLeft(find.text('B_Memo')).dy;
-      expect(posB < posA, isTrue); // B_Memo の方が上にある
+      check(posB < posA).equals(true); // B_Memo の方が上にある
     });
 
     testWidgets('画面外タップでキーボードが閉じること(一覧画面および追加ボトムシート)', (tester) async {
@@ -366,12 +369,12 @@ void main() {
       await tester.pumpAndSettle();
 
       var context = tester.element(searchField);
-      expect(FocusScope.of(context).focusedChild, isNotNull);
+      check(FocusScope.of(context).focusedChild).isNotNull();
 
       // 2. AppBar(画面外)をタップしてフォーカスが外れるか確認
       await tester.tap(find.byType(AppBar));
       await tester.pumpAndSettle();
-      expect(FocusScope.of(context).focusedChild, isNull);
+      check(FocusScope.of(context).focusedChild).isNull();
 
       // 3. 追加ボトムシートでのテスト: FABをタップしてボトムシートを開く
       await tester.tap(find.byType(FloatingActionButton));
@@ -383,13 +386,13 @@ void main() {
       await tester.pumpAndSettle();
 
       context = tester.element(titleField);
-      expect(FocusScope.of(context).focusedChild, isNotNull);
+      check(FocusScope.of(context).focusedChild).isNotNull();
 
       // 4. ボトムシート内の余白部分(GestureDetector)をタップしてフォーカスが外れるか確認
       // GestureDetectorを特定するためにボトムシートの要素をタップします
       await tester.tap(find.text('メモを追加').last);
       await tester.pumpAndSettle();
-      expect(FocusScope.of(context).focusedChild, isNull);
+      check(FocusScope.of(context).focusedChild).isNull();
     });
 
     testWidgets('外部から検索クエリが変更された場合に入力欄の文字が同期して更新されること', (tester) async {
@@ -412,7 +415,7 @@ void main() {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            home: const MemoScreen(),
+            home: MemoScreen(),
           ),
         ),
       );
@@ -420,17 +423,16 @@ void main() {
 
       // 最初は入力欄は空
       final searchField = find.byType(TextField).first;
-      expect(tester.widget<TextField>(searchField).controller?.text, '');
+      check(tester.widget<TextField>(searchField).controller?.text).equals('');
 
       // 外部(プロバイダー)から検索キーワードを「外部変更キーワード」に変更する
       container.read(memoSearchQueryProvider.notifier).setQuery('外部変更キーワード');
       await tester.pumpAndSettle();
 
       // 入力欄の文字が「外部変更キーワード」に自動で切り替わっていることを確認
-      expect(
+      check(
         tester.widget<TextField>(searchField).controller?.text,
-        '外部変更キーワード',
-      );
+      ).equals('外部変更キーワード');
 
       container.dispose();
     });

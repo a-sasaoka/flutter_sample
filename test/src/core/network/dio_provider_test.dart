@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_sample/src/core/network/token_interceptor.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:legacy_checks/legacy_checks.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:talker_dio_logger/talker_dio_logger.dart';
 import 'package:talker_flutter/talker_flutter.dart';
@@ -60,20 +62,20 @@ void main() {
       final dio = container.read(dioProvider);
 
       // 基本設定の検証
-      expect(dio.options.baseUrl, equals(config.baseUrl));
-      expect(dio.options.connectTimeout, equals(const Duration(seconds: 5)));
-      expect(dio.options.receiveTimeout, equals(const Duration(seconds: 10)));
-      expect(dio.options.sendTimeout, equals(const Duration(seconds: 5)));
-      expect(dio.options.headers['Content-Type'], equals('application/json'));
+      check(dio.options.baseUrl).equals(config.baseUrl);
+      check(dio.options.connectTimeout).equals(const Duration(seconds: 5));
+      check(dio.options.receiveTimeout).equals(const Duration(seconds: 10));
+      check(dio.options.sendTimeout).equals(const Duration(seconds: 5));
+      check(dio.options.headers['Content-Type']).equals('application/json');
 
       // インターセプターの検証
       final interceptorTypes = dio.interceptors
           .map((i) => i.runtimeType)
           .toList();
 
-      expect(interceptorTypes, contains(mockTokenInterceptor.runtimeType));
-      expect(interceptorTypes, contains(mockDioInterceptor.runtimeType));
-      expect(interceptorTypes, contains(TalkerDioLogger));
+      check(interceptorTypes).contains(mockTokenInterceptor.runtimeType);
+      check(interceptorTypes).contains(mockDioInterceptor.runtimeType);
+      check(interceptorTypes).contains(TalkerDioLogger);
     });
   });
 
@@ -92,8 +94,8 @@ void main() {
       final dio = container.read(baseDioProvider);
 
       // 基本設定の検証
-      expect(dio.options.baseUrl, equals(config.baseUrl));
-      expect(dio.options.connectTimeout, equals(const Duration(seconds: 3)));
+      check(dio.options.baseUrl).equals(config.baseUrl);
+      check(dio.options.connectTimeout).equals(const Duration(seconds: 3));
 
       // インターセプターの検証
       final interceptorTypes = dio.interceptors
@@ -101,13 +103,12 @@ void main() {
           .toList();
 
       // トークンインターセプターが含まれていないこと
-      expect(
+      check(
         interceptorTypes,
-        isNot(contains(mockTokenInterceptor.runtimeType)),
-      );
+      ).legacyMatcher(isNot(contains(mockTokenInterceptor.runtimeType)));
       // 共通インターセプターとロガーは含まれていること
-      expect(interceptorTypes, contains(mockDioInterceptor.runtimeType));
-      expect(interceptorTypes, contains(TalkerDioLogger));
+      check(interceptorTypes).contains(mockDioInterceptor.runtimeType);
+      check(interceptorTypes).contains(TalkerDioLogger);
     });
   });
 }

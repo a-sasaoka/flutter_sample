@@ -1,4 +1,6 @@
+import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_bubble_shimmer.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shimmer/shimmer.dart';
@@ -16,11 +18,11 @@ void main() {
       );
 
       // 2. キラキラ効果（Shimmer）が吹き出し部分と時間表示部分の2箇所に表示されていることを確認します
-      expect(find.byType(Shimmer), findsNWidgets(2));
+      check(find.byType(Shimmer)).findsExactly(2);
 
       // 3. 吹き出しやダミーテキストを模した四角いコンテナ（Container）が描画されていることを確認します
       // 吹き出し外枠 + テキスト1行目 + テキスト2行目 + 時間 のため、複数存在します
-      expect(find.byType(Container), findsAtLeastNWidgets(3));
+      check(find.byType(Container)).findsAtLeast(3);
     });
 
     testWidgets('ダークモードで骨組み（Shimmer）と吹き出しボックスが正しく描画されること', (tester) async {
@@ -35,8 +37,8 @@ void main() {
       );
 
       // 2. ダークモードでも同様にShimmerが2箇所表示されていることを確認します
-      expect(find.byType(Shimmer), findsNWidgets(2));
-      expect(find.byType(Container), findsAtLeastNWidgets(3));
+      check(find.byType(Shimmer)).findsExactly(2);
+      check(find.byType(Container)).findsAtLeast(3);
     });
   });
 }

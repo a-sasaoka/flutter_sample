@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/app/router/base_auth_guard.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,8 +42,10 @@ void main() {
 
       // Assert
       // '/login?from=%2F' のような形式になるはず
-      expect(result, contains(const LoginRoute().location));
-      expect(result, contains('from=${Uri.encodeComponent(destination)}'));
+      check(result).isNotNull().contains(const LoginRoute().location);
+      check(
+        result,
+      ).isNotNull().contains('from=${Uri.encodeComponent(destination)}');
     });
 
     test('未ログインでもゲスト専用画面（サインアップ）に行こうとした場合、リダイレクトしないこと', () {
@@ -53,7 +56,7 @@ void main() {
       final result = helper.redirect(isLoggedIn: false, state: mockState);
 
       // Assert
-      expect(result, isNull);
+      check(result).isNull();
     });
 
     test('未ログインでも常に公開されている画面（スプラッシュ）に行こうとした場合、リダイレクトしないこと', () {
@@ -64,7 +67,7 @@ void main() {
       final result = helper.redirect(isLoggedIn: false, state: mockState);
 
       // Assert
-      expect(result, isNull);
+      check(result).isNull();
     });
 
     test('ログイン済みでゲスト専用画面（ログイン画面）に行こうとした場合、ホームにリダイレクトすること', () {
@@ -75,7 +78,7 @@ void main() {
       final result = helper.redirect(isLoggedIn: true, state: mockState);
 
       // Assert
-      expect(result, const HomeRoute().location);
+      check(result).equals(const HomeRoute().location);
     });
 
     test('ログイン済みかつfromパラメータがある状態でゲスト専用画面に行こうとした場合、fromの場所へリダイレクトすること', () {
@@ -87,7 +90,7 @@ void main() {
       final result = helper.redirect(isLoggedIn: true, state: mockState);
 
       // Assert
-      expect(result, fromPath);
+      check(result).equals(fromPath);
     });
 
     test('【セキュリティ】ログイン済みでfromに外部サイト(http)が指定された場合、無視してホームにリダイレクトすること', () {
@@ -99,7 +102,7 @@ void main() {
       final result = helper.redirect(isLoggedIn: true, state: mockState);
 
       // Assert
-      expect(result, const HomeRoute().location);
+      check(result).equals(const HomeRoute().location);
     });
 
     test('【セキュリティ】ログイン済みでfromに外部サイト(//)が指定された場合、無視してホームにリダイレクトすること', () {
@@ -111,7 +114,7 @@ void main() {
       final result = helper.redirect(isLoggedIn: true, state: mockState);
 
       // Assert
-      expect(result, const HomeRoute().location);
+      check(result).equals(const HomeRoute().location);
     });
 
     test('【無限ループ防止】ログイン済みでfromにゲスト専用画面(/login)が指定された場合、無視してホームにリダイレクトすること', () {
@@ -123,7 +126,7 @@ void main() {
       final result = helper.redirect(isLoggedIn: true, state: mockState);
 
       // Assert
-      expect(result, const HomeRoute().location);
+      check(result).equals(const HomeRoute().location);
     });
 
     test('ログイン済みで認証必須画面（ホーム）に行く場合、リダイレクトしないこと', () {
@@ -134,7 +137,7 @@ void main() {
       final result = helper.redirect(isLoggedIn: true, state: mockState);
 
       // Assert
-      expect(result, isNull);
+      check(result).isNull();
     });
 
     test('ログイン済みで常に公開されている画面（スプラッシュ）に行く場合、リダイレクトしないこと', () {
@@ -145,7 +148,7 @@ void main() {
       final result = helper.redirect(isLoggedIn: true, state: mockState);
 
       // Assert
-      expect(result, isNull);
+      check(result).isNull();
     });
   });
 }

@@ -1,4 +1,5 @@
 // 👇 インポートパスはご自身の環境に合わせて調整してください
+import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/config/update_info.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -20,9 +21,9 @@ void main() {
       final updateInfo = UpdateInfo.fromJson(json);
 
       // Assert
-      expect(updateInfo.requiredVersion, equals('1.2.0'));
-      expect(updateInfo.enabledAt, equals(mockDate)); // DateTime型に復元されているか
-      expect(updateInfo.canCancel, isTrue);
+      check(updateInfo.requiredVersion).equals('1.2.0');
+      check(updateInfo.enabledAt).equals(mockDate); // DateTime型に復元されているか
+      check(updateInfo.canCancel).equals(true);
     });
 
     test('fromJson() で canCancel が省略された場合、デフォルトで false になること', () {
@@ -36,9 +37,9 @@ void main() {
       final updateInfo = UpdateInfo.fromJson(json);
 
       // Assert
-      expect(updateInfo.requiredVersion, equals('1.0.0'));
+      check(updateInfo.requiredVersion).equals('1.0.0');
       // 🔥 @Default(false) が正しく機能しているかどうかの非常に重要なテスト！
-      expect(updateInfo.canCancel, isFalse);
+      check(updateInfo.canCancel).equals(false);
     });
 
     test('toJson() で正しいMap形式に変換されること', () {
@@ -52,9 +53,9 @@ void main() {
       final json = updateInfo.toJson();
 
       // Assert: キー名にタイポがないか、正しく変換されているかを確認
-      expect(json['requiredVersion'], equals('2.0.0'));
-      expect(json['enabledAt'], equals(mockDateIso));
-      expect(json['canCancel'], isFalse);
+      check(json['requiredVersion']).equals('2.0.0');
+      check(json['enabledAt']).equals(mockDateIso);
+      check(json['canCancel']).equals(false);
     });
   });
 }

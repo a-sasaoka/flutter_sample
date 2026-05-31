@@ -1,6 +1,8 @@
+import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:legacy_checks/legacy_checks.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
@@ -31,8 +33,7 @@ void main() {
         final container = ProviderContainer();
         addTearDown(container.dispose);
 
-        expect(
-          () => container.read(loggerProvider),
+        check(() => container.read(loggerProvider)).legacyMatcher(
           throwsA(
             predicate((e) => e.toString().contains('UnimplementedError')),
           ),
@@ -50,7 +51,7 @@ void main() {
       addTearDown(container.dispose);
 
       final logger = container.read(loggerProvider);
-      expect(logger, equals(mockTalker));
+      check(logger).equals(mockTalker);
     });
   });
 

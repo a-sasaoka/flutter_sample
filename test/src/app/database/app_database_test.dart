@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_sample/src/app/database/app_database.dart';
@@ -22,7 +23,7 @@ void main() {
     });
 
     test('schemaVersion returns 1', () {
-      expect(database.schemaVersion, 1);
+      check(database.schemaVersion).equals(1);
     });
 
     test('onUpgrade migration strategy executes without error', () async {
@@ -40,7 +41,7 @@ void main() {
       // beforeOpen も同様
       await strategy.beforeOpen?.call(const OpeningDetails(null, 1));
 
-      expect(true, isTrue); // ここまで到達すればOK
+      check(true).equals(true); // ここまで到達すればOK
     });
 
     test('テーブル操作の基本テスト (CRUD)', () async {
@@ -59,12 +60,12 @@ void main() {
 
       // Read
       var memos = await database.select(database.memos).get();
-      expect(memos.length, 1);
-      expect(memos.first.id, 'test-id-1');
-      expect(memos.first.title, 'テストタイトル');
-      expect(memos.first.content, 'テストコンテンツ');
-      expect(memos.first.createdAt, DateTime(2026, 5));
-      expect(memos.first.updatedAt, DateTime(2026, 5));
+      check(memos.length).equals(1);
+      check(memos.first.id).equals('test-id-1');
+      check(memos.first.title).equals('テストタイトル');
+      check(memos.first.content).equals('テストコンテンツ');
+      check(memos.first.createdAt).equals(DateTime(2026, 5));
+      check(memos.first.updatedAt).equals(DateTime(2026, 5));
 
       // Update
       await database
@@ -73,12 +74,12 @@ void main() {
             memos.first.copyWith(title: '更新されたタイトル'),
           );
       memos = await database.select(database.memos).get();
-      expect(memos.first.title, '更新されたタイトル');
+      check(memos.first.title).equals('更新されたタイトル');
 
       // Delete
       await database.delete(database.memos).delete(memos.first);
       memos = await database.select(database.memos).get();
-      expect(memos.isEmpty, true);
+      check(memos.isEmpty).equals(true);
     });
   });
 }

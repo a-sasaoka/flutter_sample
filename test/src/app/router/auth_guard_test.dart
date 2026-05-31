@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:checks/checks.dart';
 import 'package:flutter/foundation.dart'; // SynchronousFuture 用
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/app/router/auth_guard.dart';
@@ -80,7 +81,7 @@ void main() {
   group('authGuard の状態ハンドリングテスト', () {
     test('認証状態が Loading の場合、SplashRoute にリダイレクトすること', () {
       final result = executeGuard(const AsyncLoading<bool>());
-      expect(result, const SplashRoute().location);
+      check(result).equals(const SplashRoute().location);
     });
 
     test('ログイン済み（Data: true）の場合、ログイン画面からホームへリダイレクトすること', () {
@@ -88,7 +89,7 @@ void main() {
         const AsyncData<bool>(true),
         location: const LoginRoute().location,
       );
-      expect(result, const HomeRoute().location);
+      check(result).equals(const HomeRoute().location);
     });
 
     test('ログイン済み（Data: true）で、すでにホームにいる場合、リダイレクトしないこと', () {
@@ -96,7 +97,7 @@ void main() {
         const AsyncData<bool>(true),
         location: const HomeRoute().location,
       );
-      expect(result, isNull);
+      check(result).isNull();
     });
 
     test('未ログイン（Data: false）の場合、ホームからログイン画面にリダイレクトすること', () {
@@ -104,8 +105,8 @@ void main() {
         const AsyncData<bool>(false),
         location: const HomeRoute().location,
       );
-      expect(result, startsWith(const LoginRoute().location));
-      expect(result, contains('from=${Uri.encodeComponent('/')}'));
+      check(result).isNotNull().startsWith(const LoginRoute().location);
+      check(result).isNotNull().contains('from=${Uri.encodeComponent('/')}');
     });
 
     test('未ログイン（Data: false）で、すでにログイン画面にいる場合、リダイレクトしないこと', () {
@@ -113,7 +114,7 @@ void main() {
         const AsyncData<bool>(false),
         location: const LoginRoute().location,
       );
-      expect(result, isNull);
+      check(result).isNull();
     });
 
     test('認証状態でエラーが発生した場合、未ログイン扱いとしてログイン画面にリダイレクトすること', () {
@@ -121,8 +122,8 @@ void main() {
         AsyncValue<bool>.error(Exception('Auth Error'), StackTrace.empty),
         location: const HomeRoute().location,
       );
-      expect(result, startsWith(const LoginRoute().location));
-      expect(result, contains('from=${Uri.encodeComponent('/')}'));
+      check(result).isNotNull().startsWith(const LoginRoute().location);
+      check(result).isNotNull().contains('from=${Uri.encodeComponent('/')}');
     });
 
     test('スプラッシュ未完了の場合、常に SplashRoute にリダイレクトすること', () {
@@ -130,7 +131,7 @@ void main() {
         const AsyncData<bool>(true),
         isSplashFinished: false,
       );
-      expect(result, const SplashRoute().location);
+      check(result).equals(const SplashRoute().location);
     });
 
     test('スプラッシュ完了後、スプラッシュ画面にいて未ログインの場合、ログイン画面へリダイレクトすること', () {
@@ -138,7 +139,7 @@ void main() {
         const AsyncData<bool>(false),
         location: const SplashRoute().location,
       );
-      expect(result, const LoginRoute().location);
+      check(result).equals(const LoginRoute().location);
     });
 
     test('スプラッシュ完了後、スプラッシュ画面にいてログイン済みの場合、ホーム画面へリダイレクトすること', () {
@@ -146,7 +147,7 @@ void main() {
         const AsyncData<bool>(true),
         location: const SplashRoute().location,
       );
-      expect(result, const HomeRoute().location);
+      check(result).equals(const HomeRoute().location);
     });
   });
 }

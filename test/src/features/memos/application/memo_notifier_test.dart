@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
@@ -45,7 +46,7 @@ void main() {
 
       final memos = await container.read(memoProvider.future);
 
-      expect(memos, mockMemos);
+      check(memos).deepEquals(mockMemos);
       verify(() => mockMemoRepository.getAllMemos()).called(1);
 
       subscription.close();
@@ -131,8 +132,8 @@ void main() {
       }
 
       final state = container.read(memoProvider);
-      expect(state.hasError, isTrue);
-      expect(state.error, exception);
+      check(state.hasError).equals(true);
+      check(state.error).equals(exception);
 
       subscription.close();
     });
@@ -173,18 +174,18 @@ void main() {
         final memoSub = container.listen(memoProvider, (_, _) {});
 
         var memos = await container.read(memoProvider.future);
-        expect(memos.length, 3);
+        check(memos.length).equals(3);
 
         container.read(memoSearchQueryProvider.notifier).setQuery(' BANANA ');
         memos = await container.read(memoProvider.future);
-        expect(memos.length, 1);
-        expect(memos.first.id, '2');
+        check(memos.length).equals(1);
+        check(memos.first.id).equals('2');
 
         container.read(memoSearchQueryProvider.notifier).setQuery('juice');
         memos = await container.read(memoProvider.future);
-        expect(memos.length, 2);
-        expect(memos.any((m) => m.id == '2'), isTrue);
-        expect(memos.any((m) => m.id == '3'), isTrue);
+        check(memos.length).equals(2);
+        check(memos.any((m) => m.id == '2')).equals(true);
+        check(memos.any((m) => m.id == '3')).equals(true);
 
         querySub.close();
         memoSub.close();
@@ -201,31 +202,31 @@ void main() {
             .read(memoSortOrderStateProvider.notifier)
             .setSortOrder(MemoSortOrder.createdAtAsc);
         var memos = await container.read(memoProvider.future);
-        expect(memos.map((m) => m.id).toList(), ['3', '1', '2']);
+        check(memos.map((m) => m.id).toList()).deepEquals(['3', '1', '2']);
 
         container
             .read(memoSortOrderStateProvider.notifier)
             .setSortOrder(MemoSortOrder.updatedAtDesc);
         memos = await container.read(memoProvider.future);
-        expect(memos.map((m) => m.id).toList(), ['3', '1', '2']);
+        check(memos.map((m) => m.id).toList()).deepEquals(['3', '1', '2']);
 
         container
             .read(memoSortOrderStateProvider.notifier)
             .setSortOrder(MemoSortOrder.updatedAtAsc);
         memos = await container.read(memoProvider.future);
-        expect(memos.map((m) => m.id).toList(), ['2', '1', '3']);
+        check(memos.map((m) => m.id).toList()).deepEquals(['2', '1', '3']);
 
         container
             .read(memoSortOrderStateProvider.notifier)
             .setSortOrder(MemoSortOrder.titleAsc);
         memos = await container.read(memoProvider.future);
-        expect(memos.map((m) => m.id).toList(), ['1', '2', '3']);
+        check(memos.map((m) => m.id).toList()).deepEquals(['1', '2', '3']);
 
         container
             .read(memoSortOrderStateProvider.notifier)
             .setSortOrder(MemoSortOrder.titleDesc);
         memos = await container.read(memoProvider.future);
-        expect(memos.map((m) => m.id).toList(), ['3', '2', '1']);
+        check(memos.map((m) => m.id).toList()).deepEquals(['3', '2', '1']);
 
         sortSub.close();
         memoSub.close();

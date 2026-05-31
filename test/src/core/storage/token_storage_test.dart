@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/storage/secure_storage_provider.dart';
 import 'package:flutter_sample/src/core/storage/token_storage.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -67,7 +68,7 @@ void main() {
       final result = await storage.getAccessToken();
 
       // Assert
-      expect(result, testAccessToken);
+      check(result).equals(testAccessToken);
       verify(() => mockStorage.read(key: accessTokenKey)).called(1);
     });
 
@@ -82,7 +83,7 @@ void main() {
       final result = await storage.getRefreshToken();
 
       // Assert
-      expect(result, testRefreshToken);
+      check(result).equals(testRefreshToken);
       verify(() => mockStorage.read(key: refreshTokenKey)).called(1);
     });
 
@@ -113,8 +114,8 @@ void main() {
       final refresh = await storage.getRefreshToken();
 
       // Assert
-      expect(access, isNull);
-      expect(refresh, isNull);
+      check(access).isNull();
+      check(refresh).isNull();
     });
   });
 
@@ -132,7 +133,7 @@ void main() {
       final token = await storage.getAccessToken();
 
       // Assert
-      expect(token, 'raw_token');
+      check(token).equals('raw_token');
       verify(() => mockStorage.read(key: 'access_token')).called(1);
     });
   });

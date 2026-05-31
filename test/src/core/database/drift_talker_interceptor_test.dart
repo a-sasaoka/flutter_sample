@@ -1,6 +1,8 @@
+import 'package:checks/checks.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_sample/src/core/database/drift_talker_interceptor.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:legacy_checks/legacy_checks.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
@@ -47,7 +49,7 @@ void main() {
 
       final result = await interceptor.runInsert(mockExecutor, sql, args);
 
-      expect(result, 1);
+      check(result).equals(1);
       verify(
         () => mockTalker.debug(any<String>(that: contains('[Drift] Insert'))),
       ).called(1);
@@ -62,7 +64,7 @@ void main() {
 
       final result = await interceptor.runUpdate(mockExecutor, sql, args);
 
-      expect(result, 1);
+      check(result).equals(1);
       verify(
         () => mockTalker.debug(any<String>(that: contains('[Drift] Update'))),
       ).called(1);
@@ -77,7 +79,7 @@ void main() {
 
       final result = await interceptor.runDelete(mockExecutor, sql, args);
 
-      expect(result, 1);
+      check(result).equals(1);
       verify(
         () => mockTalker.debug(any<String>(that: contains('[Drift] Delete'))),
       ).called(1);
@@ -97,7 +99,7 @@ void main() {
 
       final result = await interceptor.runSelect(mockExecutor, sql, args);
 
-      expect(result, expectedResult);
+      check(result).equals(expectedResult);
       verify(
         () => mockTalker.debug(any<String>(that: contains('[Drift] Select'))),
       ).called(1);
@@ -124,10 +126,9 @@ void main() {
 
       when(() => mockExecutor.runSelect(sql, args)).thenThrow(exception);
 
-      await expectLater(
+      await check(
         interceptor.runSelect(mockExecutor, sql, args),
-        throwsA(exception),
-      );
+      ).throws<Exception>();
 
       verify(
         () => mockTalker.error(
@@ -144,10 +145,9 @@ void main() {
 
       when(() => mockExecutor.runBatched(statements)).thenThrow(exception);
 
-      await expectLater(
+      check(
         interceptor.runBatched(mockExecutor, statements),
-        throwsA(exception),
-      );
+      ).legacyMatcher(throwsA(exception));
 
       verify(
         () => mockTalker.error(

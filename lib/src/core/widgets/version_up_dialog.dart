@@ -3,10 +3,7 @@ import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:go_router/go_router.dart';
 
 /// バージョンアップダイアログの表示
-class VersionUpDialog {
-  // インスタンス化を防止するプライベートコンストラクタ
-  VersionUpDialog._(); // coverage:ignore-line
-
+abstract final class VersionUpDialog {
   /// バージョンアップダイアログを表示
   ///
   /// [isCancelable] が true の場合、キャンセルボタンを表示し、ダイアログ外タップでも閉じられます。

@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
 import 'package:flutter_sample/src/app/database/app_database.dart';
@@ -72,9 +73,9 @@ void main() {
       await repository.addMemo('title', 'content');
 
       final memos = await database.select(database.memos).get();
-      expect(memos.length, 1);
-      expect(memos.first.title, 'title');
-      expect(memos.first.isSynced, false);
+      check(memos.length).equals(1);
+      check(memos.first.title).equals('title');
+      check(memos.first.isSynced).equals(false);
       verifyNever(
         () => mockRemoteService.uploadMemo(
           id: any(named: 'id'),
@@ -94,9 +95,9 @@ void main() {
       await repository.addMemo('title', 'content');
 
       final memos = await database.select(database.memos).get();
-      expect(memos.length, 1);
-      expect(memos.first.title, 'title');
-      expect(memos.first.isSynced, true);
+      check(memos.length).equals(1);
+      check(memos.first.title).equals('title');
+      check(memos.first.isSynced).equals(true);
       verify(
         () => mockRemoteService.uploadMemo(
           id: memos.first.id,
@@ -126,7 +127,7 @@ void main() {
       await repository.addMemo('title', 'content');
 
       final memos = await database.select(database.memos).get();
-      expect(memos.first.isSynced, false);
+      check(memos.first.isSynced).equals(false);
     });
 
     test('updateMemo: オフラインの場合、ローカルが更新され isSynced が false になること', () async {
@@ -150,8 +151,8 @@ void main() {
       final memo = await (database.select(
         database.memos,
       )..where((m) => m.id.equals('id1'))).getSingle();
-      expect(memo.title, 'new title');
-      expect(memo.isSynced, false);
+      check(memo.title).equals('new title');
+      check(memo.isSynced).equals(false);
       verifyNever(
         () => mockRemoteService.uploadMemo(
           id: any(named: 'id'),
@@ -184,7 +185,7 @@ void main() {
       final memo = await (database.select(
         database.memos,
       )..where((m) => m.id.equals('id1'))).getSingle();
-      expect(memo.isSynced, true);
+      check(memo.isSynced).equals(true);
       verify(
         () => mockRemoteService.uploadMemo(
           id: 'id1',
@@ -227,7 +228,7 @@ void main() {
       final memo = await (database.select(
         database.memos,
       )..where((m) => m.id.equals('id1'))).getSingle();
-      expect(memo.isSynced, false);
+      check(memo.isSynced).equals(false);
     });
 
     test('deleteMemo: オフラインの場合、ローカルで論理削除され isSynced が false になること', () async {
@@ -251,8 +252,8 @@ void main() {
       final memo = await (database.select(
         database.memos,
       )..where((m) => m.id.equals('id1'))).getSingle();
-      expect(memo.isDeleted, true);
-      expect(memo.isSynced, false);
+      check(memo.isDeleted).equals(true);
+      check(memo.isSynced).equals(false);
       verifyNever(
         () => mockRemoteService.uploadMemo(
           id: any(named: 'id'),
@@ -287,8 +288,8 @@ void main() {
         final memo = await (database.select(
           database.memos,
         )..where((m) => m.id.equals('id1'))).getSingle();
-        expect(memo.isDeleted, true);
-        expect(memo.isSynced, true);
+        check(memo.isDeleted).equals(true);
+        check(memo.isSynced).equals(true);
       },
     );
 
@@ -322,8 +323,8 @@ void main() {
       final memo = await (database.select(
         database.memos,
       )..where((m) => m.id.equals('id1'))).getSingle();
-      expect(memo.isDeleted, true);
-      expect(memo.isSynced, false);
+      check(memo.isDeleted).equals(true);
+      check(memo.isSynced).equals(false);
     });
 
     test('syncUnsentMemos: 未送信のメモがない場合、何もしないこと', () async {
@@ -375,7 +376,7 @@ void main() {
       final memo1 = await (database.select(
         database.memos,
       )..where((m) => m.id.equals('1'))).getSingle();
-      expect(memo1.isSynced, true);
+      check(memo1.isSynced).equals(true);
       verify(
         () => mockRemoteService.uploadMemo(
           id: '1',
@@ -429,8 +430,8 @@ void main() {
       await repository.syncUnsentMemos();
 
       final memos = await database.select(database.memos).get();
-      expect(memos.firstWhere((m) => m.id == '1').isSynced, false);
-      expect(memos.firstWhere((m) => m.id == '2').isSynced, true);
+      check(memos.firstWhere((m) => m.id == '1').isSynced).equals(false);
+      check(memos.firstWhere((m) => m.id == '2').isSynced).equals(true);
       verify(
         () => mockRemoteService.uploadMemo(
           id: '2',
@@ -473,8 +474,8 @@ void main() {
 
       final memos = await repository.getAllMemos();
 
-      expect(memos.length, 1);
-      expect(memos.first.id, '1');
+      check(memos.length).equals(1);
+      check(memos.first.id).equals('1');
       // オフラインでも fetchMemos は呼ばれる実装になっている
       verify(() => mockRemoteService.fetchMemos()).called(1);
     });
@@ -497,9 +498,9 @@ void main() {
 
       final memos = await repository.getAllMemos();
 
-      expect(memos.length, 1);
-      expect(memos.first.id, 'remote1');
-      expect(memos.first.title, 'rtitle');
+      check(memos.length).equals(1);
+      check(memos.first.id).equals('remote1');
+      check(memos.first.title).equals('rtitle');
     });
 
     test(
@@ -535,8 +536,8 @@ void main() {
 
         final memos = await repository.getAllMemos();
 
-        expect(memos.length, 1);
-        expect(memos.first.title, 'remote');
+        check(memos.length).equals(1);
+        check(memos.first.title).equals('remote');
       },
     );
 
@@ -573,8 +574,8 @@ void main() {
 
         final memos = await repository.getAllMemos();
 
-        expect(memos.length, 1);
-        expect(memos.first.title, 'local');
+        check(memos.length).equals(1);
+        check(memos.first.title).equals('local');
       },
     );
 
@@ -587,13 +588,13 @@ void main() {
 
       final memos = await repository.getAllMemos();
 
-      expect(memos.length, 0); // local is empty
+      check(memos.length).equals(0); // local is empty
     });
 
     test('memoRepositoryProvider が正しいインスタンスを提供すること', () {
       final container = createContainer();
       final repo = container.read(memoRepositoryProvider);
-      expect(repo, isA<MemoRepository>());
+      check(repo).isA<MemoRepository>();
     });
   });
 }

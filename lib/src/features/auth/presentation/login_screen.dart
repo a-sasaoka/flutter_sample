@@ -11,7 +11,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 /// ログイン画面
 class LoginScreen extends HookConsumerWidget {
   /// コンストラクタ
-  const LoginScreen({super.key}); // coverage:ignore-line
+  const LoginScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

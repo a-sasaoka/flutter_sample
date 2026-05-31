@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:checks/checks.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
@@ -77,7 +78,7 @@ void main() {
 
       final asyncValue = container.read(authStateChangesProvider);
 
-      expect(asyncValue, isA<AsyncValue<User?>>());
+      check(asyncValue).isA<AsyncValue<User?>>();
       verify(() => mockFirebaseAuth.userChanges()).called(1);
     });
   });
@@ -153,7 +154,7 @@ void main() {
 
       final result = await repo.signInWithGoogle();
 
-      expect(result, isTrue);
+      check(result).equals(true);
       verify(() => mockGoogleSignIn.initialize()).called(1);
       verify(() => mockGoogleSignIn.authenticate()).called(1);
 
@@ -188,7 +189,7 @@ void main() {
 
       final result = await repo.signInWithGoogle();
 
-      expect(result, isFalse);
+      check(result).equals(false);
 
       verifyNever(
         () => mockFirebaseAuth.signInWithCredential(any<AuthCredential>()),
@@ -207,7 +208,7 @@ void main() {
 
         final result = await repo.signInWithGoogle();
 
-        expect(result, isFalse);
+        check(result).equals(false);
         verify(
           () => mockTalker.warning('SignInWithGoogle Error: $exception'),
         ).called(1);

@@ -120,7 +120,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Test Title'), findsOneWidget);
+    check(find.text('Test Title')).findsOne();
   });
 }
 ```

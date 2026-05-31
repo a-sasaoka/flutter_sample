@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_remote_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -12,7 +13,7 @@ void main() {
 
     test('初期状態ではfetchMemosは空のリストを返すこと', () async {
       final result = await service.fetchMemos();
-      expect(result, isEmpty);
+      check(result).isNotNull().isEmpty();
     });
 
     test('uploadMemoで新しいメモを追加し、fetchMemosで取得できること', () async {
@@ -28,13 +29,13 @@ void main() {
       );
 
       final result = await service.fetchMemos();
-      expect(result.length, 1);
-      expect(result.first['id'], 'memo1');
-      expect(result.first['title'], 'テストタイトル');
-      expect(result.first['content'], 'テストコンテンツ');
-      expect(result.first['createdAt'], now);
-      expect(result.first['updatedAt'], now);
-      expect(result.first['isDeleted'], false);
+      check(result.length).equals(1);
+      check(result.first['id']).equals('memo1');
+      check(result.first['title']).equals('テストタイトル');
+      check(result.first['content']).equals('テストコンテンツ');
+      check(result.first['createdAt']).equals(now);
+      check(result.first['updatedAt']).equals(now);
+      check(result.first['isDeleted']).equals(false);
     });
 
     test('uploadMemoで既存のメモを更新できること', () async {
@@ -62,13 +63,13 @@ void main() {
       );
 
       final result = await service.fetchMemos();
-      expect(result.length, 1); // 追加されず上書きされていること
-      expect(result.first['id'], 'memo1');
-      expect(result.first['title'], '新しいタイトル');
-      expect(result.first['content'], '新しいコンテンツ');
-      expect(result.first['createdAt'], now);
-      expect(result.first['updatedAt'], updatedTime);
-      expect(result.first['isDeleted'], true);
+      check(result.length).equals(1); // 追加されず上書きされていること
+      check(result.first['id']).equals('memo1');
+      check(result.first['title']).equals('新しいタイトル');
+      check(result.first['content']).equals('新しいコンテンツ');
+      check(result.first['createdAt']).equals(now);
+      check(result.first['updatedAt']).equals(updatedTime);
+      check(result.first['isDeleted']).equals(true);
     });
   });
 
@@ -78,7 +79,7 @@ void main() {
       addTearDown(container.dispose);
 
       final service = container.read(memoRemoteServiceProvider);
-      expect(service, isA<MemoRemoteService>());
+      check(service).isA<MemoRemoteService>();
     });
   });
 }

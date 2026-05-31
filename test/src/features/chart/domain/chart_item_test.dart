@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/features/chart/domain/chart_item.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -6,17 +7,17 @@ void main() {
     test('デフォルト値が正しく設定されること', () {
       const item = ChartItem(id: 'test-id');
 
-      expect(item.id, 'test-id');
-      expect(item.label, '');
-      expect(item.value, 0.0);
+      check(item.id).equals('test-id');
+      check(item.label).equals('');
+      check(item.value).equals(0);
     });
 
     test('指定した値でインスタンスが生成されること', () {
       const item = ChartItem(id: 'test-id', label: 'Item 1', value: 10.5);
 
-      expect(item.id, 'test-id');
-      expect(item.label, 'Item 1');
-      expect(item.value, 10.5);
+      check(item.id).equals('test-id');
+      check(item.label).equals('Item 1');
+      check(item.value).equals(10.5);
     });
 
     test('fromJsonで正しくインスタンスが生成されること', () {
@@ -28,16 +29,16 @@ void main() {
 
       final item = ChartItem.fromJson(json);
 
-      expect(item.id, 'test-id');
-      expect(item.label, 'Item 1');
-      expect(item.value, 10.5);
+      check(item.id).equals('test-id');
+      check(item.label).equals('Item 1');
+      check(item.value).equals(10.5);
     });
 
     test('toJsonで正しいMapに変換されること', () {
       const item = ChartItem(id: 'test-id', label: 'Item 1', value: 10.5);
       final json = item.toJson();
 
-      expect(json, {
+      check(json).deepEquals({
         'id': 'test-id',
         'label': 'Item 1',
         'value': 10.5,

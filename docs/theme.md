@@ -80,7 +80,7 @@ test('テーマモードを変更すると状態が更新されること', () as
   final notifier = container.read(themeModeProvider.notifier);
 
   await notifier.setThemeMode(ThemeMode.dark);
-  expect(container.read(themeModeProvider), ThemeMode.dark);
+  check(container.read(themeModeProvider)).equals(ThemeMode.dark);
 });
 ```
 

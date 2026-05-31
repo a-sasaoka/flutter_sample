@@ -5,7 +5,7 @@ part 'chat_message.freezed.dart';
 /// チャットメッセージのクラス
 @freezed
 sealed class ChatMessage with _$ChatMessage {
-  const ChatMessage._(); // coverage:ignore-line
+  const ChatMessage._();
 
   /// ユーザーの送信メッセージ
   const factory ChatMessage.user({

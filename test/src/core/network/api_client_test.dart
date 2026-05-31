@@ -1,3 +1,4 @@
+import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
@@ -66,7 +67,7 @@ void main() {
       );
 
       // Assert
-      expect(result.data, equals({'success': true}));
+      check(result.data).isNotNull().deepEquals({'success': true});
       verify(
         () => mockDio.get<Map<String, dynamic>>(
           path,
@@ -182,20 +183,20 @@ void main() {
 
       final dio = testContainer.read(dioProvider);
 
-      expect(dio.options.baseUrl, isNotEmpty);
-      expect(dio.options.connectTimeout, isNotNull);
-      expect(dio.options.receiveTimeout, isNotNull);
-      expect(dio.options.sendTimeout, isNotNull);
-      expect(dio.options.headers['Content-Type'], equals('application/json'));
+      check(dio.options.baseUrl).isNotEmpty();
+      check(dio.options.connectTimeout).isNotNull();
+      check(dio.options.receiveTimeout).isNotNull();
+      check(dio.options.sendTimeout).isNotNull();
+      check(dio.options.headers['Content-Type']).equals('application/json');
 
       // runtimeType を使って、期待するインターセプターが含まれているか確認
       final interceptorTypes = dio.interceptors
           .map((i) => i.runtimeType)
           .toList();
 
-      expect(interceptorTypes[1], equals(MockTokenInterceptor));
-      expect(interceptorTypes[2], equals(MockDioInterceptor));
-      expect(interceptorTypes[3], equals(TalkerDioLogger));
+      check(interceptorTypes[1]).equals(MockTokenInterceptor);
+      check(interceptorTypes[2]).equals(MockDioInterceptor);
+      check(interceptorTypes[3]).equals(TalkerDioLogger);
 
       testContainer.dispose();
     });
