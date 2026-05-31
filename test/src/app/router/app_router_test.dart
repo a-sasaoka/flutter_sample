@@ -85,13 +85,15 @@ class _FakeFirebaseAuthStateNotifier extends FirebaseAuthStateNotifier {
   _FakeFirebaseAuthStateNotifier({required this.isLoggedIn, this.mockUser});
   final bool isLoggedIn;
   final User? mockUser;
+
   @override
-  User? build() => isLoggedIn ? mockUser : null;
+  AsyncValue<User?> build() {
+    return isLoggedIn ? AsyncData(mockUser) : const AsyncData(null);
+  }
 
   // 外部からFirebaseのログイン状態を強制的に変更するメソッド
-  // ignore: use_setters_to_change_properties
   void changeState(User? user) {
-    state = user;
+    state = AsyncData(user);
   }
 }
 
@@ -143,6 +145,11 @@ void main() {
     required bool useFirebase,
     bool isSplashFinished = true,
   }) {
+    final fakeNotifier = _FakeFirebaseAuthStateNotifier(
+      isLoggedIn: isLoggedIn,
+      mockUser: mockUser,
+    );
+
     final container = ProviderContainer(
       overrides: [
         chatRepositoryProvider.overrideWithValue(mockChatRepository),
@@ -164,10 +171,7 @@ void main() {
           () => _FakeAuthStateNotifier(isLoggedIn: isLoggedIn),
         ),
         firebaseAuthStateProvider.overrideWith(
-          () => _FakeFirebaseAuthStateNotifier(
-            isLoggedIn: isLoggedIn,
-            mockUser: mockUser,
-          ),
+          () => fakeNotifier,
         ),
         splashStateProvider.overrideWith(
           () => FakeSplashState(initialValue: isSplashFinished),

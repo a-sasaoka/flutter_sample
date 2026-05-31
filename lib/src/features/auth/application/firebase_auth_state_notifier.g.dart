@@ -15,7 +15,7 @@ final firebaseAuthStateProvider = FirebaseAuthStateNotifierProvider._();
 
 /// Firebase Authenticationの認証状態を管理するStateNotifier
 final class FirebaseAuthStateNotifierProvider
-    extends $NotifierProvider<FirebaseAuthStateNotifier, User?> {
+    extends $NotifierProvider<FirebaseAuthStateNotifier, AsyncValue<User?>> {
   /// Firebase Authenticationの認証状態を管理するStateNotifier
   FirebaseAuthStateNotifierProvider._()
     : super(
@@ -36,30 +36,31 @@ final class FirebaseAuthStateNotifierProvider
   FirebaseAuthStateNotifier create() => FirebaseAuthStateNotifier();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(User? value) {
+  Override overrideWithValue(AsyncValue<User?> value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<User?>(value),
+      providerOverride: $SyncValueProvider<AsyncValue<User?>>(value),
     );
   }
 }
 
 String _$firebaseAuthStateNotifierHash() =>
-    r'b71b585b543232c8b81e018a86f02a729ce972f6';
+    r'ce7898dbee8ee494000ad238268cb078816d89fd';
 
 /// Firebase Authenticationの認証状態を管理するStateNotifier
 
-abstract class _$FirebaseAuthStateNotifier extends $Notifier<User?> {
-  User? build();
+abstract class _$FirebaseAuthStateNotifier
+    extends $Notifier<AsyncValue<User?>> {
+  AsyncValue<User?> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<User?, User?>;
+    final ref = this.ref as $Ref<AsyncValue<User?>, AsyncValue<User?>>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<User?, User?>,
-              User?,
+              AnyNotifier<AsyncValue<User?>, AsyncValue<User?>>,
+              AsyncValue<User?>,
               Object?,
               Object?
             >;

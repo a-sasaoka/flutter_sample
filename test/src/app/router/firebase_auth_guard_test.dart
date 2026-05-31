@@ -31,7 +31,7 @@ void main() {
   });
 
   String? executeGuard(
-    User? user, {
+    AsyncValue<User?> authState, {
     String location = '/',
     bool isSplashFinished = true,
   }) {
@@ -39,8 +39,8 @@ void main() {
 
     final container = ProviderContainer(
       overrides: [
-        // firebaseAuthStateProvider を指定した User オブジェクトで上書き
-        firebaseAuthStateProvider.overrideWithValue(user),
+        // firebaseAuthStateProvider に authState (AsyncValue<User?>) を直接上書き
+        firebaseAuthStateProvider.overrideWithValue(authState),
         splashStateProvider.overrideWith(
           () => FakeSplashState(initialValue: isSplashFinished),
         ),
@@ -52,11 +52,17 @@ void main() {
   }
 
   group('firebaseAuthGuard テスト', () {
+    test('ログイン確認中（ローディング中）の場合、SplashRoute にリダイレクトすること', () {
+      final result = executeGuard(const AsyncLoading<User?>());
+
+      check(result).equals(const SplashRoute().location);
+    });
+
     test('ログイン済みかつメール未認証の場合、メール認証画面へリダイレクトすること', () {
       final mockUser = MockUser();
       when(() => mockUser.emailVerified).thenReturn(false);
 
-      final result = executeGuard(mockUser);
+      final result = executeGuard(AsyncData(mockUser));
 
       check(result).equals(const EmailVerificationRoute().location);
     });
@@ -66,7 +72,7 @@ void main() {
       when(() => mockUser.emailVerified).thenReturn(false);
 
       final result = executeGuard(
-        mockUser,
+        AsyncData(mockUser),
         location: const EmailVerificationRoute().location,
       );
 
@@ -80,7 +86,7 @@ void main() {
 
       // ログイン済みでログイン画面にいる場合
       final result = executeGuard(
-        mockUser,
+        AsyncData(mockUser),
         location: const LoginRoute().location,
       );
 
@@ -90,7 +96,7 @@ void main() {
 
     test('未ログインの場合、AuthGuardHelper に判定が委譲されること', () {
       // ユーザーが null (未ログイン)
-      final result = executeGuard(null);
+      final result = executeGuard(const AsyncData(null));
 
       // AuthGuardHelper によりログイン画面へリダイレクトされることを確認（fromパラメータ付き）
       check(result).isNotNull().startsWith(const LoginRoute().location);
@@ -100,7 +106,7 @@ void main() {
     test('スプラッシュ未完了の場合、常に SplashRoute にリダイレクトすること', () {
       final mockUser = MockUser();
       final result = executeGuard(
-        mockUser,
+        AsyncData(mockUser),
         isSplashFinished: false,
       );
       check(result).equals(const SplashRoute().location);
@@ -109,7 +115,7 @@ void main() {
     test('スプラッシュ完了後、スプラッシュ画面にいてログイン済みの場合、ホーム画面へリダイレクトすること', () {
       final mockUser = MockUser();
       final result = executeGuard(
-        mockUser,
+        AsyncData(mockUser),
         location: const SplashRoute().location,
       );
       check(result).equals(const HomeRoute().location);
@@ -117,7 +123,7 @@ void main() {
 
     test('スプラッシュ完了後、スプラッシュ画面にいて未ログインの場合、ログイン画面へリダイレクトすること', () {
       final result = executeGuard(
-        null,
+        const AsyncData(null),
         location: const SplashRoute().location,
       );
       check(result).equals(const LoginRoute().location);
