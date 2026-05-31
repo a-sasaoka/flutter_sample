@@ -67,23 +67,5 @@ GEMINI.md
 *.sqlite
 
 # AI Skills
-.agents/skills/dart-add-unit-test/SKILL.md
-.agents/skills/dart-build-cli-app/SKILL.md
-.agents/skills/dart-collect-coverage/SKILL.md
-.agents/skills/dart-fix-runtime-errors/SKILL.md
-.agents/skills/dart-generate-test-mocks/SKILL.md
-.agents/skills/dart-migrate-to-checks-package/SKILL.md
-.agents/skills/dart-resolve-package-conflicts/SKILL.md
-.agents/skills/dart-run-static-analysis/SKILL.md
-.agents/skills/dart-use-pattern-matching/SKILL.md
-.agents/skills/flutter-add-integration-test/SKILL.md
-.agents/skills/flutter-add-widget-preview/SKILL.md
-.agents/skills/flutter-add-widget-test/SKILL.md
-.agents/skills/flutter-apply-architecture-best-practices/SKILL.md
-.agents/skills/flutter-build-responsive-layout/SKILL.md
-.agents/skills/flutter-fix-layout-issues/SKILL.md
-.agents/skills/flutter-implement-json-serialization/SKILL.md
-.agents/skills/flutter-setup-declarative-routing/SKILL.md
-.agents/skills/flutter-setup-localization/SKILL.md
-.agents/skills/flutter-use-http-package/SKILL.md
 skills-lock.json
+.agents/
