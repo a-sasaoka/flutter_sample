@@ -39,7 +39,9 @@ class FakeFirebaseAuthStateNotifier extends FirebaseAuthStateNotifier {
   final User? initialState;
 
   @override
-  User? build() => initialState;
+  AsyncValue<User?> build() {
+    return AsyncData(initialState);
+  }
 }
 
 class FakeAppLifecycle extends AppLifecycle {

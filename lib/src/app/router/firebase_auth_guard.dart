@@ -13,8 +13,15 @@ String? firebaseAuthGuard(Ref ref, GoRouterState state) {
     return const SplashRoute().location;
   }
 
-  // 現在のログイン状態を取得（コールバック内のため watch ではなく read を使用）
-  final authState = ref.read(firebaseAuthStateProvider);
+  // ログイン状態（ローディング状態含む）を取得
+  final authStateAsync = ref.read(firebaseAuthStateProvider);
+
+  // Firebaseのログイン確認が終わっていない（ローディング中）なら、スプラッシュ画面にとどまる
+  if (authStateAsync.isLoading) {
+    return const SplashRoute().location;
+  }
+
+  final authState = authStateAsync.value;
 
   // ユーザーがログイン済みかどうか
   final isLoggedIn = authState != null;

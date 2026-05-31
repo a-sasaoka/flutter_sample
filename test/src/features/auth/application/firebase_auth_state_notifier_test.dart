@@ -28,7 +28,7 @@ void main() {
         );
         addTearDown(container.dispose);
 
-        // 💡 修正1: listen を使って Provider を「監視状態」にし、勝手に破棄されるのを防ぐ
+        // listen を使って Provider を「監視状態」にし、勝手に破棄されるのを防ぐ
         container.listen(firebaseAuthStateProvider, (_, _) {});
 
         // 非同期データが流れて状態が同期されるまで1フレーム待つ
@@ -38,7 +38,7 @@ void main() {
         final state = container.read(firebaseAuthStateProvider);
 
         // Assert
-        check(state).equals(mockUser);
+        check(state.value).equals(mockUser);
       },
     );
 
@@ -62,12 +62,12 @@ void main() {
         final state = container.read(firebaseAuthStateProvider);
 
         // Assert
-        check(state).isNull();
+        check(state.value).isNull();
       },
     );
 
     test(
-      'ロード中: authStateChangesProvider がまだ値を流していない時、state は null になること',
+      'ロード中: authStateChangesProvider がまだ値を流していない時、state は AsyncLoading になること',
       () async {
         // Arrange
         final streamController = StreamController<User?>();
@@ -89,9 +89,9 @@ void main() {
         final state = container.read(firebaseAuthStateProvider);
 
         // Assert
-        check(state).isNull();
+        check(state).isA<AsyncLoading<User?>>();
 
-        // 💡 修正2: Riverpodのエラー（Bad state）を回避するため、
+        // Riverpodのエラー（Bad state）を回避するため、
         // テスト終了直前にダミーの値を流して「ロード状態」を平和に終わらせる
         streamController.add(null);
         await Future<void>.delayed(Duration.zero);

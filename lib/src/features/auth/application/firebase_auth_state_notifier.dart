@@ -8,10 +8,8 @@ part 'firebase_auth_state_notifier.g.dart';
 @Riverpod(keepAlive: true)
 class FirebaseAuthStateNotifier extends _$FirebaseAuthStateNotifier {
   @override
-  User? build() {
-    // 新しく作成した StreamProvider を監視し、
-    // 最新の非同期データ（User?）を同期的に返すようにする
-    final asyncUser = ref.watch(authStateChangesProvider);
-    return asyncUser.value;
+  AsyncValue<User?> build() {
+    // 認証状態の監視ストリームをそのまま状態として管理する
+    return ref.watch(authStateChangesProvider);
   }
 }
