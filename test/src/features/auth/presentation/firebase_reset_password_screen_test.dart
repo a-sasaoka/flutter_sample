@@ -1,3 +1,4 @@
+// ignore_for_file: prefer_const_constructors, document_ignores
 import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
@@ -65,7 +66,7 @@ void main() {
         ),
         GoRoute(
           path: '/reset',
-          builder: (context, state) => const FirebaseResetPasswordScreen(),
+          builder: (context, state) => FirebaseResetPasswordScreen(),
         ),
       ],
     );

@@ -2,9 +2,7 @@
 ///
 /// `FirebaseAuthException` の `code` プロパティと照合するために使用します。
 /// 公式リファレンス: https://firebase.google.com/docs/auth/admin/errors
-class FirebaseAuthErrorCodes {
-  FirebaseAuthErrorCodes._(); // coverage:ignore-line
-
+abstract final class FirebaseAuthErrorCodes {
   /// メールアドレスの形式が不正な場合にスローされます。
   /// （例: `@` が含まれていない、ドメインがない など）
   static const invalidEmail = 'invalid-email';

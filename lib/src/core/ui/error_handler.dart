@@ -9,9 +9,7 @@ import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:go_router/go_router.dart';
 
 /// エラーをSnackbarまたはDialogで表示する共通関数群
-class ErrorHandler {
-  ErrorHandler._(); // coverage:ignore-line
-
+abstract final class ErrorHandler {
   /// 共通メッセージ変換
   static String message(BuildContext context, Object error) {
     final l10n = context.l10n;

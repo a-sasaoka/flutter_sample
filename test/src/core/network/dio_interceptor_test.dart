@@ -208,10 +208,11 @@ void main() {
       final captured =
           verify(() => handler.reject(captureAny())).captured.first
               as DioException;
-      check(captured.error).isA<UnknownException>();
-      check(
-        (captured.error! as AppException).whenOrNull(unknown: (msg, _) => msg),
-      ).isNotNull().contains('unknown error');
+      check(captured.error)
+          .isA<UnknownException>()
+          .has((e) => e.message, 'message')
+          .isNotNull()
+          .contains('unknown error');
     });
 
     test('onRequest/onResponse: ログが出力され、handler.next が呼ばれること', () {

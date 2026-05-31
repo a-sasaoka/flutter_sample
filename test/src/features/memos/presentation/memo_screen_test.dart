@@ -1,3 +1,4 @@
+// ignore_for_file: prefer_const_constructors, document_ignores
 import 'dart:async';
 
 import 'package:checks/checks.dart';
@@ -81,7 +82,7 @@ void main() {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          home: const MemoScreen(),
+          home: MemoScreen(),
         ),
       ),
     );
@@ -414,7 +415,7 @@ void main() {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            home: const MemoScreen(),
+            home: MemoScreen(),
           ),
         ),
       );

@@ -126,9 +126,9 @@ void main() {
 
       when(() => mockExecutor.runSelect(sql, args)).thenThrow(exception);
 
-      check(
+      await check(
         interceptor.runSelect(mockExecutor, sql, args),
-      ).legacyMatcher(throwsA(exception));
+      ).throws<Exception>();
 
       verify(
         () => mockTalker.error(

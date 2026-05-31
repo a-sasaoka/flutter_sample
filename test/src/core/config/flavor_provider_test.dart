@@ -1,8 +1,8 @@
 import 'package:checks/checks.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:legacy_checks/legacy_checks.dart';
 
 void main() {
   group('flavorProvider テスト', () {
@@ -12,11 +12,10 @@ void main() {
 
       // Assert: 上書きせずに read すると、Provider内部で UnimplementedError が発生し、
       // Riverpodの仕組みにより ProviderException としてラップされて投げられることを確認
-      check(() => container.read(flavorProvider)).legacyMatcher(
-        throwsA(
-          predicate((e) => e.toString().contains('UnimplementedError')),
-        ),
-      );
+      check(() => container.read(flavorProvider))
+          .throws<ProviderException>()
+          .has((e) => e.exception, 'exception')
+          .isA<UnimplementedError>();
     });
 
     test('overrideWithValue で上書きすると、その Flavor を返すこと', () {

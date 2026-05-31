@@ -9,7 +9,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 /// Firebase版のサインアップ画面
 class FirebaseSignUpScreen extends HookConsumerWidget {
   /// コンストラクタ
-  const FirebaseSignUpScreen({super.key}); // coverage:ignore-line
+  const FirebaseSignUpScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

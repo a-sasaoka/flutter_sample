@@ -70,7 +70,7 @@ void main() {
       final (data, ts) = await manager.getWithTimestamp(testKey);
 
       // Assert
-      check(data as Map).deepEquals(testValue);
+      check(data).isA<Map<dynamic, dynamic>>().deepEquals(testValue);
       check(ts).equals(DateTime.fromMillisecondsSinceEpoch(tsMs));
     });
 

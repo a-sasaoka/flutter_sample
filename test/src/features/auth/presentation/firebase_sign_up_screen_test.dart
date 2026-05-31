@@ -1,3 +1,4 @@
+// ignore_for_file: prefer_const_constructors, document_ignores
 import 'package:checks/checks.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -59,7 +60,7 @@ void main() {
       routes: [
         GoRoute(
           path: '/signup',
-          builder: (context, state) => const FirebaseSignUpScreen(),
+          builder: (context, state) => FirebaseSignUpScreen(),
         ),
       ],
       // 成功時に EmailVerificationRoute などへ遷移したことをキャッチする

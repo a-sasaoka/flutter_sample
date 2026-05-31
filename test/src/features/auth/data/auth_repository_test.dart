@@ -6,7 +6,6 @@ import 'package:flutter_sample/src/core/storage/token_storage.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:legacy_checks/legacy_checks.dart';
 import 'package:mocktail/mocktail.dart';
 
 // --- モックとFakeクラスの定義 ---
@@ -127,17 +126,18 @@ void main() {
       ).thenAnswer((_) async => mockResponse);
 
       // Act & Assert
-      check(
-        () => repo.login('test@example.com', 'password123'),
-      ).legacyMatcher(
-        throwsA(
-          isA<Exception>().having(
-            (e) => e.toString(),
-            'message',
-            contains('Invalid token response from server'),
-          ),
-        ),
-      );
+      try {
+        await repo.login('test@example.com', 'password123');
+        fail('Exception not thrown');
+      } on Exception catch (e) {
+        check(e)
+            .isA<Exception>()
+            .has(
+              (e) => e.toString(),
+              'toString()',
+            )
+            .contains('Invalid token response from server');
+      }
 
       // 例外が発生し、TokenStorageに保存処理が行われていないことを確認
       check(fakeStorage.savedAccessToken).isNull();

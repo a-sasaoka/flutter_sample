@@ -210,9 +210,12 @@ void main() {
 
       // Act & Assert (実行と検証)
       // エラーがリポジトリで握りつぶされず、そのまま上位（Notifier）に伝播することを確認
-      check(
-        () => repository.fetchUsers(),
-      ).legacyMatcher(throwsA(exception));
+      try {
+        await repository.fetchUsers();
+        fail('Exception not thrown');
+      } on Exception catch (e) {
+        check(e).equals(exception);
+      }
 
       // エラーが起きたので、キャッシュ保存は絶対に呼ばれていないことを確認
       verifyNever(() => mockCache.save(any<String>(), any<dynamic>()));

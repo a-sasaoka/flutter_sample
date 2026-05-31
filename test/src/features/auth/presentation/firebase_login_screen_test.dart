@@ -1,3 +1,4 @@
+// ignore_for_file: prefer_const_constructors, document_ignores
 import 'package:checks/checks.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -58,7 +59,7 @@ void main() {
       routes: [
         GoRoute(
           path: '/login',
-          builder: (context, state) => const FirebaseLoginScreen(),
+          builder: (context, state) => FirebaseLoginScreen(),
         ),
       ],
       errorBuilder: (context, state) => Scaffold(
@@ -79,7 +80,7 @@ void main() {
 
   group('FirebaseLoginScreen', () {
     test('コンストラクタでインスタンスが生成できること', () {
-      const screen = FirebaseLoginScreen();
+      final screen = FirebaseLoginScreen();
       check(screen).isA<FirebaseLoginScreen>();
     });
 

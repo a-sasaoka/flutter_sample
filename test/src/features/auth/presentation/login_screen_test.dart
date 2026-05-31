@@ -1,3 +1,4 @@
+// ignore_for_file: prefer_const_constructors, document_ignores
 import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
@@ -85,7 +86,7 @@ void main() {
       routes: [
         GoRoute(
           path: '/login',
-          builder: (context, state) => const LoginScreen(),
+          builder: (context, state) => LoginScreen(),
         ),
       ],
     );
@@ -108,7 +109,7 @@ void main() {
 
   group('LoginScreen (API)', () {
     test('コンストラクタでインスタンスが生成できること', () {
-      const screen = LoginScreen();
+      final screen = LoginScreen();
       check(screen).isA<LoginScreen>();
     });
 

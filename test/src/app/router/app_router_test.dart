@@ -1,3 +1,4 @@
+// ignore_for_file: prefer_const_constructors, document_ignores
 import 'package:checks/checks.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -535,23 +536,23 @@ void main() {
     });
 
     test('HomeBranch: インスタンス化できること', () {
-      check(const HomeBranch()).isNotNull();
+      check(HomeBranch()).isNotNull();
     });
 
     test('ChatBranch: インスタンス化できること', () {
-      check(const ChatBranch()).isNotNull();
+      check(ChatBranch()).isNotNull();
     });
 
     test('MemosBranch: インスタンス化できること', () {
-      check(const MemosBranch()).isNotNull();
+      check(MemosBranch()).isNotNull();
     });
 
     test('ChartBranch: インスタンス化できること', () {
-      check(const ChartBranch()).isNotNull();
+      check(ChartBranch()).isNotNull();
     });
 
     test('UserBranch: インスタンス化できること', () {
-      check(const UserBranch()).isNotNull();
+      check(UserBranch()).isNotNull();
     });
   });
 
