@@ -199,6 +199,50 @@ void main() {
           subscription.close();
         },
       );
+
+      test(
+        'build は入力値（searchQueryやsortOrder）が変更されて再構築される際に、追加のリモート同期を呼び出さないこと',
+        () async {
+          final onlineContainer = ProviderContainer(
+            overrides: [
+              memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+              isOnlineProvider.overrideWithValue(true),
+            ],
+          );
+          addTearDown(onlineContainer.dispose);
+
+          when(
+            () => mockMemoRepository.watchAllMemos(),
+          ).thenAnswer((_) => Stream.value(<MemoModel>[]));
+          when(
+            () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+          ).thenAnswer((_) async {});
+
+          final subscription = onlineContainer.listen(memoProvider, (_, _) {});
+          await onlineContainer.read(memoProvider.future);
+
+          // 初回ビルド時に fetchAndMergeRemoteMemos が1回呼ばれることを検証
+          verify(() => mockMemoRepository.fetchAndMergeRemoteMemos()).called(1);
+          clearInteractions(mockMemoRepository);
+
+          // searchQueryProviderを更新して再構築をトリガー
+          onlineContainer
+              .read(memoSearchQueryProvider.notifier)
+              .setQuery('search word');
+          await onlineContainer.read(memoProvider.future);
+
+          // sortOrderStateProviderを更新して再構築をトリガー
+          onlineContainer
+              .read(memoSortOrderStateProvider.notifier)
+              .setSortOrder(MemoSortOrder.titleAsc);
+          await onlineContainer.read(memoProvider.future);
+
+          // 追加の同期呼び出しが行われていないことを検証
+          verifyNever(() => mockMemoRepository.fetchAndMergeRemoteMemos());
+
+          subscription.close();
+        },
+      );
     });
 
     group('手動同期（sync）の動作', () {

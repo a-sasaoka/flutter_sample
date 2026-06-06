@@ -204,38 +204,27 @@ class MemoRepository {
     // データベースから「削除されていない」データを取り出す
     final driftMemos = await _dao.getAllMemos();
 
-    return driftMemos
-        .map(
-          (memo) => MemoModel(
-            id: memo.id,
-            title: memo.title,
-            content: memo.content,
-            createdAt: memo.createdAt,
-            updatedAt: memo.updatedAt,
-            isDeleted: memo.isDeleted,
-            isSynced: memo.isSynced,
-          ),
-        )
-        .toList();
+    return driftMemos.map(_mapToMemoModel).toList();
   }
 
   /// データベースの変更を自動で検知して流し続けるストリーム
   Stream<List<MemoModel>> watchAllMemos() {
     return _dao.watchAllMemos().map((driftMemos) {
-      return driftMemos
-          .map(
-            (memo) => MemoModel(
-              id: memo.id,
-              title: memo.title,
-              content: memo.content,
-              createdAt: memo.createdAt,
-              updatedAt: memo.updatedAt,
-              isDeleted: memo.isDeleted,
-              isSynced: memo.isSynced,
-            ),
-          )
-          .toList();
+      return driftMemos.map(_mapToMemoModel).toList();
     });
+  }
+
+  /// DriftのMemoデータをドメイン層のMemoModelへ変換するヘルパーメソッド
+  MemoModel _mapToMemoModel(Memo memo) {
+    return MemoModel(
+      id: memo.id,
+      title: memo.title,
+      content: memo.content,
+      createdAt: memo.createdAt,
+      updatedAt: memo.updatedAt,
+      isDeleted: memo.isDeleted,
+      isSynced: memo.isSynced,
+    );
   }
 
   /// リモートサーバーからメモを取得し、ローカルデータベースとマージする処理

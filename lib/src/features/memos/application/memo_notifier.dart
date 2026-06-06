@@ -34,12 +34,15 @@ class MemoSortOrderState extends _$MemoSortOrderState {
 /// メモ一覧のデータ（状態）を管理するためのクラス
 @riverpod
 class MemoNotifier extends _$MemoNotifier {
+  bool _hasSyncedOnInitialOnline = false;
+
   @override
   Stream<List<MemoModel>> build() {
     final repository = ref.watch(memoRepositoryProvider);
 
     // オンライン時はバックグラウンドで未送信データの同期とリモートデータの取得を行う
-    if (ref.watch(isOnlineProvider)) {
+    if (!_hasSyncedOnInitialOnline && ref.watch(isOnlineProvider)) {
+      _hasSyncedOnInitialOnline = true;
       unawaited(_syncAndFetch(repository));
     }
 
