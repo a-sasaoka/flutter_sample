@@ -17,10 +17,15 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
     }
   });
 
+  // CI環境（GitHub Actionsなど）かどうかを判定する
+  final isRunningInCi = Platform.environment.containsKey('CI');
+
   // Alchemistの設定を適用してテストを実行する
   return AlchemistConfig.runWithConfig(
-    config: const AlchemistConfig(
-      platformGoldensConfig: PlatformGoldensConfig(),
+    config: AlchemistConfig(
+      platformGoldensConfig: PlatformGoldensConfig(
+        enabled: !isRunningInCi,
+      ),
     ),
     run: testMain,
   );
