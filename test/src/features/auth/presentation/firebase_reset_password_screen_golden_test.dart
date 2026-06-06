@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../../../core/widgets/widgets_test_helper.dart';
 import 'firebase_reset_password_screen_test.dart';
 
 void main() {
