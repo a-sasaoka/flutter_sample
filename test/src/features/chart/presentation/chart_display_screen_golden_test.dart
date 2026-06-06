@@ -1,13 +1,12 @@
 import 'package:alchemist/alchemist.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
-import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/features/chart/application/chart_notifier.dart';
 import 'package:flutter_sample/src/features/chart/domain/chart_type.dart';
 import 'package:flutter_sample/src/features/chart/presentation/chart_display_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+import '../../../../golden_test_helper.dart';
 
 void main() {
   group('ChartDisplayScreen Golden Tests', () {
@@ -29,29 +28,9 @@ void main() {
 
       return UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(
-          // 日本語フォントを適用したテーマを設定します
-          theme: AppTheme.light().copyWith(
-            textTheme: AppTheme.light().textTheme.apply(
-              fontFamily: 'NotoSansJP',
-            ),
-          ),
-          darkTheme: AppTheme.dark().copyWith(
-            textTheme: AppTheme.dark().textTheme.apply(
-              fontFamily: 'NotoSansJP',
-            ),
-          ),
-          themeMode: themeMode,
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('ja'),
+        child: buildGoldenTestApp(
           home: const ChartDisplayScreen(),
-          debugShowCheckedModeBanner: false,
+          themeMode: themeMode,
         ),
       );
     }
