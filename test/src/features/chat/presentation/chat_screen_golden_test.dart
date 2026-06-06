@@ -72,6 +72,7 @@ void main() {
     goldenTest(
       'ChatScreen の描画 (会話中/思考中)',
       fileName: 'chat_screen',
+      // 無限アニメーション（Shimmerやローディング）によるテストのタイムアウトを防ぐため、1回だけ描画します
       pumpBeforeTest: pumpOnce,
       builder: () => GoldenTestGroup(
         children: [
