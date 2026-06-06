@@ -2,27 +2,14 @@ import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 
+import 'widgets_test_helper.dart';
+
 class MockGoRouter extends Mock implements GoRouter {}
-
-class MockAppLocalizations extends Mock implements AppLocalizations {}
-
-class _MockLocalizationsDelegate
-    extends LocalizationsDelegate<AppLocalizations> {
-  const _MockLocalizationsDelegate(this.mock);
-  final MockAppLocalizations mock;
-  @override
-  bool isSupported(Locale locale) => true;
-  @override
-  Future<AppLocalizations> load(Locale locale) async => mock;
-  @override
-  bool shouldReload(covariant _) => false;
-}
 
 void main() {
   group('NotFoundScreen', () {
@@ -47,7 +34,7 @@ void main() {
         MaterialApp(
           theme: ThemeData(useMaterial3: true),
           localizationsDelegates: [
-            _MockLocalizationsDelegate(mockL10n),
+            MockLocalizationsDelegate(mockL10n),
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
