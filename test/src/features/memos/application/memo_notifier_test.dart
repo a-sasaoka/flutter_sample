@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:checks/checks.dart';
+import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
@@ -6,6 +10,7 @@ import 'package:flutter_sample/src/features/memos/domain/memo_sort_order.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 class MockMemoRepository extends Mock implements MemoRepository {}
 
@@ -19,15 +24,20 @@ void main() {
       container = ProviderContainer(
         overrides: [
           memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+          isOnlineProvider.overrideWithValue(false),
         ],
       );
+      // デフォルトの振る舞い
+      when(
+        () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+      ).thenAnswer((_) async {});
     });
 
     tearDown(() {
       container.dispose();
     });
 
-    test('build() は repository.getAllMemos() の結果を返すこと', () async {
+    test('build() は repository.watchAllMemos() の結果を返すこと', () async {
       final mockMemos = [
         MemoModel(
           id: '1',
@@ -39,89 +49,226 @@ void main() {
       ];
 
       when(
-        () => mockMemoRepository.getAllMemos(),
-      ).thenAnswer((_) async => mockMemos);
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => Stream.value(mockMemos));
 
       final subscription = container.listen(memoProvider, (_, _) {});
 
       final memos = await container.read(memoProvider.future);
 
       check(memos).deepEquals(mockMemos);
-      verify(() => mockMemoRepository.getAllMemos()).called(1);
+      verify(() => mockMemoRepository.watchAllMemos()).called(1);
 
       subscription.close();
     });
 
-    test('addMemo は repository.addMemo() を呼び、状態を再取得すること', () async {
+    test('addMemo は repository.addMemo() を呼び出すこと', () async {
+      final controller = StreamController<List<MemoModel>>();
+      addTearDown(controller.close);
+
       when(
-        () => mockMemoRepository.getAllMemos(),
-      ).thenAnswer((_) async => []);
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => controller.stream);
       when(
         () => mockMemoRepository.addMemo(any(), any()),
       ).thenAnswer((_) async {});
 
       final subscription = container.listen(memoProvider, (_, _) {});
 
+      controller.add([]);
+
       await container.read(memoProvider.future);
       await container.read(memoProvider.notifier).addMemo('タイトル', '内容');
-      // invalidate後に再取得を待つ
-      await container.read(memoProvider.future);
 
       verify(() => mockMemoRepository.addMemo('タイトル', '内容')).called(1);
-      // build() が合計2回呼ばれる（初回 + addMemo後のinvalidate）
-      verify(() => mockMemoRepository.getAllMemos()).called(2);
 
       subscription.close();
     });
 
-    test('deleteMemo は repository.deleteMemo() を呼び、状態を再取得すること', () async {
+    test('deleteMemo は repository.deleteMemo() を呼び出すこと', () async {
+      final controller = StreamController<List<MemoModel>>();
+      addTearDown(controller.close);
+
       when(
-        () => mockMemoRepository.getAllMemos(),
-      ).thenAnswer((_) async => []);
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => controller.stream);
       when(
         () => mockMemoRepository.deleteMemo(any()),
       ).thenAnswer((_) async {});
 
       final subscription = container.listen(memoProvider, (_, _) {});
 
+      controller.add([]);
+
       await container.read(memoProvider.future);
       await container.read(memoProvider.notifier).deleteMemo('id1');
-      // invalidate後に再取得を待つ
-      await container.read(memoProvider.future);
 
       verify(() => mockMemoRepository.deleteMemo('id1')).called(1);
-      verify(() => mockMemoRepository.getAllMemos()).called(2);
 
       subscription.close();
     });
 
-    test('sync は repository.syncUnsentMemos() を呼び、状態を再取得すること', () async {
-      when(
-        () => mockMemoRepository.getAllMemos(),
-      ).thenAnswer((_) async => []);
-      when(
-        () => mockMemoRepository.syncUnsentMemos(),
-      ).thenAnswer((_) async {});
+    group('初期化時（build）の同期処理', () {
+      test(
+        'build はオンライン時に repository.fetchAndMergeRemoteMemos() を呼び出すこと',
+        () async {
+          final controller = StreamController<List<MemoModel>>();
+          addTearDown(controller.close);
 
-      final subscription = container.listen(memoProvider, (_, _) {});
+          final onlineContainer = ProviderContainer(
+            overrides: [
+              memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+              isOnlineProvider.overrideWithValue(true),
+            ],
+          );
+          addTearDown(onlineContainer.dispose);
 
-      await container.read(memoProvider.future);
-      await container.read(memoProvider.notifier).sync();
-      // invalidate後に再取得を待つ
-      await container.read(memoProvider.future);
+          when(
+            () => mockMemoRepository.watchAllMemos(),
+          ).thenAnswer((_) => controller.stream);
+          when(
+            () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+          ).thenAnswer((_) async {});
 
-      verify(() => mockMemoRepository.syncUnsentMemos()).called(1);
-      verify(() => mockMemoRepository.getAllMemos()).called(2);
+          final subscription = onlineContainer.listen(memoProvider, (_, _) {});
+          controller.add([]);
+          await onlineContainer.read(memoProvider.future);
 
-      subscription.close();
+          verify(() => mockMemoRepository.fetchAndMergeRemoteMemos()).called(1);
+          subscription.close();
+        },
+      );
+
+      test(
+        'build はオンライン時かつ同期処理でエラーが発生した場合にログを出力し、状態は正常に完了すること',
+        () async {
+          final controller = StreamController<List<MemoModel>>();
+          addTearDown(controller.close);
+
+          final talker = Talker();
+
+          final onlineContainer = ProviderContainer(
+            overrides: [
+              memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+              isOnlineProvider.overrideWithValue(true),
+              loggerProvider.overrideWithValue(talker),
+            ],
+          );
+          addTearDown(onlineContainer.dispose);
+
+          final exception = Exception('Sync error');
+
+          when(
+            () => mockMemoRepository.watchAllMemos(),
+          ).thenAnswer((_) => controller.stream);
+          when(
+            () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+          ).thenThrow(exception);
+
+          final subscription = onlineContainer.listen(memoProvider, (_, _) {});
+          controller.add([]);
+          await onlineContainer.read(memoProvider.future);
+
+          final errorLogs = talker.history.where(
+            (log) => log.message == 'バックグラウンド同期中にエラーが発生しました',
+          );
+          check(errorLogs.length).equals(1);
+
+          subscription.close();
+        },
+      );
+
+      test(
+        'build はオフライン時は repository.fetchAndMergeRemoteMemos() を呼び出さないこと',
+        () async {
+          final controller = StreamController<List<MemoModel>>();
+          addTearDown(controller.close);
+
+          when(
+            () => mockMemoRepository.watchAllMemos(),
+          ).thenAnswer((_) => controller.stream);
+          when(
+            () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+          ).thenAnswer((_) async {});
+
+          final subscription = container.listen(memoProvider, (_, _) {});
+          controller.add([]);
+          await container.read(memoProvider.future);
+
+          verifyNever(() => mockMemoRepository.fetchAndMergeRemoteMemos());
+          subscription.close();
+        },
+      );
     });
 
-    test('repository.getAllMemos() でエラーが発生した場合、状態にエラーが保持されること', () async {
+    group('手動同期（sync）の動作', () {
+      test(
+        'sync はオンライン時に repository.fetchAndMergeRemoteMemos() を呼び出すこと',
+        () async {
+          final controller = StreamController<List<MemoModel>>();
+          addTearDown(controller.close);
+
+          final onlineContainer = ProviderContainer(
+            overrides: [
+              memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+              isOnlineProvider.overrideWithValue(true),
+            ],
+          );
+          addTearDown(onlineContainer.dispose);
+
+          when(
+            () => mockMemoRepository.watchAllMemos(),
+          ).thenAnswer((_) => controller.stream);
+          when(
+            () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+          ).thenAnswer((_) async {});
+
+          final subscription = onlineContainer.listen(memoProvider, (_, _) {});
+          controller.add([]);
+          await onlineContainer.read(memoProvider.future);
+
+          // 初期化時の同期呼び出し履歴をクリアし、sync() 自体の呼び出しのみをカウントできるようにする
+          clearInteractions(mockMemoRepository);
+
+          await onlineContainer.read(memoProvider.notifier).sync();
+
+          verify(() => mockMemoRepository.fetchAndMergeRemoteMemos()).called(1);
+          subscription.close();
+        },
+      );
+
+      test(
+        'sync はオフライン時は repository.fetchAndMergeRemoteMemos() を呼び出さないこと',
+        () async {
+          final controller = StreamController<List<MemoModel>>();
+          addTearDown(controller.close);
+
+          when(
+            () => mockMemoRepository.watchAllMemos(),
+          ).thenAnswer((_) => controller.stream);
+          when(
+            () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+          ).thenAnswer((_) async {});
+
+          final subscription = container.listen(memoProvider, (_, _) {});
+          controller.add([]);
+          await container.read(memoProvider.future);
+          clearInteractions(mockMemoRepository);
+
+          await container.read(memoProvider.notifier).sync();
+
+          verifyNever(() => mockMemoRepository.fetchAndMergeRemoteMemos());
+          subscription.close();
+        },
+      );
+    });
+
+    test('repository.watchAllMemos() でエラーが発生した場合、状態にエラーが保持されること', () async {
       final exception = Exception('読み込み失敗');
 
       when(
-        () => mockMemoRepository.getAllMemos(),
-      ).thenAnswer((_) async => throw exception);
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => Stream.error(exception));
 
       final subscription = container.listen(memoProvider, (_, _) {});
 
@@ -165,8 +312,8 @@ void main() {
 
       setUp(() {
         when(
-          () => mockMemoRepository.getAllMemos(),
-        ).thenAnswer((_) async => mockMemos);
+          () => mockMemoRepository.watchAllMemos(),
+        ).thenAnswer((_) => Stream.value(mockMemos));
       });
 
       test('検索キーワードによる絞り込みができること', () async {

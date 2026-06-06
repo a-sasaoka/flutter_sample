@@ -36,7 +36,7 @@ class MemoScreen extends ConsumerWidget {
             const _MemoSearchAndSortBar(),
             Expanded(
               child: RefreshIndicator(
-                onRefresh: () => ref.refresh(memoProvider.future),
+                onRefresh: () => ref.read(memoProvider.notifier).sync(),
                 child: const _MemoListView(),
               ),
             ),

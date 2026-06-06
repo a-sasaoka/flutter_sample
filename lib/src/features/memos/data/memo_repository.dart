@@ -199,6 +199,47 @@ class MemoRepository {
 
   /// 保存されているすべてのメモを一覧（リスト）として取得する
   Future<List<MemoModel>> getAllMemos() async {
+    await fetchAndMergeRemoteMemos();
+
+    // データベースから「削除されていない」データを取り出す
+    final driftMemos = await _dao.getAllMemos();
+
+    return driftMemos
+        .map(
+          (memo) => MemoModel(
+            id: memo.id,
+            title: memo.title,
+            content: memo.content,
+            createdAt: memo.createdAt,
+            updatedAt: memo.updatedAt,
+            isDeleted: memo.isDeleted,
+            isSynced: memo.isSynced,
+          ),
+        )
+        .toList();
+  }
+
+  /// データベースの変更を自動で検知して流し続けるストリーム
+  Stream<List<MemoModel>> watchAllMemos() {
+    return _dao.watchAllMemos().map((driftMemos) {
+      return driftMemos
+          .map(
+            (memo) => MemoModel(
+              id: memo.id,
+              title: memo.title,
+              content: memo.content,
+              createdAt: memo.createdAt,
+              updatedAt: memo.updatedAt,
+              isDeleted: memo.isDeleted,
+              isSynced: memo.isSynced,
+            ),
+          )
+          .toList();
+    });
+  }
+
+  /// リモートサーバーからメモを取得し、ローカルデータベースとマージする処理
+  Future<void> fetchAndMergeRemoteMemos() async {
     // 未送信のメモがあればサーバーに送る
     if (_isOnline) {
       await syncUnsentMemos();
@@ -250,23 +291,6 @@ class MemoRepository {
     } on Exception catch (e) {
       _talker.error('Failed to fetch data from the server: $e');
     }
-
-    // データベースから「削除されていない」データを取り出す
-    final driftMemos = await _dao.getAllMemos();
-
-    return driftMemos
-        .map(
-          (memo) => MemoModel(
-            id: memo.id,
-            title: memo.title,
-            content: memo.content,
-            createdAt: memo.createdAt,
-            updatedAt: memo.updatedAt,
-            isDeleted: memo.isDeleted,
-            isSynced: memo.isSynced,
-          ),
-        )
-        .toList();
   }
 }
 

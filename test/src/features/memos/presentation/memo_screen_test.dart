@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
@@ -66,14 +67,23 @@ void main() {
     when(() => mockL10n.memoSortUpdatedAtAsc).thenReturn('更新：古い順');
     when(() => mockL10n.memoSortTitleAsc).thenReturn('タイトル：昇順');
     when(() => mockL10n.memoSortTitleDesc).thenReturn('タイトル：降順');
+
+    // デフォルトのスタブ設定
+    when(
+      () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+    ).thenAnswer((_) async {});
+    when(
+      () => mockMemoRepository.watchAllMemos(),
+    ).thenAnswer((_) => Stream.value([]));
   });
 
   /// テスト環境のセットアップヘルパー
-  Future<void> setupWidget(WidgetTester tester) async {
+  Future<void> setupWidget(WidgetTester tester, {bool isOnline = true}) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+          isOnlineProvider.overrideWithValue(isOnline),
         ],
         child: MaterialApp(
           localizationsDelegates: [
@@ -93,8 +103,8 @@ void main() {
     testWidgets('ローディング状態が正しく表示されること', (tester) async {
       final completer = Completer<List<MemoModel>>();
       when(
-        () => mockMemoRepository.getAllMemos(),
-      ).thenAnswer((_) => completer.future);
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => completer.future.asStream());
 
       await setupWidget(tester);
 
@@ -103,8 +113,8 @@ void main() {
 
     testWidgets('エラー状態が正しく表示されること', (tester) async {
       when(
-        () => mockMemoRepository.getAllMemos(),
-      ).thenAnswer((_) => Future.error(Exception('Test Error')));
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => Stream.error(Exception('Test Error')));
 
       await setupWidget(tester);
       await tester.pumpAndSettle();
@@ -113,7 +123,9 @@ void main() {
     });
 
     testWidgets('データが空の場合、空の状態が表示されること', (tester) async {
-      when(() => mockMemoRepository.getAllMemos()).thenAnswer((_) async => []);
+      when(
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => Stream.value([]));
 
       await setupWidget(tester);
       await tester.pumpAndSettle();
@@ -135,8 +147,8 @@ void main() {
         ),
       ];
       when(
-        () => mockMemoRepository.getAllMemos(),
-      ).thenAnswer((_) async => memoList);
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => Stream.value(memoList));
 
       await setupWidget(tester);
       await tester.pumpAndSettle();
@@ -148,7 +160,9 @@ void main() {
     });
 
     testWidgets('FABを押すとボトムシートが開き、メモを追加できること', (tester) async {
-      when(() => mockMemoRepository.getAllMemos()).thenAnswer((_) async => []);
+      when(
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => Stream.value([]));
       when(
         () => mockMemoRepository.addMemo(any(), any()),
       ).thenAnswer((_) async {});
@@ -185,8 +199,8 @@ void main() {
         updatedAt: now,
       );
       when(
-        () => mockMemoRepository.getAllMemos(),
-      ).thenAnswer((_) async => [memo]);
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => Stream.value([memo]));
 
       await setupWidget(tester);
       await tester.pumpAndSettle();
@@ -214,8 +228,8 @@ void main() {
         updatedAt: now,
       );
       when(
-        () => mockMemoRepository.getAllMemos(),
-      ).thenAnswer((_) async => [memo]);
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => Stream.value([memo]));
       when(() => mockMemoRepository.deleteMemo(any())).thenAnswer((_) async {});
 
       await setupWidget(tester);
@@ -235,10 +249,9 @@ void main() {
     });
 
     testWidgets('同期ボタンを押すと同期処理が呼ばれること', (tester) async {
-      when(() => mockMemoRepository.getAllMemos()).thenAnswer((_) async => []);
       when(
-        () => mockMemoRepository.syncUnsentMemos(),
-      ).thenAnswer((_) async {});
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => Stream.value([]));
 
       await setupWidget(tester);
       await tester.pumpAndSettle();
@@ -246,11 +259,14 @@ void main() {
       await tester.tap(find.byIcon(Icons.sync));
       await tester.pumpAndSettle();
 
-      verify(() => mockMemoRepository.syncUnsentMemos()).called(1);
+      // build時に1回、同期ボタンタップ時に1回で合計2回
+      verify(() => mockMemoRepository.fetchAndMergeRemoteMemos()).called(2);
     });
 
     testWidgets('引っ張って更新（Pull to Refresh）が動作すること', (tester) async {
-      when(() => mockMemoRepository.getAllMemos()).thenAnswer((_) async => []);
+      when(
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => Stream.value([]));
 
       await setupWidget(tester);
       await tester.pumpAndSettle();
@@ -261,8 +277,9 @@ void main() {
       await tester.pump(const Duration(seconds: 1)); // 完了待ち
       await tester.pumpAndSettle();
 
-      // リロードのために getAllMemos が再度呼ばれることを確認
-      verify(() => mockMemoRepository.getAllMemos()).called(2);
+      // リロードのために fetchAndMergeRemoteMemos が再度呼ばれることを確認
+      // (初回 build 時に 1 回、onRefresh 時に 1 回で合計 2 回)
+      verify(() => mockMemoRepository.fetchAndMergeRemoteMemos()).called(2);
     });
 
     testWidgets('検索キーワードを入力した際、部分一致するメモだけが表示されること（インクリメンタルサーチ）', (
@@ -286,8 +303,8 @@ void main() {
         ),
       ];
       when(
-        () => mockMemoRepository.getAllMemos(),
-      ).thenAnswer((_) async => memoList);
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => Stream.value(memoList));
 
       await setupWidget(tester);
       await tester.pumpAndSettle();
@@ -333,8 +350,8 @@ void main() {
         ),
       ];
       when(
-        () => mockMemoRepository.getAllMemos(),
-      ).thenAnswer((_) async => memoList);
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => Stream.value(memoList));
 
       await setupWidget(tester);
       await tester.pumpAndSettle();
@@ -359,7 +376,9 @@ void main() {
     });
 
     testWidgets('画面外タップでキーボードが閉じること(一覧画面および追加ボトムシート)', (tester) async {
-      when(() => mockMemoRepository.getAllMemos()).thenAnswer((_) async => []);
+      when(
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => Stream.value([]));
       await setupWidget(tester);
       await tester.pumpAndSettle();
 
@@ -396,7 +415,9 @@ void main() {
     });
 
     testWidgets('外部から検索クエリが変更された場合に入力欄の文字が同期して更新されること', (tester) async {
-      when(() => mockMemoRepository.getAllMemos()).thenAnswer((_) async => []);
+      when(
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => Stream.value([]));
 
       // Riverpodのコンテナに直接アクセスして状態を操作できるようにするため、
       // setupWidget ではなくここで個別にProviderScopeを準備します。

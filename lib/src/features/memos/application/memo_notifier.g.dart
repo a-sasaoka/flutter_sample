@@ -132,7 +132,7 @@ final memoProvider = MemoNotifierProvider._();
 
 /// メモ一覧のデータ（状態）を管理するためのクラス
 final class MemoNotifierProvider
-    extends $AsyncNotifierProvider<MemoNotifier, List<MemoModel>> {
+    extends $StreamNotifierProvider<MemoNotifier, List<MemoModel>> {
   /// メモ一覧のデータ（状態）を管理するためのクラス
   MemoNotifierProvider._()
     : super(
@@ -153,12 +153,12 @@ final class MemoNotifierProvider
   MemoNotifier create() => MemoNotifier();
 }
 
-String _$memoNotifierHash() => r'75bde6ad3223ec81567b7a5428b84b4fd15d870d';
+String _$memoNotifierHash() => r'ec0f6ffe77f5962e34fb90e31ffcc77ab0e3f425';
 
 /// メモ一覧のデータ（状態）を管理するためのクラス
 
-abstract class _$MemoNotifier extends $AsyncNotifier<List<MemoModel>> {
-  FutureOr<List<MemoModel>> build();
+abstract class _$MemoNotifier extends $StreamNotifier<List<MemoModel>> {
+  Stream<List<MemoModel>> build();
   @$mustCallSuper
   @override
   void runBuild() {

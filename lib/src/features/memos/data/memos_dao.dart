@@ -14,6 +14,10 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
   Future<List<Memo>> getAllMemos() =>
       (select(memos)..where((t) => t.isDeleted.equals(false))).get();
 
+  /// すべてのメモの変更を監視する（削除されていないもの）
+  Stream<List<Memo>> watchAllMemos() =>
+      (select(memos)..where((t) => t.isDeleted.equals(false))).watch();
+
   /// メモをIDで1件取得する
   Future<Memo> getMemoById(String id) =>
       (select(memos)..where((t) => t.id.equals(id))).getSingle();

@@ -596,5 +596,42 @@ void main() {
       final repo = container.read(memoRepositoryProvider);
       check(repo).isA<MemoRepository>();
     });
+
+    test('watchAllMemos: データベースに保存されたメモを Stream で取得でき、変更が通知されること', () async {
+      final container = createContainer(isOnline: false);
+      final repository = container.read(memoRepositoryProvider);
+
+      await repository.addMemo('watch1', 'content1');
+
+      final stream = repository.watchAllMemos();
+
+      final firstList = await stream.first;
+      check(firstList.length).equals(1);
+      check(firstList.first.title).equals('watch1');
+    });
+
+    test('fetchAndMergeRemoteMemos: オンラインの場合、リモートから取得してマージすること', () async {
+      final container = createContainer();
+      final repository = container.read(memoRepositoryProvider);
+      when(() => mockRemoteService.fetchMemos()).thenAnswer(
+        (_) async => [
+          {
+            'id': 'remote_fetch',
+            'title': 'fetch_title',
+            'content': 'fetch_content',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+        ],
+      );
+
+      await repository.fetchAndMergeRemoteMemos();
+
+      final memos = await database.select(database.memos).get();
+      check(memos.length).equals(1);
+      check(memos.first.id).equals('remote_fetch');
+      check(memos.first.title).equals('fetch_title');
+    });
   });
 }
