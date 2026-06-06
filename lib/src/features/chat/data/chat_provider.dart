@@ -9,7 +9,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'chat_provider.g.dart';
 
 /// チャットのリポジトリを提供するプロバイダー
-@riverpod
+@Riverpod(keepAlive: true)
 ChatRepository chatRepository(Ref ref) {
   final now = ref.watch(clockProvider)();
   final config = ref.watch(envConfigProvider);
