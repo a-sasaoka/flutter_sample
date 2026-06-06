@@ -3,33 +3,18 @@ import 'package:checks/checks.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_sign_up_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+import '../../../core/widgets/widgets_test_helper.dart';
 
 // --- モッククラスの定義 ---
 
 class MockFirebaseAuthRepository extends Mock
     implements FirebaseAuthRepository {}
-
-class MockAppLocalizations extends Mock implements AppLocalizations {}
-
-class MockLocalizationsDelegate
-    extends LocalizationsDelegate<AppLocalizations> {
-  const MockLocalizationsDelegate(this.mock);
-  final MockAppLocalizations mock;
-  @override
-  bool isSupported(Locale locale) => true;
-  @override
-  Future<AppLocalizations> load(Locale locale) async => mock;
-  @override
-  bool shouldReload(covariant LocalizationsDelegate<AppLocalizations> old) =>
-      false;
-}
 
 void main() {
   late MockFirebaseAuthRepository mockAuthRepo;
