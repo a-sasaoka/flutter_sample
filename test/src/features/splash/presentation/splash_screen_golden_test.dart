@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
-import 'splash_screen_test.dart';
+import '../../../core/widgets/widgets_test_helper.dart';
 
 void main() {
   group('SplashScreen Golden Tests', () {
