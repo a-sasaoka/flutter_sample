@@ -114,6 +114,12 @@ void main() {
     when(
       () => mockMemoRepository.getAllMemos(),
     ).thenAnswer((_) async => <MemoModel>[]);
+    when(
+      () => mockMemoRepository.watchAllMemos(),
+    ).thenAnswer((_) => Stream.value(<MemoModel>[]));
+    when(
+      () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+    ).thenAnswer((_) async {});
 
     when(() => mockUser.uid).thenReturn('dummy_uid_123');
     when(() => mockUser.emailVerified).thenReturn(true);

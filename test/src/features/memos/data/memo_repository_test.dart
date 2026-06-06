@@ -8,6 +8,7 @@ import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_remote_service.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
+import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
@@ -595,6 +596,65 @@ void main() {
       final container = createContainer();
       final repo = container.read(memoRepositoryProvider);
       check(repo).isA<MemoRepository>();
+    });
+
+    test('watchAllMemos: データベースに保存されたメモを Stream で取得でき、変更が通知されること', () async {
+      final container = createContainer(isOnline: false);
+      final repository = container.read(memoRepositoryProvider);
+
+      final emissions = <List<MemoModel>>[];
+      // Streamの購読を開始
+      final subscription = repository.watchAllMemos().listen(emissions.add);
+
+      // 1. 初期状態（空リスト）のイベントが届くのを待つ
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      check(emissions.length).equals(1);
+      check(emissions.first).isEmpty();
+
+      // 2. 1つ目のメモを追加
+      await repository.addMemo('watch1', 'content1');
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      check(emissions.length).equals(2);
+      check(emissions[1].length).equals(1);
+      check(emissions[1][0].title).equals('watch1');
+
+      // 3. 2つ目のメモを追加
+      await repository.addMemo('watch2', 'content2');
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      check(emissions.length).equals(3);
+      check(emissions[2].length).equals(2);
+
+      // 4. 最新リストに両方のメモが含まれていることを確認
+      final titles = emissions[2].map((m) => m.title).toList();
+      check(titles).contains('watch1');
+      check(titles).contains('watch2');
+
+      // 購読を解除
+      await subscription.cancel();
+    });
+
+    test('fetchAndMergeRemoteMemos: オンラインの場合、リモートから取得してマージすること', () async {
+      final container = createContainer();
+      final repository = container.read(memoRepositoryProvider);
+      when(() => mockRemoteService.fetchMemos()).thenAnswer(
+        (_) async => [
+          {
+            'id': 'remote_fetch',
+            'title': 'fetch_title',
+            'content': 'fetch_content',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+        ],
+      );
+
+      await repository.fetchAndMergeRemoteMemos();
+
+      final memos = await database.select(database.memos).get();
+      check(memos.length).equals(1);
+      check(memos.first.id).equals('remote_fetch');
+      check(memos.first.title).equals('fetch_title');
     });
   });
 }
