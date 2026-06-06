@@ -48,5 +48,6 @@ Flutter開発のサンプルプロジェクトです。\
 ### E. 開発運用
 
 - [コード生成コマンド](docs/code_generation.md)
+- [テスト方針とゴールデンテスト](docs/testing.md)
 - [アプリアイコンの変更手順](docs/app_icon.md)
 - [今後の拡張案](docs/roadmap.md)

@@ -53,9 +53,9 @@ class FakeLocaleNotifier extends LocaleNotifier {
   }
 }
 
-class _MockLocalizationsDelegate
+class MockLocalizationsDelegate
     extends LocalizationsDelegate<AppLocalizations> {
-  const _MockLocalizationsDelegate(this.mock);
+  const MockLocalizationsDelegate(this.mock);
   final MockAppLocalizations mock;
   @override
   bool isSupported(Locale locale) => true;
@@ -156,7 +156,7 @@ void main() {
       child: MaterialApp.router(
         routerConfig: router,
         localizationsDelegates: [
-          _MockLocalizationsDelegate(mockL10n),
+          MockLocalizationsDelegate(mockL10n),
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,

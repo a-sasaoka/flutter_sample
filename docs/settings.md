@@ -64,3 +64,5 @@ lib/src/features/settings/
   - スイッチによるダークモードの反転。
   - ログアウト処理の成功／失敗（SnackBar表示）のパス。
   - ビューポートサイズ固定によるスクロール操作の安定性。
+- **Golden Test**:
+  - `SettingsScreen`: 設定画面のライトモード/ダークモードでの表示確認。

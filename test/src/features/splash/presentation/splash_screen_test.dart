@@ -13,9 +13,9 @@ import 'package:mocktail/mocktail.dart';
 
 class MockAppLocalizations extends Mock implements AppLocalizations {}
 
-class _MockLocalizationsDelegate
+class MockLocalizationsDelegate
     extends LocalizationsDelegate<AppLocalizations> {
-  const _MockLocalizationsDelegate(this.mock);
+  const MockLocalizationsDelegate(this.mock);
   final MockAppLocalizations mock;
   @override
   bool isSupported(Locale locale) => true;
@@ -52,7 +52,7 @@ void main() {
         ProviderScope(
           child: MaterialApp(
             localizationsDelegates: [
-              _MockLocalizationsDelegate(mockL10n),
+              MockLocalizationsDelegate(mockL10n),
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
@@ -92,7 +92,7 @@ void main() {
           container: container,
           child: MaterialApp(
             localizationsDelegates: [
-              _MockLocalizationsDelegate(mockL10n),
+              MockLocalizationsDelegate(mockL10n),
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,

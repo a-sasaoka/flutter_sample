@@ -28,9 +28,9 @@ class MockAnalyticsService extends Mock implements AnalyticsService {}
 
 class MockAppLocalizations extends Mock implements AppLocalizations {}
 
-class _MockLocalizationsDelegate
+class MockLocalizationsDelegate
     extends LocalizationsDelegate<AppLocalizations> {
-  const _MockLocalizationsDelegate(this.mock);
+  const MockLocalizationsDelegate(this.mock);
   final MockAppLocalizations mock;
   @override
   bool isSupported(Locale locale) => true;
@@ -102,7 +102,7 @@ void main() {
       // MaterialApp.router に変更
       child: MaterialApp.router(
         routerConfig: router,
-        localizationsDelegates: [_MockLocalizationsDelegate(mockL10n)],
+        localizationsDelegates: [MockLocalizationsDelegate(mockL10n)],
       ),
     );
   }

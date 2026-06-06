@@ -21,9 +21,9 @@ class MockUser extends Mock implements User {}
 
 class MockAppLocalizations extends Mock implements AppLocalizations {}
 
-class _MockLocalizationsDelegate
+class MockLocalizationsDelegate
     extends LocalizationsDelegate<AppLocalizations> {
-  const _MockLocalizationsDelegate(this.mock);
+  const MockLocalizationsDelegate(this.mock);
   final MockAppLocalizations mock;
   @override
   bool isSupported(Locale locale) => true;
@@ -102,7 +102,7 @@ void main() {
       container: container,
       child: MaterialApp.router(
         routerConfig: router,
-        localizationsDelegates: [_MockLocalizationsDelegate(mockL10n)],
+        localizationsDelegates: [MockLocalizationsDelegate(mockL10n)],
       ),
     );
   }
