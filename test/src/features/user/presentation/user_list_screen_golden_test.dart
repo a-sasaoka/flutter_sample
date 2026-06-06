@@ -1,7 +1,6 @@
 import 'package:alchemist/alchemist.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/features/user/data/user_repository.dart';
 import 'package:flutter_sample/src/features/user/domain/user_model.dart';
@@ -10,20 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../../../core/widgets/widgets_test_helper.dart';
 import 'user_list_screen_test.dart';
-
-// モック化された多言語デリゲートクラスを定義します
-class MockLocalizationsDelegate
-    extends LocalizationsDelegate<AppLocalizations> {
-  const MockLocalizationsDelegate(this.mock);
-  final MockAppLocalizations mock;
-  @override
-  bool isSupported(Locale locale) => true;
-  @override
-  Future<AppLocalizations> load(Locale locale) async => mock;
-  @override
-  bool shouldReload(covariant _) => false;
-}
 
 void main() {
   group('UserListScreen Golden Tests', () {
@@ -134,6 +121,17 @@ void main() {
               height: 844,
               child: buildUserListForGolden(
                 themeMode: ThemeMode.light,
+                isEmpty: true,
+              ),
+            ),
+          ),
+          GoldenTestScenario(
+            name: 'Empty State - Dark Mode',
+            child: SizedBox(
+              width: 390,
+              height: 844,
+              child: buildUserListForGolden(
+                themeMode: ThemeMode.dark,
                 isEmpty: true,
               ),
             ),
