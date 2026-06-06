@@ -14,8 +14,6 @@ import '../../../core/widgets/widgets_test_helper.dart';
 
 // --- モック定義 ---
 
-class MockUserRepository extends Mock implements UserRepository {}
-
 void main() {
   late MockAppLocalizations mockL10n;
   late MockUserRepository mockRepository;

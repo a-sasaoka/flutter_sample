@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/features/user/data/user_repository.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -21,3 +22,6 @@ class MockLocalizationsDelegate
 
 // 画面遷移をテストするためのGoRouterのモックです
 class MockGoRouter extends Mock implements GoRouter {}
+
+// ユーザー情報の通信やキャッシュをテストするためのUserRepositoryのモックです
+class MockUserRepository extends Mock implements UserRepository {}

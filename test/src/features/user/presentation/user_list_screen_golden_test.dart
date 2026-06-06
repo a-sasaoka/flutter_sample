@@ -10,7 +10,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
 import '../../../core/widgets/widgets_test_helper.dart';
-import 'user_list_screen_test.dart';
 
 void main() {
   group('UserListScreen Golden Tests', () {
