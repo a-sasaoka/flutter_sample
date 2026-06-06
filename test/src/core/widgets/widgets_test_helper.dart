@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 
 // テスト用の多言語翻訳のモックです
@@ -17,3 +18,6 @@ class MockLocalizationsDelegate
   @override
   bool shouldReload(covariant _) => false;
 }
+
+// 画面遷移をテストするためのGoRouterのモックです
+class MockGoRouter extends Mock implements GoRouter {}

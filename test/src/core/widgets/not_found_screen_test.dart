@@ -9,8 +9,6 @@ import 'package:mocktail/mocktail.dart';
 
 import 'widgets_test_helper.dart';
 
-class MockGoRouter extends Mock implements GoRouter {}
-
 void main() {
   group('NotFoundScreen', () {
     late MockGoRouter mockGoRouter;

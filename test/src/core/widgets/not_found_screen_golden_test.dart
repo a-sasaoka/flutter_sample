@@ -8,7 +8,6 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
-import 'not_found_screen_test.dart';
 import 'widgets_test_helper.dart';
 
 void main() {
