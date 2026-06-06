@@ -2,7 +2,6 @@
 import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
@@ -11,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+import '../../../core/widgets/widgets_test_helper.dart';
 
 // --- モック＆Fakeクラスの定義 ---
 
@@ -25,21 +25,6 @@ class FakeAuthStateNotifier extends AuthStateNotifier {
 }
 
 class MockAnalyticsService extends Mock implements AnalyticsService {}
-
-class MockAppLocalizations extends Mock implements AppLocalizations {}
-
-class MockLocalizationsDelegate
-    extends LocalizationsDelegate<AppLocalizations> {
-  const MockLocalizationsDelegate(this.mock);
-  final MockAppLocalizations mock;
-  @override
-  bool isSupported(Locale locale) => true;
-  @override
-  Future<AppLocalizations> load(Locale locale) async => mock;
-  @override
-  bool shouldReload(covariant LocalizationsDelegate<AppLocalizations> old) =>
-      false;
-}
 
 void main() {
   late MockAnalyticsService mockAnalyticsService;
