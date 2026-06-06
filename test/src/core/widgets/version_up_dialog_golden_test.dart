@@ -2,11 +2,51 @@ import 'package:alchemist/alchemist.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/src/core/config/app_theme.dart';
+import 'package:flutter_sample/src/core/widgets/version_up_dialog.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'widgets_test_helper.dart';
+
+/// テスト開始時に自動で VersionUpDialog.show を呼び出すためのラッパーWidget
+class VersionUpDialogTestWrapper extends StatefulWidget {
+  const VersionUpDialogTestWrapper({
+    required this.isCancelable,
+    super.key,
+  });
+  final bool isCancelable;
+
+  @override
+  State<VersionUpDialogTestWrapper> createState() =>
+      _VersionUpDialogTestWrapperState();
+}
+
+class _VersionUpDialogTestWrapperState
+    extends State<VersionUpDialogTestWrapper> {
+  @override
+  void initState() {
+    super.initState();
+    // 最初のフレーム描画後に、本物の VersionUpDialog.show を呼び出す
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted) {
+        await VersionUpDialog.show(
+          context,
+          isCancelable: widget.isCancelable,
+          onUpdate: () {},
+          onCancel: () {},
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: SizedBox.expand(),
+    );
+  }
+}
 
 void main() {
   group('VersionUpDialog Golden Tests', () {
@@ -50,29 +90,7 @@ void main() {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          home: Scaffold(
-            body: Center(
-              child: AlertDialog(
-                title: Text(mockL10n.versionUpTitle),
-                content: Text(
-                  isCancelable
-                      ? mockL10n.versionUpMessageOptional
-                      : mockL10n.versionUpMessageMandatory,
-                ),
-                actions: [
-                  if (isCancelable)
-                    TextButton(
-                      onPressed: () {},
-                      child: Text(mockL10n.versionUpCancel),
-                    ),
-                  TextButton(
-                    onPressed: () {},
-                    child: Text(mockL10n.versionUpUpdate),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          home: VersionUpDialogTestWrapper(isCancelable: isCancelable),
           debugShowCheckedModeBanner: false,
         ),
       );
