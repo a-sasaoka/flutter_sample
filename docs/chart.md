@@ -72,6 +72,9 @@ lib/src/features/chart
 - **Widget Test**:
   - `ChartInputScreen`: フォーム入力、データの追加、個別の削除、一括削除ボタンの動作、画面遷移の確認。
   - `ChartDisplayScreen`: 選択したグラフ形式に応じて正しいチャートウィジェットが表示されるか。データのスクロール表示。
+- **Golden Test**:
+  - `ChartDisplayScreen`: 折れ線・棒・円グラフ・空データの全4パターンでの表示確認。
+  - `ChartInputScreen`: 入力画面全体のレイアウト確認。
 
 ---
 

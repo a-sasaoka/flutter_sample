@@ -4,7 +4,6 @@ import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_state.dart';
@@ -17,23 +16,9 @@ import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+import '../../../core/widgets/widgets_test_helper.dart';
 
 // --- モッククラス ---
-
-class MockAppLocalizations extends Mock implements AppLocalizations {}
-
-class _MockLocalizationsDelegate
-    extends LocalizationsDelegate<AppLocalizations> {
-  const _MockLocalizationsDelegate(this.mock);
-  final MockAppLocalizations mock;
-  @override
-  bool isSupported(Locale locale) => true;
-  @override
-  Future<AppLocalizations> load(Locale locale) async => mock;
-  @override
-  bool shouldReload(covariant LocalizationsDelegate<AppLocalizations> old) =>
-      false;
-}
 
 class MockChatRepository extends Mock implements ChatRepository {}
 
@@ -102,7 +87,7 @@ void main() {
         child: MaterialApp(
           theme: ThemeData(useMaterial3: true),
           localizationsDelegates: [
-            _MockLocalizationsDelegate(mockL10n),
+            MockLocalizationsDelegate(mockL10n),
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,

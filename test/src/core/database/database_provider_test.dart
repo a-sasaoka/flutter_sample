@@ -16,7 +16,8 @@ void main() {
       const channel = MethodChannel('plugins.flutter.io/path_provider');
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (methodCall) async {
-            if (methodCall.method == 'getApplicationDocumentsDirectory') {
+            if (methodCall.method == 'getApplicationDocumentsDirectory' ||
+                methodCall.method == 'getTemporaryDirectory') {
               return '.'; // ダミーパス
             }
             return null;

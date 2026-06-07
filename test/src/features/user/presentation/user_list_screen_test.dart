@@ -4,31 +4,15 @@ import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/user/data/user_repository.dart';
 import 'package:flutter_sample/src/features/user/domain/user_model.dart';
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+import '../../../core/widgets/widgets_test_helper.dart';
 
 // --- モック定義 ---
-
-class MockAppLocalizations extends Mock implements AppLocalizations {}
-
-class MockUserRepository extends Mock implements UserRepository {}
-
-class _MockLocalizationsDelegate
-    extends LocalizationsDelegate<AppLocalizations> {
-  const _MockLocalizationsDelegate(this.mock);
-  final MockAppLocalizations mock;
-  @override
-  bool isSupported(Locale locale) => true;
-  @override
-  Future<AppLocalizations> load(Locale locale) async => mock;
-  @override
-  bool shouldReload(covariant _) => false;
-}
 
 void main() {
   late MockAppLocalizations mockL10n;
@@ -79,7 +63,7 @@ void main() {
         ],
         child: MaterialApp(
           localizationsDelegates: [
-            _MockLocalizationsDelegate(mockL10n),
+            MockLocalizationsDelegate(mockL10n),
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,

@@ -60,6 +60,8 @@ user/
   - `UserNotifier`: 状態遷移（Loading → Data / Error）の検証。
 - **Widget Test**:
   - `UserListScreen`: 一覧描画、Empty 状態の表示、再試行ボタンの動作、Pull-to-Refresh のトリガー。
+- **Golden Test**:
+  - `UserListScreen`: ユーザー一覧画面（データあり/空）のライトモード/ダークモードでの表示確認。
 
 ---
 

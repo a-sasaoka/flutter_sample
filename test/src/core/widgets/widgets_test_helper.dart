@@ -1,0 +1,27 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/features/user/data/user_repository.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mocktail/mocktail.dart';
+
+// テスト用の多言語翻訳のモックです
+class MockAppLocalizations extends Mock implements AppLocalizations {}
+
+// 翻訳データを読み込むためのモックデリゲートです
+class MockLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
+  const MockLocalizationsDelegate(this.mock);
+  final MockAppLocalizations mock;
+  @override
+  bool isSupported(Locale locale) => true;
+  @override
+  Future<AppLocalizations> load(Locale locale) async => mock;
+  @override
+  bool shouldReload(covariant _) => false;
+}
+
+// 画面遷移をテストするためのGoRouterのモックです
+class MockGoRouter extends Mock implements GoRouter {}
+
+// ユーザー情報の通信やキャッシュをテストするためのUserRepositoryのモックです
+class MockUserRepository extends Mock implements UserRepository {}
