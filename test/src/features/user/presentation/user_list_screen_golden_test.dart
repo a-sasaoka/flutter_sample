@@ -1,7 +1,5 @@
 import 'package:alchemist/alchemist.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/features/user/data/user_repository.dart';
 import 'package:flutter_sample/src/features/user/domain/user_model.dart';
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
@@ -9,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../../../../golden_test_helper.dart';
 import '../../../core/widgets/widgets_test_helper.dart';
 
 void main() {
@@ -66,27 +65,10 @@ void main() {
         overrides: [
           userRepositoryProvider.overrideWithValue(mockRepository),
         ],
-        child: MaterialApp(
-          // 日本語フォントを適用したテーマを設定します
-          theme: AppTheme.light().copyWith(
-            textTheme: AppTheme.light().textTheme.apply(
-              fontFamily: 'NotoSansJP',
-            ),
-          ),
-          darkTheme: AppTheme.dark().copyWith(
-            textTheme: AppTheme.dark().textTheme.apply(
-              fontFamily: 'NotoSansJP',
-            ),
-          ),
+        child: buildGoldenTestApp(
           themeMode: themeMode,
-          localizationsDelegates: [
-            MockLocalizationsDelegate(mockL10n),
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
+          additionalDelegates: [MockLocalizationsDelegate(mockL10n)],
           home: const UserListScreen(),
-          debugShowCheckedModeBanner: false,
         ),
       );
     }

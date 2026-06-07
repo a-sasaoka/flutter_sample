@@ -1,12 +1,11 @@
 import 'package:alchemist/alchemist.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/core/widgets/version_up_dialog.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../../../golden_test_helper.dart';
 import 'widgets_test_helper.dart';
 
 /// テスト開始時に自動で VersionUpDialog.show を呼び出すためのラッパーWidget
@@ -71,27 +70,10 @@ void main() {
       required bool isCancelable,
     }) {
       return ProviderScope(
-        child: MaterialApp(
-          // 日本語フォントを適用したテーマを設定します
-          theme: AppTheme.light().copyWith(
-            textTheme: AppTheme.light().textTheme.apply(
-              fontFamily: 'NotoSansJP',
-            ),
-          ),
-          darkTheme: AppTheme.dark().copyWith(
-            textTheme: AppTheme.dark().textTheme.apply(
-              fontFamily: 'NotoSansJP',
-            ),
-          ),
+        child: buildGoldenTestApp(
           themeMode: themeMode,
-          localizationsDelegates: [
-            MockLocalizationsDelegate(mockL10n),
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
+          additionalDelegates: [MockLocalizationsDelegate(mockL10n)],
           home: VersionUpDialogTestWrapper(isCancelable: isCancelable),
-          debugShowCheckedModeBanner: false,
         ),
       );
     }

@@ -23,11 +23,11 @@ Widget buildGoldenTestApp({
     ),
     themeMode: themeMode,
     localizationsDelegates: [
+      if (additionalDelegates != null) ...additionalDelegates,
       AppLocalizations.delegate,
       GlobalMaterialLocalizations.delegate,
       GlobalWidgetsLocalizations.delegate,
       GlobalCupertinoLocalizations.delegate,
-      if (additionalDelegates != null) ...additionalDelegates,
     ],
     supportedLocales: AppLocalizations.supportedLocales,
     locale: const Locale('ja'),
