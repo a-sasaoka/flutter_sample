@@ -69,3 +69,7 @@ GEMINI.md
 # AI Skills
 skills-lock.json
 .agents/
+
+# Firebase Hosting static files for personal testing (Do not commit)
+/public/.well-known/*
+!/public/.well-known/*.example

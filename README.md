@@ -23,6 +23,7 @@ Flutter開発のサンプルプロジェクトです。\
 ### C. アプリ基盤
 
 - [GoRouter（型安全ルーティング）](docs/routing.md)
+- [DeepLink（ディープリンク設定）](docs/deeplink.md)
 - [Flavor管理（マルチ環境対応）](docs/flavor.md)
 - [多言語対応（Localization）](docs/localization.md)
 - [API通信とエラーハンドリング（Dio）](docs/api_and_error_handling.md)

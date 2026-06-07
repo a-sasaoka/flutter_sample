@@ -9,7 +9,7 @@
 | 🔒 セキュリティ     | トークン保存先の `flutter_secure_storage` への完全移行（実装済み）、`local_auth` による生体認証（FaceID等） |
 | 💾 オフライン対応   | Drift を用いた、堅牢なオフラインファースト設計・同期処理（実装済み）                                        |
 | 🤖 AI機能の拡張     | Gemini API のマルチモーダル対応（画像解析）、Function Calling による外部API連携                             |
-| 🔔 通知・連携       | Firebase Cloud Messaging (FCM) の導入、GoRouterを活用した Deep Linking（Universal Links）の対応             |
+| 🔔 通知・連携       | Firebase Cloud Messaging (FCM) の導入、GoRouterを活用した Deep Linking（Universal Links）の対応（実装済み） |
 | 🧠 高度なテスト     | Golden Test（画像回帰テスト）の導入（実装済み）、Maestro を用いた E2E（統合）テストの導入                   |
 | 🚀 自動デプロイ     | Fastlane を組み合わせた、App Store / Google Play への完全自動リリース（CD）パイプラインの構築               |
 | ☁️ API              | GraphQL や gRPC など、REST以外の通信方式への対応・検証                                                      |
