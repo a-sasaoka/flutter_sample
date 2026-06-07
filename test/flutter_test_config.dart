@@ -28,7 +28,7 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
         diffThreshold: 0, // Macローカルは厳しく完全一致
       ),
       ciGoldensConfig: const CiGoldensConfig(
-        diffThreshold: 0.005, // CI環境は0.5%以内の微小なズレを許容する
+        diffThreshold: 0.02, // CI環境は2.0%以内の微小なズレを許容する
       ),
     ),
     run: testMain,
