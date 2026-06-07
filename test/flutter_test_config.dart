@@ -11,9 +11,16 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
     final fontFile = File('test/assets/fonts/NotoSansJP-Regular.ttf');
     if (fontFile.existsSync()) {
       final fontData = fontFile.readAsBytesSync();
+
+      // 'NotoSansJP' としてロード
       final loader = FontLoader('NotoSansJP')
         ..addFont(Future.value(ByteData.view(fontData.buffer)));
       await loader.load();
+
+      // 'monospace' としてもロードして、OS標準フォントを共通フォントで上書きする
+      final monospaceLoader = FontLoader('monospace')
+        ..addFont(Future.value(ByteData.view(fontData.buffer)));
+      await monospaceLoader.load();
     }
   });
 
