@@ -39,6 +39,7 @@ void main() {
     goldenTest(
       'ChartDisplayScreen の描画 (折れ線/棒/円グラフ/空データ)',
       fileName: 'chart_display_screen',
+      pumpBeforeTest: (tester) async => tester.pumpAndSettle(),
       builder: () => GoldenTestGroup(
         children: [
           GoldenTestScenario(
