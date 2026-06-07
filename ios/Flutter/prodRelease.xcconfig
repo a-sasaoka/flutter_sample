@@ -5,3 +5,5 @@ ASSET_PREFIX=prod
 BUNDLE_NAME=Sample App
 BUNDLE_DISPLAY_NAME=Sample App
 #include "Dart-Defines.xcconfig"
+CUSTOM_URL_SCHEME=flsample
+
