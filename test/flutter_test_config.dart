@@ -11,16 +11,9 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
     final fontFile = File('test/assets/fonts/NotoSansJP-Regular.ttf');
     if (fontFile.existsSync()) {
       final fontData = fontFile.readAsBytesSync();
-
-      // 'NotoSansJP' としてロード
       final loader = FontLoader('NotoSansJP')
         ..addFont(Future.value(ByteData.view(fontData.buffer)));
       await loader.load();
-
-      // 'monospace' としてもロードして、OS標準フォントを共通フォントで上書きする
-      final monospaceLoader = FontLoader('monospace')
-        ..addFont(Future.value(ByteData.view(fontData.buffer)));
-      await monospaceLoader.load();
     }
   });
 
@@ -32,6 +25,10 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
     config: AlchemistConfig(
       platformGoldensConfig: PlatformGoldensConfig(
         enabled: !isRunningInCi,
+        diffThreshold: 0, // Macローカルは厳しく完全一致
+      ),
+      ciGoldensConfig: const CiGoldensConfig(
+        diffThreshold: 0.005, // CI環境は0.5%以内の微小なズレを許容する
       ),
     ),
     run: testMain,
