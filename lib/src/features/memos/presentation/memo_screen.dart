@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
@@ -25,7 +27,11 @@ class MemoScreen extends ConsumerWidget {
           actions: [
             IconButton(
               icon: const Icon(Icons.sync),
-              onPressed: () => ref.read(memoProvider.notifier).sync(),
+              onPressed: () async {
+                unawaited(HapticFeedback.lightImpact());
+                await ref.read(memoProvider.notifier).sync();
+                unawaited(HapticFeedback.mediumImpact());
+              },
               tooltip: l10n.memoSyncing,
             ),
           ],
@@ -43,7 +49,10 @@ class MemoScreen extends ConsumerWidget {
           ],
         ),
         floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => _showAddMemoDialog(context, ref),
+          onPressed: () {
+            unawaited(HapticFeedback.lightImpact());
+            unawaited(_showAddMemoDialog(context, ref));
+          },
           icon: const Icon(Icons.add),
           label: Text(l10n.memoAdd),
         ),
@@ -112,10 +121,12 @@ class MemoScreen extends ConsumerWidget {
                             final title = titleController.text;
                             if (title.isNotEmpty) {
                               isLoading.value = true;
+                              unawaited(HapticFeedback.lightImpact());
                               try {
                                 await ref
                                     .read(memoProvider.notifier)
                                     .addMemo(title, contentController.text);
+                                unawaited(HapticFeedback.mediumImpact());
                                 if (context.mounted) {
                                   Navigator.pop(context);
                                 }
@@ -357,6 +368,7 @@ class _MemoCard extends ConsumerWidget {
         trailing: IconButton(
           icon: Icon(Icons.delete_outline, color: colorScheme.error),
           onPressed: () async {
+            unawaited(HapticFeedback.mediumImpact());
             final confirmed = await showDialog<bool>(
               context: context,
               builder: (context) => AlertDialog(
@@ -367,7 +379,10 @@ class _MemoCard extends ConsumerWidget {
                     child: Text(l10n.close),
                   ),
                   TextButton(
-                    onPressed: () => Navigator.pop(context, true),
+                    onPressed: () {
+                      unawaited(HapticFeedback.lightImpact());
+                      Navigator.pop(context, true);
+                    },
                     child: Text(
                       l10n.delete,
                       style: TextStyle(color: colorScheme.error),
@@ -377,6 +392,7 @@ class _MemoCard extends ConsumerWidget {
               ),
             );
             if (confirmed == true) {
+              unawaited(HapticFeedback.vibrate());
               await ref.read(memoProvider.notifier).deleteMemo(memo.id);
             }
           },

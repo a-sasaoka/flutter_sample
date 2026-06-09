@@ -15,7 +15,7 @@
 | ☁️ API              | GraphQL や gRPC など、REST以外の通信方式への対応・検証                                                                                             |
 | ⚡️ パフォーマンス   | 画像キャッシュ戦略、アプリサイズの軽量化、Firebase Performance Monitoring を用いた実環境の監視                                                     |
 | ♿️ アクセシビリティ | Semanticsを活用したスクリーンリーダー対応、ダイナミックタイプ対応、コントラスト等の視認性最適化                                                    |
-| 🎨 UX / デザイン    | Haptic Feedback（触覚）、Lottie/Rive等を用いたリッチなアニメーション、オンボーディング実装                                                         |
+| 🎨 UX / デザイン    | Haptic Feedback（触覚、メモ画面にて実装済み）、Lottie/Rive等を用いたリッチなアニメーション、オンボーディング実装                                   |
 | 🏗️ アーキテクチャ   | Melosを用いたマルチパッケージ（Monorepo）構成、Flavor（Dev/Stg/Prod）の完全分離と管理 (実装済み)                                                   |
 | 📡 リアルタイム通信 | WebSocket や Server-Sent Events (SSE) を用いた完全な双方向リアルタイム通信の実装                                                                   |
 

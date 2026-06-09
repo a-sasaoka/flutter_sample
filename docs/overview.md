@@ -24,7 +24,7 @@
 | ⚙️ 設定           | SegmentedButton によるテーマ・言語切り替え、永続化連携、安全なログアウト処理              |
 | 🤖 生成AI         | Firebase AI Logic（firebase_ai）を用いたストリーミング応答と履歴保持チャット              |
 | 🧰 コード生成     | build_runnerによる自動生成と、JSON/Enviedを組み合わせた高度な環境切替対応                 |
-| 🎨 UI             | FlexColorSchemeによるテーマ設定と共通エラーハンドリングUI / Markdown表示                  |
+| 🎨 UI/UX          | FlexColorSchemeによるテーマ設定、共通エラーハンドリングUI、Haptic Feedback（触覚）の実装  |
 | 🧪 テスト         | mocktail等を用いた実践的なユニットテスト・ウィジェットテストの手法                        |
 | 🧩 Lint・CI/CD    | custom_lint 等の実用設定と、GitHub Actions による自動化（CI/CD）基盤                      |
 | 🚀 開発効率       | FVM + VSCode設定 + Git Hooks で統一開発環境を構築                                         |
