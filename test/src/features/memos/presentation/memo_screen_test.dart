@@ -7,6 +7,7 @@ import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
@@ -15,12 +16,15 @@ import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart'
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 // --- モッククラスの定義 ---
 
 class MockMemoRepository extends Mock implements MemoRepository {}
 
 class MockAppLocalizations extends Mock implements AppLocalizations {}
+
+class MockTalker extends Mock implements Talker {}
 
 class MockLocalizationsDelegate
     extends LocalizationsDelegate<AppLocalizations> {
@@ -41,10 +45,12 @@ class MockLocalizationsDelegate
 void main() {
   late MockMemoRepository mockMemoRepository;
   late MockAppLocalizations mockL10n;
+  late MockTalker mockTalker;
 
   setUp(() {
     mockMemoRepository = MockMemoRepository();
     mockL10n = MockAppLocalizations();
+    mockTalker = MockTalker();
 
     // L10nのスタブ設定
     when(() => mockL10n.memoTitle).thenReturn('メモ');
@@ -73,6 +79,9 @@ void main() {
       () => mockMemoRepository.fetchAndMergeRemoteMemos(),
     ).thenAnswer((_) async {});
     when(
+      () => mockTalker.error(any<String>(), any<Object?>(), any<StackTrace?>()),
+    ).thenAnswer((_) {});
+    when(
       () => mockMemoRepository.watchAllMemos(),
     ).thenAnswer((_) => Stream.value([]));
   });
@@ -84,6 +93,7 @@ void main() {
         overrides: [
           memoRepositoryProvider.overrideWithValue(mockMemoRepository),
           isOnlineProvider.overrideWithValue(isOnline),
+          loggerProvider.overrideWithValue(mockTalker),
         ],
         child: MaterialApp(
           localizationsDelegates: [
@@ -261,6 +271,37 @@ void main() {
 
       // build時に1回、同期ボタンタップ時に1回で合計2回
       verify(() => mockMemoRepository.fetchAndMergeRemoteMemos()).called(2);
+    });
+
+    testWidgets('同期ボタンを押してエラーが発生した場合、エラー通知が表示されること', (tester) async {
+      var callCount = 0;
+      when(
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => Stream.value([]));
+      when(
+        () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+      ).thenAnswer((_) async {
+        if (callCount++ == 0) {
+          // build時の自動同期は成功
+          return;
+        } else {
+          // ボタンタップ時はエラー
+          throw Exception('同期エラー');
+        }
+      });
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.sync));
+      await tester.pumpAndSettle();
+
+      check(find.byType(SnackBar)).findsOne();
+      check(find.text('エラーが発生しました')).findsOne();
+      verify(
+        () =>
+            mockTalker.error(any<String>(), any<Object?>(), any<StackTrace?>()),
+      ).called(1);
     });
 
     testWidgets('引っ張って更新（Pull to Refresh）が動作すること', (tester) async {
