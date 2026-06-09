@@ -274,12 +274,21 @@ void main() {
     });
 
     testWidgets('同期ボタンを押してエラーが発生した場合、エラー通知が表示されること', (tester) async {
+      var callCount = 0;
       when(
         () => mockMemoRepository.watchAllMemos(),
       ).thenAnswer((_) => Stream.value([]));
       when(
         () => mockMemoRepository.fetchAndMergeRemoteMemos(),
-      ).thenThrow(Exception('同期エラー'));
+      ).thenAnswer((_) async {
+        if (callCount++ == 0) {
+          // build時の自動同期は成功
+          return;
+        } else {
+          // ボタンタップ時はエラー
+          throw Exception('同期エラー');
+        }
+      });
 
       await setupWidget(tester);
       await tester.pumpAndSettle();
@@ -292,7 +301,7 @@ void main() {
       verify(
         () =>
             mockTalker.error(any<String>(), any<Object?>(), any<StackTrace?>()),
-      ).called(2);
+      ).called(1);
     });
 
     testWidgets('引っ張って更新（Pull to Refresh）が動作すること', (tester) async {
