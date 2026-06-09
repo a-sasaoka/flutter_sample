@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_sort_order.dart';
@@ -29,8 +31,16 @@ class MemoScreen extends ConsumerWidget {
               icon: const Icon(Icons.sync),
               onPressed: () async {
                 unawaited(HapticFeedback.lightImpact());
-                await ref.read(memoProvider.notifier).sync();
-                unawaited(HapticFeedback.mediumImpact());
+                try {
+                  await ref.read(memoProvider.notifier).sync();
+                } on Exception catch (e, st) {
+                  ref.read(loggerProvider).error('手動同期中にエラーが発生しました', e, st);
+                  if (context.mounted) {
+                    ErrorHandler.showSnackBar(context, e);
+                  }
+                } finally {
+                  unawaited(HapticFeedback.mediumImpact());
+                }
               },
               tooltip: l10n.memoSyncing,
             ),
