@@ -10,6 +10,7 @@ List<RouteBase> get $appRoutes => [
   $loginRoute,
   $emailVerificationRoute,
   $appShellRouteData,
+  $onboardingRoute,
   $splashRoute,
 ];
 
@@ -314,6 +315,32 @@ mixin $UserListRoute on GoRouteData {
   void replace(BuildContext context) => context.replace(location);
 }
 
+RouteBase get $onboardingRoute => GoRouteData.$route(
+  path: '/onboarding',
+  factory: $OnboardingRoute._fromState,
+);
+
+mixin $OnboardingRoute on GoRouteData {
+  static OnboardingRoute _fromState(GoRouterState state) =>
+      const OnboardingRoute();
+
+  @override
+  String get location => GoRouteData.$location('/onboarding');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
 RouteBase get $splashRoute =>
     GoRouteData.$route(path: '/splash', factory: $SplashRoute._fromState);
 
@@ -387,4 +414,4 @@ final class RouterProvider
   }
 }
 
-String _$routerHash() => r'369cf323d147be50ba68940422698bc551f37f62';
+String _$routerHash() => r'aed1b3ba88b72fac54e7e1e28b8187ff986508d4';

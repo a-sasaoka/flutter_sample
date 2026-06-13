@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart'; // SynchronousFuture 用
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/app/router/auth_guard.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
+import 'package:flutter_sample/src/features/onboarding/application/onboarding_notifier.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_state_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -44,6 +45,34 @@ class _FakeAuthStateNotifier extends AuthStateNotifier {
   }
 }
 
+class _FakeOnboardingNotifier extends OnboardingNotifier {
+  _FakeOnboardingNotifier({
+    required this.completed,
+    this.isLoading = false,
+    this.hasError = false,
+  });
+  final bool completed;
+  final bool isLoading;
+  final bool hasError;
+
+  @override
+  FutureOr<bool> build() {
+    if (hasError) {
+      state = AsyncError<bool>(Exception('Onboarding Error'), StackTrace.empty);
+      return Future.error(Exception('Onboarding Error'), StackTrace.empty);
+    }
+    if (isLoading) {
+      return Completer<bool>().future;
+    }
+    return completed;
+  }
+
+  @override
+  Future<void> complete() async {
+    state = const AsyncData(true);
+  }
+}
+
 void main() {
   late MockGoRouterState mockState;
 
@@ -57,6 +86,9 @@ void main() {
     AsyncValue<bool> authState, {
     String location = '/',
     bool isSplashFinished = true,
+    bool isOnboardingCompleted = true,
+    bool isOnboardingLoading = false,
+    bool isOnboardingError = false,
   }) {
     when(() => mockState.matchedLocation).thenReturn(location);
     when(() => mockState.uri).thenReturn(Uri.parse(location));
@@ -69,6 +101,13 @@ void main() {
         ),
         splashStateProvider.overrideWith(
           () => FakeSplashState(initialValue: isSplashFinished),
+        ),
+        onboardingProvider.overrideWith(
+          () => _FakeOnboardingNotifier(
+            completed: isOnboardingCompleted,
+            isLoading: isOnboardingLoading,
+            hasError: isOnboardingError,
+          ),
         ),
       ],
     );
@@ -148,6 +187,76 @@ void main() {
         location: const SplashRoute().location,
       );
       check(result).equals(const HomeRoute().location);
+    });
+
+    test('オンボーディングが未完了の場合、オンボーディング画面へリダイレクトすること', () {
+      final result = executeGuard(
+        const AsyncData<bool>(true),
+        isOnboardingCompleted: false,
+        location: const HomeRoute().location,
+      );
+      check(result).equals(const OnboardingRoute().location);
+    });
+
+    test('すでにオンボーディング画面にいてオンボーディング未完了の場合、リダイレクトしないこと', () {
+      final result = executeGuard(
+        const AsyncData<bool>(true),
+        isOnboardingCompleted: false,
+        location: const OnboardingRoute().location,
+      );
+      check(result).isNull();
+    });
+
+    test('オンボーディング状態がローディング中の場合、SplashRouteにリダイレクトすること', () {
+      final result = executeGuard(
+        const AsyncData<bool>(true),
+        isOnboardingLoading: true,
+        location: const HomeRoute().location,
+      );
+      check(result).equals(const SplashRoute().location);
+    });
+
+    test('オンボーディング完了済みで、ログイン済みかつオンボーディング画面にいる場合、ホーム画面へリダイレクトすること', () {
+      final result = executeGuard(
+        const AsyncData<bool>(true),
+        location: const OnboardingRoute().location,
+      );
+      check(result).equals(const HomeRoute().location);
+    });
+
+    test('オンボーディング完了済みで、未ログインかつオンボーディング画面にいる場合、ログイン画面へリダイレクトすること', () {
+      final result = executeGuard(
+        const AsyncData<bool>(false),
+        location: const OnboardingRoute().location,
+      );
+      check(result).isNotNull().startsWith(const LoginRoute().location);
+    });
+
+    test('オンボーディング状態がローディング中で、すでにオンボーディング画面にいる場合、リダイレクトしないこと', () {
+      final result = executeGuard(
+        const AsyncData<bool>(true),
+        isOnboardingLoading: true,
+        location: const OnboardingRoute().location,
+      );
+      check(result).isNull();
+    });
+
+    test('オンボーディング状態がエラーの場合、オンボーディング画面以外からオンボーディング画面へリダイレクトすること', () {
+      final result = executeGuard(
+        const AsyncData<bool>(true),
+        isOnboardingError: true,
+        location: const HomeRoute().location,
+      );
+      check(result).equals(const OnboardingRoute().location);
+    });
+
+    test('オンボーディング状態がエラーで、すでにオンボーディング画面にいる場合、リダイレクトしないこと', () {
+      final result = executeGuard(
+        const AsyncData<bool>(true),
+        isOnboardingError: true,
+        location: const OnboardingRoute().location,
+      );
+      check(result).isNull();
     });
   });
 }

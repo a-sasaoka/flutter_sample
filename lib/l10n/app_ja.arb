@@ -157,5 +157,16 @@
   "navChat": "チャット",
   "navMemos": "メモ",
   "navChart": "グラフ",
-  "navUsers": "ユーザー"
+  "navUsers": "ユーザー",
+
+  "@_ONBOARDING": {},
+  "onboardingSkip": "スキップ",
+  "onboardingNext": "次へ",
+  "onboardingStart": "はじめる",
+  "onboardingPage1Title": "シンプルなメモ機能",
+  "onboardingPage1Desc": "思いついたアイデアやタスクを、いつでもどこでもすばやくメモに残すことができます。",
+  "onboardingPage2Title": "どこでもつながる同期機能",
+  "onboardingPage2Desc": "インターネットがないオフライン環境でもメモを書くことができ、接続時に自動でクラウドへ同期されます。",
+  "onboardingPage3Title": "AIチャットアシスタント",
+  "onboardingPage3Desc": "メモのまとめを作ったり、アイデアのブレインストーミングをAIアシスタントがサポートします。"
 }

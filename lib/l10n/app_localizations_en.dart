@@ -398,4 +398,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get navUsers => 'Users';
+
+  @override
+  String get onboardingSkip => 'Skip';
+
+  @override
+  String get onboardingNext => 'Next';
+
+  @override
+  String get onboardingStart => 'Get Started';
+
+  @override
+  String get onboardingPage1Title => 'Simple Memo Feature';
+
+  @override
+  String get onboardingPage1Desc =>
+      'Quickly write down ideas and tasks anytime, anywhere.';
+
+  @override
+  String get onboardingPage2Title => 'Seamless Sync Everywhere';
+
+  @override
+  String get onboardingPage2Desc =>
+      'Write memos even offline; they sync to the cloud automatically once online.';
+
+  @override
+  String get onboardingPage3Title => 'AI Chat Assistant';
+
+  @override
+  String get onboardingPage3Desc =>
+      'Summarize memos and brainstorm ideas with the support of our AI assistant.';
 }
