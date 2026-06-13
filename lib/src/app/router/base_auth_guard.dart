@@ -1,4 +1,8 @@
+import 'package:flutter_sample/src/app/router/app_router.dart';
+import 'package:flutter_sample/src/features/onboarding/application/onboarding_notifier.dart';
+import 'package:flutter_sample/src/features/splash/presentation/splash_state_provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// 認証状態に応じたリダイレクト先を判定する共通ヘルパー
 class AuthGuardHelper {
@@ -93,4 +97,62 @@ class AuthGuardHelper {
     // それ以外の画面（認証必須画面）ならOK、そのまま遷移
     return null;
   }
+}
+
+/// スプラッシュやオンボーディングなど、ログイン状態に依存しない、または共通の初期状態判定を行う共通関数
+String? checkBaseRedirect({
+  required Ref ref,
+  required GoRouterState state,
+  required bool isLoggedIn,
+}) {
+  // 1. スプラッシュ画面の表示が完了していない場合は、強制的にスプラッシュ画面にとどまる
+  final isSplashFinished = ref.read(splashStateProvider);
+  if (!isSplashFinished) {
+    return const SplashRoute().location;
+  }
+
+  // 2. オンボーディングの状態を取得
+  final onboardingState = ref.read(onboardingProvider);
+  final onboardingLocation = const OnboardingRoute().location;
+
+  // エラー発生時はオンボーディング未完了として処理する
+  if (onboardingState.hasError) {
+    if (state.uri.path != onboardingLocation) {
+      return onboardingLocation;
+    }
+    return null;
+  }
+
+  // オンボーディングデータの読み込み中はスプラッシュ画面へ案内する
+  // ただし、すでにオンボーディング画面にいる場合はリダイレクトしない
+  if (onboardingState.isLoading) {
+    if (state.uri.path != onboardingLocation) {
+      return const SplashRoute().location;
+    }
+    return null;
+  }
+
+  final isOnboardingCompleted = onboardingState.value ?? false;
+
+  // 3. オンボーディングが未完了の場合はオンボーディング画面へリダイレクト
+  if (!isOnboardingCompleted && state.uri.path != onboardingLocation) {
+    return onboardingLocation;
+  }
+
+  // 4. すでにオンボーディング完了済みでオンボーディング画面にいる場合はリダイレクト
+  if (isOnboardingCompleted && state.uri.path == onboardingLocation) {
+    return isLoggedIn
+        ? const HomeRoute().location
+        : const LoginRoute().location;
+  }
+
+  // 5. スプラッシュ表示が完了しており、かつ現在スプラッシュ画面にいる場合は、
+  // ログイン状態に応じた適切な画面（ホームまたはログイン）へリダイレクトする
+  if (state.uri.path == const SplashRoute().location) {
+    return isLoggedIn
+        ? const HomeRoute().location
+        : const LoginRoute().location;
+  }
+
+  return null;
 }
