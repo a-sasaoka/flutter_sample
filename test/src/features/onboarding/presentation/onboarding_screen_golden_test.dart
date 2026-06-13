@@ -6,10 +6,9 @@ import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart
 import 'package:flutter_sample/src/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:mocktail/mocktail.dart';
 
 import '../../../core/widgets/widgets_test_helper.dart';
-import '../application/onboarding_notifier_test.dart';
+import '../onboarding_test_helper.dart';
 
 void main() {
   group('OnboardingScreen Golden Tests', () {
@@ -17,27 +16,8 @@ void main() {
     late MockSharedPreferencesAsync mockPrefs;
 
     setUp(() {
-      mockL10n = MockAppLocalizations();
-      when(() => mockL10n.onboardingSkip).thenReturn('Skip');
-      when(() => mockL10n.onboardingNext).thenReturn('Next');
-      when(() => mockL10n.onboardingStart).thenReturn('Get Started');
-      when(() => mockL10n.onboardingPage1Title).thenReturn('シンプルなメモ機能');
-      when(
-        () => mockL10n.onboardingPage1Desc,
-      ).thenReturn('思いついたアイデアやタスクを、いつでもどこでもすばやくメモに残すことができます。');
-      when(() => mockL10n.onboardingPage2Title).thenReturn('どこでもつながる同期機能');
-      when(
-        () => mockL10n.onboardingPage2Desc,
-      ).thenReturn('インターネットがないオフライン環境でもメモを書くことができ、接続時に自動でクラウドへ同期されます。');
-      when(() => mockL10n.onboardingPage3Title).thenReturn('AIチャットアシスタント');
-      when(
-        () => mockL10n.onboardingPage3Desc,
-      ).thenReturn('メモのまとめを作ったり、アイデアのブレインストーミングをAIアシスタントがサポートします。');
-
-      mockPrefs = MockSharedPreferencesAsync();
-      when(
-        () => mockPrefs.getBool('onboarding_completed'),
-      ).thenAnswer((_) async => false);
+      mockL10n = setupMockL10n();
+      mockPrefs = setupMockPrefs();
     });
 
     Widget buildOnboardingForGolden() {

@@ -4,17 +4,10 @@ import 'package:flutter_sample/src/features/onboarding/application/onboarding_no
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-class MockSharedPreferencesAsync extends Mock
-    implements SharedPreferencesAsync {}
+import '../onboarding_test_helper.dart';
 
 void main() {
   late MockSharedPreferencesAsync mockPrefs;
-
-  setUp(() {
-    mockPrefs = MockSharedPreferencesAsync();
-  });
 
   ProviderContainer createContainer() {
     final container = ProviderContainer(
@@ -28,9 +21,7 @@ void main() {
 
   group('OnboardingNotifier テスト', () {
     test('初期化時(build): 保存されたフラグがない場合は false を返すこと', () async {
-      when(
-        () => mockPrefs.getBool('onboarding_completed'),
-      ).thenAnswer((_) async => null);
+      mockPrefs = setupMockPrefs();
 
       final container = createContainer();
 
@@ -40,28 +31,23 @@ void main() {
     });
 
     test('初期化時(build): 完了済み(true)が保存されている場合は true を返すこと', () async {
-      when(
-        () => mockPrefs.getBool('onboarding_completed'),
-      ).thenAnswer((_) async => true);
+      mockPrefs = setupMockPrefs(completed: true);
 
       final container = createContainer();
 
       final result = await container.read(onboardingProvider.future);
       check(result).isTrue();
+      verify(() => mockPrefs.getBool('onboarding_completed')).called(1);
     });
 
     test('complete(): 完了処理を実行すると true を保存し、状態が更新されること', () async {
-      when(
-        () => mockPrefs.getBool('onboarding_completed'),
-      ).thenAnswer((_) async => false);
-      when(
-        () => mockPrefs.setBool('onboarding_completed', true),
-      ).thenAnswer((_) async {});
+      mockPrefs = setupMockPrefs();
 
       final container = createContainer();
 
-      // 最初は false
-      await container.read(onboardingProvider.future);
+      // 最初は false であることを確認
+      final initialState = await container.read(onboardingProvider.future);
+      check(initialState).isNotNull().isFalse();
 
       final notifier = container.read(onboardingProvider.notifier);
 

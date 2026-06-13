@@ -18,7 +18,7 @@ class OnboardingNotifier extends _$OnboardingNotifier {
   /// オンボーディングを完了状態にする
   Future<void> complete() async {
     state = const AsyncValue.loading();
-    final prefs = ref.watch(sharedPreferencesProvider);
+    final prefs = ref.read(sharedPreferencesProvider);
     // オンボーディング完了フラグをtrueにして保存します
     await prefs.setBool(_key, true);
     state = const AsyncValue.data(true);

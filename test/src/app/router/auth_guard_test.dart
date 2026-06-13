@@ -49,12 +49,18 @@ class _FakeOnboardingNotifier extends OnboardingNotifier {
   _FakeOnboardingNotifier({
     required this.completed,
     this.isLoading = false,
+    this.hasError = false,
   });
   final bool completed;
   final bool isLoading;
+  final bool hasError;
 
   @override
   FutureOr<bool> build() {
+    if (hasError) {
+      state = AsyncError<bool>(Exception('Onboarding Error'), StackTrace.empty);
+      return Future.error(Exception('Onboarding Error'), StackTrace.empty);
+    }
     if (isLoading) {
       return Completer<bool>().future;
     }
@@ -82,6 +88,7 @@ void main() {
     bool isSplashFinished = true,
     bool isOnboardingCompleted = true,
     bool isOnboardingLoading = false,
+    bool isOnboardingError = false,
   }) {
     when(() => mockState.matchedLocation).thenReturn(location);
     when(() => mockState.uri).thenReturn(Uri.parse(location));
@@ -99,6 +106,7 @@ void main() {
           () => _FakeOnboardingNotifier(
             completed: isOnboardingCompleted,
             isLoading: isOnboardingLoading,
+            hasError: isOnboardingError,
           ),
         ),
       ],
@@ -222,6 +230,33 @@ void main() {
         location: const OnboardingRoute().location,
       );
       check(result).isNotNull().startsWith(const LoginRoute().location);
+    });
+
+    test('オンボーディング状態がローディング中で、すでにオンボーディング画面にいる場合、リダイレクトしないこと', () {
+      final result = executeGuard(
+        const AsyncData<bool>(true),
+        isOnboardingLoading: true,
+        location: const OnboardingRoute().location,
+      );
+      check(result).isNull();
+    });
+
+    test('オンボーディング状態がエラーの場合、オンボーディング画面以外からオンボーディング画面へリダイレクトすること', () {
+      final result = executeGuard(
+        const AsyncData<bool>(true),
+        isOnboardingError: true,
+        location: const HomeRoute().location,
+      );
+      check(result).equals(const OnboardingRoute().location);
+    });
+
+    test('オンボーディング状態がエラーで、すでにオンボーディング画面にいる場合、リダイレクトしないこと', () {
+      final result = executeGuard(
+        const AsyncData<bool>(true),
+        isOnboardingError: true,
+        location: const OnboardingRoute().location,
+      );
+      check(result).isNull();
     });
   });
 }

@@ -16,9 +16,25 @@ String? firebaseAuthGuard(Ref ref, GoRouterState state) {
 
   // オンボーディングの状態を取得
   final onboardingState = ref.read(onboardingProvider);
-  if (onboardingState.isLoading) {
-    return const SplashRoute().location;
+  final onboardingLocation = const OnboardingRoute().location;
+
+  // エラー発生時はオンボーディング未完了として処理する
+  if (onboardingState.hasError) {
+    if (state.uri.path != onboardingLocation) {
+      return onboardingLocation;
+    }
+    return null;
   }
+
+  // オンボーディングデータの読み込み中はスプラッシュ画面へ案内する
+  // ただし、すでにオンボーディング画面にいる場合はリダイレクトしない
+  if (onboardingState.isLoading) {
+    if (state.uri.path != onboardingLocation) {
+      return const SplashRoute().location;
+    }
+    return null;
+  }
+
   final isOnboardingCompleted = onboardingState.value ?? false;
 
   // ログイン状態（ローディング状態含む）を取得
@@ -35,7 +51,6 @@ String? firebaseAuthGuard(Ref ref, GoRouterState state) {
   final isLoggedIn = authState != null;
 
   // オンボーディングが未完了の場合はオンボーディング画面へリダイレクト（現在地がオンボーディング画面以外の場合）
-  final onboardingLocation = const OnboardingRoute().location;
   if (!isOnboardingCompleted && state.uri.path != onboardingLocation) {
     return onboardingLocation;
   }
