@@ -25,10 +25,16 @@ class MemoRemoteService {
     return data.map((e) {
       final map = Map<String, dynamic>.from(e as Map);
       if (map['createdAt'] is String) {
-        map['createdAt'] = DateTime.parse(map['createdAt'] as String);
+        final parsed = DateTime.tryParse(map['createdAt'] as String);
+        if (parsed != null) {
+          map['createdAt'] = parsed;
+        }
       }
       if (map['updatedAt'] is String) {
-        map['updatedAt'] = DateTime.parse(map['updatedAt'] as String);
+        final parsed = DateTime.tryParse(map['updatedAt'] as String);
+        if (parsed != null) {
+          map['updatedAt'] = parsed;
+        }
       }
       return map;
     }).toList();
@@ -55,7 +61,7 @@ class MemoRemoteService {
 
     try {
       // まずはPUTリクエストで既存メモの更新を試みます
-      await _api.put<void>('/memos/$id', data: memoData);
+      await _api.put<void>('/memos/${Uri.encodeComponent(id)}', data: memoData);
     } on DioException catch (e) {
       // サーバーからの直接の返事、または共通処理で包み直された独自エラーからステータスコードを取り出します（二重チェック）
       final error = e.error;

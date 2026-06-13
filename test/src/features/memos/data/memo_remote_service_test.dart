@@ -63,6 +63,35 @@ void main() {
       check(result).isEmpty();
     });
 
+    test(
+      'fetchMemos: 日付が不正な形式の場合はパースをスキップし、元の文字列を保持すること',
+      () async {
+        final mockData = [
+          {
+            'id': 'memo1',
+            'title': 'テストタイトル',
+            'content': 'テストコンテンツ',
+            'createdAt': 'invalid-date-string',
+            'updatedAt': 'invalid-date-string',
+            'isDeleted': false,
+          },
+        ];
+
+        when(() => mockApiClient.get<List<dynamic>>('/memos')).thenAnswer(
+          (_) async => Response(
+            data: mockData,
+            requestOptions: RequestOptions(path: '/memos'),
+          ),
+        );
+
+        final result = await service.fetchMemos();
+
+        check(result.length).equals(1);
+        check(result.first['createdAt']).equals('invalid-date-string');
+        check(result.first['updatedAt']).equals('invalid-date-string');
+      },
+    );
+
     test('uploadMemo: PUTが成功した場合、POSTは呼ばれないこと', () async {
       final now = DateTime(2026, 5, 2);
       final memoData = {
@@ -238,6 +267,42 @@ void main() {
         () => mockApiClient.post<void>(any(), data: any(named: 'data')),
       );
     });
+
+    test(
+      'uploadMemo: IDに特殊文字が含まれる場合、URLエンコードされたパスでPUTされること',
+      () async {
+        final now = DateTime(2026, 5, 2);
+        final memoData = {
+          'id': 'memo 1',
+          'title': 'タイトル',
+          'content': 'コンテンツ',
+          'createdAt': now.toIso8601String(),
+          'updatedAt': now.toIso8601String(),
+          'isDeleted': false,
+        };
+
+        when(
+          () => mockApiClient.put<void>('/memos/memo%201', data: memoData),
+        ).thenAnswer(
+          (_) async => Response(
+            requestOptions: RequestOptions(path: '/memos/memo%201'),
+          ),
+        );
+
+        await service.uploadMemo(
+          id: 'memo 1',
+          title: 'タイトル',
+          content: 'コンテンツ',
+          createdAt: now,
+          updatedAt: now,
+          isDeleted: false,
+        );
+
+        verify(
+          () => mockApiClient.put<void>('/memos/memo%201', data: memoData),
+        ).called(1);
+      },
+    );
   });
 
   group('memoRemoteServiceProvider', () {
