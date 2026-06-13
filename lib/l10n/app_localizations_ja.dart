@@ -385,4 +385,33 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get navUsers => 'ユーザー';
+
+  @override
+  String get onboardingSkip => 'スキップ';
+
+  @override
+  String get onboardingNext => '次へ';
+
+  @override
+  String get onboardingStart => 'はじめる';
+
+  @override
+  String get onboardingPage1Title => 'シンプルなメモ機能';
+
+  @override
+  String get onboardingPage1Desc => '思いついたアイデアやタスクを、いつでもどこでもすばやくメモに残すことができます。';
+
+  @override
+  String get onboardingPage2Title => 'どこでもつながる同期機能';
+
+  @override
+  String get onboardingPage2Desc =>
+      'インターネットがないオフライン環境でもメモを書くことができ、接続時に自動でクラウドへ同期されます。';
+
+  @override
+  String get onboardingPage3Title => 'AIチャットアシスタント';
+
+  @override
+  String get onboardingPage3Desc =>
+      'メモのまとめを作ったり、アイデアのブレインストーミングをAIアシスタントがサポートします。';
 }

@@ -1,4 +1,6 @@
 // ignore_for_file: prefer_const_constructors, document_ignores
+import 'dart:async';
+
 import 'package:checks/checks.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -30,6 +32,8 @@ import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
+import 'package:flutter_sample/src/features/onboarding/application/onboarding_notifier.dart';
+import 'package:flutter_sample/src/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_state_provider.dart';
@@ -97,6 +101,19 @@ class _FakeFirebaseAuthStateNotifier extends FirebaseAuthStateNotifier {
   }
 }
 
+class _FakeOnboardingNotifier extends OnboardingNotifier {
+  _FakeOnboardingNotifier({required this.completed});
+  final bool completed;
+
+  @override
+  FutureOr<bool> build() => completed;
+
+  @override
+  Future<void> complete() async {
+    state = const AsyncData(true);
+  }
+}
+
 void main() {
   late MockFirebaseAnalytics mockAnalytics;
   late MockTalker mockTalker;
@@ -150,6 +167,7 @@ void main() {
     required bool isLoggedIn,
     required bool useFirebase,
     bool isSplashFinished = true,
+    bool isOnboardingCompleted = true,
   }) {
     final fakeNotifier = _FakeFirebaseAuthStateNotifier(
       isLoggedIn: isLoggedIn,
@@ -181,6 +199,9 @@ void main() {
         ),
         splashStateProvider.overrideWith(
           () => FakeSplashState(initialValue: isSplashFinished),
+        ),
+        onboardingProvider.overrideWith(
+          () => _FakeOnboardingNotifier(completed: isOnboardingCompleted),
         ),
       ],
     )..listen(routerProvider, (_, _) {});
@@ -624,6 +645,49 @@ void main() {
           screenName: 'PreviousScreen',
         ),
       ).called(1);
+    });
+
+    testWidgets('オンボーディング未完了の時、OnboardingScreenが表示されること', (tester) async {
+      final container = createContainer(
+        isLoggedIn: false,
+        useFirebase: false,
+        isOnboardingCompleted: false,
+      );
+
+      await tester.pumpWidget(createTestWidget(tester, container));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      check(find.byType(OnboardingScreen)).findsOne();
+      await teardownWidget(tester, container);
+    });
+
+    testWidgets('オンボーディング画面で完了操作（はじめる）を行うと、ログイン画面へ自動で遷移すること', (tester) async {
+      final container = createContainer(
+        isLoggedIn: false,
+        useFirebase: false,
+        isOnboardingCompleted: false,
+      );
+
+      await tester.pumpWidget(createTestWidget(tester, container));
+      await tester.pumpAndSettle();
+
+      check(find.byType(OnboardingScreen)).findsOne();
+
+      // 「次へ」をタップして3ページ目へ進む
+      await tester.tap(find.text('次へ'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('次へ'));
+      await tester.pumpAndSettle();
+
+      // 「はじめる」をタップしてオンボーディングを完了させる
+      await tester.tap(find.text('はじめる'));
+      await tester.pumpAndSettle();
+
+      // onboardingProvider の変更によりルーターが再評価され、LoginScreenに遷移することを確認
+      check(find.byType(LoginScreen)).findsOne();
+
+      await teardownWidget(tester, container);
     });
   });
 

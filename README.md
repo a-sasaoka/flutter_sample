@@ -45,6 +45,7 @@ Flutter開発のサンプルプロジェクトです。\
 - [fl_chart によるグラフ表示デモ](docs/chart.md)
 - [オフラインメモ機能（Memos）](docs/memos.md)
 - [設定機能（Settings）](docs/settings.md)
+- [オンボーディング機能 (Onboarding)](docs/onboarding.md)
 
 ### E. 開発運用
 

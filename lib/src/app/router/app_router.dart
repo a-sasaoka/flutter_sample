@@ -23,6 +23,8 @@ import 'package:flutter_sample/src/features/chart/presentation/chart_input_scree
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
+import 'package:flutter_sample/src/features/onboarding/application/onboarding_notifier.dart';
+import 'package:flutter_sample/src/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_state_provider.dart';
@@ -38,6 +40,7 @@ part 'routes/chart_tab_routes.dart';
 part 'routes/home_tab_routes.dart';
 part 'routes/memos_tab_routes.dart';
 part 'routes/shell_routes.dart';
+part 'routes/onboarding_routes.dart';
 part 'routes/splash_routes.dart';
 part 'routes/user_tab_routes.dart';
 
@@ -50,10 +53,16 @@ GoRouter router(Ref ref) {
   final routerListenable = ValueNotifier<bool>(false);
 
   // スプラッシュ画面の表示が完了したときも、画面遷移を再評価する
-  ref.listen(
-    splashStateProvider,
-    (_, _) => routerListenable.value = !routerListenable.value,
-  );
+  ref
+    ..listen(
+      splashStateProvider,
+      (_, _) => routerListenable.value = !routerListenable.value,
+    )
+    // オンボーディング完了状態が更新されたときも、画面遷移を再評価する
+    ..listen(
+      onboardingProvider,
+      (_, _) => routerListenable.value = !routerListenable.value,
+    );
 
   // 使用している認証方式のみを監視対象にする
   if (useFirebase) {

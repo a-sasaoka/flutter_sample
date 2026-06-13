@@ -841,6 +841,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Users'**
   String get navUsers;
+
+  /// No description provided for @onboardingSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get onboardingSkip;
+
+  /// No description provided for @onboardingNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get onboardingNext;
+
+  /// No description provided for @onboardingStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Started'**
+  String get onboardingStart;
+
+  /// No description provided for @onboardingPage1Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Simple Memo Feature'**
+  String get onboardingPage1Title;
+
+  /// No description provided for @onboardingPage1Desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Quickly write down ideas and tasks anytime, anywhere.'**
+  String get onboardingPage1Desc;
+
+  /// No description provided for @onboardingPage2Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Seamless Sync Everywhere'**
+  String get onboardingPage2Title;
+
+  /// No description provided for @onboardingPage2Desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Write memos even offline; they sync to the cloud automatically once online.'**
+  String get onboardingPage2Desc;
+
+  /// No description provided for @onboardingPage3Title.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Chat Assistant'**
+  String get onboardingPage3Title;
+
+  /// No description provided for @onboardingPage3Desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Summarize memos and brainstorm ideas with the support of our AI assistant.'**
+  String get onboardingPage3Desc;
 }
 
 class _AppLocalizationsDelegate

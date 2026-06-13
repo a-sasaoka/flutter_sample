@@ -157,5 +157,16 @@
   "navChat": "Chat",
   "navMemos": "Memos",
   "navChart": "Chart",
-  "navUsers": "Users"
+  "navUsers": "Users",
+
+  "@_ONBOARDING": {},
+  "onboardingSkip": "Skip",
+  "onboardingNext": "Next",
+  "onboardingStart": "Get Started",
+  "onboardingPage1Title": "Simple Memo Feature",
+  "onboardingPage1Desc": "Quickly write down ideas and tasks anytime, anywhere.",
+  "onboardingPage2Title": "Seamless Sync Everywhere",
+  "onboardingPage2Desc": "Write memos even offline; they sync to the cloud automatically once online.",
+  "onboardingPage3Title": "AI Chat Assistant",
+  "onboardingPage3Desc": "Summarize memos and brainstorm ideas with the support of our AI assistant."
 }

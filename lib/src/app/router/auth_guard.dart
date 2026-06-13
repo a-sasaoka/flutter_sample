@@ -1,6 +1,7 @@
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/app/router/base_auth_guard.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
+import 'package:flutter_sample/src/features/onboarding/application/onboarding_notifier.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_state_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -13,6 +14,13 @@ String? authGuard(Ref ref, GoRouterState state) {
     return const SplashRoute().location;
   }
 
+  // オンボーディングの状態を取得
+  final onboardingState = ref.read(onboardingProvider);
+  if (onboardingState.isLoading) {
+    return const SplashRoute().location;
+  }
+  final isOnboardingCompleted = onboardingState.value ?? false;
+
   // 現在のログイン状態を取得（コールバック内のため watch ではなく read を使用）
   final authState = ref.read(authStateProvider);
 
@@ -24,6 +32,19 @@ String? authGuard(Ref ref, GoRouterState state) {
 
   // ユーザーがログイン済みかどうか
   final isLoggedIn = authState.value ?? false;
+
+  // オンボーディングが未完了の場合はオンボーディング画面へリダイレクト（現在地がオンボーディング画面以外の場合）
+  final onboardingLocation = const OnboardingRoute().location;
+  if (!isOnboardingCompleted && state.uri.path != onboardingLocation) {
+    return onboardingLocation;
+  }
+
+  // すでにオンボーディング完了済みでオンボーディング画面にいる場合はリダイレクト
+  if (isOnboardingCompleted && state.uri.path == onboardingLocation) {
+    return isLoggedIn
+        ? const HomeRoute().location
+        : const LoginRoute().location;
+  }
 
   // スプラッシュ表示が完了しており、かつ現在スプラッシュ画面にいる場合は、
   // ログイン状態に応じた適切な画面（ホームまたはログイン）へリダイレクトする
@@ -41,6 +62,7 @@ String? authGuard(Ref ref, GoRouterState state) {
     },
     alwaysPublicPaths: {
       const SplashRoute().location,
+      const OnboardingRoute().location,
     },
   ).redirect(
     isLoggedIn: isLoggedIn,
