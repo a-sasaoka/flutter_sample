@@ -55,6 +55,7 @@ flutter_sample
             ├── chat                                            # AIチャット機能
             ├── home                                            # ホーム画面
             ├── memos                                           # メモ一覧・オフライン操作機能
+            ├── onboarding                                      # オンボーディング機能
             ├── settings                                        # 設定画面
             ├── splash                                          # スプラッシュ画面
             └── user                                            # ユーザー管理機能

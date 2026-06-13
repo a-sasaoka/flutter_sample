@@ -88,6 +88,7 @@ lib/src/app/router/
  │    ├── chart_tab_routes.dart        # グラフタブのルート定義
  │    ├── home_tab_routes.dart         # ホームタブのルート定義
  │    ├── memos_tab_routes.dart        # メモタブのルート定義
+ │    ├── onboarding_routes.dart       # オンボーディング画面のルート定義
  │    ├── shell_routes.dart            # ナビゲーションシェル（ボトムメニュー）の定義
  │    ├── splash_routes.dart           # スプラッシュ画面の定義
  │    └── user_tab_routes.dart         # ユーザー一覧タブのルート定義
