@@ -1,18 +1,43 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
+import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'memo_remote_service.g.dart';
 
 /// サーバーやクラウドと通信するためのクラス
-/// （今回は本物のサーバーを使わず、Mockを使用）
 class MemoRemoteService {
-  final List<Map<String, dynamic>> _mockServerData = [];
+  /// ApiClientを受け取って初期化します
+  MemoRemoteService(this._api);
+
+  final ApiClient _api;
 
   /// サーバーからメモのデータを取得する
   Future<List<Map<String, dynamic>>> fetchMemos() async {
-    // 実際に通信しているように見せるため、1秒間待つ
-    await Future<void>.delayed(const Duration(seconds: 1));
+    // サーバーの /memos エンドポイントからデータを取得します
+    final response = await _api.get<List<dynamic>>('/memos');
+    final data = response.data;
+    if (data == null) {
+      return [];
+    }
 
-    return _mockServerData;
+    // JSONの日付文字列を DateTime 型に復元してリストにして返します
+    return data.map((e) {
+      final map = Map<String, dynamic>.from(e as Map);
+      if (map['createdAt'] is String) {
+        final parsed = DateTime.tryParse(map['createdAt'] as String);
+        if (parsed != null) {
+          map['createdAt'] = parsed;
+        }
+      }
+      if (map['updatedAt'] is String) {
+        final parsed = DateTime.tryParse(map['updatedAt'] as String);
+        if (parsed != null) {
+          map['updatedAt'] = parsed;
+        }
+      }
+      return map;
+    }).toList();
   }
 
   /// メモをサーバーに保存（または更新）する
@@ -24,24 +49,32 @@ class MemoRemoteService {
     required DateTime updatedAt,
     required bool isDeleted,
   }) async {
-    // 実際に通信しているように見せるため、1秒間待つ
-    await Future<void>.delayed(const Duration(seconds: 1));
-
-    // すでに同じIDのメモがあれば上書きし、なければ追加する
-    final existingIndex = _mockServerData.indexWhere((m) => m['id'] == id);
+    // サーバーに送信するためのMap形式データを作ります。日付は文字列に変換します。
     final memoData = {
       'id': id,
       'title': title,
       'content': content,
-      'createdAt': createdAt,
-      'updatedAt': updatedAt,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
       'isDeleted': isDeleted,
     };
 
-    if (existingIndex >= 0) {
-      _mockServerData[existingIndex] = memoData;
-    } else {
-      _mockServerData.add(memoData);
+    try {
+      // まずはPUTリクエストで既存メモの更新を試みます
+      await _api.put<void>('/memos/${Uri.encodeComponent(id)}', data: memoData);
+    } on DioException catch (e) {
+      // サーバーからの直接の返事、または共通処理で包み直された独自エラーからステータスコードを取り出します（二重チェック）
+      final error = e.error;
+      final statusCode =
+          e.response?.statusCode ??
+          (error is AppException ? error.statusCode : null);
+
+      // 404 (データが見つからない) エラーの場合のみ、POSTリクエストで新規登録を行います
+      if (statusCode == 404) {
+        await _api.post<void>('/memos', data: memoData);
+      } else {
+        rethrow;
+      }
     }
   }
 }
@@ -49,5 +82,5 @@ class MemoRemoteService {
 /// [MemoRemoteService] をアプリのどこからでも簡単に呼び出せるようにするためのプロバイダー
 @riverpod
 MemoRemoteService memoRemoteService(Ref ref) {
-  return MemoRemoteService();
+  return MemoRemoteService(ref.watch(apiClientProvider));
 }

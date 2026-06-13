@@ -58,4 +58,4 @@ final class MemoRemoteServiceProvider
   }
 }
 
-String _$memoRemoteServiceHash() => r'5680d4c83d8c3dc021d9eac52a73f0b317ba8c4d';
+String _$memoRemoteServiceHash() => r'9302ce93780f134849d7d12421678e268b45889e';
