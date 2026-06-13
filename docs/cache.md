@@ -48,7 +48,7 @@ Riverpodの標準機能である `ref.refresh` は「メモリ上の状態」を
       appBar: AppBar(title: Text(l10n.userListTitle)),
       body: switch (usersAsync) {
         // 💡 データがある場合 (エラーやローディング中でも、データがあれば表示)
-        AsyncValue(:final value?) when value.isNotEmpty => RefreshIndicator(
+        AsyncValue(value: (final value, _)?) when value.isNotEmpty => RefreshIndicator(
           onRefresh: onRefresh,
           child: ListView.builder(
             itemCount: value.length,
