@@ -168,5 +168,19 @@
   "onboardingPage2Title": "Seamless Sync Everywhere",
   "onboardingPage2Desc": "Write memos even offline; they sync to the cloud automatically once online.",
   "onboardingPage3Title": "AI Chat Assistant",
-  "onboardingPage3Desc": "Summarize memos and brainstorm ideas with the support of our AI assistant."
+  "onboardingPage3Desc": "Summarize memos and brainstorm ideas with the support of our AI assistant.",
+
+  "@_DEV_TOOLS": {},
+  "devStorageTitle": "Storage Viewer & Editor",
+  "devStoragePrefsTab": "SharedPreferences",
+  "devStorageSecureTab": "SecureStorage",
+  "devStorageEditDialogTitle": "Edit Key",
+  "devStorageAddDialogTitle": "Add Key",
+  "devStorageConfirmClear": "Are you sure you want to clear all data?",
+  "devStorageKey": "Key",
+  "devStorageValue": "Value",
+  "devStorageType": "Data Type",
+  "devStorageSelectType": "Select Data Type",
+  "devStorageClearAll": "Clear All",
+  "devStorageAddKey": "Add Key"
 }

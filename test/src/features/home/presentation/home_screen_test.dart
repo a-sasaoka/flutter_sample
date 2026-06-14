@@ -124,6 +124,7 @@ void main() {
     when(() => mockL10n.versionUpCancel).thenReturn('後で');
     when(() => mockL10n.close).thenReturn('閉じる');
     when(() => mockL10n.ok).thenReturn('OK');
+    when(() => mockL10n.devStorageTitle).thenReturn('ストレージ確認・編集');
   });
 
   Future<void> setupWidget(
@@ -440,6 +441,22 @@ void main() {
       await tester.pumpAndSettle();
 
       check(attemptedPath).isNotNull().contains('settings');
+    });
+
+    testWidgets('ストレージ確認・編集メニューをタップすると該当ルートへ遷移すること', (tester) async {
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      final finder = find.widgetWithText(ListTile, 'ストレージ確認・編集');
+      await tester.dragUntilVisible(
+        finder,
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+
+      check(attemptedPath).isNotNull().contains('dev-tools/storage');
     });
   });
 }

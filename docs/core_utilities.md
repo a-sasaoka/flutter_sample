@@ -117,3 +117,25 @@ clockProvider.overrideWithValue(() => DateTime(2026, 5, 10)),
 ---
 
 これらのユーティリティは、アプリの品質とユーザー体験（UX）、そして開発者体験（DX）を底上げするための強力なツールです。目的に応じて積極的に活用してください。
+
+---
+
+## 🛠 5. 開発者用ストレージ確認・編集画面
+
+開発環境（`local`, `dev`, `stg`）では、ホーム画面の「ストレージ確認・編集」メニューから、アプリにローカル保存されているデータを直接確認・編集・削除できます。
+
+### 📁 関連ファイル
+
+- `lib/src/features/dev_tools/presentation/developer_storage_screen.dart`
+- `lib/src/features/dev_tools/application/shared_preferences_provider.dart`
+- `lib/src/features/dev_tools/application/secure_storage_provider.dart`
+
+### 特徴と使用方法
+
+- **対応ストレージ**: `SharedPreferencesAsync` および `FlutterSecureStorage` に保存されているデータを一覧表示します。
+- **データ操作**:
+  - **値の編集**: キー行をタップすると編集ダイアログが開き、値を直接編集できます。SharedPreferencesでは、データ型（String/int/double/bool）に対応した入力が可能です（`bool` の場合はスイッチUI）。
+  - **個別削除**: キーの右にあるゴミ箱アイコンをタップして、個別にキーを削除できます。
+  - **一括削除**: 画面右上のアイコン（ゴミ箱）から、現在開いているタブのデータを一括で全削除できます（確認ダイアログが表示されます）。
+  - **新規追加**: 画面右下の「＋」ボタンから、新しいキーと値を追加できます。
+- **本番環境ガード**: 本番環境（`prod`）では、ホーム画面にメニューが表示されず、直接URL（`/dev-tools/storage`）を入力してアクセスしようとしても `NotFoundScreen` にリダイレクトされ、完全に遮断されます。

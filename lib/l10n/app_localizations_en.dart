@@ -428,4 +428,41 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get onboardingPage3Desc =>
       'Summarize memos and brainstorm ideas with the support of our AI assistant.';
+
+  @override
+  String get devStorageTitle => 'Storage Viewer & Editor';
+
+  @override
+  String get devStoragePrefsTab => 'SharedPreferences';
+
+  @override
+  String get devStorageSecureTab => 'SecureStorage';
+
+  @override
+  String get devStorageEditDialogTitle => 'Edit Key';
+
+  @override
+  String get devStorageAddDialogTitle => 'Add Key';
+
+  @override
+  String get devStorageConfirmClear =>
+      'Are you sure you want to clear all data?';
+
+  @override
+  String get devStorageKey => 'Key';
+
+  @override
+  String get devStorageValue => 'Value';
+
+  @override
+  String get devStorageType => 'Data Type';
+
+  @override
+  String get devStorageSelectType => 'Select Data Type';
+
+  @override
+  String get devStorageClearAll => 'Clear All';
+
+  @override
+  String get devStorageAddKey => 'Add Key';
 }

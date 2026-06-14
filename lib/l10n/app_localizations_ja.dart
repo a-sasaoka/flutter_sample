@@ -414,4 +414,40 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get onboardingPage3Desc =>
       'メモのまとめを作ったり、アイデアのブレインストーミングをAIアシスタントがサポートします。';
+
+  @override
+  String get devStorageTitle => 'ストレージ確認・編集';
+
+  @override
+  String get devStoragePrefsTab => 'SharedPreferences';
+
+  @override
+  String get devStorageSecureTab => 'SecureStorage';
+
+  @override
+  String get devStorageEditDialogTitle => 'キーの編集';
+
+  @override
+  String get devStorageAddDialogTitle => 'キーの追加';
+
+  @override
+  String get devStorageConfirmClear => 'すべてのデータを削除しますか？';
+
+  @override
+  String get devStorageKey => 'キー';
+
+  @override
+  String get devStorageValue => '値';
+
+  @override
+  String get devStorageType => 'データ型';
+
+  @override
+  String get devStorageSelectType => 'データ型を選択';
+
+  @override
+  String get devStorageClearAll => '一括削除';
+
+  @override
+  String get devStorageAddKey => 'キーを追加';
 }
