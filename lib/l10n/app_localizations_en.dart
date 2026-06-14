@@ -465,4 +465,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get devStorageAddKey => 'Add Key';
+
+  @override
+  String devStorageError(String message) {
+    return 'Error: $message';
+  }
+
+  @override
+  String get devStorageNoPrefsData => 'No SharedPreferences data found.';
+
+  @override
+  String get devStorageNoSecureData => 'No SecureStorage data found.';
 }

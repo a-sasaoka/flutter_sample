@@ -182,5 +182,15 @@
   "devStorageType": "Data Type",
   "devStorageSelectType": "Select Data Type",
   "devStorageClearAll": "Clear All",
-  "devStorageAddKey": "Add Key"
+  "devStorageAddKey": "Add Key",
+  "devStorageError": "Error: {message}",
+  "@devStorageError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "devStorageNoPrefsData": "No SharedPreferences data found.",
+  "devStorageNoSecureData": "No SecureStorage data found."
 }

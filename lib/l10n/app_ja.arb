@@ -182,5 +182,15 @@
   "devStorageType": "データ型",
   "devStorageSelectType": "データ型を選択",
   "devStorageClearAll": "一括削除",
-  "devStorageAddKey": "キーを追加"
+  "devStorageAddKey": "キーを追加",
+  "devStorageError": "エラー: {message}",
+  "@devStorageError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "devStorageNoPrefsData": "SharedPreferencesのデータが見つかりません。",
+  "devStorageNoSecureData": "SecureStorageのデータが見つかりません。"
 }

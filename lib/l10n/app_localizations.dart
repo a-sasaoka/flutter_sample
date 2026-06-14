@@ -967,6 +967,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add Key'**
   String get devStorageAddKey;
+
+  /// No description provided for @devStorageError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {message}'**
+  String devStorageError(String message);
+
+  /// No description provided for @devStorageNoPrefsData.
+  ///
+  /// In en, this message translates to:
+  /// **'No SharedPreferences data found.'**
+  String get devStorageNoPrefsData;
+
+  /// No description provided for @devStorageNoSecureData.
+  ///
+  /// In en, this message translates to:
+  /// **'No SecureStorage data found.'**
+  String get devStorageNoSecureData;
 }
 
 class _AppLocalizationsDelegate

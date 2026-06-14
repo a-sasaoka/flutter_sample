@@ -80,10 +80,8 @@ void main() {
           secureStorageProvider.overrideWithValue(mockSecureStorage),
         ],
         child: buildGoldenTestApp(
-          home: DefaultTabController(
-            length: 2,
-            initialIndex: initialIndex,
-            child: const DeveloperStorageScreen(),
+          home: DeveloperStorageScreen(
+            initialTabIndex: initialIndex,
           ),
           themeMode: themeMode,
         ),

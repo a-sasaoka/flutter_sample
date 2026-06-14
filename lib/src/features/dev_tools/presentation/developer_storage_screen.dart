@@ -13,7 +13,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 /// 開発者向けストレージ確認・編集画面
 class DeveloperStorageScreen extends HookConsumerWidget {
   /// コンストラクタ
-  const DeveloperStorageScreen({super.key});
+  const DeveloperStorageScreen({
+    this.initialTabIndex = 0,
+    super.key,
+  });
+
+  /// 初期表示するタブのインデックス
+  final int initialTabIndex;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -29,7 +35,10 @@ class DeveloperStorageScreen extends HookConsumerWidget {
       return NotFoundScreen(unknownPath: path);
     }
 
-    final tabController = useTabController(initialLength: 2);
+    final tabController = useTabController(
+      initialLength: 2,
+      initialIndex: initialTabIndex,
+    );
     final l10n = context.l10n;
 
     // データ監視
@@ -62,13 +71,15 @@ class DeveloperStorageScreen extends HookConsumerWidget {
           // SharedPreferences タブ
           prefsState.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) => Center(child: Text('Error: $err')),
+            error: (err, stack) =>
+                Center(child: Text(l10n.devStorageError(err.toString()))),
             data: (data) => _SharedPreferencesTab(data: data),
           ),
           // SecureStorage タブ
           secureState.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) => Center(child: Text('Error: $err')),
+            error: (err, stack) =>
+                Center(child: Text(l10n.devStorageError(err.toString()))),
             data: (data) => _SecureStorageTab(data: data),
           ),
         ],
@@ -137,9 +148,10 @@ class _SharedPreferencesTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     if (data.isEmpty) {
-      return const Center(
-        child: Text('No SharedPreferences data found.'),
+      return Center(
+        child: Text(l10n.devStorageNoPrefsData),
       );
     }
 
@@ -215,9 +227,10 @@ class _SecureStorageTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     if (data.isEmpty) {
-      return const Center(
-        child: Text('No SecureStorage data found.'),
+      return Center(
+        child: Text(l10n.devStorageNoSecureData),
       );
     }
 
