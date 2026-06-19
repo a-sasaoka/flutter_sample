@@ -168,5 +168,29 @@
   "onboardingPage2Title": "どこでもつながる同期機能",
   "onboardingPage2Desc": "インターネットがないオフライン環境でもメモを書くことができ、接続時に自動でクラウドへ同期されます。",
   "onboardingPage3Title": "AIチャットアシスタント",
-  "onboardingPage3Desc": "メモのまとめを作ったり、アイデアのブレインストーミングをAIアシスタントがサポートします。"
+  "onboardingPage3Desc": "メモのまとめを作ったり、アイデアのブレインストーミングをAIアシスタントがサポートします。",
+
+  "@_DEV_TOOLS": {},
+  "devStorageTitle": "ストレージ確認・編集",
+  "devStoragePrefsTab": "SharedPreferences",
+  "devStorageSecureTab": "SecureStorage",
+  "devStorageEditDialogTitle": "キーの編集",
+  "devStorageAddDialogTitle": "キーの追加",
+  "devStorageConfirmClear": "すべてのデータを削除しますか？",
+  "devStorageKey": "キー",
+  "devStorageValue": "値",
+  "devStorageType": "データ型",
+  "devStorageSelectType": "データ型を選択",
+  "devStorageClearAll": "一括削除",
+  "devStorageAddKey": "キーを追加",
+  "devStorageError": "エラー: {message}",
+  "@devStorageError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "devStorageNoPrefsData": "SharedPreferencesのデータが見つかりません。",
+  "devStorageNoSecureData": "SecureStorageのデータが見つかりません。"
 }

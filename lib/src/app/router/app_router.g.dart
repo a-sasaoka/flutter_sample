@@ -12,6 +12,7 @@ List<RouteBase> get $appRoutes => [
   $appShellRouteData,
   $onboardingRoute,
   $splashRoute,
+  $developerStorageRoute,
 ];
 
 RouteBase get $loginRoute => GoRouteData.$route(
@@ -349,6 +350,32 @@ mixin $SplashRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/splash');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $developerStorageRoute => GoRouteData.$route(
+  path: '/dev-tools/storage',
+  factory: $DeveloperStorageRoute._fromState,
+);
+
+mixin $DeveloperStorageRoute on GoRouteData {
+  static DeveloperStorageRoute _fromState(GoRouterState state) =>
+      const DeveloperStorageRoute();
+
+  @override
+  String get location => GoRouteData.$location('/dev-tools/storage');
 
   @override
   void go(BuildContext context) => context.go(location);

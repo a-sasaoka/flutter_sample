@@ -895,6 +895,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Summarize memos and brainstorm ideas with the support of our AI assistant.'**
   String get onboardingPage3Desc;
+
+  /// No description provided for @devStorageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage Viewer & Editor'**
+  String get devStorageTitle;
+
+  /// No description provided for @devStoragePrefsTab.
+  ///
+  /// In en, this message translates to:
+  /// **'SharedPreferences'**
+  String get devStoragePrefsTab;
+
+  /// No description provided for @devStorageSecureTab.
+  ///
+  /// In en, this message translates to:
+  /// **'SecureStorage'**
+  String get devStorageSecureTab;
+
+  /// No description provided for @devStorageEditDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Key'**
+  String get devStorageEditDialogTitle;
+
+  /// No description provided for @devStorageAddDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Key'**
+  String get devStorageAddDialogTitle;
+
+  /// No description provided for @devStorageConfirmClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to clear all data?'**
+  String get devStorageConfirmClear;
+
+  /// No description provided for @devStorageKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Key'**
+  String get devStorageKey;
+
+  /// No description provided for @devStorageValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Value'**
+  String get devStorageValue;
+
+  /// No description provided for @devStorageType.
+  ///
+  /// In en, this message translates to:
+  /// **'Data Type'**
+  String get devStorageType;
+
+  /// No description provided for @devStorageSelectType.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Data Type'**
+  String get devStorageSelectType;
+
+  /// No description provided for @devStorageClearAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear All'**
+  String get devStorageClearAll;
+
+  /// No description provided for @devStorageAddKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Key'**
+  String get devStorageAddKey;
+
+  /// No description provided for @devStorageError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {message}'**
+  String devStorageError(String message);
+
+  /// No description provided for @devStorageNoPrefsData.
+  ///
+  /// In en, this message translates to:
+  /// **'No SharedPreferences data found.'**
+  String get devStorageNoPrefsData;
+
+  /// No description provided for @devStorageNoSecureData.
+  ///
+  /// In en, this message translates to:
+  /// **'No SecureStorage data found.'**
+  String get devStorageNoSecureData;
 }
 
 class _AppLocalizationsDelegate

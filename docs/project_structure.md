@@ -53,6 +53,7 @@ flutter_sample
             ├── auth                                            # 認証機能
             ├── chart                                           # グラフ表示機能（fl_chart）
             ├── chat                                            # AIチャット機能
+            ├── dev_tools                                       # 開発者ツール機能（ストレージ確認・編集等）
             ├── home                                            # ホーム画面
             ├── memos                                           # メモ一覧・オフライン操作機能
             ├── onboarding                                      # オンボーディング機能

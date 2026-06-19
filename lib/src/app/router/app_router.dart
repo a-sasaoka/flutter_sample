@@ -21,6 +21,7 @@ import 'package:flutter_sample/src/features/auth/presentation/login_screen.dart'
 import 'package:flutter_sample/src/features/chart/presentation/chart_display_screen.dart';
 import 'package:flutter_sample/src/features/chart/presentation/chart_input_screen.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
+import 'package:flutter_sample/src/features/dev_tools/presentation/developer_storage_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
 import 'package:flutter_sample/src/features/onboarding/application/onboarding_notifier.dart';
@@ -43,6 +44,7 @@ part 'routes/shell_routes.dart';
 part 'routes/onboarding_routes.dart';
 part 'routes/splash_routes.dart';
 part 'routes/user_tab_routes.dart';
+part 'routes/dev_tools_routes.dart';
 
 /// 🌐 GoRouterのインスタンスをRiverpodで提供
 @Riverpod(keepAlive: true)

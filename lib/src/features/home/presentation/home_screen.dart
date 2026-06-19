@@ -128,7 +128,14 @@ class _HomeBody extends ConsumerWidget {
         Card(
           child: Column(
             children: [
-              if (flavor != Flavor.prod)
+              if (flavor != Flavor.prod) ...[
+                _MenuTile(
+                  icon: Icons.storage_outlined,
+                  title: l10n.devStorageTitle,
+                  onTap: () =>
+                      const DeveloperStorageRoute().push<void>(context),
+                ),
+                const Divider(height: 1, indent: 56),
                 _MenuTile(
                   icon: Icons.terminal_outlined,
                   title: l10n.developerLogTitle,
@@ -141,7 +148,6 @@ class _HomeBody extends ConsumerWidget {
                     ),
                   ),
                 ),
-              if (flavor != Flavor.prod) ...[
                 const Divider(height: 1, indent: 56),
                 _MenuTile(
                   icon: Icons.running_with_errors_outlined,
