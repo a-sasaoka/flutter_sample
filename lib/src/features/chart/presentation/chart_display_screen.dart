@@ -1,20 +1,11 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/chart/application/chart_notifier.dart';
 import 'package:flutter_sample/src/features/chart/application/chart_state.dart';
 import 'package:flutter_sample/src/features/chart/domain/chart_type.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-
-// グラフで使用する色のリスト
-const List<MaterialColor> _chartColors = [
-  Colors.red,
-  Colors.blue,
-  Colors.green,
-  Colors.yellow,
-  Colors.purple,
-  Colors.orange,
-];
 
 /// グラフを表示する画面
 class ChartDisplayScreen extends ConsumerWidget {
@@ -25,6 +16,7 @@ class ChartDisplayScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(chartProvider);
     final l10n = context.l10n;
+    final palette = AppTheme.chartColors(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -78,7 +70,7 @@ class ChartDisplayScreen extends ConsumerWidget {
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final item = state.items[index];
-                        final color = _chartColors[index % _chartColors.length];
+                        final color = palette[index % palette.length];
                         return Card(
                           key: ValueKey(item.id),
                           margin: const EdgeInsets.symmetric(vertical: 4),
@@ -152,6 +144,8 @@ class _LineChartView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final labelInterval = _getLabelInterval(state.items.length);
+    final palette = AppTheme.chartColors(context);
+    final theme = Theme.of(context);
 
     return LineChart(
       LineChartData(
@@ -208,8 +202,18 @@ class _LineChartView extends StatelessWidget {
                 FlSpot(i.toDouble(), item.value),
             ],
             isCurved: true,
-            color: Colors.blue,
+            color: theme.colorScheme.outlineVariant,
             barWidth: 4,
+            dotData: FlDotData(
+              getDotPainter: (spot, percent, barData, index) {
+                return FlDotCirclePainter(
+                  radius: 6,
+                  color: palette[index % palette.length],
+                  strokeWidth: 2,
+                  strokeColor: Colors.white,
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -231,6 +235,7 @@ class _BarChartView extends StatelessWidget {
         : (state.items.length > 10 ? 8.0 : 16.0);
 
     final labelInterval = _getLabelInterval(state.items.length);
+    final palette = AppTheme.chartColors(context);
 
     return BarChart(
       BarChartData(
@@ -288,7 +293,7 @@ class _BarChartView extends StatelessWidget {
               barRods: [
                 BarChartRodData(
                   toY: item.value,
-                  color: Colors.green,
+                  color: palette[i % palette.length], // アイテムごとに色を塗り分ける
                   width: barWidth,
                 ),
               ],
@@ -307,6 +312,9 @@ class _PieChartView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = AppTheme.chartColors(context);
+
     return PieChart(
       PieChartData(
         sections: [
@@ -314,12 +322,12 @@ class _PieChartView extends StatelessWidget {
             PieChartSectionData(
               value: item.value,
               title: item.label,
-              color: _chartColors[i % _chartColors.length],
+              color: palette[i % palette.length],
               radius: 50,
-              titleStyle: const TextStyle(
+              titleStyle: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: theme.colorScheme.onPrimaryContainer,
               ),
             ),
         ],
