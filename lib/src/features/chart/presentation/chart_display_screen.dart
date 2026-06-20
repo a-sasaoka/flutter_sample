@@ -6,6 +6,16 @@ import 'package:flutter_sample/src/features/chart/application/chart_state.dart';
 import 'package:flutter_sample/src/features/chart/domain/chart_type.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+// グラフで使用する色のリスト
+const List<MaterialColor> _chartColors = [
+  Colors.red,
+  Colors.blue,
+  Colors.green,
+  Colors.yellow,
+  Colors.purple,
+  Colors.orange,
+];
+
 /// グラフを表示する画面
 class ChartDisplayScreen extends ConsumerWidget {
   /// コンストラクタ
@@ -40,7 +50,7 @@ class ChartDisplayScreen extends ConsumerWidget {
                       children: [
                         AspectRatio(
                           aspectRatio: 1.5,
-                          child: _buildChart(state),
+                          child: _ChartSelector(state: state),
                         ),
                         const SizedBox(height: 40),
                         const Divider(),
@@ -68,7 +78,7 @@ class ChartDisplayScreen extends ConsumerWidget {
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final item = state.items[index];
-                        final color = _colors[index % _colors.length];
+                        final color = _chartColors[index % _chartColors.length];
                         return Card(
                           key: ValueKey(item.id),
                           margin: const EdgeInsets.symmetric(vertical: 4),
@@ -105,26 +115,42 @@ class ChartDisplayScreen extends ConsumerWidget {
             ),
     );
   }
+}
 
-  Widget _buildChart(ChartState state) {
+/// 表示するグラフの種類を判定して切り替える Widget
+class _ChartSelector extends StatelessWidget {
+  const _ChartSelector({required this.state});
+
+  final ChartState state;
+
+  @override
+  Widget build(BuildContext context) {
     switch (state.chartType) {
       case ChartType.line:
-        return _buildLineChart(state);
+        return _LineChartView(state: state);
       case ChartType.bar:
-        return _buildBarChart(state);
+        return _BarChartView(state: state);
       case ChartType.pie:
-        return _buildPieChart(state);
+        return _PieChartView(state: state);
     }
   }
+}
 
-  /// 項目数に応じてラベルの間欠表示間隔を計算する
-  int _getLabelInterval(int itemCount) {
-    if (itemCount > 20) return 5;
-    if (itemCount > 10) return 2;
-    return 1;
-  }
+/// 項目数に応じてラベルの間欠表示間隔を計算する
+int _getLabelInterval(int itemCount) {
+  if (itemCount > 20) return 5;
+  if (itemCount > 10) return 2;
+  return 1;
+}
 
-  Widget _buildLineChart(ChartState state) {
+/// 折れ線グラフを描画する Widget
+class _LineChartView extends StatelessWidget {
+  const _LineChartView({required this.state});
+
+  final ChartState state;
+
+  @override
+  Widget build(BuildContext context) {
     final labelInterval = _getLabelInterval(state.items.length);
 
     return LineChart(
@@ -189,8 +215,16 @@ class ChartDisplayScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _buildBarChart(ChartState state) {
+/// 棒グラフを描画する Widget
+class _BarChartView extends StatelessWidget {
+  const _BarChartView({required this.state});
+
+  final ChartState state;
+
+  @override
+  Widget build(BuildContext context) {
     // 項目数に応じて棒の太さを調整
     final barWidth = state.items.length > 20
         ? 4.0
@@ -263,17 +297,16 @@ class ChartDisplayScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  static final List<MaterialColor> _colors = [
-    Colors.red,
-    Colors.blue,
-    Colors.green,
-    Colors.yellow,
-    Colors.purple,
-    Colors.orange,
-  ];
+/// 円グラフを描画する Widget
+class _PieChartView extends StatelessWidget {
+  const _PieChartView({required this.state});
 
-  Widget _buildPieChart(ChartState state) {
+  final ChartState state;
+
+  @override
+  Widget build(BuildContext context) {
     return PieChart(
       PieChartData(
         sections: [
@@ -281,7 +314,7 @@ class ChartDisplayScreen extends ConsumerWidget {
             PieChartSectionData(
               value: item.value,
               title: item.label,
-              color: _colors[i % _colors.length],
+              color: _chartColors[i % _chartColors.length],
               radius: 50,
               titleStyle: const TextStyle(
                 fontSize: 12,
