@@ -312,24 +312,30 @@ class _PieChartView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final palette = AppTheme.chartColors(context);
 
     return PieChart(
       PieChartData(
         sections: [
           for (final (i, item) in state.items.indexed)
-            PieChartSectionData(
-              value: item.value,
-              title: item.label,
-              color: palette[i % palette.length],
-              radius: 50,
-              titleStyle: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onPrimaryContainer,
-              ),
-            ),
+            () {
+              final sectionColor = palette[i % palette.length];
+              final textColor = sectionColor.computeLuminance() > 0.5
+                  ? Colors.black
+                  : Colors.white;
+
+              return PieChartSectionData(
+                value: item.value,
+                title: item.label,
+                color: sectionColor,
+                radius: 50,
+                titleStyle: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
+              );
+            }(),
         ],
       ),
     );
