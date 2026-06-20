@@ -1,4 +1,6 @@
+import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
 import 'package:flutter_sample/src/features/onboarding/presentation/onboarding_screen.dart';
@@ -43,59 +45,50 @@ void main() {
       await pumpOnboardingScreen(tester);
 
       // 1ページ目のタイトルと説明文が表示されていること
-      expect(find.text('シンプルなメモ機能'), findsOneWidget);
-      expect(
-        find.text('思いついたアイデアやタスクを、いつでもどこでもすばやくメモに残すことができます。'),
-        findsOneWidget,
-      );
+      check(find.text(mockL10n.onboardingPage1Title)).findsOne();
+      check(find.text(mockL10n.onboardingPage1Desc)).findsOne();
 
       // スキップボタンと次へボタンがあること
-      expect(find.text('Skip'), findsOneWidget);
-      expect(find.text('Next'), findsOneWidget);
-      expect(find.text('Get Started'), findsNothing);
+      check(find.text(mockL10n.onboardingSkip)).findsOne();
+      check(find.text(mockL10n.onboardingNext)).findsOne();
+      check(find.text(mockL10n.onboardingStart)).findsNothing();
     });
 
     testWidgets('「次へ」ボタンをタップすると2枚目のスライドに切り替わること', (tester) async {
       await pumpOnboardingScreen(tester);
 
       // 「次へ」をタップ
-      await tester.tap(find.text('Next'));
+      await tester.tap(find.text(mockL10n.onboardingNext));
       await tester.pumpAndSettle();
 
       // 2ページ目の表示
-      expect(find.text('どこでもつながる同期機能'), findsOneWidget);
-      expect(
-        find.text('インターネットがないオフライン環境でもメモを書くことができ、接続時に自動でクラウドへ同期されます。'),
-        findsOneWidget,
-      );
-      expect(find.text('Next'), findsOneWidget);
-      expect(find.text('Get Started'), findsNothing);
+      check(find.text(mockL10n.onboardingPage2Title)).findsOne();
+      check(find.text(mockL10n.onboardingPage2Desc)).findsOne();
+      check(find.text(mockL10n.onboardingNext)).findsOne();
+      check(find.text(mockL10n.onboardingStart)).findsNothing();
     });
 
     testWidgets('3枚目のスライドで「はじめる」ボタンが表示され、タップすると完了処理が呼ばれること', (tester) async {
       await pumpOnboardingScreen(tester);
 
       // 2ページ目に切り替え
-      await tester.tap(find.text('Next'));
+      await tester.tap(find.text(mockL10n.onboardingNext));
       await tester.pumpAndSettle();
 
       // 3ページ目に切り替え
-      await tester.tap(find.text('Next'));
+      await tester.tap(find.text(mockL10n.onboardingNext));
       await tester.pumpAndSettle();
 
       // 3ページ目の表示
-      expect(find.text('AIチャットアシスタント'), findsOneWidget);
-      expect(
-        find.text('メモのまとめを作ったり、アイデアのブレインストーミングをAIアシスタントがサポートします。'),
-        findsOneWidget,
-      );
+      check(find.text(mockL10n.onboardingPage3Title)).findsOne();
+      check(find.text(mockL10n.onboardingPage3Desc)).findsOne();
 
       // 「はじめる」に変わっていること
-      expect(find.text('Next'), findsNothing);
-      expect(find.text('Get Started'), findsOneWidget);
+      check(find.text(mockL10n.onboardingNext)).findsNothing();
+      check(find.text(mockL10n.onboardingStart)).findsOne();
 
       // 「はじめる」をタップすると、SharedPreferencesに保存されること
-      await tester.tap(find.text('Get Started'));
+      await tester.tap(find.text(mockL10n.onboardingStart));
       await tester.pump(); // Notifierの非同期処理を発火
 
       verify(() => mockPrefs.setBool('onboarding_completed', true)).called(1);
@@ -105,7 +98,7 @@ void main() {
       await pumpOnboardingScreen(tester);
 
       // 「Skip」をタップ
-      await tester.tap(find.text('Skip'));
+      await tester.tap(find.text(mockL10n.onboardingSkip));
       await tester.pump();
 
       verify(() => mockPrefs.setBool('onboarding_completed', true)).called(1);

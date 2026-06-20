@@ -7,7 +7,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/app/router/main_shell_screen.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
@@ -43,6 +42,8 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:talker_flutter/talker_flutter.dart';
+
+import '../../core/widgets/widgets_test_helper.dart';
 
 class MockFirebaseAnalytics extends Mock implements FirebaseAnalytics {}
 
@@ -120,6 +121,8 @@ void main() {
   late MockUser mockUser;
   late MockChatRepository mockChatRepository;
   late MockMemoRepository mockMemoRepository;
+  late MockAppLocalizations mockL10n;
+  late List<LocalizationsDelegate<dynamic>> testLocalizations;
 
   setUp(() {
     mockAnalytics = MockFirebaseAnalytics();
@@ -127,6 +130,14 @@ void main() {
     mockUser = MockUser();
     mockChatRepository = MockChatRepository();
     mockMemoRepository = MockMemoRepository();
+    mockL10n = MockAppLocalizations();
+
+    testLocalizations = [
+      MockLocalizationsDelegate(mockL10n),
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ];
 
     when(
       () => mockMemoRepository.getAllMemos(),
@@ -154,14 +165,99 @@ void main() {
         screenName: any(named: 'screenName'),
       ),
     ).thenAnswer((_) async {});
-  });
 
-  final testLocalizations = [
-    AppLocalizations.delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-  ];
+    // Stub all l10n keys used in tests
+    when(() => mockL10n.onboardingSkip).thenReturn('Skip');
+    when(() => mockL10n.onboardingNext).thenReturn('Next');
+    when(() => mockL10n.onboardingStart).thenReturn('Get Started');
+    when(() => mockL10n.onboardingPage1Title).thenReturn('Page 1 Title');
+    when(() => mockL10n.onboardingPage1Desc).thenReturn('Page 1 Desc');
+    when(() => mockL10n.onboardingPage2Title).thenReturn('Page 2 Title');
+    when(() => mockL10n.onboardingPage2Desc).thenReturn('Page 2 Desc');
+    when(() => mockL10n.onboardingPage3Title).thenReturn('Page 3 Title');
+    when(() => mockL10n.onboardingPage3Desc).thenReturn('Page 3 Desc');
+    when(() => mockL10n.loginTitle).thenReturn('Login');
+    when(() => mockL10n.loginEmailLabel).thenReturn('Email');
+    when(() => mockL10n.loginPasswordLabel).thenReturn('Password');
+    when(() => mockL10n.login).thenReturn('Login Button');
+    when(() => mockL10n.loginButton).thenReturn('Login Button');
+    when(() => mockL10n.signUp).thenReturn('Sign Up');
+    when(() => mockL10n.googleSignUp).thenReturn('Google Sign Up');
+    when(() => mockL10n.resetPassword).thenReturn('Forgot Password?');
+    when(() => mockL10n.errorLoginFailed).thenReturn('Login Failed');
+    when(() => mockL10n.errorUnknown).thenReturn('Unknown Error');
+    when(() => mockL10n.ok).thenReturn('OK');
+    when(() => mockL10n.close).thenReturn('Close');
+    when(() => mockL10n.homeTitle).thenReturn('Home');
+    when(() => mockL10n.homeDescription).thenReturn('Home Desc');
+    when(() => mockL10n.homeCurrentEnv).thenReturn('Current Env');
+    when(() => mockL10n.homeToSettings).thenReturn('Settings');
+    when(() => mockL10n.homeToUserList).thenReturn('User List');
+    when(() => mockL10n.homeToResetPassword).thenReturn('Reset Password');
+    when(() => mockL10n.homeToChat).thenReturn('AI Chat');
+    when(() => mockL10n.homeToMemos).thenReturn('Memos');
+    when(() => mockL10n.homeToGraph).thenReturn('Graph');
+    when(() => mockL10n.homeToNotFound).thenReturn('404');
+    when(() => mockL10n.homeGetAppInfo).thenReturn('App Info');
+    when(() => mockL10n.homeAppName).thenReturn('App Name');
+    when(() => mockL10n.homeBundleId).thenReturn('Bundle ID');
+    when(() => mockL10n.homeCrashTest).thenReturn('Crash Test');
+    when(() => mockL10n.homeAnalyticsTest).thenReturn('Analytics Test');
+    when(() => mockL10n.developerLogTitle).thenReturn('Dev Log');
+    when(() => mockL10n.versionUpTitle).thenReturn('Update');
+    when(() => mockL10n.versionUpMessageOptional).thenReturn('Optional');
+    when(() => mockL10n.versionUpMessageMandatory).thenReturn('Mandatory');
+    when(() => mockL10n.versionUpUpdate).thenReturn('Update Button');
+    when(() => mockL10n.versionUpCancel).thenReturn('Cancel Button');
+    when(() => mockL10n.devStorageTitle).thenReturn('Storage');
+    when(() => mockL10n.chatTitle).thenReturn('Chat');
+    when(() => mockL10n.memoTitle).thenReturn('Memo');
+    when(() => mockL10n.navHome).thenReturn('Home');
+    when(() => mockL10n.navChat).thenReturn('Chat');
+    when(() => mockL10n.navMemos).thenReturn('Memo');
+    when(() => mockL10n.navChart).thenReturn('Chart');
+    when(() => mockL10n.navUsers).thenReturn('User');
+    when(
+      () => mockL10n.emailVerificationTitle,
+    ).thenReturn('Email Verification');
+    when(
+      () => mockL10n.emailVerificationDescription,
+    ).thenReturn('Verify Email');
+    when(() => mockL10n.resendVerificationMail).thenReturn('Resend');
+    when(() => mockL10n.emailVerificationWaiting).thenReturn('Waiting');
+    when(() => mockL10n.checkVerificationStatus).thenReturn('Check Status');
+    when(() => mockL10n.logout).thenReturn('Logout');
+    when(() => mockL10n.chartClearAll).thenReturn('Clear All');
+    when(() => mockL10n.chartClearConfirm).thenReturn('Confirm Clear');
+    when(() => mockL10n.thinking).thenReturn('Thinking...');
+    when(() => mockL10n.chatHint).thenReturn('Type a message');
+    when(() => mockL10n.memoSyncing).thenReturn('Syncing...');
+    when(() => mockL10n.memoEmpty).thenReturn('No memos');
+    when(() => mockL10n.memoSearchHint).thenReturn('Search memos');
+    when(() => mockL10n.memoSynced).thenReturn('Synced');
+    when(() => mockL10n.memoUnsynced).thenReturn('Unsynced');
+    when(() => mockL10n.userListTitle).thenReturn('User List');
+    when(() => mockL10n.userListLastFetched(any())).thenAnswer(
+      (inv) => 'Last Fetched: ${inv.positionalArguments[0]}',
+    );
+    when(() => mockL10n.userListEmpty).thenReturn('No Users');
+    when(() => mockL10n.userListFetchError).thenReturn('Fetch Error');
+    when(() => mockL10n.chartLine).thenReturn('Line Chart');
+    when(() => mockL10n.chartBar).thenReturn('Bar Chart');
+    when(() => mockL10n.chartPie).thenReturn('Pie Chart');
+    when(() => mockL10n.chartDisplayTitle(any())).thenAnswer(
+      (inv) => 'Display: ${inv.positionalArguments[0]}',
+    );
+    when(() => mockL10n.chartNoData).thenReturn('No Chart Data');
+    when(() => mockL10n.chartDataList).thenReturn('Chart Data List');
+    when(() => mockL10n.notFoundTitle).thenReturn('Page Not Found');
+    when(() => mockL10n.notFoundMessage).thenReturn(
+      'The page could not be found.',
+    );
+    when(() => mockL10n.notFoundBackToHome).thenReturn('Back to Home');
+    when(() => mockL10n.appTitle).thenReturn('Flutter Sample');
+    when(() => mockL10n.memoAdd).thenReturn('Add Memo');
+  });
 
   ProviderContainer createContainer({
     required bool isLoggedIn,
@@ -675,13 +771,13 @@ void main() {
       check(find.byType(OnboardingScreen)).findsOne();
 
       // 「次へ」をタップして3ページ目へ進む
-      await tester.tap(find.text('次へ'));
+      await tester.tap(find.text(mockL10n.onboardingNext));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('次へ'));
+      await tester.tap(find.text(mockL10n.onboardingNext));
       await tester.pumpAndSettle();
 
       // 「はじめる」をタップしてオンボーディングを完了させる
-      await tester.tap(find.text('はじめる'));
+      await tester.tap(find.text(mockL10n.onboardingStart));
       await tester.pumpAndSettle();
 
       // onboardingProvider の変更によりルーターが再評価され、LoginScreenに遷移することを確認
@@ -707,19 +803,25 @@ void main() {
       // 各タブが表示されていることの確認（NavigationBar内のテキストを検索）
       check(find.byType(NavigationBar)).findsOne();
       final navBar = find.byType(NavigationBar);
-      check(find.descendant(of: navBar, matching: find.text('ホーム'))).findsOne();
       check(
-        find.descendant(of: navBar, matching: find.text('チャット')),
+        find.descendant(of: navBar, matching: find.text(mockL10n.navHome)),
       ).findsOne();
-      check(find.descendant(of: navBar, matching: find.text('メモ'))).findsOne();
-      check(find.descendant(of: navBar, matching: find.text('グラフ'))).findsOne();
       check(
-        find.descendant(of: navBar, matching: find.text('ユーザー')),
+        find.descendant(of: navBar, matching: find.text(mockL10n.navChat)),
+      ).findsOne();
+      check(
+        find.descendant(of: navBar, matching: find.text(mockL10n.navMemos)),
+      ).findsOne();
+      check(
+        find.descendant(of: navBar, matching: find.text(mockL10n.navChart)),
+      ).findsOne();
+      check(
+        find.descendant(of: navBar, matching: find.text(mockL10n.navUsers)),
       ).findsOne();
 
       // チャットタブ（インデックス1）をタップする
       await tester.tap(
-        find.descendant(of: navBar, matching: find.text('チャット')),
+        find.descendant(of: navBar, matching: find.text(mockL10n.navChat)),
       );
       await tester.pumpAndSettle();
 
@@ -728,12 +830,14 @@ void main() {
 
       // 同じチャットタブを再度タップする（initialLocation: true の分岐をテストするため）
       await tester.tap(
-        find.descendant(of: navBar, matching: find.text('チャット')),
+        find.descendant(of: navBar, matching: find.text(mockL10n.navChat)),
       );
       await tester.pumpAndSettle();
 
       // メモタブ（インデックス2）をタップする
-      await tester.tap(find.descendant(of: navBar, matching: find.text('メモ')));
+      await tester.tap(
+        find.descendant(of: navBar, matching: find.text(mockL10n.navMemos)),
+      );
       await tester.pumpAndSettle();
 
       // MemoScreen に切り替わっていることを確認

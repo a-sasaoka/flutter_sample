@@ -2,13 +2,31 @@ import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/widgets/version_up_dialog.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mocktail/mocktail.dart';
+
+import 'widgets_test_helper.dart';
 
 void main() {
   group('VersionUpDialog', () {
+    late MockAppLocalizations mockL10n;
+
+    setUp(() {
+      mockL10n = MockAppLocalizations();
+
+      when(() => mockL10n.versionUpTitle).thenReturn('Version Update');
+      when(
+        () => mockL10n.versionUpMessageOptional,
+      ).thenReturn('A new version is available.');
+      when(
+        () => mockL10n.versionUpMessageMandatory,
+      ).thenReturn('A new version is required.');
+      when(() => mockL10n.versionUpCancel).thenReturn('Later');
+      when(() => mockL10n.versionUpUpdate).thenReturn('Update');
+    });
+
     // テスト用のウィジェットを構築するヘルパー関数
     Widget createTestWidget(
       void Function(BuildContext) showDialogCallback,
@@ -31,13 +49,13 @@ void main() {
 
       return MaterialApp.router(
         routerConfig: router,
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
+        localizationsDelegates: [
+          MockLocalizationsDelegate(mockL10n),
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        supportedLocales: AppLocalizations.supportedLocales,
+        supportedLocales: const [Locale('ja'), Locale('en')],
       );
     }
 
@@ -55,18 +73,25 @@ void main() {
           );
         }),
       );
+      await tester.pumpAndSettle();
 
       // ダイアログ表示
       await tester.tap(find.byType(ElevatedButton));
       await tester.pumpAndSettle();
 
       check(find.byType(AlertDialog)).findsOne();
-      check(find.text('A new version is available.')).findsOne();
-      check(find.widgetWithText(TextButton, 'Later')).findsOne();
-      check(find.widgetWithText(TextButton, 'Update')).findsOne();
+      check(find.text(mockL10n.versionUpMessageOptional)).findsOne();
+      check(
+        find.widgetWithText(TextButton, mockL10n.versionUpCancel),
+      ).findsOne();
+      check(
+        find.widgetWithText(TextButton, mockL10n.versionUpUpdate),
+      ).findsOne();
 
       // アップデートボタン
-      await tester.tap(find.widgetWithText(TextButton, 'Update'));
+      await tester.tap(
+        find.widgetWithText(TextButton, mockL10n.versionUpUpdate),
+      );
       await tester.pumpAndSettle();
       check(onUpdateCalled).equals(true);
       check(find.byType(AlertDialog)).findsNothing();
@@ -74,7 +99,9 @@ void main() {
       // 再表示してキャンセルボタン
       await tester.tap(find.byType(ElevatedButton));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(TextButton, 'Later'));
+      await tester.tap(
+        find.widgetWithText(TextButton, mockL10n.versionUpCancel),
+      );
       await tester.pumpAndSettle();
       check(onCancelCalled).equals(true);
       check(find.byType(AlertDialog)).findsNothing();
@@ -93,14 +120,17 @@ void main() {
           );
         }),
       );
+      await tester.pumpAndSettle();
 
       // ダイアログ表示
       await tester.tap(find.byType(ElevatedButton));
       await tester.pumpAndSettle();
 
       check(find.byType(AlertDialog)).findsOne();
-      check(find.text('A new version is required.')).findsOne();
-      check(find.widgetWithText(TextButton, 'Later')).findsNothing();
+      check(find.text(mockL10n.versionUpMessageMandatory)).findsOne();
+      check(
+        find.widgetWithText(TextButton, mockL10n.versionUpCancel),
+      ).findsNothing();
 
       // ダイアログ外タップで閉じないこと
       await tester.tapAt(Offset.zero);
@@ -108,7 +138,9 @@ void main() {
       check(find.byType(AlertDialog)).findsOne();
 
       // アップデート
-      await tester.tap(find.widgetWithText(TextButton, 'Update'));
+      await tester.tap(
+        find.widgetWithText(TextButton, mockL10n.versionUpUpdate),
+      );
       await tester.pumpAndSettle();
       check(onUpdateCalled).equals(true);
       check(find.byType(AlertDialog)).findsNothing();
@@ -127,6 +159,7 @@ void main() {
           );
         }),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byType(ElevatedButton));
       await tester.pumpAndSettle();
