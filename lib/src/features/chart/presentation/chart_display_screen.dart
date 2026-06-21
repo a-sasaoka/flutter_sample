@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/chart/application/chart_notifier.dart';
 import 'package:flutter_sample/src/features/chart/application/chart_state.dart';
@@ -15,6 +16,7 @@ class ChartDisplayScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(chartProvider);
     final l10n = context.l10n;
+    final palette = AppTheme.chartColors(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -40,7 +42,7 @@ class ChartDisplayScreen extends ConsumerWidget {
                       children: [
                         AspectRatio(
                           aspectRatio: 1.5,
-                          child: _buildChart(state),
+                          child: _ChartSelector(state: state),
                         ),
                         const SizedBox(height: 40),
                         const Divider(),
@@ -68,7 +70,7 @@ class ChartDisplayScreen extends ConsumerWidget {
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final item = state.items[index];
-                        final color = _colors[index % _colors.length];
+                        final color = palette[index % palette.length];
                         return Card(
                           key: ValueKey(item.id),
                           margin: const EdgeInsets.symmetric(vertical: 4),
@@ -105,27 +107,45 @@ class ChartDisplayScreen extends ConsumerWidget {
             ),
     );
   }
+}
 
-  Widget _buildChart(ChartState state) {
+/// 表示するグラフの種類を判定して切り替える Widget
+class _ChartSelector extends StatelessWidget {
+  const _ChartSelector({required this.state});
+
+  final ChartState state;
+
+  @override
+  Widget build(BuildContext context) {
     switch (state.chartType) {
       case ChartType.line:
-        return _buildLineChart(state);
+        return _LineChartView(state: state);
       case ChartType.bar:
-        return _buildBarChart(state);
+        return _BarChartView(state: state);
       case ChartType.pie:
-        return _buildPieChart(state);
+        return _PieChartView(state: state);
     }
   }
+}
 
-  /// 項目数に応じてラベルの間欠表示間隔を計算する
-  int _getLabelInterval(int itemCount) {
-    if (itemCount > 20) return 5;
-    if (itemCount > 10) return 2;
-    return 1;
-  }
+/// 項目数に応じてラベルの間欠表示間隔を計算する
+int _getLabelInterval(int itemCount) {
+  if (itemCount > 20) return 5;
+  if (itemCount > 10) return 2;
+  return 1;
+}
 
-  Widget _buildLineChart(ChartState state) {
+/// 折れ線グラフを描画する Widget
+class _LineChartView extends StatelessWidget {
+  const _LineChartView({required this.state});
+
+  final ChartState state;
+
+  @override
+  Widget build(BuildContext context) {
     final labelInterval = _getLabelInterval(state.items.length);
+    final palette = AppTheme.chartColors(context);
+    final theme = Theme.of(context);
 
     return LineChart(
       LineChartData(
@@ -182,21 +202,40 @@ class ChartDisplayScreen extends ConsumerWidget {
                 FlSpot(i.toDouble(), item.value),
             ],
             isCurved: true,
-            color: Colors.blue,
+            color: theme.colorScheme.outlineVariant,
             barWidth: 4,
+            dotData: FlDotData(
+              getDotPainter: (spot, percent, barData, index) {
+                return FlDotCirclePainter(
+                  radius: 6,
+                  color: palette[index % palette.length],
+                  strokeWidth: 2,
+                  strokeColor: Colors.white,
+                );
+              },
+            ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildBarChart(ChartState state) {
+/// 棒グラフを描画する Widget
+class _BarChartView extends StatelessWidget {
+  const _BarChartView({required this.state});
+
+  final ChartState state;
+
+  @override
+  Widget build(BuildContext context) {
     // 項目数に応じて棒の太さを調整
     final barWidth = state.items.length > 20
         ? 4.0
         : (state.items.length > 10 ? 8.0 : 16.0);
 
     final labelInterval = _getLabelInterval(state.items.length);
+    final palette = AppTheme.chartColors(context);
 
     return BarChart(
       BarChartData(
@@ -254,7 +293,7 @@ class ChartDisplayScreen extends ConsumerWidget {
               barRods: [
                 BarChartRodData(
                   toY: item.value,
-                  color: Colors.green,
+                  color: palette[i % palette.length], // アイテムごとに色を塗り分ける
                   width: barWidth,
                 ),
               ],
@@ -263,32 +302,40 @@ class ChartDisplayScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  static final List<MaterialColor> _colors = [
-    Colors.red,
-    Colors.blue,
-    Colors.green,
-    Colors.yellow,
-    Colors.purple,
-    Colors.orange,
-  ];
+/// 円グラフを描画する Widget
+class _PieChartView extends StatelessWidget {
+  const _PieChartView({required this.state});
 
-  Widget _buildPieChart(ChartState state) {
+  final ChartState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppTheme.chartColors(context);
+
     return PieChart(
       PieChartData(
         sections: [
           for (final (i, item) in state.items.indexed)
-            PieChartSectionData(
-              value: item.value,
-              title: item.label,
-              color: _colors[i % _colors.length],
-              radius: 50,
-              titleStyle: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
+            () {
+              final sectionColor = palette[i % palette.length];
+              final textColor = sectionColor.computeLuminance() > 0.5
+                  ? Colors.black
+                  : Colors.white;
+
+              return PieChartSectionData(
+                value: item.value,
+                title: item.label,
+                color: sectionColor,
+                radius: 50,
+                titleStyle: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
+              );
+            }(),
         ],
       ),
     );
