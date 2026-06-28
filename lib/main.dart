@@ -14,11 +14,10 @@ import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/firebase_options.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
-import 'package:flutter_sample/src/core/network/token_interceptor.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:flutter_sample/src/core/utils/scaffold_messenger_key.dart';
-import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/data/auth_overrides.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:talker_flutter/talker_flutter.dart';
@@ -76,10 +75,8 @@ Future<void> mainCommon(Flavor flavor) async {
       // プロバイダーにPackageInfoを設定
       packageInfoProvider.overrideWithValue(packageInfo),
 
-      // プロバイダーにTokenRefreshCallbackを設定
-      tokenRefreshCallbackProvider.overrideWith(
-        (ref) => ref.watch(authRepositoryProvider).refreshToken,
-      ),
+      // 動的切り替えを含む共通の認証オーバーライド設定を追加
+      ...getAuthOverrides().cast(),
 
       // プロバイダーにTalkerを設定
       loggerProvider.overrideWithValue(talker),

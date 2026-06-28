@@ -105,3 +105,13 @@ ref.listen(appLifecycleProvider, (previous, next) {
 これにより、iOS/Android 双方で安定したソーシャルログインを提供します。
 
 ---
+
+## 🌐 APIリクエストとの統合 (IDトークンの自動付与)
+
+環境設定で `useFirebaseAuth` が `true` に設定されている場合、API通信（Dio）の認証に Firebase Auth の IDトークンが自動的に使用されます。
+
+- **仕組み**: `main.dart` でのアプリ起動時に、通信用のプロバイダ（`tokenStorageProvider` / `tokenRefreshCallbackProvider`）のオーバーライド定義の中で `ref.watch(envConfigProvider)` を監視し、環境フラグに応じてFirebase用の挙動（`FirebaseAuthTokenStorage` 等）に自動で切り替えます。
+- **自動付与**: APIを呼び出す際、裏側で `FirebaseAuthTokenStorage` が自動的に `user.getIdToken()` を取得し、 `Authorization: Bearer <IDトークン>` ヘッダーを付与します。
+- **自動リフレッシュ**: IDトークンが期限切れになり、APIから `401 Unauthorized` が返ってきた場合は、 `getIdToken(true)` が実行されて強制的にトークンが更新され、自動的に元のAPIリクエストが再試行（リトライ）されます。
+
+詳細は [トークン認証対応（Bearer Token + 自動リフレッシュ）](auth.md) を参照してください。
