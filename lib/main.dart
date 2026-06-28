@@ -97,8 +97,8 @@ Future<void> mainCommon(Flavor flavor) async {
             try {
               final user = ref.read(firebaseAuthProvider).currentUser;
               if (user != null) {
-                await user.getIdToken(true);
-                return true;
+                final token = await user.getIdToken(true);
+                return token != null;
               }
               return false;
             } on Exception catch (_) {
