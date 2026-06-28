@@ -105,7 +105,7 @@ dio.interceptors.add(ref.watch(dioInterceptorProvider));
 本プロジェクトでは、環境設定（`EnvConfig`）の `useFirebaseAuth` フラグに基づいて、認証トークン方式を動的に切り替えます。
 
 - **自前サーバー認証モード (`useFirebaseAuth: false`)**:
-  - `tokenStorageProvider` は上書きされず、デフォルトのままで動作し、Secure Storage からアクセストークンを取得します。
+  - `tokenStorageProvider` はオーバーライドされて Secure Storage で裏付けされた `TokenStorage` を返し、そこからアクセストークンを取得します。
   - `tokenRefreshCallbackProvider` は自前の `authRepository.refreshToken()` を実行します。
 - **Firebase Auth モード (`useFirebaseAuth: true`)**:
   - `tokenStorageProvider` を `FirebaseAuthTokenStorage` に差し替え、Firebase から直接 ID トークンを取得します。
