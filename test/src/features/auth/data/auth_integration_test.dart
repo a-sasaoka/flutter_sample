@@ -4,11 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/network/token_interceptor.dart';
 import 'package:flutter_sample/src/core/storage/secure_storage_provider.dart';
-import 'package:flutter_sample/src/core/storage/token_storage.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/features/auth/data/auth_overrides.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
-import 'package:flutter_sample/src/features/auth/data/firebase_auth_token_storage.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -61,29 +60,8 @@ void main() {
                 useFirebaseAuth: true,
               ),
             ),
-            // 2. TokenStorageを Firebase 用に上書き
-            tokenStorageProvider.overrideWith((ref) {
-              return FirebaseAuthTokenStorage(ref.watch(firebaseAuthProvider));
-            }),
-            // 3. リフレッシュコールバックを Firebase 用に上書き
-            tokenRefreshCallbackProvider.overrideWith((ref) {
-              final useFirebase = ref.watch(envConfigProvider).useFirebaseAuth;
-              if (useFirebase) {
-                return () async {
-                  try {
-                    final user = ref.read(firebaseAuthProvider).currentUser;
-                    if (user != null) {
-                      final token = await user.getIdToken(true);
-                      return token != null;
-                    }
-                    return false;
-                  } on Exception catch (_) {
-                    return false;
-                  }
-                };
-              }
-              return ref.read(authRepositoryProvider).refreshToken;
-            }),
+            // 2. 共通の認証オーバーライドを適用
+            ...getAuthOverrides().cast(),
             firebaseAuthProvider.overrideWithValue(mockFirebaseAuth),
             loggerProvider.overrideWithValue(talker),
           ],
@@ -135,27 +113,10 @@ void main() {
                 useFirebaseAuth: false,
               ),
             ),
-            // 2. TokenStorage は上書きせずデフォルトのまま（SecureStorageを使用）
+            // 2. 共通の認証オーバーライドを適用
+            ...getAuthOverrides().cast(),
+            // 3. SecureStorageはテスト用のモックで上書き
             secureStorageProvider.overrideWithValue(mockSecureStorage),
-            // 3. リフレッシュコールバックを 自前サーバーAPI に上書き
-            tokenRefreshCallbackProvider.overrideWith((ref) {
-              final useFirebase = ref.watch(envConfigProvider).useFirebaseAuth;
-              if (useFirebase) {
-                return () async {
-                  try {
-                    final user = ref.read(firebaseAuthProvider).currentUser;
-                    if (user != null) {
-                      final token = await user.getIdToken(true);
-                      return token != null;
-                    }
-                    return false;
-                  } on Exception catch (_) {
-                    return false;
-                  }
-                };
-              }
-              return ref.read(authRepositoryProvider).refreshToken;
-            }),
             authRepositoryProvider.overrideWithValue(mockAuthRepository),
             loggerProvider.overrideWithValue(talker),
           ],
@@ -180,6 +141,43 @@ void main() {
         // 自前のリフレッシュAPIが正しく叩かれていること
         check(refreshResult).isTrue();
         verify(mockAuthRepository.refreshToken).called(1);
+      },
+    );
+
+    test(
+      '【useFirebaseAuth: true】 の際、IDトークン更新時に例外が発生した場合に、'
+      ' リフレッシュコールバックが false を返すこと',
+      () async {
+        final mockFirebaseAuth = MockFirebaseAuth();
+        final mockUser = MockUser();
+
+        when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+        when(
+          () => mockUser.getIdToken(true),
+        ).thenThrow(FirebaseAuthException(code: 'test-error'));
+
+        final container = ProviderContainer(
+          overrides: [
+            envConfigProvider.overrideWithValue(
+              const EnvConfigState(
+                baseUrl: 'https://example.com',
+                aiModel: 'gemini-2.5-flash',
+                connectTimeout: 10,
+                receiveTimeout: 15,
+                sendTimeout: 10,
+                useFirebaseAuth: true,
+              ),
+            ),
+            ...getAuthOverrides().cast(),
+            firebaseAuthProvider.overrideWithValue(mockFirebaseAuth),
+            loggerProvider.overrideWithValue(talker),
+          ],
+        );
+
+        final refreshCallback = container.read(tokenRefreshCallbackProvider);
+        final refreshResult = await refreshCallback();
+
+        check(refreshResult).isFalse();
       },
     );
   });
