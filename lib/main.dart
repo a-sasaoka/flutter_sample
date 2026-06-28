@@ -15,10 +15,14 @@ import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/firebase_options.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/network/token_interceptor.dart';
+import 'package:flutter_sample/src/core/storage/secure_storage_provider.dart';
+import 'package:flutter_sample/src/core/storage/token_storage.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:flutter_sample/src/core/utils/scaffold_messenger_key.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/data/firebase_auth_token_storage.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:talker_flutter/talker_flutter.dart';
@@ -76,10 +80,36 @@ Future<void> mainCommon(Flavor flavor) async {
       // プロバイダーにPackageInfoを設定
       packageInfoProvider.overrideWithValue(packageInfo),
 
-      // プロバイダーにTokenRefreshCallbackを設定
-      tokenRefreshCallbackProvider.overrideWith(
-        (ref) => ref.watch(authRepositoryProvider).refreshToken,
-      ),
+      // プロバイダーにTokenStorageを設定（クラスのフラグで動的に切り替え）
+      tokenStorageProvider.overrideWith((ref) {
+        final useFirebase = ref.watch(envConfigProvider).useFirebaseAuth;
+        if (useFirebase) {
+          return FirebaseAuthTokenStorage(ref.watch(firebaseAuthProvider));
+        }
+        return TokenStorage(secureStorage: ref.watch(secureStorageProvider));
+      }),
+
+      // プロバイダーにTokenRefreshCallbackを設定（クラスのフラグで動的に切り替え）
+      tokenRefreshCallbackProvider.overrideWith((ref) {
+        final useFirebase = ref.watch(envConfigProvider).useFirebaseAuth;
+        if (useFirebase) {
+          return () async {
+            try {
+              final user = ref.read(firebaseAuthProvider).currentUser;
+              if (user != null) {
+                await user.getIdToken(true);
+                return true;
+              }
+              return false;
+            } on Exception catch (_) {
+              return false;
+            }
+          };
+        }
+        return () async {
+          return ref.read(authRepositoryProvider).refreshToken();
+        };
+      }),
 
       // プロバイダーにTalkerを設定
       loggerProvider.overrideWithValue(talker),
