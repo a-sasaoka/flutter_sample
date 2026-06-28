@@ -30,6 +30,7 @@ class FirebaseAuthTokenStorage implements TokenStorage {
 
   @override
   Future<void> clear() async {
-    // ログアウト処理は FirebaseAuthRepository が行うため、ここでは何もしません
+    // ログアウト時にFirebase Authからサインアウトし、IDトークンなどをクリアします
+    await _firebaseAuth.signOut();
   }
 }

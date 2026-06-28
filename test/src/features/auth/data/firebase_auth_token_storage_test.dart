@@ -56,8 +56,12 @@ void main() {
       ).completes();
     });
 
-    test('clear: 何も処理を行わないこと', () async {
+    test('clear: Firebase Auth の signOut が実行されること', () async {
+      when(() => mockFirebaseAuth.signOut()).thenAnswer((_) async {});
+
       await check(tokenStorage.clear()).completes();
+
+      verify(() => mockFirebaseAuth.signOut()).called(1);
     });
   });
 }
