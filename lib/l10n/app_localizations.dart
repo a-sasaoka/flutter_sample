@@ -1019,7 +1019,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileNameEmpty.
   ///
   /// In en, this message translates to:
-  /// **'Name cannot be empty'**
+  /// **'Name cannot contain only whitespace'**
   String get profileNameEmpty;
 
   /// No description provided for @profileNameMaxLength.

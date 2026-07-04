@@ -34,14 +34,12 @@ class ProfileRepository {
   Future<UserProfile> fetchProfile() async {
     talker.debug('Fetching profile from API...');
     final response = await api.get<Map<String, dynamic>>('/users/me');
-
-    if (response.data case final Map<String, dynamic> data) {
-      talker.debug('Successfully fetched profile from API.');
-      return UserProfile.fromJson(data);
-    }
-
-    talker.error('Failed to parse profile data: Response data is invalid.');
-    throw const AppException.dataParse(message: 'Failed to parse profile data');
+    final profile = _parseProfile(
+      response.data,
+      'Failed to parse profile data',
+    );
+    talker.debug('Successfully fetched profile from API.');
+    return profile;
   }
 
   /// プロフィール情報を更新する (PUT /users/me)
@@ -51,17 +49,19 @@ class ProfileRepository {
       '/users/me',
       data: profile.toJson(),
     );
+    final updated = _parseProfile(
+      response.data,
+      'Failed to parse updated profile data',
+    );
+    talker.debug('Successfully updated profile via API.');
+    return updated;
+  }
 
-    if (response.data case final Map<String, dynamic> data) {
-      talker.debug('Successfully updated profile via API.');
+  UserProfile _parseProfile(Object? responseData, String errorMessage) {
+    if (responseData case final Map<String, dynamic> data) {
       return UserProfile.fromJson(data);
     }
-
-    talker.error(
-      'Failed to parse updated profile data: Response data is invalid.',
-    );
-    throw const AppException.dataParse(
-      message: 'Failed to parse updated profile data',
-    );
+    talker.error('$errorMessage: Response data is invalid.');
+    throw AppException.dataParse(message: errorMessage);
   }
 }

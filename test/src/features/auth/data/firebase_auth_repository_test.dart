@@ -373,6 +373,58 @@ void main() {
           verify(mockUser.reload).called(1);
         },
       );
+
+      test(
+        'displayName の変更処理中に例外が発生した場合、reload が呼ばれず例外を再スローすること',
+        () async {
+          final repo = container.read(firebaseAuthRepositoryProvider);
+          final mockUser = MockUser();
+
+          when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+          when(() => mockUser.displayName).thenReturn('旧表示名');
+          when(() => mockUser.email).thenReturn('old@example.com');
+          when(
+            () => mockUser.updateDisplayName('新表示名'),
+          ).thenThrow(Exception('Update error'));
+
+          await check(
+            repo.updateAuthProfile(
+              displayName: '新表示名',
+              email: 'old@example.com',
+            ),
+          ).throws<Object>();
+
+          verify(() => mockUser.updateDisplayName('新表示名')).called(1);
+          verifyNever(mockUser.reload);
+        },
+      );
+
+      test(
+        'email の変更処理中に例外が発生した場合、reload が呼ばれず例外を再スローすること',
+        () async {
+          final repo = container.read(firebaseAuthRepositoryProvider);
+          final mockUser = MockUser();
+
+          when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+          when(() => mockUser.displayName).thenReturn('旧表示名');
+          when(() => mockUser.email).thenReturn('old@example.com');
+          when(
+            () => mockUser.verifyBeforeUpdateEmail('new@example.com'),
+          ).thenThrow(Exception('Email update error'));
+
+          await check(
+            repo.updateAuthProfile(
+              displayName: '旧表示名',
+              email: 'new@example.com',
+            ),
+          ).throws<Object>();
+
+          verify(
+            () => mockUser.verifyBeforeUpdateEmail('new@example.com'),
+          ).called(1);
+          verifyNever(mockUser.reload);
+        },
+      );
     });
   });
 }

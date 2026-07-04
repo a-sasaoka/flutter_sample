@@ -200,7 +200,7 @@
   "profileNameLabel": "Full Name (Required)",
   "profileNameHint": "John Doe",
   "profileNameRequired": "Name is required",
-  "profileNameEmpty": "Name cannot be empty",
+  "profileNameEmpty": "Name cannot contain only whitespace",
   "profileNameMaxLength": "Name must be 128 characters or less",
   "profileEmailLabel": "Email Address (Required)",
   "profileEmailRequired": "Email is required",

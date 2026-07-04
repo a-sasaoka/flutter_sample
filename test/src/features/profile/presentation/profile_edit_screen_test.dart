@@ -36,8 +36,15 @@ class FakeProfileNotifier extends Profile {
 
   @override
   Future<void> updateProfile(UserProfile profile) async {
-    if (onUpdate != null) {
-      await onUpdate!(profile);
+    state = const AsyncLoading<UserProfile>();
+    try {
+      if (onUpdate != null) {
+        await onUpdate!(profile);
+      }
+      state = AsyncData(profile);
+    } on Object catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
     }
   }
 }
@@ -50,7 +57,7 @@ class FakeRetryProfileNotifier extends Profile {
   @override
   FutureOr<UserProfile> build() {
     if (shouldFailEvaluator()) {
-      throw Exception('読み込み失敗');
+      throw const AppException.unknown(message: '読み込み失敗');
     }
     return testProfile;
   }

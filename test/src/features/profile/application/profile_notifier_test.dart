@@ -177,5 +177,95 @@ void main() {
 
       subscription.close();
     });
+
+    test(
+      'updateProfile: Firebase Auth の更新に失敗したとき、ロールバックが実行され AsyncError になること',
+      () async {
+        final container = createContainer(useAuth: true);
+        final subscription = container.listen(profileProvider, (prev, next) {});
+
+        // 初期ロード完了を待機
+        await container.read(profileProvider.future);
+
+        final updated = testProfile.copyWith(displayName: '新しい名前');
+        final exception = Exception('Auth Update failed');
+
+        // mock setup
+        when(
+          () => mockProfileRepo.updateProfile(updated),
+        ).thenAnswer((_) async => updated);
+        when(
+          () => mockAuthRepo.updateAuthProfile(
+            displayName: updated.displayName,
+            email: updated.email,
+          ),
+        ).thenThrow(exception);
+        // ロールバック（古いプロフィールに戻す）用のモック
+        when(
+          () => mockProfileRepo.updateProfile(testProfile),
+        ).thenAnswer((_) async => testProfile);
+
+        // Act
+        await container.read(profileProvider.notifier).updateProfile(updated);
+
+        // Assert
+        final state = container.read(profileProvider);
+        check(state.hasError).isTrue();
+        check(state.error).equals(exception);
+
+        // 1回目の更新とロールバック（2回目の更新）が両方呼ばれたことを確認
+        verify(() => mockProfileRepo.updateProfile(updated)).called(1);
+        verify(() => mockProfileRepo.updateProfile(testProfile)).called(1);
+
+        subscription.close();
+      },
+    );
+
+    test(
+      'updateProfile: Firebase Auth の更新に失敗し、 '
+      'さらに自前サーバーのロールバックにも失敗したとき、エラーがキャッチされ AsyncError になること',
+      () async {
+        final container = createContainer(useAuth: true);
+        final subscription = container.listen(profileProvider, (prev, next) {});
+
+        // 初期ロード完了を待機
+        await container.read(profileProvider.future);
+
+        final updated = testProfile.copyWith(displayName: '新しい名前');
+        final exception = Exception('Auth Update failed');
+        final rollbackException = Exception('Rollback failed');
+
+        // mock setup
+        when(
+          () => mockProfileRepo.updateProfile(updated),
+        ).thenAnswer((_) async => updated);
+        when(
+          () => mockAuthRepo.updateAuthProfile(
+            displayName: updated.displayName,
+            email: updated.email,
+          ),
+        ).thenThrow(exception);
+        // ロールバック自体も例外を投げて失敗するようにモック
+        when(
+          () => mockProfileRepo.updateProfile(testProfile),
+        ).thenThrow(rollbackException);
+
+        // Act
+        await container.read(profileProvider.notifier).updateProfile(updated);
+
+        // Assert
+        final state = container.read(profileProvider);
+        check(state.hasError).isTrue();
+        check(
+          state.error,
+        ).equals(exception); // 元の Firebase Auth 側の例外が維持されて再スローされること
+
+        // 1回目の更新とロールバック（2回目の更新）が両方呼ばれたことを確認
+        verify(() => mockProfileRepo.updateProfile(updated)).called(1);
+        verify(() => mockProfileRepo.updateProfile(testProfile)).called(1);
+
+        subscription.close();
+      },
+    );
   });
 }

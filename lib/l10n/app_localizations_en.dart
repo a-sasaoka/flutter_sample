@@ -493,7 +493,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileNameRequired => 'Name is required';
 
   @override
-  String get profileNameEmpty => 'Name cannot be empty';
+  String get profileNameEmpty => 'Name cannot contain only whitespace';
 
   @override
   String get profileNameMaxLength => 'Name must be 128 characters or less';

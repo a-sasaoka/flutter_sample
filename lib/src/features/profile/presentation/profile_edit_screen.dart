@@ -44,18 +44,17 @@ class ProfileEditScreen extends ConsumerWidget {
     final profileAsync = ref.watch(profileProvider);
     final l10n = context.l10n;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.profileTitle),
-      ),
-      body: switch (profileAsync) {
-        AsyncData(value: final profile) => _ProfileEditForm(profile: profile),
+    final body = () {
+      if (profileAsync.hasValue) {
+        return _ProfileEditForm(profile: profileAsync.requireValue);
+      }
+      return switch (profileAsync) {
         AsyncError(:final error) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                '${l10n.errorOccurred}: $error',
+                ErrorHandler.message(context, error),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -72,7 +71,14 @@ class ProfileEditScreen extends ConsumerWidget {
             child: CircularProgressIndicator.adaptive(),
           ),
         ),
-      },
+      };
+    }();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.profileTitle),
+      ),
+      body: body,
     );
   }
 }
