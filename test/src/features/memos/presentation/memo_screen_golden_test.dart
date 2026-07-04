@@ -14,11 +14,9 @@ import 'memo_screen_test.dart';
 
 void main() {
   group('MemoScreen Golden Tests', () {
-    late MockMemoRepository mockMemoRepository;
     late MockAppLocalizations mockL10n;
 
     setUp(() {
-      mockMemoRepository = MockMemoRepository();
       mockL10n = MockAppLocalizations();
 
       when(() => mockL10n.memoTitle).thenReturn('メモ');
@@ -41,28 +39,48 @@ void main() {
       when(() => mockL10n.memoSortUpdatedAtAsc).thenReturn('更新：古い順');
       when(() => mockL10n.memoSortTitleAsc).thenReturn('タイトル：昇順');
       when(() => mockL10n.memoSortTitleDesc).thenReturn('タイトル：降順');
-
-      when(
-        () => mockMemoRepository.fetchAndMergeRemoteMemos(),
-      ).thenAnswer((_) async {});
     });
 
-    Widget buildMemoForGolden({required List<MemoModel> memos}) {
+    Widget buildMemoForGolden({
+      required List<MemoModel> memos,
+      required ThemeMode themeMode,
+    }) {
+      // 💡 各シナリオ間でモックの設定（stub）が競合して上書きされるのを防ぐため、
+      // シナリオごとに新しく MockMemoRepository をインスタンス化します。
+      final repository = MockMemoRepository();
+
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        // モックの仕様上、クロージャとして渡す必要があるため、unnecessary_lambdas を無視します。
+        // ignore: unnecessary_lambdas
+        () => repository.fetchAndMergeRemoteMemos(),
+      ).thenAnswer((_) async {});
+
+      when(
+        // モックの仕様上、クロージャとして渡す必要があるため、unnecessary_lambdas を無視します。
+        // ignore: unnecessary_lambdas
+        () => repository.watchAllMemos(),
       ).thenAnswer((_) => Stream.value(memos));
+
+      final isDark = themeMode == ThemeMode.dark;
 
       return ProviderScope(
         overrides: [
-          memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+          memoRepositoryProvider.overrideWithValue(repository),
           isOnlineProvider.overrideWithValue(true),
         ],
         child: MaterialApp(
-          theme: AppTheme.light().copyWith(
-            textTheme: AppTheme.light().textTheme.apply(
-              fontFamily: 'NotoSansJP',
-            ),
-          ),
+          theme: isDark
+              ? AppTheme.dark().copyWith(
+                  textTheme: AppTheme.dark().textTheme.apply(
+                    fontFamily: 'NotoSansJP',
+                  ),
+                )
+              : AppTheme.light().copyWith(
+                  textTheme: AppTheme.light().textTheme.apply(
+                    fontFamily: 'NotoSansJP',
+                  ),
+                ),
+          themeMode: themeMode,
           localizationsDelegates: [
             MockLocalizationsDelegate(mockL10n),
             GlobalMaterialLocalizations.delegate,
@@ -77,20 +95,34 @@ void main() {
 
     // ignore: discarded_futures, testing framework registers tests synchronously
     goldenTest(
-      'MemoScreen の描画 (空/データあり)',
+      'MemoScreen の描画 (ライト/ダーク・空/データあり)',
       fileName: 'memo_screen',
       builder: () => GoldenTestGroup(
         children: [
           GoldenTestScenario(
-            name: 'Empty State',
+            name: 'Empty State - Light Mode',
             child: SizedBox(
               width: 390,
               height: 844,
-              child: buildMemoForGolden(memos: []),
+              child: buildMemoForGolden(
+                memos: [],
+                themeMode: ThemeMode.light,
+              ),
             ),
           ),
           GoldenTestScenario(
-            name: 'With Memos',
+            name: 'Empty State - Dark Mode',
+            child: SizedBox(
+              width: 390,
+              height: 844,
+              child: buildMemoForGolden(
+                memos: [],
+                themeMode: ThemeMode.dark,
+              ),
+            ),
+          ),
+          GoldenTestScenario(
+            name: 'With Memos - Light Mode',
             child: SizedBox(
               width: 390,
               height: 844,
@@ -112,6 +144,34 @@ void main() {
                     updatedAt: DateTime(2026, 6, 5, 15, 30),
                   ),
                 ],
+                themeMode: ThemeMode.light,
+              ),
+            ),
+          ),
+          GoldenTestScenario(
+            name: 'With Memos - Dark Mode',
+            child: SizedBox(
+              width: 390,
+              height: 844,
+              child: buildMemoForGolden(
+                memos: [
+                  MemoModel(
+                    id: '1',
+                    title: '買物リスト',
+                    content: '牛乳、卵、りんごを買う。',
+                    createdAt: DateTime(2026, 6, 6, 10),
+                    updatedAt: DateTime(2026, 6, 6, 10),
+                    isSynced: true,
+                  ),
+                  MemoModel(
+                    id: '2',
+                    title: 'アイデア',
+                    content: 'Flutterのゴールデンテストを導入する。',
+                    createdAt: DateTime(2026, 6, 5, 15, 30),
+                    updatedAt: DateTime(2026, 6, 5, 15, 30),
+                  ),
+                ],
+                themeMode: ThemeMode.dark,
               ),
             ),
           ),
