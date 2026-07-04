@@ -29,6 +29,7 @@ void main() {
       fakeLocaleNotifier = FakeLocaleNotifier();
 
       when(() => mockL10n.settingsTitle).thenReturn('設定');
+      when(() => mockL10n.profileTitle).thenReturn('プロフィール');
       when(() => mockL10n.settingsThemeSection).thenReturn('テーマ設定');
       when(() => mockL10n.settingsThemeSystem).thenReturn('システム');
       when(() => mockL10n.settingsThemeLight).thenReturn('ライト');

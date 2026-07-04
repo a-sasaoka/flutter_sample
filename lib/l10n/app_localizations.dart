@@ -985,6 +985,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No SecureStorage data found.'**
   String get devStorageNoSecureData;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile Settings'**
+  String get profileTitle;
+
+  /// No description provided for @profileSaveSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile saved successfully'**
+  String get profileSaveSuccess;
+
+  /// No description provided for @profileNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Name (Required)'**
+  String get profileNameLabel;
+
+  /// No description provided for @profileNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'John Doe'**
+  String get profileNameHint;
+
+  /// No description provided for @profileNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Name is required'**
+  String get profileNameRequired;
+
+  /// No description provided for @profileNameEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Name cannot be empty'**
+  String get profileNameEmpty;
+
+  /// No description provided for @profileNameMaxLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Name must be 128 characters or less'**
+  String get profileNameMaxLength;
+
+  /// No description provided for @profileEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email Address (Required)'**
+  String get profileEmailLabel;
+
+  /// No description provided for @profileEmailRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Email is required'**
+  String get profileEmailRequired;
+
+  /// No description provided for @profileEmailInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid email address'**
+  String get profileEmailInvalid;
+
+  /// No description provided for @profileEmailMaxLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Email must be 256 characters or less'**
+  String get profileEmailMaxLength;
+
+  /// No description provided for @profileDisplayNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Display Name'**
+  String get profileDisplayNameLabel;
+
+  /// No description provided for @profileDisplayNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Taro'**
+  String get profileDisplayNameHint;
+
+  /// No description provided for @profileDisplayNameMaxLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Display name must be 128 characters or less'**
+  String get profileDisplayNameMaxLength;
+
+  /// No description provided for @profilePhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone Number (no hyphen)'**
+  String get profilePhoneLabel;
+
+  /// No description provided for @profilePhoneInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter half-width digits only'**
+  String get profilePhoneInvalid;
+
+  /// No description provided for @profilePhoneMobileLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile/IP phone number must be 11 digits'**
+  String get profilePhoneMobileLength;
+
+  /// No description provided for @profilePhoneLandlineLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number must be 10 digits'**
+  String get profilePhoneLandlineLength;
+
+  /// No description provided for @profileSaveButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get profileSaveButton;
 }
 
 class _AppLocalizationsDelegate

@@ -84,6 +84,7 @@ void main() {
 
     // 翻訳モックの設定
     when(() => mockL10n.settingsTitle).thenReturn('設定');
+    when(() => mockL10n.profileTitle).thenReturn('プロフィール');
     when(() => mockL10n.settingsThemeSection).thenReturn('テーマ設定');
     when(() => mockL10n.settingsThemeSystem).thenReturn('システム');
     when(() => mockL10n.settingsThemeLight).thenReturn('ライト');
@@ -307,6 +308,18 @@ void main() {
           check(find.textContaining('不明なエラー')).findsOne();
           check(find.textContaining('Navigated to')).findsNothing();
         });
+      });
+
+      testWidgets('プロフィール設定をタップした際、ProfileEditRouteへ遷移すること', (tester) async {
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
+
+        // プロフィールをタップ
+        await tester.tap(find.text('プロフィール'));
+        await tester.pumpAndSettle();
+
+        // 遷移処理が行われたことをGoRouterのerrorBuilderのダミーテキストで確認
+        check(find.textContaining('Navigated to /settings/profile')).findsOne();
       });
     });
   });

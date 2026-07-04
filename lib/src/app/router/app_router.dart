@@ -26,6 +26,7 @@ import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
 import 'package:flutter_sample/src/features/onboarding/application/onboarding_notifier.dart';
 import 'package:flutter_sample/src/features/onboarding/presentation/onboarding_screen.dart';
+import 'package:flutter_sample/src/features/profile/presentation/profile_edit_screen.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_state_provider.dart';
