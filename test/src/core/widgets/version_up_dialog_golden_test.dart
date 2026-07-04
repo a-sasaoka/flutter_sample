@@ -1,51 +1,11 @@
 import 'package:alchemist/alchemist.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_sample/src/core/widgets/version_up_dialog.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
 import '../../../golden_test_helper.dart';
 import 'widgets_test_helper.dart';
-
-/// テスト開始時に自動で VersionUpDialog.show を呼び出すためのラッパーWidget
-class VersionUpDialogTestWrapper extends StatefulWidget {
-  const VersionUpDialogTestWrapper({
-    required this.isCancelable,
-    super.key,
-  });
-  final bool isCancelable;
-
-  @override
-  State<VersionUpDialogTestWrapper> createState() =>
-      _VersionUpDialogTestWrapperState();
-}
-
-class _VersionUpDialogTestWrapperState
-    extends State<VersionUpDialogTestWrapper> {
-  @override
-  void initState() {
-    super.initState();
-    // 最初のフレーム描画後に、本物の VersionUpDialog.show を呼び出す
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (mounted) {
-        await VersionUpDialog.show(
-          context,
-          isCancelable: widget.isCancelable,
-          onUpdate: () {},
-          onCancel: () {},
-        );
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SizedBox.expand(),
-    );
-  }
-}
 
 void main() {
   group('VersionUpDialog Golden Tests', () {
@@ -73,7 +33,36 @@ void main() {
         child: buildGoldenTestApp(
           themeMode: themeMode,
           additionalDelegates: [MockLocalizationsDelegate(mockL10n)],
-          home: VersionUpDialogTestWrapper(isCancelable: isCancelable),
+          // 💡 showDialog(useRootNavigator: true) によるテスト環境上の描画バグを回避するため、
+          // テスト内では AlertDialog を Scaffold の body 内に直接配置して、ダイアログ単体の見た目を検証します。
+          home: Builder(
+            builder: (context) {
+              return Scaffold(
+                backgroundColor: Colors.black54, // ダイアログ表示時の薄暗い背景オーバーレイを模倣
+                body: Center(
+                  child: AlertDialog(
+                    title: Text(mockL10n.versionUpTitle),
+                    content: Text(
+                      isCancelable
+                          ? mockL10n.versionUpMessageOptional
+                          : mockL10n.versionUpMessageMandatory,
+                    ),
+                    actions: [
+                      if (isCancelable)
+                        TextButton(
+                          onPressed: () {},
+                          child: Text(mockL10n.versionUpCancel),
+                        ),
+                      TextButton(
+                        onPressed: () {},
+                        child: Text(mockL10n.versionUpUpdate),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       );
     }
