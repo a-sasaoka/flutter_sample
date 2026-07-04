@@ -19,14 +19,10 @@ void main() {
   group('SettingsScreen Golden Tests', () {
     late MockFirebaseAuthRepository mockAuthRepo;
     late MockAppLocalizations mockL10n;
-    late FakeThemeModeNotifier fakeThemeModeNotifier;
-    late FakeLocaleNotifier fakeLocaleNotifier;
 
     setUp(() {
       mockAuthRepo = MockFirebaseAuthRepository();
       mockL10n = MockAppLocalizations();
-      fakeThemeModeNotifier = FakeThemeModeNotifier();
-      fakeLocaleNotifier = FakeLocaleNotifier();
 
       when(() => mockL10n.settingsTitle).thenReturn('設定');
       when(() => mockL10n.profileTitle).thenReturn('プロフィール');
@@ -43,7 +39,7 @@ void main() {
       when(() => mockL10n.logout).thenReturn('ログアウト');
     });
 
-    Widget buildSettingsForGolden() {
+    Widget buildSettingsForGolden({required ThemeMode themeMode}) {
       final router = GoRouter(
         initialLocation: '/settings',
         routes: [
@@ -54,13 +50,21 @@ void main() {
         ],
       );
 
+      final isDark = themeMode == ThemeMode.dark;
+
+      // 💡 同一インスタンスが複数のProviderScopeで再利用されて
+      // マウント例外 (Already mounted) が発生するのを防ぐため、
+      // 呼び出しごとに新しく notifier をインスタンス化します。
+      final fakeThemeNotifier = FakeThemeModeNotifier();
+      final fakeLocale = FakeLocaleNotifier();
+
       return ProviderScope(
         overrides: [
           appConfigProvider.overrideWith((ref) async {
             return (
               locale: const Locale('ja'),
               router: router,
-              theme: ThemeMode.light,
+              theme: themeMode,
             );
           }),
           envConfigProvider.overrideWithValue(
@@ -74,16 +78,23 @@ void main() {
             ),
           ),
           firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
-          themeModeProvider.overrideWith(() => fakeThemeModeNotifier),
-          localeProvider.overrideWith(() => fakeLocaleNotifier),
+          themeModeProvider.overrideWith(() => fakeThemeNotifier),
+          localeProvider.overrideWith(() => fakeLocale),
         ],
         child: MaterialApp.router(
           routerConfig: router,
-          theme: AppTheme.light().copyWith(
-            textTheme: AppTheme.light().textTheme.apply(
-              fontFamily: 'NotoSansJP',
-            ),
-          ),
+          theme: isDark
+              ? AppTheme.dark().copyWith(
+                  textTheme: AppTheme.dark().textTheme.apply(
+                    fontFamily: 'NotoSansJP',
+                  ),
+                )
+              : AppTheme.light().copyWith(
+                  textTheme: AppTheme.light().textTheme.apply(
+                    fontFamily: 'NotoSansJP',
+                  ),
+                ),
+          themeMode: themeMode,
           localizationsDelegates: [
             MockLocalizationsDelegate(mockL10n),
             GlobalMaterialLocalizations.delegate,
@@ -97,16 +108,24 @@ void main() {
 
     // ignore: discarded_futures, testing framework registers tests synchronously
     goldenTest(
-      'SettingsScreen の描画',
+      'SettingsScreen の描画 (ライト/ダークモード)',
       fileName: 'settings_screen',
       builder: () => GoldenTestGroup(
         children: [
           GoldenTestScenario(
-            name: 'Default State',
+            name: 'Light Mode',
             child: SizedBox(
               width: 390,
               height: 844,
-              child: buildSettingsForGolden(),
+              child: buildSettingsForGolden(themeMode: ThemeMode.light),
+            ),
+          ),
+          GoldenTestScenario(
+            name: 'Dark Mode',
+            child: SizedBox(
+              width: 390,
+              height: 844,
+              child: buildSettingsForGolden(themeMode: ThemeMode.dark),
             ),
           ),
         ],
