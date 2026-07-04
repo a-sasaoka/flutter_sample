@@ -20,17 +20,26 @@ void main() {
       mockPrefs = setupMockPrefs();
     });
 
-    Widget buildOnboardingForGolden() {
+    Widget buildOnboardingForGolden({required ThemeMode themeMode}) {
+      final isDark = themeMode == ThemeMode.dark;
+
       return ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(mockPrefs),
         ],
         child: MaterialApp(
-          theme: AppTheme.light().copyWith(
-            textTheme: AppTheme.light().textTheme.apply(
-              fontFamily: 'NotoSansJP',
-            ),
-          ),
+          theme: isDark
+              ? AppTheme.dark().copyWith(
+                  textTheme: AppTheme.dark().textTheme.apply(
+                    fontFamily: 'NotoSansJP',
+                  ),
+                )
+              : AppTheme.light().copyWith(
+                  textTheme: AppTheme.light().textTheme.apply(
+                    fontFamily: 'NotoSansJP',
+                  ),
+                ),
+          themeMode: themeMode,
           localizationsDelegates: [
             MockLocalizationsDelegate(mockL10n),
             GlobalMaterialLocalizations.delegate,
@@ -51,11 +60,19 @@ void main() {
       builder: () => GoldenTestGroup(
         children: [
           GoldenTestScenario(
-            name: 'Initial Slide',
+            name: 'Initial Slide - Light Mode',
             child: SizedBox(
               width: 390,
               height: 844,
-              child: buildOnboardingForGolden(),
+              child: buildOnboardingForGolden(themeMode: ThemeMode.light),
+            ),
+          ),
+          GoldenTestScenario(
+            name: 'Initial Slide - Dark Mode',
+            child: SizedBox(
+              width: 390,
+              height: 844,
+              child: buildOnboardingForGolden(themeMode: ThemeMode.dark),
             ),
           ),
         ],
