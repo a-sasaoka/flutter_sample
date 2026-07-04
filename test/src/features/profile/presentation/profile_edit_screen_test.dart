@@ -36,7 +36,9 @@ class FakeProfileNotifier extends Profile {
 
   @override
   Future<void> updateProfile(UserProfile profile) async {
-    state = const AsyncLoading<UserProfile>();
+    final previousState = state;
+    // ignore: invalid_use_of_internal_member, copyWithPrevious is internal but required to preserve state value during test loader.
+    state = const AsyncLoading<UserProfile>().copyWithPrevious(previousState);
     try {
       if (onUpdate != null) {
         await onUpdate!(profile);

@@ -25,7 +25,8 @@ class Profile extends _$Profile {
   Future<void> updateProfile(UserProfile updatedProfile) async {
     final talker = ref.read(loggerProvider);
     final previousState = state;
-    state = const AsyncLoading<UserProfile>();
+    // ignore: invalid_use_of_internal_member, copyWithPrevious is internal but required to preserve state value during save loader.
+    state = const AsyncLoading<UserProfile>().copyWithPrevious(previousState);
 
     state = await AsyncValue.guard(() async {
       talker.debug('Starting profile update process...');
