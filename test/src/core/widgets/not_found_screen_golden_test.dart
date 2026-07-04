@@ -32,19 +32,21 @@ void main() {
       required ThemeMode themeMode,
       String? unknownPath,
     }) {
+      final isDark = themeMode == ThemeMode.dark;
       return ProviderScope(
         child: MaterialApp(
-          // 日本語フォントを適用したテーマを設定します
-          theme: AppTheme.light().copyWith(
-            textTheme: AppTheme.light().textTheme.apply(
-              fontFamily: 'NotoSansJP',
-            ),
-          ),
-          darkTheme: AppTheme.dark().copyWith(
-            textTheme: AppTheme.dark().textTheme.apply(
-              fontFamily: 'NotoSansJP',
-            ),
-          ),
+          // テスト環境による適用漏れを防ぐため、themeに直接ライト/ダークテーマを渡します
+          theme: isDark
+              ? AppTheme.dark().copyWith(
+                  textTheme: AppTheme.dark().textTheme.apply(
+                    fontFamily: 'NotoSansJP',
+                  ),
+                )
+              : AppTheme.light().copyWith(
+                  textTheme: AppTheme.light().textTheme.apply(
+                    fontFamily: 'NotoSansJP',
+                  ),
+                ),
           themeMode: themeMode,
           localizationsDelegates: [
             MockLocalizationsDelegate(mockL10n),
