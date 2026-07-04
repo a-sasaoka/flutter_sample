@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:checks/checks.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -278,6 +279,152 @@ void main() {
 
       verify(() => mockFirebaseAuth.signOut()).called(1);
       verify(() => mockGoogleSignIn.signOut()).called(1);
+    });
+
+    group('updateAuthProfile', () {
+      test(
+        'currentUser が null の場合、警告ログを出して unauthenticated 例外をスローすること',
+        () async {
+          final repo = container.read(firebaseAuthRepositoryProvider);
+          when(() => mockFirebaseAuth.currentUser).thenReturn(null);
+
+          await check(
+            repo.updateAuthProfile(
+              displayName: '新表示名',
+              email: 'new@example.com',
+            ),
+          ).throws<AppException>();
+
+          verify(
+            () => mockTalker.warning(
+              'Cannot update Firebase profile: No user is currently signed in.',
+            ),
+          ).called(1);
+        },
+      );
+
+      test('値に変更がない場合、同期処理がスキップされ、reload のみ呼ばれること', () async {
+        final repo = container.read(firebaseAuthRepositoryProvider);
+        final mockUser = MockUser();
+
+        when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+        when(() => mockUser.displayName).thenReturn('旧表示名');
+        when(() => mockUser.email).thenReturn('old@example.com');
+        when(mockUser.reload).thenAnswer((_) async {});
+
+        await repo.updateAuthProfile(
+          displayName: '旧表示名',
+          email: 'old@example.com',
+        );
+
+        verifyNever(() => mockUser.updateDisplayName(any<String?>()));
+        verifyNever(() => mockUser.verifyBeforeUpdateEmail(any<String>()));
+        verify(mockUser.reload).called(1);
+      });
+
+      test(
+        'displayName のみ変更がある場合、updateDisplayName と reload が呼ばれること',
+        () async {
+          final repo = container.read(firebaseAuthRepositoryProvider);
+          final mockUser = MockUser();
+
+          when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+          when(() => mockUser.displayName).thenReturn('旧表示名');
+          when(() => mockUser.email).thenReturn('old@example.com');
+          when(
+            () => mockUser.updateDisplayName('新表示名'),
+          ).thenAnswer((_) async {});
+          when(mockUser.reload).thenAnswer((_) async {});
+
+          await repo.updateAuthProfile(
+            displayName: '新表示名',
+            email: 'old@example.com',
+          );
+
+          verify(() => mockUser.updateDisplayName('新表示名')).called(1);
+          verifyNever(() => mockUser.verifyBeforeUpdateEmail(any<String>()));
+          verify(mockUser.reload).called(1);
+        },
+      );
+
+      test(
+        'email のみ変更がある場合、verifyBeforeUpdateEmail と reload が呼ばれること',
+        () async {
+          final repo = container.read(firebaseAuthRepositoryProvider);
+          final mockUser = MockUser();
+
+          when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+          when(() => mockUser.displayName).thenReturn('旧表示名');
+          when(() => mockUser.email).thenReturn('old@example.com');
+          when(
+            () => mockUser.verifyBeforeUpdateEmail('new@example.com'),
+          ).thenAnswer((_) async {});
+          when(mockUser.reload).thenAnswer((_) async {});
+
+          await repo.updateAuthProfile(
+            displayName: '旧表示名',
+            email: 'new@example.com',
+          );
+
+          verifyNever(() => mockUser.updateDisplayName(any<String?>()));
+          verify(
+            () => mockUser.verifyBeforeUpdateEmail('new@example.com'),
+          ).called(1);
+          verify(mockUser.reload).called(1);
+        },
+      );
+
+      test(
+        'displayName の変更処理中に例外が発生した場合、reload が呼ばれず例外を再スローすること',
+        () async {
+          final repo = container.read(firebaseAuthRepositoryProvider);
+          final mockUser = MockUser();
+
+          when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+          when(() => mockUser.displayName).thenReturn('旧表示名');
+          when(() => mockUser.email).thenReturn('old@example.com');
+          when(
+            () => mockUser.updateDisplayName('新表示名'),
+          ).thenThrow(Exception('Update error'));
+
+          await check(
+            repo.updateAuthProfile(
+              displayName: '新表示名',
+              email: 'old@example.com',
+            ),
+          ).throws<Object>();
+
+          verify(() => mockUser.updateDisplayName('新表示名')).called(1);
+          verifyNever(mockUser.reload);
+        },
+      );
+
+      test(
+        'email の変更処理中に例外が発生した場合、reload が呼ばれず例外を再スローすること',
+        () async {
+          final repo = container.read(firebaseAuthRepositoryProvider);
+          final mockUser = MockUser();
+
+          when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+          when(() => mockUser.displayName).thenReturn('旧表示名');
+          when(() => mockUser.email).thenReturn('old@example.com');
+          when(
+            () => mockUser.verifyBeforeUpdateEmail('new@example.com'),
+          ).thenThrow(Exception('Email update error'));
+
+          await check(
+            repo.updateAuthProfile(
+              displayName: '旧表示名',
+              email: 'new@example.com',
+            ),
+          ).throws<Object>();
+
+          verify(
+            () => mockUser.verifyBeforeUpdateEmail('new@example.com'),
+          ).called(1);
+          verifyNever(mockUser.reload);
+        },
+      );
     });
   });
 }

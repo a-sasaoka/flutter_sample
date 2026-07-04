@@ -46,6 +46,7 @@ Flutter開発のサンプルプロジェクトです。\
 - [オフラインメモ機能（Memos）](docs/memos.md)
 - [設定機能（Settings）](docs/settings.md)
 - [オンボーディング機能 (Onboarding)](docs/onboarding.md)
+- [プロフィール登録・変更機能 (Profile)](docs/profile.md)
 
 ### E. 開発運用
 

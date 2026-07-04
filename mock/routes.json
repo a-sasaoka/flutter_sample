@@ -1,4 +1,5 @@
 {
+  "/users/me": "/me",
   "/users": "/users",
   "/auth/login": "/login",
   "/auth/refresh": "/refresh"

@@ -32,3 +32,14 @@ class ResetPasswordRoute extends GoRouteData with $ResetPasswordRoute {
     return const FirebaseResetPasswordScreen();
   }
 }
+
+/// 👤 プロフィール編集画面ルート
+class ProfileEditRoute extends GoRouteData with $ProfileEditRoute {
+  /// コンストラクタ
+  const ProfileEditRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const ProfileEditScreen();
+  }
+}

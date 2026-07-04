@@ -476,4 +476,63 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get devStorageNoSecureData => 'No SecureStorage data found.';
+
+  @override
+  String get profileTitle => 'Profile Settings';
+
+  @override
+  String get profileSaveSuccess => 'Profile saved successfully';
+
+  @override
+  String get profileNameLabel => 'Full Name (Required)';
+
+  @override
+  String get profileNameHint => 'John Doe';
+
+  @override
+  String get profileNameRequired => 'Name is required';
+
+  @override
+  String get profileNameEmpty => 'Name cannot contain only whitespace';
+
+  @override
+  String get profileNameMaxLength => 'Name must be 128 characters or less';
+
+  @override
+  String get profileEmailLabel => 'Email Address (Required)';
+
+  @override
+  String get profileEmailRequired => 'Email is required';
+
+  @override
+  String get profileEmailInvalid => 'Please enter a valid email address';
+
+  @override
+  String get profileEmailMaxLength => 'Email must be 256 characters or less';
+
+  @override
+  String get profileDisplayNameLabel => 'Display Name';
+
+  @override
+  String get profileDisplayNameHint => 'Taro';
+
+  @override
+  String get profileDisplayNameMaxLength =>
+      'Display name must be 128 characters or less';
+
+  @override
+  String get profilePhoneLabel => 'Phone Number (no hyphen)';
+
+  @override
+  String get profilePhoneInvalid => 'Please enter half-width digits only';
+
+  @override
+  String get profilePhoneMobileLength =>
+      'Mobile/IP phone number must be 11 digits';
+
+  @override
+  String get profilePhoneLandlineLength => 'Phone number must be 10 digits';
+
+  @override
+  String get profileSaveButton => 'Save';
 }

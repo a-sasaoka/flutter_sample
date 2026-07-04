@@ -192,5 +192,26 @@
     }
   },
   "devStorageNoPrefsData": "No SharedPreferences data found.",
-  "devStorageNoSecureData": "No SecureStorage data found."
+  "devStorageNoSecureData": "No SecureStorage data found.",
+
+  "@_PROFILE": {},
+  "profileTitle": "Profile Settings",
+  "profileSaveSuccess": "Profile saved successfully",
+  "profileNameLabel": "Full Name (Required)",
+  "profileNameHint": "John Doe",
+  "profileNameRequired": "Name is required",
+  "profileNameEmpty": "Name cannot contain only whitespace",
+  "profileNameMaxLength": "Name must be 128 characters or less",
+  "profileEmailLabel": "Email Address (Required)",
+  "profileEmailRequired": "Email is required",
+  "profileEmailInvalid": "Please enter a valid email address",
+  "profileEmailMaxLength": "Email must be 256 characters or less",
+  "profileDisplayNameLabel": "Display Name",
+  "profileDisplayNameHint": "Taro",
+  "profileDisplayNameMaxLength": "Display name must be 128 characters or less",
+  "profilePhoneLabel": "Phone Number (no hyphen)",
+  "profilePhoneInvalid": "Please enter half-width digits only",
+  "profilePhoneMobileLength": "Mobile/IP phone number must be 11 digits",
+  "profilePhoneLandlineLength": "Phone number must be 10 digits",
+  "profileSaveButton": "Save"
 }

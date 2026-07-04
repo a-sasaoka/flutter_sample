@@ -461,4 +461,61 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get devStorageNoSecureData => 'SecureStorageのデータが見つかりません。';
+
+  @override
+  String get profileTitle => '会員情報登録・変更';
+
+  @override
+  String get profileSaveSuccess => '会員情報を保存しました';
+
+  @override
+  String get profileNameLabel => '氏名（必須）';
+
+  @override
+  String get profileNameHint => '山田 太郎';
+
+  @override
+  String get profileNameRequired => '氏名は必須入力です';
+
+  @override
+  String get profileNameEmpty => '氏名に空白のみを入力することはできません';
+
+  @override
+  String get profileNameMaxLength => '氏名は最大128文字までです';
+
+  @override
+  String get profileEmailLabel => 'メールアドレス（必須）';
+
+  @override
+  String get profileEmailRequired => 'メールアドレスは必須入力です';
+
+  @override
+  String get profileEmailInvalid => '有効なメールアドレス形式で入力してください';
+
+  @override
+  String get profileEmailMaxLength => 'メールアドレスは最大256文字までです';
+
+  @override
+  String get profileDisplayNameLabel => '表示名';
+
+  @override
+  String get profileDisplayNameHint => 'タロウ';
+
+  @override
+  String get profileDisplayNameMaxLength => '表示名は最大128文字までです';
+
+  @override
+  String get profilePhoneLabel => '電話番号（ハイフンなし）';
+
+  @override
+  String get profilePhoneInvalid => '半角数字のみで入力してください';
+
+  @override
+  String get profilePhoneMobileLength => '携帯電話・IP電話は11桁で入力してください';
+
+  @override
+  String get profilePhoneLandlineLength => '固定電話等は10桁で入力してください';
+
+  @override
+  String get profileSaveButton => '保存する';
 }

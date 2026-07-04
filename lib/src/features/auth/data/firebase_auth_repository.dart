@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -128,6 +129,36 @@ class FirebaseAuthRepository {
     final user = _firebaseAuth.currentUser;
     if (user != null) {
       await user.reload();
+    }
+  }
+
+  /// Firebase Auth の現在のユーザー情報（表示名、メールアドレス）を更新して再読み込みする
+  Future<void> updateAuthProfile({
+    required String displayName,
+    required String email,
+  }) async {
+    final user = _firebaseAuth.currentUser;
+    if (user != null) {
+      _talker.debug(
+        'Updating Firebase user: displayName=$displayName, email=$email',
+      );
+      // 表示名が変更されている場合のみ更新する
+      if (user.displayName != displayName) {
+        await user.updateDisplayName(displayName);
+      }
+      // メールアドレスが変更されている場合のみ更新要求を送る
+      if (user.email != email) {
+        await user.verifyBeforeUpdateEmail(email);
+      }
+      await user.reload();
+      _talker.debug('Successfully updated and reloaded Firebase user.');
+    } else {
+      _talker.warning(
+        'Cannot update Firebase profile: No user is currently signed in.',
+      );
+      throw const AppException.unauthenticated(
+        message: 'No user is signed in to Firebase',
+      );
     }
   }
 

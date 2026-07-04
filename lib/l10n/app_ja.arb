@@ -192,5 +192,26 @@
     }
   },
   "devStorageNoPrefsData": "SharedPreferencesのデータが見つかりません。",
-  "devStorageNoSecureData": "SecureStorageのデータが見つかりません。"
+  "devStorageNoSecureData": "SecureStorageのデータが見つかりません。",
+
+  "@_PROFILE": {},
+  "profileTitle": "会員情報登録・変更",
+  "profileSaveSuccess": "会員情報を保存しました",
+  "profileNameLabel": "氏名（必須）",
+  "profileNameHint": "山田 太郎",
+  "profileNameRequired": "氏名は必須入力です",
+  "profileNameEmpty": "氏名に空白のみを入力することはできません",
+  "profileNameMaxLength": "氏名は最大128文字までです",
+  "profileEmailLabel": "メールアドレス（必須）",
+  "profileEmailRequired": "メールアドレスは必須入力です",
+  "profileEmailInvalid": "有効なメールアドレス形式で入力してください",
+  "profileEmailMaxLength": "メールアドレスは最大256文字までです",
+  "profileDisplayNameLabel": "表示名",
+  "profileDisplayNameHint": "タロウ",
+  "profileDisplayNameMaxLength": "表示名は最大128文字までです",
+  "profilePhoneLabel": "電話番号（ハイフンなし）",
+  "profilePhoneInvalid": "半角数字のみで入力してください",
+  "profilePhoneMobileLength": "携帯電話・IP電話は11桁で入力してください",
+  "profilePhoneLandlineLength": "固定電話等は10桁で入力してください",
+  "profileSaveButton": "保存する"
 }

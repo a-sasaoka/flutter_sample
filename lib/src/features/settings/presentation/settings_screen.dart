@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/config/app_config_provider.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
@@ -27,6 +28,21 @@ class SettingsScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             children: [
+              // プロフィール設定セクション
+              _SectionHeader(title: '👤 ${l10n.profileTitle}'),
+              const SizedBox(height: 8),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.person_outline),
+                  title: Text(l10n.profileTitle),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    const ProfileEditRoute().go(context);
+                  },
+                ),
+              ),
+              const SizedBox(height: 32),
+
               // テーマ設定セクション
               _SectionHeader(title: l10n.settingsThemeSection),
               const SizedBox(height: 8),

@@ -33,6 +33,7 @@ import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
 import 'package:flutter_sample/src/features/onboarding/application/onboarding_notifier.dart';
 import 'package:flutter_sample/src/features/onboarding/presentation/onboarding_screen.dart';
+import 'package:flutter_sample/src/features/profile/presentation/profile_edit_screen.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_state_provider.dart';
@@ -575,6 +576,14 @@ void main() {
         MockGoRouterState(),
       );
       check(widget).isA<SettingsScreen>();
+    });
+
+    test('ProfileEditRoute.build: ProfileEditScreen を返すこと', () {
+      final widget = const ProfileEditRoute().build(
+        MockBuildContext(),
+        MockGoRouterState(),
+      );
+      check(widget).isA<ProfileEditScreen>();
     });
 
     test('UserListRoute.build: UserListScreen を返すこと', () {
