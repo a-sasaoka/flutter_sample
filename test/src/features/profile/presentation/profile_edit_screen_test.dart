@@ -329,5 +329,33 @@ void main() {
       // エラーハンドラー経由の SnackBar が表示されていること
       expect(find.text('通信エラー'), findsOneWidget);
     });
+
+    testWidgets('保存：保存中はフォームが維持され、フルスクリーンスピナーが表示されないこと', (tester) async {
+      final completer = Completer<void>();
+      final container = ProviderContainer(
+        overrides: [
+          profileProvider.overrideWith(
+            () => FakeProfileNotifier(
+              const AsyncValue.data(testProfile),
+              onUpdate: (profile) => completer.future,
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(createTestWidget(container: container));
+      await tester.pumpAndSettle();
+
+      // 保存ボタンタップ
+      await tester.tap(find.text('保存する'));
+      await tester.pump(); // Notifier.state が AsyncLoading になる
+
+      // フォームのテキストフィールドが維持され、フルスクリーンロードに切り替わっていないことを確認
+      expect(find.byType(TextFormField), findsNWidgets(4));
+
+      completer.complete();
+      await tester.pumpAndSettle();
+    });
   });
 }
