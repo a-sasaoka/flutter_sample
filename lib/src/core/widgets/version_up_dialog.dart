@@ -19,6 +19,7 @@ abstract final class VersionUpDialog {
 
     await showDialog<void>(
       context: context,
+      useRootNavigator: false,
       // キャンセル可能ならダイアログの外をタップしても閉じるようにする
       barrierDismissible: isCancelable,
       builder: (dialogContext) {
