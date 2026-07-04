@@ -155,6 +155,7 @@ class _ProfileEditForm extends HookConsumerWidget {
                 ),
                 FormBuilderValidators.maxLength(
                   128,
+                  checkNullOrEmpty: false,
                   errorText: l10n.profileNameMaxLength,
                 ),
               ]),
@@ -180,6 +181,7 @@ class _ProfileEditForm extends HookConsumerWidget {
                 ),
                 FormBuilderValidators.maxLength(
                   256,
+                  checkNullOrEmpty: false,
                   errorText: l10n.profileEmailMaxLength,
                 ),
               ]),
@@ -198,6 +200,7 @@ class _ProfileEditForm extends HookConsumerWidget {
               validator: FormBuilderValidators.compose([
                 FormBuilderValidators.maxLength(
                   128,
+                  checkNullOrEmpty: false,
                   errorText: l10n.profileDisplayNameMaxLength,
                 ),
               ]),
