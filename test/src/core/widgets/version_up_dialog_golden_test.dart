@@ -41,8 +41,6 @@ void main() {
             body: Center(
               child: VersionUpDialogContent(
                 isCancelable: isCancelable,
-                onUpdate: () {},
-                onCancel: () {},
               ),
             ),
           ),

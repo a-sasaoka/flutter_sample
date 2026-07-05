@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 
+/// バージョンアップダイアログのアクション結果を表す列挙型
+enum VersionUpDialogResult {
+  /// アップデートを実行
+  update,
+
+  /// キャンセル
+  cancel,
+}
+
 /// バージョンアップダイアログの表示
 abstract final class VersionUpDialog {
   /// バージョンアップダイアログを表示
@@ -14,18 +23,25 @@ abstract final class VersionUpDialog {
     required VoidCallback onUpdate,
     required VoidCallback onCancel,
   }) async {
-    await showDialog<void>(
+    // 💡 ダイアログのポップ結果を受け取ります。
+    final result = await showDialog<VersionUpDialogResult>(
       context: context,
       // キャンセル可能ならダイアログの外をタップしても閉じるようにする
       barrierDismissible: isCancelable,
       builder: (dialogContext) {
         return VersionUpDialogContent(
           isCancelable: isCancelable,
-          onUpdate: onUpdate,
-          onCancel: onCancel,
         );
       },
     );
+
+    // 💡 結果に応じて適切なコールバックを1回のみ呼び出します。
+    if (result == VersionUpDialogResult.update) {
+      onUpdate();
+    } else {
+      // result が cancel または null (ダイアログ外タップやシステムの戻るボタン) の場合
+      onCancel();
+    }
   }
 }
 
@@ -36,19 +52,11 @@ class VersionUpDialogContent extends StatelessWidget {
   /// バージョンアップダイアログの表示内容を構築します。
   const VersionUpDialogContent({
     required this.isCancelable,
-    required this.onUpdate,
-    required this.onCancel,
     super.key,
   });
 
   /// キャンセル可能かどうか（キャンセルボタンを表示し、ダイアログ外タップで閉じることを許可するか）
   final bool isCancelable;
-
-  /// アップデートボタン押下時に呼ばれるコールバック
-  final VoidCallback onUpdate;
-
-  /// キャンセル時（キャンセルボタン押下時またはダイアログが閉じられた時）に呼ばれるコールバック
-  final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -56,11 +64,9 @@ class VersionUpDialogContent extends StatelessWidget {
 
     return PopScope(
       canPop: isCancelable,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop && isCancelable) {
-          onCancel();
-        }
-      },
+      // 💡 ポップ完了後の処理自体は show 側で一元管理するため、ここでの callback 呼び出しは不要です。
+      // ただし PopScope は isCancelable が false の時に
+      // ダイアログを閉じさせない（canPop: false）ために維持します。
       child: AlertDialog(
         title: Text(l10n.versionUpTitle),
         content: Text(
@@ -72,17 +78,15 @@ class VersionUpDialogContent extends StatelessWidget {
           if (isCancelable)
             TextButton(
               onPressed: () {
-                onCancel();
-                Navigator.of(context).pop();
+                // 💡 キャンセル結果を明示してポップします
+                Navigator.of(context).pop(VersionUpDialogResult.cancel);
               },
               child: Text(l10n.versionUpCancel),
             ),
           TextButton(
             onPressed: () {
-              onUpdate();
-              // ストア等に遷移する場合は通常アプリを離れるが、
-              // テストやUIの挙動としてダイアログを閉じる処理を入れておく
-              Navigator.of(context).pop();
+              // 💡 アップデート結果を明示してポップします
+              Navigator.of(context).pop(VersionUpDialogResult.update);
             },
             child: Text(l10n.versionUpUpdate),
           ),
