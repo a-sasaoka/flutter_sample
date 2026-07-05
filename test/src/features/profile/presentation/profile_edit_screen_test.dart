@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
@@ -113,7 +114,7 @@ void main() {
 
       await tester.pumpWidget(createTestWidget(container: container));
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      check(find.byType(CircularProgressIndicator)).findsOne();
     });
 
     testWidgets('初期表示：UserProfileの各値が正しくバインドされていること', (tester) async {
@@ -154,7 +155,7 @@ void main() {
       await tester.pumpWidget(createTestWidget(container: container));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('読み込み失敗'), findsOneWidget);
+      check(find.textContaining('読み込み失敗')).findsOne();
 
       shouldFail = false;
 
@@ -221,15 +222,15 @@ void main() {
       await tester.pumpAndSettle();
 
       // エラー文言が表示されること
-      expect(find.text('氏名は必須入力です'), findsOneWidget);
-      expect(find.text('有効なメールアドレス形式で入力してください'), findsOneWidget);
+      check(find.text('氏名は必須入力です')).findsOne();
+      check(find.text('有効なメールアドレス形式で入力してください')).findsOne();
 
       // 2. 氏名に空白スペースのみを入力した場合のテスト
       await tester.enterText(nameFinder, '   '); // 空白スペースのみ
       await tester.pump();
       await tester.tap(find.text('保存する'));
       await tester.pumpAndSettle();
-      expect(find.text('氏名に空白のみを入力することはできません'), findsOneWidget);
+      check(find.text('氏名に空白のみを入力することはできません')).findsOne();
     });
 
     testWidgets('バリデーション：電話番号の桁数チェックが正しく動くこと', (tester) async {
@@ -252,14 +253,14 @@ void main() {
       await tester.pump();
       await tester.tap(find.text('保存する'));
       await tester.pumpAndSettle();
-      expect(find.text('携帯電話・IP電話は11桁で入力してください'), findsOneWidget);
+      check(find.text('携帯電話・IP電話は11桁で入力してください')).findsOne();
 
       // 2. 固定電話等 (03で始まる) なのに11桁の場合
       await tester.enterText(phoneFinder, '03123456789'); // 11桁
       await tester.pump();
       await tester.tap(find.text('保存する'));
       await tester.pumpAndSettle();
-      expect(find.text('固定電話等は10桁で入力してください'), findsOneWidget);
+      check(find.text('固定電話等は10桁で入力してください')).findsOne();
 
       // 3. 非数字が含まれる場合のテスト (Formatterをバイパスして直接テキストを代入)
       final phoneField = tester.widget<TextFormField>(phoneFinder);
@@ -267,7 +268,7 @@ void main() {
       await tester.pump();
       await tester.tap(find.text('保存する'));
       await tester.pumpAndSettle();
-      expect(find.text('半角数字のみで入力してください'), findsOneWidget);
+      check(find.text('半角数字のみで入力してください')).findsOne();
     });
 
     testWidgets('保存：正常に入力し、保存に成功した際、スナックバーが表示されること', (tester) async {
@@ -298,7 +299,7 @@ void main() {
       await tester.pump(); // スナックバー表示のアニメーション開始
 
       // SnackBar が表示されていること
-      expect(find.text('会員情報を保存しました'), findsOneWidget);
+      check(find.text('会員情報を保存しました')).findsOne();
       check(updateCalled).isTrue();
     });
 
@@ -329,7 +330,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // エラーハンドラー経由の SnackBar が表示されていること
-      expect(find.text('通信エラー'), findsOneWidget);
+      check(find.text('通信エラー')).findsOne();
     });
 
     testWidgets('保存：保存中はフォームが維持され、フルスクリーンスピナーが表示されないこと', (tester) async {
