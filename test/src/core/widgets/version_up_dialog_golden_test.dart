@@ -1,5 +1,6 @@
 import 'package:alchemist/alchemist.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/src/core/widgets/version_up_dialog.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
@@ -34,34 +35,16 @@ void main() {
           themeMode: themeMode,
           additionalDelegates: [MockLocalizationsDelegate(mockL10n)],
           // 💡 showDialog(useRootNavigator: true) によるテスト環境上の描画バグを回避するため、
-          // テスト内では AlertDialog を Scaffold の body 内に直接配置して、ダイアログ単体の見た目を検証します。
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                backgroundColor: Colors.black54, // ダイアログ表示時の薄暗い背景オーバーレイを模倣
-                body: Center(
-                  child: AlertDialog(
-                    title: Text(mockL10n.versionUpTitle),
-                    content: Text(
-                      isCancelable
-                          ? mockL10n.versionUpMessageOptional
-                          : mockL10n.versionUpMessageMandatory,
-                    ),
-                    actions: [
-                      if (isCancelable)
-                        TextButton(
-                          onPressed: () {},
-                          child: Text(mockL10n.versionUpCancel),
-                        ),
-                      TextButton(
-                        onPressed: () {},
-                        child: Text(mockL10n.versionUpUpdate),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+          // 本番と共通の VersionUpDialogContent を Scaffold の body 内に直接配置して検証します。
+          home: Scaffold(
+            backgroundColor: Colors.black54, // ダイアログ表示時の薄暗い背景オーバーレイを模倣
+            body: Center(
+              child: VersionUpDialogContent(
+                isCancelable: isCancelable,
+                onUpdate: () {},
+                onCancel: () {},
+              ),
+            ),
           ),
         ),
       );
