@@ -13,7 +13,6 @@ import '../../../core/widgets/widgets_test_helper.dart';
 void main() {
   group('UserListScreen Golden Tests', () {
     late MockAppLocalizations mockL10n;
-    late MockUserRepository mockRepository;
     final dummyTimestamp = DateTime(2026, 5, 17, 10, 30);
 
     setUp(() {
@@ -27,8 +26,6 @@ void main() {
       when(() => mockL10n.userListFetchError).thenReturn('Pull to refresh');
       when(() => mockL10n.retry).thenReturn('Retry');
       when(() => mockL10n.close).thenReturn('Close');
-
-      mockRepository = MockUserRepository();
     });
 
     // テスト用のダミーのユーザーモデルを作成する関数
@@ -54,16 +51,23 @@ void main() {
       required ThemeMode themeMode,
       bool isEmpty = false,
     }) {
+      // 💡 同一インスタンスが再利用されて stub 設定が上書きされるのを防ぐため、
+      // 呼び出しごとに新しく MockUserRepository をインスタンス化します。
+      final repository = MockUserRepository();
+
       final dummyUsers = isEmpty
           ? <UserModel>[]
           : [createDummyUser(1), createDummyUser(2)];
+
       when(
-        () => mockRepository.fetchUsers(),
+        // モックの仕様上、クロージャとして渡す必要があるため、unnecessary_lambdas を無視します。
+        // ignore: unnecessary_lambdas
+        () => repository.fetchUsers(),
       ).thenAnswer((_) async => (dummyUsers, dummyTimestamp));
 
       return ProviderScope(
         overrides: [
-          userRepositoryProvider.overrideWithValue(mockRepository),
+          userRepositoryProvider.overrideWithValue(repository),
         ],
         child: buildGoldenTestApp(
           themeMode: themeMode,
