@@ -106,6 +106,17 @@ void main() {
               ),
             ),
           ),
+          GoldenTestScenario(
+            name: 'Mandatory Update - Dark Mode',
+            child: SizedBox(
+              width: 390,
+              height: 844,
+              child: buildDialogForGolden(
+                themeMode: ThemeMode.dark,
+                isCancelable: false,
+              ),
+            ),
+          ),
         ],
       ),
     );
