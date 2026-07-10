@@ -153,7 +153,7 @@ clockProvider.overrideWithValue(() => DateTime(2026, 5, 10)),
 
 ### 特徴と使用方法
 
-`DateTime` クラスに対して、`toFormattedString(String locale)` メソッドが拡張されています。このメソッドは内部で `intl` パッケージの `DateFormat` を使用し、ロケールに応じた最適な書式に自動変換します。
+`DateTime` クラスに対して、`toFormattedString([String? locale])` メソッドが拡張されています。このメソッドは内部で `intl` パッケージの `DateFormat` を使用し、ロケールに応じた最適な書式に自動変換します（引数を省略、または `null` を渡した場合はシステムのデフォルトロケールが使用されます）。
 
 ```dart
 import 'package:flutter_sample/src/core/utils/date_time_extension.dart';
@@ -165,6 +165,9 @@ final jaString = now.toFormattedString('ja');
 
 // 英語環境の場合（出力例: 7/11/2026 08:09）
 final enString = now.toFormattedString('en');
+
+// 引数を省略した場合はシステムデフォルトのロケールを使用
+final defaultString = now.toFormattedString();
 ```
 
-UI上で日付を表示する際は、常にこの拡張関数を利用し、ロケール情報を引数に渡す（例: `l10n.localeName`）ことで、一貫した多言語対応の日付表示を実現できます。
+UI上で日付を表示する際は、この拡張関数を利用します。引数にロケール情報（例: `l10n.localeName`）を渡すことで、一貫した多言語対応の日付表示を実現できます（引数を省略した場合は、システムデフォルトのロケールでフォーマットされます）。
