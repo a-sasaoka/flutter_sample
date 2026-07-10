@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/storage/cache_manager.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
@@ -7,7 +8,6 @@ import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/user/data/user_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:legacy_checks/legacy_checks.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
@@ -323,17 +323,9 @@ void main() {
       ).thenAnswer((_) async => mockResponse);
 
       // Act & Assert
-      check(
-        () => repository.createUser('Name', 'email@example.com'),
-      ).legacyMatcher(
-        throwsA(
-          isA<Exception>().having(
-            (e) => e.toString(),
-            'message',
-            contains('Failed to create user'),
-          ),
-        ),
-      );
+      await check(
+        repository.createUser('Name', 'email@example.com'),
+      ).throws<AppException>();
     });
 
     test('updateUserName: レスポンスデータがnullの場合、例外を投げること', () async {
@@ -348,15 +340,9 @@ void main() {
       ).thenAnswer((_) async => mockResponse);
 
       // Act & Assert
-      check(() => repository.updateUserName(1, 'New Name')).legacyMatcher(
-        throwsA(
-          isA<Exception>().having(
-            (e) => e.toString(),
-            'message',
-            contains('Failed to update user'),
-          ),
-        ),
-      );
+      await check(
+        repository.updateUserName(1, 'New Name'),
+      ).throws<AppException>();
     });
   });
 

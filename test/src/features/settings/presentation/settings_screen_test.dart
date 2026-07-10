@@ -100,6 +100,8 @@ void main() {
 
     // エラーハンドラー経由で表示される翻訳キー
     when(() => mockL10n.errorUnknown).thenReturn('不明なエラー');
+    when(() => mockL10n.errorOccurred).thenReturn('エラーが発生しました');
+    when(() => mockL10n.settingsPreview).thenReturn('プレビュー');
 
     // リポジトリメソッドのスタブ
     when(() => mockAuthRepo.signOut()).thenAnswer((_) async {});
@@ -203,7 +205,7 @@ void main() {
         check(find.text('テーマ設定')).findsOne();
         check(find.text('ライト')).findsOne();
         check(find.text('言語設定')).findsOne();
-        check(find.text('Preview: こんにちは！')).findsOne();
+        check(find.text('プレビュー: こんにちは！')).findsOne();
       });
 
       testWidgets('テーマのSegmentedButtonを変更した時、ThemeModeNotifierのsetが呼ばれること', (

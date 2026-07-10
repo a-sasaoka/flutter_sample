@@ -140,6 +140,12 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get delete;
 
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
   /// No description provided for @login.
   ///
   /// In en, this message translates to:
@@ -320,12 +326,6 @@ abstract class AppLocalizations {
   /// **'Login failed.'**
   String get errorLoginFailed;
 
-  /// No description provided for @errorSignUpFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Sign up failed.'**
-  String get errorSignUpFailed;
-
   /// No description provided for @errorInvalidEmail.
   ///
   /// In en, this message translates to:
@@ -373,12 +373,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Go to Settings'**
   String get homeToSettings;
-
-  /// No description provided for @homeToSample.
-  ///
-  /// In en, this message translates to:
-  /// **'Go to Sample Page'**
-  String get homeToSample;
 
   /// No description provided for @homeToUserList.
   ///
@@ -535,6 +529,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'English (en)'**
   String get settingsLocaleEn;
+
+  /// No description provided for @settingsPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get settingsPreview;
 
   /// No description provided for @memoTitle.
   ///
@@ -716,18 +716,6 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to clear all data?'**
   String get chartClearConfirm;
 
-  /// No description provided for @sampleTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Sample Feature'**
-  String get sampleTitle;
-
-  /// No description provided for @sampleDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'This is the sample feature screen. UI and state management will be added here.'**
-  String get sampleDescription;
-
   /// No description provided for @userListTitle.
   ///
   /// In en, this message translates to:
@@ -751,12 +739,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to fetch users. Please pull down to refresh.'**
   String get userListFetchError;
-
-  /// No description provided for @retry.
-  ///
-  /// In en, this message translates to:
-  /// **'Retry'**
-  String get retry;
 
   /// No description provided for @notFoundTitle.
   ///
@@ -950,23 +932,11 @@ abstract class AppLocalizations {
   /// **'Data Type'**
   String get devStorageType;
 
-  /// No description provided for @devStorageSelectType.
-  ///
-  /// In en, this message translates to:
-  /// **'Select Data Type'**
-  String get devStorageSelectType;
-
   /// No description provided for @devStorageClearAll.
   ///
   /// In en, this message translates to:
   /// **'Clear All'**
   String get devStorageClearAll;
-
-  /// No description provided for @devStorageAddKey.
-  ///
-  /// In en, this message translates to:
-  /// **'Add Key'**
-  String get devStorageAddKey;
 
   /// No description provided for @devStorageError.
   ///

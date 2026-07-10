@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart'; // Responseクラス用
+import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
 import 'package:flutter_sample/src/core/storage/token_storage.dart';
@@ -130,13 +131,7 @@ void main() {
         await repo.login('test@example.com', 'password123');
         fail('Exception not thrown');
       } on Exception catch (e) {
-        check(e)
-            .isA<Exception>()
-            .has(
-              (e) => e.toString(),
-              'toString()',
-            )
-            .contains('Invalid token response from server');
+        check(e).isA<AppException>();
       }
 
       // 例外が発生し、TokenStorageに保存処理が行われていないことを確認

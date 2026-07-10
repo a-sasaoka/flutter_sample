@@ -107,7 +107,7 @@ class UserRepository {
       return UserModel.fromJson(data);
     }
 
-    throw const AppException.dataParse(message: 'Failed to create user');
+    throw const AppException.dataParse();
   }
 
   /// ユーザー名を更新する (PATCHのサンプル)
@@ -125,7 +125,7 @@ class UserRepository {
       return UserModel.fromJson(data);
     }
 
-    throw const AppException.dataParse(message: 'Failed to update user');
+    throw const AppException.dataParse();
   }
 
   /// ユーザーを削除する (DELETEのサンプル)

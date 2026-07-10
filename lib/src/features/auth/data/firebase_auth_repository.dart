@@ -156,9 +156,7 @@ class FirebaseAuthRepository {
       _talker.warning(
         'Cannot update Firebase profile: No user is currently signed in.',
       );
-      throw const AppException.unauthenticated(
-        message: 'No user is signed in to Firebase',
-      );
+      throw const AppException.unauthenticated();
     }
   }
 
