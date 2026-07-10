@@ -170,13 +170,13 @@ class _LocaleCard extends ConsumerWidget {
                   value: null,
                   label: Text(l10n.settingsLocaleSystem),
                 ),
-                const ButtonSegment(
+                ButtonSegment(
                   value: 'ja',
-                  label: Text('日本語'),
+                  label: Text(l10n.settingsLocaleJa),
                 ),
-                const ButtonSegment(
+                ButtonSegment(
                   value: 'en',
-                  label: Text('English'),
+                  label: Text(l10n.settingsLocaleEn),
                 ),
               ],
               selected: {currentLocale?.languageCode},

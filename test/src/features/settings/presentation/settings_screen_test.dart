@@ -237,8 +237,8 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pumpAndSettle();
 
-        // Englishを選択
-        await tester.tap(find.text('English'));
+        // 英語を選択
+        await tester.tap(find.text('英語'));
         await tester.pumpAndSettle();
 
         check(fakeLocaleNotifier.calledSetLocale).equals('en');
