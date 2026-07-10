@@ -203,13 +203,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsThemeSection => '🎨 テーマ設定';
 
   @override
-  String get settingsThemeSystem => 'システム（端末に合わせる）';
+  String get settingsThemeSystem => 'システム';
 
   @override
-  String get settingsThemeLight => 'ライト（明るい）';
+  String get settingsThemeLight => 'ライト';
 
   @override
-  String get settingsThemeDark => 'ダーク（暗い）';
+  String get settingsThemeDark => 'ダーク';
 
   @override
   String get settingsThemeToggle => 'ダークモードに切り替える（簡易）';
@@ -218,7 +218,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsLocaleSection => '🌐 ロケール設定';
 
   @override
-  String get settingsLocaleSystem => 'システム（端末に合わせる）';
+  String get settingsLocaleSystem => 'システム';
 
   @override
   String get settingsLocaleJa => '日本語（ja）';

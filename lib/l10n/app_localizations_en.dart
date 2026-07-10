@@ -214,7 +214,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsThemeSection => '🎨 Theme Settings';
 
   @override
-  String get settingsThemeSystem => 'System (follow device)';
+  String get settingsThemeSystem => 'System';
 
   @override
   String get settingsThemeLight => 'Light';
@@ -229,7 +229,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLocaleSection => '🌐 Locale Settings';
 
   @override
-  String get settingsLocaleSystem => 'System (follow device)';
+  String get settingsLocaleSystem => 'System';
 
   @override
   String get settingsLocaleJa => 'Japanese (ja)';

@@ -485,7 +485,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsThemeSystem.
   ///
   /// In en, this message translates to:
-  /// **'System (follow device)'**
+  /// **'System'**
   String get settingsThemeSystem;
 
   /// No description provided for @settingsThemeLight.
@@ -515,7 +515,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsLocaleSystem.
   ///
   /// In en, this message translates to:
-  /// **'System (follow device)'**
+  /// **'System'**
   String get settingsLocaleSystem;
 
   /// No description provided for @settingsLocaleJa.

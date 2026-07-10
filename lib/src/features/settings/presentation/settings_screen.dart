@@ -110,30 +110,19 @@ class _ThemeCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SegmentedButton<ThemeMode>(
+                  showSelectedIcon: false,
                   segments: [
                     ButtonSegment(
                       value: ThemeMode.system,
-                      label: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(l10n.settingsThemeSystem),
-                      ),
-                      icon: const Icon(Icons.brightness_auto_outlined),
+                      label: Text(l10n.settingsThemeSystem),
                     ),
                     ButtonSegment(
                       value: ThemeMode.light,
-                      label: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(l10n.settingsThemeLight),
-                      ),
-                      icon: const Icon(Icons.light_mode_outlined),
+                      label: Text(l10n.settingsThemeLight),
                     ),
                     ButtonSegment(
                       value: ThemeMode.dark,
-                      label: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(l10n.settingsThemeDark),
-                      ),
-                      icon: const Icon(Icons.dark_mode_outlined),
+                      label: Text(l10n.settingsThemeDark),
                     ),
                   ],
                   selected: {currentMode},
@@ -175,27 +164,19 @@ class _LocaleCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SegmentedButton<String?>(
+              showSelectedIcon: false,
               segments: [
                 ButtonSegment(
                   value: null,
-                  label: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(l10n.settingsLocaleSystem),
-                  ),
+                  label: Text(l10n.settingsLocaleSystem),
                 ),
                 const ButtonSegment(
                   value: 'ja',
-                  label: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text('日本語'),
-                  ),
+                  label: Text('日本語'),
                 ),
                 const ButtonSegment(
                   value: 'en',
-                  label: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text('English'),
-                  ),
+                  label: Text('English'),
                 ),
               ],
               selected: {currentLocale?.languageCode},
