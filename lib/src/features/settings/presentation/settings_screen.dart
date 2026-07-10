@@ -63,7 +63,7 @@ class SettingsScreen extends ConsumerWidget {
           );
         }(),
         AsyncError(:final error) => Center(
-          child: Text('${l10n.errorOccurred}: $error'),
+          child: Text(ErrorHandler.message(context, error)),
         ),
         _ => const Center(child: CircularProgressIndicator.adaptive()),
       },

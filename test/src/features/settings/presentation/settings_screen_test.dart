@@ -193,7 +193,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      check(find.textContaining('Config Load Error')).findsOne();
+      check(find.text('不明なエラー')).findsOne();
     });
 
     group('データ取得完了後 (Data状態)', () {
