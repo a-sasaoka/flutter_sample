@@ -99,15 +99,16 @@ class UserRepository {
       },
     );
 
-    if (response.data case final Map<String, dynamic> data) {
-      // キャッシュをクリア
-      await cache.clear(cacheKey);
-      talker.debug('Created user and cleared cache.');
+    final user = _parseUser(
+      response.data,
+      'Failed to parse created user data',
+    );
 
-      return UserModel.fromJson(data);
-    }
+    // キャッシュをクリア
+    await cache.clear(cacheKey);
+    talker.debug('Created user and cleared cache.');
 
-    throw const AppException.dataParse();
+    return user;
   }
 
   /// ユーザー名を更新する (PATCHのサンプル)
@@ -117,15 +118,16 @@ class UserRepository {
       data: {'name': newName},
     );
 
-    if (response.data case final Map<String, dynamic> data) {
-      // キャッシュをクリア
-      await cache.clear(cacheKey);
-      talker.debug('Updated user name and cleared cache.');
+    final user = _parseUser(
+      response.data,
+      'Failed to parse updated user data',
+    );
 
-      return UserModel.fromJson(data);
-    }
+    // キャッシュをクリア
+    await cache.clear(cacheKey);
+    talker.debug('Updated user name and cleared cache.');
 
-    throw const AppException.dataParse();
+    return user;
   }
 
   /// ユーザーを削除する (DELETEのサンプル)
@@ -135,5 +137,13 @@ class UserRepository {
     // キャッシュをクリア
     await cache.clear(cacheKey);
     talker.debug('Deleted user and cleared cache.');
+  }
+
+  UserModel _parseUser(Object? responseData, String errorMessage) {
+    if (responseData case final Map<String, dynamic> data) {
+      return UserModel.fromJson(data);
+    }
+    talker.error('$errorMessage: Response data is invalid.');
+    throw const AppException.dataParse();
   }
 }

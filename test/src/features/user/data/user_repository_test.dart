@@ -326,6 +326,12 @@ void main() {
       await check(
         repository.createUser('Name', 'email@example.com'),
       ).throws<AppException>();
+
+      verify(
+        () => mockTalker.error(
+          'Failed to parse created user data: Response data is invalid.',
+        ),
+      ).called(1);
     });
 
     test('updateUserName: レスポンスデータがnullの場合、例外を投げること', () async {
@@ -343,6 +349,12 @@ void main() {
       await check(
         repository.updateUserName(1, 'New Name'),
       ).throws<AppException>();
+
+      verify(
+        () => mockTalker.error(
+          'Failed to parse updated user data: Response data is invalid.',
+        ),
+      ).called(1);
     });
   });
 
