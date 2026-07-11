@@ -55,5 +55,5 @@ fvm dart run flutter_launcher_icons
 
 ## ⚠️ 注意事項
 
-- **個別実行も可能**: 特定の環境だけ更新したい場合は `fvm flutter pub run flutter_launcher_icons -f flutter_launcher_icons-dev.yaml` のようにファイルを指定して実行してください。
+- **個別実行も可能**: 特定の環境だけ更新したい場合は `fvm dart run flutter_launcher_icons -f flutter_launcher_icons-dev.yaml` のようにファイルを指定して実行してください。
 - **手動修正は不要**: ネイティブフォルダ内の画像を直接編集しないでください。常に設定ファイルを正として、コマンドで生成してください。

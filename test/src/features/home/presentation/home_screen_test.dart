@@ -105,11 +105,7 @@ void main() {
     when(() => mockL10n.homeDescription).thenReturn('ホーム画面の説明');
     when(() => mockL10n.homeCurrentEnv).thenReturn('現在の環境');
     when(() => mockL10n.homeToSettings).thenReturn('設定');
-    when(() => mockL10n.homeToUserList).thenReturn('ユーザー一覧');
-    when(() => mockL10n.homeToResetPassword).thenReturn('パスワードリセット');
-    when(() => mockL10n.homeToChat).thenReturn('AIチャット');
-    when(() => mockL10n.homeToMemos).thenReturn('メモ帳');
-    when(() => mockL10n.homeToGraph).thenReturn('グラフ');
+
     when(() => mockL10n.homeToNotFound).thenReturn('404テスト');
     when(() => mockL10n.homeGetAppInfo).thenReturn('アプリ情報取得');
     when(() => mockL10n.homeAppName).thenReturn('アプリ名');

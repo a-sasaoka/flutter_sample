@@ -11,7 +11,7 @@
 
 ```plaintext
 lib/src/core/storage/
- └── token_storage.dart       # トークンの永続化（SharedPreferencesAsync利用）
+ └── token_storage.dart       # トークンの永続化（SecureStorage利用）
 
 lib/src/core/network/
  └── token_interceptor.dart   # DioのInterceptor（トークン自動付与・排他リフレッシュ制御）
