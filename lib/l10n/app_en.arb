@@ -9,6 +9,7 @@
   "send": "Send",
   "close": "Close",
   "delete": "Delete",
+  "retry": "Retry",
 
   "@_AUTH": {},
   "login": "Login",
@@ -43,7 +44,6 @@
   "errorBadRequest": "The request is invalid.",
   "errorDialogTitle": "An error has occurred",
   "errorLoginFailed": "Login failed.",
-  "errorSignUpFailed": "Sign up failed.",
   "errorInvalidEmail": "The email address is badly formatted.",
   "errorUserDisabled": "This account has been disabled.",
   "errorEmailAlreadyInUse": "This email address is already in use.",
@@ -54,7 +54,6 @@
   "homeDescription": "👋 This is the home screen. Use the buttons below to navigate to each page.",
   "homeCurrentEnv": "Current Environment",
   "homeToSettings": "Go to Settings",
-  "homeToSample": "Go to Sample Page",
   "homeToUserList": "Go to User List (API Fetch)",
   "homeToResetPassword": "Go to Reset Password",
   "homeToChat": "Go to AI Chat",
@@ -77,14 +76,15 @@
   "@_SETTINGS": {},
   "settingsTitle": "Settings",
   "settingsThemeSection": "🎨 Theme Settings",
-  "settingsThemeSystem": "System (follow device)",
+  "settingsThemeSystem": "System",
   "settingsThemeLight": "Light",
   "settingsThemeDark": "Dark",
   "settingsThemeToggle": "Toggle Dark Mode (simple)",
   "settingsLocaleSection": "🌐 Locale Settings",
-  "settingsLocaleSystem": "System (follow device)",
+  "settingsLocaleSystem": "System",
   "settingsLocaleJa": "Japanese (ja)",
   "settingsLocaleEn": "English (en)",
+  "settingsPreview": "Preview",
 
   "@_MEMOS": {},
   "memoTitle": "Offline Memos",
@@ -127,9 +127,7 @@
   "chartClearAll": "Clear All",
   "chartClearConfirm": "Are you sure you want to clear all data?",
 
-  "@_OTHER": {},
-  "sampleTitle": "Sample Feature",
-  "sampleDescription": "This is the sample feature screen. UI and state management will be added here.",
+  "@_USER_LIST": {},
   "userListTitle": "User List",
   "userListLastFetched": "Last fetched: {dateTime}",
   "@userListLastFetched": {
@@ -141,10 +139,13 @@
   },
   "userListEmpty": "No users found.",
   "userListFetchError": "Failed to fetch users. Please pull down to refresh.",
-  "retry": "Retry",
+
+  "@_NOT_FOUND": {},
   "notFoundTitle": "Page not found",
   "notFoundMessage": "The page could not be found.",
   "notFoundBackToHome": "Back to Home",
+
+  "@_VERSION_UP": {},
   "versionUpTitle": "Update Available",
   "versionUpMessageOptional": "A new version is available.",
   "versionUpMessageMandatory": "A new version is required.",
@@ -180,9 +181,7 @@
   "devStorageKey": "Key",
   "devStorageValue": "Value",
   "devStorageType": "Data Type",
-  "devStorageSelectType": "Select Data Type",
   "devStorageClearAll": "Clear All",
-  "devStorageAddKey": "Add Key",
   "devStorageError": "Error: {message}",
   "@devStorageError": {
     "placeholders": {

@@ -62,6 +62,6 @@ class ProfileRepository {
       return UserProfile.fromJson(data);
     }
     talker.error('$errorMessage: Response data is invalid.');
-    throw AppException.dataParse(message: errorMessage);
+    throw const AppException.dataParse();
   }
 }

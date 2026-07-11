@@ -37,6 +37,8 @@ void main() {
       when(() => mockL10n.settingsLocaleEn).thenReturn('英語');
       when(() => mockL10n.hello).thenReturn('こんにちは！');
       when(() => mockL10n.logout).thenReturn('ログアウト');
+      when(() => mockL10n.settingsPreview).thenReturn('プレビュー');
+      when(() => mockL10n.errorOccurred).thenReturn('エラーが発生しました');
     });
 
     Widget buildSettingsForGolden({required ThemeMode themeMode}) {

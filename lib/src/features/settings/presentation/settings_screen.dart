@@ -62,7 +62,9 @@ class SettingsScreen extends ConsumerWidget {
             ],
           );
         }(),
-        AsyncError(:final error) => Center(child: Text('Error: $error')),
+        AsyncError(:final error) => Center(
+          child: Text(ErrorHandler.message(context, error)),
+        ),
         _ => const Center(child: CircularProgressIndicator.adaptive()),
       },
     );
@@ -108,21 +110,19 @@ class _ThemeCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SegmentedButton<ThemeMode>(
+                  showSelectedIcon: false,
                   segments: [
                     ButtonSegment(
                       value: ThemeMode.system,
                       label: Text(l10n.settingsThemeSystem),
-                      icon: const Icon(Icons.brightness_auto_outlined),
                     ),
                     ButtonSegment(
                       value: ThemeMode.light,
                       label: Text(l10n.settingsThemeLight),
-                      icon: const Icon(Icons.light_mode_outlined),
                     ),
                     ButtonSegment(
                       value: ThemeMode.dark,
                       label: Text(l10n.settingsThemeDark),
-                      icon: const Icon(Icons.dark_mode_outlined),
                     ),
                   ],
                   selected: {currentMode},
@@ -164,18 +164,19 @@ class _LocaleCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SegmentedButton<String?>(
+              showSelectedIcon: false,
               segments: [
                 ButtonSegment(
                   value: null,
                   label: Text(l10n.settingsLocaleSystem),
                 ),
-                const ButtonSegment(
+                ButtonSegment(
                   value: 'ja',
-                  label: Text('日本語'),
+                  label: Text(l10n.settingsLocaleJa),
                 ),
-                const ButtonSegment(
+                ButtonSegment(
                   value: 'en',
-                  label: Text('English'),
+                  label: Text(l10n.settingsLocaleEn),
                 ),
               ],
               selected: {currentLocale?.languageCode},
@@ -186,7 +187,7 @@ class _LocaleCard extends ConsumerWidget {
             const SizedBox(height: 16),
             Center(
               child: Text(
-                'Preview: ${l10n.hello}',
+                '${l10n.settingsPreview}: ${l10n.hello}',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),

@@ -30,6 +30,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get delete => 'Delete';
 
   @override
+  String get retry => 'Retry';
+
+  @override
   String get login => 'Login';
 
   @override
@@ -129,9 +132,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorLoginFailed => 'Login failed.';
 
   @override
-  String get errorSignUpFailed => 'Sign up failed.';
-
-  @override
   String get errorInvalidEmail => 'The email address is badly formatted.';
 
   @override
@@ -156,9 +156,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeToSettings => 'Go to Settings';
-
-  @override
-  String get homeToSample => 'Go to Sample Page';
 
   @override
   String get homeToUserList => 'Go to User List (API Fetch)';
@@ -217,7 +214,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsThemeSection => '🎨 Theme Settings';
 
   @override
-  String get settingsThemeSystem => 'System (follow device)';
+  String get settingsThemeSystem => 'System';
 
   @override
   String get settingsThemeLight => 'Light';
@@ -232,13 +229,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLocaleSection => '🌐 Locale Settings';
 
   @override
-  String get settingsLocaleSystem => 'System (follow device)';
+  String get settingsLocaleSystem => 'System';
 
   @override
   String get settingsLocaleJa => 'Japanese (ja)';
 
   @override
   String get settingsLocaleEn => 'English (en)';
+
+  @override
+  String get settingsPreview => 'Preview';
 
   @override
   String get memoTitle => 'Offline Memos';
@@ -333,13 +333,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chartClearConfirm => 'Are you sure you want to clear all data?';
 
   @override
-  String get sampleTitle => 'Sample Feature';
-
-  @override
-  String get sampleDescription =>
-      'This is the sample feature screen. UI and state management will be added here.';
-
-  @override
   String get userListTitle => 'User List';
 
   @override
@@ -353,9 +346,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get userListFetchError =>
       'Failed to fetch users. Please pull down to refresh.';
-
-  @override
-  String get retry => 'Retry';
 
   @override
   String get notFoundTitle => 'Page not found';
@@ -458,13 +448,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get devStorageType => 'Data Type';
 
   @override
-  String get devStorageSelectType => 'Select Data Type';
-
-  @override
   String get devStorageClearAll => 'Clear All';
-
-  @override
-  String get devStorageAddKey => 'Add Key';
 
   @override
   String devStorageError(String message) {

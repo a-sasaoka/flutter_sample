@@ -54,9 +54,7 @@ class AuthRepository {
         refreshToken: refresh,
       );
     } else {
-      throw const AppException.dataParse(
-        message: 'Invalid token response from server',
-      );
+      throw const AppException.dataParse();
     }
   }
 

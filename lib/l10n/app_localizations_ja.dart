@@ -30,6 +30,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get delete => '削除';
 
   @override
+  String get retry => '再試行';
+
+  @override
   String get login => 'ログイン';
 
   @override
@@ -120,9 +123,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get errorLoginFailed => 'ログインに失敗しました。';
 
   @override
-  String get errorSignUpFailed => '登録に失敗しました';
-
-  @override
   String get errorInvalidEmail => 'メールアドレスの形式が正しくありません。';
 
   @override
@@ -145,9 +145,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get homeToSettings => '設定画面へ';
-
-  @override
-  String get homeToSample => 'サンプル画面へ';
 
   @override
   String get homeToUserList => 'ユーザー一覧画面へ（APIで情報取得）';
@@ -206,13 +203,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsThemeSection => '🎨 テーマ設定';
 
   @override
-  String get settingsThemeSystem => 'システム（端末に合わせる）';
+  String get settingsThemeSystem => 'システム';
 
   @override
-  String get settingsThemeLight => 'ライト（明るい）';
+  String get settingsThemeLight => 'ライト';
 
   @override
-  String get settingsThemeDark => 'ダーク（暗い）';
+  String get settingsThemeDark => 'ダーク';
 
   @override
   String get settingsThemeToggle => 'ダークモードに切り替える（簡易）';
@@ -221,13 +218,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsLocaleSection => '🌐 ロケール設定';
 
   @override
-  String get settingsLocaleSystem => 'システム（端末に合わせる）';
+  String get settingsLocaleSystem => 'システム';
 
   @override
   String get settingsLocaleJa => '日本語（ja）';
 
   @override
   String get settingsLocaleEn => '英語（en）';
+
+  @override
+  String get settingsPreview => 'プレビュー';
 
   @override
   String get memoTitle => 'オフラインメモ帳';
@@ -322,12 +322,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chartClearConfirm => '全てのデータを削除しますか？';
 
   @override
-  String get sampleTitle => 'サンプル機能';
-
-  @override
-  String get sampleDescription => 'サンプル機能の画面です。ここにUIや状態管理を追加します。';
-
-  @override
   String get userListTitle => 'ユーザー一覧';
 
   @override
@@ -340,9 +334,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get userListFetchError => 'ユーザー一覧の取得に失敗しました。下へスクロールして更新してください。';
-
-  @override
-  String get retry => '再試行';
 
   @override
   String get notFoundTitle => 'ページが見つかりません';
@@ -443,13 +434,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get devStorageType => 'データ型';
 
   @override
-  String get devStorageSelectType => 'データ型を選択';
-
-  @override
   String get devStorageClearAll => '一括削除';
-
-  @override
-  String get devStorageAddKey => 'キーを追加';
 
   @override
   String devStorageError(String message) {

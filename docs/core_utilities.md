@@ -138,4 +138,36 @@ clockProvider.overrideWithValue(() => DateTime(2026, 5, 10)),
   - **個別削除**: キーの右にあるゴミ箱アイコンをタップして、個別にキーを削除できます。
   - **一括削除**: 画面右上のアイコン（ゴミ箱）から、現在開いているタブのデータを一括で全削除できます（確認ダイアログが表示されます）。
   - **新規追加**: 画面右下の「＋」ボタンから、新しいキーと値を追加できます。
-- **本番環境ガード**: 本番環境（`prod`）では、ホーム画面にメニューが表示されず、直接URL（`/dev-tools/storage`）を入力してアクセスしようとしても `NotFoundScreen` にリダイレクトされ、完全に遮断されます。
+  - **本番環境ガード**: 本番環境（`prod`）では、ホーム画面にメニューが表示されず、直接URL（`/dev-tools/storage`）を入力してアクセスしようとしても `NotFoundScreen` にリダイレクトされ、完全に遮断されます。
+
+---
+
+## ⏰ 6. 日付のローカライズ拡張（DateTimeExtension）
+
+現在のアクティブなロケール（言語設定）に合わせて、日付と時刻を適切にフォーマットして表示するための拡張関数を提供しています。
+
+### 📁 関連ファイル
+
+- `lib/src/core/utils/date_time_extension.dart`
+- `test/src/core/utils/date_time_extension_test.dart`
+
+### 特徴と使用方法
+
+`DateTime` クラスに対して、`toFormattedString([String? locale])` メソッドが拡張されています。このメソッドは内部で `intl` パッケージの `DateFormat` を使用し、ロケールに応じた最適な書式に自動変換します（引数を省略、または `null` を渡した場合はシステムのデフォルトロケールが使用されます）。
+
+```dart
+import 'package:flutter_sample/src/core/utils/date_time_extension.dart';
+
+final now = DateTime.now();
+
+// 日本語環境の場合（出力例: 2026/7/11 8:09）
+final jaString = now.toFormattedString('ja');
+
+// 英語環境の場合（出力例: 7/11/2026 08:09）
+final enString = now.toFormattedString('en');
+
+// 引数を省略した場合はシステムデフォルトのロケールを使用
+final defaultString = now.toFormattedString();
+```
+
+UI上で日付を表示する際は、この拡張関数を利用します。引数にロケール情報（例: `l10n.localeName`）を渡すことで、一貫した多言語対応の日付表示を実現できます（引数を省略した場合は、システムデフォルトのロケールでフォーマットされます）。
