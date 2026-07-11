@@ -110,7 +110,7 @@ App Links（Android）および Universal Links（iOS）のドメイン検証を
     "details": [
       {
         "appID": "<YOUR_APPLE_TEAM_ID>.<YOUR_APP_BUNDLE_IDENTIFIER>",
-        "paths": ["/memos", "/chat", "/settings"]
+        "paths": ["/memos", "/chat", "/settings", "/chart-input", "/users"]
       }
     ]
   }

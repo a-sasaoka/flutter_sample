@@ -87,6 +87,6 @@ fvm flutter run -t lib/main_dev.dart --flavor dev --dart-define-from-file=config
 
 ## 🛠 設定の追加・変更方法
 
-1. **アプリ名や ID を変えたい**: `pubspec.yaml` の `flavorizr:` セクションを修正し、`fvm flutter pub run flutter_flavorizr` を実行してください。
+1. **アプリ名や ID を変えたい**: `pubspec.yaml` の `flavorizr:` セクションを修正し、`fvm dart run flutter_flavorizr` を実行してください。
 2. **新しい公開設定（URL等）を増やしたい**: `config/*.json` に項目を追加し、`env_config.dart` の `EnvConfigState` を更新してください。
 3. **新しい秘密情報（APIキー等）を増やしたい**: `.env.*` に項目を追加し、`app_env.dart` の `AppEnv` クラスを更新してください。

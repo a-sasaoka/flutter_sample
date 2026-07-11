@@ -101,7 +101,8 @@ lib/src/app/router/
  │    ├── onboarding_routes.dart       # オンボーディング画面のルート定義
  │    ├── shell_routes.dart            # ナビゲーションシェル（ボトムメニュー）の定義
  │    ├── splash_routes.dart           # スプラッシュ画面の定義
- │    └── user_tab_routes.dart         # ユーザー一覧タブのルート定義
+ │    ├── user_tab_routes.dart         # ユーザー一覧タブのルート定義
+ │    └── dev_tools_routes.dart        # 開発者ツール画面のルート定義
  ├── base_auth_guard.dart               # 共通リダイレクト判定処理（checkBaseRedirect）と共通ヘルパー
  ├── auth_guard.dart                    # Bearerトークンベースの認証ガード
  └── firebase_auth_guard.dart           # Firebase Authentication用の認証ガード

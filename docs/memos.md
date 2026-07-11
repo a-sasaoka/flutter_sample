@@ -18,8 +18,7 @@ memos/
  │    ├── memo_table.dart          # Drift のテーブル定義
  │    ├── memos_dao.dart           # データベース操作（DAO）
  │    ├── memo_remote_service.dart # 擬似的なリモートAPI通信
- │    ├── memo_repository.dart     # ローカルとリモートの同期ロジックを統合
- │    └── memo_provider.dart       # リポジトリのDI定義
+ │    └── memo_repository.dart     # 同期ロジックの統合（プロバイダー定義も含む）
  ├── application/
  │    └── memo_notifier.dart       # 一覧の状態管理と操作 (Notifier)
  └── presentation/
