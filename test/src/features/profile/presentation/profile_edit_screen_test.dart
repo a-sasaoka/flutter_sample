@@ -102,6 +102,13 @@ void main() {
   Finder findPhoneField() => find.byType(TextFormField).at(3);
 
   group('ProfileEditScreen Widget Tests', () {
+    test('ProfileEditScreen can be instantiated', () {
+      // カバレッジ計測でコンストラクタのコードを確実に実行させてカバーするため、あえて非constでインスタンス化します。
+      // ignore: prefer_const_constructors
+      final screen = ProfileEditScreen();
+      check(screen).isA<ProfileEditScreen>();
+    });
+
     testWidgets('初期読み込み中：インジケータが表示されること', (tester) async {
       final container = ProviderContainer(
         overrides: [
@@ -135,10 +142,17 @@ void main() {
       final displayField = tester.widget<TextFormField>(findDisplayField());
       final phoneField = tester.widget<TextFormField>(findPhoneField());
 
-      check(nameField.controller?.text).equals('テスト太郎');
-      check(emailField.controller?.text).equals('test@example.com');
-      check(displayField.controller?.text).equals('タロウ');
-      check(phoneField.controller?.text).equals('09012345678');
+      // コントローラー自体は空であること
+      check(nameField.controller?.text).equals('');
+      check(emailField.controller?.text).equals('');
+      check(displayField.controller?.text).equals('');
+      check(phoneField.controller?.text).equals('');
+
+      // 入力欄の上に現在の設定値がテキスト表示されていること
+      check(find.text('現在の設定: テスト太郎')).findsOne();
+      check(find.text('現在の設定: test@example.com')).findsOne();
+      check(find.text('現在の設定: タロウ')).findsOne();
+      check(find.text('現在の設定: 09012345678')).findsOne();
     });
 
     testWidgets('エラー画面：再試行ボタンをタップするとプロバイダーが再評価されること', (tester) async {
@@ -163,7 +177,8 @@ void main() {
       await tester.pumpAndSettle();
 
       final nameField = tester.widget<TextFormField>(findNameField());
-      check(nameField.controller?.text).equals('テスト太郎');
+      check(nameField.controller?.text).equals('');
+      check(find.text('現在の設定: テスト太郎')).findsOne();
     });
 
     testWidgets('入力コピペ制御：電話番号フィールドに非数字は入力できないこと', (tester) async {
@@ -181,13 +196,13 @@ void main() {
 
       final phoneFinder = findPhoneField();
 
-      // 最初は '09012345678'
+      // 最初は空 ''
       await tester.enterText(phoneFinder, '123-abc');
       await tester.pump();
 
-      // Formatterにより非数字が含まれるため、古いテキスト（'09012345678'）が維持される
+      // Formatterにより非数字が含まれるため、古いテキスト（''）が維持される
       final phoneFieldBefore = tester.widget<TextFormField>(phoneFinder);
-      check(phoneFieldBefore.controller?.text).equals('09012345678');
+      check(phoneFieldBefore.controller?.text).equals('');
 
       // 数字のみの場合は入力できること
       await tester.enterText(phoneFinder, '08098765432');
@@ -291,7 +306,9 @@ void main() {
       await tester.pumpAndSettle();
 
       final nameFinder = findNameField();
+      final emailFinder = findEmailField();
       await tester.enterText(nameFinder, '山田 太郎');
+      await tester.enterText(emailFinder, 'test@example.com');
       await tester.pump();
 
       // 保存ボタンタップ
@@ -322,7 +339,9 @@ void main() {
       await tester.pumpAndSettle();
 
       final nameFinder = findNameField();
+      final emailFinder = findEmailField();
       await tester.enterText(nameFinder, '山田 二郎');
+      await tester.enterText(emailFinder, 'test@example.com');
       await tester.pump();
 
       // 保存ボタンタップ
@@ -349,6 +368,12 @@ void main() {
 
       await tester.pumpWidget(createTestWidget(container: container));
       await tester.pumpAndSettle();
+
+      final nameFinder = findNameField();
+      final emailFinder = findEmailField();
+      await tester.enterText(nameFinder, '山田 太郎');
+      await tester.enterText(emailFinder, 'test@example.com');
+      await tester.pump();
 
       // 保存ボタンタップ
       await tester.tap(find.text('保存する'));

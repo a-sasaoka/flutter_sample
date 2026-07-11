@@ -503,4 +503,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get profileSaveButton => '保存する';
+
+  @override
+  String profileCurrentValue(String value) {
+    return '現在の設定: $value';
+  }
+
+  @override
+  String get profileValueNotSet => '未設定';
 }

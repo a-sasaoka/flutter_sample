@@ -519,4 +519,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileSaveButton => 'Save';
+
+  @override
+  String profileCurrentValue(String value) {
+    return 'Current setting: $value';
+  }
+
+  @override
+  String get profileValueNotSet => 'Not set';
 }

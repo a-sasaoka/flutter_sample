@@ -1069,6 +1069,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save'**
   String get profileSaveButton;
+
+  /// No description provided for @profileCurrentValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Current setting: {value}'**
+  String profileCurrentValue(String value);
+
+  /// No description provided for @profileValueNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get profileValueNotSet;
 }
 
 class _AppLocalizationsDelegate
