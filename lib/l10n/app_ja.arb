@@ -212,5 +212,14 @@
   "profilePhoneInvalid": "半角数字のみで入力してください",
   "profilePhoneMobileLength": "携帯電話・IP電話は11桁で入力してください",
   "profilePhoneLandlineLength": "固定電話等は10桁で入力してください",
-  "profileSaveButton": "保存する"
+  "profileSaveButton": "保存する",
+  "profileCurrentValue": "現在の設定: {value}",
+  "@profileCurrentValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "profileValueNotSet": "未設定"
 }

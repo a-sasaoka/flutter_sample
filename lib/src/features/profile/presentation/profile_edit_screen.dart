@@ -94,13 +94,11 @@ class _ProfileEditForm extends HookConsumerWidget {
     final formKey = useMemoized(GlobalKey<FormState>.new);
     final l10n = context.l10n;
 
-    // Hookを使用して各テキストエディティングコントローラを管理（初期値をセット）
-    final nameController = useTextEditingController(text: profile.name);
-    final emailController = useTextEditingController(text: profile.email);
-    final displayNameController = useTextEditingController(
-      text: profile.displayName,
-    );
-    final phoneController = useTextEditingController(text: profile.phone);
+    // Hookを使用して各テキストエディティングコントローラを管理（初期値は空）
+    final nameController = useTextEditingController();
+    final emailController = useTextEditingController();
+    final displayNameController = useTextEditingController();
+    final phoneController = useTextEditingController();
 
     final profileState = ref.watch(profileProvider);
     final isLoading = profileState.isLoading;
@@ -140,8 +138,18 @@ class _ProfileEditForm extends HookConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // 氏名
+            Text(
+              l10n.profileCurrentValue(
+                profile.name.isEmpty ? l10n.profileValueNotSet : profile.name,
+              ),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.outline,
+              ),
+            ),
+            const SizedBox(height: 8),
             TextFormField(
               controller: nameController,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
               decoration: InputDecoration(
                 labelText: l10n.profileNameLabel,
                 hintText: l10n.profileNameHint,
@@ -170,8 +178,18 @@ class _ProfileEditForm extends HookConsumerWidget {
             const SizedBox(height: 16),
 
             // メールアドレス
+            Text(
+              l10n.profileCurrentValue(
+                profile.email.isEmpty ? l10n.profileValueNotSet : profile.email,
+              ),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.outline,
+              ),
+            ),
+            const SizedBox(height: 8),
             TextFormField(
               controller: emailController,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
               decoration: InputDecoration(
                 labelText: l10n.profileEmailLabel,
                 hintText: 'example@example.com',
@@ -196,8 +214,20 @@ class _ProfileEditForm extends HookConsumerWidget {
             const SizedBox(height: 16),
 
             // 表示名
+            Text(
+              l10n.profileCurrentValue(
+                profile.displayName.isEmpty
+                    ? l10n.profileValueNotSet
+                    : profile.displayName,
+              ),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.outline,
+              ),
+            ),
+            const SizedBox(height: 8),
             TextFormField(
               controller: displayNameController,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
               decoration: InputDecoration(
                 labelText: l10n.profileDisplayNameLabel,
                 hintText: l10n.profileDisplayNameHint,
@@ -215,8 +245,18 @@ class _ProfileEditForm extends HookConsumerWidget {
             const SizedBox(height: 16),
 
             // 電話番号
+            Text(
+              l10n.profileCurrentValue(
+                profile.phone.isEmpty ? l10n.profileValueNotSet : profile.phone,
+              ),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.outline,
+              ),
+            ),
+            const SizedBox(height: 8),
             TextFormField(
               controller: phoneController,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
               decoration: InputDecoration(
                 labelText: l10n.profilePhoneLabel,
                 hintText: '09012345678',
