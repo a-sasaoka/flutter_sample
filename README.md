@@ -52,5 +52,6 @@ Flutter開発のサンプルプロジェクトです。\
 
 - [コード生成コマンド](docs/code_generation.md)
 - [テスト方針とゴールデンテスト](docs/testing.md)
+- [E2Eテスト (Maestro)](docs/e2e_testing_maestro.md)
 - [アプリアイコンの変更手順](docs/app_icon.md)
 - [今後の拡張案](docs/roadmap.md)

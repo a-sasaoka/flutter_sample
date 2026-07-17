@@ -54,6 +54,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginSuccess => 'Login successful!';
 
   @override
+  String get semanticsEmailInput => 'Email input field';
+
+  @override
+  String get semanticsPasswordInput => 'Password input field';
+
+  @override
+  String get semanticsLoginButton => 'Login execute button';
+
+  @override
   String get signUpTitle => 'Sign Up';
 
   @override

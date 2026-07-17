@@ -54,6 +54,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get loginSuccess => 'ログイン成功！';
 
   @override
+  String get semanticsEmailInput => 'メールアドレス入力欄';
+
+  @override
+  String get semanticsPasswordInput => 'パスワード入力欄';
+
+  @override
+  String get semanticsLoginButton => 'ログイン実行ボタン';
+
+  @override
   String get signUpTitle => '新規登録';
 
   @override

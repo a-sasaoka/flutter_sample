@@ -87,41 +87,50 @@ class LoginScreen extends HookConsumerWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              TextField(
-                controller: emailController,
-                decoration: InputDecoration(
-                  labelText: l10n.loginEmailLabel,
-                  prefixIcon: const Icon(Icons.email_outlined),
+              Semantics(
+                label: l10n.semanticsEmailInput,
+                child: TextField(
+                  controller: emailController,
+                  decoration: InputDecoration(
+                    labelText: l10n.loginEmailLabel,
+                    prefixIcon: const Icon(Icons.email_outlined),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  enabled: !isLoading.value,
                 ),
-                keyboardType: TextInputType.emailAddress,
-                enabled: !isLoading.value,
               ),
               const SizedBox(height: 16),
-              TextField(
-                controller: passwordController,
-                decoration: InputDecoration(
-                  labelText: l10n.loginPasswordLabel,
-                  prefixIcon: const Icon(Icons.password_outlined),
+              Semantics(
+                label: l10n.semanticsPasswordInput,
+                child: TextField(
+                  controller: passwordController,
+                  decoration: InputDecoration(
+                    labelText: l10n.loginPasswordLabel,
+                    prefixIcon: const Icon(Icons.password_outlined),
+                  ),
+                  obscureText: true,
+                  enabled: !isLoading.value,
                 ),
-                obscureText: true,
-                enabled: !isLoading.value,
               ),
               const SizedBox(height: 24),
 
               // ログインボタン
-              FilledButton.icon(
-                onPressed: isLoading.value ? null : onLogin,
-                icon: isLoading.value
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white70,
-                        ),
-                      )
-                    : const Icon(Icons.login),
-                label: Text(l10n.loginButton),
+              Semantics(
+                label: l10n.semanticsLoginButton,
+                child: FilledButton.icon(
+                  onPressed: isLoading.value ? null : onLogin,
+                  icon: isLoading.value
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white70,
+                          ),
+                        )
+                      : const Icon(Icons.login),
+                  label: Text(l10n.loginButton),
+                ),
               ),
             ],
           ),

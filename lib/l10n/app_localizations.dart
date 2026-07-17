@@ -188,6 +188,24 @@ abstract class AppLocalizations {
   /// **'Login successful!'**
   String get loginSuccess;
 
+  /// No description provided for @semanticsEmailInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Email input field'**
+  String get semanticsEmailInput;
+
+  /// No description provided for @semanticsPasswordInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Password input field'**
+  String get semanticsPasswordInput;
+
+  /// No description provided for @semanticsLoginButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Login execute button'**
+  String get semanticsLoginButton;
+
   /// No description provided for @signUpTitle.
   ///
   /// In en, this message translates to:

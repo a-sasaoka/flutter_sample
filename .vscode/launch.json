@@ -2,6 +2,20 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "flutter_sample (e2e)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_e2e.dart",
+      "args": [
+        "--flavor",
+        "local",
+        "--dart-define-from-file",
+        "config/flavor_local.json",
+        "--dart-define-from-file",
+        ".env.local"
+      ]
+    },
+    {
       "name": "flutter_sample (local)",
       "request": "launch",
       "type": "dart",
