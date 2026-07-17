@@ -258,6 +258,9 @@ void main() {
     when(() => mockL10n.notFoundBackToHome).thenReturn('Back to Home');
     when(() => mockL10n.appTitle).thenReturn('Flutter Sample');
     when(() => mockL10n.memoAdd).thenReturn('Add Memo');
+    when(() => mockL10n.semanticsEmailInput).thenReturn('メールアドレス入力欄');
+    when(() => mockL10n.semanticsPasswordInput).thenReturn('パスワード入力欄');
+    when(() => mockL10n.semanticsLoginButton).thenReturn('ログイン実行ボタン');
   });
 
   ProviderContainer createContainer({

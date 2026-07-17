@@ -22,12 +22,14 @@ flutter_sample
 ├── ios/
 │   └── Runner/
 │       └── Firebase/                                           # iOS用の環境別Firebase設定を格納
+├── maestro/                                                    # Maestro による E2E テストシナリオ（YAML）を格納
 ├── test/                                                       # テストコード（lib配下と完全に1対1のディレクトリ構成）
 ├── tool/                                                       # 開発補助スクリプト（Git Hooks等）
 └── lib
     ├── firebase_options_*.dart                                 # 各環境別のFirebase設定ファイル（Git管理外）
     ├── main.dart                                               # 共通のアプリ起動ロジック（各main_*.dartから呼び出される）
     ├── main_local.dart                                         # ローカル環境用エントリポイント
+    ├── main_e2e.dart                                           # E2Eテスト用エントリポイント
     ├── main_dev.dart                                           # 開発環境用エントリポイント
     ├── main_stg.dart                                           # ステージング環境用エントリポイント
     ├── main_prod.dart                                          # 本番環境用エントリポイント

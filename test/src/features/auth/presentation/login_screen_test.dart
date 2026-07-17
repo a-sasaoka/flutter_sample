@@ -62,6 +62,9 @@ void main() {
     when(() => mockL10n.errorUnknown).thenReturn('予期しないエラーが発生しました');
     when(() => mockL10n.ok).thenReturn('OK');
     when(() => mockL10n.close).thenReturn('閉じる');
+    when(() => mockL10n.semanticsEmailInput).thenReturn('メールアドレス入力欄');
+    when(() => mockL10n.semanticsPasswordInput).thenReturn('パスワード入力欄');
+    when(() => mockL10n.semanticsLoginButton).thenReturn('ログイン実行ボタン');
   });
 
   Widget createTestWidget() {

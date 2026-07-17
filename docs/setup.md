@@ -126,4 +126,10 @@ fvm dart run build_runner build
 ```bash
 chmod +x tool/hooks/pre-commit tool/setup_git_hooks.sh ios/scripts/*.sh mock/*.sh
 ./tool/setup_git_hooks.sh
+
+---
+
+## 🤖 E2Eテストを実行する場合
+
+Maestro を用いた自動 E2E テストを実行する場合は、別途テストツールのインストールやセットアップが必要です。詳細は [E2Eテスト (Maestro)](./e2e_testing_maestro.md) を参照してください。
 ```

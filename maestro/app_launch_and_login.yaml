@@ -1,0 +1,13 @@
+appId: jp.example.sample.local
+---
+- launchApp:
+    clearState: true
+- tapOn: "スキップ"
+- tapOn:
+    text: ".*メールアドレス.*"
+- inputText: "test@example.com"
+- tapOn:
+    text: ".*パスワード.*"
+- inputText: "password123"
+- tapOn: "ログイン実行ボタン"
+- assertVisible: "現在の環境"
