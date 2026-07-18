@@ -74,6 +74,10 @@ export const memos = onRequest(async (req, res) => {
       }
     } else if (req.method === "POST") {
       const {title, content} = req.body;
+      if (typeof title !== "string" || typeof content !== "string") {
+        res.status(400).send("Bad Request: title and content must be strings");
+        return;
+      }
       const now = new Date().toISOString();
       const memoData = {
         title,
@@ -97,6 +101,14 @@ export const memos = onRequest(async (req, res) => {
         return;
       }
       const {title, content, isDeleted} = req.body;
+      if (typeof title !== "string" || typeof content !== "string") {
+        res.status(400).send("Bad Request: title and content must be strings");
+        return;
+      }
+      if (isDeleted !== undefined && typeof isDeleted !== "boolean") {
+        res.status(400).send("Bad Request: isDeleted must be a boolean");
+        return;
+      }
       const now = new Date().toISOString();
 
       const docRef = userMemosRef.doc(memoId);
