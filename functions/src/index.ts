@@ -8,11 +8,6 @@ const db = admin.firestore();
 
 setGlobalOptions({maxInstances: 10});
 
-export const helloWorld = onRequest((request, response) => {
-  logger.info("Hello logs!", {structuredData: true});
-  response.send("Hello from Firebase!");
-});
-
 /**
  * Express request helper to extract and verify ID token.
  * @param {object} req Express request with authorization header
