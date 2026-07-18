@@ -113,13 +113,17 @@ export const memos = onRequest(async (req, res) => {
           return;
         }
         const docRef = userMemosRef.doc(id);
-        const docSnap = await docRef.get();
-        if (docSnap.exists) {
-          res.status(409).send("Conflict: Memo with this ID already exists");
-          return;
+        try {
+          await docRef.create(memoData);
+          res.status(201).json({id, ...memoData});
+        } catch (error) {
+          const err = error as { code?: number };
+          if (err.code === 6) {
+            res.status(409).send("Conflict: Memo with this ID already exists");
+            return;
+          }
+          throw error;
         }
-        await docRef.set(memoData);
-        res.status(201).json({id, ...memoData});
       } else {
         const docRef = await userMemosRef.add(memoData);
         res.status(201).json({id: docRef.id, ...memoData});
