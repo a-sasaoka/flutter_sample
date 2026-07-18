@@ -55,4 +55,5 @@ Flutter開発のサンプルプロジェクトです。\
 - [テスト方針とゴールデンテスト](docs/testing.md)
 - [E2Eテスト (Maestro)](docs/e2e_testing_maestro.md)
 - [アプリアイコンの変更手順](docs/app_icon.md)
+- [Firebase Hosting のデプロイ手順](docs/firebase_hosting_setup.md)
 - [今後の拡張案](docs/roadmap.md)
