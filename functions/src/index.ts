@@ -153,7 +153,9 @@ export const memos = onRequest(async (req, res) => {
         title,
         content: content || "",
         updatedAt: now,
-        isDeleted: isDeleted !== undefined ? isDeleted : false,
+        isDeleted: isDeleted !== undefined ?
+          isDeleted :
+          (doc.data()?.isDeleted ?? false),
       });
       res.status(200).send("OK");
     } else {
