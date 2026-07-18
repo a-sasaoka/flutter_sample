@@ -6,13 +6,19 @@ import * as admin from "firebase-admin";
 admin.initializeApp();
 const db = admin.firestore();
 
-setGlobalOptions({ maxInstances: 10 });
+setGlobalOptions({maxInstances: 10});
 
 export const helloWorld = onRequest((request, response) => {
   logger.info("Hello logs!", {structuredData: true});
   response.send("Hello from Firebase!");
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+/**
+ * Express request helper to extract and verify ID token.
+ * @param {any} req Express request
+ * @return {Promise<string | null>} Verified UID or null
+ */
 async function getUidFromRequest(req: any): Promise<string | null> {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -28,6 +34,9 @@ async function getUidFromRequest(req: any): Promise<string | null> {
   }
 }
 
+/**
+ * Memos API endpoint.
+ */
 export const memos = onRequest(async (req, res) => {
   res.set("Access-Control-Allow-Origin", "*");
   if (req.method === "OPTIONS") {
@@ -43,7 +52,7 @@ export const memos = onRequest(async (req, res) => {
     return;
   }
 
-  const pathParts = req.path.split("/").filter(p => p !== "");
+  const pathParts = req.path.split("/").filter((p) => p !== "");
   const memoId = pathParts.length > 0 ? pathParts[0] : null;
 
   const userMemosRef = db.collection("users").doc(uid).collection("memos");
@@ -56,37 +65,37 @@ export const memos = onRequest(async (req, res) => {
           res.status(404).send("Not Found");
           return;
         }
-        res.status(200).json({ id: doc.id, ...doc.data() });
+        res.status(200).json({id: doc.id, ...doc.data()});
       } else {
         const snapshot = await userMemosRef.orderBy("createdAt", "desc").get();
-        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const list = snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()}));
         res.status(200).json(list);
       }
     } else if (req.method === "POST") {
-      const { title, content } = req.body;
+      const {title, content} = req.body;
       const now = new Date().toISOString();
       const memoData = {
         title,
         content: content || "",
         createdAt: now,
         updatedAt: now,
-        isDeleted: false
+        isDeleted: false,
       };
 
       const id = req.body.id;
       if (id) {
         await userMemosRef.doc(id).set(memoData);
-        res.status(201).json({ id, ...memoData });
+        res.status(201).json({id, ...memoData});
       } else {
         const docRef = await userMemosRef.add(memoData);
-        res.status(201).json({ id: docRef.id, ...memoData });
+        res.status(201).json({id: docRef.id, ...memoData});
       }
     } else if (req.method === "PUT") {
       if (!memoId) {
         res.status(400).send("ID is required");
         return;
       }
-      const { title, content, isDeleted } = req.body;
+      const {title, content, isDeleted} = req.body;
       const now = new Date().toISOString();
 
       const docRef = userMemosRef.doc(memoId);
@@ -100,7 +109,7 @@ export const memos = onRequest(async (req, res) => {
         title,
         content: content || "",
         updatedAt: now,
-        isDeleted: isDeleted !== undefined ? isDeleted : false
+        isDeleted: isDeleted !== undefined ? isDeleted : false,
       });
       res.status(200).send("OK");
     } else {
@@ -112,6 +121,9 @@ export const memos = onRequest(async (req, res) => {
   }
 });
 
+/**
+ * Users API endpoint.
+ */
 export const users = onRequest(async (req, res) => {
   res.set("Access-Control-Allow-Origin", "*");
   if (req.method === "OPTIONS") {
@@ -121,7 +133,7 @@ export const users = onRequest(async (req, res) => {
     return;
   }
 
-  const pathParts = req.path.split("/").filter(p => p !== "");
+  const pathParts = req.path.split("/").filter((p) => p !== "");
   const firstPath = pathParts.length > 0 ? pathParts[0] : null;
 
   try {
@@ -142,7 +154,7 @@ export const users = onRequest(async (req, res) => {
             name: userRecord.displayName || "テストユーザー",
             email: userRecord.email || "",
             displayName: userRecord.displayName || "テスト",
-            phone: userRecord.phoneNumber || ""
+            phone: userRecord.phoneNumber || "",
           };
           await docRef.set(initialProfile);
           res.status(200).json(initialProfile);
@@ -150,13 +162,13 @@ export const users = onRequest(async (req, res) => {
           res.status(200).json(doc.data());
         }
       } else if (req.method === "PUT") {
-        const { name, displayName, phone } = req.body;
+        const {name, displayName, phone} = req.body;
         await docRef.set({
           name: name || "",
           displayName: displayName || "",
           phone: phone || "",
-          email: req.body.email || ""
-        }, { merge: true });
+          email: req.body.email || "",
+        }, {merge: true});
         res.status(200).send("OK");
       } else {
         res.status(405).send("Method Not Allowed");
@@ -171,10 +183,10 @@ export const users = onRequest(async (req, res) => {
           res.status(404).send("Not Found");
           return;
         }
-        res.status(200).json({ id: doc.id, ...doc.data() });
+        res.status(200).json({id: doc.id, ...doc.data()});
       } else {
         const snapshot = await db.collection("users_list").get();
-        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const list = snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()}));
         res.status(200).json(list);
       }
     } else if (req.method === "POST") {
@@ -183,16 +195,16 @@ export const users = onRequest(async (req, res) => {
         email: req.body.email || "",
         phone: req.body.phone || "",
         website: req.body.website || "",
-        address: req.body.address || {}
+        address: req.body.address || {},
       };
-      
+
       const id = req.body.id;
       if (id) {
         await db.collection("users_list").doc(id.toString()).set(userData);
-        res.status(201).json({ id, ...userData });
+        res.status(201).json({id, ...userData});
       } else {
         const docRef = await db.collection("users_list").add(userData);
-        res.status(201).json({ id: docRef.id, ...userData });
+        res.status(201).json({id: docRef.id, ...userData});
       }
     } else if (req.method === "PUT") {
       if (!firstPath) {
@@ -205,13 +217,13 @@ export const users = onRequest(async (req, res) => {
         res.status(404).send("Not Found");
         return;
       }
-      
+
       await docRef.update({
         name: req.body.name || "",
         email: req.body.email || "",
         phone: req.body.phone || "",
         website: req.body.website || "",
-        address: req.body.address || {}
+        address: req.body.address || {},
       });
       res.status(200).send("OK");
     } else if (req.method === "DELETE") {
