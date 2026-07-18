@@ -36,6 +36,27 @@ async function getUidFromRequest(
 }
 
 /**
+ * Helper to check if the request is made by an admin.
+ * @param {object} req Express request with authorization header
+ * @return {Promise<boolean>} True if the user has admin claims
+ */
+async function isAdminRequest(
+  req: { headers: { authorization?: string } }
+): Promise<boolean> {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return false;
+  }
+  const idToken = authHeader.split("Bearer ")[1];
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    return decodedToken.admin === true;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
  * Memos API endpoint.
  */
 export const memos = onRequest(async (req, res) => {
@@ -146,17 +167,17 @@ export const users = onRequest(async (req, res) => {
     return;
   }
 
+  const uid = await getUidFromRequest(req);
+  if (!uid) {
+    res.status(401).send("Unauthorized");
+    return;
+  }
+
   const pathParts = req.path.split("/").filter((p) => p !== "");
   const firstPath = pathParts.length > 0 ? pathParts[0] : null;
 
   try {
     if (firstPath === "me") {
-      const uid = await getUidFromRequest(req);
-      if (!uid) {
-        res.status(401).send("Unauthorized");
-        return;
-      }
-
       const docRef = db.collection("users").doc(uid);
 
       if (req.method === "GET") {
@@ -187,6 +208,18 @@ export const users = onRequest(async (req, res) => {
         res.status(405).send("Method Not Allowed");
       }
       return;
+    }
+
+    if (
+      req.method === "POST" ||
+      req.method === "PUT" ||
+      req.method === "DELETE"
+    ) {
+      const isAdmin = await isAdminRequest(req);
+      if (!isAdmin) {
+        res.status(403).send("Forbidden: Admin privilege required");
+        return;
+      }
     }
 
     if (req.method === "GET") {
