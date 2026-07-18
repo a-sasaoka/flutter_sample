@@ -335,12 +335,22 @@ export const users = onRequest(async (req, res) => {
         }
       }
 
-      await docRef.update(updatedData);
-      res.status(200).json({
-        id: firstPath,
-        ...doc.data(),
-        ...updatedData,
-      });
+      if (req.method === "PUT") {
+        // PUT: ドキュメント全体を完全置換
+        await docRef.set(updatedData);
+        res.status(200).json({
+          id: firstPath,
+          ...updatedData,
+        });
+      } else {
+        // PATCH: 部分更新し、既存データとマージした結果を返す
+        await docRef.update(updatedData);
+        res.status(200).json({
+          id: firstPath,
+          ...doc.data(),
+          ...updatedData,
+        });
+      }
     } else if (req.method === "DELETE") {
       if (!firstPath) {
         res.status(400).send("ID is required");
