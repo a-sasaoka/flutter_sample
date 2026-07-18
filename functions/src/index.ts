@@ -173,7 +173,7 @@ export const memos = onRequest(async (req, res) => {
 export const users = onRequest(async (req, res) => {
   res.set("Access-Control-Allow-Origin", "*");
   if (req.method === "OPTIONS") {
-    res.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+    res.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE");
     res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
     res.status(204).send("");
     return;
@@ -209,13 +209,14 @@ export const users = onRequest(async (req, res) => {
         }
       } else if (req.method === "PUT") {
         const {name, displayName, phone} = req.body;
-        await docRef.set({
+        const updatedProfile = {
           name: name || "",
           displayName: displayName || "",
           phone: phone || "",
           email: req.body.email || "",
-        }, {merge: true});
-        res.status(200).send("OK");
+        };
+        await docRef.set(updatedProfile, {merge: true});
+        res.status(200).json(updatedProfile);
       } else {
         res.status(405).send("Method Not Allowed");
       }
@@ -225,6 +226,7 @@ export const users = onRequest(async (req, res) => {
     if (
       req.method === "POST" ||
       req.method === "PUT" ||
+      req.method === "PATCH" ||
       req.method === "DELETE"
     ) {
       const isAdmin = await isAdminRequest(req);
@@ -264,7 +266,7 @@ export const users = onRequest(async (req, res) => {
         const docRef = await db.collection("users_list").add(userData);
         res.status(201).json({id: docRef.id, ...userData});
       }
-    } else if (req.method === "PUT") {
+    } else if (req.method === "PUT" || req.method === "PATCH") {
       if (!firstPath) {
         res.status(400).send("ID is required");
         return;
@@ -276,14 +278,15 @@ export const users = onRequest(async (req, res) => {
         return;
       }
 
-      await docRef.update({
+      const updatedData = {
         name: req.body.name || "",
         email: req.body.email || "",
         phone: req.body.phone || "",
         website: req.body.website || "",
         address: req.body.address || {},
-      });
-      res.status(200).send("OK");
+      };
+      await docRef.update(updatedData);
+      res.status(200).json({id: firstPath, ...updatedData});
     } else if (req.method === "DELETE") {
       if (!firstPath) {
         res.status(400).send("ID is required");
