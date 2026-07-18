@@ -13,13 +13,14 @@ export const helloWorld = onRequest((request, response) => {
   response.send("Hello from Firebase!");
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 /**
  * Express request helper to extract and verify ID token.
- * @param {any} req Express request
+ * @param {object} req Express request with authorization header
  * @return {Promise<string | null>} Verified UID or null
  */
-async function getUidFromRequest(req: any): Promise<string | null> {
+async function getUidFromRequest(
+  req: { headers: { authorization?: string } }
+): Promise<string | null> {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return null;
@@ -40,7 +41,7 @@ async function getUidFromRequest(req: any): Promise<string | null> {
 export const memos = onRequest(async (req, res) => {
   res.set("Access-Control-Allow-Origin", "*");
   if (req.method === "OPTIONS") {
-    res.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+    res.set("Access-Control-Allow-Methods", "GET, POST, PUT");
     res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
     res.status(204).send("");
     return;
