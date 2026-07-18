@@ -279,15 +279,34 @@ export const users = onRequest(async (req, res) => {
         return;
       }
 
-      const updatedData = {
-        name: req.body.name || "",
-        email: req.body.email || "",
-        phone: req.body.phone || "",
-        website: req.body.website || "",
-        address: req.body.address || {},
-      };
+      let updatedData: Record<string, unknown> = {};
+      if (req.method === "PUT") {
+        updatedData = {
+          name: req.body.name || "",
+          email: req.body.email || "",
+          phone: req.body.phone || "",
+          website: req.body.website || "",
+          address: req.body.address || {},
+        };
+      } else {
+        // PATCH: 指定されたフィールドのみを部分更新
+        if (req.body.name !== undefined) updatedData.name = req.body.name;
+        if (req.body.email !== undefined) updatedData.email = req.body.email;
+        if (req.body.phone !== undefined) updatedData.phone = req.body.phone;
+        if (req.body.website !== undefined) {
+          updatedData.website = req.body.website;
+        }
+        if (req.body.address !== undefined) {
+          updatedData.address = req.body.address;
+        }
+      }
+
       await docRef.update(updatedData);
-      res.status(200).json({id: firstPath, ...updatedData});
+      res.status(200).json({
+        id: firstPath,
+        ...doc.data(),
+        ...updatedData,
+      });
     } else if (req.method === "DELETE") {
       if (!firstPath) {
         res.status(400).send("ID is required");
