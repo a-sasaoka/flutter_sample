@@ -53,6 +53,9 @@ async function isAdminRequest(
 
 /**
  * Memos API endpoint.
+ * @param {object} req Express request object
+ * @param {object} res Express response object
+ * @return {Promise<void>}
  */
 export const memos = onRequest(async (req, res) => {
   res.set("Access-Control-Allow-Origin", "*");
@@ -164,6 +167,9 @@ export const memos = onRequest(async (req, res) => {
 
 /**
  * Users API endpoint.
+ * @param {object} req Express request object
+ * @param {object} res Express response object
+ * @return {Promise<void>}
  */
 export const users = onRequest(async (req, res) => {
   res.set("Access-Control-Allow-Origin", "*");
