@@ -151,14 +151,16 @@ export const memos = onRequest(async (req, res) => {
         return;
       }
 
-      await docRef.update({
+      const updateData: Record<string, unknown> = {
         title,
         content: content || "",
         updatedAt: now,
-        isDeleted: isDeleted !== undefined ?
-          isDeleted :
-          (doc.data()?.isDeleted ?? false),
-      });
+      };
+      if (isDeleted !== undefined) {
+        updateData.isDeleted = isDeleted;
+      }
+
+      await docRef.update(updateData);
       res.status(200).send("OK");
     } else {
       res.status(405).send("Method Not Allowed");
