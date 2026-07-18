@@ -109,7 +109,7 @@ fvm flutter run -t lib/main_dev.dart --flavor dev --dart-define-from-file=config
 dev環境において、ローカルPC上でAPIを動かしながら、クラウド上の本物のAuth/Firestoreと通信してデバッグする場合は、以下の手順で実行します。詳細は [ローカル自作APIサーバーのドキュメント](./local_api_server.md) を参照してください。
 
 1. ターミナルで `npm run --prefix functions build` を実行してAPIをビルドする。
-2. `npx firebase emulators:start --only functions` でAPIのみエミュレータを起動する。
+2. `firebase emulators:start --only functions` でAPIのみエミュレータを起動する。
 3. Flutterアプリを `dev` フレーバーで起動する。
 
 ---

@@ -118,7 +118,7 @@ graph TD
 npm run --prefix functions build
 
 # 2. 本番へのデプロイ (Functions のみデプロイ)
-npx firebase deploy --only functions
+firebase deploy --only functions
 ```
 
 デプロイが成功すると、ターミナルに以下のような本番用のURLが出力されます。
