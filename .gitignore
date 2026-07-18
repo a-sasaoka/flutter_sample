@@ -77,3 +77,6 @@ skills-lock.json
 # Golden test failures (Do not commit)
 **/failures/
 *.fail.png
+
+# Local Firebase config
+.firebaserc
