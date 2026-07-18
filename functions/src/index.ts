@@ -215,12 +215,22 @@ export const users = onRequest(async (req, res) => {
           res.status(200).json(doc.data());
         }
       } else if (req.method === "PUT") {
-        const {name, displayName, phone} = req.body;
+        const {name, displayName, phone, email} = req.body;
+        if (
+          (name !== undefined && typeof name !== "string") ||
+          (displayName !== undefined && typeof displayName !== "string") ||
+          (phone !== undefined && typeof phone !== "string") ||
+          (email !== undefined && typeof email !== "string")
+        ) {
+          res.status(400).send("Bad Request: Profile fields must be strings");
+          return;
+        }
+
         const updatedProfile = {
           name: name || "",
           displayName: displayName || "",
           phone: phone || "",
-          email: req.body.email || "",
+          email: email || "",
         };
         await docRef.set(updatedProfile, {merge: true});
         res.status(200).json(updatedProfile);
