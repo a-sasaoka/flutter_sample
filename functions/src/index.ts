@@ -110,7 +110,17 @@ export const memos = onRequest(async (req, res) => {
 
       const id = req.body.id;
       if (id) {
-        await userMemosRef.doc(id).set(memoData);
+        if (typeof id !== "string") {
+          res.status(400).send("Bad Request: id must be a string");
+          return;
+        }
+        const docRef = userMemosRef.doc(id);
+        const docSnap = await docRef.get();
+        if (docSnap.exists) {
+          res.status(409).send("Conflict: Memo with this ID already exists");
+          return;
+        }
+        await docRef.set(memoData);
         res.status(201).json({id, ...memoData});
       } else {
         const docRef = await userMemosRef.add(memoData);
