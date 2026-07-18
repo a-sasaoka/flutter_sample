@@ -295,25 +295,43 @@ export const users = onRequest(async (req, res) => {
         return;
       }
 
+      const {name, email, phone, website, address} = req.body;
+      if (
+        (name !== undefined && typeof name !== "string") ||
+        (email !== undefined && typeof email !== "string") ||
+        (phone !== undefined && typeof phone !== "string") ||
+        (website !== undefined && typeof website !== "string") ||
+        (address !== undefined && (
+          typeof address !== "object" ||
+          address === null ||
+          Array.isArray(address)
+        ))
+      ) {
+        res.status(400).send("Bad Request: Invalid field types");
+        return;
+      }
+
       let updatedData: Record<string, unknown> = {};
       if (req.method === "PUT") {
         updatedData = {
-          name: req.body.name || "",
-          email: req.body.email || "",
-          phone: req.body.phone || "",
-          website: req.body.website || "",
-          address: req.body.address || {},
+          name: name || "",
+          email: email || "",
+          phone: phone || "",
+          website: website || "",
+          address: address || {},
         };
       } else {
         // PATCH: 指定されたフィールドのみを部分更新
-        if (req.body.name !== undefined) updatedData.name = req.body.name;
-        if (req.body.email !== undefined) updatedData.email = req.body.email;
-        if (req.body.phone !== undefined) updatedData.phone = req.body.phone;
-        if (req.body.website !== undefined) {
-          updatedData.website = req.body.website;
-        }
-        if (req.body.address !== undefined) {
-          updatedData.address = req.body.address;
+        if (name !== undefined) updatedData.name = name;
+        if (email !== undefined) updatedData.email = email;
+        if (phone !== undefined) updatedData.phone = phone;
+        if (website !== undefined) updatedData.website = website;
+        if (address !== undefined) updatedData.address = address;
+
+        // PATCH時、更新する項目が1つもない場合は400エラーにする
+        if (Object.keys(updatedData).length === 0) {
+          res.status(400).send("Bad Request: No fields specified for update");
+          return;
         }
       }
 
