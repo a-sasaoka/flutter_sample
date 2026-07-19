@@ -336,12 +336,27 @@ export const users = onRequest(async (req, res) => {
       }
 
       if (req.method === "PUT") {
-        // PUT: ドキュメント全体を完全置換
-        await docRef.set(updatedData);
-        res.status(200).json({
-          id: firstPath,
-          ...updatedData,
-        });
+        // PUT: ドキュメント全体を完全置換（存在確認と同一トランザクション内で実行）
+        try {
+          await db.runTransaction(async (transaction) => {
+            const transactionDoc = await transaction.get(docRef);
+            if (!transactionDoc.exists) {
+              throw new Error("NOT_FOUND");
+            }
+            transaction.set(docRef, updatedData);
+          });
+          res.status(200).json({
+            id: firstPath,
+            ...updatedData,
+          });
+        } catch (error) {
+          const err = error as Error;
+          if (err.message === "NOT_FOUND") {
+            res.status(404).send("Not Found");
+            return;
+          }
+          throw error;
+        }
       } else {
         // PATCH: 部分更新し、既存データとマージした結果を返す
         await docRef.update(updatedData);
