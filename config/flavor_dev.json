@@ -1,5 +1,5 @@
 {
-  "BASE_URL": "https://development.example.com/api",
+  "BASE_URL": "http://localhost:5001/flutter-template-dev-ef459/us-central1",
   "AI_MODEL": "gemini-2.5-flash",
   "CONNECT_TIMEOUT": 10,
   "RECEIVE_TIMEOUT": 15,

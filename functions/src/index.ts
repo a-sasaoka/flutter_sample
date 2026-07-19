@@ -1,0 +1,384 @@
+import {setGlobalOptions} from "firebase-functions";
+import {onRequest} from "firebase-functions/v2/https";
+import * as logger from "firebase-functions/logger";
+import * as admin from "firebase-admin";
+
+admin.initializeApp();
+const db = admin.firestore();
+
+setGlobalOptions({maxInstances: 10});
+
+/**
+ * Express request helper to extract and verify ID token.
+ * @param {object} req Express request with authorization header
+ * @return {Promise<string | null>} Verified UID or null
+ */
+async function getUidFromRequest(
+  req: { headers: { authorization?: string } }
+): Promise<string | null> {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return null;
+  }
+  const idToken = authHeader.split("Bearer ")[1];
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    return decodedToken.uid;
+  } catch (error) {
+    logger.error("Token verification failed: ", error);
+    return null;
+  }
+}
+
+/**
+ * Helper to check if the request is made by an admin.
+ * @param {object} req Express request with authorization header
+ * @return {Promise<boolean>} True if the user has admin claims
+ */
+async function isAdminRequest(
+  req: { headers: { authorization?: string } }
+): Promise<boolean> {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return false;
+  }
+  const idToken = authHeader.split("Bearer ")[1];
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    return decodedToken.admin === true;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Memos API endpoint.
+ * @param {object} req Express request object
+ * @param {object} res Express response object
+ * @return {Promise<void>}
+ */
+export const memos = onRequest(async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  if (req.method === "OPTIONS") {
+    res.set("Access-Control-Allow-Methods", "GET, POST, PUT");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.status(204).send("");
+    return;
+  }
+
+  const uid = await getUidFromRequest(req);
+  if (!uid) {
+    res.status(401).send("Unauthorized");
+    return;
+  }
+
+  const pathParts = req.path.split("/").filter((p) => p !== "");
+  const memoId = pathParts.length > 0 ? pathParts[0] : null;
+
+  const userMemosRef = db.collection("users").doc(uid).collection("memos");
+
+  try {
+    if (req.method === "GET") {
+      if (memoId) {
+        const doc = await userMemosRef.doc(memoId).get();
+        if (!doc.exists) {
+          res.status(404).send("Not Found");
+          return;
+        }
+        res.status(200).json({id: doc.id, ...doc.data()});
+      } else {
+        const snapshot = await userMemosRef.orderBy("createdAt", "desc").get();
+        const list = snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()}));
+        res.status(200).json(list);
+      }
+    } else if (req.method === "POST") {
+      const {title, content} = req.body;
+      if (typeof title !== "string" || typeof content !== "string") {
+        res.status(400).send("Bad Request: title and content must be strings");
+        return;
+      }
+      const now = new Date().toISOString();
+      const memoData = {
+        title,
+        content: content || "",
+        createdAt: now,
+        updatedAt: now,
+        isDeleted: false,
+      };
+
+      const id = req.body.id;
+      if (id) {
+        if (typeof id !== "string") {
+          res.status(400).send("Bad Request: id must be a string");
+          return;
+        }
+        const docRef = userMemosRef.doc(id);
+        try {
+          await docRef.create(memoData);
+          res.status(201).json({id, ...memoData});
+        } catch (error) {
+          const err = error as { code?: number };
+          if (err.code === 6) {
+            res.status(409).send("Conflict: Memo with this ID already exists");
+            return;
+          }
+          throw error;
+        }
+      } else {
+        const docRef = await userMemosRef.add(memoData);
+        res.status(201).json({id: docRef.id, ...memoData});
+      }
+    } else if (req.method === "PUT") {
+      if (!memoId) {
+        res.status(400).send("ID is required");
+        return;
+      }
+      const {title, content, isDeleted} = req.body;
+      if (typeof title !== "string" || typeof content !== "string") {
+        res.status(400).send("Bad Request: title and content must be strings");
+        return;
+      }
+      if (isDeleted !== undefined && typeof isDeleted !== "boolean") {
+        res.status(400).send("Bad Request: isDeleted must be a boolean");
+        return;
+      }
+      const now = new Date().toISOString();
+
+      const docRef = userMemosRef.doc(memoId);
+      const doc = await docRef.get();
+      if (!doc.exists) {
+        res.status(404).send("Not Found");
+        return;
+      }
+
+      const updateData: Record<string, unknown> = {
+        title,
+        content: content || "",
+        updatedAt: now,
+      };
+      if (isDeleted !== undefined) {
+        updateData.isDeleted = isDeleted;
+      }
+
+      await docRef.update(updateData);
+      res.status(200).send("OK");
+    } else {
+      res.status(405).send("Method Not Allowed");
+    }
+  } catch (error) {
+    logger.error("Error handling memos API: ", error);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+/**
+ * Users API endpoint.
+ * @param {object} req Express request object
+ * @param {object} res Express response object
+ * @return {Promise<void>}
+ */
+export const users = onRequest(async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  if (req.method === "OPTIONS") {
+    res.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.status(204).send("");
+    return;
+  }
+
+  const uid = await getUidFromRequest(req);
+  if (!uid) {
+    res.status(401).send("Unauthorized");
+    return;
+  }
+
+  const pathParts = req.path.split("/").filter((p) => p !== "");
+  const firstPath = pathParts.length > 0 ? pathParts[0] : null;
+
+  try {
+    if (firstPath === "me") {
+      const docRef = db.collection("users").doc(uid);
+
+      if (req.method === "GET") {
+        const doc = await docRef.get();
+        if (!doc.exists) {
+          const userRecord = await admin.auth().getUser(uid);
+          const initialProfile = {
+            name: userRecord.displayName || "テストユーザー",
+            email: userRecord.email || "",
+            displayName: userRecord.displayName || "テスト",
+            phone: userRecord.phoneNumber || "",
+          };
+          await docRef.set(initialProfile);
+          res.status(200).json(initialProfile);
+        } else {
+          res.status(200).json(doc.data());
+        }
+      } else if (req.method === "PUT") {
+        const {name, displayName, phone, email} = req.body;
+        if (
+          (name !== undefined && typeof name !== "string") ||
+          (displayName !== undefined && typeof displayName !== "string") ||
+          (phone !== undefined && typeof phone !== "string") ||
+          (email !== undefined && typeof email !== "string")
+        ) {
+          res.status(400).send("Bad Request: Profile fields must be strings");
+          return;
+        }
+
+        const updatedProfile = {
+          name: name || "",
+          displayName: displayName || "",
+          phone: phone || "",
+          email: email || "",
+        };
+        await docRef.set(updatedProfile, {merge: true});
+        res.status(200).json(updatedProfile);
+      } else {
+        res.status(405).send("Method Not Allowed");
+      }
+      return;
+    }
+
+    if (
+      req.method === "POST" ||
+      req.method === "PUT" ||
+      req.method === "PATCH" ||
+      req.method === "DELETE"
+    ) {
+      const isAdmin = await isAdminRequest(req);
+      if (!isAdmin) {
+        res.status(403).send("Forbidden: Admin privilege required");
+        return;
+      }
+    }
+
+    if (req.method === "GET") {
+      if (firstPath) {
+        const doc = await db.collection("users_list").doc(firstPath).get();
+        if (!doc.exists) {
+          res.status(404).send("Not Found");
+          return;
+        }
+        res.status(200).json({id: doc.id, ...doc.data()});
+      } else {
+        const snapshot = await db.collection("users_list").get();
+        const list = snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()}));
+        res.status(200).json(list);
+      }
+    } else if (req.method === "POST") {
+      const userData = {
+        name: req.body.name || "",
+        email: req.body.email || "",
+        phone: req.body.phone || "",
+        website: req.body.website || "",
+        address: req.body.address || {},
+      };
+
+      const id = req.body.id;
+      if (id) {
+        await db.collection("users_list").doc(id.toString()).set(userData);
+        res.status(201).json({id, ...userData});
+      } else {
+        const docRef = await db.collection("users_list").add(userData);
+        res.status(201).json({id: docRef.id, ...userData});
+      }
+    } else if (req.method === "PUT" || req.method === "PATCH") {
+      if (!firstPath) {
+        res.status(400).send("ID is required");
+        return;
+      }
+      const docRef = db.collection("users_list").doc(firstPath);
+      const doc = await docRef.get();
+      if (!doc.exists) {
+        res.status(404).send("Not Found");
+        return;
+      }
+
+      const {name, email, phone, website, address} = req.body;
+      if (
+        (name !== undefined && typeof name !== "string") ||
+        (email !== undefined && typeof email !== "string") ||
+        (phone !== undefined && typeof phone !== "string") ||
+        (website !== undefined && typeof website !== "string") ||
+        (address !== undefined && (
+          typeof address !== "object" ||
+          address === null ||
+          Array.isArray(address)
+        ))
+      ) {
+        res.status(400).send("Bad Request: Invalid field types");
+        return;
+      }
+
+      let updatedData: Record<string, unknown> = {};
+      if (req.method === "PUT") {
+        updatedData = {
+          name: name || "",
+          email: email || "",
+          phone: phone || "",
+          website: website || "",
+          address: address || {},
+        };
+      } else {
+        // PATCH: 指定されたフィールドのみを部分更新
+        if (name !== undefined) updatedData.name = name;
+        if (email !== undefined) updatedData.email = email;
+        if (phone !== undefined) updatedData.phone = phone;
+        if (website !== undefined) updatedData.website = website;
+        if (address !== undefined) updatedData.address = address;
+
+        // PATCH時、更新する項目が1つもない場合は400エラーにする
+        if (Object.keys(updatedData).length === 0) {
+          res.status(400).send("Bad Request: No fields specified for update");
+          return;
+        }
+      }
+
+      if (req.method === "PUT") {
+        // PUT: ドキュメント全体を完全置換（存在確認と同一トランザクション内で実行）
+        try {
+          await db.runTransaction(async (transaction) => {
+            const transactionDoc = await transaction.get(docRef);
+            if (!transactionDoc.exists) {
+              throw new Error("NOT_FOUND");
+            }
+            transaction.set(docRef, updatedData);
+          });
+          res.status(200).json({
+            id: firstPath,
+            ...updatedData,
+          });
+        } catch (error) {
+          const err = error as Error;
+          if (err.message === "NOT_FOUND") {
+            res.status(404).send("Not Found");
+            return;
+          }
+          throw error;
+        }
+      } else {
+        // PATCH: 部分更新し、既存データとマージした結果を返す
+        await docRef.update(updatedData);
+        res.status(200).json({
+          id: firstPath,
+          ...doc.data(),
+          ...updatedData,
+        });
+      }
+    } else if (req.method === "DELETE") {
+      if (!firstPath) {
+        res.status(400).send("ID is required");
+        return;
+      }
+      await db.collection("users_list").doc(firstPath).delete();
+      res.status(200).send("OK");
+    } else {
+      res.status(405).send("Method Not Allowed");
+    }
+  } catch (error) {
+    logger.error("Error handling users API: ", error);
+    res.status(500).send("Internal Server Error");
+  }
+});
+

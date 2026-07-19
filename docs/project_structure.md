@@ -19,6 +19,13 @@ flutter_sample
 │   ├── flavor_stg.json
 │   └── flavor_prod.json
 ├── docs/                                                       # プロジェクトの詳細な仕様・ドキュメント群
+├── functions/                                                  # Firebase Cloud Functions (自作API) のソースコード (TypeScript)
+│   ├── src/                                                   # API実装コード (index.ts)
+│   ├── package.json                                           # Node.js依存パッケージとビルド定義
+│   └── tsconfig.json                                          # TypeScriptのコンパイル設定
+├── firebase.json                                               # Firebaseエミュレータ/Hostingの設定ファイル
+├── firestore.rules                                             # Firestoreのセキュリティルール設定
+├── firestore.indexes.json                                      # Firestoreのインデックス設定
 ├── ios/
 │   └── Runner/
 │       └── Firebase/                                           # iOS用の環境別Firebase設定を格納

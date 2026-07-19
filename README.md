@@ -19,6 +19,7 @@ Flutter開発のサンプルプロジェクトです。\
 
 - [初期セットアップ](docs/setup.md)
 - [ローカルモックサーバー (json-server)](docs/mock_server.md)
+- [ローカル自作APIサーバー (Firebase Functions)](docs/local_api_server.md)
 
 ### C. アプリ基盤
 
