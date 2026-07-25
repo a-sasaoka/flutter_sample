@@ -38,7 +38,7 @@ logger.warning('リトライ可能な警告です');
 
 ### 🛠 開発者用メニュー（TalkerScreen）
 
-開発環境（`local`, `dev`, `stg`）では、ホーム画面の「開発者用ログ」ボタンから `TalkerScreen` を開くことができます。
+開発環境（`local`, `dev`, `stg`）では、ホーム画面の「開発者用ログ」ボタンから `TalkerScreen` を開くことができます。  
 これにより、PCに接続していなくても、**アプリ上で直接「APIの通信履歴（リクエスト/レスポンス）」や「エラーログ」を確認**でき、テスト時のデバッグ効率が飛躍的に向上します。
 
 ---
@@ -53,7 +53,7 @@ logger.warning('リトライ可能な警告です');
 
 ### 特徴と使用方法
 
-「現在オンラインかどうか」を `bool` 値で返す `isOnlineProvider` を提供しています。
+「現在オンラインかどうか」を `bool` 値で返す `isOnlineProvider` を提供しています。  
 これを監視（watch）することで、オフライン時にボタンを非活性にしたり、API通信の前にエラーを表示したりすることが可能です。
 
 ```dart
@@ -69,7 +69,8 @@ Widget build(BuildContext context, WidgetRef ref) {
 
 ### 💡 判定ロジックの分離
 
-通信状態の判定ルールを `ConnectivityService` に集約しています。これにより、特定の接続（例：VPN）をどう扱うかといったロジックの変更やテストが、UI から独立して行えるようになっています。
+通信状態の判定ルールを `ConnectivityService` に集約しています。  
+これにより、特定の接続（例：VPN）をどう扱うかといったロジックの変更やテストが、UI から独立して行えるようになっています。
 
 ---
 
@@ -83,7 +84,8 @@ Widget build(BuildContext context, WidgetRef ref) {
 
 ### 特徴と使用方法
 
-Flutter標準の `WidgetsBindingObserver` を Riverpod でラップし、現在の状態（`AppLifecycleState`）を安全に監視できるようにしています。プロバイダーは `keepAlive: true` に設定されており、アプリ実行中に安定して監視を継続します。
+Flutter標準の `WidgetsBindingObserver` を Riverpod でラップし、現在の状態（`AppLifecycleState`）を安全に監視できるようにしています。  
+プロバイダーは `keepAlive: true` に設定されており、アプリ実行中に安定して監視を継続します。
 
 ---
 
@@ -97,7 +99,7 @@ Flutter標準の `WidgetsBindingObserver` を Riverpod でラップし、現在�
 
 ### 特徴と使用方法
 
-`clockProvider` は **「現在の時刻を返す関数 (`DateTime Function()`)」** を提供します。
+`clockProvider` は **「現在の時刻を返す関数 (`DateTime Function()`)」** を提供します。  
 Riverpod のキャッシュによる「時刻の固定」を防ぎ、呼び出すたびに必ず最新の時刻を取得できます。
 
 ```dart
@@ -116,7 +118,8 @@ clockProvider.overrideWithValue(() => DateTime(2026, 5, 10)),
 
 ---
 
-これらのユーティリティは、アプリの品質とユーザー体験（UX）、そして開発者体験（DX）を底上げするための強力なツールです。目的に応じて積極的に活用してください。
+これらのユーティリティは、アプリの品質とユーザー体験（UX）、そして開発者体験（DX）を底上げするための強力なツールです。  
+目的に応じて積極的に活用してください。
 
 ---
 
@@ -153,7 +156,8 @@ clockProvider.overrideWithValue(() => DateTime(2026, 5, 10)),
 
 ### 特徴と使用方法
 
-`DateTime` クラスに対して、`toFormattedString([String? locale])` メソッドが拡張されています。このメソッドは内部で `intl` パッケージの `DateFormat` を使用し、ロケールに応じた最適な書式に自動変換します（引数を省略、または `null` を渡した場合はシステムのデフォルトロケールが使用されます）。
+`DateTime` クラスに対して、`toFormattedString([String? locale])` メソッドが拡張されています。  
+このメソッドは内部で `intl` パッケージの `DateFormat` を使用し、ロケールに応じた最適な書式に自動変換します（引数を省略、または `null` を渡した場合はシステムのデフォルトロケールが使用されます）。
 
 ```dart
 import 'package:flutter_sample/src/core/utils/date_time_extension.dart';
@@ -170,4 +174,5 @@ final enString = now.toFormattedString('en');
 final defaultString = now.toFormattedString();
 ```
 
-UI上で日付を表示する際は、この拡張関数を利用します。引数にロケール情報（例: `l10n.localeName`）を渡すことで、一貫した多言語対応の日付表示を実現できます（引数を省略した場合は、システムデフォルトのロケールでフォーマットされます）。
+UI上で日付を表示する際は、この拡張関数を利用します。  
+引数にロケール情報（例: `l10n.localeName`）を渡すことで、一貫した多言語対応の日付表示を実現できます（引数を省略した場合は、システムデフォルトのロケールでフォーマットされます）。

@@ -24,7 +24,7 @@ lib/src/features/home/presentation/home_screen.dart     # 動作確認用のク�
 
 ### 2. Riverpodによるインスタンス提供
 
-`FirebaseCrashlytics.instance` を直接呼び出すのではなく、`firebaseCrashlyticsProvider` を経由して取得する設計にしています。
+`FirebaseCrashlytics.instance` を直接呼び出すのではなく、`firebaseCrashlyticsProvider` を経由して取得する設計にしています。  
 これにより、UIや各機能のRepositoryから手動で例外ログ（`recordError`）を送りたい場合でも、テスト時にモックへ差し替えることが可能です。
 
 ---

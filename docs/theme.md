@@ -1,6 +1,6 @@
 # テーマ設定（FlexColorScheme）
 
-本プロジェクトでは、美しく一貫性のあるUIを効率的に構築するために [FlexColorScheme](https://pub.dev/packages/flex_color_scheme) を採用しています。
+本プロジェクトでは、美しく一貫性のあるUIを効率的に構築するために [FlexColorScheme](https://pub.dev/packages/flex_color_scheme) を採用しています。  
 Material 3 に完全対応し、ライト／ダーク／システムモードのシームレスな切り替えを実現しています。
 
 ## 📁 主なファイル構成

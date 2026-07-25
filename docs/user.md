@@ -37,7 +37,8 @@ user/
 
 ### 2. コンストラクタ注入による DI
 
-`UserRepository` は、`ApiClient`, `CacheManager`, `Talker` をコンストラクタで受け取る純粋な Dart クラスです。これにより、単体テストにおいてモックへの差し替えが容易になっています。
+`UserRepository` は、`ApiClient`, `CacheManager`, `Talker` をコンストラクタで受け取る純粋な Dart クラスです。  
+これにより、単体テストにおいてモックへの差し替えが容易になっています。
 
 ### 3. Material 3 基準の Card UI
 

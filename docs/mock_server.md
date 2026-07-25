@@ -42,7 +42,7 @@ mock/
 
 ### 2. アプリの起動
 
-Flutterアプリを **`local` フレーバー** で起動してください。
+Flutterアプリを **`local` フレーバー** で起動してください。  
 `config/flavor_local.json` の `BASE_URL` が `http://localhost:3000` に設定されているため、自動的にモックサーバーへ接続されます。
 
 ---

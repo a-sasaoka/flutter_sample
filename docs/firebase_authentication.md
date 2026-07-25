@@ -1,6 +1,6 @@
 # Firebase Authenticationによる認証対応
 
-このプロジェクトでは、Firebase Authenticationを利用した堅牢な認証機能を追加しています。
+このプロジェクトでは、Firebase Authenticationを利用した堅牢な認証機能を追加しています。  
 利用できる認証手段としては以下2つに対応しています。
 
 - メールアドレス / パスワード認証
@@ -11,7 +11,8 @@
 
 ## 🏗️ 構成と機能フラグ
 
-本プロジェクトでは、Firebase Authentication を使用するかどうかを `config/flavor_*.json` 内の **`USE_FIREBASE_AUTH`** フラグで制御しています。この値は `envConfigProvider` を通じて参照されます。
+本プロジェクトでは、Firebase Authentication を使用するかどうかを `config/flavor_*.json` 内の **`USE_FIREBASE_AUTH`** フラグで制御しています。  
+この値は `envConfigProvider` を通じて参照されます。
 
 ---
 
@@ -56,7 +57,7 @@ Stream<User?> authStateChanges(Ref ref) {
 
 ## 📧 メールアドレスの到達確認（ライフサイクル連動）
 
-メールアドレス/パスワード認証でユーザー登録を行った際は、受診可能なメールアドレスであることを担保するために到達確認を行っています。
+メールアドレス/パスワード認証でユーザー登録を行った際は、受診可能なメールアドレスであることを担保するために到達確認を行っています。  
 ポーリング（定期通信）による無駄な負荷を避け、**アプリのライフサイクル（フォアグラウンド復帰）と連動したスマートな検知**を実装しています。
 
 ### 1. サインアップと確認メールの送信
@@ -101,7 +102,7 @@ ref.listen(appLifecycleProvider, (previous, next) {
 
 ## 🌐 Googleログイン対応
 
-最新の `google_sign_in` パッケージの仕様に対応し、スコープを用いた安全なトークン取得（`authorizationClient.authorizationForScopes`）を実装しています。
+最新の `google_sign_in` パッケージの仕様に対応し、スコープを用いた安全なトークン取得（`authorizationClient.authorizationForScopes`）を実装しています。  
 これにより、iOS/Android 双方で安定したソーシャルログインを提供します。
 
 ---
