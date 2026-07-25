@@ -33,14 +33,14 @@ class HomeRoute extends GoRouteData with $HomeRoute {
 const HomeRoute().go(context); // "/" に遷移
 ```
 
-これにより、文字列ベースのルーティング記述を避けられ、IDE補完が有効になります。
+これにより、文字列ベースのルーティング記述を避けられ、IDE補完が有効になります。  
 IDEでルートクラスを補完することで、タイプミスやパス指定ミスを防げます。
 
 ---
 
 ### 🧩 RiverpodアノテーションによるGoRouter管理
 
-`GoRouter` 設定を Riverpod のアノテーション構文（`@riverpod`）で定義。
+`GoRouter` 設定を Riverpod のアノテーション構文（`@riverpod`）で定義。  
 `routerProvider` が自動生成され、明示的な `Provider<GoRouter>` 記述が不要です。
 
 ---
@@ -52,7 +52,7 @@ IDEでルートクラスを補完することで、タイプミスやパス指�
 
 ### 🔄 共通リダイレクト判定処理 (`checkBaseRedirect`)
 
-複数の認証ガード（通常の `authGuard` と Firebase用の `firebaseAuthGuard`）で重複していた、以下の初期状態や共通画面へのリダイレクト判定ロジックを [base_auth_guard.dart](base_auth_guard.dart) の `checkBaseRedirect` 関数に共通化しています。
+複数の認証ガード（通常の `authGuard` と Firebase用の `firebaseAuthGuard`）で重複していた、以下の初期状態や共通画面へのリダイレクト判定ロジックを [base_auth_guard.dart](../lib/src/app/router/base_auth_guard.dart) の `checkBaseRedirect` 関数に共通化しています。
 
 1. **スプラッシュ画面の表示完了待ち**: スプラッシュのアニメーションが完了するまで他の画面に遷移させない制御。
 2. **オンボーディング（チュートリアル）の完了確認**: 初回起動時のオンボーディングデータの読み込み状態やエラー、および未完了時のオンボーディング画面への強制誘導。
@@ -77,7 +77,8 @@ IDEでルートクラスを補完することで、タイプミスやパス指�
 ユーザーが未ログインの状態で認証必須の画面（例：`/settings`）に直接アクセスした場合、ガードが発動してログイン画面へ飛ばされます。\
 この際、`AuthGuardHelper` は元の目的地を `from` クエリパラメータとして付与します（例：`/login?from=/settings`）。
 
-ユーザーがログインを完了すると、ルーターがこれを検知し、`from` パラメータの場所へ自動的にリダイレクトさせます。これにより、ユーザーは迷うことなく本来の目的に復帰できます。
+ユーザーがログインを完了すると、ルーターがこれを検知し、`from` パラメータの場所へ自動的にリダイレクトさせます。  
+これにより、ユーザーは迷うことなく本来の目的に復帰できます。
 
 #### 3. Firebase / 独自トークン両対応
 
@@ -162,7 +163,8 @@ GoRouter のリダイレクト処理（authGuard / firebaseAuthGuard）が再評
 
 ### 🚀 スナックバーの自動消去 (SnackBarNavigationObserver)
 
-Flutterのデフォルト仕様では、画面遷移してもスナックバーが残り続けてしまいます。これを防ぐため、画面遷移が発生したタイミングで表示中のスナックバーをすべて自動消去する仕組みを導入しています。
+Flutterのデフォルト仕様では、画面遷移してもスナックバーが残り続けてしまいます。  
+これを防ぐため、画面遷移が発生したタイミングで表示中のスナックバーをすべて自動消去する仕組みを導入しています。
 
 - **実装場所**: `lib/src/app/router/snackbar_navigation_observer.dart`
 - **特徴**:

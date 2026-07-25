@@ -57,6 +57,7 @@ lib/src/features/profile/
 ## 💡 技術的なポイント
 
 - **カスタム `TextInputFormatter` による入力拒否**:
-  `StrictDigitsTextInputFormatter` を自作し、文字が入力・ペーストされた瞬間に半角数字のみで構成されているかをチェックします。もし1文字でもそれ以外の文字（ハイフン等）が含まれていれば、変更を無効化（入力前の状態を維持）します。これにより無効な入力を根本的にブロックします。
+  `StrictDigitsTextInputFormatter` を自作し、文字が入力・ペーストされた瞬間に半角数字のみで構成されているかをチェックします。  
+  もし1文字でもそれ以外の文字（ハイフン等）が含まれていれば、変更を無効化（入力前の状態を維持）します。これにより無効な入力を根本的にブロックします。
 - **差分更新による最適化**:
   `FirebaseAuthRepository.updateAuthProfile` 内では、変更が検知された項目（現在の値と異なる場合）のみ Firebase Auth の `updateDisplayName` や `verifyBeforeUpdateEmail` を呼び出すようにし、不要な通信負荷を低減させています。

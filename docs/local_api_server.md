@@ -51,7 +51,7 @@ npm run --prefix functions build
 npx -y firebase-tools@latest emulators:start --only functions
 ```
 
-起動が成功すると、ターミナルに以下のようなURLが公開されます。
+起動が成功すると、ターミナルに以下のようなURLが公開されます。  
 `✔  functions[us-central1-memos]: http function initialized (http://127.0.0.1:5001/<プロジェクトID>/us-central1/memos).`
 
 ### 3. アプリ（Flutter）の起動
@@ -121,7 +121,7 @@ npm run --prefix functions build
 firebase deploy --only functions
 ```
 
-デプロイが成功すると、ターミナルに以下のような本番用のURLが出力されます。
+デプロイが成功すると、ターミナルに以下のような本番用のURLが出力されます。  
 `✔  functions[us-central1-memos]: http function initialized (https://us-central1-<プロジェクトID>.cloudfunctions.net/memos).`
 
 ### 3. アプリの接続先の切り替え

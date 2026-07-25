@@ -1,6 +1,6 @@
 # トークン認証対応（Bearer Token + 自動リフレッシュ）
 
-このプロジェクトでは、独自のバックエンドAPIとの通信を想定し、Bearerトークン認証と**トークンの自動付与・自動リフレッシュ処理**を実装しています。
+このプロジェクトでは、独自のバックエンドAPIとの通信を想定し、Bearerトークン認証と**トークンの自動付与・自動リフレッシュ処理**を実装しています。  
 これにより、ログイン後のすべての通信で認証ヘッダーを自動的に付与し、有効期限切れ（401 Unauthorized）時にバックグラウンドで再取得を行います。
 
 ---
@@ -83,7 +83,7 @@ dio.interceptors.add(ref.watch(dioInterceptorProvider));
 
 ### 解決している課題
 
-通信環境が不安定な場合や、画面遷移時に複数の API リクエストが同時に 401 エラー（認証切れ）を受け取ることがあります。
+通信環境が不安定な場合や、画面遷移時に複数の API リクエストが同時に 401 エラー（認証切れ）を受け取ることがあります。  
 対策がない場合、リクエストの数だけリフレッシュ API が呼ばれてしまい、サーバー負荷の増大や、古いリフレッシュトークンが無効化されることによる意図しないログアウトが発生します。
 
 ### 仕組み
@@ -111,6 +111,6 @@ dio.interceptors.add(ref.watch(dioInterceptorProvider));
   - `tokenStorageProvider` を `FirebaseAuthTokenStorage` に差し替え、Firebase から直接 ID トークンを取得します。
   - `tokenRefreshCallbackProvider` は Firebase の `user.getIdToken(true)` を実行して強制的に更新します。
 
-この切り替えは、アプリのエントリーポイント（`main.dart`）の `ProviderContainer` のオーバーライド定義（`overrideWith`）内で `ref.watch(envConfigProvider)` を監視し、条件分岐によって返却するインスタンスや処理を動的に切り替えることで実現しています。
+この切り替えは、アプリのエントリーポイント（`main.dart`）の `ProviderContainer` のオーバーライド定義（`overrideWith`）内で `ref.watch(envConfigProvider)` を監視し、条件分岐によって返却するインスタンスや処理を動的に切り替えることで実現しています。  
 これにより、Riverpodの仕様である「起動後に上書き設定（overrides）の数を動的に変更できない」という制約を回避し、クラッシュを防止しつつ安全に動作を切り替えています。
 詳細な仕様は [Firebase Authenticationによる認証対応](firebase_authentication.md) を参照してください。

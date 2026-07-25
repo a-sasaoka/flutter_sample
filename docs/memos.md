@@ -53,7 +53,7 @@ memos/
 
 ### 4. Drift + StreamNotifier によるリアクティブ UI
 
-`MemoRepository` が提供する `Stream<List<MemoModel>>` を、`MemoNotifier` (`StreamNotifier`) で購読（`watch`）します。
+`MemoRepository` が提供する `Stream<List<MemoModel>>` を、`MemoNotifier` (`StreamNotifier`) で購読（`watch`）します。  
 これにより、メモの追加や削除などによってローカルデータベース (Drift) のデータが書き換わると、手動で状態の再評価（`ref.invalidateSelf()`）を呼び出すことなく、変更が自動的に検知されてリアルタイムでUIへ反映されます。
 
 ### 5. 検索と並び替え機能（インクリメンタルサーチ）

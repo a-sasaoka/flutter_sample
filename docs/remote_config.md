@@ -21,7 +21,8 @@ lib/src/core/config/
 
 ### 1. 判定ロジックの分離とテスト容易性
 
-バージョン比較や日付チェックなどの判定ロジックを `UpdateService` として独立させています。これにより、Riverpod や Firebase の環境に依存せず、純粋な単体テストで「境界値のテスト（同じバージョンの挙動など）」を確実に実施できます。
+バージョン比較や日付チェックなどの判定ロジックを `UpdateService` として独立させています。  
+これにより、Riverpod や Firebase の環境に依存せず、純粋な単体テストで「境界値のテスト（同じバージョンの挙動など）」を確実に実施できます。
 
 ### 2. リアルタイム監視 (`onConfigUpdated`)
 
@@ -63,7 +64,7 @@ Firebase Console の Remote Config にて、パラメータキー **`update_info
 
 ### 1. 疎結合な設計（Pure UI）
 
-このダイアログは Riverpod や特定の Provider に依存していません。
+このダイアログは Riverpod や特定の Provider に依存していません。  
 呼び出し側（通常は `HomeScreen`）が状態を監視し、必要なコールバック（`onUpdate`, `onCancel`）とフラグを渡すことで、表示のみを担当します。
 
 これにより、UI 単体での確認やテストが極めて容易になっています。
