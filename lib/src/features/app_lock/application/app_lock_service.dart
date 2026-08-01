@@ -26,8 +26,8 @@ class AppLockService extends _$AppLockService {
   /// OS標準生体認証ダイアログの表示に伴うライフサイクル変化（resumed）による誤ロックを防ぐフラグ
   bool _isAuthenticating = false;
 
-  /// 生体認証プロンプトが閉じられた直後の日時（OSイベントの遅延による誤ロック防止用）
-  DateTime? _promptDismissedAt;
+  /// OSの生体認証プロンプト消去起因の1回限りの復帰イベントを消費してスキップするフラグ
+  bool _shouldSkipNextLock = false;
 
   @override
   Future<AppLockState> build() async {
@@ -92,7 +92,7 @@ class AppLockService extends _$AppLockService {
         localizedReason: localizedReason,
       );
 
-      _promptDismissedAt = ref.read(clockProvider)();
+      _shouldSkipNextLock = true;
 
       if (authenticated) {
         // 成功した場合: 生体認証を有効にして設定完了し、早期リターン
@@ -205,7 +205,7 @@ class AppLockService extends _$AppLockService {
         return false;
       }
 
-      _promptDismissedAt = ref.read(clockProvider)();
+      _shouldSkipNextLock = true;
 
       // OSのFace IDダイアログが完全に消え去るまで余裕を持って1000ms待機
       await Future<void>.delayed(biometricPromptDelay);
@@ -229,13 +229,10 @@ class AppLockService extends _$AppLockService {
       return; // 生体認証実行中は誤ロック防止のためスキップ
     }
 
-    // OSの生体認証プロンプトが閉じられた直後（2秒以内）の復帰イベントのみを消費・スキップ
-    if (_promptDismissedAt != null) {
-      final elapsed = ref.read(clockProvider)().difference(_promptDismissedAt!);
-      _promptDismissedAt = null; // プロンプト起因のイベントを消費
-      if (elapsed < const Duration(seconds: 2)) {
-        return;
-      }
+    // OSの生体認証プロンプトが閉じられたことによる1回限りの復帰イベントを消費・スキップ
+    if (_shouldSkipNextLock) {
+      _shouldSkipNextLock = false;
+      return;
     }
 
     final currentState = state.value;
@@ -253,7 +250,7 @@ class AppLockService extends _$AppLockService {
   Future<void> clearAppLock() async {
     final repository = ref.read(appLockRepositoryProvider);
     await repository.clearAll();
-    _promptDismissedAt = null;
+    _shouldSkipNextLock = false;
     state = const AsyncValue.data(AppLockState.disabled());
   }
 }

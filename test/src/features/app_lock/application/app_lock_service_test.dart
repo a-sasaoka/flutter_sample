@@ -465,7 +465,7 @@ void main() {
       );
     });
 
-    test('lockApp: 生体認証プロンプト閉じ直後（2秒以内）の復帰イベントはロックがスキップされる', () async {
+    test('lockApp: 生体認証プロンプト閉じに伴う1回目の復帰イベントはスキップされる', () async {
       final container = createContainer(
         isAuthenticated: true,
         hasPasscode: true,
@@ -484,7 +484,7 @@ void main() {
           .read(appLockServiceProvider.notifier)
           .unlockWithBiometrics(localizedReason: 'Reason');
 
-      // 直後の lockApp() はプロンプト閉じイベントとして無視される
+      // 1回目の lockApp() はプロンプト閉じ起因の復帰イベントとしてスキップされる
       container.read(appLockServiceProvider.notifier).lockApp();
 
       final state = container.read(appLockServiceProvider).value;
@@ -493,37 +493,45 @@ void main() {
       );
     });
 
-    test('lockApp: 生体認証プロンプト閉じ後に2秒以上経過した復帰イベントはロック状態に遷移する', () async {
-      var currentTime = DateTime(2026, 8, 1, 12);
-      final container = createContainer(
-        isAuthenticated: true,
-        hasPasscode: true,
-        isBiometricEnabled: true,
-        clock: () => currentTime,
-      );
+    test(
+      'lockApp: 生体認証成功直後のプロンプト復帰(1回目)はスキップされ、 '
+      'その後のバックグラウンド・復帰(2回目)では正常に再ロックされる',
+      () async {
+        final container = createContainer(
+          isAuthenticated: true,
+          hasPasscode: true,
+          isBiometricEnabled: true,
+        );
+        await container.read(appLockServiceProvider.future);
 
-      when(
-        () => mockRepository.authenticateWithBiometrics(
-          localizedReason: 'Reason',
-        ),
-      ).thenAnswer((_) async => true);
+        when(
+          () => mockRepository.authenticateWithBiometrics(
+            localizedReason: 'Reason',
+          ),
+        ).thenAnswer((_) async => true);
 
-      await container.read(appLockServiceProvider.future);
+        // 生体認証成功で解除
+        await container
+            .read(appLockServiceProvider.notifier)
+            .unlockWithBiometrics(localizedReason: 'Reason');
 
-      await container
-          .read(appLockServiceProvider.notifier)
-          .unlockWithBiometrics(localizedReason: 'Reason');
+        // 1回目の lockApp() (生体認証プロンプト閉じ起因): スキップされる
+        container.read(appLockServiceProvider.notifier).lockApp();
 
-      // 2.1秒時間を進める
-      currentTime = currentTime.add(const Duration(milliseconds: 2100));
+        final unlockedState = container.read(appLockServiceProvider).value;
+        check(unlockedState).equals(
+          const AppLockState.unlocked(isBiometricEnabled: true),
+        );
 
-      container.read(appLockServiceProvider.notifier).lockApp();
+        // 2回目の lockApp() (ユーザーによる手動バックグラウンド・復帰): 正常にロックされる
+        container.read(appLockServiceProvider.notifier).lockApp();
 
-      final state = container.read(appLockServiceProvider).value;
-      check(state).equals(
-        const AppLockState.locked(isBiometricEnabled: true),
-      );
-    });
+        final lockedState = container.read(appLockServiceProvider).value;
+        check(lockedState).equals(
+          const AppLockState.locked(isBiometricEnabled: true),
+        );
+      },
+    );
 
     test('clearAppLock: ロック情報をすべて削除し disabled 状態へ遷移する', () async {
       final container = createContainer(
