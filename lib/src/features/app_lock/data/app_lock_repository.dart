@@ -20,6 +20,8 @@ class AppLockRepository {
 
   static const _passcodeKey = 'app_lock_passcode';
   static const _biometricEnabledKey = 'app_lock_biometric_enabled';
+  static const _failedAttemptsKey = 'app_lock_failed_attempts';
+  static const _lockoutUntilKey = 'app_lock_lockout_until';
 
   /// パスコードが設定されているか取得
   Future<bool> hasPasscode() async {
@@ -50,6 +52,44 @@ class AppLockRepository {
       key: _biometricEnabledKey,
       value: enabled.toString(),
     );
+  }
+
+  /// パスコード連続失敗回数を取得
+  Future<int> getFailedAttempts() async {
+    final value = await _secureStorage.read(key: _failedAttemptsKey);
+    return value != null ? int.tryParse(value) ?? 0 : 0;
+  }
+
+  /// パスコード連続失敗回数を保存
+  Future<void> saveFailedAttempts(int attempts) async {
+    await _secureStorage.write(
+      key: _failedAttemptsKey,
+      value: attempts.toString(),
+    );
+  }
+
+  /// ロックアウト終了日時を取得
+  Future<DateTime?> getLockoutUntil() async {
+    final value = await _secureStorage.read(key: _lockoutUntilKey);
+    return value != null ? DateTime.tryParse(value) : null;
+  }
+
+  /// ロックアウト終了日時を保存（null の場合は削除）
+  Future<void> saveLockoutUntil(DateTime? lockoutUntil) async {
+    if (lockoutUntil == null) {
+      await _secureStorage.delete(key: _lockoutUntilKey);
+    } else {
+      await _secureStorage.write(
+        key: _lockoutUntilKey,
+        value: lockoutUntil.toIso8601String(),
+      );
+    }
+  }
+
+  /// 失敗カウントとロックアウト日時をリセット
+  Future<void> resetLockout() async {
+    await _secureStorage.delete(key: _failedAttemptsKey);
+    await _secureStorage.delete(key: _lockoutUntilKey);
   }
 
   /// 端末が生体認証に対応し、かつ実際に登録・有効化されているか判定
@@ -83,6 +123,7 @@ class AppLockRepository {
   Future<void> clearAll() async {
     await _secureStorage.delete(key: _passcodeKey);
     await _secureStorage.delete(key: _biometricEnabledKey);
+    await resetLockout();
   }
 }
 

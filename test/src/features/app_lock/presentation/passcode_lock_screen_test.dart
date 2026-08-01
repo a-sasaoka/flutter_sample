@@ -3,18 +3,38 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
+import 'package:flutter_sample/src/features/app_lock/data/app_lock_repository.dart';
 import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
 import 'package:flutter_sample/src/features/app_lock/presentation/passcode_lock_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:mocktail/mocktail.dart';
+
+class _MockAppLockRepository extends Mock implements AppLockRepository {}
 
 void main() {
+  late _MockAppLockRepository mockRepository;
+
+  setUp(() {
+    mockRepository = _MockAppLockRepository();
+    when(() => mockRepository.getFailedAttempts()).thenAnswer((_) async => 0);
+    when(() => mockRepository.getLockoutUntil()).thenAnswer((_) async => null);
+    when(
+      () => mockRepository.saveFailedAttempts(any()),
+    ).thenAnswer((_) async {});
+    when(
+      () => mockRepository.saveLockoutUntil(any()),
+    ).thenAnswer((_) async {});
+    when(() => mockRepository.resetLockout()).thenAnswer((_) async {});
+  });
+
   Widget createTestWidget(
     Widget child, {
     _TestAppLockService Function()? serviceBuilder,
   }) {
     return ProviderScope(
       overrides: [
+        appLockRepositoryProvider.overrideWithValue(mockRepository),
         appLockServiceProvider.overrideWith(
           serviceBuilder ??
               () => _TestAppLockService(

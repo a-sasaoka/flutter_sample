@@ -194,10 +194,7 @@ void main() {
 
     test('clearAll: ロック設定をすべて削除する', () async {
       when(
-        () => mockSecureStorage.delete(key: 'app_lock_passcode'),
-      ).thenAnswer((_) async {});
-      when(
-        () => mockSecureStorage.delete(key: 'app_lock_biometric_enabled'),
+        () => mockSecureStorage.delete(key: any(named: 'key')),
       ).thenAnswer((_) async {});
 
       await repository.clearAll();
@@ -207,6 +204,100 @@ void main() {
       ).called(1);
       verify(
         () => mockSecureStorage.delete(key: 'app_lock_biometric_enabled'),
+      ).called(1);
+      verify(
+        () => mockSecureStorage.delete(key: 'app_lock_failed_attempts'),
+      ).called(1);
+      verify(
+        () => mockSecureStorage.delete(key: 'app_lock_lockout_until'),
+      ).called(1);
+    });
+
+    test('getFailedAttempts: 未保存の場合は 0 を返す', () async {
+      when(
+        () => mockSecureStorage.read(key: 'app_lock_failed_attempts'),
+      ).thenAnswer((_) async => null);
+
+      final attempts = await repository.getFailedAttempts();
+      check(attempts).equals(0);
+    });
+
+    test('getFailedAttempts: 保存された失敗回数を返す', () async {
+      when(
+        () => mockSecureStorage.read(key: 'app_lock_failed_attempts'),
+      ).thenAnswer((_) async => '3');
+
+      final attempts = await repository.getFailedAttempts();
+      check(attempts).equals(3);
+    });
+
+    test('saveFailedAttempts: 失敗回数を保存する', () async {
+      when(
+        () => mockSecureStorage.write(
+          key: 'app_lock_failed_attempts',
+          value: '2',
+        ),
+      ).thenAnswer((_) async {});
+
+      await repository.saveFailedAttempts(2);
+
+      verify(
+        () => mockSecureStorage.write(
+          key: 'app_lock_failed_attempts',
+          value: '2',
+        ),
+      ).called(1);
+    });
+
+    test('getLockoutUntil / saveLockoutUntil: ロックアウト日時を読み書き・削除する', () async {
+      final now = DateTime(2026, 8, 1, 12);
+      when(
+        () => mockSecureStorage.read(key: 'app_lock_lockout_until'),
+      ).thenAnswer((_) async => now.toIso8601String());
+
+      final result = await repository.getLockoutUntil();
+      check(result).equals(now);
+
+      when(
+        () => mockSecureStorage.write(
+          key: 'app_lock_lockout_until',
+          value: now.toIso8601String(),
+        ),
+      ).thenAnswer((_) async {});
+
+      await repository.saveLockoutUntil(now);
+      verify(
+        () => mockSecureStorage.write(
+          key: 'app_lock_lockout_until',
+          value: now.toIso8601String(),
+        ),
+      ).called(1);
+
+      when(
+        () => mockSecureStorage.delete(key: 'app_lock_lockout_until'),
+      ).thenAnswer((_) async {});
+
+      await repository.saveLockoutUntil(null);
+      verify(
+        () => mockSecureStorage.delete(key: 'app_lock_lockout_until'),
+      ).called(1);
+    });
+
+    test('resetLockout: 失敗カウントおよびロックアウト日時を削除する', () async {
+      when(
+        () => mockSecureStorage.delete(key: 'app_lock_failed_attempts'),
+      ).thenAnswer((_) async {});
+      when(
+        () => mockSecureStorage.delete(key: 'app_lock_lockout_until'),
+      ).thenAnswer((_) async {});
+
+      await repository.resetLockout();
+
+      verify(
+        () => mockSecureStorage.delete(key: 'app_lock_failed_attempts'),
+      ).called(1);
+      verify(
+        () => mockSecureStorage.delete(key: 'app_lock_lockout_until'),
       ).called(1);
     });
 

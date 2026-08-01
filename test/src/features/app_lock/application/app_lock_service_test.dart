@@ -36,6 +36,29 @@ void main() {
     User? firebaseUser,
     DateTime Function()? clock,
   }) {
+    var failedAttempts = 0;
+    DateTime? lockoutUntil;
+
+    when(
+      () => mockRepository.getFailedAttempts(),
+    ).thenAnswer((_) async => failedAttempts);
+    when(
+      () => mockRepository.saveFailedAttempts(any()),
+    ).thenAnswer((invocation) async {
+      failedAttempts = invocation.positionalArguments[0] as int;
+    });
+    when(
+      () => mockRepository.getLockoutUntil(),
+    ).thenAnswer((_) async => lockoutUntil);
+    when(
+      () => mockRepository.saveLockoutUntil(any()),
+    ).thenAnswer((invocation) async {
+      lockoutUntil = invocation.positionalArguments[0] as DateTime?;
+    });
+    when(() => mockRepository.resetLockout()).thenAnswer((_) async {
+      failedAttempts = 0;
+      lockoutUntil = null;
+    });
     when(
       () => mockRepository.hasPasscode(),
     ).thenAnswer((_) async => hasPasscode);
@@ -287,70 +310,90 @@ void main() {
       );
     });
 
-    test('unlockWithPasscode: 3回連続失敗で一時ロックアウトが発動し期間中は検証が拒否される', () async {
-      var currentTime = DateTime(2026, 8, 1, 12);
-      final container = createContainer(
-        isAuthenticated: true,
-        hasPasscode: true,
-        isBiometricEnabled: false,
-        clock: () => currentTime,
-      );
-      await container.read(appLockServiceProvider.future);
+    test(
+      'unlockWithPasscode: 3回連続失敗で30秒ロックアウトが発動し、 '
+      'さらに失敗すると指数関数的(60秒)にロックアウトが延長される',
+      () async {
+        var currentTime = DateTime(2026, 8, 1, 12);
+        final container = createContainer(
+          isAuthenticated: true,
+          hasPasscode: true,
+          isBiometricEnabled: false,
+          clock: () => currentTime,
+        );
+        await container.read(appLockServiceProvider.future);
 
-      when(
-        () => mockRepository.verifyPasscode('9999'),
-      ).thenAnswer((_) async => false);
+        when(
+          () => mockRepository.verifyPasscode('9999'),
+        ).thenAnswer((_) async => false);
 
-      // 1回目、2回目失敗
-      check(
-        await container
-            .read(appLockServiceProvider.notifier)
-            .unlockWithPasscode('9999'),
-      ).equals(false);
-      check(
-        await container
-            .read(appLockServiceProvider.notifier)
-            .unlockWithPasscode('9999'),
-      ).equals(false);
+        // 1回目、2回目失敗
+        check(
+          await container
+              .read(appLockServiceProvider.notifier)
+              .unlockWithPasscode('9999'),
+        ).equals(false);
+        check(
+          await container
+              .read(appLockServiceProvider.notifier)
+              .unlockWithPasscode('9999'),
+        ).equals(false);
 
-      verify(() => mockRepository.verifyPasscode('9999')).called(2);
+        verify(() => mockRepository.verifyPasscode('9999')).called(2);
 
-      // 3回目失敗 (ロックアウト発動)
-      check(
-        await container
-            .read(appLockServiceProvider.notifier)
-            .unlockWithPasscode('9999'),
-      ).equals(false);
-      verify(() => mockRepository.verifyPasscode('9999')).called(1);
+        // 3回目失敗 (初回ロックアウト発動: 30秒)
+        check(
+          await container
+              .read(appLockServiceProvider.notifier)
+              .unlockWithPasscode('9999'),
+        ).equals(false);
+        verify(() => mockRepository.verifyPasscode('9999')).called(1);
 
-      // ロックアウト期間中 (10秒後) は verifyPasscode を呼ぶことなく即座に拒否される
-      currentTime = currentTime.add(const Duration(seconds: 10));
-      check(
-        await container
-            .read(appLockServiceProvider.notifier)
-            .unlockWithPasscode('1234'),
-      ).equals(false);
+        // ロックアウト期間中 (10秒後) は verifyPasscode を呼ぶことなく即座に拒否される
+        currentTime = currentTime.add(const Duration(seconds: 10));
+        check(
+          await container
+              .read(appLockServiceProvider.notifier)
+              .unlockWithPasscode('1234'),
+        ).equals(false);
 
-      // 追加の verifyPasscode は呼ばれていないことを検証
-      verifyNever(() => mockRepository.verifyPasscode('1234'));
+        // 追加の verifyPasscode は呼ばれていないことを検証
+        verifyNever(() => mockRepository.verifyPasscode('1234'));
 
-      // 31秒経過後はロックアウトが解除され、正しいパスコードで成功する
-      currentTime = currentTime.add(const Duration(seconds: 21));
-      when(
-        () => mockRepository.verifyPasscode('1234'),
-      ).thenAnswer((_) async => true);
+        // 31秒経過後はロックアウトが一度解除されるが、さらに失敗(4回目失敗)すると指数バックオフで60秒間ロックアウト
+        currentTime = currentTime.add(const Duration(seconds: 21));
+        check(
+          await container
+              .read(appLockServiceProvider.notifier)
+              .unlockWithPasscode('9999'),
+        ).equals(false);
 
-      check(
-        await container
-            .read(appLockServiceProvider.notifier)
-            .unlockWithPasscode('1234'),
-      ).equals(true);
+        // 60秒のロックアウト期間中 (30秒経過時) は拒否される
+        currentTime = currentTime.add(const Duration(seconds: 30));
+        check(
+          await container
+              .read(appLockServiceProvider.notifier)
+              .unlockWithPasscode('1234'),
+        ).equals(false);
 
-      final state = container.read(appLockServiceProvider).value;
-      check(state).equals(
-        const AppLockState.unlocked(isBiometricEnabled: false),
-      );
-    });
+        // 61秒経過後は解除され、正しいパスコードで成功・カウンターがリセットされる
+        currentTime = currentTime.add(const Duration(seconds: 31));
+        when(
+          () => mockRepository.verifyPasscode('1234'),
+        ).thenAnswer((_) async => true);
+
+        check(
+          await container
+              .read(appLockServiceProvider.notifier)
+              .unlockWithPasscode('1234'),
+        ).equals(true);
+
+        final state = container.read(appLockServiceProvider).value;
+        check(state).equals(
+          const AppLockState.unlocked(isBiometricEnabled: false),
+        );
+      },
+    );
 
     test('unlockWithBiometrics: 生体認証成功でロック解除される', () async {
       final container = createContainer(

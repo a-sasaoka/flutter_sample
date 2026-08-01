@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
@@ -15,20 +17,14 @@ class AppLockService extends _$AppLockService {
   /// パスコード連続失敗の最大許容回数
   static const int maxFailedAttempts = 3;
 
-  /// 失敗上限に達した際の一時ロックアウト時間
-  static const Duration lockOutDuration = Duration(seconds: 30);
+  /// 失敗上限に達した際の基本ロックアウト時間
+  static const Duration baseLockOutDuration = Duration(seconds: 30);
 
   /// OS標準生体認証ダイアログの表示に伴うライフサイクル変化（resumed）による誤ロックを防ぐフラグ
   bool _isAuthenticating = false;
 
   /// 生体認証プロンプトが閉じられた直後の日時（OSイベントの遅延による誤ロック防止用）
   DateTime? _promptDismissedAt;
-
-  /// パスコード連続失敗回数
-  int _failedPasscodeAttempts = 0;
-
-  /// 一時ロックアウト終了予定日時
-  DateTime? _lockoutUntil;
 
   @override
   Future<AppLockState> build() async {
@@ -126,44 +122,54 @@ class AppLockService extends _$AppLockService {
 
   /// パスコード入力によるロック解除試行
   Future<bool> unlockWithPasscode(String passcode) async {
+    final repository = ref.read(appLockRepositoryProvider);
     final now = ref.read(clockProvider)();
-    if (_lockoutUntil != null) {
-      if (now.isBefore(_lockoutUntil!)) {
+
+    final lockoutUntil = await repository.getLockoutUntil();
+    if (lockoutUntil != null) {
+      if (now.isBefore(lockoutUntil)) {
         ref
             .read(loggerProvider)
-            .warning('[AppLockService] Passcode attempt rejected (locked out)');
+            .warning(
+              '[AppLockService] Passcode attempt rejected '
+              '(locked out until $lockoutUntil)',
+            );
         return false;
       }
-      _lockoutUntil = null;
+      await repository.saveLockoutUntil(null);
     }
 
-    final repository = ref.read(appLockRepositoryProvider);
     final isValid = await repository.verifyPasscode(passcode);
-
     if (!isValid) {
-      _failedPasscodeAttempts++;
-      if (_failedPasscodeAttempts >= maxFailedAttempts) {
-        _lockoutUntil = now.add(lockOutDuration);
-        _failedPasscodeAttempts = 0;
+      final currentAttempts = await repository.getFailedAttempts();
+      final newAttempts = currentAttempts + 1;
+      await repository.saveFailedAttempts(newAttempts);
+
+      if (newAttempts >= maxFailedAttempts) {
+        final exponent = math.min(newAttempts - maxFailedAttempts, 6);
+        final multiplier = math.pow(2, exponent).toInt();
+        final delaySeconds = baseLockOutDuration.inSeconds * multiplier;
+        final nextLockoutUntil = now.add(Duration(seconds: delaySeconds));
+
+        await repository.saveLockoutUntil(nextLockoutUntil);
         ref
             .read(loggerProvider)
             .warning(
               '[AppLockService] Passcode failed. Lockout threshold reached '
-              '($maxFailedAttempts attempts). '
-              'Locked out for ${lockOutDuration.inSeconds}s',
+              '($newAttempts attempts). '
+              'Locked out for ${delaySeconds}s',
             );
       } else {
         ref
             .read(loggerProvider)
             .warning(
-              '[AppLockService] Passcode failed (attempt $_failedPasscodeAttempts/$maxFailedAttempts)',
+              '[AppLockService] Passcode failed (attempt $newAttempts/$maxFailedAttempts)',
             );
       }
       return false;
     }
 
-    _failedPasscodeAttempts = 0;
-    _lockoutUntil = null;
+    await repository.resetLockout();
 
     final isBiometricEnabled = await repository.isBiometricEnabled();
     state = AsyncValue.data(
@@ -244,8 +250,6 @@ class AppLockService extends _$AppLockService {
     final repository = ref.read(appLockRepositoryProvider);
     await repository.clearAll();
     _promptDismissedAt = null;
-    _failedPasscodeAttempts = 0;
-    _lockoutUntil = null;
     state = const AsyncValue.data(AppLockState.disabled());
   }
 }
