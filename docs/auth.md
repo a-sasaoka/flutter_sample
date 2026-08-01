@@ -114,3 +114,17 @@ dio.interceptors.add(ref.watch(dioInterceptorProvider));
 この切り替えは、アプリのエントリーポイント（`main.dart`）の `ProviderContainer` のオーバーライド定義（`overrideWith`）内で `ref.watch(envConfigProvider)` を監視し、条件分岐によって返却するインスタンスや処理を動的に切り替えることで実現しています。  
 これにより、Riverpodの仕様である「起動後に上書き設定（overrides）の数を動的に変更できない」という制約を回避し、クラッシュを防止しつつ安全に動作を切り替えています。
 詳細な仕様は [Firebase Authenticationによる認証対応](firebase_authentication.md) を参照してください。
+
+---
+
+## 🔐 アプリロック機能（App Lock）との連携
+
+本プロジェクトでは、認証状態（`AuthStateNotifier` または `FirebaseAuthStateNotifier`）と連動して **アプリロック機能 (`AppLockService`)** が動作します。
+
+- **ログイン成功時**:
+  - `ref.watch(authStateProvider)` の変更を検知し、パスコード未設定の場合は `PasscodeSetupScreen`（初期設定画面）へ自動誘導します。
+  - パスコード登録済みの場合は、アプリ起動時およびフォアグラウンド復帰時に `PasscodeLockScreen`（ロック解除画面）を最前面にオーバーレイ描画します。
+- **ログアウト時**:
+  - ログアウト処理の中で `ref.read(appLockServiceProvider.notifier).clearAppLock()` を呼び出し、暗号化保存されたパスコードおよび生体認証設定を安全に全削除して `disabled` 状態へ遷移させます。
+
+詳細な仕様は [アプリロック機能 (App Lock)](app_lock.md) を参照してください。

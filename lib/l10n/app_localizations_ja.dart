@@ -520,4 +520,43 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get profileValueNotSet => '未設定';
+
+  @override
+  String get appLockSetupTitle => 'パスコードの設定';
+
+  @override
+  String get appLockSetupEnterFirst => '新しい4桁のパスコードを入力してください';
+
+  @override
+  String get appLockSetupEnterConfirm => '確認のため、もう一度入力してください';
+
+  @override
+  String get appLockSetupMismatch => 'パスコードが一致しません。最初からやり直してください';
+
+  @override
+  String get appLockBiometricPromptTitle => '生体認証の有効化';
+
+  @override
+  String get appLockBiometricPromptMessage =>
+      '次回から生体認証（Face ID / Touch ID / 指紋）でロック解除できるようにしますか？';
+
+  @override
+  String get appLockBiometricAuthReason => 'アプリのロックを解除するために生体認証を使用します';
+
+  @override
+  String get appLockEnableBiometricButton => '有効にする';
+
+  @override
+  String get appLockSkipButton => 'スキップ';
+
+  @override
+  String get appLockEnterPasscodeTitle => 'パスコードを入力';
+
+  @override
+  String get appLockPasscodeIncorrect => 'パスコードが正しくありません';
+
+  @override
+  String appLockLockedOut(int seconds) {
+    return 'ロックアウトされています。あと$seconds秒待ってください';
+  }
 }

@@ -17,8 +17,10 @@ import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:flutter_sample/src/core/utils/scaffold_messenger_key.dart';
+import 'package:flutter_sample/src/features/app_lock/presentation/app_lock_wrapper.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_overrides.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart' show Override;
 import 'package:talker_flutter/talker_flutter.dart';
@@ -154,7 +156,9 @@ class MyApp extends ConsumerWidget {
           themeMode: theme,
           routerConfig: router,
           debugShowCheckedModeBanner: false,
-          builder: (context, child) => _AppTitleWrapper(child: child),
+          builder: (context, child) => AppLockWrapper(
+            child: _AppTitleWrapper(child: child),
+          ),
         ),
       AsyncError(:final error) => Directionality(
         // MaterialAppやMaterialApp.routerを使わない

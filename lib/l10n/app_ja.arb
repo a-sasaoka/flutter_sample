@@ -224,5 +224,27 @@
       }
     }
   },
-  "profileValueNotSet": "未設定"
+  "profileValueNotSet": "未設定",
+
+  "@_APP_LOCK": {},
+  "appLockSetupTitle": "パスコードの設定",
+  "appLockSetupEnterFirst": "新しい4桁のパスコードを入力してください",
+  "appLockSetupEnterConfirm": "確認のため、もう一度入力してください",
+  "appLockSetupMismatch": "パスコードが一致しません。最初からやり直してください",
+  "appLockBiometricPromptTitle": "生体認証の有効化",
+  "appLockBiometricPromptMessage": "次回から生体認証（Face ID / Touch ID / 指紋）でロック解除できるようにしますか？",
+  "appLockBiometricAuthReason": "アプリのロックを解除するために生体認証を使用します",
+  "appLockEnableBiometricButton": "有効にする",
+  "appLockSkipButton": "スキップ",
+  "appLockEnterPasscodeTitle": "パスコードを入力",
+  "appLockPasscodeIncorrect": "パスコードが正しくありません",
+  "appLockLockedOut": "ロックアウトされています。あと{seconds}秒待ってください",
+  "@appLockLockedOut": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  }
 }
+
