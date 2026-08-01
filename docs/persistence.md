@@ -4,7 +4,7 @@
 
 1. **SharedPreferencesAsync**: テーマ設定や軽量なAPIキャッシュなど、Key-Value形式の単純なデータの保存。
 2. **Drift（SQLite）**: オフライン対応が必要な複雑な構造を持つデータの保存。強力なクエリや型安全なテーブル定義が可能です。
-3. **FlutterSecureStorage**: 認証トークンなど、よりセキュアに保存したい機密情報向け。
+3. **FlutterSecureStorage**: 認証トークンや暗号化PINパスコードなど、よりセキュアに保存したい機密情報向け。
 
 ---
 

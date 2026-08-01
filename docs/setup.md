@@ -41,6 +41,15 @@ pod install
 cd ..
 ```
 
+### 💡 生体認証（Face ID / Touch ID）の OS ネイティブ設定
+
+生体認証 (`local_auth`) を使用するため、各プラットフォームで以下のネイティブ設定が行われています。
+
+- **iOS (`ios/Runner/Info.plist`)**:
+  - `NSFaceIDUsageDescription` キーに使用理由テキスト（「アプリのロックを解除するために Face ID を使用します」）を設定しています。
+- **Android (`android/app/src/main/kotlin/.../MainActivity.kt`)**:
+  - 生体認証ダイアログの正常描画とコールバックのため、`FlutterActivity` ではなく `FlutterFragmentActivity` を継承するように設定されています。
+
 ## 4️⃣ 環境設定ファイルの準備
 
 本プロジェクトでは、**「公開設定（JSON）」**と**「秘匿情報（.env）」**を使い分けています。

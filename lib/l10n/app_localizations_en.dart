@@ -536,4 +536,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileValueNotSet => 'Not set';
+
+  @override
+  String get appLockSetupTitle => 'Set Passcode';
+
+  @override
+  String get appLockSetupEnterFirst => 'Enter a new 4-digit passcode';
+
+  @override
+  String get appLockSetupEnterConfirm => 'Re-enter to confirm';
+
+  @override
+  String get appLockSetupMismatch =>
+      'Passcodes do not match. Please try again.';
+
+  @override
+  String get appLockBiometricPromptTitle => 'Enable Biometrics';
+
+  @override
+  String get appLockBiometricPromptMessage =>
+      'Would you like to unlock using Biometrics (Face ID / Touch ID / Fingerprint)?';
+
+  @override
+  String get appLockBiometricAuthReason => 'Use biometrics to unlock the app';
+
+  @override
+  String get appLockEnableBiometricButton => 'Enable';
+
+  @override
+  String get appLockSkipButton => 'Skip';
+
+  @override
+  String get appLockEnterPasscodeTitle => 'Enter Passcode';
+
+  @override
+  String get appLockPasscodeIncorrect => 'Incorrect passcode';
 }

@@ -22,6 +22,7 @@
 | 🏠 ホーム         | 主要機能へのナビゲーションハブ、環境情報の判別、デバッグツールの集約                                 |
 | 📈 グラフ         | fl_chart を用いた動的なグラフ（折れ線・棒・円）の表示とデータ入力                                    |
 | ⚙️ 設定           | SegmentedButton によるテーマ・言語切り替え、永続化連携、安全なログアウト処理                         |
+| 🔐 アプリロック   | 4桁PINパスコード＋生体認証（Face ID / Touch ID）による最前面保護・自動復帰ロック                     |
 | 🤖 生成AI         | Firebase AI Logic（firebase_ai）を用いたストリーミング応答と履歴保持チャット                         |
 | 🧰 コード生成     | build_runnerによる自動生成と、JSON/Enviedを組み合わせた高度な環境切替対応                            |
 | 🎨 UI/UX          | FlexColorSchemeによるテーマ設定、共通エラーハンドリングUI、Haptic Feedback（触覚）の実装             |

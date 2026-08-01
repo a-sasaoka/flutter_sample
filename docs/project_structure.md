@@ -59,6 +59,7 @@ flutter_sample
         │   ├── utils                                           # 共通ユーティリティ（ロギング・通信状態・ライフサイクル監視等）
         │   └── widgets                                         # 汎用UI部品（ダイアログや共通画面）
         └── features                                            # 各機能ごとのモジュール（Layered Architecture）
+            ├── app_lock                                        # アプリロック機能（PINパスコード / 生体認証）
             ├── auth                                            # 認証機能
             ├── chart                                           # グラフ表示機能（fl_chart）
             ├── chat                                            # AIチャット機能

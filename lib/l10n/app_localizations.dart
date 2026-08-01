@@ -1099,6 +1099,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not set'**
   String get profileValueNotSet;
+
+  /// No description provided for @appLockSetupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set Passcode'**
+  String get appLockSetupTitle;
+
+  /// No description provided for @appLockSetupEnterFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a new 4-digit passcode'**
+  String get appLockSetupEnterFirst;
+
+  /// No description provided for @appLockSetupEnterConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-enter to confirm'**
+  String get appLockSetupEnterConfirm;
+
+  /// No description provided for @appLockSetupMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passcodes do not match. Please try again.'**
+  String get appLockSetupMismatch;
+
+  /// No description provided for @appLockBiometricPromptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Biometrics'**
+  String get appLockBiometricPromptTitle;
+
+  /// No description provided for @appLockBiometricPromptMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Would you like to unlock using Biometrics (Face ID / Touch ID / Fingerprint)?'**
+  String get appLockBiometricPromptMessage;
+
+  /// No description provided for @appLockBiometricAuthReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Use biometrics to unlock the app'**
+  String get appLockBiometricAuthReason;
+
+  /// No description provided for @appLockEnableBiometricButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable'**
+  String get appLockEnableBiometricButton;
+
+  /// No description provided for @appLockSkipButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get appLockSkipButton;
+
+  /// No description provided for @appLockEnterPasscodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter Passcode'**
+  String get appLockEnterPasscodeTitle;
+
+  /// No description provided for @appLockPasscodeIncorrect.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect passcode'**
+  String get appLockPasscodeIncorrect;
 }
 
 class _AppLocalizationsDelegate

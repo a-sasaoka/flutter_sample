@@ -224,5 +224,19 @@
       }
     }
   },
-  "profileValueNotSet": "Not set"
+  "profileValueNotSet": "Not set",
+
+  "@_APP_LOCK": {},
+  "appLockSetupTitle": "Set Passcode",
+  "appLockSetupEnterFirst": "Enter a new 4-digit passcode",
+  "appLockSetupEnterConfirm": "Re-enter to confirm",
+  "appLockSetupMismatch": "Passcodes do not match. Please try again.",
+  "appLockBiometricPromptTitle": "Enable Biometrics",
+  "appLockBiometricPromptMessage": "Would you like to unlock using Biometrics (Face ID / Touch ID / Fingerprint)?",
+  "appLockBiometricAuthReason": "Use biometrics to unlock the app",
+  "appLockEnableBiometricButton": "Enable",
+  "appLockSkipButton": "Skip",
+  "appLockEnterPasscodeTitle": "Enter Passcode",
+  "appLockPasscodeIncorrect": "Incorrect passcode"
 }
+
