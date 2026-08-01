@@ -1,7 +1,10 @@
 import 'package:checks/checks.dart';
+import 'package:flutter_sample/src/core/storage/secure_storage_provider.dart';
 import 'package:flutter_sample/src/features/app_lock/data/app_lock_repository.dart';
+import 'package:flutter_sample/src/features/app_lock/data/local_authentication_provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -205,6 +208,19 @@ void main() {
       verify(
         () => mockSecureStorage.delete(key: 'app_lock_biometric_enabled'),
       ).called(1);
+    });
+
+    test('appLockRepositoryProvider: 正常に AppLockRepository インスタンスを生成する', () {
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(mockSecureStorage),
+          localAuthenticationProvider.overrideWithValue(mockLocalAuth),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final repo = container.read(appLockRepositoryProvider);
+      check(repo).isA<AppLockRepository>();
     });
   });
 }

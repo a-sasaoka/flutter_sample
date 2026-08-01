@@ -34,18 +34,24 @@ class AppLockWrapper extends ConsumerWidget {
         child,
 
         // アプリロック状態に応じた最前面オーバーレイ
-        appLockAsync.maybeWhen(
-          data: (state) {
-            return switch (state) {
-              AppLockStateDisabled() ||
-              AppLockStateUnlocked() => const SizedBox.shrink(),
-              AppLockStateSetupRequired() => const PasscodeSetupScreen(),
-              AppLockStateLocked(:final isBiometricEnabled) =>
-                PasscodeLockScreen(isBiometricEnabled: isBiometricEnabled),
-            };
+        switch (appLockAsync) {
+          AsyncData(:final value) => switch (value) {
+            AppLockStateDisabled() ||
+            AppLockStateUnlocked() => const SizedBox.shrink(),
+            AppLockStateSetupRequired() => const PasscodeSetupScreen(),
+            AppLockStateLocked(:final isBiometricEnabled) => PasscodeLockScreen(
+              isBiometricEnabled: isBiometricEnabled,
+            ),
           },
-          orElse: SizedBox.shrink,
-        ),
+          AsyncLoading() => ColoredBox(
+            key: const Key('app_lock_loading_shield'),
+            color: Theme.of(context).colorScheme.surface,
+          ),
+          AsyncError() => const PasscodeLockScreen(
+            key: Key('app_lock_error_fallback'),
+            isBiometricEnabled: false,
+          ),
+        },
       ],
     );
   }

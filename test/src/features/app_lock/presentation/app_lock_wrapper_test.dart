@@ -1,24 +1,53 @@
+import 'dart:async';
+
 import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/utils/app_lifecycle_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
+import 'package:flutter_sample/src/features/app_lock/data/app_lock_repository.dart';
 import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
 import 'package:flutter_sample/src/features/app_lock/presentation/app_lock_wrapper.dart';
 import 'package:flutter_sample/src/features/app_lock/presentation/passcode_lock_screen.dart';
 import 'package:flutter_sample/src/features/app_lock/presentation/passcode_setup_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:talker_flutter/talker_flutter.dart';
+
+class _MockAppLockRepository extends Mock implements AppLockRepository {}
+
+class _MockTalker extends Mock implements Talker {}
 
 void main() {
+  late _MockAppLockRepository mockRepository;
+  late _MockTalker mockTalker;
+
+  setUp(() {
+    mockRepository = _MockAppLockRepository();
+    mockTalker = _MockTalker();
+    when(
+      () => mockRepository.isBiometricEnabled(),
+    ).thenAnswer((_) async => false);
+    when(() => mockRepository.hasPasscode()).thenAnswer((_) async => true);
+    when(
+      () => mockRepository.authenticateWithBiometrics(
+        localizedReason: any(named: 'localizedReason'),
+      ),
+    ).thenAnswer((_) async => false);
+  });
+
   Widget createTestWidget(
     Widget child, {
-    _TestAppLockService Function()? serviceBuilder,
+    AppLockService Function()? serviceBuilder,
     _TestAppLifecycle Function()? lifecycleBuilder,
   }) {
     return ProviderScope(
       overrides: [
+        appLockRepositoryProvider.overrideWithValue(mockRepository),
+        loggerProvider.overrideWithValue(mockTalker),
         appLockServiceProvider.overrideWith(
           serviceBuilder ??
               () => _TestAppLockService(const AppLockState.disabled()),
@@ -148,6 +177,42 @@ void main() {
 
       expect(mockService.lockAppCalledCount, equals(1));
     });
+
+    testWidgets('loading 状態の時は保護シールド(ColoredBox)が描画される', (tester) async {
+      await tester.pumpWidget(
+        createTestWidget(
+          const AppLockWrapper(
+            child: Text('Main Screen Content'),
+          ),
+          serviceBuilder: _LoadingAppLockService.new,
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.byKey(const Key('app_lock_loading_shield')),
+        findsOneWidget,
+      );
+      expect(find.byType(PasscodeSetupScreen), findsNothing);
+      expect(find.byType(PasscodeLockScreen), findsNothing);
+    });
+
+    testWidgets('error 状態の時は PasscodeLockScreen にフォールバック描画される', (tester) async {
+      await tester.pumpWidget(
+        createTestWidget(
+          const AppLockWrapper(
+            child: Text('Main Screen Content'),
+          ),
+          serviceBuilder: _ErrorAppLockService.new,
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.byKey(const Key('app_lock_error_fallback')),
+        findsOneWidget,
+      );
+    });
   });
 }
 
@@ -162,6 +227,24 @@ class _TestAppLockService extends AppLockService {
   @override
   void lockApp() {
     lockAppCalledCount++;
+  }
+}
+
+class _LoadingAppLockService extends AppLockService {
+  @override
+  Future<AppLockState> build() {
+    return Completer<AppLockState>().future;
+  }
+}
+
+class _ErrorAppLockService extends AppLockService {
+  @override
+  Future<AppLockState> build() {
+    state = AsyncValue.error(
+      Exception('App lock init failed'),
+      StackTrace.current,
+    );
+    return Completer<AppLockState>().future;
   }
 }
 
