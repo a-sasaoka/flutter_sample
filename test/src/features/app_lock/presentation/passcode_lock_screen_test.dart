@@ -6,6 +6,7 @@ import 'package:flutter_sample/src/features/app_lock/application/app_lock_servic
 import 'package:flutter_sample/src/features/app_lock/data/app_lock_repository.dart';
 import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
 import 'package:flutter_sample/src/features/app_lock/presentation/passcode_lock_screen.dart';
+import 'package:flutter_sample/src/features/app_lock/presentation/widgets/pin_code_field.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
@@ -142,8 +143,15 @@ void main() {
 
       await tester.tap(find.widgetWithText(OutlinedButton, '1'));
       await tester.pump();
+      check(
+        tester.widget<PinCodeField>(find.byType(PinCodeField)).length,
+      ).equals(1);
+
       await tester.tap(find.byIcon(Icons.backspace_outlined));
       await tester.pump();
+      check(
+        tester.widget<PinCodeField>(find.byType(PinCodeField)).length,
+      ).equals(0);
     });
 
     testWidgets('指紋アイコンをタップすると手動で生体認証が再試行される', (tester) async {
@@ -159,11 +167,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      final initialCount = mockService.unlockWithBiometricsCalledCount;
+
       // 指紋アイコンをタップ
       await tester.tap(find.byIcon(Icons.fingerprint));
       await tester.pumpAndSettle();
 
-      check(mockService.unlockWithBiometricsCalledCount).isGreaterThan(0);
+      check(
+        mockService.unlockWithBiometricsCalledCount,
+      ).equals(initialCount + 1);
     });
   });
 }

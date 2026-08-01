@@ -5,6 +5,7 @@ import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
 import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
 import 'package:flutter_sample/src/features/app_lock/presentation/passcode_setup_screen.dart';
+import 'package:flutter_sample/src/features/app_lock/presentation/widgets/pin_code_field.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -64,10 +65,16 @@ void main() {
       await tester.pump();
       await tester.tap(find.widgetWithText(OutlinedButton, '2'));
       await tester.pump();
+      check(
+        tester.widget<PinCodeField>(find.byType(PinCodeField)).length,
+      ).equals(2);
 
       // Backspaceを押す
       await tester.tap(find.byIcon(Icons.backspace_outlined));
       await tester.pump();
+      check(
+        tester.widget<PinCodeField>(find.byType(PinCodeField)).length,
+      ).equals(1);
     });
 
     testWidgets('4桁テンキーを押すとドットが埋まり再確認表示へ切り替わり、Backspaceも動作する', (tester) async {
