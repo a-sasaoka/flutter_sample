@@ -20,6 +20,9 @@ class AppLockService extends _$AppLockService {
   /// 失敗上限に達した際の基本ロックアウト時間
   static const Duration baseLockOutDuration = Duration(seconds: 30);
 
+  /// OSの生体認証プロンプトが完全に消去されるまでの待機時間
+  static const Duration biometricPromptDelay = Duration(milliseconds: 1000);
+
   /// OS標準生体認証ダイアログの表示に伴うライフサイクル変化（resumed）による誤ロックを防ぐフラグ
   bool _isAuthenticating = false;
 
@@ -96,7 +99,7 @@ class AppLockService extends _$AppLockService {
         await repository.setBiometricEnabled(enabled: true);
 
         // OSのFace IDダイアログが完全に消え去るまで余裕を持って1000ms待機
-        await Future<void>.delayed(const Duration(milliseconds: 1000));
+        await Future<void>.delayed(biometricPromptDelay);
 
         state = const AsyncValue.data(
           AppLockState.unlocked(isBiometricEnabled: true),
@@ -204,7 +207,7 @@ class AppLockService extends _$AppLockService {
       _promptDismissedAt = ref.read(clockProvider)();
 
       // OSのFace IDダイアログが完全に消え去るまで余裕を持って1000ms待機
-      await Future<void>.delayed(const Duration(milliseconds: 1000));
+      await Future<void>.delayed(biometricPromptDelay);
 
       state = const AsyncValue.data(
         AppLockState.unlocked(isBiometricEnabled: true),
