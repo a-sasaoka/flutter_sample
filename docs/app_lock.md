@@ -8,7 +8,7 @@
 
 アプリロック機能は、離席時やアプリ切り替え時にアプリ内の機密情報（メモ、プロファイル等）が第三者に閲覧されるのを防ぎます。
 
-- **4桁 PIN パスコード**: 強固かつ迅速に入力できる数値キーパッドを提供。
+- **4桁 PIN パスコード**: 迅速に入力できる数値キーパッドを提供。
 - **生体認証 (Biometrics)**: iOS (Face ID / Touch ID) および Android (指紋認証 / 顔認証) に対応。
 - **最前面保護 (AppLockWrapper)**: ルーティング階層に依存せず、アプリ全体の最前面にオーバーレイとしてロック画面を描画。
 - **自動再ロック**: アプリがバックグラウンドからフォアグラウンド（`resumed`）へ復帰した際に自動再ロックを実施。
@@ -52,13 +52,21 @@ stateDiagram-v2
     setupRequired --> unlocked: パスコード設定完了
     locked --> unlocked: パスコード一致 OR 生体認証成功
     unlocked --> locked: バックグラウンド復帰 (resumed)
-    unlocked --> disabled: ログアウト (clearAppLock)
+    unlocked --> disabled: ログアウト (認証状態変更)
+    setupRequired --> disabled: clearAppLock (設定全削除)
+    locked --> disabled: clearAppLock (設定全削除)
+    unlocked --> disabled: clearAppLock (設定全削除)
 ```
 
 1. **`disabled`**: 未ログイン状態。ロック機能は無効。
 2. **`setupRequired`**: ログイン済みだがパスコードが未登録。アプリ起動時に初期設定画面を表示。
 3. **`locked`**: パスコード登録済み。起動時・復帰時にロック画面を表示。
 4. **`unlocked`**: 正しいパスコード入力または生体認証成功により一時的にロック解除された状態。
+
+> 💡 **ログアウトと `clearAppLock()` の違い**
+>
+> - **ログアウト**: `authStateProvider` や `firebaseAuthStateProvider` の状態がログアウト状態に変化した際、`AppLockService.build()` がそれを検知して自動的に `disabled` 状態を返します（保存されたパスコード・生体認証設定は保持されます）。
+> - **`clearAppLock()`**: 暗号化保存されたパスコードおよび生体認証設定データを完全に削除し、明示的に `disabled` 状態へ切り替えるメソッドです。
 
 ---
 
