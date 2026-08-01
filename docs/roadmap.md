@@ -6,7 +6,7 @@
 
 | カテゴリ | 拡張内容 |
 | --- | --- |
-| 🔒 セキュリティ | `local_auth` および `flutter_secure_storage` によるアプリロック（PINパスコード＋Face ID / Touch ID）の導入 (✅ 完了) |
+| 🔒 セキュリティ | `local_auth` および `flutter_secure_storage` によるアプリロック（PINパスコード＋Face ID / Touch ID / 指紋認証 / 顔認証）の導入 (✅ 完了) |
 | 🤖 AI機能の拡張 | Gemini API のマルチモーダル対応（画像解析）、Function Calling による外部API連携 |
 | 🔔 通知・連携 | Firebase Cloud Messaging (FCM) の導入、およびディープリンクの完全対応（iOS用のUniversal Links実装） |
 | 🧠 高度なテスト | Maestro による E2E テストの導入（iOS 達成）。今後はテストケースの拡充および CI (GitHub Actions) での自動実行の整備 |
