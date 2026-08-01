@@ -276,11 +276,11 @@ void main() {
         () => mockRepository.verifyPasscode('1234'),
       ).thenAnswer((_) async => true);
 
-      final isValid = await container
+      final result = await container
           .read(appLockServiceProvider.notifier)
           .unlockWithPasscode('1234');
 
-      check(isValid).equals(true);
+      check(result).isA<UnlockResultSuccess>();
       final state = container.read(appLockServiceProvider).value;
       check(state).equals(
         const AppLockState.unlocked(isBiometricEnabled: false),
@@ -299,11 +299,11 @@ void main() {
         () => mockRepository.verifyPasscode('9999'),
       ).thenAnswer((_) async => false);
 
-      final isValid = await container
+      final result = await container
           .read(appLockServiceProvider.notifier)
           .unlockWithPasscode('9999');
 
-      check(isValid).equals(false);
+      check(result).isA<UnlockResultInvalidPasscode>();
       final state = container.read(appLockServiceProvider).value;
       check(state).equals(
         const AppLockState.locked(isBiometricEnabled: false),
@@ -332,12 +332,12 @@ void main() {
           await container
               .read(appLockServiceProvider.notifier)
               .unlockWithPasscode('9999'),
-        ).equals(false);
+        ).isA<UnlockResultInvalidPasscode>();
         check(
           await container
               .read(appLockServiceProvider.notifier)
               .unlockWithPasscode('9999'),
-        ).equals(false);
+        ).isA<UnlockResultInvalidPasscode>();
 
         verify(() => mockRepository.verifyPasscode('9999')).called(2);
 
@@ -346,7 +346,7 @@ void main() {
           await container
               .read(appLockServiceProvider.notifier)
               .unlockWithPasscode('9999'),
-        ).equals(false);
+        ).isA<UnlockResultLockedOut>();
         verify(() => mockRepository.verifyPasscode('9999')).called(1);
 
         // ロックアウト期間中 (10秒後) は verifyPasscode を呼ぶことなく即座に拒否される
@@ -355,7 +355,7 @@ void main() {
           await container
               .read(appLockServiceProvider.notifier)
               .unlockWithPasscode('1234'),
-        ).equals(false);
+        ).isA<UnlockResultLockedOut>();
 
         // 追加の verifyPasscode は呼ばれていないことを検証
         verifyNever(() => mockRepository.verifyPasscode('1234'));
@@ -366,7 +366,7 @@ void main() {
           await container
               .read(appLockServiceProvider.notifier)
               .unlockWithPasscode('9999'),
-        ).equals(false);
+        ).isA<UnlockResultLockedOut>();
 
         // 60秒のロックアウト期間中 (30秒経過時) は拒否される
         currentTime = currentTime.add(const Duration(seconds: 30));
@@ -374,7 +374,7 @@ void main() {
           await container
               .read(appLockServiceProvider.notifier)
               .unlockWithPasscode('1234'),
-        ).equals(false);
+        ).isA<UnlockResultLockedOut>();
 
         // 61秒経過後は解除され、正しいパスコードで成功・カウンターがリセットされる
         currentTime = currentTime.add(const Duration(seconds: 31));
@@ -386,7 +386,7 @@ void main() {
           await container
               .read(appLockServiceProvider.notifier)
               .unlockWithPasscode('1234'),
-        ).equals(true);
+        ).isA<UnlockResultSuccess>();
 
         final state = container.read(appLockServiceProvider).value;
         check(state).equals(

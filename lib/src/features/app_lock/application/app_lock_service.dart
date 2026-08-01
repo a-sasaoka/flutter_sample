@@ -124,7 +124,7 @@ class AppLockService extends _$AppLockService {
   }
 
   /// パスコード入力によるロック解除試行
-  Future<bool> unlockWithPasscode(String passcode) async {
+  Future<UnlockResult> unlockWithPasscode(String passcode) async {
     final repository = ref.read(appLockRepositoryProvider);
     final now = ref.read(clockProvider)();
 
@@ -137,7 +137,7 @@ class AppLockService extends _$AppLockService {
               '[AppLockService] Passcode attempt rejected '
               '(locked out until $lockoutUntil)',
             );
-        return false;
+        return UnlockResultLockedOut(lockoutUntil);
       }
       await repository.saveLockoutUntil(null);
     }
@@ -162,14 +162,15 @@ class AppLockService extends _$AppLockService {
               '($newAttempts attempts). '
               'Locked out for ${delaySeconds}s',
             );
+        return UnlockResultLockedOut(nextLockoutUntil);
       } else {
         ref
             .read(loggerProvider)
             .warning(
               '[AppLockService] Passcode failed (attempt $newAttempts/$maxFailedAttempts)',
             );
+        return const UnlockResultInvalidPasscode();
       }
-      return false;
     }
 
     await repository.resetLockout();
@@ -180,7 +181,7 @@ class AppLockService extends _$AppLockService {
     );
     ref.read(loggerProvider).info('[AppLockService] Unlocked with passcode');
 
-    return true;
+    return const UnlockResultSuccess();
   }
 
   /// 生体認証によるロック解除試行
@@ -255,4 +256,30 @@ class AppLockService extends _$AppLockService {
     _promptDismissedAt = null;
     state = const AsyncValue.data(AppLockState.disabled());
   }
+}
+
+/// 🔐 パスコード認証の結果を表す sealed クラス
+sealed class UnlockResult {
+  const UnlockResult();
+}
+
+/// 認証成功
+final class UnlockResultSuccess extends UnlockResult {
+  /// コンストラクタ
+  const UnlockResultSuccess();
+}
+
+/// パスコード不一致
+final class UnlockResultInvalidPasscode extends UnlockResult {
+  /// コンストラクタ
+  const UnlockResultInvalidPasscode();
+}
+
+/// 一時ロックアウト状態
+final class UnlockResultLockedOut extends UnlockResult {
+  /// コンストラクタ
+  const UnlockResultLockedOut(this.lockedOutUntil);
+
+  /// ロックアウト終了予定日時
+  final DateTime lockedOutUntil;
 }

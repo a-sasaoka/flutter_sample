@@ -237,6 +237,14 @@
   "appLockEnableBiometricButton": "有効にする",
   "appLockSkipButton": "スキップ",
   "appLockEnterPasscodeTitle": "パスコードを入力",
-  "appLockPasscodeIncorrect": "パスコードが正しくありません"
+  "appLockPasscodeIncorrect": "パスコードが正しくありません",
+  "appLockLockedOut": "ロックアウトされています。あと{seconds}秒待ってください",
+  "@appLockLockedOut": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  }
 }
 

@@ -1,15 +1,17 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
 import 'package:flutter_sample/src/features/app_lock/presentation/widgets/numeric_keyboard.dart';
 import 'package:flutter_sample/src/features/app_lock/presentation/widgets/pin_code_field.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-/// 🔐 最前面に被せてアプリ内情報を視覚保護するロック解除画面
+/// 🔐 アプリ起動時・復帰時に表示されるパスコード入力・生体認証ロック画面
 class PasscodeLockScreen extends HookConsumerWidget {
   /// コンストラクタ
   const PasscodeLockScreen({
@@ -30,28 +32,33 @@ class PasscodeLockScreen extends HookConsumerWidget {
     final errorMessage = useState<String?>(null);
     final isAuthenticating = useState<bool>(false);
 
-    // 画面表示時に全自動で生体認証を呼び出す
-    useEffect(() {
-      if (isBiometricEnabled) {
-        unawaited(
-          Future<void>.microtask(() async {
-            isAuthenticating.value = true;
-            try {
-              await ref
-                  .read(appLockServiceProvider.notifier)
-                  .unlockWithBiometrics(
-                    localizedReason: l10n.appLockBiometricAuthReason,
-                  );
-            } finally {
-              if (context.mounted) {
-                isAuthenticating.value = false;
-              }
+    // 生体認証ダイアログの自動起動
+    useEffect(
+      () {
+        if (!isBiometricEnabled) {
+          return null;
+        }
+
+        Future<void> triggerBiometric() async {
+          isAuthenticating.value = true;
+          try {
+            await ref
+                .read(appLockServiceProvider.notifier)
+                .unlockWithBiometrics(
+                  localizedReason: l10n.appLockBiometricAuthReason,
+                );
+          } finally {
+            if (context.mounted) {
+              isAuthenticating.value = false;
             }
-          }),
-        );
-      }
-      return null;
-    }, [isBiometricEnabled]);
+          }
+        }
+
+        unawaited(triggerBiometric());
+        return null;
+      },
+      const [],
+    );
 
     /// ユーザーがキーパッド左下の生体認証ボタンをタップした時に呼び出す
     Future<void> handleBiometricPressed() async {
@@ -81,14 +88,26 @@ class PasscodeLockScreen extends HookConsumerWidget {
       inputPin.value = newPin;
 
       if (newPin.length == _pinLength) {
-        final success = await ref
+        final result = await ref
             .read(appLockServiceProvider.notifier)
             .unlockWithPasscode(newPin);
 
-        if (!success) {
-          unawaited(HapticFeedback.heavyImpact());
-          errorMessage.value = l10n.appLockPasscodeIncorrect;
-          inputPin.value = '';
+        switch (result) {
+          case UnlockResultSuccess():
+            break;
+          case UnlockResultInvalidPasscode():
+            unawaited(HapticFeedback.heavyImpact());
+            errorMessage.value = l10n.appLockPasscodeIncorrect;
+            inputPin.value = '';
+          case UnlockResultLockedOut(:final lockedOutUntil):
+            unawaited(HapticFeedback.heavyImpact());
+            final now = ref.read(clockProvider)();
+            final remainingSeconds = math.max(
+              1,
+              lockedOutUntil.difference(now).inSeconds,
+            );
+            errorMessage.value = l10n.appLockLockedOut(remainingSeconds);
+            inputPin.value = '';
         }
       }
     }

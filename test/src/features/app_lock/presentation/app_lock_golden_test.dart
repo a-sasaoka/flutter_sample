@@ -143,7 +143,8 @@ class _TestAppLockService extends AppLockService {
       false;
 
   @override
-  Future<bool> unlockWithPasscode(String passcode) async => false;
+  Future<UnlockResult> unlockWithPasscode(String passcode) async =>
+      const UnlockResultInvalidPasscode();
 
   @override
   Future<bool> unlockWithBiometrics({

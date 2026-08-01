@@ -237,6 +237,14 @@
   "appLockEnableBiometricButton": "Enable",
   "appLockSkipButton": "Skip",
   "appLockEnterPasscodeTitle": "Enter Passcode",
-  "appLockPasscodeIncorrect": "Incorrect passcode"
+  "appLockPasscodeIncorrect": "Incorrect passcode",
+  "appLockLockedOut": "Locked out. Please wait {seconds} seconds.",
+  "@appLockLockedOut": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  }
 }
 

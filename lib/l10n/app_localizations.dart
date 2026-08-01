@@ -1165,6 +1165,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Incorrect passcode'**
   String get appLockPasscodeIncorrect;
+
+  /// No description provided for @appLockLockedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked out. Please wait {seconds} seconds.'**
+  String appLockLockedOut(int seconds);
 }
 
 class _AppLocalizationsDelegate

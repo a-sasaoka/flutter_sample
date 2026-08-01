@@ -133,6 +133,31 @@ void main() {
       expect(find.text('パスコードが正しくありません'), findsOneWidget);
     });
 
+    testWidgets('ロックアウト時は残時間入りのエラーメッセージが表示される', (tester) async {
+      final mockService = _TestAppLockService(
+        const AppLockState.locked(isBiometricEnabled: false),
+      );
+
+      await tester.pumpWidget(
+        createTestWidget(
+          const PasscodeLockScreen(isBiometricEnabled: false),
+          serviceBuilder: () => mockService,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      for (final digit in ['8', '8', '8', '8']) {
+        await tester.tap(find.widgetWithText(OutlinedButton, digit));
+        await tester.pump();
+      }
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('ロックアウトされています。あと'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('入力中に Backspace を押すと一文字削除される', (tester) async {
       await tester.pumpWidget(
         createTestWidget(
@@ -197,8 +222,16 @@ class _TestAppLockService extends AppLockService {
   }
 
   @override
-  Future<bool> unlockWithPasscode(String passcode) async {
+  Future<UnlockResult> unlockWithPasscode(String passcode) async {
     unlockWithPasscodeCalledCount++;
-    return passcode == '1234';
+    if (passcode == '1234') {
+      return const UnlockResultSuccess();
+    }
+    if (passcode == '8888') {
+      return UnlockResultLockedOut(
+        DateTime.now().add(const Duration(seconds: 30)),
+      );
+    }
+    return const UnlockResultInvalidPasscode();
   }
 }

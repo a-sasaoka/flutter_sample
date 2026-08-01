@@ -554,4 +554,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get appLockPasscodeIncorrect => 'パスコードが正しくありません';
+
+  @override
+  String appLockLockedOut(int seconds) {
+    return 'ロックアウトされています。あと$seconds秒待ってください';
+  }
 }

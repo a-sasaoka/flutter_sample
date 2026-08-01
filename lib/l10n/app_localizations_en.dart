@@ -571,4 +571,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get appLockPasscodeIncorrect => 'Incorrect passcode';
+
+  @override
+  String appLockLockedOut(int seconds) {
+    return 'Locked out. Please wait $seconds seconds.';
+  }
 }
