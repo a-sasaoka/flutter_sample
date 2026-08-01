@@ -12,11 +12,23 @@ part 'app_lock_service.g.dart';
 /// 🔐 アプリロックのロジックと状態（sealed クラス）を管理する AsyncNotifier
 @Riverpod(keepAlive: true)
 class AppLockService extends _$AppLockService {
+  /// パスコード連続失敗の最大許容回数
+  static const int maxFailedAttempts = 3;
+
+  /// 失敗上限に達した際の一時ロックアウト時間
+  static const Duration lockOutDuration = Duration(seconds: 30);
+
   /// OS標準生体認証ダイアログの表示に伴うライフサイクル変化（resumed）による誤ロックを防ぐフラグ
   bool _isAuthenticating = false;
 
   /// 生体認証プロンプトが閉じられた直後の日時（OSイベントの遅延による誤ロック防止用）
   DateTime? _promptDismissedAt;
+
+  /// パスコード連続失敗回数
+  int _failedPasscodeAttempts = 0;
+
+  /// 一時ロックアウト終了予定日時
+  DateTime? _lockoutUntil;
 
   @override
   Future<AppLockState> build() async {
@@ -114,13 +126,44 @@ class AppLockService extends _$AppLockService {
 
   /// パスコード入力によるロック解除試行
   Future<bool> unlockWithPasscode(String passcode) async {
+    final now = ref.read(clockProvider)();
+    if (_lockoutUntil != null) {
+      if (now.isBefore(_lockoutUntil!)) {
+        ref
+            .read(loggerProvider)
+            .warning('[AppLockService] Passcode attempt rejected (locked out)');
+        return false;
+      }
+      _lockoutUntil = null;
+    }
+
     final repository = ref.read(appLockRepositoryProvider);
     final isValid = await repository.verifyPasscode(passcode);
 
     if (!isValid) {
-      ref.read(loggerProvider).warning('[AppLockService] Passcode failed');
+      _failedPasscodeAttempts++;
+      if (_failedPasscodeAttempts >= maxFailedAttempts) {
+        _lockoutUntil = now.add(lockOutDuration);
+        _failedPasscodeAttempts = 0;
+        ref
+            .read(loggerProvider)
+            .warning(
+              '[AppLockService] Passcode failed. Lockout threshold reached '
+              '($maxFailedAttempts attempts). '
+              'Locked out for ${lockOutDuration.inSeconds}s',
+            );
+      } else {
+        ref
+            .read(loggerProvider)
+            .warning(
+              '[AppLockService] Passcode failed (attempt $_failedPasscodeAttempts/$maxFailedAttempts)',
+            );
+      }
       return false;
     }
+
+    _failedPasscodeAttempts = 0;
+    _lockoutUntil = null;
 
     final isBiometricEnabled = await repository.isBiometricEnabled();
     state = AsyncValue.data(
@@ -201,6 +244,8 @@ class AppLockService extends _$AppLockService {
     final repository = ref.read(appLockRepositoryProvider);
     await repository.clearAll();
     _promptDismissedAt = null;
+    _failedPasscodeAttempts = 0;
+    _lockoutUntil = null;
     state = const AsyncValue.data(AppLockState.disabled());
   }
 }

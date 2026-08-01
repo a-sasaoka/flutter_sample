@@ -287,6 +287,71 @@ void main() {
       );
     });
 
+    test('unlockWithPasscode: 3回連続失敗で一時ロックアウトが発動し期間中は検証が拒否される', () async {
+      var currentTime = DateTime(2026, 8, 1, 12);
+      final container = createContainer(
+        isAuthenticated: true,
+        hasPasscode: true,
+        isBiometricEnabled: false,
+        clock: () => currentTime,
+      );
+      await container.read(appLockServiceProvider.future);
+
+      when(
+        () => mockRepository.verifyPasscode('9999'),
+      ).thenAnswer((_) async => false);
+
+      // 1回目、2回目失敗
+      check(
+        await container
+            .read(appLockServiceProvider.notifier)
+            .unlockWithPasscode('9999'),
+      ).equals(false);
+      check(
+        await container
+            .read(appLockServiceProvider.notifier)
+            .unlockWithPasscode('9999'),
+      ).equals(false);
+
+      verify(() => mockRepository.verifyPasscode('9999')).called(2);
+
+      // 3回目失敗 (ロックアウト発動)
+      check(
+        await container
+            .read(appLockServiceProvider.notifier)
+            .unlockWithPasscode('9999'),
+      ).equals(false);
+      verify(() => mockRepository.verifyPasscode('9999')).called(1);
+
+      // ロックアウト期間中 (10秒後) は verifyPasscode を呼ぶことなく即座に拒否される
+      currentTime = currentTime.add(const Duration(seconds: 10));
+      check(
+        await container
+            .read(appLockServiceProvider.notifier)
+            .unlockWithPasscode('1234'),
+      ).equals(false);
+
+      // 追加の verifyPasscode は呼ばれていないことを検証
+      verifyNever(() => mockRepository.verifyPasscode('1234'));
+
+      // 31秒経過後はロックアウトが解除され、正しいパスコードで成功する
+      currentTime = currentTime.add(const Duration(seconds: 21));
+      when(
+        () => mockRepository.verifyPasscode('1234'),
+      ).thenAnswer((_) async => true);
+
+      check(
+        await container
+            .read(appLockServiceProvider.notifier)
+            .unlockWithPasscode('1234'),
+      ).equals(true);
+
+      final state = container.read(appLockServiceProvider).value;
+      check(state).equals(
+        const AppLockState.unlocked(isBiometricEnabled: false),
+      );
+    });
+
     test('unlockWithBiometrics: 生体認証成功でロック解除される', () async {
       final container = createContainer(
         isAuthenticated: true,
