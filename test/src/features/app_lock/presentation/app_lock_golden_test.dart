@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/config/app_theme.dart';
+import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
+import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
 import 'package:flutter_sample/src/features/app_lock/presentation/passcode_lock_screen.dart';
 import 'package:flutter_sample/src/features/app_lock/presentation/passcode_setup_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,9 +15,15 @@ void main() {
     Widget buildAppLockScreenForGolden({
       required Widget child,
       required ThemeMode themeMode,
+      AppLockState initialState = const AppLockState.disabled(),
     }) {
       final isDark = themeMode == ThemeMode.dark;
       return ProviderScope(
+        overrides: [
+          appLockServiceProvider.overrideWith(
+            () => _TestAppLockService(initialState),
+          ),
+        ],
         child: MaterialApp(
           theme: isDark
               ? AppTheme.dark().copyWith(
@@ -56,6 +64,7 @@ void main() {
               child: buildAppLockScreenForGolden(
                 child: const PasscodeSetupScreen(),
                 themeMode: ThemeMode.light,
+                initialState: const AppLockState.setupRequired(),
               ),
             ),
           ),
@@ -67,6 +76,7 @@ void main() {
               child: buildAppLockScreenForGolden(
                 child: const PasscodeSetupScreen(),
                 themeMode: ThemeMode.dark,
+                initialState: const AppLockState.setupRequired(),
               ),
             ),
           ),
@@ -88,6 +98,9 @@ void main() {
               child: buildAppLockScreenForGolden(
                 child: const PasscodeLockScreen(isBiometricEnabled: true),
                 themeMode: ThemeMode.light,
+                initialState: const AppLockState.locked(
+                  isBiometricEnabled: true,
+                ),
               ),
             ),
           ),
@@ -99,6 +112,9 @@ void main() {
               child: buildAppLockScreenForGolden(
                 child: const PasscodeLockScreen(isBiometricEnabled: false),
                 themeMode: ThemeMode.dark,
+                initialState: const AppLockState.locked(
+                  isBiometricEnabled: false,
+                ),
               ),
             ),
           ),
@@ -106,4 +122,31 @@ void main() {
       ),
     );
   });
+}
+
+class _TestAppLockService extends AppLockService {
+  _TestAppLockService(this._initialState);
+
+  final AppLockState _initialState;
+
+  @override
+  Future<AppLockState> build() async => _initialState;
+
+  @override
+  Future<bool> setupPasscode(String passcode) async => false;
+
+  @override
+  Future<void> skipBiometric() async {}
+
+  @override
+  Future<bool> enableBiometric({required String localizedReason}) async =>
+      false;
+
+  @override
+  Future<bool> unlockWithPasscode(String passcode) async => false;
+
+  @override
+  Future<bool> unlockWithBiometrics({
+    required String localizedReason,
+  }) async => false;
 }
