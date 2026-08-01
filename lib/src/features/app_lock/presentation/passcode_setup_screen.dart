@@ -24,13 +24,14 @@ class PasscodeSetupScreen extends HookConsumerWidget {
     final firstPin = useState<String>('');
     final confirmPin = useState<String>('');
     final isConfirming = useState<bool>(false);
+    final isProcessing = useState<bool>(false);
     final errorMessage = useState<String?>(null);
     final showBiometricPrompt = useState<bool>(false);
 
     final currentPin = isConfirming.value ? confirmPin.value : firstPin.value;
 
     Future<void> handleNumberPressed(String number) async {
-      if (currentPin.length >= _pinLength) {
+      if (isProcessing.value || currentPin.length >= _pinLength) {
         return;
       }
 
@@ -46,15 +47,20 @@ class PasscodeSetupScreen extends HookConsumerWidget {
         if (confirmPin.value.length == _pinLength) {
           if (firstPin.value == confirmPin.value) {
             // 設定成功
-            final notifier = ref.read(appLockServiceProvider.notifier);
-            final canCheckBiometrics = await notifier.setupPasscode(
-              confirmPin.value,
-            );
+            isProcessing.value = true;
+            try {
+              final notifier = ref.read(appLockServiceProvider.notifier);
+              final canCheckBiometrics = await notifier.setupPasscode(
+                confirmPin.value,
+              );
 
-            if (canCheckBiometrics) {
-              showBiometricPrompt.value = true;
-            } else {
-              notifier.skipBiometric();
+              if (canCheckBiometrics) {
+                showBiometricPrompt.value = true;
+              } else {
+                notifier.skipBiometric();
+              }
+            } finally {
+              isProcessing.value = false;
             }
           } else {
             // パスコード不一致
@@ -69,6 +75,10 @@ class PasscodeSetupScreen extends HookConsumerWidget {
     }
 
     void handleBackspacePressed() {
+      if (isProcessing.value) {
+        return;
+      }
+
       if (currentPin.isNotEmpty) {
         if (!isConfirming.value) {
           firstPin.value = currentPin.substring(0, currentPin.length - 1);
@@ -80,70 +90,73 @@ class PasscodeSetupScreen extends HookConsumerWidget {
 
     return Stack(
       children: [
-        Scaffold(
-          body: SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
-                    ),
-                    child: IntrinsicHeight(
-                      child: Column(
-                        children: [
-                          const Spacer(),
-                          Icon(
-                            Icons.lock_reset,
-                            size: 64,
-                            color: theme.colorScheme.primary,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            l10n.appLockSetupTitle,
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
+        AbsorbPointer(
+          absorbing: isProcessing.value || showBiometricPrompt.value,
+          child: Scaffold(
+            body: SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: IntrinsicHeight(
+                        child: Column(
+                          children: [
+                            const Spacer(),
+                            Icon(
+                              Icons.lock_reset,
+                              size: 64,
+                              color: theme.colorScheme.primary,
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            isConfirming.value
-                                ? l10n.appLockSetupEnterConfirm
-                                : l10n.appLockSetupEnterFirst,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-                          PinCodeField(
-                            length: currentPin.length,
-                            maxLength: _pinLength,
-                          ),
-                          const SizedBox(height: 16),
-                          AnimatedOpacity(
-                            opacity: errorMessage.value != null ? 1.0 : 0.0,
-                            duration: const Duration(milliseconds: 200),
-                            child: Text(
-                              errorMessage.value ?? '',
-                              style: TextStyle(
-                                color: theme.colorScheme.error,
-                                fontWeight: FontWeight.w600,
+                            const SizedBox(height: 16),
+                            Text(
+                              l10n.appLockSetupTitle,
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ),
-                          const Spacer(),
-                          NumericKeyboard(
-                            onNumberPressed: (digit) =>
-                                unawaited(handleNumberPressed(digit)),
-                            onBackspacePressed: handleBackspacePressed,
-                          ),
-                          const SizedBox(height: 24),
-                        ],
+                            const SizedBox(height: 12),
+                            Text(
+                              isConfirming.value
+                                  ? l10n.appLockSetupEnterConfirm
+                                  : l10n.appLockSetupEnterFirst,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            PinCodeField(
+                              length: currentPin.length,
+                              maxLength: _pinLength,
+                            ),
+                            const SizedBox(height: 16),
+                            AnimatedOpacity(
+                              opacity: errorMessage.value != null ? 1.0 : 0.0,
+                              duration: const Duration(milliseconds: 200),
+                              child: Text(
+                                errorMessage.value ?? '',
+                                style: TextStyle(
+                                  color: theme.colorScheme.error,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const Spacer(),
+                            NumericKeyboard(
+                              onNumberPressed: (digit) =>
+                                  unawaited(handleNumberPressed(digit)),
+                              onBackspacePressed: handleBackspacePressed,
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
         ),
