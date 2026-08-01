@@ -1,4 +1,5 @@
 import 'package:flutter_sample/src/core/config/env_config.dart';
+import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/app_lock/data/app_lock_repository.dart';
 import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
@@ -14,8 +15,8 @@ class AppLockService extends _$AppLockService {
   /// OS標準生体認証ダイアログの表示に伴うライフサイクル変化（resumed）による誤ロックを防ぐフラグ
   bool _isAuthenticating = false;
 
-  /// 直近でロック解除（または設定完了）された日時（OSイベントの遅延による誤ロック防止用）
-  DateTime? _lastUnlockedAt;
+  /// 生体認証プロンプトが閉じられた直後の日時（OSイベントの遅延による誤ロック防止用）
+  DateTime? _promptDismissedAt;
 
   @override
   Future<AppLockState> build() async {
@@ -65,7 +66,6 @@ class AppLockService extends _$AppLockService {
   /// 生体認証を使わずに初期設定を完了する（スキップ時）
   void skipBiometric() {
     ref.read(loggerProvider).info('[AppLockService] Biometric skipped');
-    _lastUnlockedAt = DateTime.now();
     state = const AsyncValue.data(
       AppLockState.unlocked(isBiometricEnabled: false),
     );
@@ -81,7 +81,7 @@ class AppLockService extends _$AppLockService {
         localizedReason: localizedReason,
       );
 
-      _lastUnlockedAt = DateTime.now();
+      _promptDismissedAt = ref.read(clockProvider)();
 
       if (authenticated) {
         // 成功した場合: 生体認証を有効にして設定完了し、早期リターン
@@ -123,7 +123,6 @@ class AppLockService extends _$AppLockService {
     }
 
     final isBiometricEnabled = await repository.isBiometricEnabled();
-    _lastUnlockedAt = DateTime.now();
     state = AsyncValue.data(
       AppLockState.unlocked(isBiometricEnabled: isBiometricEnabled),
     );
@@ -153,7 +152,7 @@ class AppLockService extends _$AppLockService {
         return false;
       }
 
-      _lastUnlockedAt = DateTime.now();
+      _promptDismissedAt = ref.read(clockProvider)();
 
       // OSのFace IDダイアログが完全に消え去るまで余裕を持って1000ms待機
       await Future<void>.delayed(const Duration(milliseconds: 1000));
@@ -177,11 +176,13 @@ class AppLockService extends _$AppLockService {
       return; // 生体認証実行中は誤ロック防止のためスキップ
     }
 
-    // ロック解除直後（2秒以内）の復帰イベントはOSダイアログ遅延とみなし無視する
-    if (_lastUnlockedAt != null &&
-        DateTime.now().difference(_lastUnlockedAt!) <
-            const Duration(seconds: 2)) {
-      return;
+    // OSの生体認証プロンプトが閉じられた直後（2秒以内）の復帰イベントのみを消費・スキップ
+    if (_promptDismissedAt != null) {
+      final elapsed = ref.read(clockProvider)().difference(_promptDismissedAt!);
+      _promptDismissedAt = null; // プロンプト起因のイベントを消費
+      if (elapsed < const Duration(seconds: 2)) {
+        return;
+      }
     }
 
     final currentState = state.value;
@@ -199,7 +200,7 @@ class AppLockService extends _$AppLockService {
   Future<void> clearAppLock() async {
     final repository = ref.read(appLockRepositoryProvider);
     await repository.clearAll();
-    _lastUnlockedAt = null;
+    _promptDismissedAt = null;
     state = const AsyncValue.data(AppLockState.disabled());
   }
 }

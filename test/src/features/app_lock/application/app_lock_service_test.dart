@@ -1,6 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
+import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
 import 'package:flutter_sample/src/features/app_lock/data/app_lock_repository.dart';
@@ -33,6 +34,7 @@ void main() {
     required bool isBiometricEnabled,
     bool useFirebaseAuth = false,
     User? firebaseUser,
+    DateTime Function()? clock,
   }) {
     when(
       () => mockRepository.hasPasscode(),
@@ -45,6 +47,7 @@ void main() {
       overrides: [
         appLockRepositoryProvider.overrideWithValue(mockRepository),
         loggerProvider.overrideWithValue(mockTalker),
+        if (clock != null) clockProvider.overrideWithValue(clock),
         envConfigProvider.overrideWithValue(
           EnvConfigState(
             baseUrl: 'http://example.com',
@@ -345,14 +348,72 @@ void main() {
       // 解除状態にするためスキップ実行
       container.read(appLockServiceProvider.notifier).skipBiometric();
 
-      // ロック解除直後のクールダウン（2秒間）を経過させる
-      await Future<void>.delayed(const Duration(milliseconds: 2100));
-
+      // パスコード解除やスキップ直後の復帰時は遅延なしで即座にロックされる
       container.read(appLockServiceProvider.notifier).lockApp();
 
       final state = container.read(appLockServiceProvider).value;
       check(state).equals(
         const AppLockState.locked(isBiometricEnabled: false),
+      );
+    });
+
+    test('lockApp: 生体認証プロンプト閉じ直後（2秒以内）の復帰イベントはロックがスキップされる', () async {
+      final container = createContainer(
+        isAuthenticated: true,
+        hasPasscode: true,
+        isBiometricEnabled: true,
+      );
+      await container.read(appLockServiceProvider.future);
+
+      when(
+        () => mockRepository.authenticateWithBiometrics(
+          localizedReason: 'Reason',
+        ),
+      ).thenAnswer((_) async => true);
+
+      // 生体認証で解除
+      await container
+          .read(appLockServiceProvider.notifier)
+          .unlockWithBiometrics(localizedReason: 'Reason');
+
+      // 直後の lockApp() はプロンプト閉じイベントとして無視される
+      container.read(appLockServiceProvider.notifier).lockApp();
+
+      final state = container.read(appLockServiceProvider).value;
+      check(state).equals(
+        const AppLockState.unlocked(isBiometricEnabled: true),
+      );
+    });
+
+    test('lockApp: 生体認証プロンプト閉じ後に2秒以上経過した復帰イベントはロック状態に遷移する', () async {
+      var currentTime = DateTime(2026, 8, 1, 12);
+      final container = createContainer(
+        isAuthenticated: true,
+        hasPasscode: true,
+        isBiometricEnabled: true,
+        clock: () => currentTime,
+      );
+
+      when(
+        () => mockRepository.authenticateWithBiometrics(
+          localizedReason: 'Reason',
+        ),
+      ).thenAnswer((_) async => true);
+
+      await container.read(appLockServiceProvider.future);
+
+      await container
+          .read(appLockServiceProvider.notifier)
+          .unlockWithBiometrics(localizedReason: 'Reason');
+
+      // 2.1秒時間を進める
+      currentTime = currentTime.add(const Duration(milliseconds: 2100));
+
+      container.read(appLockServiceProvider.notifier).lockApp();
+
+      final state = container.read(appLockServiceProvider).value;
+      check(state).equals(
+        const AppLockState.locked(isBiometricEnabled: true),
       );
     });
 
