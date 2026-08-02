@@ -10,37 +10,38 @@
 トークン認証に関わるファイルは、責務ごとに適切なレイヤー（基盤層・機能層）に美しく分離されています。
 
 ```plaintext
-lib/src/core/storage/
- └── token_storage.dart       # トークンの永続化（SecureStorage利用）
-
-lib/src/core/network/
- └── token_interceptor.dart   # DioのInterceptor（トークン自動付与・排他リフレッシュ制御）
-
 lib/src/features/auth/data/
- └── auth_repository.dart     # ログイン処理・トークンリフレッシュAPIの呼び出し
+ ├── token_storage.dart       # トークンの永続化（SecureStorage利用）
+ ├── token_interceptor.dart   # DioのInterceptor（トークン自動付与・排他リフレッシュ制御）
+ ├── auth_repository.dart     # ログイン処理・トークンリフレッシュAPIの呼び出し
+ └── auth_overrides.dart      # 認証系プロバイダーの動的切り替え・オーバーライド設定
 ```
 
 ---
 
 ## 🧩 循環参照を防ぐ Riverpod DI（高度な設計）
 
-`TokenInterceptor`（基盤層: core）が、リフレッシュのために `AuthRepository`（機能層: features）を直接読み込むと、**レイヤーの逆参照（循環参照）** が発生してしまいます。
-
-この問題を解決するため、本プロジェクトでは **コールバックプロバイダを用いた依存性の注入（DI）** を行っています。
+`TokenInterceptor` や `TokenStorage` は認証固有の機能であるため、基盤層（`core`）ではなく `features/auth/data/` に配置されています。
+`core/network/dio_provider.dart` が `features/auth` を直接参照すると **レイヤーの逆参照** が発生してしまうため、以下の通り **依存関係の逆転（Dependency Inversion）** パターンを採用しています。
 
 1. **基盤層（core）での定義**:
-   `tokenInterceptor` は、実体のない `tokenRefreshCallbackProvider`（関数）を監視します。
-2. **アプリ起動時（main.dart）での注入**:
-   `ProviderContainer` の初期化時に、機能層の `refreshToken` メソッドを基盤層に注入（override）します。
+   `core/network/dio_provider.dart` では、抽象的な `authInterceptorsProvider`（デフォルトは空リスト `[]`）を定義し、それを `dioProvider` が読み込みます。
+2. **アプリ起動時（auth_overrides.dart）での注入**:
+   `auth_overrides.dart` 内で `authInterceptorsProvider` をオーバーライドし、`tokenInterceptorProvider` を注入します。
 
 ```dart
-// main.dart での依存関係の注入例
-tokenRefreshCallbackProvider.overrideWith(
-  (ref) => ref.watch(authRepositoryProvider).refreshToken,
-)
+// auth_overrides.dart での依存関係の注入例
+List<dynamic> getAuthOverrides() {
+  return [
+    authInterceptorsProvider.overrideWith(
+      (ref) => [ref.watch(tokenInterceptorProvider)],
+    ),
+    // ...
+  ];
+}
 ```
 
-この設計により、Core層を他のプロジェクトにコピペして使い回すことができる**極めて独立性の高いネットワーク基盤**を実現しています。
+この設計により、Core層が特定機能へ依存せず、完全な自己完結性と再利用性を保持する**極めて独立性の高いネットワーク基盤**を実現しています。
 
 ---
 
@@ -111,7 +112,7 @@ dio.interceptors.add(ref.watch(dioInterceptorProvider));
   - `tokenStorageProvider` を `FirebaseAuthTokenStorage` に差し替え、Firebase から直接 ID トークンを取得します。
   - `tokenRefreshCallbackProvider` は Firebase の `user.getIdToken(true)` を実行して強制的に更新します。
 
-この切り替えは、アプリのエントリーポイント（`main.dart`）の `ProviderContainer` のオーバーライド定義（`overrideWith`）内で `ref.watch(envConfigProvider)` を監視し、条件分岐によって返却するインスタンスや処理を動的に切り替えることで実現しています。  
+この切り替えは、`getAuthOverrides()`（`lib/src/features/auth/data/auth_overrides.dart`）で提供されるオーバーライド定義（`overrideWith`）内で `ref.watch(envConfigProvider)` を監視し、条件分岐によって返却するインスタンスや処理を動的に切り替えることで実現しています。  
 これにより、Riverpodの仕様である「起動後に上書き設定（overrides）の数を動的に変更できない」という制約を回避し、クラッシュを防止しつつ安全に動作を切り替えています。
 詳細な仕様は [Firebase Authenticationによる認証対応](firebase_authentication.md) を参照してください。
 

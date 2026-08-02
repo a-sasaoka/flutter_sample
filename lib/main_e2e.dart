@@ -4,9 +4,9 @@ import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
-import 'package:flutter_sample/src/core/storage/token_storage.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// E2Eテスト用にモック化した認証リポジトリ

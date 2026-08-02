@@ -1,5 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_sample/src/core/storage/token_storage.dart';
+import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 
 /// Firebase AuthenticationからIDトークンを取得する専用のストレージクラス
 class FirebaseAuthTokenStorage implements TokenStorage {

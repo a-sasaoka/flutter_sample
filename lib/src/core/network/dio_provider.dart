@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
-import 'package:flutter_sample/src/core/network/token_interceptor.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:talker_dio_logger/talker_dio_logger.dart';
@@ -10,16 +9,23 @@ import 'package:talker_flutter/talker_flutter.dart';
 
 part 'dio_provider.g.dart';
 
+/// 追加の認証インターセプターを提供するプロバイダー（デフォルトは空リスト）
+/// Core層では特定の機能に依存しないため、App/Feature層にてオーバーライドして注入します
+@Riverpod(keepAlive: true)
+List<Interceptor> authInterceptors(Ref ref) {
+  return const [];
+}
+
 /// 共通Dioインスタンスを提供するProvider
 ///
 /// - Base URLやタイムアウトを設定
 /// - インターセプタでログ出力
-/// - トークン認証もここで組み込み
+/// - トークン認証などもオーバーライドによって組み込み可能
 @Riverpod(keepAlive: true)
 Dio dio(Ref ref) {
   return _createDio(
     ref,
-    additionalInterceptors: [ref.watch(tokenInterceptorProvider)],
+    additionalInterceptors: ref.watch(authInterceptorsProvider),
   );
 }
 

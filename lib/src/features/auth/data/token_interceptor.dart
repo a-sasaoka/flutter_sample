@@ -1,22 +1,18 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
-import 'package:flutter_sample/src/core/storage/token_storage.dart';
+import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'token_interceptor.g.dart';
 
 /// トークンのリフレッシュを実行し、成功したかどうかを返す関数の型
-///
-/// Core層が特定の機能（AuthRepository等）に依存しないよう、
-/// 関数のみを受け取る設計（依存関係の逆転）にしています
 typedef TokenRefreshCallback = Future<bool> Function();
 
 /// [TokenRefreshCallback] を提供するプロバイダ
 ///
-/// Core層では具体的な実装を持たないため、デフォルトでは `UnimplementedError` を投げます。
-/// アプリ起動時の最上位の `ProviderScope` (overrides) にて、
-/// Feature層のリフレッシュ処理（例: authRepositoryProvider の refreshToken メソッド）
-/// でオーバーライドして使用してください
+/// デフォルトでは `UnimplementedError` を投げます。
+/// アプリ起動時の `ProviderScope` (overrides) にて、
+/// 認証機能のリフレッシュ処理（`authRepositoryProvider.refreshToken`）でオーバーライドして使用してください
 @Riverpod(keepAlive: true)
 TokenRefreshCallback tokenRefreshCallback(Ref ref) {
   throw UnimplementedError(
@@ -27,7 +23,6 @@ TokenRefreshCallback tokenRefreshCallback(Ref ref) {
 // coverage:ignore-start
 /// テストで Notifier の内部構造 (_element) によるエラーを回避するため、
 /// Notifier インスタンスを直接提供するだけの Provider を定義します。
-/// これにより、テスト時は単なる Mock オブジェクトに差し替え可能になります。
 @Riverpod(keepAlive: true)
 TokenStorage tokenStorageInternal(Ref ref) {
   return ref.watch(tokenStorageProvider);

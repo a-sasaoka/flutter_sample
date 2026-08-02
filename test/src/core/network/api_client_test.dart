@@ -4,8 +4,8 @@ import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
-import 'package:flutter_sample/src/core/network/token_interceptor.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/features/auth/data/token_interceptor.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
@@ -175,6 +175,7 @@ void main() {
               useFirebaseAuth: true,
             ),
           ),
+          authInterceptorsProvider.overrideWithValue([mockTokenInterceptor]),
           tokenInterceptorProvider.overrideWithValue(mockTokenInterceptor),
           dioInterceptorProvider.overrideWithValue(mockDioInterceptor),
           loggerProvider.overrideWithValue(mockTalker),

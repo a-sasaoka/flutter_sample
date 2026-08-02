@@ -36,7 +36,7 @@ final class LocaleNotifierProvider
   LocaleNotifier create() => LocaleNotifier();
 }
 
-String _$localeNotifierHash() => r'c41c3804b3002d1175dffb841e731a5cdfeea954';
+String _$localeNotifierHash() => r'0e4c204eeb3f70019157b1c19a4eb09f90c585c5';
 
 /// アプリ全体のロケールを管理するプロバイダ
 

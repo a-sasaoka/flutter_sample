@@ -8,11 +8,66 @@ part of 'dio_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// 追加の認証インターセプターを提供するプロバイダー（デフォルトは空リスト）
+/// Core層では特定の機能に依存しないため、App/Feature層にてオーバーライドして注入します
+
+@ProviderFor(authInterceptors)
+final authInterceptorsProvider = AuthInterceptorsProvider._();
+
+/// 追加の認証インターセプターを提供するプロバイダー（デフォルトは空リスト）
+/// Core層では特定の機能に依存しないため、App/Feature層にてオーバーライドして注入します
+
+final class AuthInterceptorsProvider
+    extends
+        $FunctionalProvider<
+          List<Interceptor>,
+          List<Interceptor>,
+          List<Interceptor>
+        >
+    with $Provider<List<Interceptor>> {
+  /// 追加の認証インターセプターを提供するプロバイダー（デフォルトは空リスト）
+  /// Core層では特定の機能に依存しないため、App/Feature層にてオーバーライドして注入します
+  AuthInterceptorsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'authInterceptorsProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$authInterceptorsHash();
+
+  @$internal
+  @override
+  $ProviderElement<List<Interceptor>> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  List<Interceptor> create(Ref ref) {
+    return authInterceptors(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<Interceptor> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<List<Interceptor>>(value),
+    );
+  }
+}
+
+String _$authInterceptorsHash() => r'd99730a2c35f8ec3cefca55295809563d23a8a40';
+
 /// 共通Dioインスタンスを提供するProvider
 ///
 /// - Base URLやタイムアウトを設定
 /// - インターセプタでログ出力
-/// - トークン認証もここで組み込み
+/// - トークン認証などもオーバーライドによって組み込み可能
 
 @ProviderFor(dio)
 final dioProvider = DioProvider._();
@@ -21,7 +76,7 @@ final dioProvider = DioProvider._();
 ///
 /// - Base URLやタイムアウトを設定
 /// - インターセプタでログ出力
-/// - トークン認証もここで組み込み
+/// - トークン認証などもオーバーライドによって組み込み可能
 
 final class DioProvider extends $FunctionalProvider<Dio, Dio, Dio>
     with $Provider<Dio> {
@@ -29,7 +84,7 @@ final class DioProvider extends $FunctionalProvider<Dio, Dio, Dio>
   ///
   /// - Base URLやタイムアウトを設定
   /// - インターセプタでログ出力
-  /// - トークン認証もここで組み込み
+  /// - トークン認証などもオーバーライドによって組み込み可能
   DioProvider._()
     : super(
         from: null,
@@ -63,7 +118,7 @@ final class DioProvider extends $FunctionalProvider<Dio, Dio, Dio>
   }
 }
 
-String _$dioHash() => r'8703fa1677b9ea61497315a9e885376cc98ea956';
+String _$dioHash() => r'574e45eb05e8e7ee1180fb89d1d60cb529bf288a';
 
 /// 認証や再リクエスト用のプレーンなDioインスタンスを提供するProvider
 ///

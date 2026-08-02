@@ -1,6 +1,7 @@
 import 'package:checks/checks.dart';
+import 'package:flutter_sample/src/app/constants/storage_keys.dart';
 import 'package:flutter_sample/src/core/storage/secure_storage_provider.dart';
-import 'package:flutter_sample/src/core/storage/token_storage.dart';
+import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -29,8 +30,6 @@ void main() {
   group('TokenStorage', () {
     const testAccessToken = 'test_access_token';
     const testRefreshToken = 'test_refresh_token';
-    const accessTokenKey = 'access_token';
-    const refreshTokenKey = 'refresh_token';
 
     test('saveTokens: アクセストークンとリフレッシュトークンを正しいキーで保存すること', () async {
       // Arrange
@@ -50,17 +49,23 @@ void main() {
 
       // Assert
       verify(
-        () => mockStorage.write(key: accessTokenKey, value: testAccessToken),
+        () => mockStorage.write(
+          key: SecureStorageKeys.accessToken,
+          value: testAccessToken,
+        ),
       ).called(1);
       verify(
-        () => mockStorage.write(key: refreshTokenKey, value: testRefreshToken),
+        () => mockStorage.write(
+          key: SecureStorageKeys.refreshToken,
+          value: testRefreshToken,
+        ),
       ).called(1);
     });
 
     test('getAccessToken: 保存されているアクセストークンを取得できること', () async {
       // Arrange
       when(
-        () => mockStorage.read(key: accessTokenKey),
+        () => mockStorage.read(key: SecureStorageKeys.accessToken),
       ).thenAnswer((_) async => testAccessToken);
       final storage = container.read(tokenStorageProvider);
 
@@ -69,13 +74,15 @@ void main() {
 
       // Assert
       check(result).equals(testAccessToken);
-      verify(() => mockStorage.read(key: accessTokenKey)).called(1);
+      verify(
+        () => mockStorage.read(key: SecureStorageKeys.accessToken),
+      ).called(1);
     });
 
     test('getRefreshToken: 保存されているリフレッシュトークンを取得できること', () async {
       // Arrange
       when(
-        () => mockStorage.read(key: refreshTokenKey),
+        () => mockStorage.read(key: SecureStorageKeys.refreshToken),
       ).thenAnswer((_) async => testRefreshToken);
       final storage = container.read(tokenStorageProvider);
 
@@ -84,7 +91,9 @@ void main() {
 
       // Assert
       check(result).equals(testRefreshToken);
-      verify(() => mockStorage.read(key: refreshTokenKey)).called(1);
+      verify(
+        () => mockStorage.read(key: SecureStorageKeys.refreshToken),
+      ).called(1);
     });
 
     test('clear: 両方のトークンを削除すること', () async {
@@ -98,8 +107,12 @@ void main() {
       await storage.clear();
 
       // Assert
-      verify(() => mockStorage.delete(key: accessTokenKey)).called(1);
-      verify(() => mockStorage.delete(key: refreshTokenKey)).called(1);
+      verify(
+        () => mockStorage.delete(key: SecureStorageKeys.accessToken),
+      ).called(1);
+      verify(
+        () => mockStorage.delete(key: SecureStorageKeys.refreshToken),
+      ).called(1);
     });
 
     test('トークンが保存されていない場合、get メソッドが null を返すこと', () async {
@@ -134,7 +147,9 @@ void main() {
 
       // Assert
       check(token).equals('raw_token');
-      verify(() => mockStorage.read(key: 'access_token')).called(1);
+      verify(
+        () => mockStorage.read(key: SecureStorageKeys.accessToken),
+      ).called(1);
     });
   });
 }

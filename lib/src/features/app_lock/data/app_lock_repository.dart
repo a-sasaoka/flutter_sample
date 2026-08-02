@@ -1,3 +1,4 @@
+import 'package:flutter_sample/src/app/constants/storage_keys.dart';
 import 'package:flutter_sample/src/core/storage/secure_storage_provider.dart';
 import 'package:flutter_sample/src/features/app_lock/data/local_authentication_provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -18,69 +19,77 @@ class AppLockRepository {
   final FlutterSecureStorage _secureStorage;
   final LocalAuthentication _localAuth;
 
-  static const _passcodeKey = 'app_lock_passcode';
-  static const _biometricEnabledKey = 'app_lock_biometric_enabled';
-  static const _failedAttemptsKey = 'app_lock_failed_attempts';
-  static const _lockoutUntilKey = 'app_lock_lockout_until';
-
   /// パスコードが設定されているか取得
   Future<bool> hasPasscode() async {
-    final passcode = await _secureStorage.read(key: _passcodeKey);
+    final passcode = await _secureStorage.read(
+      key: SecureStorageKeys.appLockPasscode,
+    );
     return passcode != null && passcode.isNotEmpty;
   }
 
   /// パスコードを保存
   Future<void> savePasscode(String passcode) async {
-    await _secureStorage.write(key: _passcodeKey, value: passcode);
+    await _secureStorage.write(
+      key: SecureStorageKeys.appLockPasscode,
+      value: passcode,
+    );
   }
 
   /// 入力されたパスコードが正しいか検証
   Future<bool> verifyPasscode(String passcode) async {
-    final savedPasscode = await _secureStorage.read(key: _passcodeKey);
+    final savedPasscode = await _secureStorage.read(
+      key: SecureStorageKeys.appLockPasscode,
+    );
     return savedPasscode == passcode;
   }
 
   /// 生体認証が有効になっているか取得
   Future<bool> isBiometricEnabled() async {
-    final value = await _secureStorage.read(key: _biometricEnabledKey);
+    final value = await _secureStorage.read(
+      key: SecureStorageKeys.appLockBiometricEnabled,
+    );
     return value == 'true';
   }
 
   /// 生体認証の有効/無効を設定
   Future<void> setBiometricEnabled({required bool enabled}) async {
     await _secureStorage.write(
-      key: _biometricEnabledKey,
+      key: SecureStorageKeys.appLockBiometricEnabled,
       value: enabled.toString(),
     );
   }
 
   /// パスコード連続失敗回数を取得
   Future<int> getFailedAttempts() async {
-    final value = await _secureStorage.read(key: _failedAttemptsKey);
+    final value = await _secureStorage.read(
+      key: SecureStorageKeys.appLockFailedAttempts,
+    );
     return value != null ? int.tryParse(value) ?? 0 : 0;
   }
 
   /// パスコード連続失敗回数を保存
   Future<void> saveFailedAttempts(int attempts) async {
     await _secureStorage.write(
-      key: _failedAttemptsKey,
+      key: SecureStorageKeys.appLockFailedAttempts,
       value: attempts.toString(),
     );
   }
 
   /// ロックアウト終了日時を取得
   Future<DateTime?> getLockoutUntil() async {
-    final value = await _secureStorage.read(key: _lockoutUntilKey);
+    final value = await _secureStorage.read(
+      key: SecureStorageKeys.appLockLockoutUntil,
+    );
     return value != null ? DateTime.tryParse(value) : null;
   }
 
   /// ロックアウト終了日時を保存（null の場合は削除）
   Future<void> saveLockoutUntil(DateTime? lockoutUntil) async {
     if (lockoutUntil == null) {
-      await _secureStorage.delete(key: _lockoutUntilKey);
+      await _secureStorage.delete(key: SecureStorageKeys.appLockLockoutUntil);
     } else {
       await _secureStorage.write(
-        key: _lockoutUntilKey,
+        key: SecureStorageKeys.appLockLockoutUntil,
         value: lockoutUntil.toIso8601String(),
       );
     }
@@ -88,8 +97,8 @@ class AppLockRepository {
 
   /// 失敗カウントとロックアウト日時をリセット
   Future<void> resetLockout() async {
-    await _secureStorage.delete(key: _failedAttemptsKey);
-    await _secureStorage.delete(key: _lockoutUntilKey);
+    await _secureStorage.delete(key: SecureStorageKeys.appLockFailedAttempts);
+    await _secureStorage.delete(key: SecureStorageKeys.appLockLockoutUntil);
   }
 
   /// 端末が生体認証に対応し、かつ実際に登録・有効化されているか判定
@@ -121,8 +130,8 @@ class AppLockRepository {
 
   /// すべてのロック関連設定をクリア (ログアウト時など)
   Future<void> clearAll() async {
-    await _secureStorage.delete(key: _passcodeKey);
-    await _secureStorage.delete(key: _biometricEnabledKey);
+    await _secureStorage.delete(key: SecureStorageKeys.appLockPasscode);
+    await _secureStorage.delete(key: SecureStorageKeys.appLockBiometricEnabled);
     await resetLockout();
   }
 }

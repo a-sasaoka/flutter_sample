@@ -1,13 +1,15 @@
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_sample/src/app/constants/storage_keys.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
-import 'package:flutter_sample/src/core/network/token_interceptor.dart';
+import 'package:flutter_sample/src/core/network/dio_provider.dart';
 import 'package:flutter_sample/src/core/storage/secure_storage_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_overrides.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/data/token_interceptor.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -67,6 +69,13 @@ void main() {
           ],
         );
 
+        // --- authInterceptors の検証 ---
+        final authInterceptors = container.read(authInterceptorsProvider);
+        check(authInterceptors.length).equals(1);
+        check(
+          authInterceptors.first,
+        ).equals(container.read(tokenInterceptorProvider));
+
         // --- 認証ヘッダー付与の検証 ---
         final interceptor = container.read(tokenInterceptorProvider);
         final options = RequestOptions(path: '/test');
@@ -95,7 +104,7 @@ void main() {
         final mockAuthRepository = MockAuthRepository();
 
         when(
-          () => mockSecureStorage.read(key: 'access_token'),
+          () => mockSecureStorage.read(key: SecureStorageKeys.accessToken),
         ).thenAnswer((_) async => 'mock_access_token');
         when(mockAuthRepository.refreshToken).thenAnswer((_) async => true);
 

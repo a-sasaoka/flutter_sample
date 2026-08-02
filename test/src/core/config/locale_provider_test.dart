@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/src/app/constants/storage_keys.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -34,7 +35,7 @@ void main() {
     test('初期化時(build): 保存された言語がない場合は null を返すこと', () async {
       // Arrange: ストレージから取得した際に null が返るように設定
       when(
-        () => mockPrefs.getString('locale_key'),
+        () => mockPrefs.getString(SharedPrefKeys.localeCode),
       ).thenAnswer((_) async => null);
 
       final container = createContainer();
@@ -44,13 +45,13 @@ void main() {
 
       // Assert
       check(locale).isNull();
-      verify(() => mockPrefs.getString('locale_key')).called(1);
+      verify(() => mockPrefs.getString(SharedPrefKeys.localeCode)).called(1);
     });
 
     test('初期化時(build): "ja" が保存されている場合は Locale("ja") を返すこと', () async {
       // Arrange: ストレージに "ja" が保存されている状態をモック
       when(
-        () => mockPrefs.getString('locale_key'),
+        () => mockPrefs.getString(SharedPrefKeys.localeCode),
       ).thenAnswer((_) async => 'ja');
 
       final container = createContainer();
@@ -66,11 +67,11 @@ void main() {
       // Arrange
       // 1. build時の取得処理のモック（最初は未設定とする）
       when(
-        () => mockPrefs.getString('locale_key'),
+        () => mockPrefs.getString(SharedPrefKeys.localeCode),
       ).thenAnswer((_) async => null);
       // 2. 保存処理(setString)のモック（何もせずに完了する）
       when(
-        () => mockPrefs.setString('locale_key', 'en'),
+        () => mockPrefs.setString(SharedPrefKeys.localeCode, 'en'),
       ).thenAnswer((_) async {});
 
       final container = createContainer();
@@ -88,17 +89,21 @@ void main() {
       check(currentState).equals(const Locale('en'));
 
       // ストレージに保存するメソッドが正しく呼ばれたこと
-      verify(() => mockPrefs.setString('locale_key', 'en')).called(1);
+      verify(
+        () => mockPrefs.setString(SharedPrefKeys.localeCode, 'en'),
+      ).called(1);
     });
 
     test('setLocale(null): nullを渡すとストレージから削除され、状態がnullに戻ること', () async {
       // Arrange
       // 1. build時は "ja" が設定されていたとする
       when(
-        () => mockPrefs.getString('locale_key'),
+        () => mockPrefs.getString(SharedPrefKeys.localeCode),
       ).thenAnswer((_) async => 'ja');
       // 2. 削除処理(remove)のモック
-      when(() => mockPrefs.remove('locale_key')).thenAnswer((_) async {});
+      when(
+        () => mockPrefs.remove(SharedPrefKeys.localeCode),
+      ).thenAnswer((_) async {});
 
       final container = createContainer();
       await container.read(localeProvider.future);
@@ -113,7 +118,7 @@ void main() {
       check(currentState).isNull();
 
       // ストレージの削除メソッドが呼ばれたこと
-      verify(() => mockPrefs.remove('locale_key')).called(1);
+      verify(() => mockPrefs.remove(SharedPrefKeys.localeCode)).called(1);
     });
   });
 }
