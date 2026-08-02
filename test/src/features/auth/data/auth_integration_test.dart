@@ -1,6 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_sample/src/app/constants/storage_keys.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
 import 'package:flutter_sample/src/core/storage/secure_storage_provider.dart';
@@ -103,7 +104,7 @@ void main() {
         final mockAuthRepository = MockAuthRepository();
 
         when(
-          () => mockSecureStorage.read(key: 'access_token'),
+          () => mockSecureStorage.read(key: SecureStorageKeys.accessToken),
         ).thenAnswer((_) async => 'mock_access_token');
         when(mockAuthRepository.refreshToken).thenAnswer((_) async => true);
 
