@@ -13,11 +13,16 @@
 永続化の仕組みは `lib/src/core/` および `lib/src/app/` に集約されています。具体的な機能（メモ帳など）での活用方法は、[メモ機能のドキュメント](./memos.md) を参照してください。
 
 ```plaintext
+lib/src/app/constants/
+ └── storage_keys.dart                 # ストレージキーの一元管理（SecureStorageKeys / SharedPrefKeys）
+
 lib/src/core/storage/
  ├── shared_preferences_provider.dart  # SharedPreferencesAsyncの提供
  ├── cache_manager.dart                # APIレスポンス等のキャッシュ管理
- ├── secure_storage_provider.dart      # FlutterSecureStorageの提供
- └── token_storage.dart                # 認証トークンの管理
+ └── secure_storage_provider.dart      # FlutterSecureStorageの提供
+
+lib/src/features/auth/data/
+ └── token_storage.dart                # 認証トークンの管理（SecureStorage利用）
 
 lib/src/app/database/
  └── app_database.dart                 # Driftデータベース本体（テーブルの統合管理）
@@ -26,6 +31,15 @@ lib/src/core/database/
  ├── database_provider.dart            # AppDatabaseの提供とリソース管理
  └── drift_talker_interceptor.dart     # Talkerへのクエリログ出力
 ```
+
+---
+
+## 💡 ストレージキーの一元管理 (`StorageKeys`)
+
+`SharedPreferences` や `FlutterSecureStorage` で使用するキー文字列が各プロバイダやリポジトリに直書きされるのを防ぐため、`lib/src/app/constants/storage_keys.dart` に定数クラスとして定義・一元管理しています。
+
+- **`SecureStorageKeys`**: `access_token`, `refresh_token`, `app_lock_passcode` 等の暗号化保存用キー
+- **`SharedPrefKeys`**: `theme_mode`, `locale_code`, `onboarding_completed` 等の標準保存用キー
 
 ---
 

@@ -45,6 +45,7 @@ flutter_sample
     │   └── app_ja.arb                                          # 日本語翻訳ファイル
     └── src
         ├── app                                                 # アプリケーション全体の構成要素
+        │   ├── constants                                       # アプリ全体共通の定数（ストレージキー定義 StorageKeys 等）
         │   ├── database                                        # Driftデータベース本体（テーブル統合管理）
         │   └── router                                          # ルーティング（GoRouter）関連・認証ガード
         │       └── routes/                                     # 各機能・タブごとに分割されたルート定義（part of）
