@@ -22,15 +22,15 @@ class SnackBarNavigationObserver extends NavigatorObserver {
   @override
   void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
     super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
-    if (newRoute != null) {
-      _clearSnackBars(newRoute);
+    if (newRoute case final route?) {
+      _clearSnackBars(route);
     }
   }
 
   /// 画面（PageRoute）の遷移時のみ、表示中のスナックバーを消去する。
   /// ダイアログやボトムシート（PopupRoute）の開閉時は消去しない。
   void _clearSnackBars(Route<dynamic> route) {
-    if (route is PageRoute) {
+    if (route case PageRoute()) {
       _messengerKey.currentState?.clearSnackBars();
     }
   }

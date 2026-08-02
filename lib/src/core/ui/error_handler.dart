@@ -58,22 +58,16 @@ abstract final class ErrorHandler {
     AppLocalizations l10n,
     FirebaseAuthException error,
   ) {
-    switch (error.code) {
-      case FirebaseAuthErrorCodes.invalidEmail:
-        return l10n.errorInvalidEmail;
-      case FirebaseAuthErrorCodes.userDisabled:
-        return l10n.errorUserDisabled;
-      case FirebaseAuthErrorCodes.userNotFound:
-      case FirebaseAuthErrorCodes.wrongPassword:
-      case FirebaseAuthErrorCodes.invalidCredential:
-        return l10n.errorLoginFailed;
-      case FirebaseAuthErrorCodes.emailAlreadyInUse:
-        return l10n.errorEmailAlreadyInUse;
-      case FirebaseAuthErrorCodes.weakPassword:
-        return l10n.errorWeakPassword;
-      default:
-        return l10n.errorUnknown;
-    }
+    return switch (error.code) {
+      FirebaseAuthErrorCodes.invalidEmail => l10n.errorInvalidEmail,
+      FirebaseAuthErrorCodes.userDisabled => l10n.errorUserDisabled,
+      FirebaseAuthErrorCodes.userNotFound ||
+      FirebaseAuthErrorCodes.wrongPassword ||
+      FirebaseAuthErrorCodes.invalidCredential => l10n.errorLoginFailed,
+      FirebaseAuthErrorCodes.emailAlreadyInUse => l10n.errorEmailAlreadyInUse,
+      FirebaseAuthErrorCodes.weakPassword => l10n.errorWeakPassword,
+      _ => l10n.errorUnknown,
+    };
   }
 
   /// Snackbarで表示（軽度なエラー向け）

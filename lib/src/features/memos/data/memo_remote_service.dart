@@ -24,15 +24,13 @@ class MemoRemoteService {
     // JSONの日付文字列を DateTime 型に復元してリストにして返します
     return data.map((e) {
       final map = Map<String, dynamic>.from(e as Map);
-      if (map['createdAt'] is String) {
-        final parsed = DateTime.tryParse(map['createdAt'] as String);
-        if (parsed != null) {
+      if (map['createdAt'] case final String rawCreatedAt) {
+        if (DateTime.tryParse(rawCreatedAt) case final parsed?) {
           map['createdAt'] = parsed;
         }
       }
-      if (map['updatedAt'] is String) {
-        final parsed = DateTime.tryParse(map['updatedAt'] as String);
-        if (parsed != null) {
+      if (map['updatedAt'] case final String rawUpdatedAt) {
+        if (DateTime.tryParse(rawUpdatedAt) case final parsed?) {
           map['updatedAt'] = parsed;
         }
       }
