@@ -112,7 +112,7 @@ dio.interceptors.add(ref.watch(dioInterceptorProvider));
   - `tokenStorageProvider` を `FirebaseAuthTokenStorage` に差し替え、Firebase から直接 ID トークンを取得します。
   - `tokenRefreshCallbackProvider` は Firebase の `user.getIdToken(true)` を実行して強制的に更新します。
 
-この切り替えは、アプリのエントリーポイント（`main.dart`）の `ProviderContainer` のオーバーライド定義（`overrideWith`）内で `ref.watch(envConfigProvider)` を監視し、条件分岐によって返却するインスタンスや処理を動的に切り替えることで実現しています。  
+この切り替えは、`getAuthOverrides()`（`lib/src/features/auth/data/auth_overrides.dart`）で提供されるオーバーライド定義（`overrideWith`）内で `ref.watch(envConfigProvider)` を監視し、条件分岐によって返却するインスタンスや処理を動的に切り替えることで実現しています。  
 これにより、Riverpodの仕様である「起動後に上書き設定（overrides）の数を動的に変更できない」という制約を回避し、クラッシュを防止しつつ安全に動作を切り替えています。
 詳細な仕様は [Firebase Authenticationによる認証対応](firebase_authentication.md) を参照してください。
 
