@@ -19,16 +19,17 @@ class SharedPreferencesItems extends _$SharedPreferencesItems {
   Future<void> set(String key, Object value) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      if (value is String) {
-        await _prefs.setString(key, value);
-      } else if (value is int) {
-        await _prefs.setInt(key, value);
-      } else if (value is double) {
-        await _prefs.setDouble(key, value);
-      } else if (value is bool) {
-        await _prefs.setBool(key, value);
-      } else {
-        throw ArgumentError('Unsupported value type: ${value.runtimeType}');
+      switch (value) {
+        case final String val:
+          await _prefs.setString(key, val);
+        case final int val:
+          await _prefs.setInt(key, val);
+        case final double val:
+          await _prefs.setDouble(key, val);
+        case final bool val:
+          await _prefs.setBool(key, val);
+        default:
+          throw ArgumentError('Unsupported value type: ${value.runtimeType}');
       }
       return _fetchCurrentMap();
     });

@@ -186,9 +186,9 @@ class AppLockService extends _$AppLockService {
 
   /// 生体認証によるロック解除試行
   Future<bool> unlockWithBiometrics({required String localizedReason}) async {
-    final currentState = state.value;
-    if (currentState is! AppLockStateLocked ||
-        !currentState.isBiometricEnabled) {
+    if (state.value case AppLockStateLocked(isBiometricEnabled: true)) {
+      // ロック状態かつ生体認証が有効な場合のみ処理を継続
+    } else {
       return false;
     }
 
@@ -235,12 +235,11 @@ class AppLockService extends _$AppLockService {
       return;
     }
 
-    final currentState = state.value;
-    if (currentState is AppLockStateUnlocked) {
+    if (state.value case AppLockStateUnlocked(:final isBiometricEnabled)) {
       ref.read(loggerProvider).info('[AppLockService] App locked');
       state = AsyncValue.data(
         AppLockState.locked(
-          isBiometricEnabled: currentState.isBiometricEnabled,
+          isBiometricEnabled: isBiometricEnabled,
         ),
       );
     }
