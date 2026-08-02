@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/src/app/constants/storage_keys.dart';
 import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -7,13 +8,11 @@ part 'theme_mode_provider.g.dart';
 /// テーマモードの状態を管理・保存するプロバイダー
 @Riverpod(keepAlive: true)
 class ThemeModeNotifier extends _$ThemeModeNotifier {
-  static const _key = 'theme_mode'; // 保存用キー
-
   @override
   Future<ThemeMode> build() async {
     // SharedPreferencesから設定を取得
     final prefs = ref.watch(sharedPreferencesProvider);
-    final value = await prefs.getString(_key);
+    final value = await prefs.getString(SharedPrefKeys.themeMode);
 
     // 保存されていなければシステム設定を返す
     if (value == null) {
@@ -27,7 +26,7 @@ class ThemeModeNotifier extends _$ThemeModeNotifier {
   Future<void> set(ThemeMode mode) async {
     state = AsyncData(mode); // 即時反映
     final prefs = ref.read(sharedPreferencesProvider);
-    await prefs.setString(_key, mode.name);
+    await prefs.setString(SharedPrefKeys.themeMode, mode.name);
   }
 
   /// トグル切り替え

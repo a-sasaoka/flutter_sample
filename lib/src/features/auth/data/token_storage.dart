@@ -1,3 +1,4 @@
+import 'package:flutter_sample/src/app/constants/storage_keys.dart';
 import 'package:flutter_sample/src/core/storage/secure_storage_provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -19,31 +20,34 @@ class TokenStorage {
 
   final FlutterSecureStorage _secureStorage;
 
-  static const _accessTokenKey = 'access_token';
-  static const _refreshTokenKey = 'refresh_token';
-
   /// トークンを保存する
   Future<void> saveTokens({
     required String accessToken,
     required String refreshToken,
   }) async {
-    await _secureStorage.write(key: _accessTokenKey, value: accessToken);
-    await _secureStorage.write(key: _refreshTokenKey, value: refreshToken);
+    await _secureStorage.write(
+      key: SecureStorageKeys.accessToken,
+      value: accessToken,
+    );
+    await _secureStorage.write(
+      key: SecureStorageKeys.refreshToken,
+      value: refreshToken,
+    );
   }
 
   /// アクセストークンを取得する
   Future<String?> getAccessToken() async {
-    return _secureStorage.read(key: _accessTokenKey);
+    return _secureStorage.read(key: SecureStorageKeys.accessToken);
   }
 
   /// リフレッシュトークンを取得する
   Future<String?> getRefreshToken() async {
-    return _secureStorage.read(key: _refreshTokenKey);
+    return _secureStorage.read(key: SecureStorageKeys.refreshToken);
   }
 
   /// トークンを削除する
   Future<void> clear() async {
-    await _secureStorage.delete(key: _accessTokenKey);
-    await _secureStorage.delete(key: _refreshTokenKey);
+    await _secureStorage.delete(key: SecureStorageKeys.accessToken);
+    await _secureStorage.delete(key: SecureStorageKeys.refreshToken);
   }
 }

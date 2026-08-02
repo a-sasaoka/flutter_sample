@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/src/app/constants/storage_keys.dart';
 import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -7,13 +8,11 @@ part 'locale_provider.g.dart';
 /// アプリ全体のロケールを管理するプロバイダ
 @Riverpod(keepAlive: true)
 class LocaleNotifier extends _$LocaleNotifier {
-  static const _key = 'locale_key';
-
   @override
   Future<Locale?> build() async {
     // SharedPreferences を読み込み、保存されていればその Locale を返す
     final prefs = ref.watch(sharedPreferencesProvider);
-    final code = await prefs.getString(_key);
+    final code = await prefs.getString(SharedPrefKeys.localeCode);
 
     if (code == null || code.isEmpty) {
       return null; // システムに従う
@@ -27,12 +26,12 @@ class LocaleNotifier extends _$LocaleNotifier {
 
     if (languageCode == null) {
       // システム設定に戻す
-      await prefs.remove(_key);
+      await prefs.remove(SharedPrefKeys.localeCode);
       state = const AsyncData(null);
       return;
     }
 
-    await prefs.setString(_key, languageCode);
+    await prefs.setString(SharedPrefKeys.localeCode, languageCode);
     state = AsyncData(Locale(languageCode));
   }
 }

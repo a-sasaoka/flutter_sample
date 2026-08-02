@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/storage/secure_storage_provider.dart';
-import 'package:flutter_sample/src/core/storage/token_storage.dart';
+import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
