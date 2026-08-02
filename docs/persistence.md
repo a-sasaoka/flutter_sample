@@ -34,12 +34,12 @@ lib/src/core/database/
 
 ---
 
-## 💡 ストレージキーの一元管理 (`StorageKeys`)
+## 💡 ストレージキーの一元管理 (`SecureStorageKeys` / `SharedPrefKeys`)
 
 `SharedPreferences` や `FlutterSecureStorage` で使用するキー文字列が各プロバイダやリポジトリに直書きされるのを防ぐため、`lib/src/app/constants/storage_keys.dart` に定数クラスとして定義・一元管理しています。
 
 - **`SecureStorageKeys`**: `access_token`, `refresh_token`, `app_lock_passcode` 等の暗号化保存用キー
-- **`SharedPrefKeys`**: `theme_mode`, `locale_code`, `onboarding_completed` 等の標準保存用キー
+- **`SharedPrefKeys`**: `theme_mode`, `locale_key`, `onboarding_completed` 等の標準保存用キー
 
 ---
 
