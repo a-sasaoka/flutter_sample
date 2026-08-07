@@ -140,6 +140,9 @@ class FakeLocalAuthentication extends LocalAuthentication {
 
   @override
   Future<bool> isDeviceSupported() async => false;
+
+  @override
+  Future<List<BiometricType>> getAvailableBiometrics() async => [];
 }
 
 Future<void> main() async {
