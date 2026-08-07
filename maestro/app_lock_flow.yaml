@@ -1,0 +1,73 @@
+appId: jp.example.sample.local
+---
+- launchApp:
+    clearState: true
+
+# オンボーディング画面のスキップボタン描画を待機してからタップ
+- assertVisible: "スキップ"
+- tapOn: "スキップ"
+
+# ログイン画面の切り替え表示を待機
+- assertVisible:
+    text: ".*メールアドレス.*"
+
+- tapOn:
+    text: ".*メールアドレス.*"
+- inputText: "test@example.com"
+- tapOn:
+    text: ".*パスワード.*"
+- inputText: "password123"
+- tapOn: "ログイン実行ボタン"
+
+# パスコード初期設定画面の表示を待機
+- assertVisible:
+    text: ".*パスコード.*"
+
+# 4桁の初期パスコード設定 (1234)
+- tapOn:
+    text: "1"
+- tapOn:
+    text: "2"
+- tapOn:
+    text: "3"
+- tapOn:
+    text: "4"
+
+# 4桁の確認用パスコード再入力 (1234)
+- tapOn:
+    text: "1"
+- tapOn:
+    text: "2"
+- tapOn:
+    text: "3"
+- tapOn:
+    text: "4"
+
+# 初期設定が完了しホーム画面が表示されることをアサート
+- assertVisible: "現在の環境"
+
+# -------------------------------------------------------------
+# 🔒 【バックグラウンド復帰とロック解錠のテスト】
+# -------------------------------------------------------------
+# 1. 1回目の復帰操作 (生体認証プロンプト保護フラグ _shouldSkipNextLock を消費)
+- pressKey: Home
+- launchApp
+
+# 2. 2回目の復帰操作 (アプリロック AppLockStateLocked が正常発火)
+- pressKey: Home
+- launchApp
+
+# 3. 最前面に自動表示されたロック画面の確認と 1234 による解錠
+- assertVisible:
+    text: ".*パスコード.*"
+- tapOn:
+    text: "1"
+- tapOn:
+    text: "2"
+- tapOn:
+    text: "3"
+- tapOn:
+    text: "4"
+
+# 4. ロック解除後、ホーム画面が表示されることを検証
+- assertVisible: "現在の環境"

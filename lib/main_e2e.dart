@@ -1,13 +1,105 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/main.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
+import 'package:flutter_sample/src/core/storage/secure_storage_provider.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
+import 'package:flutter_sample/src/features/app_lock/data/local_authentication_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:local_auth/local_auth.dart';
+
+/// E2Eテスト用に一時ファイル上で安全に Key-Value を保存・復元する SecureStorage フェイク
+class FakeSecureStorage extends FlutterSecureStorage {
+  static final File _file = File(
+    '${Directory.systemTemp.path}/e2e_secure_storage.json',
+  );
+
+  Map<String, String> _readStorage() {
+    try {
+      if (_file.existsSync()) {
+        final content = _file.readAsStringSync();
+        final decoded = jsonDecode(content);
+        if (decoded is Map) {
+          return Map<String, String>.from(decoded);
+        }
+      }
+    } on Exception catch (_) {}
+    return {};
+  }
+
+  void _writeStorage(Map<String, String> data) {
+    try {
+      _file.writeAsStringSync(jsonEncode(data));
+    } on Exception catch (_) {}
+  }
+
+  @override
+  Future<void> write({
+    required String key,
+    required String? value,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    final storage = _readStorage();
+    if (value == null) {
+      storage.remove(key);
+    } else {
+      storage[key] = value;
+    }
+    _writeStorage(storage);
+  }
+
+  @override
+  Future<String?> read({
+    required String key,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    final storage = _readStorage();
+    return storage[key];
+  }
+
+  @override
+  Future<void> delete({
+    required String key,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    final storage = _readStorage()..remove(key);
+    _writeStorage(storage);
+  }
+
+  @override
+  Future<void> deleteAll({
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    _writeStorage({});
+  }
+}
 
 /// E2Eテスト用にモック化した認証リポジトリ
 class MockAuthRepository implements AuthRepository {
@@ -44,19 +136,26 @@ class FakeUpdateRequestController extends UpdateRequestController {
   }
 }
 
+/// E2Eテスト用に常に生体認証非対応（canCheckBiometrics = false）として振る舞うフェイククラス
+class FakeLocalAuthentication extends LocalAuthentication {
+  @override
+  Future<bool> get canCheckBiometrics async => false;
+
+  @override
+  Future<bool> isDeviceSupported() async => false;
+}
+
 Future<void> main() async {
   // Flutterのシステム初期化
   WidgetsFlutterBinding.ensureInitialized();
 
-  // E2Eテスト開始前に古いキーチェーン（SecureStorage）のトークンを強制消去する
-  final container = ProviderContainer();
-  final tokenStorage = container.read(tokenStorageProvider);
-  await tokenStorage.clear();
-  container.dispose();
+  final fakeStorage = FakeSecureStorage();
 
   await mainCommon(
     Flavor.local,
     additionalOverrides: [
+      // 0. セキュアストレージをファイルベースのフェイクに置き換え (プロセス再起動後も状態維持)
+      secureStorageProvider.overrideWithValue(fakeStorage),
       // 1. Firebase Auth を無効化し、通常のログインフロー（API通信）として動作させる設定
       envConfigProvider.overrideWith((ref) {
         return const EnvConfigState(
@@ -79,6 +178,10 @@ Future<void> main() async {
       // 4. アップデート要求を「なし」に固定
       updateRequestControllerProvider.overrideWith(
         FakeUpdateRequestController.new,
+      ),
+      // 5. 生体認証を「利用不可」に固定してテストを安定化
+      localAuthenticationProvider.overrideWithValue(
+        FakeLocalAuthentication(),
       ),
     ],
   );

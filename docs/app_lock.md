@@ -99,3 +99,4 @@ stateDiagram-v2
 - **単体テスト**: `test/src/features/app_lock/data/app_lock_repository_test.dart`, `app_lock_service_test.dart`
 - **ウィジェットテスト**: `passcode_setup_screen_test.dart`, `passcode_lock_screen_test.dart`, `app_lock_wrapper_test.dart`, `numeric_keyboard_test.dart`
 - **ゴールデンテスト**: `app_lock_golden_test.dart` (`alchemist` によるライト/ダークモード描画検証)
+- **E2Eテスト (Maestro)**: `maestro/app_lock_flow.yaml` (ログイン後の初期パスコード登録、アプリ復帰時の自動再ロック、およびパスコード入力によるロック解除フローの自動検証)
