@@ -2,7 +2,15 @@ appId: jp.example.sample.local
 ---
 - launchApp:
     clearState: true
+
+# オンボーディング画面のスキップボタン描画を待機してからタップ
+- assertVisible: "スキップ"
 - tapOn: "スキップ"
+
+# ログイン画面の切り替え表示を待機
+- assertVisible:
+    text: ".*メールアドレス.*"
+
 - tapOn:
     text: ".*メールアドレス.*"
 - inputText: "test@example.com"
@@ -10,4 +18,26 @@ appId: jp.example.sample.local
     text: ".*パスワード.*"
 - inputText: "password123"
 - tapOn: "ログイン実行ボタン"
+
+# パスコード初期設定画面の表示を待機
+- assertVisible:
+    text: ".*パスコード.*"
+
+- tapOn:
+    text: "1"
+- tapOn:
+    text: "2"
+- tapOn:
+    text: "3"
+- tapOn:
+    text: "4"
+- tapOn:
+    text: "1"
+- tapOn:
+    text: "2"
+- tapOn:
+    text: "3"
+- tapOn:
+    text: "4"
+
 - assertVisible: "現在の環境"

@@ -21,13 +21,12 @@
 3. **E2E専用の起動設定 (`lib/main_e2e.dart`)**
    - **認証と通信のモック**: Firebase Auth を無効化し、ネットワーク状態をオフラインに固定（通信を遮断）して不要なAPI接続が発生しないよう Riverpod プロバイダを上書きしています。
    - **アプリアプデ判定のバイパス**: テスト中に不要な「最新版への更新」ダイアログが出ないようにしています。
-   - **ログイン状態の自動初期化**: iOSの仕様上、アプリを再起動してもキーチェーン（SecureStorage）にログイン用のトークンが残り続けてしまうため、起動スイッチが入る直前にトークンを自動クリアしています。
+   - **暗号化ストレージのモック (`FakeSecureStorage`)**: iOSシミュレータのキーチェーン制限やプロセス再起動に左右されずトークン・パスコードを保持できるよう、一時ファイル (`Directory.systemTemp`) を使って安全かつ確実に状態を管理・復元するフェイクストレージを注入しています。
+   - **生体認証のモック固定**: E2Eテスト中、OSの生体認証（Face ID / Touch ID）ダイアログによってテストが中断・ブレるのを防ぐため、`localAuthenticationProvider` を「利用不可 (`canCheckBiometrics = false`)」として固定しています。
 
 ---
 
 ## 🛠️ テストの実行手順
-
-E2Eテストを実行する手順は以下の通りです。
 
 ### 1. iOSシミュレータの起動
 
@@ -52,7 +51,11 @@ fvm flutter run --flavor local -t lib/main_e2e.dart --dart-define-from-file conf
 別のターミナルを開き、定義したテストフロー（YAMLファイル）を実行します。
 
 ```bash
+# 基本ログインフローの検証
 ~/.maestro/bin/maestro test maestro/app_launch_and_login.yaml
+
+# アプリロック機能（設定・アプリ復帰・パスコード解錠）の検証
+~/.maestro/bin/maestro test maestro/app_lock_flow.yaml
 ```
 
 ※テストが走り、全てのステップが「COMPLETED」になれば成功です。
@@ -61,6 +64,8 @@ fvm flutter run --flavor local -t lib/main_e2e.dart --dart-define-from-file conf
 
 ## 📂 テストシナリオの構成
 
-テストフローは [maestro/app_launch_and_login.yaml](../maestro/app_launch_and_login.yaml) で管理されています。
+テストフローは `maestro/` ディレクトリ配下で管理されています。
 
+- **[maestro/app_launch_and_login.yaml](../maestro/app_launch_and_login.yaml)**: 起動 $\rightarrow$ オンボーディングスキップ $\rightarrow$ ログイン $\rightarrow$ 4桁パスコード初期登録 (`1234` + `1234`) $\rightarrow$ ホーム表示までの基本最短フローを検証。
+- **[maestro/app_lock_flow.yaml](../maestro/app_lock_flow.yaml)**: ログイン＆パスコード登録後、生体認証プロンプト閉じに伴う誤ロック防止ロジック (`_shouldSkipNextLock`) の挙動を踏まえ、バックグラウンド復帰動作 (`pressKey: Home` $\rightarrow$ `launchApp`) により自動表示されるロック画面 (`PasscodeLockScreen`) を 4桁パスコード (`1234`) で解除するリアルなアプリロック解錠テスト。
 - iOSのアクセシビリティ仕様（ラベルの改行結合）に対応するため、入力フィールドのタップなどには正規表現（regex）を用いて確実に要素を検出する工夫をしています。
