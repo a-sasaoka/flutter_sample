@@ -22,22 +22,19 @@ class FakeSecureStorage extends FlutterSecureStorage {
   );
 
   Map<String, String> _readStorage() {
-    try {
-      if (_file.existsSync()) {
-        final content = _file.readAsStringSync();
-        final decoded = jsonDecode(content);
-        if (decoded is Map) {
-          return Map<String, String>.from(decoded);
-        }
-      }
-    } on Exception catch (_) {}
+    if (!_file.existsSync()) {
+      return {};
+    }
+    final content = _file.readAsStringSync();
+    final decoded = jsonDecode(content);
+    if (decoded is Map) {
+      return Map<String, String>.from(decoded);
+    }
     return {};
   }
 
   void _writeStorage(Map<String, String> data) {
-    try {
-      _file.writeAsStringSync(jsonEncode(data));
-    } on Exception catch (_) {}
+    _file.writeAsStringSync(jsonEncode(data));
   }
 
   @override
