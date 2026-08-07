@@ -51,11 +51,13 @@ appId: jp.example.sample.local
 # -------------------------------------------------------------
 # 1. 1回目の復帰操作 (生体認証プロンプト保護フラグ _shouldSkipNextLock を消費)
 - pressKey: Home
-- launchApp
+- launchApp:
+    stopApp: false
 
 # 2. 2回目の復帰操作 (アプリロック AppLockStateLocked が正常発火)
 - pressKey: Home
-- launchApp
+- launchApp:
+    stopApp: false
 
 # 3. 最前面に自動表示されたロック画面の確認と 1234 による解錠
 - assertVisible:
