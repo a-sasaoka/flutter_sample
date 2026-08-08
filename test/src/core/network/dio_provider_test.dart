@@ -114,6 +114,22 @@ void main() {
         check(
           () => containerDev.read(dioProvider),
         ).throws<Object>();
+
+        // 大文字ホスト名 (CLOUDFUNCTIONS.NET) での検証
+        const uppercaseConfig = EnvConfigState(
+          baseUrl: 'HTTPS://US-CENTRAL1-SAMPLE.CLOUDFUNCTIONS.NET',
+          aiModel: 'test-model',
+          connectTimeout: 5,
+          receiveTimeout: 10,
+          sendTimeout: 5,
+          useFirebaseAuth: true,
+        );
+        final containerUppercase = createContainer(
+          config: uppercaseConfig,
+        );
+        check(
+          () => containerUppercase.read(dioProvider),
+        ).throws<Object>();
       },
     );
 

@@ -47,8 +47,11 @@ Dio _createDio(
   final config = ref.watch(envConfigProvider);
   final flavor = ref.watch(flavorProvider);
 
+  final uri = Uri.tryParse(config.baseUrl);
+  final host = uri?.host.toLowerCase() ?? '';
+
   // リモート Functions API (.cloudfunctions.net) への接続チェック
-  if (config.baseUrl.contains('.cloudfunctions.net')) {
+  if (host.endsWith('.cloudfunctions.net') || host == 'cloudfunctions.net') {
     if (flavor == Flavor.local || flavor == Flavor.dev) {
       throw StateError(
         '【誤接続防止エラー】${flavor.name} フレーバーからリモート API '
