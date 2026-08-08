@@ -1,6 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
+import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
@@ -165,6 +166,7 @@ void main() {
 
       final testContainer = ProviderContainer(
         overrides: [
+          flavorProvider.overrideWithValue(Flavor.dev),
           envConfigProvider.overrideWithValue(
             const EnvConfigState(
               baseUrl: 'https://api.example.com',

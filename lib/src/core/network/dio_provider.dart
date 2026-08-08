@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
+import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -44,6 +45,25 @@ Dio _createDio(
   List<Interceptor> additionalInterceptors = const [],
 }) {
   final config = ref.watch(envConfigProvider);
+  final flavor = ref.watch(flavorProvider);
+
+  // リモート Functions API (.cloudfunctions.net) への接続チェック
+  if (config.baseUrl.contains('.cloudfunctions.net')) {
+    if (flavor == Flavor.local || flavor == Flavor.dev) {
+      throw StateError(
+        '【誤接続防止エラー】${flavor.name} フレーバーからリモート API '
+        '(${config.baseUrl}) への接続は許可されていません。'
+        ' ローカルエミュレータをご使用ください。',
+      );
+    } else if (flavor == Flavor.stg) {
+      ref
+          .watch(loggerProvider)
+          .warning(
+            '⚠️【STG環境警告】リモート API (${config.baseUrl}) に接続しています。'
+            ' 本番・検証データとの誤認にご注意ください。',
+          );
+    }
+  }
 
   final dio = Dio(
     BaseOptions(
