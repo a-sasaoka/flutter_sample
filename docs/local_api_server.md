@@ -63,7 +63,10 @@ fvm flutter run --flavor dev -t lib/main_dev.dart --dart-define-from-file=config
 ```
 
 - **接続先の確認**:
-  各自の `.env.dev` ファイルに、自身のローカル Firebase エミュレータ URL（ `BASE_URL=http://localhost:5001/<各自のプロジェクトID>/us-central1` ）を設定します。（※`--dart-define-from-file=.env.dev` により、チーム共有の `config/flavor_dev.json` より優先して適用されます）
+  各自の `.env.dev` ファイルに、自身のローカル Firebase エミュレータ URL を設定します。（※`--dart-define-from-file=.env.dev` により、チーム共有の `config/flavor_dev.json` より優先して適用されます）
+  - **iOS シミュレータ / Web**: `BASE_URL=http://localhost:5001/<各自のプロジェクトID>/us-central1`
+  - **Android エミュレータ**: `BASE_URL=http://10.0.2.2:5001/<各自のプロジェクトID>/us-central1`
+  - **実機 (iOS / Android)**: `BASE_URL=http://<開発PCのIPアドレス>:5001/<各自のプロジェクトID>/us-central1`
 
 ---
 
