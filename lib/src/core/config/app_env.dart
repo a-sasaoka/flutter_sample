@@ -16,8 +16,4 @@ abstract class AppEnv {
   /// App Checkのデバッグ用トークン（秘匿情報）
   @EnviedField(varName: 'DEBUG_TOKEN')
   static final String debugToken = _AppEnv.debugToken;
-
-  /// iOS 用の Google 逆クライアント ID（個人の環境に紐づく識別子）
-  @EnviedField(varName: 'GOOGLE_REVERSED_CLIENT_ID')
-  static final String googleReversedClientId = _AppEnv.googleReversedClientId;
 }

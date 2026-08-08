@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_sample/src/app/constants/storage_keys.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
+import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
 import 'package:flutter_sample/src/core/storage/secure_storage_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
@@ -51,6 +52,7 @@ void main() {
         // main.dart 相当の上書き設定を持ったコンテナを作成
         final container = ProviderContainer(
           overrides: [
+            flavorProvider.overrideWithValue(Flavor.dev),
             // 1. 環境フラグを true に設定
             envConfigProvider.overrideWithValue(
               const EnvConfigState(
@@ -111,6 +113,7 @@ void main() {
         // main.dart 相当の上書き設定を持ったコンテナを作成
         final container = ProviderContainer(
           overrides: [
+            flavorProvider.overrideWithValue(Flavor.dev),
             // 1. 環境フラグを false に設定
             envConfigProvider.overrideWithValue(
               const EnvConfigState(
@@ -167,6 +170,7 @@ void main() {
 
         final container = ProviderContainer(
           overrides: [
+            flavorProvider.overrideWithValue(Flavor.dev),
             envConfigProvider.overrideWithValue(
               const EnvConfigState(
                 baseUrl: 'https://example.com',

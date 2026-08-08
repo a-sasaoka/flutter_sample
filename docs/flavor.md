@@ -29,12 +29,12 @@
 - **主な項目**: `BASE_URL`, `AI_MODEL`, タイムアウト値、機能フラグ等。
 - **取得手段**: `ref.watch(envConfigProvider)`
 
-### 2. 秘匿情報・個人設定 (`.env.*`)
+### 2. 秘匿情報・個人オーバーライド設定 (`.env.*`)
 
-- **役割**: 各自の Firebase 環境に依存する ID や、API キーなどの秘密情報。
+- **役割**: 各自の Firebase 環境に依存する ID、API キーなどの秘密情報、および開発者ごとの個人接続先（`BASE_URL` 等）。
 - **管理方法**: **Git 管理外 (`.gitignore`)**。`env.example` をコピーして各自作成。
-- **主な項目**: `DEBUG_TOKEN`, `GOOGLE_REVERSED_CLIENT_ID`
-- **取得手段**: `AppEnv` (Envied による難読化)
+- **主な項目**: `DEBUG_TOKEN` (AppEnv/Envied用)、`GOOGLE_REVERSED_CLIENT_ID` / `APP_LINK_DOMAIN` (ネイティブビルド用)、**`BASE_URL` (個人用オーバーライド)**
+- **取得手段**: `AppEnv` (Envied による難読化) / ネイティブビルド設定 / `--dart-define-from-file` による優先上書き
 
 ---
 

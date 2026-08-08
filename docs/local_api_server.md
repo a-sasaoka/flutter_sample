@@ -63,7 +63,10 @@ fvm flutter run --flavor dev -t lib/main_dev.dart --dart-define-from-file=config
 ```
 
 - **接続先の確認**:
-  `config/flavor_dev.json` の `BASE_URL` が、上記のローカルAPIのURL（ `http://localhost:5001/<各自のプロジェクトID>/us-central1` ）に設定されていることを確認してください。
+  各自の `.env.dev` ファイルに、自身のローカル Firebase エミュレータ URL を設定します。（※`--dart-define-from-file=.env.dev` により、チーム共有の `config/flavor_dev.json` より優先して適用されます）
+  - **iOS シミュレータ / Web**: `BASE_URL=http://localhost:5001/<各自のプロジェクトID>/us-central1`
+  - **Android エミュレータ**: `BASE_URL=http://10.0.2.2:5001/<各自のプロジェクトID>/us-central1`
+  - **実機 (iOS / Android)**: `BASE_URL=http://<開発PCのIPアドレス>:5001/<各自のプロジェクトID>/us-central1`
 
 ---
 
@@ -126,6 +129,7 @@ firebase deploy --only functions
 
 ### 3. アプリの接続先の切り替え
 
-- 上記で出力された本番用のURLを確認します。
-- `config/flavor_dev.json`（または本番用の `flavor_prod.json`）の `BASE_URL` に、この本番用URL（ `https://us-central1-<プロジェクトID>.cloudfunctions.net` ）を設定します。
-- アプリを起動し、PC上のエミュレータを止めた状態でも、インターネット経由でメモの追加やプロフィールの更新ができるかテストします。
+- 上記で出力されたクラウド環境用のURLを確認します。
+- **本番環境 (`prod` フレーバー)**: `config/flavor_prod.json` または `.env.prod` の `BASE_URL` に設定してビルドします。
+- **ステージング環境 (`stg` フレーバー)**: `.env.stg` の `BASE_URL` に設定してテスト可能です（※動作確認時にログへ警告アラートが出力されます）。
+- **開発・ローカル環境 (`local` / `dev` フレーバー)**: 誤操作による本番データ汚染防止のため、`cloudfunctions.net` への接続はアプリ起動時に自動的に安全ガード（例外）により拒否されます。ローカルエミュレータをご利用ください。

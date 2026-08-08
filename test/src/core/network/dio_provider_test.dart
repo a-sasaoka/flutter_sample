@@ -1,6 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
+import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
@@ -17,8 +18,15 @@ class MockTokenInterceptor extends Mock implements Interceptor {}
 class MockDioInterceptor extends Mock implements InterceptorsWrapper {}
 
 class MockTalker extends Mock implements Talker {
+  String? lastWarningMessage;
+
   @override
   TalkerSettings get settings => TalkerSettings();
+
+  @override
+  void warning(dynamic message, [Object? exception, StackTrace? stackTrace]) {
+    lastWarningMessage = message?.toString();
+  }
 }
 
 void main() {
@@ -34,9 +42,11 @@ void main() {
 
   ProviderContainer createContainer({
     required EnvConfigState config,
+    Flavor flavor = Flavor.dev,
   }) {
     final container = ProviderContainer(
       overrides: [
+        flavorProvider.overrideWithValue(flavor),
         envConfigProvider.overrideWithValue(config),
         authInterceptorsProvider.overrideWithValue([mockTokenInterceptor]),
         tokenInterceptorProvider.overrideWithValue(mockTokenInterceptor),
@@ -78,6 +88,83 @@ void main() {
       check(interceptorTypes).contains(mockDioInterceptor.runtimeType);
       check(interceptorTypes).contains(TalkerDioLogger);
     });
+
+    test(
+      'local または dev フレーバーで本番 Functions URL '
+      '(.cloudfunctions.net) が設定された場合 StateError がスローされること',
+      () {
+        const config = EnvConfigState(
+          baseUrl: 'https://us-central1-sample.cloudfunctions.net',
+          aiModel: 'test-model',
+          connectTimeout: 5,
+          receiveTimeout: 10,
+          sendTimeout: 5,
+          useFirebaseAuth: true,
+        );
+
+        // local フレーバーでの検証
+        final containerLocal = createContainer(
+          config: config,
+          flavor: Flavor.local,
+        );
+        check(() => containerLocal.read(dioProvider))
+            .throws<Object>()
+            .has((e) => e.toString(), 'toString()')
+            .contains('【誤接続防止エラー】');
+
+        // dev フレーバーでの検証
+        final containerDev = createContainer(
+          config: config,
+        );
+        check(() => containerDev.read(dioProvider))
+            .throws<Object>()
+            .has((e) => e.toString(), 'toString()')
+            .contains('【誤接続防止エラー】');
+
+        // 大文字ホスト名 (CLOUDFUNCTIONS.NET) での検証
+        const uppercaseConfig = EnvConfigState(
+          baseUrl: 'HTTPS://US-CENTRAL1-SAMPLE.CLOUDFUNCTIONS.NET',
+          aiModel: 'test-model',
+          connectTimeout: 5,
+          receiveTimeout: 10,
+          sendTimeout: 5,
+          useFirebaseAuth: true,
+        );
+        final containerUppercase = createContainer(
+          config: uppercaseConfig,
+        );
+        check(() => containerUppercase.read(dioProvider))
+            .throws<Object>()
+            .has((e) => e.toString(), 'toString()')
+            .contains('【誤接続防止エラー】');
+      },
+    );
+
+    test(
+      'stg フレーバーで本番 Functions URL '
+      '(.cloudfunctions.net) が設定された場合 警告ログが出力され正常生成されること',
+      () {
+        const config = EnvConfigState(
+          baseUrl: 'https://us-central1-sample.cloudfunctions.net',
+          aiModel: 'test-model',
+          connectTimeout: 5,
+          receiveTimeout: 10,
+          sendTimeout: 5,
+          useFirebaseAuth: true,
+        );
+
+        final containerStg = createContainer(
+          config: config,
+          flavor: Flavor.stg,
+        );
+        final dio = containerStg.read(dioProvider);
+
+        check(dio.options.baseUrl).equals(config.baseUrl);
+        check(
+          mockTalker.lastWarningMessage,
+        ).isNotNull().contains('⚠️【STG環境警告】');
+      },
+    );
   });
 
   group('baseDioProvider', () {
