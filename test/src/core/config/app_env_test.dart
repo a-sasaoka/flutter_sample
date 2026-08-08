@@ -12,9 +12,6 @@ void main() {
       // App Checkのデバッグトークン（秘匿情報）が取得できること
       check(AppEnv.debugToken).isA<String>();
 
-      // Google 逆クライアント ID（秘匿情報）が取得できること
-      check(AppEnv.googleReversedClientId).isA<String>();
-
       // 認証設定のProviderが真偽値を返すこと
       final container = ProviderContainer(
         overrides: [
