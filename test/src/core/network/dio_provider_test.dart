@@ -18,11 +18,15 @@ class MockTokenInterceptor extends Mock implements Interceptor {}
 class MockDioInterceptor extends Mock implements InterceptorsWrapper {}
 
 class MockTalker extends Mock implements Talker {
+  String? lastWarningMessage;
+
   @override
   TalkerSettings get settings => TalkerSettings();
 
   @override
-  void warning(dynamic message, [Object? exception, StackTrace? stackTrace]) {}
+  void warning(dynamic message, [Object? exception, StackTrace? stackTrace]) {
+    lastWarningMessage = message?.toString();
+  }
 }
 
 void main() {
@@ -153,6 +157,9 @@ void main() {
         final dio = containerStg.read(dioProvider);
 
         check(dio.options.baseUrl).equals(config.baseUrl);
+        check(
+          mockTalker.lastWarningMessage,
+        ).isNotNull().contains('⚠️【STG環境警告】');
       },
     );
   });
