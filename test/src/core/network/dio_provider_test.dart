@@ -107,17 +107,19 @@ void main() {
           config: config,
           flavor: Flavor.local,
         );
-        check(
-          () => containerLocal.read(dioProvider),
-        ).throws<Object>();
+        check(() => containerLocal.read(dioProvider))
+            .throws<Object>()
+            .has((e) => e.toString(), 'toString()')
+            .contains('【誤接続防止エラー】');
 
         // dev フレーバーでの検証
         final containerDev = createContainer(
           config: config,
         );
-        check(
-          () => containerDev.read(dioProvider),
-        ).throws<Object>();
+        check(() => containerDev.read(dioProvider))
+            .throws<Object>()
+            .has((e) => e.toString(), 'toString()')
+            .contains('【誤接続防止エラー】');
 
         // 大文字ホスト名 (CLOUDFUNCTIONS.NET) での検証
         const uppercaseConfig = EnvConfigState(
@@ -131,9 +133,10 @@ void main() {
         final containerUppercase = createContainer(
           config: uppercaseConfig,
         );
-        check(
-          () => containerUppercase.read(dioProvider),
-        ).throws<Object>();
+        check(() => containerUppercase.read(dioProvider))
+            .throws<Object>()
+            .has((e) => e.toString(), 'toString()')
+            .contains('【誤接続防止エラー】');
       },
     );
 
