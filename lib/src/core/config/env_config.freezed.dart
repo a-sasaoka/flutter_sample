@@ -20,7 +20,8 @@ mixin _$EnvConfigState {
  int get connectTimeout;/// 受信タイムアウト（秒）
  int get receiveTimeout;/// 送信タイムアウト（秒）
  int get sendTimeout;/// Firebase Auth を使用するかどうか
- bool get useFirebaseAuth;
+ bool get useFirebaseAuth;/// Agent Platform (旧 Vertex AI) を使用するかどうか (false の場合は Google AI / Developer API)
+ bool get useAgentPlatform;
 /// Create a copy of EnvConfigState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -31,16 +32,16 @@ $EnvConfigStateCopyWith<EnvConfigState> get copyWith => _$EnvConfigStateCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is EnvConfigState&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.aiModel, aiModel) || other.aiModel == aiModel)&&(identical(other.connectTimeout, connectTimeout) || other.connectTimeout == connectTimeout)&&(identical(other.receiveTimeout, receiveTimeout) || other.receiveTimeout == receiveTimeout)&&(identical(other.sendTimeout, sendTimeout) || other.sendTimeout == sendTimeout)&&(identical(other.useFirebaseAuth, useFirebaseAuth) || other.useFirebaseAuth == useFirebaseAuth));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EnvConfigState&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.aiModel, aiModel) || other.aiModel == aiModel)&&(identical(other.connectTimeout, connectTimeout) || other.connectTimeout == connectTimeout)&&(identical(other.receiveTimeout, receiveTimeout) || other.receiveTimeout == receiveTimeout)&&(identical(other.sendTimeout, sendTimeout) || other.sendTimeout == sendTimeout)&&(identical(other.useFirebaseAuth, useFirebaseAuth) || other.useFirebaseAuth == useFirebaseAuth)&&(identical(other.useAgentPlatform, useAgentPlatform) || other.useAgentPlatform == useAgentPlatform));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,baseUrl,aiModel,connectTimeout,receiveTimeout,sendTimeout,useFirebaseAuth);
+int get hashCode => Object.hash(runtimeType,baseUrl,aiModel,connectTimeout,receiveTimeout,sendTimeout,useFirebaseAuth,useAgentPlatform);
 
 @override
 String toString() {
-  return 'EnvConfigState(baseUrl: $baseUrl, aiModel: $aiModel, connectTimeout: $connectTimeout, receiveTimeout: $receiveTimeout, sendTimeout: $sendTimeout, useFirebaseAuth: $useFirebaseAuth)';
+  return 'EnvConfigState(baseUrl: $baseUrl, aiModel: $aiModel, connectTimeout: $connectTimeout, receiveTimeout: $receiveTimeout, sendTimeout: $sendTimeout, useFirebaseAuth: $useFirebaseAuth, useAgentPlatform: $useAgentPlatform)';
 }
 
 
@@ -51,7 +52,7 @@ abstract mixin class $EnvConfigStateCopyWith<$Res>  {
   factory $EnvConfigStateCopyWith(EnvConfigState value, $Res Function(EnvConfigState) _then) = _$EnvConfigStateCopyWithImpl;
 @useResult
 $Res call({
- String baseUrl, String aiModel, int connectTimeout, int receiveTimeout, int sendTimeout, bool useFirebaseAuth
+ String baseUrl, String aiModel, int connectTimeout, int receiveTimeout, int sendTimeout, bool useFirebaseAuth, bool useAgentPlatform
 });
 
 
@@ -68,7 +69,7 @@ class _$EnvConfigStateCopyWithImpl<$Res>
 
 /// Create a copy of EnvConfigState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? baseUrl = null,Object? aiModel = null,Object? connectTimeout = null,Object? receiveTimeout = null,Object? sendTimeout = null,Object? useFirebaseAuth = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? baseUrl = null,Object? aiModel = null,Object? connectTimeout = null,Object? receiveTimeout = null,Object? sendTimeout = null,Object? useFirebaseAuth = null,Object? useAgentPlatform = null,}) {
   return _then(_self.copyWith(
 baseUrl: null == baseUrl ? _self.baseUrl : baseUrl // ignore: cast_nullable_to_non_nullable
 as String,aiModel: null == aiModel ? _self.aiModel : aiModel // ignore: cast_nullable_to_non_nullable
@@ -76,6 +77,7 @@ as String,connectTimeout: null == connectTimeout ? _self.connectTimeout : connec
 as int,receiveTimeout: null == receiveTimeout ? _self.receiveTimeout : receiveTimeout // ignore: cast_nullable_to_non_nullable
 as int,sendTimeout: null == sendTimeout ? _self.sendTimeout : sendTimeout // ignore: cast_nullable_to_non_nullable
 as int,useFirebaseAuth: null == useFirebaseAuth ? _self.useFirebaseAuth : useFirebaseAuth // ignore: cast_nullable_to_non_nullable
+as bool,useAgentPlatform: null == useAgentPlatform ? _self.useAgentPlatform : useAgentPlatform // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -158,10 +160,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String baseUrl,  String aiModel,  int connectTimeout,  int receiveTimeout,  int sendTimeout,  bool useFirebaseAuth)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String baseUrl,  String aiModel,  int connectTimeout,  int receiveTimeout,  int sendTimeout,  bool useFirebaseAuth,  bool useAgentPlatform)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _EnvConfigState() when $default != null:
-return $default(_that.baseUrl,_that.aiModel,_that.connectTimeout,_that.receiveTimeout,_that.sendTimeout,_that.useFirebaseAuth);case _:
+return $default(_that.baseUrl,_that.aiModel,_that.connectTimeout,_that.receiveTimeout,_that.sendTimeout,_that.useFirebaseAuth,_that.useAgentPlatform);case _:
   return orElse();
 
 }
@@ -179,10 +181,10 @@ return $default(_that.baseUrl,_that.aiModel,_that.connectTimeout,_that.receiveTi
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String baseUrl,  String aiModel,  int connectTimeout,  int receiveTimeout,  int sendTimeout,  bool useFirebaseAuth)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String baseUrl,  String aiModel,  int connectTimeout,  int receiveTimeout,  int sendTimeout,  bool useFirebaseAuth,  bool useAgentPlatform)  $default,) {final _that = this;
 switch (_that) {
 case _EnvConfigState():
-return $default(_that.baseUrl,_that.aiModel,_that.connectTimeout,_that.receiveTimeout,_that.sendTimeout,_that.useFirebaseAuth);}
+return $default(_that.baseUrl,_that.aiModel,_that.connectTimeout,_that.receiveTimeout,_that.sendTimeout,_that.useFirebaseAuth,_that.useAgentPlatform);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -196,10 +198,10 @@ return $default(_that.baseUrl,_that.aiModel,_that.connectTimeout,_that.receiveTi
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String baseUrl,  String aiModel,  int connectTimeout,  int receiveTimeout,  int sendTimeout,  bool useFirebaseAuth)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String baseUrl,  String aiModel,  int connectTimeout,  int receiveTimeout,  int sendTimeout,  bool useFirebaseAuth,  bool useAgentPlatform)?  $default,) {final _that = this;
 switch (_that) {
 case _EnvConfigState() when $default != null:
-return $default(_that.baseUrl,_that.aiModel,_that.connectTimeout,_that.receiveTimeout,_that.sendTimeout,_that.useFirebaseAuth);case _:
+return $default(_that.baseUrl,_that.aiModel,_that.connectTimeout,_that.receiveTimeout,_that.sendTimeout,_that.useFirebaseAuth,_that.useAgentPlatform);case _:
   return null;
 
 }
@@ -211,7 +213,7 @@ return $default(_that.baseUrl,_that.aiModel,_that.connectTimeout,_that.receiveTi
 
 
 class _EnvConfigState extends EnvConfigState {
-  const _EnvConfigState({required this.baseUrl, required this.aiModel, required this.connectTimeout, required this.receiveTimeout, required this.sendTimeout, required this.useFirebaseAuth}): super._();
+  const _EnvConfigState({required this.baseUrl, required this.aiModel, required this.connectTimeout, required this.receiveTimeout, required this.sendTimeout, required this.useFirebaseAuth, required this.useAgentPlatform}): super._();
   
 
 /// API ベース URL
@@ -226,6 +228,8 @@ class _EnvConfigState extends EnvConfigState {
 @override final  int sendTimeout;
 /// Firebase Auth を使用するかどうか
 @override final  bool useFirebaseAuth;
+/// Agent Platform (旧 Vertex AI) を使用するかどうか (false の場合は Google AI / Developer API)
+@override final  bool useAgentPlatform;
 
 /// Create a copy of EnvConfigState
 /// with the given fields replaced by the non-null parameter values.
@@ -237,16 +241,16 @@ _$EnvConfigStateCopyWith<_EnvConfigState> get copyWith => __$EnvConfigStateCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EnvConfigState&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.aiModel, aiModel) || other.aiModel == aiModel)&&(identical(other.connectTimeout, connectTimeout) || other.connectTimeout == connectTimeout)&&(identical(other.receiveTimeout, receiveTimeout) || other.receiveTimeout == receiveTimeout)&&(identical(other.sendTimeout, sendTimeout) || other.sendTimeout == sendTimeout)&&(identical(other.useFirebaseAuth, useFirebaseAuth) || other.useFirebaseAuth == useFirebaseAuth));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EnvConfigState&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.aiModel, aiModel) || other.aiModel == aiModel)&&(identical(other.connectTimeout, connectTimeout) || other.connectTimeout == connectTimeout)&&(identical(other.receiveTimeout, receiveTimeout) || other.receiveTimeout == receiveTimeout)&&(identical(other.sendTimeout, sendTimeout) || other.sendTimeout == sendTimeout)&&(identical(other.useFirebaseAuth, useFirebaseAuth) || other.useFirebaseAuth == useFirebaseAuth)&&(identical(other.useAgentPlatform, useAgentPlatform) || other.useAgentPlatform == useAgentPlatform));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,baseUrl,aiModel,connectTimeout,receiveTimeout,sendTimeout,useFirebaseAuth);
+int get hashCode => Object.hash(runtimeType,baseUrl,aiModel,connectTimeout,receiveTimeout,sendTimeout,useFirebaseAuth,useAgentPlatform);
 
 @override
 String toString() {
-  return 'EnvConfigState(baseUrl: $baseUrl, aiModel: $aiModel, connectTimeout: $connectTimeout, receiveTimeout: $receiveTimeout, sendTimeout: $sendTimeout, useFirebaseAuth: $useFirebaseAuth)';
+  return 'EnvConfigState(baseUrl: $baseUrl, aiModel: $aiModel, connectTimeout: $connectTimeout, receiveTimeout: $receiveTimeout, sendTimeout: $sendTimeout, useFirebaseAuth: $useFirebaseAuth, useAgentPlatform: $useAgentPlatform)';
 }
 
 
@@ -257,7 +261,7 @@ abstract mixin class _$EnvConfigStateCopyWith<$Res> implements $EnvConfigStateCo
   factory _$EnvConfigStateCopyWith(_EnvConfigState value, $Res Function(_EnvConfigState) _then) = __$EnvConfigStateCopyWithImpl;
 @override @useResult
 $Res call({
- String baseUrl, String aiModel, int connectTimeout, int receiveTimeout, int sendTimeout, bool useFirebaseAuth
+ String baseUrl, String aiModel, int connectTimeout, int receiveTimeout, int sendTimeout, bool useFirebaseAuth, bool useAgentPlatform
 });
 
 
@@ -274,7 +278,7 @@ class __$EnvConfigStateCopyWithImpl<$Res>
 
 /// Create a copy of EnvConfigState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? baseUrl = null,Object? aiModel = null,Object? connectTimeout = null,Object? receiveTimeout = null,Object? sendTimeout = null,Object? useFirebaseAuth = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? baseUrl = null,Object? aiModel = null,Object? connectTimeout = null,Object? receiveTimeout = null,Object? sendTimeout = null,Object? useFirebaseAuth = null,Object? useAgentPlatform = null,}) {
   return _then(_EnvConfigState(
 baseUrl: null == baseUrl ? _self.baseUrl : baseUrl // ignore: cast_nullable_to_non_nullable
 as String,aiModel: null == aiModel ? _self.aiModel : aiModel // ignore: cast_nullable_to_non_nullable
@@ -282,6 +286,7 @@ as String,connectTimeout: null == connectTimeout ? _self.connectTimeout : connec
 as int,receiveTimeout: null == receiveTimeout ? _self.receiveTimeout : receiveTimeout // ignore: cast_nullable_to_non_nullable
 as int,sendTimeout: null == sendTimeout ? _self.sendTimeout : sendTimeout // ignore: cast_nullable_to_non_nullable
 as int,useFirebaseAuth: null == useFirebaseAuth ? _self.useFirebaseAuth : useFirebaseAuth // ignore: cast_nullable_to_non_nullable
+as bool,useAgentPlatform: null == useAgentPlatform ? _self.useAgentPlatform : useAgentPlatform // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }

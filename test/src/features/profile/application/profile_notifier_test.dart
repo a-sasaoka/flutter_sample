@@ -61,6 +61,7 @@ void main() {
             receiveTimeout: 15,
             sendTimeout: 10,
             useFirebaseAuth: useAuth,
+            useAgentPlatform: true,
           ),
         ),
         loggerProvider.overrideWithValue(mockTalker),

@@ -19,11 +19,18 @@ ChatRepository chatRepository(Ref ref) {
   final hour = now.hour.toString().padLeft(2, '0');
   final minute = now.minute.toString().padLeft(2, '0');
 
-  // Vertex AI Gemini API を利用する場合は vertexAI() を使う
-  // Gemini Developer API を利用する場合は googleAI() を使う
-  final model = FirebaseAI.vertexAI().generativeModel(
+  // useAgentPlatform フラグによりエンタープライズ版 (agentPlatform) と
+  // 標準デベロッパー版 (googleAI) を使い分ける
+  final aiProvider = config.useAgentPlatform
+      ? FirebaseAI.agentPlatform()
+      : FirebaseAI.googleAI();
+
+  // gemini-3.5 シリーズはデフォルト挙動に任せるため generationConfig を指定しない
+  final isGemini35 = config.aiModel.contains('gemini-3.5');
+
+  final model = aiProvider.generativeModel(
     model: config.aiModel,
-    generationConfig: GenerationConfig(temperature: 0.7),
+    generationConfig: isGemini35 ? null : GenerationConfig(temperature: 0.7),
     systemInstruction: Content.system(
       'Current Time is $year-$month-$day $hour:$minute',
     ),

@@ -27,6 +27,9 @@ sealed class EnvConfigState with _$EnvConfigState {
 
     /// Firebase Auth を使用するかどうか
     required bool useFirebaseAuth,
+
+    /// Agent Platform (旧 Vertex AI) を使用するかどうか (false の場合は Google AI / Developer API)
+    required bool useAgentPlatform,
   }) = _EnvConfigState;
 
   const EnvConfigState._();
@@ -40,14 +43,15 @@ sealed class EnvConfigState with _$EnvConfigState {
 📍 API Base URL      : $baseUrl
 🤖 AI Model          : $aiModel
 ⏱️ Timeouts (C/R/S)  : $connectTimeout / $receiveTimeout / $sendTimeout
-🔥 Firebase Auth     : $useFirebaseAuth''';
+🔥 Firebase Auth     : $useFirebaseAuth
+🤖 Use Agent Platform: $useAgentPlatform''';
 }
 
 /// デフォルトの API ベース URL（サンプルの動作確認用）
 const defaultBaseUrl = 'https://jsonplaceholder.typicode.com';
 
 /// デフォルトの AI モデル名
-const defaultAiModel = 'gemini-2.5-flash';
+const defaultAiModel = 'gemini-3.5-flash-lite';
 
 /// デフォルトの接続タイムアウト（秒）
 const defaultConnectTimeout = 10;
@@ -60,6 +64,9 @@ const defaultSendTimeout = 10;
 
 /// デフォルトの Firebase Auth を使用するかどうか
 const defaultUseFirebaseAuth = true;
+
+/// デフォルトの Agent Platform を使用するかどうか
+const defaultUseAgentPlatform = true;
 
 /// JSON から読み込んだ環境設定を提供するプロバイダー。
 @Riverpod(keepAlive: true)
@@ -88,6 +95,10 @@ EnvConfigState envConfig(Ref ref) {
     useFirebaseAuth: bool.fromEnvironment(
       'USE_FIREBASE_AUTH',
       defaultValue: defaultUseFirebaseAuth,
+    ),
+    useAgentPlatform: bool.fromEnvironment(
+      'USE_AGENT_PLATFORM',
+      defaultValue: defaultUseAgentPlatform,
     ),
   );
 }

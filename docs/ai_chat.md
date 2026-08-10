@@ -8,7 +8,8 @@
 ## 技術スタック
 
 - **AI SDK**: `firebase_ai` パッケージ（Firebase AI Logic）
-- **モデル**: 公開設定ファイル (`config/flavor_*.json`) に定義された `AI_MODEL` （例: `gemini-2.5-flash`）を `envConfigProvider` で読み込み
+- **モデル**: 公開設定ファイル (`config/flavor_*.json`) に定義された `AI_MODEL` （例: `gemini-3.5-flash-lite`）を `envConfigProvider` で読み込み
+- **プロバイダー**: `USE_AGENT_PLATFORM` フラグにより、エンタープライズ版 (`FirebaseAI.agentPlatform()`) とデベロッパー標準版 (`FirebaseAI.googleAI()`) を環境設定経由で動的切り替え
 - **状態管理**: Riverpod (`@riverpod`), Freezed
 - **UI制御**: Flutter Hooks (`flutter_hooks`)
 - **セキュリティ**: Firebase App Check

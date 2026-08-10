@@ -57,11 +57,12 @@ void main() {
             envConfigProvider.overrideWithValue(
               const EnvConfigState(
                 baseUrl: 'https://example.com',
-                aiModel: 'gemini-2.5-flash',
+                aiModel: 'gemini-3.5-flash-lite',
                 connectTimeout: 10,
                 receiveTimeout: 15,
                 sendTimeout: 10,
                 useFirebaseAuth: true,
+                useAgentPlatform: true,
               ),
             ),
             // 2. 共通の認証オーバーライドを適用
@@ -118,11 +119,12 @@ void main() {
             envConfigProvider.overrideWithValue(
               const EnvConfigState(
                 baseUrl: 'https://example.com',
-                aiModel: 'gemini-2.5-flash',
+                aiModel: 'gemini-3.5-flash-lite',
                 connectTimeout: 10,
                 receiveTimeout: 15,
                 sendTimeout: 10,
                 useFirebaseAuth: false,
+                useAgentPlatform: true,
               ),
             ),
             // 2. 共通の認証オーバーライドを適用
@@ -174,11 +176,12 @@ void main() {
             envConfigProvider.overrideWithValue(
               const EnvConfigState(
                 baseUrl: 'https://example.com',
-                aiModel: 'gemini-2.5-flash',
+                aiModel: 'gemini-3.5-flash-lite',
                 connectTimeout: 10,
                 receiveTimeout: 15,
                 sendTimeout: 10,
                 useFirebaseAuth: true,
+                useAgentPlatform: true,
               ),
             ),
             ...getAuthOverrides().cast(),
