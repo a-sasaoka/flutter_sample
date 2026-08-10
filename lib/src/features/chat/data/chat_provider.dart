@@ -25,9 +25,12 @@ ChatRepository chatRepository(Ref ref) {
       ? FirebaseAI.agentPlatform()
       : FirebaseAI.googleAI();
 
+  // gemini-3.5 シリーズはデフォルト挙動に任せるため generationConfig を指定しない
+  final isGemini35 = config.aiModel.contains('gemini-3.5');
+
   final model = aiProvider.generativeModel(
     model: config.aiModel,
-    generationConfig: GenerationConfig(temperature: 0.7),
+    generationConfig: isGemini35 ? null : GenerationConfig(temperature: 0.7),
     systemInstruction: Content.system(
       'Current Time is $year-$month-$day $hour:$minute',
     ),
