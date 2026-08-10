@@ -51,7 +51,7 @@ stateDiagram-v2
 
     setupRequired --> unlocked: パスコード設定完了
     locked --> unlocked: パスコード一致 OR 生体認証成功
-    unlocked --> locked: バックグラウンド復帰 (resumed)
+    unlocked --> locked: バックグラウンド復帰 (paused/hidden -> [inactive] -> resumed)
     unlocked --> disabled: ログアウト (認証状態変更)
     setupRequired --> disabled: clearAppLock (設定全削除)
     locked --> disabled: clearAppLock (設定全削除)
@@ -60,7 +60,7 @@ stateDiagram-v2
 
 1. **`disabled`**: 未ログイン状態。ロック機能は無効。
 2. **`setupRequired`**: ログイン済みだがパスコードが未登録。アプリ起動時に初期設定画面を表示。
-3. **`locked`**: パスコード登録済み。起動時・復帰時にロック画面を表示。
+3. **`locked`**: パスコード登録済み。起動時・バックグラウンド復帰時にロック画面を表示。
 4. **`unlocked`**: 正しいパスコード入力または生体認証成功により一時的にロック解除された状態。
 
 > 💡 **ログアウトと `clearAppLock()` の違い**
@@ -85,10 +85,12 @@ stateDiagram-v2
 - ロックアウト期間中の試行は、暗号化ストレージへの照合（`verifyPasscode`）を行わずに即座に拒否されます。
 - パスコード認証成功時または `clearAppLock()` 実行時に、失敗カウントおよびロックアウト状態は Secure Storage から自動リセットされます。
 
-### OS 生体認証ダイアログの遅延・復帰保護
+### アプリ内一時非活性・OS 生体認証ダイアログの誤ロック防止設計
 
-- 生体認証実行中（Face ID ダイアログ表示中）は、OS から発行される `resumed` イベントによる二重ロックを防ぐため `_isAuthenticating` フラグで排他制御しています。
-- OS の生体認証プロンプト閉じに伴い発生する復帰イベントのみを `_promptDismissedAt` で追跡・初回消費することで誤ロックを防ぎ、手動によるアプリ復帰時は即座に再ロックされるよう制御しています。
+- **バックグラウンド履歴追跡**: `AppLockWrapper` は内部フラグ (`hasSeenBackground`) で `paused` または `hidden` 状態の通過を追跡します。OS によって `paused` $\rightarrow$ `inactive` $\rightarrow$ `resumed` の順でイベントが通知される場合でも確実に復帰を検知して `lockApp()` を呼び出します。
+- **一時非活性の分離**: チャット送信時やキーボード開閉、Firebase ネットワーク通信等に伴う単なる一時非活性状態（`resumed` $\rightarrow$ `inactive` $\rightarrow$ `resumed`）ではバックグラウンド通過フラグが `false` のため誤ロックが発生しません。
+- **生体認証排他制御**: 生体認証実行中（Face ID ダイアログ表示中）は、OS から発行される `resumed` イベントによる二重ロックを防ぐため `_isAuthenticating` フラグで排他制御しています。
+- **初回復帰のスキップ制御**: OS の生体認証プロンプト閉じに伴い発生する復帰イベントのみを `_shouldSkipNextLock` で追跡・初回消費することで誤ロックを防ぎ、手動によるアプリ復帰時は即座に再ロックされるよう制御しています。
 
 ---
 

@@ -7,6 +7,7 @@ import 'package:flutter_sample/src/features/app_lock/data/app_lock_repository.da
 import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'app_lock_service.g.dart';
@@ -32,12 +33,20 @@ class AppLockService extends _$AppLockService {
   @override
   Future<AppLockState> build() async {
     final talker = ref.watch(loggerProvider);
-    final useFirebase = ref.watch(envConfigProvider).useFirebaseAuth;
+    final useFirebase = ref.watch(
+      envConfigProvider.select((c) => c.useFirebaseAuth),
+    );
 
     // 認証状態の監視 (ログイン中かどうか判定)
+    // select を使って「ログイン中かどうか (bool)」の変更のみを監視し、
+    // トークン更新等による不要な build() の再実行・誤ロックを防止する
     final isAuthenticated = useFirebase
-        ? ref.watch(firebaseAuthStateProvider).value != null
-        : ref.watch(authStateProvider).value == true;
+        ? ref.watch(
+            firebaseAuthStateProvider.select((s) => s.value != null),
+          )
+        : ref.watch(
+            authStateProvider.select((s) => s.value == true),
+          );
 
     talker.debug('[AppLockService] build (isAuthenticated: $isAuthenticated)');
 
