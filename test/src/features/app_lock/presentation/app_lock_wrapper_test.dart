@@ -152,7 +152,7 @@ void main() {
     });
 
     testWidgets(
-      '一時非活性 (inactive) から復帰 (resumed) した場合は lockApp が呼び出されないこと',
+      '一時非活性 (inactive) のみから復帰 (resumed) した場合は lockApp が呼び出されないこと',
       (tester) async {
         final mockService = _TestAppLockService(
           const AppLockState.unlocked(isBiometricEnabled: true),
@@ -170,7 +170,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // キーボード閉じや通信等に伴う inactive -> resumed 遷移
+        // キーボード閉じや通信等に伴う resumed -> inactive -> resumed 遷移
         mockLifecycle.updateLifecycleState(AppLifecycleState.inactive);
         await tester.pump();
 
@@ -182,7 +182,7 @@ void main() {
     );
 
     testWidgets(
-      'バックグラウンド (paused) から復帰 (resumed) した場合は lockApp が呼び出されること',
+      'バックグラウンド (paused -> inactive -> resumed) の復帰シーケンスで lockApp が呼び出されること',
       (tester) async {
         final mockService = _TestAppLockService(
           const AppLockState.unlocked(isBiometricEnabled: true),
@@ -200,8 +200,11 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // 真のバックグラウンドpaused -> resumed 遷移
+        // 真のバックグラウンド paused -> inactive -> resumed 遷移
         mockLifecycle.updateLifecycleState(AppLifecycleState.paused);
+        await tester.pump();
+
+        mockLifecycle.updateLifecycleState(AppLifecycleState.inactive);
         await tester.pump();
 
         mockLifecycle.updateLifecycleState(AppLifecycleState.resumed);
@@ -212,7 +215,7 @@ void main() {
     );
 
     testWidgets(
-      '画面非表示 (hidden) から復帰 (resumed) した場合は lockApp が呼び出されること',
+      '画面非表示 (hidden -> inactive -> resumed) の復帰シーケンスで lockApp が呼び出されること',
       (tester) async {
         final mockService = _TestAppLockService(
           const AppLockState.unlocked(isBiometricEnabled: true),
@@ -230,8 +233,11 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // 画面非表示 hidden -> resumed 遷移
+        // 画面非表示 hidden -> inactive -> resumed 遷移
         mockLifecycle.updateLifecycleState(AppLifecycleState.hidden);
+        await tester.pump();
+
+        mockLifecycle.updateLifecycleState(AppLifecycleState.inactive);
         await tester.pump();
 
         mockLifecycle.updateLifecycleState(AppLifecycleState.resumed);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/src/core/utils/app_lifecycle_provider.dart';
 import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
 import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
@@ -7,7 +8,7 @@ import 'package:flutter_sample/src/features/app_lock/presentation/passcode_setup
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// 🔐 アプリ全体を包み込み、最前面にロックオーバーレイを描画＆ライフサイクル監視を行うラッパー
-class AppLockWrapper extends ConsumerWidget {
+class AppLockWrapper extends HookConsumerWidget {
   /// コンストラクタ
   const AppLockWrapper({
     required this.child,
@@ -21,14 +22,19 @@ class AppLockWrapper extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final appLockAsync = ref.watch(appLockServiceProvider);
 
-    // アプリのライフサイクル（バックグラウンド復帰）監視
-    ref.listen(appLifecycleProvider, (previous, next) {
-      final cameFromBackground =
-          previous == AppLifecycleState.paused ||
-          previous == AppLifecycleState.hidden;
+    // バックグラウンド状態 (paused / hidden) を通過したかどうかを追跡するフラグ
+    final hasSeenBackground = useRef(false);
 
-      if (cameFromBackground && next == AppLifecycleState.resumed) {
-        ref.read(appLockServiceProvider.notifier).lockApp();
+    // アプリのライフサイクル監視
+    ref.listen(appLifecycleProvider, (previous, next) {
+      if (next == AppLifecycleState.paused ||
+          next == AppLifecycleState.hidden) {
+        hasSeenBackground.value = true;
+      } else if (next == AppLifecycleState.resumed) {
+        if (hasSeenBackground.value) {
+          hasSeenBackground.value = false;
+          ref.read(appLockServiceProvider.notifier).lockApp();
+        }
       }
     });
 
