@@ -1,3 +1,4 @@
+import 'package:flutter_sample/src/core/utils/date_time_extension.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_state.dart';
@@ -8,7 +9,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'chat_notifier.g.dart';
 
-/// チャットのやり取りを管理するプロバイダー
+/// チャットのやり取りを管理するプロバーダー
 @Riverpod(keepAlive: true)
 class ChatNotifier extends _$ChatNotifier {
   @override
@@ -172,14 +173,7 @@ class ChatNotifier extends _$ChatNotifier {
   /// AIに送るプロンプトにシステム日時を付加する
   String _buildPromptWithTime(String originalText) {
     final now = ref.read(clockProvider)();
-
-    final year = now.year;
-    final month = now.month.toString().padLeft(2, '0');
-    final day = now.day.toString().padLeft(2, '0');
-    final hour = now.hour.toString().padLeft(2, '0');
-    final minute = now.minute.toString().padLeft(2, '0');
-
-    return '[System Information: Current Time is $year-$month-$day '
-        '$hour:$minute]\n$originalText';
+    return '[System Information: Current Time is '
+        '${now.toFormattedStringWithTimezone()}]\n$originalText';
   }
 }
