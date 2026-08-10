@@ -17,9 +17,14 @@ List<RouteBase> get $appRoutes => [
 
 RouteBase get $loginRoute => GoRouteData.$route(
   path: '/login',
+  hasOverriddenOnExit: false,
   factory: $LoginRoute._fromState,
   routes: [
-    GoRouteData.$route(path: 'signup', factory: $SignUpRoute._fromState),
+    GoRouteData.$route(
+      path: 'signup',
+      hasOverriddenOnExit: false,
+      factory: $SignUpRoute._fromState,
+    ),
   ],
 );
 
@@ -71,6 +76,7 @@ mixin $SignUpRoute on GoRouteData {
 
 RouteBase get $emailVerificationRoute => GoRouteData.$route(
   path: '/email-verification',
+  hasOverriddenOnExit: false,
   factory: $EmailVerificationRoute._fromState,
 );
 
@@ -102,20 +108,24 @@ RouteBase get $appShellRouteData => StatefulShellRouteData.$route(
       routes: [
         GoRouteData.$route(
           path: '/',
+          hasOverriddenOnExit: false,
           factory: $HomeRoute._fromState,
           routes: [
             GoRouteData.$route(
               path: 'settings',
+              hasOverriddenOnExit: false,
               factory: $SettingsRoute._fromState,
               routes: [
                 GoRouteData.$route(
                   path: 'profile',
+                  hasOverriddenOnExit: false,
                   factory: $ProfileEditRoute._fromState,
                 ),
               ],
             ),
             GoRouteData.$route(
               path: 'reset-password',
+              hasOverriddenOnExit: false,
               factory: $ResetPasswordRoute._fromState,
             ),
           ],
@@ -124,22 +134,32 @@ RouteBase get $appShellRouteData => StatefulShellRouteData.$route(
     ),
     StatefulShellBranchData.$branch(
       routes: [
-        GoRouteData.$route(path: '/chat', factory: $ChatRoute._fromState),
+        GoRouteData.$route(
+          path: '/chat',
+          hasOverriddenOnExit: false,
+          factory: $ChatRoute._fromState,
+        ),
       ],
     ),
     StatefulShellBranchData.$branch(
       routes: [
-        GoRouteData.$route(path: '/memos', factory: $MemosRoute._fromState),
+        GoRouteData.$route(
+          path: '/memos',
+          hasOverriddenOnExit: false,
+          factory: $MemosRoute._fromState,
+        ),
       ],
     ),
     StatefulShellBranchData.$branch(
       routes: [
         GoRouteData.$route(
           path: '/chart-input',
+          hasOverriddenOnExit: false,
           factory: $ChartInputRoute._fromState,
           routes: [
             GoRouteData.$route(
               path: 'display',
+              hasOverriddenOnExit: false,
               factory: $ChartDisplayRoute._fromState,
             ),
           ],
@@ -148,7 +168,11 @@ RouteBase get $appShellRouteData => StatefulShellRouteData.$route(
     ),
     StatefulShellBranchData.$branch(
       routes: [
-        GoRouteData.$route(path: '/users', factory: $UserListRoute._fromState),
+        GoRouteData.$route(
+          path: '/users',
+          hasOverriddenOnExit: false,
+          factory: $UserListRoute._fromState,
+        ),
       ],
     ),
   ],
@@ -345,6 +369,7 @@ mixin $UserListRoute on GoRouteData {
 
 RouteBase get $onboardingRoute => GoRouteData.$route(
   path: '/onboarding',
+  hasOverriddenOnExit: false,
   factory: $OnboardingRoute._fromState,
 );
 
@@ -369,8 +394,11 @@ mixin $OnboardingRoute on GoRouteData {
   void replace(BuildContext context) => context.replace(location);
 }
 
-RouteBase get $splashRoute =>
-    GoRouteData.$route(path: '/splash', factory: $SplashRoute._fromState);
+RouteBase get $splashRoute => GoRouteData.$route(
+  path: '/splash',
+  hasOverriddenOnExit: false,
+  factory: $SplashRoute._fromState,
+);
 
 mixin $SplashRoute on GoRouteData {
   static SplashRoute _fromState(GoRouterState state) => const SplashRoute();
@@ -394,6 +422,7 @@ mixin $SplashRoute on GoRouteData {
 
 RouteBase get $developerStorageRoute => GoRouteData.$route(
   path: '/dev-tools/storage',
+  hasOverriddenOnExit: false,
   factory: $DeveloperStorageRoute._fromState,
 );
 

@@ -289,6 +289,7 @@ void main() {
             receiveTimeout: 15,
             sendTimeout: 10,
             useFirebaseAuth: useFirebase,
+            useAgentPlatform: true,
           ),
         ),
         authStateProvider.overrideWith(
@@ -536,6 +537,7 @@ void main() {
               receiveTimeout: 15,
               sendTimeout: 10,
               useFirebaseAuth: true,
+              useAgentPlatform: true,
             ),
           ),
         ],

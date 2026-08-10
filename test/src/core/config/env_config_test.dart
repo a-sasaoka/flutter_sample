@@ -19,6 +19,7 @@ void main() {
       check(config.receiveTimeout).equals(defaultReceiveTimeout);
       check(config.sendTimeout).equals(defaultSendTimeout);
       check(config.useFirebaseAuth).equals(defaultUseFirebaseAuth);
+      check(config.useAgentPlatform).equals(defaultUseAgentPlatform);
     });
 
     test('getDebugReport が正しいフォーマットで文字列を生成すること', () {
@@ -29,6 +30,7 @@ void main() {
         receiveTimeout: 2,
         sendTimeout: 3,
         useFirebaseAuth: false,
+        useAgentPlatform: true,
       );
 
       final packageInfo = PackageInfo(
@@ -47,6 +49,7 @@ void main() {
       check(report).contains('🤖 AI Model          : test-model');
       check(report).contains('⏱️ Timeouts (C/R/S)  : 1 / 2 / 3');
       check(report).contains('🔥 Firebase Auth     : false');
+      check(report).contains('🤖 Use Agent Platform: true');
     });
   });
 }

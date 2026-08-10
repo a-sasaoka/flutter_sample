@@ -67,6 +67,7 @@ void main() {
         receiveTimeout: 10,
         sendTimeout: 5,
         useFirebaseAuth: true,
+        useAgentPlatform: true,
       );
       final container = createContainer(config: config);
 
@@ -100,6 +101,7 @@ void main() {
           receiveTimeout: 10,
           sendTimeout: 5,
           useFirebaseAuth: true,
+          useAgentPlatform: true,
         );
 
         // local フレーバーでの検証
@@ -129,6 +131,7 @@ void main() {
           receiveTimeout: 10,
           sendTimeout: 5,
           useFirebaseAuth: true,
+          useAgentPlatform: true,
         );
         final containerUppercase = createContainer(
           config: uppercaseConfig,
@@ -151,6 +154,7 @@ void main() {
           receiveTimeout: 10,
           sendTimeout: 5,
           useFirebaseAuth: true,
+          useAgentPlatform: true,
         );
 
         final containerStg = createContainer(
@@ -176,6 +180,7 @@ void main() {
         receiveTimeout: 3,
         sendTimeout: 3,
         useFirebaseAuth: true,
+        useAgentPlatform: true,
       );
       final container = createContainer(config: config);
 

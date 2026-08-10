@@ -160,11 +160,12 @@ Future<void> main() async {
       envConfigProvider.overrideWith((ref) {
         return const EnvConfigState(
           baseUrl: 'http://localhost:3000',
-          aiModel: 'gemini-2.5-flash',
+          aiModel: 'gemini-3.5-flash-lite',
           connectTimeout: 10,
           receiveTimeout: 15,
           sendTimeout: 10,
           useFirebaseAuth: false, // Firebase Authを無効化
+          useAgentPlatform: true,
         );
       }),
       // 2. ネットワーク状態を「オフライン」として固定（これでサーバーとの不要なAPI通信を防ぎます）

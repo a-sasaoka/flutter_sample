@@ -23,6 +23,7 @@ void main() {
               receiveTimeout: 15,
               sendTimeout: 10,
               useFirebaseAuth: true,
+              useAgentPlatform: true,
             ),
           ),
         ],

@@ -150,6 +150,7 @@ void main() {
             receiveTimeout: 15,
             sendTimeout: 10,
             useFirebaseAuth: useAuth,
+            useAgentPlatform: true,
           ),
         ),
         firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),

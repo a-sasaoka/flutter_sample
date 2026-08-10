@@ -1,8 +1,9 @@
 {
   "BASE_URL": "http://localhost:5001/YOUR_PROJECT_ID/us-central1",
-  "AI_MODEL": "gemini-2.5-flash",
+  "AI_MODEL": "gemini-3.5-flash-lite",
   "CONNECT_TIMEOUT": 10,
   "RECEIVE_TIMEOUT": 15,
   "SEND_TIMEOUT": 10,
-  "USE_FIREBASE_AUTH": true
+  "USE_FIREBASE_AUTH": true,
+  "USE_AGENT_PLATFORM": true
 }

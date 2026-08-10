@@ -28,7 +28,8 @@ InterceptorsWrapper dioInterceptor(Ref ref) {
       final exception = switch (e.type) {
         DioExceptionType.connectionTimeout ||
         DioExceptionType.receiveTimeout ||
-        DioExceptionType.sendTimeout => const AppException.timeout(),
+        DioExceptionType.sendTimeout ||
+        DioExceptionType.transformTimeout => const AppException.timeout(),
         DioExceptionType.badResponse => _mapResponseError(e),
         DioExceptionType.cancel => const AppException.cancel(),
         DioExceptionType.connectionError => const AppException.network(),

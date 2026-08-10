@@ -74,11 +74,12 @@ void main() {
         envConfigProvider.overrideWithValue(
           EnvConfigState(
             baseUrl: 'http://example.com',
-            aiModel: 'gemini-2.5-flash',
+            aiModel: 'gemini-3.5-flash-lite',
             connectTimeout: 10,
             receiveTimeout: 15,
             sendTimeout: 10,
             useFirebaseAuth: useFirebaseAuth,
+            useAgentPlatform: true,
           ),
         ),
         authStateProvider.overrideWith(
