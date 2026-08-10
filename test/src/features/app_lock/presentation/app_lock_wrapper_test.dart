@@ -247,6 +247,43 @@ void main() {
       },
     );
 
+    testWidgets(
+      '複合バックグラウンド (paused -> hidden -> inactive -> resumed) '
+      'の復帰シーケンスで lockApp が呼び出されること',
+      (tester) async {
+        final mockService = _TestAppLockService(
+          const AppLockState.unlocked(isBiometricEnabled: true),
+        );
+        final mockLifecycle = _TestAppLifecycle();
+
+        await tester.pumpWidget(
+          createTestWidget(
+            const AppLockWrapper(
+              child: Text('Main Screen Content'),
+            ),
+            serviceBuilder: () => mockService,
+            lifecycleBuilder: () => mockLifecycle,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // 複合遷移 paused -> hidden -> inactive -> resumed
+        mockLifecycle.updateLifecycleState(AppLifecycleState.paused);
+        await tester.pump();
+
+        mockLifecycle.updateLifecycleState(AppLifecycleState.hidden);
+        await tester.pump();
+
+        mockLifecycle.updateLifecycleState(AppLifecycleState.inactive);
+        await tester.pump();
+
+        mockLifecycle.updateLifecycleState(AppLifecycleState.resumed);
+        await tester.pump();
+
+        expect(mockService.lockAppCalledCount, equals(1));
+      },
+    );
+
     testWidgets('loading 状態の時は保護シールド(ColoredBox)が描画される', (tester) async {
       await tester.pumpWidget(
         createTestWidget(
