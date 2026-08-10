@@ -37,5 +37,14 @@ void main() {
         check(formatted).contains('(Timezone:');
       },
     );
+
+    test(
+      '【境界値】西暦が4桁未満 (例: 99年) の場合でも4桁にゼロ埋めフォーマットされること',
+      () {
+        final shortYearDate = DateTime(99, 1, 2, 3, 4);
+        final formatted = shortYearDate.toFormattedStringWithTimezone();
+        check(formatted).contains('0099-01-02 03:04');
+      },
+    );
   });
 }

@@ -11,7 +11,7 @@ extension DateTimeExtension on DateTime {
   ///
   /// 出力例: `2026-08-11 07:30 (Timezone: +09:00, JST)`
   String toFormattedStringWithTimezone() {
-    final year = this.year;
+    final year = this.year.toString().padLeft(4, '0');
     final month = this.month.toString().padLeft(2, '0');
     final day = this.day.toString().padLeft(2, '0');
     final hour = this.hour.toString().padLeft(2, '0');
