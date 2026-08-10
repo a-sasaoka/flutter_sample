@@ -23,7 +23,11 @@ class AppLockWrapper extends ConsumerWidget {
 
     // アプリのライフサイクル（バックグラウンド復帰）監視
     ref.listen(appLifecycleProvider, (previous, next) {
-      if (next == AppLifecycleState.resumed) {
+      final cameFromBackground =
+          previous == AppLifecycleState.paused ||
+          previous == AppLifecycleState.hidden;
+
+      if (cameFromBackground && next == AppLifecycleState.resumed) {
         ref.read(appLockServiceProvider.notifier).lockApp();
       }
     });

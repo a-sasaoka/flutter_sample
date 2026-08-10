@@ -151,32 +151,95 @@ void main() {
       expect(find.byType(PasscodeLockScreen), findsOneWidget);
     });
 
-    testWidgets('アプリ復帰(resumed)時に lockApp が呼び出されること', (tester) async {
-      final mockService = _TestAppLockService(
-        const AppLockState.unlocked(isBiometricEnabled: true),
-      );
-      final mockLifecycle = _TestAppLifecycle();
+    testWidgets(
+      '一時非活性 (inactive) から復帰 (resumed) した場合は lockApp が呼び出されないこと',
+      (tester) async {
+        final mockService = _TestAppLockService(
+          const AppLockState.unlocked(isBiometricEnabled: true),
+        );
+        final mockLifecycle = _TestAppLifecycle();
 
-      await tester.pumpWidget(
-        createTestWidget(
-          const AppLockWrapper(
-            child: Text('Main Screen Content'),
+        await tester.pumpWidget(
+          createTestWidget(
+            const AppLockWrapper(
+              child: Text('Main Screen Content'),
+            ),
+            serviceBuilder: () => mockService,
+            lifecycleBuilder: () => mockLifecycle,
           ),
-          serviceBuilder: () => mockService,
-          lifecycleBuilder: () => mockLifecycle,
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      // 一度 inactive にしたのち resumed を通知
-      mockLifecycle.updateLifecycleState(AppLifecycleState.inactive);
-      await tester.pump();
+        // キーボード閉じや通信等に伴う inactive -> resumed 遷移
+        mockLifecycle.updateLifecycleState(AppLifecycleState.inactive);
+        await tester.pump();
 
-      mockLifecycle.updateLifecycleState(AppLifecycleState.resumed);
-      await tester.pump();
+        mockLifecycle.updateLifecycleState(AppLifecycleState.resumed);
+        await tester.pump();
 
-      expect(mockService.lockAppCalledCount, equals(1));
-    });
+        expect(mockService.lockAppCalledCount, equals(0));
+      },
+    );
+
+    testWidgets(
+      'バックグラウンド (paused) から復帰 (resumed) した場合は lockApp が呼び出されること',
+      (tester) async {
+        final mockService = _TestAppLockService(
+          const AppLockState.unlocked(isBiometricEnabled: true),
+        );
+        final mockLifecycle = _TestAppLifecycle();
+
+        await tester.pumpWidget(
+          createTestWidget(
+            const AppLockWrapper(
+              child: Text('Main Screen Content'),
+            ),
+            serviceBuilder: () => mockService,
+            lifecycleBuilder: () => mockLifecycle,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // 真のバックグラウンドpaused -> resumed 遷移
+        mockLifecycle.updateLifecycleState(AppLifecycleState.paused);
+        await tester.pump();
+
+        mockLifecycle.updateLifecycleState(AppLifecycleState.resumed);
+        await tester.pump();
+
+        expect(mockService.lockAppCalledCount, equals(1));
+      },
+    );
+
+    testWidgets(
+      '画面非表示 (hidden) から復帰 (resumed) した場合は lockApp が呼び出されること',
+      (tester) async {
+        final mockService = _TestAppLockService(
+          const AppLockState.unlocked(isBiometricEnabled: true),
+        );
+        final mockLifecycle = _TestAppLifecycle();
+
+        await tester.pumpWidget(
+          createTestWidget(
+            const AppLockWrapper(
+              child: Text('Main Screen Content'),
+            ),
+            serviceBuilder: () => mockService,
+            lifecycleBuilder: () => mockLifecycle,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // 画面非表示 hidden -> resumed 遷移
+        mockLifecycle.updateLifecycleState(AppLifecycleState.hidden);
+        await tester.pump();
+
+        mockLifecycle.updateLifecycleState(AppLifecycleState.resumed);
+        await tester.pump();
+
+        expect(mockService.lockAppCalledCount, equals(1));
+      },
+    );
 
     testWidgets('loading 状態の時は保護シールド(ColoredBox)が描画される', (tester) async {
       await tester.pumpWidget(
