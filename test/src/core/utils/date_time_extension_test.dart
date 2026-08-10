@@ -32,9 +32,20 @@ void main() {
       '【正常系】toFormattedStringWithTimezone() で '
       'OS タイムゾーン情報付きの日時文字列が出力されること',
       () {
+        final offset = testDate.timeZoneOffset;
+        final offsetSign = offset.isNegative ? '-' : '+';
+        final offsetHours = offset.inHours.abs().toString().padLeft(2, '0');
+        final offsetMinutes = (offset.inMinutes.abs() % 60).toString().padLeft(
+          2,
+          '0',
+        );
+        final tzName = testDate.timeZoneName;
+        final expectedTz =
+            '(Timezone: $offsetSign$offsetHours:$offsetMinutes, $tzName)';
+
         final formatted = testDate.toFormattedStringWithTimezone();
         check(formatted).contains('2026-07-11 08:09');
-        check(formatted).contains('(Timezone:');
+        check(formatted).contains(expectedTz);
       },
     );
 
