@@ -8,15 +8,15 @@ part of 'chat_notifier.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// チャットのやり取りを管理するプロバイダー
+/// チャットのやり取りを管理するプロバーダー
 
 @ProviderFor(ChatNotifier)
 final chatProvider = ChatNotifierProvider._();
 
-/// チャットのやり取りを管理するプロバイダー
+/// チャットのやり取りを管理するプロバーダー
 final class ChatNotifierProvider
     extends $NotifierProvider<ChatNotifier, ChatState> {
-  /// チャットのやり取りを管理するプロバイダー
+  /// チャットのやり取りを管理するプロバーダー
   ChatNotifierProvider._()
     : super(
         from: null,
@@ -44,9 +44,9 @@ final class ChatNotifierProvider
   }
 }
 
-String _$chatNotifierHash() => r'82f5d4fcf99b2db307a0c81689f3d232aed97b21';
+String _$chatNotifierHash() => r'a329e663a42fa5cab06deb21c6eb2faaa731023b';
 
-/// チャットのやり取りを管理するプロバイダー
+/// チャットのやり取りを管理するプロバーダー
 
 abstract class _$ChatNotifier extends $Notifier<ChatState> {
   ChatState build();

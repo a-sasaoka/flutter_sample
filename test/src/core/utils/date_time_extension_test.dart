@@ -27,5 +27,15 @@ void main() {
       final formatted = testDate.toFormattedString();
       check(formatted).isNotEmpty();
     });
+
+    test(
+      '【正常系】toFormattedStringWithTimezone() で '
+      'OS タイムゾーン情報付きの日時文字列が出力されること',
+      () {
+        final formatted = testDate.toFormattedStringWithTimezone();
+        check(formatted).contains('2026-07-11 08:09');
+        check(formatted).contains('(Timezone:');
+      },
+    );
   });
 }

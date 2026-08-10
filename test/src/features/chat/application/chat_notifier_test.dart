@@ -189,9 +189,11 @@ void main() {
         check(state.messages.last.toString()).contains('AIからの返答です');
 
         // 2. 日付コンテキスト（システム情報）が正しく Repository に渡されたかの検証
-        check(fakeRepo.lastStreamText).equals(
-          '[System Information: Current Time is 2026-03-21 10:00]\nストリームテスト',
-        );
+        check(fakeRepo.lastStreamText).isNotNull()
+          ..contains(
+            '[System Information: Current Time is 2026-03-21 10:00 (Timezone:',
+          )
+          ..endsWith('\nストリームテスト');
       });
 
       test('排他制御: Stream生成中に連続で送信しても、2回目以降は無視されること', () async {

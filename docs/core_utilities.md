@@ -176,3 +176,16 @@ final defaultString = now.toFormattedString();
 
 UI上で日付を表示する際は、この拡張関数を利用します。  
 引数にロケール情報（例: `l10n.localeName`）を渡すことで、一貫した多言語対応の日付表示を実現できます（引数を省略した場合は、システムデフォルトのロケールでフォーマットされます）。
+
+### ⏰ タイムゾーン付きフォーマット（toFormattedStringWithTimezone）
+
+AI プロンプト等で、端末 OS から自動取得したタイムゾーン（時差オフセットおよび時差名）を含めた標準日時文字列を取得するための拡張関数です。
+
+```dart
+final now = DateTime.now();
+
+// 出力例: 2026-08-11 07:30 (Timezone: +09:00, JST)
+final tzString = now.toFormattedStringWithTimezone();
+```
+
+時差指定がない文字列を AI（LLM）が UTC と誤認識して現地日付が 1 日ずれる不具合を防ぐために利用します。
