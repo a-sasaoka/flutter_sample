@@ -280,6 +280,22 @@
     }
   },
   "mapSearchClear": "Clear search",
-  "mapSearchSelectCandidateTitle": "Select search result"
+  "mapSearchSelectCandidateTitle": "Select search result",
+  "mapSpotDetailTitle": "Spot Details",
+  "mapSpotCategoryCafe": "Cafe",
+  "mapSpotCategoryPark": "Park",
+  "mapSpotCategoryRestaurant": "Restaurant",
+  "mapSpotCategorySightseeing": "Sightseeing",
+  "mapSpotCategoryShopping": "Shopping",
+  "mapSpotCategoryOther": "Other",
+  "mapSpotRating": "Rating: {rating}",
+  "@mapSpotRating": {
+    "placeholders": {
+      "rating": {
+        "type": "String"
+      }
+    }
+  },
+  "mapSpotStartRoute": "Get Directions"
 }
 

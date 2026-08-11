@@ -280,6 +280,22 @@
     }
   },
   "mapSearchClear": "検索をクリア",
-  "mapSearchSelectCandidateTitle": "検索結果を選択"
+  "mapSearchSelectCandidateTitle": "検索結果を選択",
+  "mapSpotDetailTitle": "スポット詳細",
+  "mapSpotCategoryCafe": "カフェ",
+  "mapSpotCategoryPark": "公園",
+  "mapSpotCategoryRestaurant": "レストラン",
+  "mapSpotCategorySightseeing": "観光地",
+  "mapSpotCategoryShopping": "ショッピング",
+  "mapSpotCategoryOther": "その他",
+  "mapSpotRating": "評価: {rating}",
+  "@mapSpotRating": {
+    "placeholders": {
+      "rating": {
+        "type": "String"
+      }
+    }
+  },
+  "mapSpotStartRoute": "ルート案内"
 }
 

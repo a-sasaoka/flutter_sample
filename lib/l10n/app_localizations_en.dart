@@ -620,4 +620,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapSearchSelectCandidateTitle => 'Select search result';
+
+  @override
+  String get mapSpotDetailTitle => 'Spot Details';
+
+  @override
+  String get mapSpotCategoryCafe => 'Cafe';
+
+  @override
+  String get mapSpotCategoryPark => 'Park';
+
+  @override
+  String get mapSpotCategoryRestaurant => 'Restaurant';
+
+  @override
+  String get mapSpotCategorySightseeing => 'Sightseeing';
+
+  @override
+  String get mapSpotCategoryShopping => 'Shopping';
+
+  @override
+  String get mapSpotCategoryOther => 'Other';
+
+  @override
+  String mapSpotRating(String rating) {
+    return 'Rating: $rating';
+  }
+
+  @override
+  String get mapSpotStartRoute => 'Get Directions';
 }

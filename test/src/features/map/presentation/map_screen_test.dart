@@ -7,10 +7,13 @@ import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/map/application/map_notifier.dart';
 import 'package:flutter_sample/src/features/map/application/map_search_notifier.dart';
+import 'package:flutter_sample/src/features/map/data/spot_repository.dart';
 import 'package:flutter_sample/src/features/map/domain/location_candidate.dart';
 import 'package:flutter_sample/src/features/map/domain/location_state.dart';
 import 'package:flutter_sample/src/features/map/domain/map_search_state.dart';
+import 'package:flutter_sample/src/features/map/domain/map_spot.dart';
 import 'package:flutter_sample/src/features/map/presentation/map_screen.dart';
+import 'package:flutter_sample/src/features/map/presentation/widgets/spot_detail_bottom_sheet.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -90,6 +93,23 @@ class MockGoogleMapsPlatform extends Mock
 
 class MockTalker extends Mock implements Talker {}
 
+class FakeSpotRepository implements SpotRepository {
+  @override
+  Future<List<MapSpot>> getSpots() async => [];
+
+  @override
+  Future<MapSpot?> getSpotById(String id) async => null;
+}
+
+class FakeSpotRepositoryWithData implements SpotRepository {
+  @override
+  Future<List<MapSpot>> getSpots() async => SpotRepositoryImpl.sampleSpots;
+
+  @override
+  Future<MapSpot?> getSpotById(String id) async =>
+      SpotRepositoryImpl.sampleSpots.firstWhere((spot) => spot.id == id);
+}
+
 void main() {
   late MockGoogleMapsPlatform mockMapsPlatform;
   late MockTalker mockTalker;
@@ -112,9 +132,19 @@ void main() {
     required Widget child,
     List<dynamic> overrides = const [],
   }) {
+    final defaultOverrides = <dynamic>[
+      loggerProvider.overrideWithValue(mockTalker),
+      spotRepositoryProvider.overrideWithValue(FakeSpotRepository()),
+    ];
+
+    final customOrigins = overrides.map((o) => (o as dynamic).origin).toSet();
+    final filteredDefaults = defaultOverrides.where(
+      (d) => !customOrigins.contains((d as dynamic).origin),
+    );
+
     return ProviderScope(
       overrides: [
-        loggerProvider.overrideWithValue(mockTalker),
+        ...filteredDefaults,
         ...overrides,
       ].cast(),
       child: MaterialApp(
@@ -759,6 +789,95 @@ void main() {
 
       check(find.byType(SnackBar)).findsOne();
     });
+
+    testWidgets('spotProvider のデータ読み込みが完了して MapScreen が描画されること', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestWidget(
+          child: const MapScreen(),
+          overrides: [
+            spotRepositoryProvider.overrideWithValue(
+              FakeSpotRepositoryWithData(),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      check(find.byType(MapScreen)).findsOne();
+    });
+
+    testWidgets('スポットマーカーをタップするとカメラ移動と SpotDetailBottomSheet が表示されること', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestWidget(
+          child: const MapScreen(),
+          overrides: [
+            spotRepositoryProvider.overrideWithValue(
+              FakeSpotRepositoryWithData(),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      mockMapsPlatform.triggerOnPlatformViewCreated(0);
+      await tester.pump();
+
+      final googleMapFinder = find.byType(GoogleMap);
+      check(googleMapFinder).findsOne();
+      final googleMap = tester.widget<GoogleMap>(googleMapFinder);
+
+      final spotMarker = googleMap.markers.firstWhere(
+        (marker) => marker.markerId.value.startsWith('spot_'),
+      );
+
+      check(spotMarker.onTap).isNotNull();
+      spotMarker.onTap!();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 750));
+
+      check(find.byType(SpotDetailBottomSheet)).findsOne();
+      check(mockMapsPlatform.animateCameraCalled).isTrue();
+    });
+
+    testWidgets(
+      'コントローラ未生成時にスポットマーカーをタップした場合でも SpotDetailBottomSheet が表示されること',
+      (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              spotRepositoryProvider.overrideWithValue(
+                FakeSpotRepositoryWithData(),
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        final googleMapFinder = find.byType(GoogleMap);
+        check(googleMapFinder).findsOne();
+        final googleMap = tester.widget<GoogleMap>(googleMapFinder);
+
+        final spotMarker = googleMap.markers.firstWhere(
+          (marker) => marker.markerId.value.startsWith('spot_'),
+        );
+
+        check(spotMarker.onTap).isNotNull();
+        spotMarker.onTap!();
+        await tester.pump();
+
+        check(find.byType(SpotDetailBottomSheet)).findsOne();
+      },
+    );
   });
 }
 

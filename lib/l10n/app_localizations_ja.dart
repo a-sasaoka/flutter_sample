@@ -601,4 +601,33 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get mapSearchSelectCandidateTitle => '検索結果を選択';
+
+  @override
+  String get mapSpotDetailTitle => 'スポット詳細';
+
+  @override
+  String get mapSpotCategoryCafe => 'カフェ';
+
+  @override
+  String get mapSpotCategoryPark => '公園';
+
+  @override
+  String get mapSpotCategoryRestaurant => 'レストラン';
+
+  @override
+  String get mapSpotCategorySightseeing => '観光地';
+
+  @override
+  String get mapSpotCategoryShopping => 'ショッピング';
+
+  @override
+  String get mapSpotCategoryOther => 'その他';
+
+  @override
+  String mapSpotRating(String rating) {
+    return '評価: $rating';
+  }
+
+  @override
+  String get mapSpotStartRoute => 'ルート案内';
 }
