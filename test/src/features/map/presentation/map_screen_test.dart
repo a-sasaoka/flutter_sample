@@ -13,6 +13,7 @@ import 'package:flutter_sample/src/features/map/domain/map_search_state.dart';
 import 'package:flutter_sample/src/features/map/presentation/map_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
@@ -593,6 +594,9 @@ void main() {
           query: '東京駅',
         );
         await tester.pump();
+
+        final googleMap = tester.widget<GoogleMap>(find.byType(GoogleMap));
+        check(googleMap.markers.length).equals(1);
 
         check(mockMapsPlatform.animateCameraCalled).isFalse();
 
