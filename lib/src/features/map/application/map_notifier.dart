@@ -49,9 +49,7 @@ class MapNotifier extends _$MapNotifier {
 
       // 3. 現在位置の取得
       final position = await repository.getCurrentPosition();
-      talker.info(
-        '[MapNotifier] 現在地取得成功: (${position.latitude}, ${position.longitude})',
-      );
+      talker.info('[MapNotifier] 現在地取得成功');
       state = LocationState.success(position);
     } on Exception catch (e, st) {
       talker.handle(e, st);
