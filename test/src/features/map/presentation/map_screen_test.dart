@@ -557,6 +557,48 @@ void main() {
       check(mockMapsPlatform.animateCameraCalled).isTrue();
     });
 
+    testWidgets(
+      'コントローラ未生成時に単一検索成功 (success) を受信した場合、 '
+      'pendingLatLngState に保持され onMapCreated 時にカメラ移動が実行されること',
+      (tester) async {
+        mockMapsPlatform.autoCreatePlatformView = false;
+        late _TestMapSearchNotifier testSearchNotifier;
+        const candidate = LocationCandidate(
+          latitude: 35.681236,
+          longitude: 139.767125,
+          name: '東京駅',
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapSearchProvider.overrideWith(
+                () => testSearchNotifier = _TestMapSearchNotifier(
+                  const MapSearchState.initial(),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+
+        testSearchNotifier.currentState = const MapSearchState.success(
+          locations: [candidate],
+          query: '東京駅',
+        );
+        await tester.pump();
+
+        check(mockMapsPlatform.animateCameraCalled).isFalse();
+
+        mockMapsPlatform.triggerOnPlatformViewCreated(0);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 750));
+
+        check(mockMapsPlatform.animateCameraCalled).isTrue();
+      },
+    );
+
     testWidgets('検索該当なし (empty) 時に SnackBar が表示されること', (tester) async {
       late _TestMapSearchNotifier testSearchNotifier;
       await tester.pumpWidget(

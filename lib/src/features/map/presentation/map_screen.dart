@@ -7,7 +7,6 @@ import 'package:flutter_sample/src/features/map/application/map_notifier.dart';
 import 'package:flutter_sample/src/features/map/application/map_search_notifier.dart';
 import 'package:flutter_sample/src/features/map/domain/location_state.dart';
 import 'package:flutter_sample/src/features/map/domain/map_search_state.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -29,8 +28,8 @@ class MapScreen extends HookConsumerWidget {
     // GoogleMapController のインスタンスを保持
     final mapControllerState = useState<GoogleMapController?>(null);
 
-    // コントローラ未初期化時に受信した保留中の位置情報を保持
-    final pendingPositionState = useState<Position?>(null);
+    // コントローラ未初期化時に受信した保留中のカメラターゲット座標を保持
+    final pendingLatLngState = useState<LatLng?>(null);
 
     // 検索マーカーの集合を保持
     final markersState = useState<Set<Marker>>({});
@@ -50,6 +49,7 @@ class MapScreen extends HookConsumerWidget {
       ..listen(mapProvider, (previous, next) {
         next.whenOrNull(
           success: (position) {
+            final latLng = LatLng(position.latitude, position.longitude);
             final controller = mapControllerState.value;
             if (controller != null) {
               // 現在地へスムーズにカメラアニメーション移動
@@ -57,7 +57,7 @@ class MapScreen extends HookConsumerWidget {
                 controller.animateCamera(
                   CameraUpdate.newCameraPosition(
                     CameraPosition(
-                      target: LatLng(position.latitude, position.longitude),
+                      target: latLng,
                       zoom: 16,
                     ),
                   ),
@@ -65,7 +65,7 @@ class MapScreen extends HookConsumerWidget {
               );
             } else {
               // 地図コントローラ生成前は保留状態として保持
-              pendingPositionState.value = position;
+              pendingLatLngState.value = latLng;
             }
           },
           permissionDenied: () {
@@ -144,6 +144,8 @@ class MapScreen extends HookConsumerWidget {
                     ),
                   ),
                 );
+              } else {
+                pendingLatLngState.value = latLng;
               }
             } else {
               // 複数候補がある場合は候補選択ボトムシートを表示
@@ -212,6 +214,8 @@ class MapScreen extends HookConsumerWidget {
                                           ),
                                         ),
                                       );
+                                    } else {
+                                      pendingLatLngState.value = latLng;
                                     }
                                   },
                                 );
@@ -281,18 +285,18 @@ class MapScreen extends HookConsumerWidget {
                                 )
                               : null,
                         ),
-                        onSubmitted: (query) {
+                        onSubmitted: (value) {
                           unawaited(
                             ref
                                 .read(mapSearchProvider.notifier)
-                                .searchLocation(query),
+                                .searchLocation(value),
                           );
                         },
                       ),
                     ),
                     if (searchState is MapSearchStateLoading)
                       const Padding(
-                        padding: EdgeInsets.all(12),
+                        padding: EdgeInsets.all(8),
                         child: SizedBox(
                           width: 20,
                           height: 20,
@@ -329,22 +333,19 @@ class MapScreen extends HookConsumerWidget {
                   markers: markersState.value,
                   onMapCreated: (controller) {
                     mapControllerState.value = controller;
-                    final pendingPosition = pendingPositionState.value;
-                    if (pendingPosition != null) {
+                    final pendingLatLng = pendingLatLngState.value;
+                    if (pendingLatLng != null) {
                       unawaited(
                         controller.animateCamera(
                           CameraUpdate.newCameraPosition(
                             CameraPosition(
-                              target: LatLng(
-                                pendingPosition.latitude,
-                                pendingPosition.longitude,
-                              ),
+                              target: pendingLatLng,
                               zoom: 16,
                             ),
                           ),
                         ),
                       );
-                      pendingPositionState.value = null;
+                      pendingLatLngState.value = null;
                     }
                   },
                 ),
