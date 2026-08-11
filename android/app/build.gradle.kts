@@ -44,7 +44,7 @@ val mapsApiKey: String = (dartDefines["MAPS_API_KEY"]?.takeIf { it.isNotBlank() 
         val envFile = rootProject.file("../.env.$flavor")
         if (envFile.exists()) {
             val props = Properties()
-            props.load(FileInputStream(envFile))
+            envFile.inputStream().use { stream -> props.load(stream) }
             props.getProperty("MAPS_API_KEY")
         } else null
     }
@@ -52,7 +52,7 @@ val mapsApiKey: String = (dartDefines["MAPS_API_KEY"]?.takeIf { it.isNotBlank() 
         val envLocalFile = rootProject.file("../.env.local")
         if (envLocalFile.exists()) {
             val props = Properties()
-            props.load(FileInputStream(envLocalFile))
+            envLocalFile.inputStream().use { stream -> props.load(stream) }
             props.getProperty("MAPS_API_KEY")
         } else null
     }) ?: ""
