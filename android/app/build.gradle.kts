@@ -30,13 +30,20 @@ if (project.hasProperty("dart-defines")) {
     }
 }
 
-val mapsApiKey: String = dartDefines["MAPS_API_KEY"] ?: run {
-    val envFile = rootProject.file("../.env.local")
-    val props = Properties()
-    if (envFile.exists()) {
-        props.load(FileInputStream(envFile))
-    }
-    props.getProperty("MAPS_API_KEY") ?: ""
+val mapsApiKey: String = (dartDefines["MAPS_API_KEY"]?.takeIf { it.isNotBlank() }
+    ?: run {
+        val envFile = rootProject.file("../.env.local")
+        val props = Properties()
+        if (envFile.exists()) {
+            props.load(FileInputStream(envFile))
+        }
+        props.getProperty("MAPS_API_KEY")
+    }) ?: ""
+
+// 🛡️ Release ビルド時に MAPS_API_KEY が未設定・空文字列の場合は Gradle エラーで安全に停止
+val isReleaseBuild = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
+if (isReleaseBuild && mapsApiKey.isBlank()) {
+    throw GradleException("❌ [MAPS_API_KEY Error] Release ビルドには有効な MAPS_API_KEY の設定が必要です。.env または --dart-define-from-file を確認してください。")
 }
 
 android {
