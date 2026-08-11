@@ -261,6 +261,25 @@
         "type": "String"
       }
     }
-  }
+  },
+  "mapSearchHint": "住所やランドマークを検索",
+  "mapSearchEmpty": "「{query}」に該当する場所が見つかりませんでした。",
+  "@mapSearchEmpty": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "mapSearchError": "検索中にエラーが発生しました: {message}",
+  "@mapSearchError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "mapSearchClear": "検索をクリア",
+  "mapSearchSelectCandidateTitle": "検索結果を選択"
 }
 
