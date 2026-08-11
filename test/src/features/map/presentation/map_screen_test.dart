@@ -608,6 +608,58 @@ void main() {
       },
     );
 
+    testWidgets(
+      'コントローラ未生成時に複数候補ボトムシートで候補をタップした場合、 '
+      'pendingLatLngState に保持され onMapCreated 時にカメラ移動が実行されること',
+      (tester) async {
+        mockMapsPlatform.autoCreatePlatformView = false;
+        late _TestMapSearchNotifier testSearchNotifier;
+        const candidate1 = LocationCandidate(
+          latitude: 35.681236,
+          longitude: 139.767125,
+          name: '東京駅 (JR)',
+        );
+        const candidate2 = LocationCandidate(
+          latitude: 35.681500,
+          longitude: 139.767200,
+          name: '東京駅 (メトロ)',
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapSearchProvider.overrideWith(
+                () => testSearchNotifier = _TestMapSearchNotifier(
+                  const MapSearchState.initial(),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+
+        testSearchNotifier.currentState = const MapSearchState.success(
+          locations: [candidate1, candidate2],
+          query: '東京駅',
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 750));
+
+        // 2つ目の候補をタップ
+        await tester.tap(find.byKey(const Key('mapCandidateTile_1')));
+        await tester.pump();
+
+        check(mockMapsPlatform.animateCameraCalled).isFalse();
+
+        mockMapsPlatform.triggerOnPlatformViewCreated(0);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 750));
+
+        check(mockMapsPlatform.animateCameraCalled).isTrue();
+      },
+    );
+
     testWidgets('検索該当なし (empty) 時に SnackBar が表示されること', (tester) async {
       late _TestMapSearchNotifier testSearchNotifier;
       await tester.pumpWidget(
