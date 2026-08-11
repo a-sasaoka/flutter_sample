@@ -279,6 +279,7 @@
       }
     }
   },
-  "mapSearchClear": "検索をクリア"
+  "mapSearchClear": "検索をクリア",
+  "mapSearchSelectCandidateTitle": "検索結果を選択"
 }
 

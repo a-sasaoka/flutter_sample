@@ -617,4 +617,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapSearchClear => 'Clear search';
+
+  @override
+  String get mapSearchSelectCandidateTitle => 'Select search result';
 }

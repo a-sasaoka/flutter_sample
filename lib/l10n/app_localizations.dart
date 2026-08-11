@@ -1237,6 +1237,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear search'**
   String get mapSearchClear;
+
+  /// No description provided for @mapSearchSelectCandidateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select search result'**
+  String get mapSearchSelectCandidateTitle;
 }
 
 class _AppLocalizationsDelegate

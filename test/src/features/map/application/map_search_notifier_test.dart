@@ -1,9 +1,9 @@
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/features/map/application/map_search_notifier.dart';
 import 'package:flutter_sample/src/features/map/data/geocoding_repository.dart';
+import 'package:flutter_sample/src/features/map/domain/location_candidate.dart';
 import 'package:flutter_sample/src/features/map/domain/map_search_state.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -44,17 +44,17 @@ void main() {
     });
 
     test('検索成功時、MapSearchState.success 状態に遷移すること', () async {
-      final sampleLocations = [
-        Location(
+      final sampleCandidates = [
+        const LocationCandidate(
           latitude: 35.681236,
           longitude: 139.767125,
-          timestamp: DateTime(2026, 8, 11),
+          name: '東京駅',
         ),
       ];
 
       when(
-        () => mockRepository.locationFromAddressQuery('東京駅'),
-      ).thenAnswer((_) async => sampleLocations);
+        () => mockRepository.locationCandidatesFromAddress('東京駅'),
+      ).thenAnswer((_) async => sampleCandidates);
 
       final container = createContainer()..listen(mapSearchProvider, (_, _) {});
 
@@ -70,8 +70,8 @@ void main() {
 
     test('該当件数なしの場合、MapSearchState.empty 状態に遷移すること', () async {
       when(
-        () => mockRepository.locationFromAddressQuery('存在しない場所XYZ'),
-      ).thenAnswer((_) async => <Location>[]);
+        () => mockRepository.locationCandidatesFromAddress('存在しない場所XYZ'),
+      ).thenAnswer((_) async => <LocationCandidate>[]);
 
       final container = createContainer()..listen(mapSearchProvider, (_, _) {});
 
@@ -86,7 +86,7 @@ void main() {
 
     test('エラー発生時、MapSearchState.error 状態に遷移すること', () async {
       when(
-        () => mockRepository.locationFromAddressQuery('エラークエリ'),
+        () => mockRepository.locationCandidatesFromAddress('エラークエリ'),
       ).thenThrow(Exception('Geocoding Failed'));
 
       final container = createContainer()..listen(mapSearchProvider, (_, _) {});
@@ -101,17 +101,17 @@ void main() {
     });
 
     test('clearSearch 呼び出し時、initial 状態にリセットされること', () async {
-      final sampleLocations = [
-        Location(
+      final sampleCandidates = [
+        const LocationCandidate(
           latitude: 35.681236,
           longitude: 139.767125,
-          timestamp: DateTime(2026, 8, 11),
+          name: '東京駅',
         ),
       ];
 
       when(
-        () => mockRepository.locationFromAddressQuery('東京駅'),
-      ).thenAnswer((_) async => sampleLocations);
+        () => mockRepository.locationCandidatesFromAddress('東京駅'),
+      ).thenAnswer((_) async => sampleCandidates);
 
       final container = createContainer()..listen(mapSearchProvider, (_, _) {});
 

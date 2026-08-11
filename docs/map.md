@@ -1,6 +1,6 @@
 # 🗺️ 地図機能 (Map Feature)
 
-本モジュールは、Google Maps Platform (`google_maps_flutter`)、Geolocator (`geolocator`)、および Geocoding (`geocoding`) を採用し、ネイティブ地図の表示、位置情報の動的取得・カメラ移動、住所・ランドマーク検索機能、検索結果のマーカー表示、権限管理機能を提供します。（※ ルート案内・ナビゲーションは今後の拡張実装予定です）
+本モジュールは、Google Maps Platform (`google_maps_flutter`)、Geolocator (`geolocator`)、および Geocoding (`geocoding`) を採用し、ネイティブ地図の表示、位置情報の動的取得・カメラ移動、住所・ランドマーク検索機能、複数候補地インタラクティブ選択モーダル、検索結果のマーカー表示、権限管理機能を提供します。（※ ルート案内・ナビゲーションは今後の拡張実装予定です）
 
 ---
 
@@ -9,6 +9,8 @@
 ```plaintext
 lib/src/features/map/
  ├── domain/
+ │    ├── location_candidate.dart       # 検索候補地モデル (Freezed)
+ │    ├── location_candidate.freezed.dart # Freezed自動生成コード
  │    ├── location_state.dart         # 位置情報および権限状態モデル (Sealed class)
  │    ├── location_state.freezed.dart # Freezed自動生成コード
  │    ├── map_search_state.dart       # 検索状態モデル (Sealed class)
@@ -24,7 +26,7 @@ lib/src/features/map/
  │    ├── map_search_notifier.dart    # 住所・ランドマーク検索状態 Notifier
  │    └── map_search_notifier.g.dart # Riverpod生成 Notifier
  └── presentation/
-      └── map_screen.dart             # ネイティブ地図描画・現在地取得UI・Floating検索バー (多言語対応)
+      └── map_screen.dart             # ネイティブ地図描画・現在地取得UI・Floating検索バー・候補選択ボトムシート (多言語対応)
 ```
 
 ---
@@ -33,19 +35,22 @@ lib/src/features/map/
 
 ### 1. 安全な権限ハンドリングと状態モデル (Domain層)
 
-`LocationState` および `MapSearchState` に Sealed class を採用し、位置情報の取得状態（初期値、ロード中、成功、権限拒否、権限永久拒否、GPS無効、エラー）および住所検索状態（初期値、検索中、成功、該当なし、エラー）をコンパイラレベルで厳密にモデリングしています。
+`LocationState` および `MapSearchState` に Sealed class を採用し、位置情報の取得状態（初期値、ロード中、成功、権限拒否、権限永久拒否、GPS無効、エラー）および住所検索状態（初期値、検索中、成功、該当なし、エラー）をコンパイラレベルで厳密にモデリングしています。検索結果は `LocationCandidate` リストとして保持されます。
 
 ### 2. Geolocator および Geocoding のカプセル化 (Data層)
 
-`LocationRepository` および `GeocodingRepository` にて OS / プラットフォーム API を集約し、テスト時にモックやテスト用ハンドラを注入可能とすることで、100% 決定論的な単体・ウィジェットテストを可能にしています。
+`LocationRepository` および `GeocodingRepository` にて OS / プラットフォーム API を集約し、テスト時にモックやテスト用ハンドラを注入可能とすることで、100% 決定論的な単体・ウィジェットテストを可能にしています。`GeocodingRepository` はジオコーディング検索と逆ジオコーディング（Placemark）を組み合わせ、施設名・住所表記を補完します。
 
 ### 3. 多言語対応 (Presentation層)
 
-画面上のすべてのタイトル、ボタン、SearchBar ヒント文言、SnackBar、ダイアログ文言は `context.l10n` を使用し、日本語・英語ロケールに動的対応しています。
+画面上のすべてのタイトル、ボタン、SearchBar ヒント文言、候補地選択タイトル、SnackBar、ダイアログ文言は `context.l10n` を使用し、日本語・英語ロケールに動的対応しています。
 
-### 4. 住所・ランドマーク検索とカメラアニメーション移動
+### 4. 住所・ランドマーク検索と複数候補地選択モーダル
 
-画面上部の Floating SearchBar から入力された住所やランドマークのキーワードを `MapSearchNotifier` が処理し、`GeocodingRepository` 経由で緯度経度座標へ変換します。検索成功時は地図上に `Marker` を自動プロットし、該当座標へスムーズなカメラアニメーション移動を行います。
+画面上部の Floating SearchBar から入力された住所やランドマークのキーワードを `MapSearchNotifier` が処理し、`GeocodingRepository` 経由で緯度経度座標および住所候補リスト (`LocationCandidate`) へ変換します。
+
+- **候補地が1件の場合**: 自動で該当位置へカメラアニメーション移動し、マーカーをプロットします。
+- **候補地が複数件の場合**: 画面下部に `showModalBottomSheet` を表示し、ユーザーに目的の施設・住所を選択させます。選択された候補地へスムーズなカメラ移動とマーカープロットを行います。
 
 ---
 

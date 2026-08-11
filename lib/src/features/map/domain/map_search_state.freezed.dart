@@ -128,7 +128,7 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initial,TResult Function()?  loading,TResult Function( List<Location> locations,  String query)?  success,TResult Function( String query)?  empty,TResult Function( String message)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initial,TResult Function()?  loading,TResult Function( List<LocationCandidate> locations,  String query)?  success,TResult Function( String query)?  empty,TResult Function( String message)?  error,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case MapSearchStateInitial() when initial != null:
 return initial();case MapSearchStateLoading() when loading != null:
@@ -153,7 +153,7 @@ return error(_that.message);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initial,required TResult Function()  loading,required TResult Function( List<Location> locations,  String query)  success,required TResult Function( String query)  empty,required TResult Function( String message)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initial,required TResult Function()  loading,required TResult Function( List<LocationCandidate> locations,  String query)  success,required TResult Function( String query)  empty,required TResult Function( String message)  error,}) {final _that = this;
 switch (_that) {
 case MapSearchStateInitial():
 return initial();case MapSearchStateLoading():
@@ -174,7 +174,7 @@ return error(_that.message);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initial,TResult? Function()?  loading,TResult? Function( List<Location> locations,  String query)?  success,TResult? Function( String query)?  empty,TResult? Function( String message)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initial,TResult? Function()?  loading,TResult? Function( List<LocationCandidate> locations,  String query)?  success,TResult? Function( String query)?  empty,TResult? Function( String message)?  error,}) {final _that = this;
 switch (_that) {
 case MapSearchStateInitial() when initial != null:
 return initial();case MapSearchStateLoading() when loading != null:
@@ -257,11 +257,11 @@ String toString() {
 
 
 class MapSearchStateSuccess implements MapSearchState {
-  const MapSearchStateSuccess({required final  List<Location> locations, required this.query}): _locations = locations;
+  const MapSearchStateSuccess({required final  List<LocationCandidate> locations, required this.query}): _locations = locations;
   
 
- final  List<Location> _locations;
- List<Location> get locations {
+ final  List<LocationCandidate> _locations;
+ List<LocationCandidate> get locations {
   if (_locations is EqualUnmodifiableListView) return _locations;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_locations);
@@ -299,7 +299,7 @@ abstract mixin class $MapSearchStateSuccessCopyWith<$Res> implements $MapSearchS
   factory $MapSearchStateSuccessCopyWith(MapSearchStateSuccess value, $Res Function(MapSearchStateSuccess) _then) = _$MapSearchStateSuccessCopyWithImpl;
 @useResult
 $Res call({
- List<Location> locations, String query
+ List<LocationCandidate> locations, String query
 });
 
 
@@ -319,7 +319,7 @@ class _$MapSearchStateSuccessCopyWithImpl<$Res>
 @pragma('vm:prefer-inline') $Res call({Object? locations = null,Object? query = null,}) {
   return _then(MapSearchStateSuccess(
 locations: null == locations ? _self._locations : locations // ignore: cast_nullable_to_non_nullable
-as List<Location>,query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
+as List<LocationCandidate>,query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as String,
   ));
 }

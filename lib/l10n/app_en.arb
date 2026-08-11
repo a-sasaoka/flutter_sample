@@ -279,6 +279,7 @@
       }
     }
   },
-  "mapSearchClear": "Clear search"
+  "mapSearchClear": "Clear search",
+  "mapSearchSelectCandidateTitle": "Select search result"
 }
 

@@ -12,7 +12,7 @@ class MapSearchNotifier extends _$MapSearchNotifier {
     return const MapSearchState.initial();
   }
 
-  /// 指定した住所・キーワードから緯度経度座標を検索
+  /// 指定した住所・キーワードから候補地リストを検索
   Future<void> searchLocation(String query) async {
     final trimmedQuery = query.trim();
     if (trimmedQuery.isEmpty) {
@@ -24,7 +24,9 @@ class MapSearchNotifier extends _$MapSearchNotifier {
 
     try {
       final repository = ref.read(geocodingRepositoryProvider);
-      final locations = await repository.locationFromAddressQuery(trimmedQuery);
+      final locations = await repository.locationCandidatesFromAddress(
+        trimmedQuery,
+      );
 
       if (locations.isEmpty) {
         state = MapSearchState.empty(query: trimmedQuery);

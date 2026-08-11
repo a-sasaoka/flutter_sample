@@ -115,17 +115,21 @@ class MapScreen extends HookConsumerWidget {
       ..listen(mapSearchProvider, (previous, next) {
         next.whenOrNull(
           success: (locations, query) {
-            if (locations.isNotEmpty) {
-              final targetLocation = locations.first;
-              final latLng = LatLng(
-                targetLocation.latitude,
-                targetLocation.longitude,
-              );
+            if (locations.isEmpty) {
+              return;
+            }
+
+            if (locations.length == 1) {
+              final target = locations.first;
+              final latLng = LatLng(target.latitude, target.longitude);
               markersState.value = {
                 Marker(
                   markerId: const MarkerId('search_result'),
                   position: latLng,
-                  infoWindow: InfoWindow(title: query),
+                  infoWindow: InfoWindow(
+                    title: target.name,
+                    snippet: target.address,
+                  ),
                 ),
               };
               final controller = mapControllerState.value;
@@ -141,6 +145,85 @@ class MapScreen extends HookConsumerWidget {
                   ),
                 );
               }
+            } else {
+              // 複数候補がある場合は候補選択ボトムシートを表示
+              unawaited(
+                showModalBottomSheet<void>(
+                  context: context,
+                  builder: (modalContext) {
+                    return SafeArea(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              l10n.mapSearchSelectCandidateTitle,
+                              style: Theme.of(
+                                modalContext,
+                              ).textTheme.titleMedium,
+                            ),
+                          ),
+                          const Divider(height: 1),
+                          Flexible(
+                            child: ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: locations.length,
+                              itemBuilder: (context, index) {
+                                final candidate = locations[index];
+                                return ListTile(
+                                  key: Key('mapCandidateTile_$index'),
+                                  leading: const Icon(
+                                    Icons.place,
+                                    color: Colors.red,
+                                  ),
+                                  title: Text(candidate.name),
+                                  subtitle: candidate.address != null
+                                      ? Text(candidate.address!)
+                                      : null,
+                                  onTap: () {
+                                    Navigator.of(modalContext).pop();
+                                    final latLng = LatLng(
+                                      candidate.latitude,
+                                      candidate.longitude,
+                                    );
+                                    markersState.value = {
+                                      Marker(
+                                        markerId: MarkerId(
+                                          'search_result_$index',
+                                        ),
+                                        position: latLng,
+                                        infoWindow: InfoWindow(
+                                          title: candidate.name,
+                                          snippet: candidate.address,
+                                        ),
+                                      ),
+                                    };
+                                    final controller = mapControllerState.value;
+                                    if (controller != null) {
+                                      unawaited(
+                                        controller.animateCamera(
+                                          CameraUpdate.newCameraPosition(
+                                            CameraPosition(
+                                              target: latLng,
+                                              zoom: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              );
             }
           },
           empty: (query) {

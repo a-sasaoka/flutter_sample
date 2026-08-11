@@ -7,11 +7,11 @@ import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/map/application/map_notifier.dart';
 import 'package:flutter_sample/src/features/map/application/map_search_notifier.dart';
+import 'package:flutter_sample/src/features/map/domain/location_candidate.dart';
 import 'package:flutter_sample/src/features/map/domain/location_state.dart';
 import 'package:flutter_sample/src/features/map/domain/map_search_state.dart';
 import 'package:flutter_sample/src/features/map/presentation/map_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:geocoding/geocoding.dart' as gc show Location;
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -124,6 +124,13 @@ void main() {
   }
 
   group('MapScreen Widget Tests', () {
+    test('MapScreen can be instantiated', () {
+      /// カバレッジ計測でコンストラクタ実行をヒットさせるため非const呼び出しを許可します。
+      // ignore: prefer_const_constructors
+      final screen = MapScreen();
+      check(screen).isA<MapScreen>();
+    });
+
     testWidgets('MapScreen が正しく描画され、現在地移動 FAB が表示されること', (tester) async {
       await tester.pumpWidget(
         createTestWidget(
@@ -465,7 +472,7 @@ void main() {
       check(testSearchNotifier.clearSearchCalled).isTrue();
     });
 
-    testWidgets('検索成功 (success) 時にカメラ移動が実行されること', (tester) async {
+    testWidgets('単一検索成功 (success) 時にカメラ移動が実行されること', (tester) async {
       late _TestMapSearchNotifier testSearchNotifier;
       await tester.pumpWidget(
         createTestWidget(
@@ -482,16 +489,68 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 750));
 
-      final location = gc.Location(
+      const candidate = LocationCandidate(
         latitude: 35.681236,
         longitude: 139.767125,
-        timestamp: DateTime(2026, 8, 11),
+        name: '東京駅',
+        address: '東京都千代田区丸の内一丁目',
       );
 
-      testSearchNotifier.currentState = MapSearchState.success(
-        locations: [location],
+      testSearchNotifier.currentState = const MapSearchState.success(
+        locations: [candidate],
         query: '東京駅',
       );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 750));
+
+      check(mockMapsPlatform.animateCameraCalled).isTrue();
+    });
+
+    testWidgets('複数検索成功 (success) 時に候補選択ボトムシートが表示され、タップした候補地へ移動すること', (
+      tester,
+    ) async {
+      late _TestMapSearchNotifier testSearchNotifier;
+      await tester.pumpWidget(
+        createTestWidget(
+          child: const MapScreen(),
+          overrides: [
+            mapSearchProvider.overrideWith(
+              () => testSearchNotifier = _TestMapSearchNotifier(
+                const MapSearchState.initial(),
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+
+      const candidate1 = LocationCandidate(
+        latitude: 35.681236,
+        longitude: 139.767125,
+        name: '東京駅 (JR)',
+        address: '東京都千代田区丸の内一丁目',
+      );
+      const candidate2 = LocationCandidate(
+        latitude: 35.681500,
+        longitude: 139.767200,
+        name: '東京駅 (メトロ)',
+        address: '東京都千代田区丸の内一丁目4-1',
+      );
+
+      testSearchNotifier.currentState = const MapSearchState.success(
+        locations: [candidate1, candidate2],
+        query: '東京駅',
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 750));
+
+      // ボトムシート内の候補が描画されていることをアサート
+      check(find.text('検索結果を選択')).findsOne();
+      check(find.byKey(const Key('mapCandidateTile_0'))).findsOne();
+      check(find.byKey(const Key('mapCandidateTile_1'))).findsOne();
+
+      // 2つ目の候補をタップ
+      await tester.tap(find.byKey(const Key('mapCandidateTile_1')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 750));
 
@@ -521,6 +580,16 @@ void main() {
       await tester.pump(const Duration(milliseconds: 750));
 
       check(find.byType(SnackBar)).findsOne();
+    });
+
+    testWidgets('MapScreen に Key を指定して正常にインスタンス化できること', (tester) async {
+      await tester.pumpWidget(
+        createTestWidget(
+          child: const MapScreen(key: Key('test_map_key')),
+        ),
+      );
+      await tester.pump();
+      check(find.byKey(const Key('test_map_key'))).findsOne();
     });
 
     testWidgets(

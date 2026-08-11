@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
+import 'package:flutter_sample/src/features/map/domain/location_candidate.dart';
 import 'package:flutter_sample/src/features/map/domain/map_search_state.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:geocoding/geocoding.dart';
 
 void main() {
   group('MapSearchState Unit Tests', () {
@@ -16,13 +16,13 @@ void main() {
     });
 
     test('success 状態を正常にインスタンス化できること', () {
-      final location = Location(
+      const candidate = LocationCandidate(
         latitude: 35.681236,
         longitude: 139.767125,
-        timestamp: DateTime(2026, 8, 11),
+        name: '東京駅',
       );
-      final state = MapSearchState.success(
-        locations: [location],
+      const state = MapSearchState.success(
+        locations: [candidate],
         query: '東京駅',
       );
       check(state).isA<MapSearchStateSuccess>();

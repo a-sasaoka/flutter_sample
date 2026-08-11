@@ -598,4 +598,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get mapSearchClear => '検索をクリア';
+
+  @override
+  String get mapSearchSelectCandidateTitle => '検索結果を選択';
 }
