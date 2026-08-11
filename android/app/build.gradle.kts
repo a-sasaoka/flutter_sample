@@ -39,13 +39,14 @@ val currentFlavor: String? = run {
     } ?: (project.findProperty("flavor") as? String)
 }
 
-val mapsApiKey: String = (dartDefines["MAPS_API_KEY"]?.takeIf { it.isNotBlank() }
+val mapsApiKey: String = (dartDefines["MAPS_ANDROID_API_KEY"]?.takeIf { it.isNotBlank() }
+    ?: dartDefines["MAPS_API_KEY"]?.takeIf { it.isNotBlank() }
     ?: currentFlavor?.let { flavor ->
         val envFile = rootProject.file("../.env.$flavor")
         if (envFile.exists()) {
             val props = Properties()
             envFile.inputStream().use { stream -> props.load(stream) }
-            props.getProperty("MAPS_API_KEY")
+            props.getProperty("MAPS_ANDROID_API_KEY") ?: props.getProperty("MAPS_API_KEY")
         } else null
     }
     ?: run {
@@ -53,7 +54,7 @@ val mapsApiKey: String = (dartDefines["MAPS_API_KEY"]?.takeIf { it.isNotBlank() 
         if (envLocalFile.exists()) {
             val props = Properties()
             envLocalFile.inputStream().use { stream -> props.load(stream) }
-            props.getProperty("MAPS_API_KEY")
+            props.getProperty("MAPS_ANDROID_API_KEY") ?: props.getProperty("MAPS_API_KEY")
         } else null
     }) ?: ""
 
