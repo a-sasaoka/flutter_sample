@@ -582,4 +582,20 @@ class AppLocalizationsJa extends AppLocalizations {
   String mapFetchError(String message) {
     return '位置情報の取得に失敗しました: $message';
   }
+
+  @override
+  String get mapSearchHint => '住所やランドマークを検索';
+
+  @override
+  String mapSearchEmpty(String query) {
+    return '「$query」に該当する場所が見つかりませんでした。';
+  }
+
+  @override
+  String mapSearchError(String message) {
+    return '検索中にエラーが発生しました: $message';
+  }
+
+  @override
+  String get mapSearchClear => '検索をクリア';
 }

@@ -6,9 +6,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/map/application/map_notifier.dart';
+import 'package:flutter_sample/src/features/map/application/map_search_notifier.dart';
 import 'package:flutter_sample/src/features/map/domain/location_state.dart';
+import 'package:flutter_sample/src/features/map/domain/map_search_state.dart';
 import 'package:flutter_sample/src/features/map/presentation/map_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geocoding/geocoding.dart' as gc show Location;
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -372,6 +375,205 @@ void main() {
         check(mockMapsPlatform.animateCameraCalled).isTrue();
       },
     );
+
+    testWidgets('検索バーにテキストを入力し送信ボタンをタップすると searchLocation が実行されること', (
+      tester,
+    ) async {
+      late _TestMapSearchNotifier testSearchNotifier;
+      await tester.pumpWidget(
+        createTestWidget(
+          child: const MapScreen(),
+          overrides: [
+            mapSearchProvider.overrideWith(
+              () => testSearchNotifier = _TestMapSearchNotifier(
+                const MapSearchState.initial(),
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+
+      await tester.enterText(
+        find.byKey(const Key('mapSearchTextField')),
+        '東京タワー',
+      );
+      await tester.pump();
+
+      await tester.tap(find.byKey(const Key('mapSearchButton')));
+      await tester.pump();
+
+      check(testSearchNotifier.searchLocationQuery).equals('東京タワー');
+    });
+
+    testWidgets('検索バーでキーボードの検索キーを押すと searchLocation が実行されること', (
+      tester,
+    ) async {
+      late _TestMapSearchNotifier testSearchNotifier;
+      await tester.pumpWidget(
+        createTestWidget(
+          child: const MapScreen(),
+          overrides: [
+            mapSearchProvider.overrideWith(
+              () => testSearchNotifier = _TestMapSearchNotifier(
+                const MapSearchState.initial(),
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+
+      await tester.enterText(
+        find.byKey(const Key('mapSearchTextField')),
+        'スカイツリー',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pump();
+
+      check(testSearchNotifier.searchLocationQuery).equals('スカイツリー');
+    });
+
+    testWidgets('クリアボタンをタップするとテキストと検索状態がクリアされること', (tester) async {
+      late _TestMapSearchNotifier testSearchNotifier;
+      await tester.pumpWidget(
+        createTestWidget(
+          child: const MapScreen(),
+          overrides: [
+            mapSearchProvider.overrideWith(
+              () => testSearchNotifier = _TestMapSearchNotifier(
+                const MapSearchState.initial(),
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+
+      await tester.enterText(
+        find.byKey(const Key('mapSearchTextField')),
+        '渋谷',
+      );
+      await tester.pump();
+
+      final clearButtonFinder = find.byKey(const Key('mapSearchClearButton'));
+      check(clearButtonFinder).findsOne();
+
+      await tester.tap(clearButtonFinder);
+      await tester.pump();
+
+      check(testSearchNotifier.clearSearchCalled).isTrue();
+    });
+
+    testWidgets('検索成功 (success) 時にカメラ移動が実行されること', (tester) async {
+      late _TestMapSearchNotifier testSearchNotifier;
+      await tester.pumpWidget(
+        createTestWidget(
+          child: const MapScreen(),
+          overrides: [
+            mapSearchProvider.overrideWith(
+              () => testSearchNotifier = _TestMapSearchNotifier(
+                const MapSearchState.initial(),
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 750));
+
+      final location = gc.Location(
+        latitude: 35.681236,
+        longitude: 139.767125,
+        timestamp: DateTime(2026, 8, 11),
+      );
+
+      testSearchNotifier.currentState = MapSearchState.success(
+        locations: [location],
+        query: '東京駅',
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 750));
+
+      check(mockMapsPlatform.animateCameraCalled).isTrue();
+    });
+
+    testWidgets('検索該当なし (empty) 時に SnackBar が表示されること', (tester) async {
+      late _TestMapSearchNotifier testSearchNotifier;
+      await tester.pumpWidget(
+        createTestWidget(
+          child: const MapScreen(),
+          overrides: [
+            mapSearchProvider.overrideWith(
+              () => testSearchNotifier = _TestMapSearchNotifier(
+                const MapSearchState.initial(),
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+
+      testSearchNotifier.currentState = const MapSearchState.empty(
+        query: '不明な場所',
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 750));
+
+      check(find.byType(SnackBar)).findsOne();
+    });
+
+    testWidgets(
+      '検索中 (loading) 時に SearchBar 内に CircularProgressIndicator が表示されること',
+      (
+        tester,
+      ) async {
+        late _TestMapSearchNotifier testSearchNotifier;
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapSearchProvider.overrideWith(
+                () => testSearchNotifier = _TestMapSearchNotifier(
+                  const MapSearchState.initial(),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+
+        testSearchNotifier.currentState = const MapSearchState.loading();
+        await tester.pump();
+
+        check(find.byType(CircularProgressIndicator)).findsAtLeast(1);
+      },
+    );
+
+    testWidgets('検索エラー (error) 時に エラー SnackBar が表示されること', (tester) async {
+      late _TestMapSearchNotifier testSearchNotifier;
+      await tester.pumpWidget(
+        createTestWidget(
+          child: const MapScreen(),
+          overrides: [
+            mapSearchProvider.overrideWith(
+              () => testSearchNotifier = _TestMapSearchNotifier(
+                const MapSearchState.initial(),
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+
+      testSearchNotifier.currentState = const MapSearchState.error(
+        '検索エラーメッセージ',
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 750));
+
+      check(find.byType(SnackBar)).findsOne();
+    });
   });
 }
 
@@ -408,5 +610,33 @@ class _TestMapNotifier extends MapNotifier {
   @override
   Future<void> openLocationSettings() async {
     openLocationSettingsCalled = true;
+  }
+}
+
+class _TestMapSearchNotifier extends MapSearchNotifier {
+  _TestMapSearchNotifier(this._initialState);
+
+  final MapSearchState _initialState;
+  String? searchLocationQuery;
+  bool clearSearchCalled = false;
+
+  @override
+  MapSearchState build() => _initialState;
+
+  MapSearchState get currentState => state;
+
+  set currentState(MapSearchState newState) {
+    state = newState;
+  }
+
+  @override
+  Future<void> searchLocation(String query) async {
+    searchLocationQuery = query;
+  }
+
+  @override
+  void clearSearch() {
+    clearSearchCalled = true;
+    state = const MapSearchState.initial();
   }
 }

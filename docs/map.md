@@ -1,6 +1,6 @@
 # 🗺️ 地図機能 (Map Feature)
 
-本モジュールは、Google Maps Platform (`google_maps_flutter`) および Geolocator (`geolocator`) を採用し、ネイティブ地図の表示、位置情報の動的取得・カメラ移動、権限管理機能を提供します。（※ 住所・ランドマーク検索、プロット表示、ルート案内は今後の拡張実装予定です）
+本モジュールは、Google Maps Platform (`google_maps_flutter`)、Geolocator (`geolocator`)、および Geocoding (`geocoding`) を採用し、ネイティブ地図の表示、位置情報の動的取得・カメラ移動、住所・ランドマーク検索機能、検索結果のマーカー表示、権限管理機能を提供します。（※ ルート案内・ナビゲーションは今後の拡張実装予定です）
 
 ---
 
@@ -10,15 +10,21 @@
 lib/src/features/map/
  ├── domain/
  │    ├── location_state.dart         # 位置情報および権限状態モデル (Sealed class)
- │    └── location_state.freezed.dart # Freezed自動生成コード
+ │    ├── location_state.freezed.dart # Freezed自動生成コード
+ │    ├── map_search_state.dart       # 検索状態モデル (Sealed class)
+ │    └── map_search_state.freezed.dart # Freezed自動生成コード
  ├── data/
  │    ├── location_repository.dart    # Geolocator ネイティブAPIの安全なラッパー
- │    └── location_repository.g.dart  # Riverpod生成プロバイダー
+ │    ├── location_repository.g.dart  # Riverpod生成プロバイダー
+ │    ├── geocoding_repository.dart   # Geocoding プラットフォームAPIの安全なラッパー
+ │    └── geocoding_repository.g.dart # Riverpod生成プロバイダー
  ├── application/
  │    ├── map_notifier.dart           # 地図のカメラ位置・パーミッション制御 Notifier
- │    └── map_notifier.g.dart         # Riverpod生成 Notifier
+ │    ├── map_notifier.g.dart         # Riverpod生成 Notifier
+ │    ├── map_search_notifier.dart    # 住所・ランドマーク検索状態 Notifier
+ │    └── map_search_notifier.g.dart # Riverpod生成 Notifier
  └── presentation/
-      └── map_screen.dart             # ネイティブ地図描画と現在地取得UI (多言語対応)
+      └── map_screen.dart             # ネイティブ地図描画・現在地取得UI・Floating検索バー (多言語対応)
 ```
 
 ---
@@ -27,15 +33,19 @@ lib/src/features/map/
 
 ### 1. 安全な権限ハンドリングと状態モデル (Domain層)
 
-`LocationState` に Sealed class を採用し、位置情報の取得状態（初期値、ロード中、成功、権限拒否、権限永久拒否、GPS無効、エラー）をコンパイラレベルで厳密にモデリングしています。
+`LocationState` および `MapSearchState` に Sealed class を採用し、位置情報の取得状態（初期値、ロード中、成功、権限拒否、権限永久拒否、GPS無効、エラー）および住所検索状態（初期値、検索中、成功、該当なし、エラー）をコンパイラレベルで厳密にモデリングしています。
 
-### 2. Geolocator のカプセル化 (Data層)
+### 2. Geolocator および Geocoding のカプセル化 (Data層)
 
-`LocationRepository` にて OS の Geolocator プラットフォーム API を集約し、テスト時に `GeolocatorPlatform` のモックを注入可能とすることで、100% 決定論的なテストを可能にしています。
+`LocationRepository` および `GeocodingRepository` にて OS / プラットフォーム API を集約し、テスト時にモックやテスト用ハンドラを注入可能とすることで、100% 決定論的な単体・ウィジェットテストを可能にしています。
 
 ### 3. 多言語対応 (Presentation層)
 
-画面上のすべてのタイトル、ボタン、SnackBar、ダイアログ文言は `context.l10n` を使用し、日本語・英語ロケールに動的対応しています。
+画面上のすべてのタイトル、ボタン、SearchBar ヒント文言、SnackBar、ダイアログ文言は `context.l10n` を使用し、日本語・英語ロケールに動的対応しています。
+
+### 4. 住所・ランドマーク検索とカメラアニメーション移動
+
+画面上部の Floating SearchBar から入力された住所やランドマークのキーワードを `MapSearchNotifier` が処理し、`GeocodingRepository` 経由で緯度経度座標へ変換します。検索成功時は地図上に `Marker` を自動プロットし、該当座標へスムーズなカメラアニメーション移動を行います。
 
 ---
 

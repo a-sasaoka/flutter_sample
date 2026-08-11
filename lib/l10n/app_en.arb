@@ -261,6 +261,24 @@
         "type": "String"
       }
     }
-  }
+  },
+  "mapSearchHint": "Search address or landmark",
+  "mapSearchEmpty": "No results found for \"{query}\".",
+  "@mapSearchEmpty": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "mapSearchError": "Search failed: {message}",
+  "@mapSearchError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "mapSearchClear": "Clear search"
 }
 

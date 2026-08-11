@@ -601,4 +601,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String mapFetchError(String message) {
     return 'Failed to get location: $message';
   }
+
+  @override
+  String get mapSearchHint => 'Search address or landmark';
+
+  @override
+  String mapSearchEmpty(String query) {
+    return 'No results found for \"$query\".';
+  }
+
+  @override
+  String mapSearchError(String message) {
+    return 'Search failed: $message';
+  }
+
+  @override
+  String get mapSearchClear => 'Clear search';
 }

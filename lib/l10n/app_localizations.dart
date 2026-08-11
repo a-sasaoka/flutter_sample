@@ -1213,6 +1213,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to get location: {message}'**
   String mapFetchError(String message);
+
+  /// No description provided for @mapSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search address or landmark'**
+  String get mapSearchHint;
+
+  /// No description provided for @mapSearchEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No results found for \"{query}\".'**
+  String mapSearchEmpty(String query);
+
+  /// No description provided for @mapSearchError.
+  ///
+  /// In en, this message translates to:
+  /// **'Search failed: {message}'**
+  String mapSearchError(String message);
+
+  /// No description provided for @mapSearchClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get mapSearchClear;
 }
 
 class _AppLocalizationsDelegate
