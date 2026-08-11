@@ -465,6 +465,7 @@ void main() {
 
       final clearButtonFinder = find.byKey(const Key('mapSearchClearButton'));
       check(clearButtonFinder).findsOne();
+      check(find.byTooltip('検索をクリア')).findsOne();
 
       await tester.tap(clearButtonFinder);
       await tester.pump();

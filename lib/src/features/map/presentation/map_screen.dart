@@ -275,6 +275,7 @@ class MapScreen extends HookConsumerWidget {
                               ? IconButton(
                                   key: const Key('mapSearchClearButton'),
                                   icon: const Icon(Icons.clear),
+                                  tooltip: l10n.mapSearchClear,
                                   onPressed: () {
                                     searchController.clear();
                                     markersState.value = {};
