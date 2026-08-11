@@ -245,6 +245,22 @@
         "type": "int"
       }
     }
+  },
+
+  "@_MAP": {},
+  "mapTitle": "地図 (Google Maps)",
+  "mapFetchLocation": "現在地へ移動",
+  "mapPermissionDenied": "位置情報の使用許可が必要です。",
+  "mapPermissionDeniedForever": "位置情報権限が拒否されています。端末設定から許可してください。",
+  "mapServiceDisabled": "端末の位置情報サービス (GPS) が無効です。",
+  "mapOpenSettings": "設定を開く",
+  "mapFetchError": "位置情報の取得に失敗しました: {message}",
+  "@mapFetchError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
   }
 }
 

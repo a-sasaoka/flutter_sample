@@ -9,6 +9,7 @@ part of '../app_router.dart';
         TypedGoRoute<HomeRoute>(
           path: '/',
           routes: [
+            TypedGoRoute<MapRoute>(path: 'map'),
             TypedGoRoute<SettingsRoute>(
               path: 'settings',
               routes: [

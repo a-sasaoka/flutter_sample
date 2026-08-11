@@ -9,6 +9,36 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
+
+// 🗺️ Flutter の --dart-define-from-file または .env.<flavor> から MAPS_API_KEY を動的抽出
+val dartDefines = mutableMapOf<String, String>()
+if (project.hasProperty("dart-defines")) {
+    val dartDefinesString = project.property("dart-defines") as String
+    for (piece in dartDefinesString.split(",")) {
+        val bytes = java.util.Base64.getDecoder().decode(piece)
+        val entry = String(bytes, StandardCharsets.UTF_8)
+        val parts = entry.split("=")
+        if (parts.size >= 2) {
+            val key = URLDecoder.decode(parts[0], "UTF-8")
+            val value = URLDecoder.decode(parts.subList(1, parts.size).joinToString("="), "UTF-8")
+            dartDefines[key] = value
+        }
+    }
+}
+
+val mapsApiKey: String = dartDefines["MAPS_API_KEY"] ?: run {
+    val envFile = rootProject.file("../.env.local")
+    val props = Properties()
+    if (envFile.exists()) {
+        props.load(FileInputStream(envFile))
+    }
+    props.getProperty("MAPS_API_KEY") ?: ""
+}
+
 android {
     namespace = "jp.example.sample"
     compileSdk = flutter.compileSdkVersion
@@ -30,6 +60,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["mapsApiKey"] = mapsApiKey
     }
 
     buildTypes {

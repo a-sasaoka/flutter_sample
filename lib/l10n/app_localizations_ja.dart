@@ -559,4 +559,27 @@ class AppLocalizationsJa extends AppLocalizations {
   String appLockLockedOut(int seconds) {
     return 'ロックアウトされています。あと$seconds秒待ってください';
   }
+
+  @override
+  String get mapTitle => '地図 (Google Maps)';
+
+  @override
+  String get mapFetchLocation => '現在地へ移動';
+
+  @override
+  String get mapPermissionDenied => '位置情報の使用許可が必要です。';
+
+  @override
+  String get mapPermissionDeniedForever => '位置情報権限が拒否されています。端末設定から許可してください。';
+
+  @override
+  String get mapServiceDisabled => '端末の位置情報サービス (GPS) が無効です。';
+
+  @override
+  String get mapOpenSettings => '設定を開く';
+
+  @override
+  String mapFetchError(String message) {
+    return '位置情報の取得に失敗しました: $message';
+  }
 }

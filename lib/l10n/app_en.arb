@@ -245,6 +245,22 @@
         "type": "int"
       }
     }
+  },
+
+  "@_MAP": {},
+  "mapTitle": "Map (Google Maps)",
+  "mapFetchLocation": "Move to Current Location",
+  "mapPermissionDenied": "Location permission is required.",
+  "mapPermissionDeniedForever": "Location permission is permanently denied. Please allow it in settings.",
+  "mapServiceDisabled": "Location service (GPS) is disabled on your device.",
+  "mapOpenSettings": "Open Settings",
+  "mapFetchError": "Failed to get location: {message}",
+  "@mapFetchError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
   }
 }
 

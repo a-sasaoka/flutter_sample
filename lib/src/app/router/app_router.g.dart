@@ -112,6 +112,11 @@ RouteBase get $appShellRouteData => StatefulShellRouteData.$route(
           factory: $HomeRoute._fromState,
           routes: [
             GoRouteData.$route(
+              path: 'map',
+              hasOverriddenOnExit: false,
+              factory: $MapRoute._fromState,
+            ),
+            GoRouteData.$route(
               path: 'settings',
               hasOverriddenOnExit: false,
               factory: $SettingsRoute._fromState,
@@ -188,6 +193,26 @@ mixin $HomeRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $MapRoute on GoRouteData {
+  static MapRoute _fromState(GoRouterState state) => const MapRoute();
+
+  @override
+  String get location => GoRouteData.$location('/map');
 
   @override
   void go(BuildContext context) => context.go(location);

@@ -49,6 +49,7 @@ Flutter開発のサンプルプロジェクトです。\
 - [オンボーディング機能 (Onboarding)](docs/onboarding.md)
 - [プロフィール登録・変更機能 (Profile)](docs/profile.md)
 - [アプリロック機能 (App Lock)](docs/app_lock.md)
+- [地図機能 (Google Maps)](docs/map.md)
 
 ### E. 開発運用
 

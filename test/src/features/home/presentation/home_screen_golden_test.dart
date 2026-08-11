@@ -44,6 +44,7 @@ void main() {
       when(() => mockL10n.close).thenReturn('閉じる');
       when(() => mockL10n.ok).thenReturn('OK');
       when(() => mockL10n.devStorageTitle).thenReturn('ストレージ確認・編集');
+      when(() => mockL10n.mapTitle).thenReturn('地図');
     });
 
     Widget buildHomeForGolden({required ThemeMode themeMode}) {

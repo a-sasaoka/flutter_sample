@@ -91,5 +91,11 @@
     </array>
     <key>NSFaceIDUsageDescription</key>
     <string>アプリのロックを解除するために Face ID を使用します。</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>地図画面で現在地を表示・取得するために位置情報を使用します。</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>地図画面で現在地を表示・取得するために位置情報を使用します。</string>
+    <key>GoogleMapsApiKey</key>
+    <string>$(MAPS_API_KEY)</string>
   </dict>
 </plist>
