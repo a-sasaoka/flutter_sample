@@ -129,6 +129,7 @@ void main() {
     FakeUpdateRequestController? controller,
     Flavor flavor = Flavor.local,
     bool cancelAlreadyPressed = false,
+    List<RouteBase> additionalRoutes = const [],
   }) async {
     attemptedPath = null;
 
@@ -154,6 +155,7 @@ void main() {
           path: '/',
           builder: (context, state) => const HomeScreen(),
         ),
+        ...additionalRoutes,
       ],
       errorBuilder: (context, state) {
         attemptedPath = state.uri.toString();
@@ -458,7 +460,16 @@ void main() {
     });
 
     testWidgets('地図メニューをタップすると該当ルートへ遷移すること', (tester) async {
-      await setupWidget(tester);
+      await setupWidget(
+        tester,
+        additionalRoutes: [
+          GoRoute(
+            path: '/map',
+            builder: (context, state) =>
+                const Scaffold(body: Text('MapScreen Destination')),
+          ),
+        ],
+      );
       await tester.pumpAndSettle();
 
       final finder = find.widgetWithText(ListTile, '地図');
@@ -470,7 +481,7 @@ void main() {
       await tester.tap(finder);
       await tester.pumpAndSettle();
 
-      check(attemptedPath).isNotNull().contains('map');
+      check(find.text('MapScreen Destination')).findsOne();
     });
   });
 }
