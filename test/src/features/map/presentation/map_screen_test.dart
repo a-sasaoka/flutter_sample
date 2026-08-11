@@ -21,7 +21,18 @@ class MockGoogleMapsPlatform extends Mock
     with MockPlatformInterfaceMixin
     implements GoogleMapsFlutterPlatform {
   bool animateCameraCalled = false;
+  bool autoCreatePlatformView = true;
+  PlatformViewCreatedCallback? pendingOnPlatformViewCreated;
+  int? pendingCreationId;
   final Set<int> _initializedMaps = {};
+
+  void triggerOnPlatformViewCreated(int id) {
+    if (pendingOnPlatformViewCreated != null) {
+      _initializedMaps.add(id);
+      pendingOnPlatformViewCreated!(id);
+      pendingOnPlatformViewCreated = null;
+    }
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) {
@@ -52,10 +63,15 @@ class MockGoogleMapsPlatform extends Mock
     MapConfiguration mapConfiguration = const MapConfiguration(),
   }) {
     if (!_initializedMaps.contains(creationId)) {
-      _initializedMaps.add(creationId);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        onPlatformViewCreated(creationId);
-      });
+      if (autoCreatePlatformView) {
+        _initializedMaps.add(creationId);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          onPlatformViewCreated(creationId);
+        });
+      } else {
+        pendingCreationId = creationId;
+        pendingOnPlatformViewCreated = onPlatformViewCreated;
+      }
     }
     return const SizedBox();
   }
@@ -306,6 +322,56 @@ void main() {
 
       check(mockMapsPlatform.animateCameraCalled).isTrue();
     });
+
+    testWidgets(
+      'コントローラ未生成時に LocationState.success を受信した場合、 pendingPositionState に保持され、 '
+      'onMapCreated 時にカメラ移動が実行されること',
+      (tester) async {
+        mockMapsPlatform.autoCreatePlatformView = false;
+        late _TestMapNotifier testNotifier;
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapProvider.overrideWith(
+                () => testNotifier = _TestMapNotifier(
+                  const LocationState.initial(),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+
+        final position = Position(
+          longitude: 139.767125,
+          latitude: 35.681236,
+          timestamp: DateTime(2026, 8, 11),
+          accuracy: 5,
+          altitude: 10,
+          altitudeAccuracy: 1,
+          heading: 0,
+          headingAccuracy: 1,
+          speed: 0,
+          speedAccuracy: 1,
+        );
+
+        // コントローラ未生成(null)の状態で success に遷移 -> pendingPositionState に保存される (L55)
+        testNotifier.currentState = LocationState.success(position);
+        await tester.pump();
+
+        check(mockMapsPlatform.animateCameraCalled).isFalse();
+
+        // 後から onPlatformViewCreated が発火
+        // -> 保留中の位置情報でカメラ移動実行 (L118-L133)
+        mockMapsPlatform.triggerOnPlatformViewCreated(0);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 750));
+
+        check(mockMapsPlatform.animateCameraCalled).isTrue();
+      },
+    );
   });
 }
 

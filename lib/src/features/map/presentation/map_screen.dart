@@ -5,6 +5,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/map/application/map_notifier.dart';
 import 'package:flutter_sample/src/features/map/domain/location_state.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -26,6 +27,9 @@ class MapScreen extends HookConsumerWidget {
     // GoogleMapController のインスタンスを保持
     final mapControllerState = useState<GoogleMapController?>(null);
 
+    // コントローラ未初期化時に受信した保留中の位置情報を保持
+    final pendingPositionState = useState<Position?>(null);
+
     // MapNotifier の状態を監視
     final locationState = ref.watch(mapProvider);
 
@@ -46,6 +50,9 @@ class MapScreen extends HookConsumerWidget {
                 ),
               ),
             );
+          } else {
+            // 地図コントローラ生成前は保留状態として保持
+            pendingPositionState.value = position;
           }
         },
         permissionDenied: () {
@@ -107,6 +114,23 @@ class MapScreen extends HookConsumerWidget {
             zoomControlsEnabled: false,
             onMapCreated: (controller) {
               mapControllerState.value = controller;
+              final pendingPosition = pendingPositionState.value;
+              if (pendingPosition != null) {
+                unawaited(
+                  controller.animateCamera(
+                    CameraUpdate.newCameraPosition(
+                      CameraPosition(
+                        target: LatLng(
+                          pendingPosition.latitude,
+                          pendingPosition.longitude,
+                        ),
+                        zoom: 16,
+                      ),
+                    ),
+                  ),
+                );
+                pendingPositionState.value = null;
+              }
             },
           ),
 
