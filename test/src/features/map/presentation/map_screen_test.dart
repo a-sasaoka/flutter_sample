@@ -471,6 +471,10 @@ void main() {
       await tester.pump();
 
       check(testSearchNotifier.clearSearchCalled).isTrue();
+      final textField = tester.widget<TextField>(
+        find.byKey(const Key('mapSearchTextField')),
+      );
+      check(textField.controller?.text).equals('');
     });
 
     testWidgets('単一検索成功 (success) 時にカメラ移動が実行されること', (tester) async {
