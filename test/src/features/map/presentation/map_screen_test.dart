@@ -25,6 +25,7 @@ class MockGoogleMapsPlatform extends Mock
     with MockPlatformInterfaceMixin
     implements GoogleMapsFlutterPlatform {
   bool animateCameraCalled = false;
+  CameraUpdate? lastCameraUpdate;
   bool autoCreatePlatformView = true;
   PlatformViewCreatedCallback? pendingOnPlatformViewCreated;
   int? pendingCreationId;
@@ -46,6 +47,12 @@ class MockGoogleMapsPlatform extends Mock
     }
     if (memberName.contains('Symbol("animate')) {
       animateCameraCalled = true;
+      for (final arg in invocation.positionalArguments) {
+        if (arg is CameraUpdate) {
+          lastCameraUpdate = arg;
+          break;
+        }
+      }
       return Future<void>.value();
     }
     if (memberName.contains('Symbol("update') ||
@@ -657,6 +664,12 @@ void main() {
         await tester.pump(const Duration(milliseconds: 750));
 
         check(mockMapsPlatform.animateCameraCalled).isTrue();
+        check(mockMapsPlatform.lastCameraUpdate).isNotNull();
+        final cameraUpdateJson = mockMapsPlatform.lastCameraUpdate!
+            .toJson()
+            .toString();
+        check(cameraUpdateJson).contains(candidate2.latitude.toString());
+        check(cameraUpdateJson).contains(candidate2.longitude.toString());
       },
     );
 
