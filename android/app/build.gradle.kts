@@ -30,14 +30,31 @@ if (project.hasProperty("dart-defines")) {
     }
 }
 
+// 🗺️ 実行中の Gradle タスク名やプロパティから現在の Flavor (local, dev, stg, prod) を動的検出
+val currentFlavor: String? = run {
+    val flavors = listOf("local", "dev", "stg", "prod")
+    val taskNames = gradle.startParameter.taskNames
+    flavors.firstOrNull { flavor ->
+        taskNames.any { task -> task.contains(flavor, ignoreCase = true) }
+    } ?: (project.findProperty("flavor") as? String)
+}
+
 val mapsApiKey: String = (dartDefines["MAPS_API_KEY"]?.takeIf { it.isNotBlank() }
-    ?: run {
-        val envFile = rootProject.file("../.env.local")
-        val props = Properties()
+    ?: currentFlavor?.let { flavor ->
+        val envFile = rootProject.file("../.env.$flavor")
         if (envFile.exists()) {
+            val props = Properties()
             props.load(FileInputStream(envFile))
-        }
-        props.getProperty("MAPS_API_KEY")
+            props.getProperty("MAPS_API_KEY")
+        } else null
+    }
+    ?: run {
+        val envLocalFile = rootProject.file("../.env.local")
+        if (envLocalFile.exists()) {
+            val props = Properties()
+            props.load(FileInputStream(envLocalFile))
+            props.getProperty("MAPS_API_KEY")
+        } else null
     }) ?: ""
 
 // 🛡️ Release ビルド時に MAPS_API_KEY が未設定・空文字列の場合は Gradle エラーで安全に停止
