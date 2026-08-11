@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/features/map/application/map_search_notifier.dart';
 import 'package:flutter_sample/src/features/map/data/geocoding_repository.dart';
@@ -119,6 +121,87 @@ void main() {
       await notifier.searchLocation('東京駅');
 
       notifier.clearSearch();
+
+      final state = container.read(mapSearchProvider);
+      check(state).isA<MapSearchStateInitial>();
+    });
+
+    test('後から開始された検索が先に完了した場合、古い非同期レスポンスが無視されること', () async {
+      final sampleCandidates1 = [
+        const LocationCandidate(
+          latitude: 35.681236,
+          longitude: 139.767125,
+          name: '東京駅',
+        ),
+      ];
+      final sampleCandidates2 = [
+        const LocationCandidate(
+          latitude: 35.689487,
+          longitude: 139.691706,
+          name: '新宿駅',
+        ),
+      ];
+
+      final completer1 = Completer<List<LocationCandidate>>();
+      final completer2 = Completer<List<LocationCandidate>>();
+
+      when(
+        () => mockRepository.locationCandidatesFromAddress('東京駅'),
+      ).thenAnswer((_) => completer1.future);
+
+      when(
+        () => mockRepository.locationCandidatesFromAddress('新宿駅'),
+      ).thenAnswer((_) => completer2.future);
+
+      final container = createContainer()..listen(mapSearchProvider, (_, _) {});
+
+      final notifier = container.read(mapSearchProvider.notifier);
+
+      unawaited(notifier.searchLocation('東京駅'));
+      unawaited(notifier.searchLocation('新宿駅'));
+
+      completer2.complete(sampleCandidates2);
+      await pumpEventQueue();
+
+      final stateAfter2 = container.read(mapSearchProvider);
+      check(stateAfter2).isA<MapSearchStateSuccess>();
+      final successState2 = stateAfter2 as MapSearchStateSuccess;
+      check(successState2.query).equals('新宿駅');
+
+      completer1.complete(sampleCandidates1);
+      await pumpEventQueue();
+
+      final finalState = container.read(mapSearchProvider);
+      check(finalState).isA<MapSearchStateSuccess>();
+      final finalSuccessState = finalState as MapSearchStateSuccess;
+      check(finalSuccessState.query).equals('新宿駅');
+    });
+
+    test('clearSearch 呼び出し後に完了した古い非同期レスポンスが無視されること', () async {
+      final sampleCandidates = [
+        const LocationCandidate(
+          latitude: 35.681236,
+          longitude: 139.767125,
+          name: '東京駅',
+        ),
+      ];
+
+      final completer = Completer<List<LocationCandidate>>();
+
+      when(
+        () => mockRepository.locationCandidatesFromAddress('東京駅'),
+      ).thenAnswer((_) => completer.future);
+
+      final container = createContainer()..listen(mapSearchProvider, (_, _) {});
+
+      final notifier = container.read(mapSearchProvider.notifier);
+
+      unawaited(notifier.searchLocation('東京駅'));
+
+      notifier.clearSearch();
+
+      completer.complete(sampleCandidates);
+      await pumpEventQueue();
 
       final state = container.read(mapSearchProvider);
       check(state).isA<MapSearchStateInitial>();
