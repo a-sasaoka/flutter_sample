@@ -46,7 +46,8 @@ val mapsApiKey: String = (dartDefines["MAPS_ANDROID_API_KEY"]?.takeIf { it.isNot
         if (envFile.exists()) {
             val props = Properties()
             envFile.inputStream().use { stream -> props.load(stream) }
-            props.getProperty("MAPS_ANDROID_API_KEY") ?: props.getProperty("MAPS_API_KEY")
+            props.getProperty("MAPS_ANDROID_API_KEY")?.takeIf { it.isNotBlank() }
+                ?: props.getProperty("MAPS_API_KEY")?.takeIf { it.isNotBlank() }
         } else null
     }
     ?: run {
@@ -54,7 +55,8 @@ val mapsApiKey: String = (dartDefines["MAPS_ANDROID_API_KEY"]?.takeIf { it.isNot
         if (envLocalFile.exists()) {
             val props = Properties()
             envLocalFile.inputStream().use { stream -> props.load(stream) }
-            props.getProperty("MAPS_ANDROID_API_KEY") ?: props.getProperty("MAPS_API_KEY")
+            props.getProperty("MAPS_ANDROID_API_KEY")?.takeIf { it.isNotBlank() }
+                ?: props.getProperty("MAPS_API_KEY")?.takeIf { it.isNotBlank() }
         } else null
     }) ?: ""
 
