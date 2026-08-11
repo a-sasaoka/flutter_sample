@@ -1,6 +1,6 @@
 # 🗺️ 地図機能 (Map Feature)
 
-本モジュールは、Google Maps Platform (`google_maps_flutter`) および Geolocator (`geolocator`) を採用し、ネイティブ地図の表示、位置情報の動的取得、住所・ランドマーク検索、プロット表示、ルート案内の機能を提供します。
+本モジュールは、Google Maps Platform (`google_maps_flutter`) および Geolocator (`geolocator`) を採用し、ネイティブ地図の表示、位置情報の動的取得・カメラ移動、権限管理機能を提供します。（※ 住所・ランドマーク検索、プロット表示、ルート案内は今後の拡張実装予定です）
 
 ---
 
