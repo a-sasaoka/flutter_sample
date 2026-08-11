@@ -206,5 +206,34 @@ void main() {
       final state = container.read(mapSearchProvider);
       check(state).isA<MapSearchStateInitial>();
     });
+
+    test('Notifier が dispose された場合、非同期完了後の状態更新が行われないこと', () async {
+      final completer = Completer<List<LocationCandidate>>();
+
+      when(
+        () => mockRepository.locationCandidatesFromAddress('東京駅'),
+      ).thenAnswer((_) => completer.future);
+
+      final container = ProviderContainer(
+        overrides: [
+          geocodingRepositoryProvider.overrideWithValue(mockRepository),
+        ],
+      )..listen(mapSearchProvider, (_, _) {});
+
+      final notifier = container.read(mapSearchProvider.notifier);
+      unawaited(notifier.searchLocation('東京駅'));
+
+      container.dispose();
+
+      completer.complete([
+        const LocationCandidate(
+          latitude: 35.681236,
+          longitude: 139.767125,
+          name: '東京駅',
+        ),
+      ]);
+
+      await pumpEventQueue();
+    });
   });
 }

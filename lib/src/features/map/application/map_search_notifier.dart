@@ -33,7 +33,7 @@ class MapSearchNotifier extends _$MapSearchNotifier {
         trimmedQuery,
       );
 
-      if (currentRequestId != _requestId) {
+      if (!ref.mounted || currentRequestId != _requestId) {
         return;
       }
 
@@ -46,7 +46,7 @@ class MapSearchNotifier extends _$MapSearchNotifier {
         );
       }
     } on Exception catch (e) {
-      if (currentRequestId != _requestId) {
+      if (!ref.mounted || currentRequestId != _requestId) {
         return;
       }
       state = MapSearchState.error(e.toString());
