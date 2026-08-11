@@ -231,3 +231,18 @@ API経由で取得したユーザー一覧を表示する画面です。
   - ユーザーありのとき、名前やメールアドレス、電話番号などのカードが正しくリスト表示されているか。
   - ユーザーなしのとき、「No users found.」というメッセージが表示されているか。
 - **画像リンク**: [📷 画像を表示する (user_list_screen.png)](../test/src/features/user/presentation/goldens/macos/user_list_screen.png)
+
+---
+
+### 7. 地図機能 (Map Features)
+
+#### 地図画面 (MapScreen)
+
+Google Maps による地図描画および現在地取得アクションボタンを表示する画面です。
+
+- **テスト対象**: ライトモード、ダークモードの計2状態
+- **チェックポイント**:
+  - アッパーバーにタイトル「地図」が表示されているか。
+  - 中央に地図（ダミービュー）が綺麗に描画されているか。
+  - 右下に現在地を取得するフローティングアクションボタン（FAB、「現在地を取得」）が正しく配置されているか。
+- **画像リンク**: [📷 画像を表示する (map_screen.png)](../test/src/features/map/presentation/goldens/macos/map_screen.png)

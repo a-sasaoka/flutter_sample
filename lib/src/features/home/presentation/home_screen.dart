@@ -130,6 +130,12 @@ class _HomeBody extends ConsumerWidget {
             children: [
               if (flavor != Flavor.prod) ...[
                 _MenuTile(
+                  icon: Icons.map_outlined,
+                  title: l10n.mapTitle,
+                  onTap: () => const MapRoute().push<void>(context),
+                ),
+                const Divider(height: 1, indent: 56),
+                _MenuTile(
                   icon: Icons.storage_outlined,
                   title: l10n.devStorageTitle,
                   onTap: () =>

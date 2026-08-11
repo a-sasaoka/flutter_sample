@@ -13,7 +13,7 @@
 
 ### 1. メイン機能へのアクセス
 
-AI チャット、グラフ、メモ帳、ユーザー一覧などの主要な機能モジュールには、画面下部のボトムナビゲーションからアクセスします。  
+AI チャット、グラフ、メモ帳、ユーザー一覧などの主要な機能モジュールには画面下部のボトムナビゲーションからアクセスし、地図機能へはホーム画面内の「地図」リストタイルのタップでアクセスします。  
 ホーム画面自体には、開発・デバッグに必要なツールやアプリ情報の確認機能が集約されています。
 
 ### 2. 開発・デバッグツール (Developer Tools)
@@ -67,3 +67,5 @@ AI チャット、グラフ、メモ帳、ユーザー一覧などの主要な�
 
 - `lib/src/features/home/presentation/home_screen.dart`
 - `test/src/features/home/presentation/home_screen_test.dart`
+- `lib/src/features/map/presentation/map_screen.dart`
+- `docs/map.md`

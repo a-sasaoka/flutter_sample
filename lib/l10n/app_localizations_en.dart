@@ -576,4 +576,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String appLockLockedOut(int seconds) {
     return 'Locked out. Please wait $seconds seconds.';
   }
+
+  @override
+  String get mapTitle => 'Map (Google Maps)';
+
+  @override
+  String get mapFetchLocation => 'Move to Current Location';
+
+  @override
+  String get mapPermissionDenied => 'Location permission is required.';
+
+  @override
+  String get mapPermissionDeniedForever =>
+      'Location permission is permanently denied. Please allow it in settings.';
+
+  @override
+  String get mapServiceDisabled =>
+      'Location service (GPS) is disabled on your device.';
+
+  @override
+  String get mapOpenSettings => 'Open Settings';
+
+  @override
+  String mapFetchError(String message) {
+    return 'Failed to get location: $message';
+  }
 }

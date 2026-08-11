@@ -1171,6 +1171,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Locked out. Please wait {seconds} seconds.'**
   String appLockLockedOut(int seconds);
+
+  /// No description provided for @mapTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Map (Google Maps)'**
+  String get mapTitle;
+
+  /// No description provided for @mapFetchLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to Current Location'**
+  String get mapFetchLocation;
+
+  /// No description provided for @mapPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Location permission is required.'**
+  String get mapPermissionDenied;
+
+  /// No description provided for @mapPermissionDeniedForever.
+  ///
+  /// In en, this message translates to:
+  /// **'Location permission is permanently denied. Please allow it in settings.'**
+  String get mapPermissionDeniedForever;
+
+  /// No description provided for @mapServiceDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Location service (GPS) is disabled on your device.'**
+  String get mapServiceDisabled;
+
+  /// No description provided for @mapOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get mapOpenSettings;
+
+  /// No description provided for @mapFetchError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to get location: {message}'**
+  String mapFetchError(String message);
 }
 
 class _AppLocalizationsDelegate

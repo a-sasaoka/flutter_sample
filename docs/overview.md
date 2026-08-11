@@ -16,6 +16,7 @@
 | 🌐 通信           | Dio + Interceptorによる共通通信層とエラーハンドリング、接続状態の監視(Connectivity)                               |
 | 🔒 認証           | Firebase Auth（メール/Googleログイン） / Bearerトークンの自動リフレッシュ                                         |
 | 💾 データ保持     | SharedPreferencesAsync / SecureStorage / Drift(SQLite) による永続化とオフライン対応                               |
+| 🗺️ 地図/位置情報  | google_maps_flutter + geolocator による現在地取得・表示、スムーズなカメラ移動、パーミッション制御                 |
 | 📝 ロギング       | Talkerを用いた統合ログ管理（通信・状態・Crashlytics連携）とアプリ内開発者用画面                                   |
 | 🌍 多言語対応     | flutter_localizations + gen-l10n による標準的な多言語化                                                           |
 | 🔥 Firebase       | Auth / Analytics / Crashlytics / Remote Config / App Check を組み合わせた基盤構築                                 |

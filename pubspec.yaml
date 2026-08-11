@@ -93,12 +93,18 @@ dependencies:
   fl_chart: ^1.2.0
   local_auth: ^3.0.2
 
+  # --- 🗺️ 地図・位置情報 ---
+  google_maps_flutter: ^2.18.0
+  geolocator: ^14.0.2
+
 # -----------------------------------------------
 # 🛠️ 開発時に使用する依存関係（コード生成・Lintなど）
 # -----------------------------------------------
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  google_maps_flutter_platform_interface: ^2.16.0
+  plugin_platform_interface: ^2.1.8
 
   # --- 🔍 Lint設定（コード品質チェック） ---
   flutter_lints: ^6.0.0

@@ -121,6 +121,7 @@ void main() {
     when(() => mockL10n.close).thenReturn('閉じる');
     when(() => mockL10n.ok).thenReturn('OK');
     when(() => mockL10n.devStorageTitle).thenReturn('ストレージ確認・編集');
+    when(() => mockL10n.mapTitle).thenReturn('地図');
   });
 
   Future<void> setupWidget(
@@ -128,6 +129,7 @@ void main() {
     FakeUpdateRequestController? controller,
     Flavor flavor = Flavor.local,
     bool cancelAlreadyPressed = false,
+    List<RouteBase> additionalRoutes = const [],
   }) async {
     attemptedPath = null;
 
@@ -153,6 +155,7 @@ void main() {
           path: '/',
           builder: (context, state) => const HomeScreen(),
         ),
+        ...additionalRoutes,
       ],
       errorBuilder: (context, state) {
         attemptedPath = state.uri.toString();
@@ -454,6 +457,31 @@ void main() {
       await tester.pumpAndSettle();
 
       check(attemptedPath).isNotNull().contains('dev-tools/storage');
+    });
+
+    testWidgets('地図メニューをタップすると該当ルートへ遷移すること', (tester) async {
+      await setupWidget(
+        tester,
+        additionalRoutes: [
+          GoRoute(
+            path: '/map',
+            builder: (context, state) =>
+                const Scaffold(body: Text('MapScreen Destination')),
+          ),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      final finder = find.widgetWithText(ListTile, '地図');
+      await tester.dragUntilVisible(
+        finder,
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+
+      check(find.text('MapScreen Destination')).findsOne();
     });
   });
 }

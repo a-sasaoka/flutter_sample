@@ -28,6 +28,7 @@ import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
+import 'package:flutter_sample/src/features/map/presentation/map_screen.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
@@ -190,6 +191,7 @@ void main() {
     when(() => mockL10n.ok).thenReturn('OK');
     when(() => mockL10n.close).thenReturn('Close');
     when(() => mockL10n.homeTitle).thenReturn('Home');
+    when(() => mockL10n.mapTitle).thenReturn('Map');
     when(() => mockL10n.homeDescription).thenReturn('Home Desc');
     when(() => mockL10n.homeCurrentEnv).thenReturn('Current Env');
     when(() => mockL10n.homeToSettings).thenReturn('Settings');
@@ -589,6 +591,14 @@ void main() {
         MockGoRouterState(),
       );
       check(widget).isA<ProfileEditScreen>();
+    });
+
+    test('MapRoute.build: MapScreen を返すこと', () {
+      final widget = const MapRoute().build(
+        MockBuildContext(),
+        MockGoRouterState(),
+      );
+      check(widget).isA<MapScreen>();
     });
 
     test('UserListRoute.build: UserListScreen を返すこと', () {

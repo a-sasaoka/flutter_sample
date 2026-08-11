@@ -9,6 +9,63 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
+
+// 🗺️ Flutter の --dart-define-from-file または .env.<flavor> から MAPS_API_KEY を動的抽出
+val dartDefines = mutableMapOf<String, String>()
+if (project.hasProperty("dart-defines")) {
+    val dartDefinesString = project.property("dart-defines") as String
+    for (piece in dartDefinesString.split(",")) {
+        val bytes = java.util.Base64.getDecoder().decode(piece)
+        val entry = String(bytes, StandardCharsets.UTF_8)
+        val parts = entry.split("=")
+        if (parts.size >= 2) {
+            val key = URLDecoder.decode(parts[0], "UTF-8")
+            val value = URLDecoder.decode(parts.subList(1, parts.size).joinToString("="), "UTF-8")
+            dartDefines[key] = value
+        }
+    }
+}
+
+// 🗺️ 実行中の Gradle タスク名やプロパティから現在の Flavor (local, dev, stg, prod) を動的検出
+val currentFlavor: String? = run {
+    val flavors = listOf("local", "dev", "stg", "prod")
+    val taskNames = gradle.startParameter.taskNames
+    flavors.firstOrNull { flavor ->
+        taskNames.any { task -> task.contains(flavor, ignoreCase = true) }
+    } ?: (project.findProperty("flavor") as? String)
+}
+
+val mapsApiKey: String = (dartDefines["MAPS_ANDROID_API_KEY"]?.takeIf { it.isNotBlank() }
+    ?: dartDefines["MAPS_API_KEY"]?.takeIf { it.isNotBlank() }
+    ?: currentFlavor?.let { flavor ->
+        val envFile = rootProject.file("../.env.$flavor")
+        if (envFile.exists()) {
+            val props = Properties()
+            envFile.inputStream().use { stream -> props.load(stream) }
+            props.getProperty("MAPS_ANDROID_API_KEY")?.takeIf { it.isNotBlank() }
+                ?: props.getProperty("MAPS_API_KEY")?.takeIf { it.isNotBlank() }
+        } else null
+    }
+    ?: run {
+        val envLocalFile = rootProject.file("../.env.local")
+        if (envLocalFile.exists()) {
+            val props = Properties()
+            envLocalFile.inputStream().use { stream -> props.load(stream) }
+            props.getProperty("MAPS_ANDROID_API_KEY")?.takeIf { it.isNotBlank() }
+                ?: props.getProperty("MAPS_API_KEY")?.takeIf { it.isNotBlank() }
+        } else null
+    }) ?: ""
+
+// 🛡️ Release ビルド時に MAPS_API_KEY が未設定・空文字列の場合は Gradle エラーで安全に停止
+val isReleaseBuild = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
+if (isReleaseBuild && mapsApiKey.isBlank()) {
+    throw GradleException("❌ [MAPS_API_KEY Error] Release ビルドには有効な MAPS_API_KEY の設定が必要です。.env または --dart-define-from-file を確認してください。")
+}
+
 android {
     namespace = "jp.example.sample"
     compileSdk = flutter.compileSdkVersion
@@ -30,6 +87,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["mapsApiKey"] = mapsApiKey
     }
 
     buildTypes {

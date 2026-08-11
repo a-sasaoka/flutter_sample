@@ -43,3 +43,14 @@ class ProfileEditRoute extends GoRouteData with $ProfileEditRoute {
     return const ProfileEditScreen();
   }
 }
+
+/// 🗺️ 地図画面ルート
+class MapRoute extends GoRouteData with $MapRoute {
+  /// コンストラクタ
+  const MapRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const MapScreen();
+  }
+}
