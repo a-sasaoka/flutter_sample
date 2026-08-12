@@ -5,8 +5,11 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/map/application/map_notifier.dart';
 import 'package:flutter_sample/src/features/map/application/map_search_notifier.dart';
+import 'package:flutter_sample/src/features/map/application/spot_notifier.dart';
 import 'package:flutter_sample/src/features/map/domain/location_state.dart';
 import 'package:flutter_sample/src/features/map/domain/map_search_state.dart';
+import 'package:flutter_sample/src/features/map/domain/map_spot.dart';
+import 'package:flutter_sample/src/features/map/presentation/widgets/spot_detail_bottom_sheet.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -43,6 +46,54 @@ class MapScreen extends HookConsumerWidget {
 
     // MapSearchNotifier の状態を監視
     final searchState = ref.watch(mapSearchProvider);
+
+    // SpotNotifier のスポット一覧状態を監視
+    final spotsState = ref.watch(spotProvider);
+
+    // スポット一覧から GoogleMap 用のカスタムマーカー集合を生成
+    final spotMarkers = spotsState.maybeWhen(
+      data: (spots) => spots.map<Marker>((spot) {
+        final latLng = LatLng(spot.latitude, spot.longitude);
+        return Marker(
+          markerId: MarkerId('spot_${spot.id}'),
+          position: latLng,
+          icon: BitmapDescriptor.defaultMarkerWithHue(spot.category.markerHue),
+          infoWindow: InfoWindow(
+            title: spot.name,
+            snippet: spot.address,
+          ),
+          onTap: () {
+            final controller = mapControllerState.value;
+            if (controller != null) {
+              unawaited(
+                controller.animateCamera(
+                  CameraUpdate.newCameraPosition(
+                    CameraPosition(
+                      target: latLng,
+                      zoom: 16,
+                    ),
+                  ),
+                ),
+              );
+            }
+            unawaited(
+              showModalBottomSheet<void>(
+                context: context,
+                builder: (modalContext) {
+                  return SpotDetailBottomSheet(
+                    spot: spot,
+                  );
+                },
+              ),
+            );
+          },
+        );
+      }).toSet(),
+      orElse: () => <Marker>{},
+    );
+
+    // 全マーカーの結合 (スポットマーカー + 検索マーカー)
+    final allMarkers = <Marker>{...spotMarkers, ...markersState.value};
 
     // 状態変化に伴うカメラ移動や対話ダイアログのリスナー
     ref
@@ -331,7 +382,7 @@ class MapScreen extends HookConsumerWidget {
                   myLocationEnabled: true,
                   myLocationButtonEnabled: false,
                   zoomControlsEnabled: false,
-                  markers: markersState.value,
+                  markers: allMarkers,
                   onMapCreated: (controller) {
                     mapControllerState.value = controller;
                     final pendingLatLng = pendingLatLngState.value;

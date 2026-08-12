@@ -1243,6 +1243,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select search result'**
   String get mapSearchSelectCandidateTitle;
+
+  /// No description provided for @mapSpotDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Spot Details'**
+  String get mapSpotDetailTitle;
+
+  /// No description provided for @mapSpotCategoryCafe.
+  ///
+  /// In en, this message translates to:
+  /// **'Cafe'**
+  String get mapSpotCategoryCafe;
+
+  /// No description provided for @mapSpotCategoryPark.
+  ///
+  /// In en, this message translates to:
+  /// **'Park'**
+  String get mapSpotCategoryPark;
+
+  /// No description provided for @mapSpotCategoryRestaurant.
+  ///
+  /// In en, this message translates to:
+  /// **'Restaurant'**
+  String get mapSpotCategoryRestaurant;
+
+  /// No description provided for @mapSpotCategorySightseeing.
+  ///
+  /// In en, this message translates to:
+  /// **'Sightseeing'**
+  String get mapSpotCategorySightseeing;
+
+  /// No description provided for @mapSpotCategoryShopping.
+  ///
+  /// In en, this message translates to:
+  /// **'Shopping'**
+  String get mapSpotCategoryShopping;
+
+  /// No description provided for @mapSpotCategoryOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get mapSpotCategoryOther;
+
+  /// No description provided for @mapSpotRating.
+  ///
+  /// In en, this message translates to:
+  /// **'Rating: {rating}'**
+  String mapSpotRating(String rating);
+
+  /// No description provided for @mapSpotStartRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Directions'**
+  String get mapSpotStartRoute;
 }
 
 class _AppLocalizationsDelegate
