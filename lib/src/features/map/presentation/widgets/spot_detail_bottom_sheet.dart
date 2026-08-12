@@ -126,19 +126,21 @@ class SpotDetailBottomSheet extends StatelessWidget {
               const SizedBox(height: 16),
             ],
 
-            // アクションボタン
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                key: const Key('spotDetailStartRouteButton'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  onStartRoutePressed?.call();
-                },
-                icon: const Icon(Icons.directions),
-                label: Text(l10n.mapSpotStartRoute),
+            // アクションボタン (コールバックが設定されている場合のみ表示)
+            if (onStartRoutePressed != null) ...[
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  key: const Key('spotDetailStartRouteButton'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    onStartRoutePressed?.call();
+                  },
+                  icon: const Icon(Icons.directions),
+                  label: Text(l10n.mapSpotStartRoute),
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),

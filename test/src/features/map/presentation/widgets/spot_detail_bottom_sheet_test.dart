@@ -43,6 +43,7 @@ void main() {
       check(find.text('東京都港区芝公園4-2-8')).findsOne();
       check(find.text('高さ333mの総合電波塔。')).findsOne();
       check(find.text('4.6')).findsOne();
+      check(find.byKey(const Key('spotDetailStartRouteButton'))).findsNothing();
     });
 
     testWidgets('ルート案内ボタンをタップすると onStartRoutePressed コールバックが呼ばれること', (
