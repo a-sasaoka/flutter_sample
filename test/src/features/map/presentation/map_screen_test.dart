@@ -850,6 +850,7 @@ void main() {
       (
         tester,
       ) async {
+        mockMapsPlatform.autoCreatePlatformView = false;
         await tester.pumpWidget(
           createTestWidget(
             child: const MapScreen(),
@@ -875,6 +876,7 @@ void main() {
         spotMarker.onTap!();
         await tester.pump();
 
+        check(mockMapsPlatform.animateCameraCalled).isFalse();
         check(find.byType(SpotDetailBottomSheet)).findsOne();
       },
     );
