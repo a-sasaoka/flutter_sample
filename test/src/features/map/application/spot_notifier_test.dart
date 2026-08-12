@@ -49,9 +49,19 @@ void main() {
     });
 
     test('fetchSpots 実行時に AsyncValue が更新されること', () async {
-      const sampleSpots = [
+      const initialSpots = [
         MapSpot(
           id: 'spot_1',
+          name: '東京タワー',
+          category: SpotCategory.sightseeing,
+          latitude: 35.6585805,
+          longitude: 139.7454329,
+        ),
+      ];
+
+      const refreshedSpots = [
+        MapSpot(
+          id: 'spot_2',
           name: '代々木公園',
           category: SpotCategory.park,
           latitude: 35.671736,
@@ -61,10 +71,15 @@ void main() {
 
       when(
         () => mockRepository.getSpots(),
-      ).thenAnswer((_) async => sampleSpots);
+      ).thenAnswer((_) async => initialSpots);
 
       final container = createContainer()..listen(spotProvider, (_, _) {});
-      await container.read(spotProvider.future);
+      final initialState = await container.read(spotProvider.future);
+      check(initialState.first.name).equals('東京タワー');
+
+      when(
+        () => mockRepository.getSpots(),
+      ).thenAnswer((_) async => refreshedSpots);
 
       final notifier = container.read(spotProvider.notifier);
       await notifier.fetchSpots();
@@ -73,6 +88,8 @@ void main() {
       check(state).isA<AsyncData<List<MapSpot>>>();
       check(state.value!).length.equals(1);
       check(state.value!.first.name).equals('代々木公園');
+
+      verify(() => mockRepository.getSpots()).called(2);
     });
   });
 }
