@@ -80,3 +80,16 @@ lib/src/features/map/
 
 - `android.permission.ACCESS_FINE_LOCATION` (GPS高精度)
 - `android.permission.ACCESS_COARSE_LOCATION` (概算位置)
+
+---
+
+## 🧪 テスト仕様
+
+- **単体・ウィジェットテスト (`test/src/features/map/`)**:
+  - ドメインモデル (`map_spot_test.dart`, `map_search_state_test.dart`)
+  - データ層 (`spot_repository_test.dart`, `location_repository_test.dart`, `geocoding_repository_test.dart`)
+  - アプリケーション層 (`spot_notifier_test.dart`, `map_notifier_test.dart`, `map_search_notifier_test.dart`)
+  - プレゼンテーション層 (`map_screen_test.dart`, `spot_detail_bottom_sheet_test.dart`)
+- **ゴールデンテスト (`test/src/features/map/presentation/map_screen_golden_test.dart`)**:
+  - `MapScreen` (ライト/ダークモード)
+  - `SpotDetailBottomSheet` (ライト/ダークモード)

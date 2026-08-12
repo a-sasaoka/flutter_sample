@@ -119,9 +119,7 @@ class SpotDetailBottomSheet extends StatelessWidget {
             if (spot.description != null) ...[
               Text(
                 spot.description!,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.black87,
-                ),
+                style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 16),
             ],
