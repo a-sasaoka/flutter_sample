@@ -1,6 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/features/map/data/spot_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 void main() {
   group('SpotRepository Tests', () {
@@ -24,10 +25,16 @@ void main() {
     });
 
     test('spotRepositoryProvider から SpotRepository インスタンスを取得できること', () {
-      final container = spotRepositoryProvider.overrideWithValue(
-        SpotRepositoryImpl(),
+      final repositoryImpl = SpotRepositoryImpl();
+      final container = ProviderContainer(
+        overrides: [
+          spotRepositoryProvider.overrideWithValue(repositoryImpl),
+        ],
       );
-      check(container).isNotNull();
+      addTearDown(container.dispose);
+
+      final repository = container.read(spotRepositoryProvider);
+      check(repository).equals(repositoryImpl);
     });
   });
 }
