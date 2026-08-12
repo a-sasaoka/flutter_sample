@@ -236,9 +236,7 @@ API経由で取得したユーザー一覧を表示する画面です。
 
 ### 7. 地図機能 (Map Features)
 
-#### 地図画面 (MapScreen)
-
-### 17.1 地図画面 (MapScreen)
+#### 7.1 地図画面 (MapScreen)
 
 Google Maps による地図描画および現在地取得アクションボタンを表示する画面です。
 
@@ -249,7 +247,7 @@ Google Maps による地図描画および現在地取得アクションボタ�
   - 右下に現在地を取得するフローティングアクションボタン（FAB、「現在地を取得」）が正しく配置されているか。
 - **画像リンク**: [📷 画像を表示する (map_screen.png)](../test/src/features/map/presentation/goldens/macos/map_screen.png)
 
-### 17.2 スポット詳細ボトムシート (SpotDetailBottomSheet)
+#### 7.2 スポット詳細ボトムシート (SpotDetailBottomSheet)
 
 スポットピンタップ時に画面下部に表示される詳細情報モーダルウィジェットです。
 
