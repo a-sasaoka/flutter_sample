@@ -12,6 +12,9 @@ void main() {
       // App Checkのデバッグトークン（秘匿情報）が取得できること
       check(AppEnv.debugToken).isA<String>();
 
+      // Google Maps APIキー（秘匿情報）が取得できること
+      check(AppEnv.mapsApiKey).isA<String>();
+
       // 認証設定のProviderが真偽値を返すこと
       final container = ProviderContainer(
         overrides: [
@@ -24,6 +27,7 @@ void main() {
               sendTimeout: 10,
               useFirebaseAuth: true,
               useAgentPlatform: true,
+              googleDirectionsApiUrl: defaultGoogleDirectionsApiUrl,
             ),
           ),
         ],

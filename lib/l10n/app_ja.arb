@@ -296,6 +296,32 @@
       }
     }
   },
-  "mapSpotStartRoute": "ルート案内"
+  "mapSpotStartRoute": "ルート案内",
+  "mapRouteNavigationTitle": "ルート案内",
+  "mapRouteDistance": "距離",
+  "mapRouteDuration": "所要時間",
+  "mapRouteMinutes": "{minutes}分",
+  "@mapRouteMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "mapRouteKm": "{km} km",
+  "@mapRouteKm": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "mapRouteClose": "案内を終了",
+  "mapRouteCalculating": "ルートを検索中...",
+  "mapRouteError": "ルートの検索に失敗しました",
+  "mapTravelModeDriving": "車",
+  "mapTravelModeWalking": "徒歩",
+  "mapTravelModeBicycling": "自転車",
+  "mapTravelModeTransit": "公共交通"
 }
 

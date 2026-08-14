@@ -1,8 +1,10 @@
 import 'package:alchemist/alchemist.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_sample/src/features/map/domain/map_route.dart';
 import 'package:flutter_sample/src/features/map/domain/map_spot.dart';
 import 'package:flutter_sample/src/features/map/presentation/map_screen.dart';
+import 'package:flutter_sample/src/features/map/presentation/widgets/route_navigation_card.dart';
 import 'package:flutter_sample/src/features/map/presentation/widgets/spot_detail_bottom_sheet.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
@@ -120,6 +122,62 @@ void main() {
                       spot: sampleSpot,
                       onStartRoutePressed: () {},
                     ),
+                  ),
+                ),
+                themeMode: ThemeMode.dark,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    const sampleRoute = MapRoute(
+      id: 'golden_route_1',
+      origin: LatLng(35.681236, 139.767125),
+      destination: LatLng(35.6585805, 139.7454329),
+      points: [
+        LatLng(35.681236, 139.767125),
+        LatLng(35.670, 139.755),
+        LatLng(35.6585805, 139.7454329),
+      ],
+      distanceMeters: 3500,
+      durationSeconds: 360,
+      destinationName: '東京タワー',
+    );
+
+    // ignore: discarded_futures, testing framework registers tests synchronously
+    goldenTest(
+      'RouteNavigationCard の描画 (ライト/ダークモード)',
+      fileName: 'route_navigation_card',
+      builder: () => GoldenTestGroup(
+        children: [
+          GoldenTestScenario(
+            name: 'Light Mode',
+            child: SizedBox(
+              width: 390,
+              height: 240,
+              child: buildGoldenTestApp(
+                home: Scaffold(
+                  body: RouteNavigationCard(
+                    route: sampleRoute,
+                    onClose: () {},
+                  ),
+                ),
+                themeMode: ThemeMode.light,
+              ),
+            ),
+          ),
+          GoldenTestScenario(
+            name: 'Dark Mode',
+            child: SizedBox(
+              width: 390,
+              height: 240,
+              child: buildGoldenTestApp(
+                home: Scaffold(
+                  body: RouteNavigationCard(
+                    route: sampleRoute,
+                    onClose: () {},
                   ),
                 ),
                 themeMode: ThemeMode.dark,

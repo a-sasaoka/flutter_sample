@@ -20,6 +20,9 @@ void main() {
       check(config.sendTimeout).equals(defaultSendTimeout);
       check(config.useFirebaseAuth).equals(defaultUseFirebaseAuth);
       check(config.useAgentPlatform).equals(defaultUseAgentPlatform);
+      check(config.googleDirectionsApiUrl).equals(
+        defaultGoogleDirectionsApiUrl,
+      );
     });
 
     test('getDebugReport が正しいフォーマットで文字列を生成すること', () {
@@ -31,6 +34,7 @@ void main() {
         sendTimeout: 3,
         useFirebaseAuth: false,
         useAgentPlatform: true,
+        googleDirectionsApiUrl: defaultGoogleDirectionsApiUrl,
       );
 
       final packageInfo = PackageInfo(
@@ -46,6 +50,9 @@ void main() {
       check(report).contains('🆔 Package Name      : com.test.app');
       check(report).contains('✨ Version           : 1.0.0 (1)');
       check(report).contains('📍 API Base URL      : https://test.com');
+      check(
+        report,
+      ).contains('🗺️ Directions API    : $defaultGoogleDirectionsApiUrl');
       check(report).contains('🤖 AI Model          : test-model');
       check(report).contains('⏱️ Timeouts (C/R/S)  : 1 / 2 / 3');
       check(report).contains('🔥 Firebase Auth     : false');

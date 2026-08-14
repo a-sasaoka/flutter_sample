@@ -292,6 +292,7 @@ void main() {
             sendTimeout: 10,
             useFirebaseAuth: useFirebase,
             useAgentPlatform: true,
+            googleDirectionsApiUrl: defaultGoogleDirectionsApiUrl,
           ),
         ),
         authStateProvider.overrideWith(
@@ -540,6 +541,7 @@ void main() {
               sendTimeout: 10,
               useFirebaseAuth: true,
               useAgentPlatform: true,
+              googleDirectionsApiUrl: defaultGoogleDirectionsApiUrl,
             ),
           ),
         ],

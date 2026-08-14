@@ -7,7 +7,7 @@
 | カテゴリ | 拡張内容 |
 | --- | --- |
 | 🔒 セキュリティ | `local_auth` および `flutter_secure_storage` によるアプリロック（PINパスコード＋Face ID / Touch ID / 指紋認証 / 顔認証）の導入 (✅ 完了) |
-| 🗺️ 位置情報・地図 | Google Maps (`google_maps_flutter`)、Geolocator、および Geocoding による現在地表示・住所ランドマーク検索・カメラアニメーション移動・パーミッション制御の導入 (✅ 完了) |
+| 🗺️ 位置情報・地図 | Google Maps (`google_maps_flutter`)、Geolocator、Geocoding、および Google Directions API による現在地表示・住所ランドマーク検索・2点間ルート検索・Polyline経路描画 (✅ 完了) |
 | 🤖 AI機能の拡張 | Gemini API のマルチモーダル対応（画像解析）、Function Calling による外部API連携 |
 | 🔔 通知・連携 | Firebase Cloud Messaging (FCM) の導入、およびディープリンクの完全対応（iOS用のUniversal Links実装） |
 | 🧠 高度なテスト | Maestro による E2E テストの導入（iOS 達成）。今後はテストケースの拡充および CI (GitHub Actions) での自動実行の整備 |

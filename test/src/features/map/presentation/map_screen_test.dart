@@ -6,13 +6,18 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/map/application/map_notifier.dart';
+import 'package:flutter_sample/src/features/map/application/map_route_notifier.dart';
 import 'package:flutter_sample/src/features/map/application/map_search_notifier.dart';
 import 'package:flutter_sample/src/features/map/data/spot_repository.dart';
 import 'package:flutter_sample/src/features/map/domain/location_candidate.dart';
 import 'package:flutter_sample/src/features/map/domain/location_state.dart';
+import 'package:flutter_sample/src/features/map/domain/map_route.dart';
+import 'package:flutter_sample/src/features/map/domain/map_route_state.dart';
 import 'package:flutter_sample/src/features/map/domain/map_search_state.dart';
 import 'package:flutter_sample/src/features/map/domain/map_spot.dart';
+import 'package:flutter_sample/src/features/map/domain/travel_mode.dart';
 import 'package:flutter_sample/src/features/map/presentation/map_screen.dart';
+import 'package:flutter_sample/src/features/map/presentation/widgets/route_navigation_card.dart';
 import 'package:flutter_sample/src/features/map/presentation/widgets/spot_detail_bottom_sheet.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
@@ -880,6 +885,383 @@ void main() {
         check(find.byType(SpotDetailBottomSheet)).findsOne();
       },
     );
+
+    testWidgets(
+      'ルート検索成功 (success) 時に Polyline と RouteNavigationCard が表示されカメラが境界移動すること',
+      (tester) async {
+        late _TestMapRouteNotifier testRouteNotifier;
+        const sampleRoute = MapRoute(
+          id: 'test_route_1',
+          origin: LatLng(35.681236, 139.767125),
+          destination: LatLng(35.6585805, 139.7454329),
+          points: [
+            LatLng(35.681236, 139.767125),
+            LatLng(35.6585805, 139.7454329),
+          ],
+          distanceMeters: 3500,
+          durationSeconds: 360,
+          destinationName: '東京タワー',
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapRouteProvider.overrideWith(
+                () => testRouteNotifier = _TestMapRouteNotifier(
+                  const MapRouteState.initial(),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+        mockMapsPlatform.triggerOnPlatformViewCreated(0);
+        await tester.pump();
+
+        testRouteNotifier.currentState = const MapRouteState.success(
+          sampleRoute,
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 750));
+
+        check(find.byType(RouteNavigationCard)).findsOne();
+        check(find.text('東京タワー')).findsOne();
+        check(mockMapsPlatform.animateCameraCalled).isTrue();
+
+        final googleMapFinder = find.byType(GoogleMap);
+        check(googleMapFinder).findsOne();
+        final googleMap = tester.widget<GoogleMap>(googleMapFinder);
+        check(googleMap.polylines.length).equals(1);
+      },
+    );
+
+    testWidgets(
+      'コントローラ未生成時にルート検索成功を受信した場合、'
+      'pendingBounds に保持され onMapCreated 時にカメラ移動が実行されること',
+      (tester) async {
+        late _TestMapRouteNotifier testRouteNotifier;
+        const sampleRoute = MapRoute(
+          id: 'test_route_pending',
+          origin: LatLng(35.681236, 139.767125),
+          destination: LatLng(35.6585805, 139.7454329),
+          points: [
+            LatLng(35.681236, 139.767125),
+            LatLng(35.6585805, 139.7454329),
+          ],
+          distanceMeters: 3500,
+          durationSeconds: 360,
+          destinationName: '東京タワー',
+        );
+
+        mockMapsPlatform.autoCreatePlatformView = false;
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapRouteProvider.overrideWith(
+                () => testRouteNotifier = _TestMapRouteNotifier(
+                  const MapRouteState.initial(),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+
+        testRouteNotifier.currentState = const MapRouteState.success(
+          sampleRoute,
+        );
+        await tester.pump();
+
+        check(mockMapsPlatform.animateCameraCalled).isFalse();
+
+        mockMapsPlatform.triggerOnPlatformViewCreated(0);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 750));
+
+        check(mockMapsPlatform.animateCameraCalled).isTrue();
+      },
+    );
+
+    testWidgets('ルート計算中 (loading) 時に CircularProgressIndicator が表示されること', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestWidget(
+          child: const MapScreen(),
+          overrides: [
+            mapRouteProvider.overrideWith(
+              () => _TestMapRouteNotifier(
+                const MapRouteState.loading(),
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+
+      check(find.byType(CircularProgressIndicator)).findsOne();
+    });
+
+    testWidgets('ルートエラー (error) 時に SnackBar が表示されること', (tester) async {
+      late _TestMapRouteNotifier testRouteNotifier;
+
+      await tester.pumpWidget(
+        createTestWidget(
+          child: const MapScreen(),
+          overrides: [
+            mapRouteProvider.overrideWith(
+              () => testRouteNotifier = _TestMapRouteNotifier(
+                const MapRouteState.initial(),
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+
+      testRouteNotifier.currentState = const MapRouteState.error(
+        'ルート検索失敗',
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 750));
+
+      check(find.byType(SnackBar)).findsOne();
+
+      // SnackBar の表示タイマーを完了させて後続テストへの影響を防止
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('RouteNavigationCard の閉じるボタンをタップすると clearRoute が呼ばれること', (
+      tester,
+    ) async {
+      late _TestMapRouteNotifier testRouteNotifier;
+      const sampleRoute = MapRoute(
+        id: 'test_route_close',
+        origin: LatLng(35.681236, 139.767125),
+        destination: LatLng(35.6585805, 139.7454329),
+        points: [
+          LatLng(35.681236, 139.767125),
+          LatLng(35.6585805, 139.7454329),
+        ],
+        distanceMeters: 1000,
+        durationSeconds: 100,
+      );
+
+      await tester.pumpWidget(
+        createTestWidget(
+          child: const MapScreen(),
+          overrides: [
+            mapProvider.overrideWith(
+              () => _TestMapNotifier(const LocationState.initial()),
+            ),
+            mapRouteProvider.overrideWith(
+              () => testRouteNotifier = _TestMapRouteNotifier(
+                const MapRouteState.initial(),
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+      mockMapsPlatform.triggerOnPlatformViewCreated(0);
+      await tester.pump();
+
+      testRouteNotifier.currentState = const MapRouteState.success(
+        sampleRoute,
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 750));
+
+      final closeButtonFinder = find.byKey(
+        const Key('routeNavigationCloseButton'),
+      );
+      check(closeButtonFinder).findsOne();
+
+      final closeButton = tester.widget<IconButton>(closeButtonFinder);
+      check(closeButton.onPressed).isNotNull();
+      closeButton.onPressed!();
+      await tester.pump();
+
+      check(testRouteNotifier.clearRouteCalled).isTrue();
+    });
+
+    testWidgets(
+      'SpotDetailBottomSheet のルート案内ボタンをタップすると searchRoute が実行されること',
+      (tester) async {
+        late _TestMapRouteNotifier testRouteNotifier;
+        final mockPosition = Position(
+          latitude: 35.658034,
+          longitude: 139.701636,
+          timestamp: DateTime(2026),
+          accuracy: 5,
+          altitude: 10,
+          altitudeAccuracy: 1,
+          heading: 0,
+          headingAccuracy: 1,
+          speed: 0,
+          speedAccuracy: 1,
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapProvider.overrideWith(
+                () => _TestMapNotifier(LocationState.success(mockPosition)),
+              ),
+              spotRepositoryProvider.overrideWithValue(
+                FakeSpotRepositoryWithData(),
+              ),
+              mapRouteProvider.overrideWith(
+                () => testRouteNotifier = _TestMapRouteNotifier(
+                  const MapRouteState.initial(),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        mockMapsPlatform.triggerOnPlatformViewCreated(0);
+        await tester.pump();
+
+        final googleMapFinder = find.byType(GoogleMap);
+        final googleMap = tester.widget<GoogleMap>(googleMapFinder);
+        final spotMarker = googleMap.markers.firstWhere(
+          (marker) => marker.markerId.value.startsWith('spot_'),
+        );
+
+        spotMarker.onTap!();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 750));
+
+        final startRouteButtonFinder = find.byKey(
+          const Key('spotDetailStartRouteButton'),
+        );
+        check(startRouteButtonFinder).findsOne();
+
+        await tester.tap(startRouteButtonFinder);
+        await tester.pump();
+
+        check(testRouteNotifier.searchDestinationName).equals('東京タワー');
+        check(
+          testRouteNotifier.searchOrigin,
+        ).equals(const LatLng(35.658034, 139.701636));
+      },
+    );
+
+    testWidgets(
+      '現在地未取得時に SpotDetailBottomSheet のルート案内ボタンをタップすると初期位置を出発地として '
+      'searchRoute が実行されること',
+      (tester) async {
+        late _TestMapRouteNotifier testRouteNotifier;
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapProvider.overrideWith(
+                () => _TestMapNotifier(const LocationState.initial()),
+              ),
+              spotRepositoryProvider.overrideWithValue(
+                FakeSpotRepositoryWithData(),
+              ),
+              mapRouteProvider.overrideWith(
+                () => testRouteNotifier = _TestMapRouteNotifier(
+                  const MapRouteState.initial(),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        mockMapsPlatform.triggerOnPlatformViewCreated(0);
+        await tester.pump();
+
+        final googleMapFinder = find.byType(GoogleMap);
+        final googleMap = tester.widget<GoogleMap>(googleMapFinder);
+        final spotMarker = googleMap.markers.firstWhere(
+          (marker) => marker.markerId.value.startsWith('spot_'),
+        );
+
+        spotMarker.onTap!();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 750));
+
+        final startRouteButtonFinder = find.byKey(
+          const Key('spotDetailStartRouteButton'),
+        );
+        check(startRouteButtonFinder).findsOne();
+
+        await tester.tap(startRouteButtonFinder);
+        await tester.pump();
+
+        check(testRouteNotifier.searchDestinationName).equals('東京タワー');
+        check(
+          testRouteNotifier.searchOrigin,
+        ).equals(const LatLng(35.681236, 139.767125));
+      },
+    );
+
+    testWidgets(
+      'RouteNavigationCard の移動手段ボタンをタップすると '
+      '新しい travelMode で searchRoute が再実行されること',
+      (tester) async {
+        late _TestMapRouteNotifier testRouteNotifier;
+        const origin = LatLng(35.681236, 139.767125);
+        const destination = LatLng(35.6585805, 139.7454329);
+        const initialRoute = MapRoute(
+          id: 'route_mode_switch_test',
+          origin: origin,
+          destination: destination,
+          points: [origin, destination],
+          distanceMeters: 3500,
+          durationSeconds: 360,
+          destinationName: '東京タワー',
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapRouteProvider.overrideWith(
+                () => testRouteNotifier = _TestMapRouteNotifier(
+                  const MapRouteState.success(initialRoute),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        final cardFinder = find.byType(RouteNavigationCard);
+        check(cardFinder).findsOne();
+
+        final card = tester.widget<RouteNavigationCard>(cardFinder);
+        check(card.onTravelModeChanged).isNotNull();
+
+        // 異なる移動手段（徒歩）を選択した場合は再検索が実行されること
+        card.onTravelModeChanged!(TravelMode.walking);
+        await tester.pump();
+
+        check(testRouteNotifier.searchTravelMode).equals(TravelMode.walking);
+        check(testRouteNotifier.searchDestinationName).equals('東京タワー');
+
+        // 現在と同じ移動手段（車）を選択した場合は再検索されないこと
+        testRouteNotifier.searchTravelMode = null;
+        card.onTravelModeChanged!(TravelMode.driving);
+        await tester.pump();
+
+        check(testRouteNotifier.searchTravelMode).isNull();
+      },
+    );
   });
 }
 
@@ -944,5 +1326,44 @@ class _TestMapSearchNotifier extends MapSearchNotifier {
   void clearSearch() {
     clearSearchCalled = true;
     state = const MapSearchState.initial();
+  }
+}
+
+class _TestMapRouteNotifier extends MapRouteNotifier {
+  _TestMapRouteNotifier(this._initialState);
+
+  final MapRouteState _initialState;
+  bool clearRouteCalled = false;
+  LatLng? searchOrigin;
+  LatLng? searchDestination;
+  String? searchDestinationName;
+  TravelMode? searchTravelMode;
+
+  @override
+  MapRouteState build() => _initialState;
+
+  MapRouteState get currentState => state;
+
+  set currentState(MapRouteState newState) {
+    state = newState;
+  }
+
+  @override
+  Future<void> searchRoute({
+    required LatLng origin,
+    required LatLng destination,
+    String? destinationName,
+    TravelMode travelMode = TravelMode.driving,
+  }) async {
+    searchOrigin = origin;
+    searchDestination = destination;
+    searchDestinationName = destinationName;
+    searchTravelMode = travelMode;
+  }
+
+  @override
+  void clearRoute() {
+    clearRouteCalled = true;
+    state = const MapRouteState.initial();
   }
 }

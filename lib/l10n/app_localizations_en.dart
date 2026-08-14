@@ -649,4 +649,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapSpotStartRoute => 'Get Directions';
+
+  @override
+  String get mapRouteNavigationTitle => 'Route Guidance';
+
+  @override
+  String get mapRouteDistance => 'Distance';
+
+  @override
+  String get mapRouteDuration => 'Duration';
+
+  @override
+  String mapRouteMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String mapRouteKm(String km) {
+    return '$km km';
+  }
+
+  @override
+  String get mapRouteClose => 'End Guidance';
+
+  @override
+  String get mapRouteCalculating => 'Searching route...';
+
+  @override
+  String get mapRouteError => 'Failed to search route';
+
+  @override
+  String get mapTravelModeDriving => 'Drive';
+
+  @override
+  String get mapTravelModeWalking => 'Walk';
+
+  @override
+  String get mapTravelModeBicycling => 'Bike';
+
+  @override
+  String get mapTravelModeTransit => 'Transit';
 }

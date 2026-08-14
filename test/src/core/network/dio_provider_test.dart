@@ -68,6 +68,7 @@ void main() {
         sendTimeout: 5,
         useFirebaseAuth: true,
         useAgentPlatform: true,
+        googleDirectionsApiUrl: defaultGoogleDirectionsApiUrl,
       );
       final container = createContainer(config: config);
 
@@ -102,6 +103,7 @@ void main() {
           sendTimeout: 5,
           useFirebaseAuth: true,
           useAgentPlatform: true,
+          googleDirectionsApiUrl: defaultGoogleDirectionsApiUrl,
         );
 
         // local フレーバーでの検証
@@ -132,6 +134,7 @@ void main() {
           sendTimeout: 5,
           useFirebaseAuth: true,
           useAgentPlatform: true,
+          googleDirectionsApiUrl: defaultGoogleDirectionsApiUrl,
         );
         final containerUppercase = createContainer(
           config: uppercaseConfig,
@@ -155,6 +158,7 @@ void main() {
           sendTimeout: 5,
           useFirebaseAuth: true,
           useAgentPlatform: true,
+          googleDirectionsApiUrl: defaultGoogleDirectionsApiUrl,
         );
 
         final containerStg = createContainer(
@@ -181,6 +185,7 @@ void main() {
         sendTimeout: 3,
         useFirebaseAuth: true,
         useAgentPlatform: true,
+        googleDirectionsApiUrl: defaultGoogleDirectionsApiUrl,
       );
       final container = createContainer(config: config);
 

@@ -1297,6 +1297,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Get Directions'**
   String get mapSpotStartRoute;
+
+  /// No description provided for @mapRouteNavigationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Route Guidance'**
+  String get mapRouteNavigationTitle;
+
+  /// No description provided for @mapRouteDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance'**
+  String get mapRouteDistance;
+
+  /// No description provided for @mapRouteDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get mapRouteDuration;
+
+  /// No description provided for @mapRouteMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String mapRouteMinutes(int minutes);
+
+  /// No description provided for @mapRouteKm.
+  ///
+  /// In en, this message translates to:
+  /// **'{km} km'**
+  String mapRouteKm(String km);
+
+  /// No description provided for @mapRouteClose.
+  ///
+  /// In en, this message translates to:
+  /// **'End Guidance'**
+  String get mapRouteClose;
+
+  /// No description provided for @mapRouteCalculating.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching route...'**
+  String get mapRouteCalculating;
+
+  /// No description provided for @mapRouteError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to search route'**
+  String get mapRouteError;
+
+  /// No description provided for @mapTravelModeDriving.
+  ///
+  /// In en, this message translates to:
+  /// **'Drive'**
+  String get mapTravelModeDriving;
+
+  /// No description provided for @mapTravelModeWalking.
+  ///
+  /// In en, this message translates to:
+  /// **'Walk'**
+  String get mapTravelModeWalking;
+
+  /// No description provided for @mapTravelModeBicycling.
+  ///
+  /// In en, this message translates to:
+  /// **'Bike'**
+  String get mapTravelModeBicycling;
+
+  /// No description provided for @mapTravelModeTransit.
+  ///
+  /// In en, this message translates to:
+  /// **'Transit'**
+  String get mapTravelModeTransit;
 }
 
 class _AppLocalizationsDelegate

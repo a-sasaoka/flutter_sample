@@ -70,10 +70,11 @@ cd ..
 
 各ファイルには、各自の環境に応じた以下の値を設定してください。
 
-| 項目                        | 説明                                            |
-| :-------------------------- | :---------------------------------------------- |
-| `DEBUG_TOKEN`               | Firebase App Check のデバッグトークン           |
-| `GOOGLE_REVERSED_CLIENT_ID` | iOS の URL Scheme 設定に必要な逆クライアント ID |
+| 項目                        | 説明                                                  |
+| :-------------------------- | :---------------------------------------------------- |
+| `DEBUG_TOKEN`               | Firebase App Check のデバッグトークン                 |
+| `GOOGLE_REVERSED_CLIENT_ID` | iOS の URL Scheme 設定に必要な逆クライアント ID       |
+| `MAPS_API_KEY`              | Google Maps Platform (Directions API等) の API キー   |
 
 ## 5️⃣ Firebase利用準備
 
