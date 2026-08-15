@@ -238,12 +238,20 @@ void main() {
         ),
       ).thenThrow(dioException);
 
-      await check(
-        repository.calculateRoute(
+      RouteApiException? capturedError;
+      try {
+        await repository.calculateRoute(
           origin: origin,
           destination: destination,
-        ),
-      ).throws<RouteApiException>();
+        );
+      } on RouteApiException catch (e) {
+        capturedError = e;
+      }
+
+      check(capturedError)
+          .isNotNull()
+          .has((e) => e.message, 'message')
+          .equals('Unauthorized: ログインが必要です。');
     });
 
     test('DioException 発生時にレスポンスがない場合 DioException.message をスローすること', () async {
