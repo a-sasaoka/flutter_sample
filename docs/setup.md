@@ -132,6 +132,25 @@ dev環境において、ローカルPC上でAPIを動かしながら、クラウ
 2. `firebase emulators:start --only functions` でAPIのみエミュレータを起動する。
 3. Flutterアプリを `dev` フレーバーで起動する。
 
+### 📱 ローカル HTTP 通信（Cleartext / ATS）の接続ガイド
+
+Android エミュレータやスマホ実機から、開発用 PC のローカルサーバー（`http://10.0.2.2:5001` や `http://192.168.x.x:5001`）に接続する場合、OS のセキュリティ機能（暗号化されていない HTTP 通信の遮断）により接続エラーとなる場合があります。以下のいずれかの方法で対応してください。
+
+#### 方法 A: HTTPS トンネルを利用する（推奨・設定変更不要）
+
+OS の設定を変更せず、無料のトンネリングツールでローカルサーバーを一時的に HTTPS 化して接続します。
+
+```bash
+# cloudflared を使って一時的な HTTPS URL を発行する例
+npx -y cloudflared tunnel --url http://localhost:5001
+# 出力された https://xxx.trycloudflare.com を .env.dev の BASE_URL / GOOGLE_DIRECTIONS_API_URL に設定
+```
+
+#### 方法 B: 開発環境のみ HTTP 通信を許可する
+
+- **Android**: `android/app/src/debug/AndroidManifest.xml` に `android:usesCleartextTraffic="true"` を設定します。
+- **iOS (実機接続時)**: `ios/Runner/Info.plist` に `<key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict>` を追加します（※iOSシミュレータの `localhost` は設定不要で動作します）。
+
 ---
 
 ## 7️⃣ コード生成コマンドの実行
