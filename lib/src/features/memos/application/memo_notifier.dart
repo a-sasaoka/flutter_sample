@@ -95,13 +95,12 @@ class MemoNotifier extends _$MemoNotifier {
     try {
       await repository.fetchAndMergeRemoteMemos();
     } on Exception catch (e, st) {
-      // 💡 エラーが発生しても画面の操作を邪魔しないよう、Talker（ログ）への記録のみにとどめます
       ref
           .read(loggerProvider)
-          .error(
-            'バックグラウンド同期中にエラーが発生しました',
+          .handle(
             e,
             st,
+            'バックグラウンド同期中にエラーが発生しました',
           );
     }
   }

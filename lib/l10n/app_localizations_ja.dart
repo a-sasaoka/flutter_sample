@@ -201,9 +201,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chatEmptyMessage => 'AIからの返答が空でした。';
 
   @override
-  String chatError(Object error) {
-    return 'エラーが発生しました: $error';
-  }
+  String get chatError => 'エラーが発生しました';
 
   @override
   String get settingsTitle => '設定';
@@ -579,9 +577,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mapOpenSettings => '設定を開く';
 
   @override
-  String mapFetchError(String message) {
-    return '位置情報の取得に失敗しました: $message';
-  }
+  String get mapFetchError => '位置情報の取得に失敗しました';
 
   @override
   String get mapSearchHint => '住所やランドマークを検索';
@@ -592,9 +588,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String mapSearchError(String message) {
-    return '検索中にエラーが発生しました: $message';
-  }
+  String get mapSearchError => '検索に失敗しました';
 
   @override
   String get mapSearchClear => '検索をクリア';

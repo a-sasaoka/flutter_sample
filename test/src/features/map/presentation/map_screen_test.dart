@@ -454,6 +454,10 @@ void main() {
       await tester.pump();
 
       check(testSearchNotifier.searchLocationQuery).equals('東京タワー');
+      final editableText1 = tester.widget<EditableText>(
+        find.byType(EditableText),
+      );
+      check(editableText1.focusNode.hasFocus).isFalse();
     });
 
     testWidgets('検索バーでキーボードの検索キーを押すと searchLocation が実行されること', (
@@ -482,6 +486,14 @@ void main() {
       await tester.pump();
 
       check(testSearchNotifier.searchLocationQuery).equals('スカイツリー');
+      final searchContext2 = tester.element(
+        find.byKey(const Key('mapSearchTextField')),
+      );
+      check(FocusScope.of(searchContext2).focusedChild).isNull();
+      final editableText2 = tester.widget<EditableText>(
+        find.byType(EditableText),
+      );
+      check(editableText2.focusNode.hasFocus).isFalse();
     });
 
     testWidgets('クリアボタンをタップするとテキストと検索状態がクリアされること', (tester) async {

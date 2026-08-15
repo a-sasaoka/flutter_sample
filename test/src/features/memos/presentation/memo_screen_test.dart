@@ -79,7 +79,8 @@ void main() {
       () => mockMemoRepository.fetchAndMergeRemoteMemos(),
     ).thenAnswer((_) async {});
     when(
-      () => mockTalker.error(any<String>(), any<Object?>(), any<StackTrace?>()),
+      () =>
+          mockTalker.handle(any<Object>(), any<StackTrace?>(), any<String?>()),
     ).thenAnswer((_) {});
     when(
       () => mockMemoRepository.watchAllMemos(),
@@ -275,6 +276,7 @@ void main() {
 
     testWidgets('同期ボタンを押してエラーが発生した場合、エラー通知が表示されること', (tester) async {
       var callCount = 0;
+      final syncException = Exception('同期エラー');
       when(
         () => mockMemoRepository.watchAllMemos(),
       ).thenAnswer((_) => Stream.value([]));
@@ -286,7 +288,7 @@ void main() {
           return;
         } else {
           // ボタンタップ時はエラー
-          throw Exception('同期エラー');
+          throw syncException;
         }
       });
 
@@ -299,8 +301,11 @@ void main() {
       check(find.byType(SnackBar)).findsOne();
       check(find.text('エラーが発生しました')).findsOne();
       verify(
-        () =>
-            mockTalker.error(any<String>(), any<Object?>(), any<StackTrace?>()),
+        () => mockTalker.handle(
+          syncException,
+          any(that: isA<StackTrace>()),
+          '手動同期中にエラーが発生しました',
+        ),
       ).called(1);
     });
 

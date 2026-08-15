@@ -1,3 +1,4 @@
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/map/data/geocoding_repository.dart';
 import 'package:flutter_sample/src/features/map/domain/map_search_state.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -45,10 +46,11 @@ class MapSearchNotifier extends _$MapSearchNotifier {
           query: trimmedQuery,
         );
       }
-    } on Exception catch (e) {
+    } on Exception catch (e, st) {
       if (!ref.mounted || currentRequestId != _requestId) {
         return;
       }
+      ref.read(loggerProvider).handle(e, st);
       state = MapSearchState.error(e.toString());
     }
   }

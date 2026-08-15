@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:checks/checks.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/map/application/map_search_notifier.dart';
 import 'package:flutter_sample/src/features/map/data/geocoding_repository.dart';
 import 'package:flutter_sample/src/features/map/domain/location_candidate.dart';
@@ -8,20 +9,55 @@ import 'package:flutter_sample/src/features/map/domain/map_search_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 class MockGeocodingRepository extends Mock implements GeocodingRepository {}
 
+class HandleCall {
+  const HandleCall({
+    required this.exception,
+    this.stackTrace,
+  });
+
+  final Object exception;
+  final StackTrace? stackTrace;
+}
+
+class SpyTalker extends Talker {
+  SpyTalker() : super(settings: TalkerSettings(enabled: false));
+
+  final List<HandleCall> handleCalls = [];
+
+  @override
+  void handle(
+    Object exception, [
+    StackTrace? stackTrace,
+    dynamic msg,
+  ]) {
+    handleCalls.add(
+      HandleCall(
+        exception: exception,
+        stackTrace: stackTrace,
+      ),
+    );
+    super.handle(exception, stackTrace, msg);
+  }
+}
+
 void main() {
   late MockGeocodingRepository mockRepository;
+  late SpyTalker spyTalker;
 
   setUp(() {
     mockRepository = MockGeocodingRepository();
+    spyTalker = SpyTalker();
   });
 
   ProviderContainer createContainer() {
     final container = ProviderContainer(
       overrides: [
         geocodingRepositoryProvider.overrideWithValue(mockRepository),
+        loggerProvider.overrideWithValue(spyTalker),
       ],
     );
     addTearDown(container.dispose);
@@ -87,9 +123,10 @@ void main() {
     });
 
     test('エラー発生時、MapSearchState.error 状態に遷移すること', () async {
+      final searchError = Exception('Geocoding Failed');
       when(
         () => mockRepository.locationCandidatesFromAddress('エラークエリ'),
-      ).thenThrow(Exception('Geocoding Failed'));
+      ).thenThrow(searchError);
 
       final container = createContainer()..listen(mapSearchProvider, (_, _) {});
 
@@ -100,6 +137,9 @@ void main() {
       check(state).isA<MapSearchStateError>();
       final errorState = state as MapSearchStateError;
       check(errorState.message).contains('Geocoding Failed');
+      check(spyTalker.handleCalls).length.equals(1);
+      check(spyTalker.handleCalls.first.exception).equals(searchError);
+      check(spyTalker.handleCalls.first.stackTrace).isNotNull();
     });
 
     test('clearSearch 呼び出し時、initial 状態にリセットされること', () async {
@@ -217,6 +257,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           geocodingRepositoryProvider.overrideWithValue(mockRepository),
+          loggerProvider.overrideWithValue(spyTalker),
         ],
       )..listen(mapSearchProvider, (_, _) {});
 
@@ -235,5 +276,36 @@ void main() {
 
       await pumpEventQueue();
     });
+
+    test(
+      'Notifier が dispose された後に非同期例外が発生した場合でも、handle 呼び出しが安全にスキップされること',
+      () async {
+        final completer = Completer<List<LocationCandidate>>();
+
+        when(
+          () => mockRepository.locationCandidatesFromAddress('東京駅'),
+        ).thenAnswer((_) => completer.future);
+
+        final container = ProviderContainer(
+          overrides: [
+            geocodingRepositoryProvider.overrideWithValue(mockRepository),
+            loggerProvider.overrideWithValue(spyTalker),
+          ],
+        )..listen(mapSearchProvider, (_, _) {});
+
+        final notifier = container.read(mapSearchProvider.notifier);
+        unawaited(notifier.searchLocation('東京駅'));
+
+        container.dispose();
+
+        final delayedError = Exception('遅延エラー');
+        completer.completeError(delayedError);
+
+        await pumpEventQueue();
+
+        // dispose されたため非同期例外の handle 呼び出しは安全にスキップされること
+        check(spyTalker.handleCalls).isEmpty();
+      },
+    );
   });
 }

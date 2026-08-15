@@ -2,19 +2,24 @@ import 'dart:async';
 
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
+import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 import 'package:uuid/data.dart';
 import 'package:uuid/uuid.dart';
 
 // --- Fake Repository ---
 // Streamの挙動を完全にコントロールするためのFakeクラス
 class FakeChatRepository extends Fake implements ChatRepository {
+  Exception? exceptionToThrow;
+  Exception? streamExceptionToThrow;
   bool shouldThrow = false;
   bool shouldStreamThrow = false;
   bool streamEmpty = false;
@@ -32,6 +37,7 @@ class FakeChatRepository extends Fake implements ChatRepository {
   @override
   Future<String> sendMessage(String text) async {
     sendMessageCallCount++;
+    if (exceptionToThrow != null) throw exceptionToThrow!;
     if (shouldThrow) throw Exception('API Error');
     // 非同期処理（生成中）をシミュレートするため少し待つ
     await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -43,6 +49,7 @@ class FakeChatRepository extends Fake implements ChatRepository {
     sendMessageStreamCallCount++;
     lastStreamText = text;
 
+    if (streamExceptionToThrow != null) throw streamExceptionToThrow!;
     if (shouldStreamThrow) throw Exception('Stream API Error');
     if (streamEmpty) return; // 空のStreamを返して終了
 
@@ -65,7 +72,44 @@ class FakeUuid extends Fake implements Uuid {
   }
 }
 
+class HandleCall {
+  const HandleCall({
+    required this.exception,
+    this.stackTrace,
+  });
+
+  final Object exception;
+  final StackTrace? stackTrace;
+}
+
+class SpyTalker extends Talker {
+  SpyTalker() : super(settings: TalkerSettings(enabled: false));
+
+  final List<HandleCall> handleCalls = [];
+
+  @override
+  void handle(
+    Object exception, [
+    StackTrace? stackTrace,
+    dynamic msg,
+  ]) {
+    handleCalls.add(
+      HandleCall(
+        exception: exception,
+        stackTrace: stackTrace,
+      ),
+    );
+    super.handle(exception, stackTrace, msg);
+  }
+}
+
 void main() {
+  late SpyTalker spyTalker;
+
+  setUp(() {
+    spyTalker = SpyTalker();
+  });
+
   /// テスト環境のセットアップヘルパー
   ProviderContainer createContainer(FakeChatRepository fakeRepo) {
     // 現在時刻を固定して、システム情報の文字列を完全に予測可能にする
@@ -76,6 +120,7 @@ void main() {
         chatRepositoryProvider.overrideWithValue(fakeRepo),
         clockProvider.overrideWithValue(() => fixedDateTime),
         uuidProvider.overrideWithValue(FakeUuid()),
+        loggerProvider.overrideWithValue(spyTalker),
       ],
     );
     addTearDown(container.dispose);
@@ -147,7 +192,9 @@ void main() {
       });
 
       test('異常系: 例外が発生した場合、対象の要素がエラーメッセージに差し替わること', () async {
-        final fakeRepo = FakeChatRepository()..shouldThrow = true;
+        final expectedException = Exception('API Error');
+        final fakeRepo = FakeChatRepository()
+          ..exceptionToThrow = expectedException;
         final container = createContainer(fakeRepo);
         final notifier = container.read(chatProvider.notifier);
 
@@ -157,6 +204,9 @@ void main() {
 
         check(state.messages.length).equals(2);
         check(state.messages.last).isA<ChatMessageError>();
+        check(spyTalker.handleCalls).length.equals(1);
+        check(spyTalker.handleCalls.first.exception).equals(expectedException);
+        check(spyTalker.handleCalls.first.stackTrace).isNotNull();
       });
     });
 
@@ -237,11 +287,18 @@ void main() {
           check(
             state.messages.last.toString(),
           ).contains('ChatEmptyResponseException');
+          check(spyTalker.handleCalls).length.equals(1);
+          check(
+            spyTalker.handleCalls.first.exception,
+          ).isA<ChatEmptyResponseException>();
+          check(spyTalker.handleCalls.first.stackTrace).isNotNull();
         },
       );
 
       test('異常系: Stream の途中で例外が発生した場合、対象要素がエラー表示になること', () async {
-        final fakeRepo = FakeChatRepository()..shouldStreamThrow = true;
+        final expectedException = Exception('Stream API Error');
+        final fakeRepo = FakeChatRepository()
+          ..streamExceptionToThrow = expectedException;
         final container = createContainer(fakeRepo);
         final notifier = container.read(chatProvider.notifier);
 
@@ -251,6 +308,9 @@ void main() {
 
         check(state.messages.length).equals(2);
         check(state.messages.last).isA<ChatMessageError>();
+        check(spyTalker.handleCalls).length.equals(1);
+        check(spyTalker.handleCalls.first.exception).equals(expectedException);
+        check(spyTalker.handleCalls.first.stackTrace).isNotNull();
       });
     });
 
@@ -270,5 +330,59 @@ void main() {
       check(state.messages).isEmpty();
       check(state.isGenerating).equals(false);
     });
+
+    test(
+      'dispose 後の非同期例外でも Talker.handle が呼ばれ、かつクラッシュしないこと (sendMessage)',
+      () async {
+        final expectedException = Exception('Dispose API Error');
+        final fakeRepo = FakeChatRepository()
+          ..exceptionToThrow = expectedException;
+        final spy = SpyTalker();
+        final container = ProviderContainer(
+          overrides: [
+            chatRepositoryProvider.overrideWithValue(fakeRepo),
+            clockProvider.overrideWithValue(DateTime.now),
+            uuidProvider.overrideWithValue(FakeUuid()),
+            loggerProvider.overrideWithValue(spy),
+          ],
+        );
+
+        final notifier = container.read(chatProvider.notifier);
+        final future = notifier.sendMessage('disposeテスト');
+        container.dispose();
+        await future;
+
+        check(spy.handleCalls).length.equals(1);
+        check(spy.handleCalls.first.exception).equals(expectedException);
+        check(spy.handleCalls.first.stackTrace).isNotNull();
+      },
+    );
+
+    test(
+      'dispose 後の非同期例外でも Talker.handle が呼ばれ、かつクラッシュしないこと (sendMessageStream)',
+      () async {
+        final expectedException = Exception('Dispose Stream API Error');
+        final fakeRepo = FakeChatRepository()
+          ..streamExceptionToThrow = expectedException;
+        final spy = SpyTalker();
+        final container = ProviderContainer(
+          overrides: [
+            chatRepositoryProvider.overrideWithValue(fakeRepo),
+            clockProvider.overrideWithValue(DateTime.now),
+            uuidProvider.overrideWithValue(FakeUuid()),
+            loggerProvider.overrideWithValue(spy),
+          ],
+        );
+
+        final notifier = container.read(chatProvider.notifier);
+        final future = notifier.sendMessageStream('disposeストリームテスト');
+        container.dispose();
+        await future;
+
+        check(spy.handleCalls).length.equals(1);
+        check(spy.handleCalls.first.exception).equals(expectedException);
+        check(spy.handleCalls.first.stackTrace).isNotNull();
+      },
+    );
   });
 }

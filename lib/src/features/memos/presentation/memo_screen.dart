@@ -34,7 +34,13 @@ class MemoScreen extends ConsumerWidget {
                 try {
                   await ref.read(memoProvider.notifier).sync();
                 } on Exception catch (e, st) {
-                  ref.read(loggerProvider).error('手動同期中にエラーが発生しました', e, st);
+                  ref
+                      .read(loggerProvider)
+                      .handle(
+                        e,
+                        st,
+                        '手動同期中にエラーが発生しました',
+                      );
                   if (context.mounted) {
                     ErrorHandler.showSnackBar(context, e);
                   }

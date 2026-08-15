@@ -28,7 +28,7 @@ void main() {
       when(() => mockL10n.chatHint).thenReturn('入力してください');
       when(() => mockL10n.thinking).thenReturn('考え中...');
       when(() => mockL10n.chatEmptyMessage).thenReturn('空の返答');
-      when(() => mockL10n.chatError(any())).thenReturn('エラー発生');
+      when(() => mockL10n.chatError).thenReturn('エラー発生');
       when(() => mockL10n.chartClearAll).thenReturn('すべて削除');
       when(() => mockL10n.chartClearConfirm).thenReturn('削除しますか？');
       when(() => mockL10n.close).thenReturn('閉じる');

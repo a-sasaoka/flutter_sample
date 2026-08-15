@@ -212,9 +212,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatEmptyMessage => 'The response from AI was empty.';
 
   @override
-  String chatError(Object error) {
-    return 'An error occurred: $error';
-  }
+  String get chatError => 'An error occurred';
 
   @override
   String get settingsTitle => 'Settings';
@@ -598,9 +596,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapOpenSettings => 'Open Settings';
 
   @override
-  String mapFetchError(String message) {
-    return 'Failed to get location: $message';
-  }
+  String get mapFetchError => 'Failed to get location';
 
   @override
   String get mapSearchHint => 'Search address or landmark';
@@ -611,9 +607,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String mapSearchError(String message) {
-    return 'Search failed: $message';
-  }
+  String get mapSearchError => 'Failed to search location';
 
   @override
   String get mapSearchClear => 'Clear search';

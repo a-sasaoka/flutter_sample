@@ -74,7 +74,7 @@
   "chatHint": "メッセージを入力...",
   "thinking": "AIが考え中...",
   "chatEmptyMessage": "AIからの返答が空でした。",
-  "chatError": "エラーが発生しました: {error}",
+  "chatError": "エラーが発生しました",
 
   "@_SETTINGS": {},
   "settingsTitle": "設定",
@@ -254,14 +254,7 @@
   "mapPermissionDeniedForever": "位置情報権限が拒否されています。端末設定から許可してください。",
   "mapServiceDisabled": "端末の位置情報サービス (GPS) が無効です。",
   "mapOpenSettings": "設定を開く",
-  "mapFetchError": "位置情報の取得に失敗しました: {message}",
-  "@mapFetchError": {
-    "placeholders": {
-      "message": {
-        "type": "String"
-      }
-    }
-  },
+  "mapFetchError": "位置情報の取得に失敗しました",
   "mapSearchHint": "住所やランドマークを検索",
   "mapSearchEmpty": "「{query}」に該当する場所が見つかりませんでした。",
   "@mapSearchEmpty": {
@@ -271,14 +264,7 @@
       }
     }
   },
-  "mapSearchError": "検索中にエラーが発生しました: {message}",
-  "@mapSearchError": {
-    "placeholders": {
-      "message": {
-        "type": "String"
-      }
-    }
-  },
+  "mapSearchError": "検索に失敗しました",
   "mapSearchClear": "検索をクリア",
   "mapSearchSelectCandidateTitle": "検索結果を選択",
   "mapSpotDetailTitle": "スポット詳細",
