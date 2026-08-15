@@ -208,7 +208,20 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
       return;
     }
 
-    // 2. Google IAM / ADC によるアクセストークンの取得 (APIキー不要)
+    // 2. リクエストボディのバリデーション (origin, destination の存在確認)
+    if (!req.body || typeof req.body !== "object") {
+      res.status(400).json({ error: "Bad Request: リクエストボディが空です。" });
+      return;
+    }
+    const { origin, destination } = req.body;
+    if (!origin?.location?.latLng || !destination?.location?.latLng) {
+      res.status(400).json({
+        error: "Bad Request: origin と destination の座標が必要です。",
+      });
+      return;
+    }
+
+    // 3. Google IAM / ADC によるアクセストークンの取得 (APIキー不要)
     const auth = new GoogleAuth({
       scopes: ["https://www.googleapis.com/auth/cloud-platform"],
     });
@@ -216,18 +229,30 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
     const tokenResponse = await client.getAccessToken();
     const accessToken = tokenResponse.token;
 
-    const defaultFieldMask = [
+    // 4. 許可されたフィールドマスクのみ通過 (不正なヘッダー注入・課金増加の防止)
+    const allowedFieldMasks = new Set([
       "routes.duration",
       "routes.distanceMeters",
       "routes.polyline.encodedPolyline",
       "routes.warnings",
-    ].join(",");
-    const fieldMaskHeader = req.headers["x-goog-fieldmask"];
-    const fieldMask = Array.isArray(fieldMaskHeader)
-      ? fieldMaskHeader.join(",")
-      : fieldMaskHeader || defaultFieldMask;
+    ]);
+    const defaultFieldMask = Array.from(allowedFieldMasks).join(",");
+    const rawFieldMask = Array.isArray(req.headers["x-goog-fieldmask"])
+      ? req.headers["x-goog-fieldmask"].join(",")
+      : req.headers["x-goog-fieldmask"];
 
-    // 3. Authorization: Bearer ヘッダーと
+    let fieldMask = defaultFieldMask;
+    if (typeof rawFieldMask === "string" && rawFieldMask.trim().length > 0) {
+      const filtered = rawFieldMask
+        .split(",")
+        .map((f) => f.trim())
+        .filter((f) => allowedFieldMasks.has(f));
+      if (filtered.length > 0) {
+        fieldMask = filtered.join(",");
+      }
+    }
+
+    // 5. Authorization: Bearer ヘッダーと
     // X-Goog-User-Project で Google Routes API に中継
     const projectId =
       process.env.GCLOUD_PROJECT ||
