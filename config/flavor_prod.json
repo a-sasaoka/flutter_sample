@@ -1,5 +1,5 @@
 {
-  "BASE_URL": "https://production.example.com/api",
+  "BASE_URL": "https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/api",
   "AI_MODEL": "gemini-3.5-flash-lite",
   "CONNECT_TIMEOUT": 10,
   "RECEIVE_TIMEOUT": 15,

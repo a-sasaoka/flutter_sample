@@ -28,7 +28,7 @@ lib/src/features/map/
  │    ├── geocoding_repository.dart         # Geocoding プラットフォームAPIの安全なラッパー
  │    ├── geocoding_repository.g.dart       # Riverpod生成プロバイダー
  │    ├── polyline_decoder.dart             # Google Encoded Polyline Algorithm 座標復元デコーダー
- │    ├── route_repository.dart             # Google Directions API ルート検索・経路計算リポジトリ (TravelMode対応)
+ │    ├── route_repository.dart             # ルート検索・経路計算リポジトリ (RouteRepositoryImpl / MockRouteRepository)
  │    ├── route_repository.g.dart           # Riverpod生成プロバイダー
  │    ├── spot_repository.dart              # 周辺スポットデータ取得リポジトリ
  │    └── spot_repository.g.dart            # Riverpod生成プロバイダー
@@ -54,13 +54,14 @@ lib/src/features/map/
 
 ### 1. 安全な権限ハンドリングと状態モデル (Domain層)
 
-`LocationState`、`MapSearchState` および `MapRouteState` に Sealed class を採用し、位置情報の取得状態（初期値、ロード中、成功、権限拒否、権限永久拒否、GPS無効、エラー）、住所検索状態（初期値、検索中、成功、該当なし、エラー）、およびルート案内状態（初期値、計算中、成功、エラー）をコンパイラレベルで厳密にモデリングしています。検索結果は `LocationCandidate` リストとして保持され、ルート情報は `MapRoute`（経由点リスト、距離、所要時間、境界矩形、移動手段）としてカプセル化されています。また、`TravelMode` enum（車: `driving`、徒歩: `walking`、自転車: `bicycling`、公共交通: `transit`）により移動手段に応じた経路検索を厳密に管理しています。
+`LocationState`、`MapSearchState` および `MapRouteState` に Sealed class を採用し、位置情報の取得状態（初期値、ロード中、成功、権限拒否、権限永久拒否、GPS無効、エラー）、住所検索状態（初期値、検索中、成功、該当なし、エラー）、およびルート案内状態（初期値、計算中、成功、エラー）をコンパイラレベルで厳密にモデリングしています。検索結果は `LocationCandidate` リストとして保持され、ルート情報は `MapRoute`（経由点リスト、距離、所要時間、境界矩形、移動手段、警告情報 warnings）としてカプセル化されています。また、`TravelMode` enum（車: `driving`、徒歩: `walking`、自転車: `bicycling`、公共交通: `transit`）により移動手段に応じた経路検索を厳密に管理しています。
 
 ### 2. リポジトリ層のカプセル化 (Data層)
 
 `LocationRepository`、`GeocodingRepository`、`RouteRepository` および `SpotRepository` にて外部依存・通信ロジックを集約し、テスト時にモックやテスト用ハンドラを注入可能とすることで、100% 決定論的な単体・ウィジェットテストを可能にしています。
 
-- **`RouteRepositoryImpl`**: Google Routes API (`https://routes.googleapis.com/directions/v2:computeRoutes`) と POST 通信し、指定された `TravelMode`（車: `DRIVE`、徒歩: `WALK`、自転車: `BICYCLE`、公共交通機関: `TRANSIT`）の道路ネットワークに沿った経路 Polyline、総距離、所要時間を取得します。ヘッダーには `X-Goog-Api-Key` および `X-Goog-FieldMask` を付与し、必要なフィールドのみを効率的に取得します。圧縮された座標文字列は `decodePolyline` ユーティリティにより `List<LatLng>` に復元されます。
+- **`RouteRepositoryImpl`**: 設定ファイルで指定されたルート検索エンドポイント（`GOOGLE_DIRECTIONS_API_URL`）と POST 通信し、指定された `TravelMode`（車: `DRIVE`、徒歩: `WALK`、自転車: `BICYCLE`、公共交通機関: `TRANSIT`）の道路ネットワークに沿った経路 Polyline、総距離、所要時間、警告情報（`warnings`）を取得します。クライアントに API キーを持たせない設計のため、ヘッダーには `X-Goog-FieldMask` のみを付与して必要なフィールドを安全・効率的に取得します。圧縮された座標文字列は `decodePolyline` ユーティリティにより `List<LatLng>` に復元されます。
+- **`MockRouteRepository`**: 単体テストやウィジェットテスト向けに、2点間の緯度経度から概算距離・所要時間を計算し、5点の補間座標（折れ線）を即座に生成するオフラインリポジトリです。API キーや外部通信を一切行わずに決定論的なテストを可能にします。
 
 ### 3. 多言語対応 (Presentation層)
 
@@ -84,9 +85,9 @@ lib/src/features/map/
 
 スポット詳細モーダルから「ルート案内」ボタンを押下、または出発地と目的地を指定することで、現在地から目的地までの経路案内を開始します。
 
-- **ルート案内データ取得と環境別切り替え**:
-  - **local 環境 (`Flavor.local`)**: `MockRouteRepository` により、API キーおよび外部通信不要で即座にリアルな補間座標（折れ線）・距離・所要時間を算出し、オフラインで快適に開発・動作確認を行えます。
-  - **dev / stg / prod 環境**: `RouteRepositoryImpl` が Google Routes API エンドポイント（設定ファイル `GOOGLE_DIRECTIONS_API_URL`）へリクエストを送信し、実際の経路データを取得します（※将来の Cloud Functions プロキシ構成および移行手順は後述の「🚀 将来の拡張: Google Routes API サーバープロキシ化ガイド（#219）」を参照）。
+- **ルート案内データ取得 (`RouteRepositoryImpl`)**:
+  - 設定ファイル（`GOOGLE_DIRECTIONS_API_URL`）のエンドポイントへ `dioProvider`（Firebase Auth ID トークン自動付与）経由でリクエストを送信し、Firebase Cloud Functions プロキシから安全に経路データを取得します（ローカル環境では Functions エミュレータ、stg/prod ではクラウド Functions へ接続）。
+  - 単体テスト・ウィジェットテスト時は `MockRouteRepository` により、外部通信不要で即座にリアルな補間座標（折れ線）・距離・所要時間を算出します。
 - **経路描画 (`Polyline`)**: 道路に沿った経由座標点（ウェイポイント）を青色の Polyline（線幅 5、丸型キャップ）として地図上に描画します。
 - **カメラ自動ズーム (`LatLngBounds`)**: 経路全体が画面内に綺麗に収まるよう `CameraUpdate.newLatLngBounds(route.bounds, 64)` によるスムーズなカメラ調整を実行します。
 - **案内カードオーバーレイ (`RouteNavigationCard`)**: 画面上部に目的地名称、移動手段切り替え用 `SegmentedButton`（車、徒歩、自転車、公共交通）、予想所要時間（分）、総距離（km）、および案内終了ボタン（×）を表示します。移動手段を切り替えると即座に新しい手段でのルート再計算が実行されます。案内終了ボタンを押下するとルート案内状態がクリアされ、Polyline およびカードが地図上から非表示になります。
@@ -111,7 +112,7 @@ lib/src/features/map/
 ## 🧪 テスト仕様
 
 - **単体・ウィジェットテスト (`test/src/features/map/`)**:
-  - ドメインモデル (`map_spot_test.dart`, `map_search_state_test.dart`, `map_route_test.dart`, `map_route_state_test.dart`, `travel_mode_test.dart`)
+  - ドメインモデル (`location_candidate_test.dart`, `map_spot_test.dart`, `map_search_state_test.dart`, `map_route_test.dart`, `map_route_state_test.dart`, `travel_mode_test.dart`)
   - データ層 (`spot_repository_test.dart`, `location_repository_test.dart`, `geocoding_repository_test.dart`, `route_repository_test.dart`, `polyline_decoder_test.dart`)
   - アプリケーション層 (`spot_notifier_test.dart`, `map_notifier_test.dart`, `map_search_notifier_test.dart`, `map_route_notifier_test.dart`)
   - プレゼンテーション層 (`map_screen_test.dart`, `spot_detail_bottom_sheet_test.dart`, `route_navigation_card_test.dart`)
@@ -122,92 +123,179 @@ lib/src/features/map/
 
 ---
 
-## 🚀 将来の拡張: Google Routes API サーバープロキシ化ガイド（Firebase Cloud Functions）
+## 🔒 Google Routes API サーバープロキシ構成（Firebase Cloud Functions）
 
-本番運用（ストア公開）やセキュリティの最大化を見据え、クライアント直接通信から **Firebase Cloud Functions によるサーバープロキシ構成** へ移行するための設計・実装ガイドです。（関連 Issue: [#219](https://github.com/a-sasaoka/flutter_sample/issues/219)）
+本プロジェクトでは、セキュリティの最大化（API キー完全全廃・Zero-Key アーキテクチャ & ユーザーログイン認証）を実現するため、Flutter クライアントから直接 Google API を呼ばず、**Firebase Cloud Functions によるサーバープロキシ構成** を標準採用しています。（関連 Issue: [#219](https://github.com/a-sasaoka/flutter_sample/issues/219)）
 
-### 1. アーキテクチャ構成図
+### 1. アーキテクチャ構成図 (Firebase Auth 認証 & IAM / ADC 認証)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as ユーザー (App)
-    participant Flutter as Flutter App
-    participant Functions as Firebase Cloud Functions (Proxy)
-    participant Secret as GCP Secret Manager
-    participant Routes as Google Routes API
+    actor User as 📱 Flutter App (ログイン中)
+    participant Functions as ⚡ Cloud Functions (Proxy)
+    participant FirebaseAuth as 🔐 Firebase Auth (ユーザー認証)
+    participant GoogleAuth as 🏢 Google IAM / ADC
+    participant Routes as 🌐 Google Routes API
 
-    User->>Flutter: ルート案内を開始
-    Flutter->>Functions: POST /computeRoutesProxy (App Check Token / 座標データ)
-    Note over Functions: App Check 検証 (不正リクエスト遮断)
-    Functions->>Secret: サーバー API キーを取得
-    Functions->>Routes: POST /directions/v2:computeRoutes (X-Goog-Api-Key)
+    User->>Functions: POST /computeRoutesProxy<br/>(Authorization: Bearer <Firebase ID Token>, 座標データ)
+    Note over Functions: 1. ユーザーログイン検証
+    Functions->>FirebaseAuth: verifyIdToken(idToken)
+    FirebaseAuth-->>Functions: 検証OK (UID 確認)
+    Note over Functions: 2. Google サーバー認証
+    Functions->>GoogleAuth: アクセストークンを要求
+    GoogleAuth-->>Functions: 一時通行証 (OAuth 2.0 Bearer トークン)
+    Functions->>Routes: POST /directions/v2:computeRoutes<br/>(Authorization: Bearer <GoogleToken>)
     Routes-->>Functions: ルート計算結果 (duration, distance, polyline, warnings)
-    Functions-->>Flutter: JSON レスポンス返却
-    Flutter->>User: 地図上に Polyline と案内カードを描画
+    Functions-->>User: JSON レスポンス返却
 ```
 
-### 2. サーバー側（Firebase Cloud Functions）実装例 (TypeScript)
+### 2. 各環境（Flavor）の構成設計
+
+| Flavor | `BASE_URL` | `GOOGLE_DIRECTIONS_API_URL` | 動作環境・役割 |
+| :--- | :--- | :--- | :--- |
+| **local** (`main_local.dart`) | `http://localhost:3000`<br/>(PC上のモックサーバー) | `http://localhost:5001/YOUR_PROJECT_ID/us-central1/computeRoutesProxy`<br/>(Functions エミュレータ) | オフライン開発 & ローカルプロキシ接続検証 |
+| **dev** (`main_dev.dart`) | `http://localhost:5001/YOUR_PROJECT_ID/us-central1`<br/>(Functions エミュレータ) | `http://localhost:5001/YOUR_PROJECT_ID/us-central1/computeRoutesProxy`<br/>(Functions エミュレータ) | ローカル完全統合テスト環境 |
+| **stg** (`main_stg.dart`) | `https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/api` | `https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/computeRoutesProxy` | 検証用ステージング環境 |
+| **prod** (`main_prod.dart`) | `https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/api` | `https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/computeRoutesProxy` | 本番環境 |
+
+> 💡 **個人環境のオーバーライド**:
+> チーム共通のデフォルト値は `config/flavor_*.json` に定義されていますが、開発者個人の Firebase プロジェクト ID や Android エミュレータ（`http://10.0.2.2:5001/...`）、実機（`http://192.168.x.x:5001/...`）で接続する場合は、`.env.local` や `.env.dev` の `GOOGLE_DIRECTIONS_API_URL` で優先上書きできます（詳細は `env.example` および `docs/setup.md` を参照）。
+
+### 3. サーバー側（Firebase Cloud Functions）実装例 (TypeScript)
+
+- **Firebase Auth ID トークン検証**: `getUidFromRequest(req)` により未ログイン・不正トークンからのリクエストを 401 で遮断します。
+- **Google IAM / ADC 認証**: `google-auth-library` により、ローカル（ADC）とクラウド（IAM）で API キーを一切保持・管理せずに安全に Routes API へ中継します。
 
 ```typescript
 import { onRequest } from "firebase-functions/v2/https";
-import { defineSecret } from "firebase-functions/params";
-import axios from "axios";
+import { GoogleAuth } from "google-auth-library";
+import * as admin from "firebase-admin";
+import * as logger from "firebase-functions/logger";
+import axios, { isAxiosError } from "axios";
 
-// GCP Secret Manager で安全に管理される Google Maps サーバー API キー
-const mapsServerApiKey = defineSecret("MAPS_SERVER_API_KEY");
+/**
+ * Express リクエストから Firebase ID トークンを抽出し UID を検証するヘルパー
+ */
+async function getUidFromRequest(
+  req: { headers: { authorization?: string } }
+): Promise<string | null> {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return null;
+  }
+  const idToken = authHeader.split("Bearer ")[1];
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    return decodedToken.uid;
+  } catch (error) {
+    logger.error("Token verification failed: ", error);
+    return null;
+  }
+}
 
-export const computeRoutesProxy = onRequest(
-  {
-    secrets: [mapsServerApiKey],
-    cors: false, // Flutter モバイルアプリからの通信に限定
-    enforceAppCheck: true, // Firebase App Check によるエンドポイント保護
-  },
-  async (req, res) => {
-    try {
-      if (req.method !== "POST") {
-        res.status(405).json({ error: "Method Not Allowed" });
-        return;
-      }
+export const computeRoutesProxy = onRequest(async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  if (req.method === "OPTIONS") {
+    res.set("Access-Control-Allow-Methods", "POST");
+    res.set(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, X-Goog-FieldMask"
+    );
+    res.status(204).send("");
+    return;
+  }
 
-      const apiKey = mapsServerApiKey.value();
-      const fieldMask =
-        req.headers["x-goog-fieldmask"] ||
-        "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.warnings";
-
-      const googleResponse = await axios.post(
-        "https://routes.googleapis.com/directions/v2:computeRoutes",
-        req.body,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "X-Goog-Api-Key": apiKey,
-            "X-Goog-FieldMask": fieldMask,
-          },
-        },
-      );
-
-      res.status(200).json(googleResponse.data);
-    } catch (error: any) {
-      const status = error.response?.status || 500;
-      const data = error.response?.data || { error: error.message };
-      res.status(status).json(data);
+  try {
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method Not Allowed" });
+      return;
     }
-  },
-);
+
+    // 1. ユーザーログイン検証 (Firebase Auth ID トークン)
+    const uid = await getUidFromRequest(req);
+    if (!uid) {
+      res.status(401).json({ error: "Unauthorized: ログインが必要です。" });
+      return;
+    }
+
+    // 2. Google IAM / ADC によるアクセストークンの取得 (APIキー不要)
+    const auth = new GoogleAuth({
+      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+    });
+    const client = await auth.getClient();
+    const tokenResponse = await client.getAccessToken();
+    const accessToken = tokenResponse.token;
+
+    const defaultFieldMask = [
+      "routes.duration",
+      "routes.distanceMeters",
+      "routes.polyline.encodedPolyline",
+      "routes.warnings",
+    ].join(",");
+    const fieldMaskHeader = req.headers["x-goog-fieldmask"];
+    const fieldMask = Array.isArray(fieldMaskHeader)
+      ? fieldMaskHeader.join(",")
+      : fieldMaskHeader || defaultFieldMask;
+
+    // 3. Authorization: Bearer ヘッダーと
+    // X-Goog-User-Project で Google Routes API に中継
+    const projectId =
+      process.env.GCLOUD_PROJECT ||
+      process.env.GOOGLE_CLOUD_PROJECT ||
+      admin.app().options.projectId;
+
+    const requestHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      "X-Goog-FieldMask": fieldMask,
+    };
+    if (projectId) {
+      requestHeaders["X-Goog-User-Project"] = projectId;
+    }
+
+    const googleResponse = await axios.post(
+      "https://routes.googleapis.com/directions/v2:computeRoutes",
+      req.body,
+      {
+        headers: requestHeaders,
+      }
+    );
+
+    res.status(200).json(googleResponse.data);
+  } catch (error: unknown) {
+    if (isAxiosError(error) && error.response) {
+      logger.error(
+        "Routes API Error: status =",
+        error.response.status,
+        "data =",
+        JSON.stringify(error.response.data)
+      );
+      res.status(error.response.status).json(error.response.data);
+      return;
+    }
+    logger.error("Error in computeRoutesProxy: ", error);
+    const message =
+      error instanceof Error ? error.message : "Internal Server Error";
+    res.status(500).json({ error: message });
+  }
+});
 ```
 
-### 3. Flutter アプリ側の移行手順
+### 4. ローカル動作確認手順
 
-1. **API キーの完全削除**:
-   - `config/flavor_*.json`、`env.example`、`lib/src/core/config/env_config.dart` から `MAPS_API_KEY` を削除します（クライアントには Native Maps SDK 用の `MAPS_ANDROID_API_KEY` / `MAPS_IOS_API_KEY` のみ残します）。
-2. **`RouteRepositoryImpl` の簡素化**:
-   - `apiKey` 引数および `headers['X-Goog-Api-Key']` 付与処理を削除します。
-3. **エンドポイント設定の切り替え**:
-   - 各 Flavor 設定ファイル（`config/flavor_dev.json` 等）の `GOOGLE_DIRECTIONS_API_URL` にデプロイされた Cloud Functions の URL を指定します。
+1. **Functions エミュレータのローカル動作確認**:
+   - `gcloud auth application-default login` でログイン（初回のみ）。
+   - `cd functions && npm run serve`（または `firebase emulators:start --only functions`）で Functions エミュレータを起動。
+2. **Flutter 側からの接続確認**:
+   - 以下の正確な起動パラメータを指定して Flutter アプリを起動します。
 
-   ```json
-   {
-     "GOOGLE_DIRECTIONS_API_URL": "https://us-central1-your-project.cloudfunctions.net/computeRoutesProxy"
-   }
+   ```bash
+   # local 環境で起動する場合
+   fvm flutter run --flavor local -t lib/main_local.dart --dart-define-from-file=config/flavor_local.json --dart-define-from-file=.env.local
+
+   # dev 環境で起動する場合
+   fvm flutter run --flavor dev -t lib/main_dev.dart --dart-define-from-file=config/flavor_dev.json --dart-define-from-file=.env.dev
    ```
+
+   - アプリにログイン後、マップ画面でスポット詳細の「ルート案内」ボタンをタップし、経路 Polyline および所要時間・距離カードが表示されることを確認します。

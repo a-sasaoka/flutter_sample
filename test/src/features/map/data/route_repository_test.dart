@@ -215,6 +215,37 @@ void main() {
       ).throws<RouteApiException>();
     });
 
+    test('DioException 発生時に error が文字列の場合そのメッセージをスローすること', () async {
+      final repository = RouteRepositoryImpl(
+        dio: mockDio,
+      );
+
+      final dioException = DioException(
+        requestOptions: RequestOptions(),
+        response: Response(
+          requestOptions: RequestOptions(),
+          data: {
+            'error': 'Unauthorized: ログインが必要です。',
+          },
+        ),
+      );
+
+      when(
+        () => mockDio.post<Map<String, dynamic>>(
+          expectedUrl,
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(dioException);
+
+      await check(
+        repository.calculateRoute(
+          origin: origin,
+          destination: destination,
+        ),
+      ).throws<RouteApiException>();
+    });
+
     test('DioException 発生時にレスポンスがない場合 DioException.message をスローすること', () async {
       final repository = RouteRepositoryImpl(
         dio: mockDio,
@@ -416,7 +447,11 @@ void main() {
     });
 
     group('MockRouteRepository Tests', () {
-      const mockRepo = MockRouteRepository();
+      late MockRouteRepository mockRepo;
+
+      setUp(() {
+        mockRepo = MockRouteRepository();
+      });
 
       test('各移動手段で適切な所要時間・距離・補間ポイントを返すこと', () async {
         final drivingRoute = await mockRepo.calculateRoute(
@@ -467,30 +502,17 @@ void main() {
       });
     });
 
-    test('routeRepositoryProvider が Flavor に応じて適切なリポジトリを返すこと', () {
-      // dev 環境 -> RouteRepositoryImpl
-      final devContainer = ProviderContainer(
-        overrides: [
-          flavorProvider.overrideWithValue(Flavor.dev),
-          loggerProvider.overrideWithValue(Talker()),
-        ],
-      );
-      addTearDown(devContainer.dispose);
-      check(
-        devContainer.read(routeRepositoryProvider),
-      ).isA<RouteRepositoryImpl>();
-
-      // local 環境 -> MockRouteRepository
-      final localContainer = ProviderContainer(
+    test('routeRepositoryProvider が RouteRepositoryImpl を返すこと', () {
+      final container = ProviderContainer(
         overrides: [
           flavorProvider.overrideWithValue(Flavor.local),
           loggerProvider.overrideWithValue(Talker()),
         ],
       );
-      addTearDown(localContainer.dispose);
+      addTearDown(container.dispose);
       check(
-        localContainer.read(routeRepositoryProvider),
-      ).isA<MockRouteRepository>();
+        container.read(routeRepositoryProvider),
+      ).isA<RouteRepositoryImpl>();
     });
   });
 }

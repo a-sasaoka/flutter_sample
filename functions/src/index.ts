@@ -1,7 +1,9 @@
-import {setGlobalOptions} from "firebase-functions";
+import {setGlobalOptions} from "firebase-functions/v2";
 import {onRequest} from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
+import {GoogleAuth} from "google-auth-library";
+import axios, {isAxiosError} from "axios";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -381,4 +383,97 @@ export const users = onRequest(async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+
+/**
+ * Google Routes API proxy endpoint.
+ * Verifies Firebase Auth ID token and forwards request
+ * to Routes API with ADC / IAM token.
+ */
+export const computeRoutesProxy = onRequest(async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  if (req.method === "OPTIONS") {
+    res.set("Access-Control-Allow-Methods", "POST");
+    res.set(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, X-Goog-FieldMask"
+    );
+    res.status(204).send("");
+    return;
+  }
+
+  try {
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method Not Allowed"});
+      return;
+    }
+
+    // 1. ユーザーログイン認証チェック (Firebase Auth ID トークン)
+    const uid = await getUidFromRequest(req);
+    if (!uid) {
+      res.status(401).json({error: "Unauthorized: ログインが必要です。"});
+      return;
+    }
+
+    // 2. Google IAM / ADC によるアクセストークンの取得 (APIキー不要)
+    const auth = new GoogleAuth({
+      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+    });
+    const client = await auth.getClient();
+    const tokenResponse = await client.getAccessToken();
+    const accessToken = tokenResponse.token;
+
+    const defaultFieldMask = [
+      "routes.duration",
+      "routes.distanceMeters",
+      "routes.polyline.encodedPolyline",
+      "routes.warnings",
+    ].join(",");
+    const fieldMaskHeader = req.headers["x-goog-fieldmask"];
+    const fieldMask = Array.isArray(fieldMaskHeader) ?
+      fieldMaskHeader.join(",") :
+      (fieldMaskHeader || defaultFieldMask);
+
+    // 3. Authorization: Bearer ヘッダーと
+    // X-Goog-User-Project で Google Routes API に中継
+    const projectId =
+      process.env.GCLOUD_PROJECT ||
+      process.env.GOOGLE_CLOUD_PROJECT ||
+      admin.app().options.projectId;
+
+    const requestHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`,
+      "X-Goog-FieldMask": fieldMask,
+    };
+    if (projectId) {
+      requestHeaders["X-Goog-User-Project"] = projectId;
+    }
+
+    const googleResponse = await axios.post(
+      "https://routes.googleapis.com/directions/v2:computeRoutes",
+      req.body,
+      {
+        headers: requestHeaders,
+      }
+    );
+
+    res.status(200).json(googleResponse.data);
+  } catch (error: unknown) {
+    if (isAxiosError(error) && error.response) {
+      logger.error(
+        "Routes API Error: status =",
+        error.response.status,
+        "data =",
+        JSON.stringify(error.response.data)
+      );
+      res.status(error.response.status).json(error.response.data);
+      return;
+    }
+    logger.error("Error in computeRoutesProxy: ", error);
+    const message =
+      error instanceof Error ? error.message : "Internal Server Error";
+    res.status(500).json({error: message});
+  }
+});
+
 

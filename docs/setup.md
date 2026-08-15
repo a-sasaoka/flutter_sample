@@ -70,12 +70,14 @@ cd ..
 
 各ファイルには、各自の環境に応じた以下の値を設定してください。
 
-| 項目                        | 説明                                                                                |
-| :-------------------------- | :---------------------------------------------------------------------------------- |
-| `DEBUG_TOKEN`               | Firebase App Check のデバッグトークン                                               |
-| `GOOGLE_REVERSED_CLIENT_ID` | iOS の URL Scheme 設定に必要な逆クライアント ID                                     |
-| `MAPS_ANDROID_API_KEY`      | Android Maps SDK 用 API キー（パッケージ名 + SHA-1 制限）                           |
-| `MAPS_IOS_API_KEY`          | iOS Maps SDK 用 API キー（Bundle ID 制限）                                          |
+| 項目                        | 区分 | 説明                                                                                |
+| :-------------------------- | :--- | :---------------------------------------------------------------------------------- |
+| `DEBUG_TOKEN`               | 必須 | Firebase App Check のデバッグトークン                                               |
+| `GOOGLE_REVERSED_CLIENT_ID` | 必須 | iOS の URL Scheme 設定に必要な逆クライアント ID                                     |
+| `MAPS_ANDROID_API_KEY`      | 必須 | Android Maps SDK 用 API キー（パッケージ名 + SHA-1 制限）                           |
+| `MAPS_IOS_API_KEY`          | 必須 | iOS Maps SDK 用 API キー（Bundle ID 制限）                                          |
+| `BASE_URL`                  | 任意 | API サーバー URL（チーム共通値 `config/flavor_*.json` を個人プロジェクトや端末環境に合わせて上書きする場合） |
+| `GOOGLE_DIRECTIONS_API_URL` | 任意 | ルート検索プロキシ URL（チーム共通値 `config/flavor_*.json` を個人プロジェクトや端末環境に合わせて上書きする場合） |
 
 > 🛡️ **Google Maps API キーのセキュリティ設計（ベストプラクティス）**:
 >
