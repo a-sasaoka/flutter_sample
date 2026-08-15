@@ -44,24 +44,49 @@ abstract class MapRoute with _$MapRoute {
   int get durationMinutes => (durationSeconds / 60).ceil();
 
   /// 経路全体を包含する LatLngBounds (カメラ自動調整用)
+  /// 180度子午線（日付変更線）を跨ぐルートにも対応
   LatLngBounds get bounds {
     final allPoints = points.isEmpty ? [origin, destination] : points;
 
     var minLat = allPoints.first.latitude;
     var maxLat = allPoints.first.latitude;
-    var minLng = allPoints.first.longitude;
-    var maxLng = allPoints.first.longitude;
 
     for (final point in allPoints) {
       if (point.latitude < minLat) minLat = point.latitude;
       if (point.latitude > maxLat) maxLat = point.latitude;
-      if (point.longitude < minLng) minLng = point.longitude;
-      if (point.longitude > maxLng) maxLng = point.longitude;
+    }
+
+    // 経度の重複を除去して昇順ソート
+    final sortedLngs = allPoints.map((p) => p.longitude).toSet().toList()
+      ..sort();
+
+    if (sortedLngs.length <= 1) {
+      final lng = sortedLngs.first;
+      return LatLngBounds(
+        southwest: LatLng(minLat, lng),
+        northeast: LatLng(maxLat, lng),
+      );
+    }
+
+    // 経度円上の最大ギャップ（隙間）を探索
+    // 初期値: 180度線を跨ぐラップアラウンドギャップ
+    var maxGap = 360.0 - (sortedLngs.last - sortedLngs.first);
+    var westLng = sortedLngs.first;
+    var eastLng = sortedLngs.last;
+
+    for (var i = 0; i < sortedLngs.length - 1; i++) {
+      final gap = sortedLngs[i + 1] - sortedLngs[i];
+      if (gap > maxGap) {
+        maxGap = gap;
+        // 最大ギャップを除外し、残りの短い弧をバウンディングボックスとする
+        westLng = sortedLngs[i + 1];
+        eastLng = sortedLngs[i];
+      }
     }
 
     return LatLngBounds(
-      southwest: LatLng(minLat, minLng),
-      northeast: LatLng(maxLat, maxLng),
+      southwest: LatLng(minLat, westLng),
+      northeast: LatLng(maxLat, eastLng),
     );
   }
 }
