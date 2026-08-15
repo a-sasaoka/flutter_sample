@@ -78,7 +78,7 @@ class RouteRepositoryImpl implements RouteRepository {
             'X-Goog-Api-Key': _apiKey,
             'X-Goog-FieldMask':
                 'routes.duration,routes.distanceMeters,'
-                'routes.polyline.encodedPolyline',
+                'routes.polyline.encodedPolyline,routes.warnings',
           },
         ),
       );
@@ -103,6 +103,10 @@ class RouteRepositoryImpl implements RouteRepository {
       final durationRaw = firstRoute['duration'];
       final durationSeconds = _parseDurationSeconds(durationRaw);
 
+      final rawWarnings = firstRoute['warnings'] as List<dynamic>?;
+      final warnings =
+          rawWarnings?.map((e) => e.toString()).toList() ?? const <String>[];
+
       final id =
           'route_${origin.latitude}_${origin.longitude}_'
           '${destination.latitude}_${destination.longitude}_'
@@ -117,6 +121,7 @@ class RouteRepositoryImpl implements RouteRepository {
         durationSeconds: durationSeconds,
         destinationName: destinationName,
         travelMode: travelMode,
+        warnings: warnings,
       );
     } on DioException catch (e) {
       final responseData = e.response?.data;

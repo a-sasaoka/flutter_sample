@@ -32,6 +32,9 @@ abstract class MapRoute with _$MapRoute {
 
     /// 移動手段の種別 (車、徒歩、自転車、公共交通機関)
     @Default(TravelMode.driving) TravelMode travelMode,
+
+    /// ルートに関する警告・注意事項リスト
+    @Default(<String>[]) List<String> warnings,
   }) = _MapRoute;
 
   /// MapRoute のカスタムゲッター用プライベートコンストラクタ

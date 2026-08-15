@@ -670,4 +670,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get mapTravelModeTransit => '公共交通';
+
+  @override
+  String get mapRouteWalkingWarning =>
+      '徒歩ルートには歩道がない区間が含まれる場合があります。周囲の交通にご注意ください。';
+
+  @override
+  String get mapRouteBicyclingWarning =>
+      '自転車ルートには専用道がない区間が含まれる場合があります。交通ルールに従って走行してください。';
 }

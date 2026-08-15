@@ -1369,6 +1369,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Transit'**
   String get mapTravelModeTransit;
+
+  /// No description provided for @mapRouteWalkingWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Walking directions may lack sidewalks or pedestrian paths. Use caution.'**
+  String get mapRouteWalkingWarning;
+
+  /// No description provided for @mapRouteBicyclingWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Bicycling directions may lack dedicated bike lanes. Follow traffic rules.'**
+  String get mapRouteBicyclingWarning;
 }
 
 class _AppLocalizationsDelegate

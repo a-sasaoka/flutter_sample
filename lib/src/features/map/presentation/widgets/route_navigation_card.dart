@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/map/domain/map_route.dart';
 import 'package:flutter_sample/src/features/map/domain/travel_mode.dart';
@@ -187,9 +188,59 @@ class RouteNavigationCard extends StatelessWidget {
                 ),
               ],
             ),
+
+            // 徒歩・自転車または API からの警告メッセージ表示
+            if (_getWarningMessage(l10n) case final warningMessage?) ...[
+              const SizedBox(height: 10),
+              Container(
+                key: const Key('routeNavigationWarningBanner'),
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.amber.shade200),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 16,
+                      color: Colors.amber.shade900,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        warningMessage,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.amber.shade900,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  /// ルートの移動手段や API レスポンスに応じた警告・注意事項テキストを取得
+  String? _getWarningMessage(AppLocalizations l10n) {
+    if (route.warnings.isNotEmpty) {
+      return route.warnings.join('\n');
+    }
+    return switch (route.travelMode) {
+      TravelMode.walking => l10n.mapRouteWalkingWarning,
+      TravelMode.bicycling => l10n.mapRouteBicyclingWarning,
+      TravelMode.driving || TravelMode.transit => null,
+    };
   }
 }

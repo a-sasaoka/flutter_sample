@@ -395,6 +395,45 @@ void main() {
       check(route.durationSeconds).equals(120);
     });
 
+    test('routes レスポンスに warnings が含まれている場合に MapRoute に格納されること', () async {
+      final repository = RouteRepositoryImpl(
+        dio: mockDio,
+        apiKey: 'test_api_key',
+      );
+
+      final mockApiResponse = {
+        'routes': [
+          {
+            'polyline': {'encodedPolyline': '_p~iF~ps|U'},
+            'distanceMeters': 1000,
+            'duration': '120s',
+            'warnings': ['徒歩ルートの注意点です'],
+          },
+        ],
+      };
+
+      when(
+        () => mockDio.post<Map<String, dynamic>>(
+          expectedUrl,
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      ).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(),
+          data: mockApiResponse,
+        ),
+      );
+
+      final route = await repository.calculateRoute(
+        origin: origin,
+        destination: destination,
+        travelMode: TravelMode.walking,
+      );
+
+      check(route.warnings).deepEquals(['徒歩ルートの注意点です']);
+    });
+
     test('RouteApiException の toString が message を返すこと', () {
       const exception = RouteApiException('カスタムエラー');
       check(exception.toString()).equals('カスタムエラー');

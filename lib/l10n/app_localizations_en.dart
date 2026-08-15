@@ -689,4 +689,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapTravelModeTransit => 'Transit';
+
+  @override
+  String get mapRouteWalkingWarning =>
+      'Walking directions may lack sidewalks or pedestrian paths. Use caution.';
+
+  @override
+  String get mapRouteBicyclingWarning =>
+      'Bicycling directions may lack dedicated bike lanes. Follow traffic rules.';
 }

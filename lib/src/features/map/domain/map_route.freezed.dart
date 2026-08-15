@@ -22,7 +22,8 @@ mixin _$MapRoute {
  double get distanceMeters;/// 総予想所要時間 (秒単位)
  int get durationSeconds;/// 目的地の名称 (スポット名や住所など)
  String? get destinationName;/// 移動手段の種別 (車、徒歩、自転車、公共交通機関)
- TravelMode get travelMode;
+ TravelMode get travelMode;/// ルートに関する警告・注意事項リスト
+ List<String> get warnings;
 /// Create a copy of MapRoute
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -33,16 +34,16 @@ $MapRouteCopyWith<MapRoute> get copyWith => _$MapRouteCopyWithImpl<MapRoute>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapRoute&&(identical(other.id, id) || other.id == id)&&(identical(other.origin, origin) || other.origin == origin)&&(identical(other.destination, destination) || other.destination == destination)&&const DeepCollectionEquality().equals(other.points, points)&&(identical(other.distanceMeters, distanceMeters) || other.distanceMeters == distanceMeters)&&(identical(other.durationSeconds, durationSeconds) || other.durationSeconds == durationSeconds)&&(identical(other.destinationName, destinationName) || other.destinationName == destinationName)&&(identical(other.travelMode, travelMode) || other.travelMode == travelMode));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapRoute&&(identical(other.id, id) || other.id == id)&&(identical(other.origin, origin) || other.origin == origin)&&(identical(other.destination, destination) || other.destination == destination)&&const DeepCollectionEquality().equals(other.points, points)&&(identical(other.distanceMeters, distanceMeters) || other.distanceMeters == distanceMeters)&&(identical(other.durationSeconds, durationSeconds) || other.durationSeconds == durationSeconds)&&(identical(other.destinationName, destinationName) || other.destinationName == destinationName)&&(identical(other.travelMode, travelMode) || other.travelMode == travelMode)&&const DeepCollectionEquality().equals(other.warnings, warnings));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,origin,destination,const DeepCollectionEquality().hash(points),distanceMeters,durationSeconds,destinationName,travelMode);
+int get hashCode => Object.hash(runtimeType,id,origin,destination,const DeepCollectionEquality().hash(points),distanceMeters,durationSeconds,destinationName,travelMode,const DeepCollectionEquality().hash(warnings));
 
 @override
 String toString() {
-  return 'MapRoute(id: $id, origin: $origin, destination: $destination, points: $points, distanceMeters: $distanceMeters, durationSeconds: $durationSeconds, destinationName: $destinationName, travelMode: $travelMode)';
+  return 'MapRoute(id: $id, origin: $origin, destination: $destination, points: $points, distanceMeters: $distanceMeters, durationSeconds: $durationSeconds, destinationName: $destinationName, travelMode: $travelMode, warnings: $warnings)';
 }
 
 
@@ -53,7 +54,7 @@ abstract mixin class $MapRouteCopyWith<$Res>  {
   factory $MapRouteCopyWith(MapRoute value, $Res Function(MapRoute) _then) = _$MapRouteCopyWithImpl;
 @useResult
 $Res call({
- String id, LatLng origin, LatLng destination, List<LatLng> points, double distanceMeters, int durationSeconds, String? destinationName, TravelMode travelMode
+ String id, LatLng origin, LatLng destination, List<LatLng> points, double distanceMeters, int durationSeconds, String? destinationName, TravelMode travelMode, List<String> warnings
 });
 
 
@@ -70,7 +71,7 @@ class _$MapRouteCopyWithImpl<$Res>
 
 /// Create a copy of MapRoute
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? origin = null,Object? destination = null,Object? points = null,Object? distanceMeters = null,Object? durationSeconds = null,Object? destinationName = freezed,Object? travelMode = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? origin = null,Object? destination = null,Object? points = null,Object? distanceMeters = null,Object? durationSeconds = null,Object? destinationName = freezed,Object? travelMode = null,Object? warnings = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,origin: null == origin ? _self.origin : origin // ignore: cast_nullable_to_non_nullable
@@ -80,7 +81,8 @@ as List<LatLng>,distanceMeters: null == distanceMeters ? _self.distanceMeters : 
 as double,durationSeconds: null == durationSeconds ? _self.durationSeconds : durationSeconds // ignore: cast_nullable_to_non_nullable
 as int,destinationName: freezed == destinationName ? _self.destinationName : destinationName // ignore: cast_nullable_to_non_nullable
 as String?,travelMode: null == travelMode ? _self.travelMode : travelMode // ignore: cast_nullable_to_non_nullable
-as TravelMode,
+as TravelMode,warnings: null == warnings ? _self.warnings : warnings // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 
@@ -165,10 +167,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  LatLng origin,  LatLng destination,  List<LatLng> points,  double distanceMeters,  int durationSeconds,  String? destinationName,  TravelMode travelMode)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  LatLng origin,  LatLng destination,  List<LatLng> points,  double distanceMeters,  int durationSeconds,  String? destinationName,  TravelMode travelMode,  List<String> warnings)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MapRoute() when $default != null:
-return $default(_that.id,_that.origin,_that.destination,_that.points,_that.distanceMeters,_that.durationSeconds,_that.destinationName,_that.travelMode);case _:
+return $default(_that.id,_that.origin,_that.destination,_that.points,_that.distanceMeters,_that.durationSeconds,_that.destinationName,_that.travelMode,_that.warnings);case _:
   return orElse();
 
 }
@@ -186,10 +188,10 @@ return $default(_that.id,_that.origin,_that.destination,_that.points,_that.dista
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  LatLng origin,  LatLng destination,  List<LatLng> points,  double distanceMeters,  int durationSeconds,  String? destinationName,  TravelMode travelMode)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  LatLng origin,  LatLng destination,  List<LatLng> points,  double distanceMeters,  int durationSeconds,  String? destinationName,  TravelMode travelMode,  List<String> warnings)  $default,) {final _that = this;
 switch (_that) {
 case _MapRoute():
-return $default(_that.id,_that.origin,_that.destination,_that.points,_that.distanceMeters,_that.durationSeconds,_that.destinationName,_that.travelMode);case _:
+return $default(_that.id,_that.origin,_that.destination,_that.points,_that.distanceMeters,_that.durationSeconds,_that.destinationName,_that.travelMode,_that.warnings);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -206,10 +208,10 @@ return $default(_that.id,_that.origin,_that.destination,_that.points,_that.dista
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  LatLng origin,  LatLng destination,  List<LatLng> points,  double distanceMeters,  int durationSeconds,  String? destinationName,  TravelMode travelMode)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  LatLng origin,  LatLng destination,  List<LatLng> points,  double distanceMeters,  int durationSeconds,  String? destinationName,  TravelMode travelMode,  List<String> warnings)?  $default,) {final _that = this;
 switch (_that) {
 case _MapRoute() when $default != null:
-return $default(_that.id,_that.origin,_that.destination,_that.points,_that.distanceMeters,_that.durationSeconds,_that.destinationName,_that.travelMode);case _:
+return $default(_that.id,_that.origin,_that.destination,_that.points,_that.distanceMeters,_that.durationSeconds,_that.destinationName,_that.travelMode,_that.warnings);case _:
   return null;
 
 }
@@ -221,7 +223,7 @@ return $default(_that.id,_that.origin,_that.destination,_that.points,_that.dista
 
 
 class _MapRoute extends MapRoute {
-  const _MapRoute({required this.id, required this.origin, required this.destination, required final  List<LatLng> points, required this.distanceMeters, required this.durationSeconds, this.destinationName, this.travelMode = TravelMode.driving}): _points = points,super._();
+  const _MapRoute({required this.id, required this.origin, required this.destination, required final  List<LatLng> points, required this.distanceMeters, required this.durationSeconds, this.destinationName, this.travelMode = TravelMode.driving, final  List<String> warnings = const <String>[]}): _points = points,_warnings = warnings,super._();
   
 
 /// ルートの固有ID
@@ -247,6 +249,15 @@ class _MapRoute extends MapRoute {
 @override final  String? destinationName;
 /// 移動手段の種別 (車、徒歩、自転車、公共交通機関)
 @override@JsonKey() final  TravelMode travelMode;
+/// ルートに関する警告・注意事項リスト
+ final  List<String> _warnings;
+/// ルートに関する警告・注意事項リスト
+@override@JsonKey() List<String> get warnings {
+  if (_warnings is EqualUnmodifiableListView) return _warnings;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_warnings);
+}
+
 
 /// Create a copy of MapRoute
 /// with the given fields replaced by the non-null parameter values.
@@ -258,16 +269,16 @@ _$MapRouteCopyWith<_MapRoute> get copyWith => __$MapRouteCopyWithImpl<_MapRoute>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapRoute&&(identical(other.id, id) || other.id == id)&&(identical(other.origin, origin) || other.origin == origin)&&(identical(other.destination, destination) || other.destination == destination)&&const DeepCollectionEquality().equals(other._points, _points)&&(identical(other.distanceMeters, distanceMeters) || other.distanceMeters == distanceMeters)&&(identical(other.durationSeconds, durationSeconds) || other.durationSeconds == durationSeconds)&&(identical(other.destinationName, destinationName) || other.destinationName == destinationName)&&(identical(other.travelMode, travelMode) || other.travelMode == travelMode));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapRoute&&(identical(other.id, id) || other.id == id)&&(identical(other.origin, origin) || other.origin == origin)&&(identical(other.destination, destination) || other.destination == destination)&&const DeepCollectionEquality().equals(other._points, _points)&&(identical(other.distanceMeters, distanceMeters) || other.distanceMeters == distanceMeters)&&(identical(other.durationSeconds, durationSeconds) || other.durationSeconds == durationSeconds)&&(identical(other.destinationName, destinationName) || other.destinationName == destinationName)&&(identical(other.travelMode, travelMode) || other.travelMode == travelMode)&&const DeepCollectionEquality().equals(other._warnings, _warnings));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,origin,destination,const DeepCollectionEquality().hash(_points),distanceMeters,durationSeconds,destinationName,travelMode);
+int get hashCode => Object.hash(runtimeType,id,origin,destination,const DeepCollectionEquality().hash(_points),distanceMeters,durationSeconds,destinationName,travelMode,const DeepCollectionEquality().hash(_warnings));
 
 @override
 String toString() {
-  return 'MapRoute(id: $id, origin: $origin, destination: $destination, points: $points, distanceMeters: $distanceMeters, durationSeconds: $durationSeconds, destinationName: $destinationName, travelMode: $travelMode)';
+  return 'MapRoute(id: $id, origin: $origin, destination: $destination, points: $points, distanceMeters: $distanceMeters, durationSeconds: $durationSeconds, destinationName: $destinationName, travelMode: $travelMode, warnings: $warnings)';
 }
 
 
@@ -278,7 +289,7 @@ abstract mixin class _$MapRouteCopyWith<$Res> implements $MapRouteCopyWith<$Res>
   factory _$MapRouteCopyWith(_MapRoute value, $Res Function(_MapRoute) _then) = __$MapRouteCopyWithImpl;
 @override @useResult
 $Res call({
- String id, LatLng origin, LatLng destination, List<LatLng> points, double distanceMeters, int durationSeconds, String? destinationName, TravelMode travelMode
+ String id, LatLng origin, LatLng destination, List<LatLng> points, double distanceMeters, int durationSeconds, String? destinationName, TravelMode travelMode, List<String> warnings
 });
 
 
@@ -295,7 +306,7 @@ class __$MapRouteCopyWithImpl<$Res>
 
 /// Create a copy of MapRoute
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? origin = null,Object? destination = null,Object? points = null,Object? distanceMeters = null,Object? durationSeconds = null,Object? destinationName = freezed,Object? travelMode = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? origin = null,Object? destination = null,Object? points = null,Object? distanceMeters = null,Object? durationSeconds = null,Object? destinationName = freezed,Object? travelMode = null,Object? warnings = null,}) {
   return _then(_MapRoute(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,origin: null == origin ? _self.origin : origin // ignore: cast_nullable_to_non_nullable
@@ -305,7 +316,8 @@ as List<LatLng>,distanceMeters: null == distanceMeters ? _self.distanceMeters : 
 as double,durationSeconds: null == durationSeconds ? _self.durationSeconds : durationSeconds // ignore: cast_nullable_to_non_nullable
 as int,destinationName: freezed == destinationName ? _self.destinationName : destinationName // ignore: cast_nullable_to_non_nullable
 as String?,travelMode: null == travelMode ? _self.travelMode : travelMode // ignore: cast_nullable_to_non_nullable
-as TravelMode,
+as TravelMode,warnings: null == warnings ? _self._warnings : warnings // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 

@@ -322,6 +322,8 @@
   "mapTravelModeDriving": "車",
   "mapTravelModeWalking": "徒歩",
   "mapTravelModeBicycling": "自転車",
-  "mapTravelModeTransit": "公共交通"
+  "mapTravelModeTransit": "公共交通",
+  "mapRouteWalkingWarning": "徒歩ルートには歩道がない区間が含まれる場合があります。周囲の交通にご注意ください。",
+  "mapRouteBicyclingWarning": "自転車ルートには専用道がない区間が含まれる場合があります。交通ルールに従って走行してください。"
 }
 

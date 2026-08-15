@@ -322,6 +322,8 @@
   "mapTravelModeDriving": "Drive",
   "mapTravelModeWalking": "Walk",
   "mapTravelModeBicycling": "Bike",
-  "mapTravelModeTransit": "Transit"
+  "mapTravelModeTransit": "Transit",
+  "mapRouteWalkingWarning": "Walking directions may lack sidewalks or pedestrian paths. Use caution.",
+  "mapRouteBicyclingWarning": "Bicycling directions may lack dedicated bike lanes. Follow traffic rules."
 }
 
