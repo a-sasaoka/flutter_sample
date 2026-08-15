@@ -125,7 +125,7 @@ lib/src/features/map/
 
 ## 🔒 Google Routes API サーバープロキシ構成（Firebase Cloud Functions）
 
-本プロジェクトでは、セキュリティの最大化（API キー完全全廃・Zero-Key アーキテクチャ & ユーザーログイン認証）を実現するため、Flutter クライアントから直接 Google API を呼ばず、**Firebase Cloud Functions によるサーバープロキシ構成** を標準採用しています。（関連 Issue: [#219](https://github.com/a-sasaoka/flutter_sample/issues/219)）
+本プロジェクトでは、セキュリティの最大化（ルート検索用の Web API キー完全撤廃・Zero-Key プロキシアーキテクチャ & ユーザーログイン認証。※ネイティブ地図描画用の MAPS_ANDROID_API_KEY / MAPS_IOS_API_KEY は引き続き必要です）を実現するため、Flutter クライアントから直接 Google Routes API を呼ばず、**Firebase Cloud Functions によるサーバープロキシ構成** を標準採用しています。（関連 Issue: [#219](https://github.com/a-sasaoka/flutter_sample/issues/219)）
 
 ### 1. アーキテクチャ構成図 (Firebase Auth 認証 & IAM / ADC 認証)
 
