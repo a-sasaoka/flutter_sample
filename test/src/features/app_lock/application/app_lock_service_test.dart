@@ -80,6 +80,7 @@ void main() {
             sendTimeout: 10,
             useFirebaseAuth: useFirebaseAuth,
             useAgentPlatform: true,
+            googleDirectionsApiUrl: defaultGoogleDirectionsApiUrl,
           ),
         ),
         authStateProvider.overrideWith(

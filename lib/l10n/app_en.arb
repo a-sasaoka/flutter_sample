@@ -296,6 +296,34 @@
       }
     }
   },
-  "mapSpotStartRoute": "Get Directions"
+  "mapSpotStartRoute": "Get Directions",
+  "mapRouteNavigationTitle": "Route Guidance",
+  "mapRouteDistance": "Distance",
+  "mapRouteDuration": "Duration",
+  "mapRouteMinutes": "{minutes} min",
+  "@mapRouteMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "mapRouteKm": "{km} km",
+  "@mapRouteKm": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "mapRouteClose": "End Guidance",
+  "mapRouteCalculating": "Searching route...",
+  "mapRouteError": "Failed to search route",
+  "mapTravelModeDriving": "Drive",
+  "mapTravelModeWalking": "Walk",
+  "mapTravelModeBicycling": "Bike",
+  "mapTravelModeTransit": "Transit",
+  "mapRouteWalkingWarning": "Walking directions may lack sidewalks or pedestrian paths. Use caution.",
+  "mapRouteBicyclingWarning": "Bicycling directions may lack dedicated bike lanes. Follow traffic rules."
 }
 

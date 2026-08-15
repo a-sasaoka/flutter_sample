@@ -256,3 +256,13 @@ Google Maps による地図描画および現在地取得アクションボタ�
   - カテゴリバッジ（例：「観光地」）、スポット名称、評価（★）、住所、および説明が正しく表示されているか。
   - 下部にルート案内アクションボタンが正しく配置されているか。
 - **画像リンク**: [📷 画像を表示する (spot_detail_bottom_sheet.png)](../test/src/features/map/presentation/goldens/macos/spot_detail_bottom_sheet.png)
+
+#### 7.3 ルート案内カード (RouteNavigationCard)
+
+ルート案内中に地図画面上部にオーバーレイ表示されるナビゲーション情報カードです。
+
+- **テスト対象**: ライトモード、ダークモードの計2状態
+- **チェックポイント**:
+  - ナビゲーションアイコン、目的地名（例：「東京タワー」）、および案内終了（×）ボタンが表示されているか。
+  - 所要時間（例：「6分」）と総移動距離（例：「3.5 km」）が分かりやすく左右に配置されているか。
+- **画像リンク**: [📷 画像を表示する (route_navigation_card.png)](../test/src/features/map/presentation/goldens/macos/route_navigation_card.png)

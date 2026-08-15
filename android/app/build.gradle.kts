@@ -14,7 +14,7 @@ import java.io.FileInputStream
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
-// 🗺️ Flutter の --dart-define-from-file または .env.<flavor> から MAPS_API_KEY を動的抽出
+// 🗺️ Flutter の --dart-define-from-file または .env.<flavor> から MAPS_ANDROID_API_KEY を動的抽出
 val dartDefines = mutableMapOf<String, String>()
 if (project.hasProperty("dart-defines")) {
     val dartDefinesString = project.property("dart-defines") as String
@@ -40,14 +40,12 @@ val currentFlavor: String? = run {
 }
 
 val mapsApiKey: String = (dartDefines["MAPS_ANDROID_API_KEY"]?.takeIf { it.isNotBlank() }
-    ?: dartDefines["MAPS_API_KEY"]?.takeIf { it.isNotBlank() }
     ?: currentFlavor?.let { flavor ->
         val envFile = rootProject.file("../.env.$flavor")
         if (envFile.exists()) {
             val props = Properties()
             envFile.inputStream().use { stream -> props.load(stream) }
             props.getProperty("MAPS_ANDROID_API_KEY")?.takeIf { it.isNotBlank() }
-                ?: props.getProperty("MAPS_API_KEY")?.takeIf { it.isNotBlank() }
         } else null
     }
     ?: run {
@@ -56,14 +54,13 @@ val mapsApiKey: String = (dartDefines["MAPS_ANDROID_API_KEY"]?.takeIf { it.isNot
             val props = Properties()
             envLocalFile.inputStream().use { stream -> props.load(stream) }
             props.getProperty("MAPS_ANDROID_API_KEY")?.takeIf { it.isNotBlank() }
-                ?: props.getProperty("MAPS_API_KEY")?.takeIf { it.isNotBlank() }
         } else null
     }) ?: ""
 
-// 🛡️ Release ビルド時に MAPS_API_KEY が未設定・空文字列の場合は Gradle エラーで安全に停止
+// 🛡️ Release ビルド時に MAPS_ANDROID_API_KEY が未設定・空文字列の場合は Gradle エラーで安全に停止
 val isReleaseBuild = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
 if (isReleaseBuild && mapsApiKey.isBlank()) {
-    throw GradleException("❌ [MAPS_API_KEY Error] Release ビルドには有効な MAPS_API_KEY の設定が必要です。.env または --dart-define-from-file を確認してください。")
+    throw GradleException("❌ [MAPS_ANDROID_API_KEY Error] Release ビルドには有効な MAPS_ANDROID_API_KEY の設定が必要です。.env または --dart-define-from-file を確認してください。")
 }
 
 android {

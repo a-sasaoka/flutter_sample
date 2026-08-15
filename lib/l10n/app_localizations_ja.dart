@@ -630,4 +630,52 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get mapSpotStartRoute => 'ルート案内';
+
+  @override
+  String get mapRouteNavigationTitle => 'ルート案内';
+
+  @override
+  String get mapRouteDistance => '距離';
+
+  @override
+  String get mapRouteDuration => '所要時間';
+
+  @override
+  String mapRouteMinutes(int minutes) {
+    return '$minutes分';
+  }
+
+  @override
+  String mapRouteKm(String km) {
+    return '$km km';
+  }
+
+  @override
+  String get mapRouteClose => '案内を終了';
+
+  @override
+  String get mapRouteCalculating => 'ルートを検索中...';
+
+  @override
+  String get mapRouteError => 'ルートの検索に失敗しました';
+
+  @override
+  String get mapTravelModeDriving => '車';
+
+  @override
+  String get mapTravelModeWalking => '徒歩';
+
+  @override
+  String get mapTravelModeBicycling => '自転車';
+
+  @override
+  String get mapTravelModeTransit => '公共交通';
+
+  @override
+  String get mapRouteWalkingWarning =>
+      '徒歩ルートには歩道がない区間が含まれる場合があります。周囲の交通にご注意ください。';
+
+  @override
+  String get mapRouteBicyclingWarning =>
+      '自転車ルートには専用道がない区間が含まれる場合があります。交通ルールに従って走行してください。';
 }

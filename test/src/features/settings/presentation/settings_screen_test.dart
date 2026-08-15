@@ -151,6 +151,7 @@ void main() {
             sendTimeout: 10,
             useFirebaseAuth: useAuth,
             useAgentPlatform: true,
+            googleDirectionsApiUrl: defaultGoogleDirectionsApiUrl,
           ),
         ),
         firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
