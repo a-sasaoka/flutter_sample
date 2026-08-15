@@ -14,6 +14,10 @@ import 'package:mocktail/mocktail.dart';
 class MockRouteRepository extends Mock implements RouteRepository {}
 
 void main() {
+  setUpAll(() {
+    registerFallbackValue(TravelMode.driving);
+  });
+
   group('MapRouteNotifier Tests', () {
     late MockRouteRepository mockRepository;
 
@@ -55,6 +59,7 @@ void main() {
           origin: origin,
           destination: destination,
           destinationName: '東京タワー',
+          travelMode: any(named: 'travelMode'),
         ),
       ).thenAnswer((_) async => sampleRoute);
 
@@ -127,6 +132,7 @@ void main() {
           origin: origin,
           destination: destination,
           destinationName: any(named: 'destinationName'),
+          travelMode: any(named: 'travelMode'),
         ),
       ).thenThrow(Exception('Route calculation error'));
 
@@ -159,6 +165,7 @@ void main() {
           origin: origin,
           destination: destination,
           destinationName: any(named: 'destinationName'),
+          travelMode: any(named: 'travelMode'),
         ),
       ).thenAnswer((_) async => sampleRoute);
 
@@ -197,6 +204,7 @@ void main() {
             origin: origin,
             destination: destination,
             destinationName: any(named: 'destinationName'),
+            travelMode: any(named: 'travelMode'),
           ),
         ).thenAnswer((_) => completer.future);
 
@@ -255,6 +263,7 @@ void main() {
           origin: origin,
           destination: destination1,
           destinationName: 'スポット1',
+          travelMode: any(named: 'travelMode'),
         ),
       ).thenAnswer((_) => completer1.future);
 
@@ -263,6 +272,7 @@ void main() {
           origin: origin,
           destination: destination2,
           destinationName: 'スポット2',
+          travelMode: any(named: 'travelMode'),
         ),
       ).thenAnswer((_) => completer2.future);
 
@@ -313,6 +323,7 @@ void main() {
             origin: origin,
             destination: destination,
             destinationName: any(named: 'destinationName'),
+            travelMode: any(named: 'travelMode'),
           ),
         ).thenAnswer((_) => completer.future);
 
