@@ -468,9 +468,7 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
       return;
     }
     logger.error("Error in computeRoutesProxy: ", error);
-    const message =
-      error instanceof Error ? error.message : "Internal Server Error";
-    res.status(500).json({error: message});
+    res.status(500).json({error: "Internal Server Error"});
   }
 });
 
