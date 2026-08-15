@@ -117,3 +117,95 @@ lib/src/features/map/
   - `MapScreen` (ライト/ダークモード)
   - `SpotDetailBottomSheet` (ライト/ダークモード)
   - `RouteNavigationCard` (ライト/ダークモード)
+
+---
+
+## 🚀 将来の拡張: Google Routes API サーバープロキシ化ガイド（Firebase Cloud Functions）
+
+本番運用（ストア公開）やセキュリティの最大化を見据え、クライアント直接通信から **Firebase Cloud Functions によるサーバープロキシ構成** へ移行するための設計・実装ガイドです。（関連 Issue: [#219](https://github.com/a-sasaoka/flutter_sample/issues/219)）
+
+### 1. アーキテクチャ構成図
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as ユーザー (App)
+    participant Flutter as Flutter App
+    participant Functions as Firebase Cloud Functions (Proxy)
+    participant Secret as GCP Secret Manager
+    participant Routes as Google Routes API
+
+    User->>Flutter: ルート案内を開始
+    Flutter->>Functions: POST /computeRoutesProxy (App Check Token / 座標データ)
+    Note over Functions: App Check 検証 (不正リクエスト遮断)
+    Functions->>Secret: サーバー API キーを取得
+    Functions->>Routes: POST /directions/v2:computeRoutes (X-Goog-Api-Key)
+    Routes-->>Functions: ルート計算結果 (duration, distance, polyline, warnings)
+    Functions-->>Flutter: JSON レスポンス返却
+    Flutter->>User: 地図上に Polyline と案内カードを描画
+```
+
+### 2. サーバー側（Firebase Cloud Functions）実装例 (TypeScript)
+
+```typescript
+import { onRequest } from "firebase-functions/v2/https";
+import { defineSecret } from "firebase-functions/params";
+import axios from "axios";
+
+// GCP Secret Manager で安全に管理される Google Maps サーバー API キー
+const mapsServerApiKey = defineSecret("MAPS_SERVER_API_KEY");
+
+export const computeRoutesProxy = onRequest(
+  {
+    secrets: [mapsServerApiKey],
+    cors: false, // Flutter モバイルアプリからの通信に限定
+    enforceAppCheck: true, // Firebase App Check によるエンドポイント保護
+  },
+  async (req, res) => {
+    try {
+      if (req.method !== "POST") {
+        res.status(405).json({ error: "Method Not Allowed" });
+        return;
+      }
+
+      const apiKey = mapsServerApiKey.value();
+      const fieldMask =
+        req.headers["x-goog-fieldmask"] ||
+        "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.warnings";
+
+      const googleResponse = await axios.post(
+        "https://routes.googleapis.com/directions/v2:computeRoutes",
+        req.body,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": apiKey,
+            "X-Goog-FieldMask": fieldMask,
+          },
+        },
+      );
+
+      res.status(200).json(googleResponse.data);
+    } catch (error: any) {
+      const status = error.response?.status || 500;
+      const data = error.response?.data || { error: error.message };
+      res.status(status).json(data);
+    }
+  },
+);
+```
+
+### 3. Flutter アプリ側の移行手順
+
+1. **API キーの完全削除**:
+   - `config/flavor_*.json`、`env.example`、`lib/src/core/config/env_config.dart` から `MAPS_API_KEY` を削除します（クライアントには Native Maps SDK 用の `MAPS_ANDROID_API_KEY` / `MAPS_IOS_API_KEY` のみ残します）。
+2. **`RouteRepositoryImpl` の簡素化**:
+   - `apiKey` 引数および `headers['X-Goog-Api-Key']` 付与処理を削除します。
+3. **エンドポイント設定の切り替え**:
+   - 各 Flavor 設定ファイル（`config/flavor_dev.json` 等）の `GOOGLE_DIRECTIONS_API_URL` にデプロイされた Cloud Functions の URL を指定します。
+
+   ```json
+   {
+     "GOOGLE_DIRECTIONS_API_URL": "https://us-central1-your-project.cloudfunctions.net/computeRoutesProxy"
+   }
+   ```
