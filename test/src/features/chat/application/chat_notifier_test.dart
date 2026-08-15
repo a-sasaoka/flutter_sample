@@ -18,6 +18,8 @@ import 'package:uuid/uuid.dart';
 // --- Fake Repository ---
 // Streamの挙動を完全にコントロールするためのFakeクラス
 class FakeChatRepository extends Fake implements ChatRepository {
+  Exception? exceptionToThrow;
+  Exception? streamExceptionToThrow;
   bool shouldThrow = false;
   bool shouldStreamThrow = false;
   bool streamEmpty = false;
@@ -35,6 +37,7 @@ class FakeChatRepository extends Fake implements ChatRepository {
   @override
   Future<String> sendMessage(String text) async {
     sendMessageCallCount++;
+    if (exceptionToThrow != null) throw exceptionToThrow!;
     if (shouldThrow) throw Exception('API Error');
     // 非同期処理（生成中）をシミュレートするため少し待つ
     await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -46,6 +49,7 @@ class FakeChatRepository extends Fake implements ChatRepository {
     sendMessageStreamCallCount++;
     lastStreamText = text;
 
+    if (streamExceptionToThrow != null) throw streamExceptionToThrow!;
     if (shouldStreamThrow) throw Exception('Stream API Error');
     if (streamEmpty) return; // 空のStreamを返して終了
 
@@ -188,7 +192,9 @@ void main() {
       });
 
       test('異常系: 例外が発生した場合、対象の要素がエラーメッセージに差し替わること', () async {
-        final fakeRepo = FakeChatRepository()..shouldThrow = true;
+        final expectedException = Exception('API Error');
+        final fakeRepo = FakeChatRepository()
+          ..exceptionToThrow = expectedException;
         final container = createContainer(fakeRepo);
         final notifier = container.read(chatProvider.notifier);
 
@@ -199,7 +205,7 @@ void main() {
         check(state.messages.length).equals(2);
         check(state.messages.last).isA<ChatMessageError>();
         check(spyTalker.handleCalls).length.equals(1);
-        check(spyTalker.handleCalls.first.exception).isA<Exception>();
+        check(spyTalker.handleCalls.first.exception).equals(expectedException);
         check(spyTalker.handleCalls.first.stackTrace).isNotNull();
       });
     });
@@ -290,7 +296,9 @@ void main() {
       );
 
       test('異常系: Stream の途中で例外が発生した場合、対象要素がエラー表示になること', () async {
-        final fakeRepo = FakeChatRepository()..shouldStreamThrow = true;
+        final expectedException = Exception('Stream API Error');
+        final fakeRepo = FakeChatRepository()
+          ..streamExceptionToThrow = expectedException;
         final container = createContainer(fakeRepo);
         final notifier = container.read(chatProvider.notifier);
 
@@ -301,7 +309,7 @@ void main() {
         check(state.messages.length).equals(2);
         check(state.messages.last).isA<ChatMessageError>();
         check(spyTalker.handleCalls).length.equals(1);
-        check(spyTalker.handleCalls.first.exception).isA<Exception>();
+        check(spyTalker.handleCalls.first.exception).equals(expectedException);
         check(spyTalker.handleCalls.first.stackTrace).isNotNull();
       });
     });
@@ -326,7 +334,9 @@ void main() {
     test(
       'dispose 後の非同期例外でも Talker.handle が呼ばれ、かつクラッシュしないこと (sendMessage)',
       () async {
-        final fakeRepo = FakeChatRepository()..shouldThrow = true;
+        final expectedException = Exception('Dispose API Error');
+        final fakeRepo = FakeChatRepository()
+          ..exceptionToThrow = expectedException;
         final spy = SpyTalker();
         final container = ProviderContainer(
           overrides: [
@@ -343,7 +353,7 @@ void main() {
         await future;
 
         check(spy.handleCalls).length.equals(1);
-        check(spy.handleCalls.first.exception).isA<Exception>();
+        check(spy.handleCalls.first.exception).equals(expectedException);
         check(spy.handleCalls.first.stackTrace).isNotNull();
       },
     );
@@ -351,7 +361,9 @@ void main() {
     test(
       'dispose 後の非同期例外でも Talker.handle が呼ばれ、かつクラッシュしないこと (sendMessageStream)',
       () async {
-        final fakeRepo = FakeChatRepository()..shouldStreamThrow = true;
+        final expectedException = Exception('Dispose Stream API Error');
+        final fakeRepo = FakeChatRepository()
+          ..streamExceptionToThrow = expectedException;
         final spy = SpyTalker();
         final container = ProviderContainer(
           overrides: [
@@ -368,7 +380,7 @@ void main() {
         await future;
 
         check(spy.handleCalls).length.equals(1);
-        check(spy.handleCalls.first.exception).isA<Exception>();
+        check(spy.handleCalls.first.exception).equals(expectedException);
         check(spy.handleCalls.first.stackTrace).isNotNull();
       },
     );
