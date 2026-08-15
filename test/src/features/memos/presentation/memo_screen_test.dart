@@ -303,7 +303,7 @@ void main() {
       verify(
         () => mockTalker.handle(
           syncException,
-          any<StackTrace?>(),
+          any(that: isA<StackTrace>()),
           '手動同期中にエラーが発生しました',
         ),
       ).called(1);
