@@ -148,8 +148,8 @@ npx -y cloudflared tunnel --url http://localhost:5001
 
 #### 方法 B: 開発環境のみ HTTP 通信を許可する
 
-- **Android**: `android/app/src/debug/AndroidManifest.xml`（Debug 専用マニフェスト）に `android:usesCleartextTraffic="true"` を設定します。
-- **iOS (実機接続時)**: `ios/Runner/Info.plist` に `<key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict>` を一時的に追加します（※iOSシミュレータの `localhost` は設定不要で動作します。本番リリースビルドや App Store 提出用の `Info.plist` には含めないようご注意ください）。
+- **Android**: `android/app/src/debug/AndroidManifest.xml`（Debug 専用マニフェスト）に `android:usesCleartextTraffic="true"` が設定されています。
+- **iOS (実機接続時)**: `ios/Flutter/*Debug.xcconfig` に `ATS_ALLOWS_LOCAL=YES`、`*Release.xcconfig` に `ATS_ALLOWS_LOCAL=NO` が設定されており、Debug ビルド時のみローカル通信（`NSAllowsLocalNetworking`）が自動で有効化されます（本番リリースビルドでは自動で無効化されます）。
 
 ---
 

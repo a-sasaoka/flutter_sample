@@ -6,4 +6,5 @@ BUNDLE_NAME=[Stg] Sample
 BUNDLE_DISPLAY_NAME=[Stg] Sample
 #include "Dart-Defines.xcconfig"
 CUSTOM_URL_SCHEME=flsamplestg
+ATS_ALLOWS_LOCAL=NO
 
