@@ -458,12 +458,12 @@ void main() {
         check(transitRoute.travelMode).equals(TravelMode.transit);
       });
 
-      test('destinationName が未指定の場合デフォルト名が設定されること', () async {
+      test('destinationName が未指定の場合 null になること', () async {
         final route = await mockRepo.calculateRoute(
           origin: origin,
           destination: destination,
         );
-        check(route.destinationName).equals('モック目的地');
+        check(route.destinationName).isNull();
       });
     });
 

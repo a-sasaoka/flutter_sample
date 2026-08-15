@@ -212,7 +212,7 @@ class MockRouteRepository implements RouteRepository {
       points: points,
       distanceMeters: distanceMeters,
       durationSeconds: durationSeconds,
-      destinationName: destinationName ?? 'モック目的地',
+      destinationName: destinationName,
       travelMode: travelMode,
     );
   }
