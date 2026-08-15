@@ -195,17 +195,6 @@ async function getUidFromRequest(
 }
 
 export const computeRoutesProxy = onRequest(async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "*");
-  if (req.method === "OPTIONS") {
-    res.set("Access-Control-Allow-Methods", "POST");
-    res.set(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, X-Goog-FieldMask"
-    );
-    res.status(204).send("");
-    return;
-  }
-
   try {
     if (req.method !== "POST") {
       res.status(405).json({ error: "Method Not Allowed" });

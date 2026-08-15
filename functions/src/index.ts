@@ -60,14 +60,6 @@ async function isAdminRequest(
  * @return {Promise<void>}
  */
 export const memos = onRequest(async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "*");
-  if (req.method === "OPTIONS") {
-    res.set("Access-Control-Allow-Methods", "GET, POST, PUT");
-    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.status(204).send("");
-    return;
-  }
-
   const uid = await getUidFromRequest(req);
   if (!uid) {
     res.status(401).send("Unauthorized");
@@ -180,14 +172,6 @@ export const memos = onRequest(async (req, res) => {
  * @return {Promise<void>}
  */
 export const users = onRequest(async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "*");
-  if (req.method === "OPTIONS") {
-    res.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE");
-    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.status(204).send("");
-    return;
-  }
-
   const uid = await getUidFromRequest(req);
   if (!uid) {
     res.status(401).send("Unauthorized");
@@ -390,17 +374,6 @@ export const users = onRequest(async (req, res) => {
  * to Routes API with ADC / IAM token.
  */
 export const computeRoutesProxy = onRequest(async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "*");
-  if (req.method === "OPTIONS") {
-    res.set("Access-Control-Allow-Methods", "POST");
-    res.set(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, X-Goog-FieldMask"
-    );
-    res.status(204).send("");
-    return;
-  }
-
   try {
     if (req.method !== "POST") {
       res.status(405).json({error: "Method Not Allowed"});
