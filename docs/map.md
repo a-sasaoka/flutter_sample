@@ -163,140 +163,17 @@ sequenceDiagram
 > チーム共通のデフォルト値は `config/flavor_*.json` に定義されていますが、開発者個人の Firebase プロジェクト ID や Android エミュレータ（`http://10.0.2.2:5001/...`）、実機（`http://192.168.x.x:5001/...`）で接続する場合は、`.env.local` や `.env.dev` の `BASE_URL` および `GOOGLE_DIRECTIONS_API_URL` で優先上書きできます（詳細は `env.example` および `docs/setup.md` を参照）。
 > ※ リリースビルド（`stg` / `prod`）では `localhost` は使用せず、リリース前に `config/flavor_stg.json` および `config/flavor_prod.json`（または `.env.stg` / `.env.prod`）の `YOUR_PROJECT_ID` を実際の Firebase プロジェクト ID に設定してデプロイしてください。
 
-### 3. サーバー側（Firebase Cloud Functions）実装例 (TypeScript)
+### 3. サーバー側（Firebase Cloud Functions）のセキュリティ・中継仕様
 
-- **Firebase Auth ID トークン検証**: `getUidFromRequest(req)` により未ログイン・不正トークンからのリクエストを 401 で遮断します。
-- **Google IAM / ADC 認証**: `google-auth-library` により、ローカル（ADC）とクラウド（IAM）で API キーを一切保持・管理せずに安全に Routes API へ中継します。
+実装コードの詳細については [`functions/src/index.ts`](../functions/src/index.ts) を参照してください。以下の安全対策を施したプロキシエンドポイント（`computeRoutesProxy`）を提供しています。
 
-```typescript
-import { onRequest } from "firebase-functions/v2/https";
-import { GoogleAuth } from "google-auth-library";
-import * as admin from "firebase-admin";
-import * as logger from "firebase-functions/logger";
-import axios, { isAxiosError } from "axios";
-
-/**
- * Express リクエストから Firebase ID トークンを抽出し UID を検証するヘルパー
- */
-async function getUidFromRequest(req: {
-  headers: { authorization?: string };
-}): Promise<string | null> {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return null;
-  }
-  const idToken = authHeader.split("Bearer ")[1];
-  try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    return decodedToken.uid;
-  } catch (error) {
-    logger.error("Token verification failed: ", error);
-    return null;
-  }
-}
-
-export const computeRoutesProxy = onRequest(async (req, res) => {
-  try {
-    if (req.method !== "POST") {
-      res.status(405).json({ error: "Method Not Allowed" });
-      return;
-    }
-
-    // 1. ユーザーログイン検証 (Firebase Auth ID トークン)
-    const uid = await getUidFromRequest(req);
-    if (!uid) {
-      res.status(401).json({ error: "Unauthorized: ログインが必要です。" });
-      return;
-    }
-
-    // 2. リクエストボディのバリデーション (origin, destination の存在確認)
-    if (!req.body || typeof req.body !== "object") {
-      res
-        .status(400)
-        .json({ error: "Bad Request: リクエストボディが空です。" });
-      return;
-    }
-    const { origin, destination } = req.body;
-    if (!origin?.location?.latLng || !destination?.location?.latLng) {
-      res.status(400).json({
-        error: "Bad Request: origin と destination の座標が必要です。",
-      });
-      return;
-    }
-
-    // 3. Google IAM / ADC によるアクセストークンの取得 (APIキー不要)
-    const auth = new GoogleAuth({
-      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-    });
-    const client = await auth.getClient();
-    const tokenResponse = await client.getAccessToken();
-    const accessToken = tokenResponse.token;
-
-    // 4. 許可されたフィールドマスクのみ通過 (不正なヘッダー注入・課金増加の防止)
-    const allowedFieldMasks = new Set([
-      "routes.duration",
-      "routes.distanceMeters",
-      "routes.polyline.encodedPolyline",
-      "routes.warnings",
-    ]);
-    const defaultFieldMask = Array.from(allowedFieldMasks).join(",");
-    const rawFieldMask = Array.isArray(req.headers["x-goog-fieldmask"])
-      ? req.headers["x-goog-fieldmask"].join(",")
-      : req.headers["x-goog-fieldmask"];
-
-    let fieldMask = defaultFieldMask;
-    if (typeof rawFieldMask === "string" && rawFieldMask.trim().length > 0) {
-      const filtered = rawFieldMask
-        .split(",")
-        .map((f) => f.trim())
-        .filter((f) => allowedFieldMasks.has(f));
-      if (filtered.length > 0) {
-        fieldMask = filtered.join(",");
-      }
-    }
-
-    // 5. Authorization: Bearer ヘッダーと
-    // X-Goog-User-Project で Google Routes API に中継
-    const projectId =
-      process.env.GCLOUD_PROJECT ||
-      process.env.GOOGLE_CLOUD_PROJECT ||
-      admin.app().options.projectId;
-
-    const requestHeaders: Record<string, string> = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-      "X-Goog-FieldMask": fieldMask,
-    };
-    if (projectId) {
-      requestHeaders["X-Goog-User-Project"] = projectId;
-    }
-
-    const googleResponse = await axios.post(
-      "https://routes.googleapis.com/directions/v2:computeRoutes",
-      req.body,
-      {
-        headers: requestHeaders,
-        timeout: 10000,
-      },
-    );
-
-    res.status(200).json(googleResponse.data);
-  } catch (error: unknown) {
-    if (isAxiosError(error) && error.response) {
-      logger.error(
-        "Routes API Error: status =",
-        error.response.status,
-        "data =",
-        JSON.stringify(error.response.data),
-      );
-      res.status(error.response.status).json(error.response.data);
-      return;
-    }
-    logger.error("Error in computeRoutesProxy: ", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
-```
+1. **ログイン認証チェック**: `getUidFromRequest` による Firebase Auth ID トークンの検証（未認証は 401 遮断）。
+2. **レート制限 (利用制限)**: UID 単位で 1分間に最大30リクエストに制限し、短時間の過剰アクセスや意図しない課金急増を防止（超過時は 429 遮断）。
+3. **入力バリデーション**: `origin` と `destination` の座標必須チェック（不足時は 400 遮断）。
+4. **Google IAM / ADC 認証**: クライアントに Web サービス用 API キーを持たせず、サーバー側で安全に取得した一時通行証（OAuth 2.0 Bearer トークン）で Google Routes API へ中継。
+5. **フィールドマスクの制限**: 許可されたフィールド（`duration`, `distanceMeters`, `polyline`, `warnings`）のみを通過させ、不要なデータ取得や課金増加を防止。
+6. **通信タイムアウト**: 10 秒の上限を設定し、外部 API 遅延時のサーバーハングを防止。
+7. **エラーハンドリング**: 内部エラー発生時は固定の 500 メッセージ（`Internal Server Error`）を返し、詳細な例外情報はサーバーログにのみ記録。
 
 ### 4. ローカル動作確認手順
 

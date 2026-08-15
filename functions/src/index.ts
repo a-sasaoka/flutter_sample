@@ -368,6 +368,30 @@ export const users = onRequest(async (req, res) => {
   }
 });
 
+// ユーザーごとのレート制限管理 (1分あたり最大30回)
+const routeRateLimits = new Map<string, number[]>();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const MAX_REQUESTS_PER_MINUTE = 30;
+
+/**
+ * Checks whether the specified UID exceeds the rate limit.
+ *
+ * @param {string} uid User ID.
+ * @return {boolean} True if allowed, false if rate limited.
+ */
+function checkRateLimit(uid: string): boolean {
+  const now = Date.now();
+  const timestamps = (routeRateLimits.get(uid) || []).filter(
+    (t) => now - t < RATE_LIMIT_WINDOW_MS
+  );
+  if (timestamps.length >= MAX_REQUESTS_PER_MINUTE) {
+    return false;
+  }
+  timestamps.push(now);
+  routeRateLimits.set(uid, timestamps);
+  return true;
+}
+
 /**
  * Google Routes API proxy endpoint.
  * Verifies Firebase Auth ID token and forwards request
@@ -387,7 +411,15 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
       return;
     }
 
-    // 2. リクエストボディのバリデーション (origin, destination の存在確認)
+    // 2. ユーザーごとのレート制限チェック (短時間の過剰リクエスト・課金急増の防止)
+    if (!checkRateLimit(uid)) {
+      res.status(429).json({
+        error: "Too Many Requests: リクエストが多すぎます。しばらく待ってから再試行してください。",
+      });
+      return;
+    }
+
+    // 3. リクエストボディのバリデーション (origin, destination の存在確認)
     if (!req.body || typeof req.body !== "object") {
       res.status(400).json({error: "Bad Request: リクエストボディが空です。"});
       return;
@@ -400,7 +432,7 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
       return;
     }
 
-    // 3. Google IAM / ADC によるアクセストークンの取得 (APIキー不要)
+    // 4. Google IAM / ADC によるアクセストークンの取得 (APIキー不要)
     const auth = new GoogleAuth({
       scopes: ["https://www.googleapis.com/auth/cloud-platform"],
     });
@@ -408,7 +440,7 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
     const tokenResponse = await client.getAccessToken();
     const accessToken = tokenResponse.token;
 
-    // 4. 許可されたフィールドマスクのみ通過 (不正なヘッダー注入・課金増加の防止)
+    // 5. 許可されたフィールドマスクのみ通過 (不正なヘッダー注入・課金増加の防止)
     const allowedFieldMasks = new Set([
       "routes.duration",
       "routes.distanceMeters",
@@ -431,7 +463,7 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
       }
     }
 
-    // 5. Authorization: Bearer ヘッダーと
+    // 6. Authorization: Bearer ヘッダーと
     // X-Goog-User-Project で Google Routes API に中継
     const projectId =
       process.env.GCLOUD_PROJECT ||
