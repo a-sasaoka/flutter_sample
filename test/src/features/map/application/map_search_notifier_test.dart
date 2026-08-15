@@ -278,7 +278,7 @@ void main() {
     });
 
     test(
-      'Notifier が dispose された後に非同期例外が発生した場合でも、handle が呼ばれ安全に処理されること',
+      'Notifier が dispose された後に非同期例外が発生した場合でも、handle 呼び出しが安全にスキップされること',
       () async {
         final completer = Completer<List<LocationCandidate>>();
 
