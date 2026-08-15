@@ -6,5 +6,5 @@
   "SEND_TIMEOUT": 10,
   "USE_FIREBASE_AUTH": true,
   "USE_AGENT_PLATFORM": true,
-  "GOOGLE_DIRECTIONS_API_URL": "https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/computeRoutesProxy"
+  "GOOGLE_DIRECTIONS_API_URL": "http://localhost:5001/YOUR_PROJECT_ID/us-central1/computeRoutesProxy"
 }

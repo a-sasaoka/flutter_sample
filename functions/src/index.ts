@@ -1,7 +1,9 @@
-import {setGlobalOptions} from "firebase-functions";
+import {setGlobalOptions} from "firebase-functions/v2";
 import {onRequest} from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
+import {GoogleAuth} from "google-auth-library";
+import axios, {isAxiosError} from "axios";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -58,14 +60,6 @@ async function isAdminRequest(
  * @return {Promise<void>}
  */
 export const memos = onRequest(async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "*");
-  if (req.method === "OPTIONS") {
-    res.set("Access-Control-Allow-Methods", "GET, POST, PUT");
-    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.status(204).send("");
-    return;
-  }
-
   const uid = await getUidFromRequest(req);
   if (!uid) {
     res.status(401).send("Unauthorized");
@@ -178,14 +172,6 @@ export const memos = onRequest(async (req, res) => {
  * @return {Promise<void>}
  */
 export const users = onRequest(async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "*");
-  if (req.method === "OPTIONS") {
-    res.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE");
-    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.status(204).send("");
-    return;
-  }
-
   const uid = await getUidFromRequest(req);
   if (!uid) {
     res.status(401).send("Unauthorized");
@@ -381,4 +367,230 @@ export const users = onRequest(async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+
+// ユーザーごとのレート制限管理 (Cloud Firestore による全インスタンス共通制御: 1分あたり最大30回)
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const MAX_REQUESTS_PER_MINUTE = 30;
+
+/**
+ * Checks whether the specified UID exceeds the rate limit using Firestore.
+ *
+ * @param {string} uid User ID.
+ * @return {Promise<boolean>} True if allowed, false if rate limited.
+ */
+async function checkRateLimit(uid: string): Promise<boolean> {
+  const now = Date.now();
+  const docRef = admin
+    .firestore()
+    .collection("rate_limits")
+    .doc(`routes_${uid}`);
+
+  try {
+    return await admin.firestore().runTransaction(async (tx) => {
+      const snap = await tx.get(docRef);
+      if (!snap.exists) {
+        tx.set(docRef, {
+          count: 1,
+          resetAt: now + RATE_LIMIT_WINDOW_MS,
+        });
+        return true;
+      }
+
+      const data = snap.data();
+      const resetAt = data?.resetAt || 0;
+      const count = data?.count || 0;
+
+      if (now > resetAt) {
+        tx.set(docRef, {
+          count: 1,
+          resetAt: now + RATE_LIMIT_WINDOW_MS,
+        });
+        return true;
+      }
+
+      if (count >= MAX_REQUESTS_PER_MINUTE) {
+        return false;
+      }
+
+      tx.update(docRef, {
+        count: count + 1,
+      });
+      return true;
+    });
+  } catch (error) {
+    logger.error("Rate limit check failed in Firestore: ", error);
+    // 障害時はユーザー操作をブロックしないようフェイルオープン
+    return true;
+  }
+}
+
+/**
+ * Google Routes API proxy endpoint.
+ * Verifies Firebase Auth ID token and forwards request
+ * to Routes API with ADC / IAM token.
+ */
+export const computeRoutesProxy = onRequest(async (req, res) => {
+  try {
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method Not Allowed"});
+      return;
+    }
+
+    // 1. ユーザーログイン認証チェック (Firebase Auth ID トークン)
+    const uid = await getUidFromRequest(req);
+    if (!uid) {
+      res.status(401).json({error: "Unauthorized: ログインが必要です。"});
+      return;
+    }
+
+    // 2. ユーザーごとのレート制限チェック (Cloud Firestore による全インスタンス共通制御)
+    const isAllowed = await checkRateLimit(uid);
+    if (!isAllowed) {
+      res.status(429).json({
+        error: "Too Many Requests: リクエストが多すぎます。しばらく待ってから再試行してください。",
+      });
+      return;
+    }
+
+    // 3. リクエストボディの厳格なスキーマ検証・ホワイトリスト抽出
+    if (!req.body || typeof req.body !== "object") {
+      res.status(400).json({error: "Bad Request: リクエストボディが無効です。"});
+      return;
+    }
+
+    // 未許可・未知のトップレベルプロパティのチェック
+    const allowedKeys = new Set(["origin", "destination", "travelMode"]);
+    const bodyKeys = Object.keys(req.body);
+    if (bodyKeys.some((key) => !allowedKeys.has(key))) {
+      res.status(400).json({
+        error: "Bad Request: 許可されていないパラメータが含まれています。",
+      });
+      return;
+    }
+
+    const {origin, destination, travelMode} = req.body;
+    const originLat = origin?.location?.latLng?.latitude;
+    const originLng = origin?.location?.latLng?.longitude;
+    const destLat = destination?.location?.latLng?.latitude;
+    const destLng = destination?.location?.latLng?.longitude;
+
+    if (
+      typeof originLat !== "number" ||
+      typeof originLng !== "number" ||
+      typeof destLat !== "number" ||
+      typeof destLng !== "number"
+    ) {
+      res.status(400).json({
+        error: "Bad Request: origin と destination の有効な座標(数値)が必要です。",
+      });
+      return;
+    }
+
+    // travelMode の許可値チェック
+    const allowedTravelModes = new Set([
+      "DRIVE",
+      "WALK",
+      "BICYCLE",
+      "TWO_WHEELER",
+      "TRANSIT",
+    ]);
+    const validTravelMode =
+      typeof travelMode === "string" && allowedTravelModes.has(travelMode) ?
+        travelMode :
+        "DRIVE";
+
+    // 安全に再構築したリクエストボディのみ中継
+    const upstreamBody = {
+      origin: {
+        location: {
+          latLng: {
+            latitude: originLat,
+            longitude: originLng,
+          },
+        },
+      },
+      destination: {
+        location: {
+          latLng: {
+            latitude: destLat,
+            longitude: destLng,
+          },
+        },
+      },
+      travelMode: validTravelMode,
+    };
+
+    // 4. Google IAM / ADC によるアクセストークンの取得 (APIキー不要)
+    const auth = new GoogleAuth({
+      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+    });
+    const client = await auth.getClient();
+    const tokenResponse = await client.getAccessToken();
+    const accessToken = tokenResponse.token;
+
+    // 5. 許可されたフィールドマスクのみ通過 (不正なヘッダー注入・課金増加の防止)
+    const allowedFieldMasks = new Set([
+      "routes.duration",
+      "routes.distanceMeters",
+      "routes.polyline.encodedPolyline",
+      "routes.warnings",
+    ]);
+    const defaultFieldMask = Array.from(allowedFieldMasks).join(",");
+    const rawFieldMask = Array.isArray(req.headers["x-goog-fieldmask"]) ?
+      req.headers["x-goog-fieldmask"].join(",") :
+      req.headers["x-goog-fieldmask"];
+
+    let fieldMask = defaultFieldMask;
+    if (typeof rawFieldMask === "string" && rawFieldMask.trim().length > 0) {
+      const filtered = rawFieldMask
+        .split(",")
+        .map((f) => f.trim())
+        .filter((f) => allowedFieldMasks.has(f));
+      if (filtered.length > 0) {
+        fieldMask = filtered.join(",");
+      }
+    }
+
+    // 6. Authorization: Bearer ヘッダーと
+    // X-Goog-User-Project で Google Routes API に中継
+    const projectId =
+      process.env.GCLOUD_PROJECT ||
+      process.env.GOOGLE_CLOUD_PROJECT ||
+      admin.app().options.projectId;
+
+    const requestHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`,
+      "X-Goog-FieldMask": fieldMask,
+    };
+    if (projectId) {
+      requestHeaders["X-Goog-User-Project"] = projectId;
+    }
+
+    const googleResponse = await axios.post(
+      "https://routes.googleapis.com/directions/v2:computeRoutes",
+      upstreamBody,
+      {
+        headers: requestHeaders,
+        timeout: 10000,
+      }
+    );
+
+    res.status(200).json(googleResponse.data);
+  } catch (error: unknown) {
+    if (isAxiosError(error) && error.response) {
+      logger.error(
+        "Routes API Error: status =",
+        error.response.status,
+        "data =",
+        JSON.stringify(error.response.data)
+      );
+      res.status(error.response.status).json(error.response.data);
+      return;
+    }
+    logger.error("Error in computeRoutesProxy: ", error);
+    res.status(500).json({error: "Internal Server Error"});
+  }
+});
+
 

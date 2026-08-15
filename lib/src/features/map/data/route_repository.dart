@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
-import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
 import 'package:flutter_sample/src/features/map/data/polyline_decoder.dart';
 import 'package:flutter_sample/src/features/map/domain/map_route.dart';
@@ -115,10 +114,14 @@ class RouteRepositoryImpl implements RouteRepository {
     } on DioException catch (e) {
       final responseData = e.response?.data;
       if (responseData is Map<String, dynamic>) {
-        final errorMap = responseData['error'] as Map<String, dynamic>?;
-        final message = errorMap?['message'] as String?;
-        if (message != null && message.isNotEmpty) {
-          throw RouteApiException(message);
+        final errorPayload = responseData['error'];
+        if (errorPayload is Map<String, dynamic>) {
+          final message = errorPayload['message'] as String?;
+          if (message != null && message.isNotEmpty) {
+            throw RouteApiException(message);
+          }
+        } else if (errorPayload is String && errorPayload.isNotEmpty) {
+          throw RouteApiException(errorPayload);
         }
       }
       throw RouteApiException(e.message ?? 'Failed to calculate route.');
@@ -142,9 +145,6 @@ class RouteRepositoryImpl implements RouteRepository {
 
 /// ローカル開発環境やオフラインテスト用のモック RouteRepository 実装クラス
 class MockRouteRepository implements RouteRepository {
-  /// コンストラクタ
-  const MockRouteRepository();
-
   @override
   Future<MapRoute> calculateRoute({
     required LatLng origin,
@@ -233,11 +233,7 @@ class RouteApiException implements Exception {
 /// RouteRepository を提供する Riverpod プロバイダー
 @Riverpod(keepAlive: true)
 RouteRepository routeRepository(Ref ref) {
-  final flavor = ref.watch(flavorProvider);
-  if (flavor == Flavor.local) {
-    return const MockRouteRepository();
-  }
-  final dio = ref.watch(baseDioProvider);
+  final dio = ref.watch(dioProvider);
   final envConfig = ref.watch(envConfigProvider);
   return RouteRepositoryImpl(
     dio: dio,
