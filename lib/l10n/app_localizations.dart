@@ -485,8 +485,8 @@ abstract class AppLocalizations {
   /// No description provided for @chatError.
   ///
   /// In en, this message translates to:
-  /// **'An error occurred: {error}'**
-  String chatError(Object error);
+  /// **'An error occurred'**
+  String get chatError;
 
   /// No description provided for @settingsTitle.
   ///
@@ -1211,8 +1211,8 @@ abstract class AppLocalizations {
   /// No description provided for @mapFetchError.
   ///
   /// In en, this message translates to:
-  /// **'Failed to get location: {message}'**
-  String mapFetchError(String message);
+  /// **'Failed to get location'**
+  String get mapFetchError;
 
   /// No description provided for @mapSearchHint.
   ///
@@ -1229,8 +1229,8 @@ abstract class AppLocalizations {
   /// No description provided for @mapSearchError.
   ///
   /// In en, this message translates to:
-  /// **'Search failed: {message}'**
-  String mapSearchError(String message);
+  /// **'Failed to search location'**
+  String get mapSearchError;
 
   /// No description provided for @mapSearchClear.
   ///

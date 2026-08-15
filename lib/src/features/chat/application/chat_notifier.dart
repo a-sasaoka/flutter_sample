@@ -1,5 +1,6 @@
 import 'package:flutter_sample/src/core/utils/date_time_extension.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_state.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
@@ -53,8 +54,9 @@ class ChatNotifier extends _$ChatNotifier {
           createdAt: now,
         ),
       );
-    } on Exception catch (e) {
+    } on Exception catch (e, st) {
       if (!ref.mounted) return;
+      ref.read(loggerProvider).handle(e, st);
 
       final now = ref.read(clockProvider)();
       _updateMessageById(
@@ -121,8 +123,9 @@ class ChatNotifier extends _$ChatNotifier {
       if (isFirstChunk) {
         throw ChatEmptyResponseException(); // 空のままStreamが終わった場合
       }
-    } on Exception catch (e) {
+    } on Exception catch (e, st) {
       if (!ref.mounted) return;
+      ref.read(loggerProvider).handle(e, st);
 
       final now = ref.read(clockProvider)();
       _updateMessageById(

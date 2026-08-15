@@ -167,7 +167,7 @@ class _ChatBubble extends StatelessWidget {
       ChatMessageError(:final error, :final createdAt) => _BubbleLayout(
         text: error is ChatEmptyResponseException
             ? l10n.chatEmptyMessage
-            : l10n.chatError(error.toString()),
+            : l10n.chatError,
         isUser: false,
         color: Theme.of(context).colorScheme.errorContainer,
         textColor: Theme.of(context).colorScheme.onErrorContainer,

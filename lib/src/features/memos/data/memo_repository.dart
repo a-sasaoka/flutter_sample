@@ -75,8 +75,8 @@ class MemoRepository {
         );
 
         _talker.debug('The data has been saved to the server.');
-      } on Exception catch (e) {
-        _talker.error('Failed to save data to the server: $e');
+      } on Exception catch (e, st) {
+        _talker.handle(e, st, 'Failed to save data to the server');
       }
     }
   }
@@ -116,8 +116,8 @@ class MemoRepository {
         );
 
         _talker.debug('The updated data has been saved to the server.');
-      } on Exception catch (e) {
-        _talker.error('Failed to update data to the server: $e');
+      } on Exception catch (e, st) {
+        _talker.handle(e, st, 'Failed to update data to the server');
       }
     }
   }
@@ -157,8 +157,8 @@ class MemoRepository {
         );
 
         _talker.debug('The deleted status has been sent to the server.');
-      } on Exception catch (e) {
-        _talker.error('Failed to delete data on the server: $e');
+      } on Exception catch (e, st) {
+        _talker.handle(e, st, 'Failed to delete data on the server');
       }
     }
   }
@@ -186,8 +186,12 @@ class MemoRepository {
         );
         syncedIds.add(memo.id);
         _talker.debug('Synced unsent memo to server. id: ${memo.id}');
-      } on Exception catch (e) {
-        _talker.error('Failed to sync memo (id: ${memo.id}) to server: $e');
+      } on Exception catch (e, st) {
+        _talker.handle(
+          e,
+          st,
+          'Failed to sync memo (id: ${memo.id}) to server',
+        );
       }
     }
 
@@ -277,8 +281,8 @@ class MemoRepository {
         }
       }
       _talker.debug('Merged remote memos into local database.');
-    } on Exception catch (e) {
-      _talker.error('Failed to fetch data from the server: $e');
+    } on Exception catch (e, st) {
+      _talker.handle(e, st, 'Failed to fetch data from the server');
     }
   }
 }

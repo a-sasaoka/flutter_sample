@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:checks/checks.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/map/application/map_search_notifier.dart';
 import 'package:flutter_sample/src/features/map/data/geocoding_repository.dart';
 import 'package:flutter_sample/src/features/map/domain/location_candidate.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_sample/src/features/map/domain/map_search_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 class MockGeocodingRepository extends Mock implements GeocodingRepository {}
 
@@ -22,6 +24,9 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         geocodingRepositoryProvider.overrideWithValue(mockRepository),
+        loggerProvider.overrideWithValue(
+          Talker(settings: TalkerSettings(enabled: false)),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -217,6 +222,9 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           geocodingRepositoryProvider.overrideWithValue(mockRepository),
+          loggerProvider.overrideWithValue(
+            Talker(settings: TalkerSettings(enabled: false)),
+          ),
         ],
       )..listen(mapSearchProvider, (_, _) {});
 

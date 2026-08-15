@@ -16,13 +16,11 @@ import 'package:talker_flutter/talker_flutter.dart';
 
 class MockMemoRemoteService extends Mock implements MemoRemoteService {}
 
-class MockTalker extends Mock implements Talker {}
-
 void main() {
   group('MemoRepository', () {
     late AppDatabase database;
     late MockMemoRemoteService mockRemoteService;
-    late MockTalker mockTalker;
+    late Talker mockTalker;
     final now = DateTime(2026, 5);
 
     setUpAll(() {
@@ -32,10 +30,7 @@ void main() {
     setUp(() {
       database = AppDatabase(NativeDatabase.memory());
       mockRemoteService = MockMemoRemoteService();
-      mockTalker = MockTalker();
-
-      when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
-      when(() => mockTalker.error(any<dynamic>())).thenReturn(null);
+      mockTalker = Talker(settings: TalkerSettings(enabled: false));
 
       // デフォルトの振る舞い（Future<void>などのエラーを防ぐため）
       when(() => mockRemoteService.fetchMemos()).thenAnswer((_) async => []);

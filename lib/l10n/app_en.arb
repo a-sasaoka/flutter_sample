@@ -74,7 +74,7 @@
   "chatHint": "Enter a message...",
   "thinking": "AI is thinking...",
   "chatEmptyMessage": "The response from AI was empty.",
-  "chatError": "An error occurred: {error}",
+  "chatError": "An error occurred",
 
   "@_SETTINGS": {},
   "settingsTitle": "Settings",
@@ -254,14 +254,7 @@
   "mapPermissionDeniedForever": "Location permission is permanently denied. Please allow it in settings.",
   "mapServiceDisabled": "Location service (GPS) is disabled on your device.",
   "mapOpenSettings": "Open Settings",
-  "mapFetchError": "Failed to get location: {message}",
-  "@mapFetchError": {
-    "placeholders": {
-      "message": {
-        "type": "String"
-      }
-    }
-  },
+  "mapFetchError": "Failed to get location",
   "mapSearchHint": "Search address or landmark",
   "mapSearchEmpty": "No results found for \"{query}\".",
   "@mapSearchEmpty": {
@@ -271,14 +264,7 @@
       }
     }
   },
-  "mapSearchError": "Search failed: {message}",
-  "@mapSearchError": {
-    "placeholders": {
-      "message": {
-        "type": "String"
-      }
-    }
-  },
+  "mapSearchError": "Failed to search location",
   "mapSearchClear": "Clear search",
   "mapSearchSelectCandidateTitle": "Select search result",
   "mapSpotDetailTitle": "Spot Details",

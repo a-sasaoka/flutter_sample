@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
@@ -9,6 +10,7 @@ import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 import 'package:uuid/data.dart';
 import 'package:uuid/uuid.dart';
 
@@ -76,6 +78,9 @@ void main() {
         chatRepositoryProvider.overrideWithValue(fakeRepo),
         clockProvider.overrideWithValue(() => fixedDateTime),
         uuidProvider.overrideWithValue(FakeUuid()),
+        loggerProvider.overrideWithValue(
+          Talker(settings: TalkerSettings(enabled: false)),
+        ),
       ],
     );
     addTearDown(container.dispose);

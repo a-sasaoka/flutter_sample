@@ -1,3 +1,4 @@
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/map/data/route_repository.dart';
 import 'package:flutter_sample/src/features/map/domain/map_route_state.dart';
 import 'package:flutter_sample/src/features/map/domain/travel_mode.dart';
@@ -38,8 +39,9 @@ class MapRouteNotifier extends _$MapRouteNotifier {
 
       if (!ref.mounted || searchGeneration != _searchGeneration) return;
       state = MapRouteState.success(route);
-    } on Exception catch (e) {
+    } on Exception catch (e, st) {
       if (!ref.mounted || searchGeneration != _searchGeneration) return;
+      ref.read(loggerProvider).handle(e, st);
       state = MapRouteState.error(e.toString());
     }
   }

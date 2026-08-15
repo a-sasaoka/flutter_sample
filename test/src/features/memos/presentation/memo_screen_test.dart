@@ -79,7 +79,8 @@ void main() {
       () => mockMemoRepository.fetchAndMergeRemoteMemos(),
     ).thenAnswer((_) async {});
     when(
-      () => mockTalker.error(any<String>(), any<Object?>(), any<StackTrace?>()),
+      () =>
+          mockTalker.handle(any<Object>(), any<StackTrace?>(), any<String?>()),
     ).thenAnswer((_) {});
     when(
       () => mockMemoRepository.watchAllMemos(),
@@ -297,10 +298,12 @@ void main() {
       await tester.pumpAndSettle();
 
       check(find.byType(SnackBar)).findsOne();
-      check(find.text('エラーが発生しました')).findsOne();
       verify(
-        () =>
-            mockTalker.error(any<String>(), any<Object?>(), any<StackTrace?>()),
+        () => mockTalker.handle(
+          any<Object>(),
+          any<StackTrace?>(),
+          any<String?>(),
+        ),
       ).called(1);
     });
 

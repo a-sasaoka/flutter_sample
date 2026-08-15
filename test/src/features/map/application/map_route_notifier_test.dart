@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:checks/checks.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/map/application/map_route_notifier.dart';
 import 'package:flutter_sample/src/features/map/data/route_repository.dart';
 import 'package:flutter_sample/src/features/map/domain/map_route.dart';
@@ -10,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 class MockRouteRepository extends Mock implements RouteRepository {}
 
@@ -29,6 +31,9 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           routeRepositoryProvider.overrideWithValue(mockRepository),
+          loggerProvider.overrideWithValue(
+            Talker(settings: TalkerSettings(enabled: false)),
+          ),
         ],
       );
       addTearDown(container.dispose);

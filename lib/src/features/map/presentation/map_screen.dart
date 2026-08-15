@@ -199,7 +199,7 @@ class MapScreen extends HookConsumerWidget {
           error: (message) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(l10n.mapFetchError(message)),
+                content: Text(l10n.mapFetchError),
                 backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
@@ -334,7 +334,7 @@ class MapScreen extends HookConsumerWidget {
           error: (message) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(l10n.mapSearchError(message)),
+                content: Text(l10n.mapSearchError),
               ),
             );
           },
@@ -405,6 +405,7 @@ class MapScreen extends HookConsumerWidget {
                               : null,
                         ),
                         onSubmitted: (value) {
+                          FocusScope.of(context).unfocus();
                           unawaited(
                             ref
                                 .read(mapSearchProvider.notifier)
@@ -427,6 +428,7 @@ class MapScreen extends HookConsumerWidget {
                         key: const Key('mapSearchButton'),
                         icon: const Icon(Icons.send),
                         onPressed: () {
+                          FocusScope.of(context).unfocus();
                           unawaited(
                             ref
                                 .read(mapSearchProvider.notifier)
