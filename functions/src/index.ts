@@ -419,18 +419,73 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
       return;
     }
 
-    // 3. リクエストボディのバリデーション (origin, destination の存在確認)
+    // 3. リクエストボディの厳格なスキーマ検証・ホワイトリスト抽出
     if (!req.body || typeof req.body !== "object") {
-      res.status(400).json({error: "Bad Request: リクエストボディが空です。"});
+      res.status(400).json({error: "Bad Request: リクエストボディが無効です。"});
       return;
     }
-    const {origin, destination} = req.body;
-    if (!origin?.location?.latLng || !destination?.location?.latLng) {
+
+    // 未許可・未知のトップレベルプロパティのチェック
+    const allowedKeys = new Set(["origin", "destination", "travelMode"]);
+    const bodyKeys = Object.keys(req.body);
+    if (bodyKeys.some((key) => !allowedKeys.has(key))) {
       res.status(400).json({
-        error: "Bad Request: origin と destination の座標が必要です。",
+        error: "Bad Request: 許可されていないパラメータが含まれています。",
       });
       return;
     }
+
+    const {origin, destination, travelMode} = req.body;
+    const originLat = origin?.location?.latLng?.latitude;
+    const originLng = origin?.location?.latLng?.longitude;
+    const destLat = destination?.location?.latLng?.latitude;
+    const destLng = destination?.location?.latLng?.longitude;
+
+    if (
+      typeof originLat !== "number" ||
+      typeof originLng !== "number" ||
+      typeof destLat !== "number" ||
+      typeof destLng !== "number"
+    ) {
+      res.status(400).json({
+        error: "Bad Request: origin と destination の有効な座標(数値)が必要です。",
+      });
+      return;
+    }
+
+    // travelMode の許可値チェック
+    const allowedTravelModes = new Set([
+      "DRIVE",
+      "WALK",
+      "BICYCLE",
+      "TWO_WHEELER",
+      "TRANSIT",
+    ]);
+    const validTravelMode =
+      typeof travelMode === "string" && allowedTravelModes.has(travelMode) ?
+        travelMode :
+        "DRIVE";
+
+    // 安全に再構築したリクエストボディのみ中継
+    const upstreamBody = {
+      origin: {
+        location: {
+          latLng: {
+            latitude: originLat,
+            longitude: originLng,
+          },
+        },
+      },
+      destination: {
+        location: {
+          latLng: {
+            latitude: destLat,
+            longitude: destLng,
+          },
+        },
+      },
+      travelMode: validTravelMode,
+    };
 
     // 4. Google IAM / ADC によるアクセストークンの取得 (APIキー不要)
     const auth = new GoogleAuth({
@@ -481,7 +536,7 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
 
     const googleResponse = await axios.post(
       "https://routes.googleapis.com/directions/v2:computeRoutes",
-      req.body,
+      upstreamBody,
       {
         headers: requestHeaders,
         timeout: 10000,
