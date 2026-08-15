@@ -276,6 +276,7 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
       req.body,
       {
         headers: requestHeaders,
+        timeout: 10000,
       },
     );
 
