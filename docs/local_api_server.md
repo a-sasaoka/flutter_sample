@@ -55,6 +55,11 @@ npx -y firebase-tools@latest emulators:start --only functions,firestore
 `✔  functions[us-central1-memos]: http function initialized (http://127.0.0.1:5001/<プロジェクトID>/us-central1/memos).`  
 `✔  Emulator UI: http://127.0.0.1:4000/`
 
+> 💡 **スマホ実機から LAN 経由で接続する場合**:
+>
+> - スマホ実機からローカルエミュレータに接続する場合は、`firebase.json` の `emulators` に `"host": "0.0.0.0"` を指定して起動します。
+> - ⚠️ **セキュリティ注意**: `0.0.0.0` によるポート（5001, 8080）開放は、自宅や社内 Wi-Fi などの信頼できるプライベートネットワークでのみ利用してください。公共 Wi-Fi 環境では、ポート開放が不要な [HTTPS トンネル方式](./setup.md#方法-a-https-トンネルを利用する推奨設定変更不要) の利用を推奨します。
+
 ### 3. アプリ（Flutter）の起動
 
 Flutterアプリを **`dev` フレーバー** で起動してください。
