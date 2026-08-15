@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/map/data/route_repository.dart';
@@ -22,8 +23,7 @@ void main() {
 
     const origin = LatLng(35.681236, 139.767125);
     const destination = LatLng(35.6585805, 139.7454329);
-    const expectedUrl =
-        'https://routes.googleapis.com/directions/v2:computeRoutes';
+    const expectedUrl = defaultGoogleDirectionsApiUrl;
 
     test('Google Routes API 成功時に正常な MapRoute を生成して返すこと', () async {
       final repository = RouteRepositoryImpl(

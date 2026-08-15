@@ -54,9 +54,9 @@ sealed class EnvConfigState with _$EnvConfigState {
 /// デフォルトの API ベース URL（サンプルの動作確認用）
 const defaultBaseUrl = 'https://jsonplaceholder.typicode.com';
 
-/// デフォルトの Google Routes API URL
+/// デフォルトの Google Routes API プロキシ URL（サンプル用）
 const defaultGoogleDirectionsApiUrl =
-    'https://routes.googleapis.com/directions/v2:computeRoutes';
+    'https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/computeRoutesProxy';
 
 /// デフォルトの AI モデル名
 const defaultAiModel = 'gemini-3.5-flash-lite';
