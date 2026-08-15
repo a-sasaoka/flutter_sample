@@ -5,6 +5,7 @@ import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
+import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
@@ -67,7 +68,44 @@ class FakeUuid extends Fake implements Uuid {
   }
 }
 
+class HandleCall {
+  const HandleCall({
+    required this.exception,
+    this.stackTrace,
+  });
+
+  final Object exception;
+  final StackTrace? stackTrace;
+}
+
+class SpyTalker extends Talker {
+  SpyTalker() : super(settings: TalkerSettings(enabled: false));
+
+  final List<HandleCall> handleCalls = [];
+
+  @override
+  void handle(
+    Object exception, [
+    StackTrace? stackTrace,
+    dynamic msg,
+  ]) {
+    handleCalls.add(
+      HandleCall(
+        exception: exception,
+        stackTrace: stackTrace,
+      ),
+    );
+    super.handle(exception, stackTrace, msg);
+  }
+}
+
 void main() {
+  late SpyTalker spyTalker;
+
+  setUp(() {
+    spyTalker = SpyTalker();
+  });
+
   /// テスト環境のセットアップヘルパー
   ProviderContainer createContainer(FakeChatRepository fakeRepo) {
     // 現在時刻を固定して、システム情報の文字列を完全に予測可能にする
@@ -78,9 +116,7 @@ void main() {
         chatRepositoryProvider.overrideWithValue(fakeRepo),
         clockProvider.overrideWithValue(() => fixedDateTime),
         uuidProvider.overrideWithValue(FakeUuid()),
-        loggerProvider.overrideWithValue(
-          Talker(settings: TalkerSettings(enabled: false)),
-        ),
+        loggerProvider.overrideWithValue(spyTalker),
       ],
     );
     addTearDown(container.dispose);
@@ -162,6 +198,9 @@ void main() {
 
         check(state.messages.length).equals(2);
         check(state.messages.last).isA<ChatMessageError>();
+        check(spyTalker.handleCalls).length.equals(1);
+        check(spyTalker.handleCalls.first.exception).isA<Exception>();
+        check(spyTalker.handleCalls.first.stackTrace).isNotNull();
       });
     });
 
@@ -242,6 +281,11 @@ void main() {
           check(
             state.messages.last.toString(),
           ).contains('ChatEmptyResponseException');
+          check(spyTalker.handleCalls).length.equals(1);
+          check(
+            spyTalker.handleCalls.first.exception,
+          ).isA<ChatEmptyResponseException>();
+          check(spyTalker.handleCalls.first.stackTrace).isNotNull();
         },
       );
 
@@ -256,6 +300,9 @@ void main() {
 
         check(state.messages.length).equals(2);
         check(state.messages.last).isA<ChatMessageError>();
+        check(spyTalker.handleCalls).length.equals(1);
+        check(spyTalker.handleCalls.first.exception).isA<Exception>();
+        check(spyTalker.handleCalls.first.stackTrace).isNotNull();
       });
     });
 

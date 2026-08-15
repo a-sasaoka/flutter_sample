@@ -15,6 +15,37 @@ import 'package:talker_flutter/talker_flutter.dart';
 
 class MockRouteRepository extends Mock implements RouteRepository {}
 
+class HandleCall {
+  const HandleCall({
+    required this.exception,
+    this.stackTrace,
+  });
+
+  final Object exception;
+  final StackTrace? stackTrace;
+}
+
+class SpyTalker extends Talker {
+  SpyTalker() : super(settings: TalkerSettings(enabled: false));
+
+  final List<HandleCall> handleCalls = [];
+
+  @override
+  void handle(
+    Object exception, [
+    StackTrace? stackTrace,
+    dynamic msg,
+  ]) {
+    handleCalls.add(
+      HandleCall(
+        exception: exception,
+        stackTrace: stackTrace,
+      ),
+    );
+    super.handle(exception, stackTrace, msg);
+  }
+}
+
 void main() {
   setUpAll(() {
     registerFallbackValue(TravelMode.driving);
@@ -22,18 +53,18 @@ void main() {
 
   group('MapRouteNotifier Tests', () {
     late MockRouteRepository mockRepository;
+    late SpyTalker spyTalker;
 
     setUp(() {
       mockRepository = MockRouteRepository();
+      spyTalker = SpyTalker();
     });
 
     ProviderContainer createContainer() {
       final container = ProviderContainer(
         overrides: [
           routeRepositoryProvider.overrideWithValue(mockRepository),
-          loggerProvider.overrideWithValue(
-            Talker(settings: TalkerSettings(enabled: false)),
-          ),
+          loggerProvider.overrideWithValue(spyTalker),
         ],
       );
       addTearDown(container.dispose);
@@ -131,6 +162,7 @@ void main() {
     test('searchRoute 例外発生時に MapRouteState.error に遷移すること', () async {
       const origin = LatLng(35.681236, 139.767125);
       const destination = LatLng(35.6585805, 139.7454329);
+      final routeError = Exception('Route calculation error');
 
       when(
         () => mockRepository.calculateRoute(
@@ -139,7 +171,7 @@ void main() {
           destinationName: any(named: 'destinationName'),
           travelMode: any(named: 'travelMode'),
         ),
-      ).thenThrow(Exception('Route calculation error'));
+      ).thenThrow(routeError);
 
       final container = createContainer()..listen(mapRouteProvider, (_, _) {});
       final notifier = container.read(mapRouteProvider.notifier);
@@ -151,6 +183,9 @@ void main() {
 
       final state = container.read(mapRouteProvider);
       check(state).isA<MapRouteStateError>();
+      check(spyTalker.handleCalls).length.equals(1);
+      check(spyTalker.handleCalls.first.exception).equals(routeError);
+      check(spyTalker.handleCalls.first.stackTrace).isNotNull();
     });
 
     test('clearRoute 実行時に初期状態に戻ること', () async {
@@ -344,10 +379,13 @@ void main() {
         notifier.clearRoute();
         check(container.read(mapRouteProvider)).isA<MapRouteStateInitial>();
 
-        completer.completeError(Exception('遅延エラー'));
+        final delayedError = Exception('遅延エラー');
+        completer.completeError(delayedError);
         await searchFuture;
 
         check(container.read(mapRouteProvider)).isA<MapRouteStateInitial>();
+        // clearRoute されたため古い非同期例外の handle 呼び出しはスキップされること
+        check(spyTalker.handleCalls).isEmpty();
       },
     );
   });
