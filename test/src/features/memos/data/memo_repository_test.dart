@@ -16,11 +16,45 @@ import 'package:talker_flutter/talker_flutter.dart';
 
 class MockMemoRemoteService extends Mock implements MemoRemoteService {}
 
+class HandleCall {
+  const HandleCall({
+    required this.exception,
+    this.stackTrace,
+    this.message,
+  });
+
+  final Object exception;
+  final StackTrace? stackTrace;
+  final dynamic message;
+}
+
+class SpyTalker extends Talker {
+  SpyTalker() : super(settings: TalkerSettings(enabled: false));
+
+  final List<HandleCall> handleCalls = [];
+
+  @override
+  void handle(
+    Object exception, [
+    StackTrace? stackTrace,
+    dynamic msg,
+  ]) {
+    handleCalls.add(
+      HandleCall(
+        exception: exception,
+        stackTrace: stackTrace,
+        message: msg,
+      ),
+    );
+    super.handle(exception, stackTrace, msg);
+  }
+}
+
 void main() {
   group('MemoRepository', () {
     late AppDatabase database;
     late MockMemoRemoteService mockRemoteService;
-    late Talker mockTalker;
+    late SpyTalker spyTalker;
     final now = DateTime(2026, 5);
 
     setUpAll(() {
@@ -30,7 +64,7 @@ void main() {
     setUp(() {
       database = AppDatabase(NativeDatabase.memory());
       mockRemoteService = MockMemoRemoteService();
-      mockTalker = Talker(settings: TalkerSettings(enabled: false));
+      spyTalker = SpyTalker();
 
       // デフォルトの振る舞い（Future<void>などのエラーを防ぐため）
       when(() => mockRemoteService.fetchMemos()).thenAnswer((_) async => []);
@@ -57,7 +91,7 @@ void main() {
           memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
           clockProvider.overrideWithValue(() => now),
           isOnlineProvider.overrideWithValue(isOnline),
-          loggerProvider.overrideWithValue(mockTalker),
+          loggerProvider.overrideWithValue(spyTalker),
         ],
       );
     }
@@ -109,6 +143,7 @@ void main() {
     test('addMemo: オンラインでアップロードに失敗した場合、isSynced が false のままになること', () async {
       final container = createContainer();
       final repository = container.read(memoRepositoryProvider);
+      final uploadError = Exception('error');
       when(
         () => mockRemoteService.uploadMemo(
           id: any(named: 'id'),
@@ -118,12 +153,18 @@ void main() {
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
         ),
-      ).thenThrow(Exception('error'));
+      ).thenThrow(uploadError);
 
       await repository.addMemo('title', 'content');
 
       final memos = await database.select(database.memos).get();
       check(memos.first.isSynced).equals(false);
+      check(spyTalker.handleCalls).length.equals(1);
+      check(spyTalker.handleCalls.first.exception).equals(uploadError);
+      check(spyTalker.handleCalls.first.stackTrace).isNotNull();
+      check(
+        spyTalker.handleCalls.first.message,
+      ).equals('Failed to save data to the server');
     });
 
     test('updateMemo: オフラインの場合、ローカルが更新され isSynced が false になること', () async {
@@ -208,6 +249,7 @@ void main() {
               updatedAt: now,
             ),
           );
+      final uploadError = Exception('error');
       when(
         () => mockRemoteService.uploadMemo(
           id: any(named: 'id'),
@@ -217,7 +259,7 @@ void main() {
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
         ),
-      ).thenThrow(Exception('error'));
+      ).thenThrow(uploadError);
 
       await repository.updateMemo('id1', 'new title', 'new content');
 
@@ -225,6 +267,12 @@ void main() {
         database.memos,
       )..where((m) => m.id.equals('id1'))).getSingle();
       check(memo.isSynced).equals(false);
+      check(spyTalker.handleCalls).length.equals(1);
+      check(spyTalker.handleCalls.first.exception).equals(uploadError);
+      check(spyTalker.handleCalls.first.stackTrace).isNotNull();
+      check(
+        spyTalker.handleCalls.first.message,
+      ).equals('Failed to update data to the server');
     });
 
     test('deleteMemo: オフラインの場合、ローカルで論理削除され isSynced が false になること', () async {
@@ -303,6 +351,7 @@ void main() {
               updatedAt: now,
             ),
           );
+      final uploadError = Exception('error');
       when(
         () => mockRemoteService.uploadMemo(
           id: any(named: 'id'),
@@ -312,7 +361,7 @@ void main() {
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
         ),
-      ).thenThrow(Exception('error'));
+      ).thenThrow(uploadError);
 
       await repository.deleteMemo('id1');
 
@@ -321,6 +370,12 @@ void main() {
       )..where((m) => m.id.equals('id1'))).getSingle();
       check(memo.isDeleted).equals(true);
       check(memo.isSynced).equals(false);
+      check(spyTalker.handleCalls).length.equals(1);
+      check(spyTalker.handleCalls.first.exception).equals(uploadError);
+      check(spyTalker.handleCalls.first.stackTrace).isNotNull();
+      check(
+        spyTalker.handleCalls.first.message,
+      ).equals('Failed to delete data on the server');
     });
 
     test('syncUnsentMemos: 未送信のメモがない場合、何もしないこと', () async {
@@ -412,6 +467,7 @@ void main() {
               isSynced: const drift.Value(false),
             ),
           );
+      final syncError = Exception('error');
       when(
         () => mockRemoteService.uploadMemo(
           id: '1',
@@ -421,7 +477,7 @@ void main() {
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
         ),
-      ).thenThrow(Exception('error'));
+      ).thenThrow(syncError);
 
       await repository.syncUnsentMemos();
 
@@ -438,6 +494,12 @@ void main() {
           isDeleted: false,
         ),
       ).called(1);
+      check(spyTalker.handleCalls).length.equals(1);
+      check(spyTalker.handleCalls.first.exception).equals(syncError);
+      check(spyTalker.handleCalls.first.stackTrace).isNotNull();
+      check(
+        spyTalker.handleCalls.first.message,
+      ).equals('Failed to sync memo (id: 1) to server');
     });
 
     test('getAllMemos: オフラインの場合、同期をスキップしローカルの未削除メモを返すこと', () async {
@@ -578,13 +640,20 @@ void main() {
     test('getAllMemos: fetchMemos で例外が発生した場合、エラーを適切に処理すること', () async {
       final container = createContainer();
       final repository = container.read(memoRepositoryProvider);
+      final fetchError = Exception('fetch error');
       when(
         () => mockRemoteService.fetchMemos(),
-      ).thenThrow(Exception('fetch error'));
+      ).thenThrow(fetchError);
 
       final memos = await repository.getAllMemos();
 
       check(memos.length).equals(0); // local is empty
+      check(spyTalker.handleCalls).length.equals(1);
+      check(spyTalker.handleCalls.first.exception).equals(fetchError);
+      check(spyTalker.handleCalls.first.stackTrace).isNotNull();
+      check(
+        spyTalker.handleCalls.first.message,
+      ).equals('Failed to fetch data from the server');
     });
 
     test('memoRepositoryProvider が正しいインスタンスを提供すること', () {
