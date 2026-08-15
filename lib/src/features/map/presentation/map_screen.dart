@@ -92,7 +92,6 @@ class MapScreen extends HookConsumerWidget {
                   return SpotDetailBottomSheet(
                     spot: spot,
                     onStartRoutePressed: () {
-                      Navigator.of(modalContext).pop();
                       final currentLocation =
                           locationState.whenOrNull(
                             success: (pos) =>
