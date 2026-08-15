@@ -322,5 +322,55 @@ void main() {
       check(state.messages).isEmpty();
       check(state.isGenerating).equals(false);
     });
+
+    test(
+      'dispose 後の非同期例外でも Talker.handle が呼ばれ、かつクラッシュしないこと (sendMessage)',
+      () async {
+        final fakeRepo = FakeChatRepository()..shouldThrow = true;
+        final spy = SpyTalker();
+        final container = ProviderContainer(
+          overrides: [
+            chatRepositoryProvider.overrideWithValue(fakeRepo),
+            clockProvider.overrideWithValue(DateTime.now),
+            uuidProvider.overrideWithValue(FakeUuid()),
+            loggerProvider.overrideWithValue(spy),
+          ],
+        );
+
+        final notifier = container.read(chatProvider.notifier);
+        final future = notifier.sendMessage('disposeテスト');
+        container.dispose();
+        await future;
+
+        check(spy.handleCalls).length.equals(1);
+        check(spy.handleCalls.first.exception).isA<Exception>();
+        check(spy.handleCalls.first.stackTrace).isNotNull();
+      },
+    );
+
+    test(
+      'dispose 後の非同期例外でも Talker.handle が呼ばれ、かつクラッシュしないこと (sendMessageStream)',
+      () async {
+        final fakeRepo = FakeChatRepository()..shouldStreamThrow = true;
+        final spy = SpyTalker();
+        final container = ProviderContainer(
+          overrides: [
+            chatRepositoryProvider.overrideWithValue(fakeRepo),
+            clockProvider.overrideWithValue(DateTime.now),
+            uuidProvider.overrideWithValue(FakeUuid()),
+            loggerProvider.overrideWithValue(spy),
+          ],
+        );
+
+        final notifier = container.read(chatProvider.notifier);
+        final future = notifier.sendMessageStream('disposeストリームテスト');
+        container.dispose();
+        await future;
+
+        check(spy.handleCalls).length.equals(1);
+        check(spy.handleCalls.first.exception).isA<Exception>();
+        check(spy.handleCalls.first.stackTrace).isNotNull();
+      },
+    );
   });
 }

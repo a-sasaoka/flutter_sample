@@ -36,6 +36,7 @@ class ChatNotifier extends _$ChatNotifier {
     final targetAiId = ref.read(uuidProvider).v4();
     _addMessageAndLoading(text, targetAiId);
 
+    final talker = ref.read(loggerProvider);
     try {
       final repository = ref.read(chatRepositoryProvider);
       final promptWithTime = _buildPromptWithTime(text);
@@ -55,8 +56,8 @@ class ChatNotifier extends _$ChatNotifier {
         ),
       );
     } on Exception catch (e, st) {
+      talker.handle(e, st);
       if (!ref.mounted) return;
-      ref.read(loggerProvider).handle(e, st);
 
       final now = ref.read(clockProvider)();
       _updateMessageById(
@@ -87,6 +88,7 @@ class ChatNotifier extends _$ChatNotifier {
     final targetAiId = ref.read(uuidProvider).v4();
     _addMessageAndLoading(text, targetAiId);
 
+    final talker = ref.read(loggerProvider);
     try {
       final repository = ref.read(chatRepositoryProvider);
       final promptWithTime = _buildPromptWithTime(text);
@@ -124,8 +126,8 @@ class ChatNotifier extends _$ChatNotifier {
         throw ChatEmptyResponseException(); // 空のままStreamが終わった場合
       }
     } on Exception catch (e, st) {
+      talker.handle(e, st);
       if (!ref.mounted) return;
-      ref.read(loggerProvider).handle(e, st);
 
       final now = ref.read(clockProvider)();
       _updateMessageById(
