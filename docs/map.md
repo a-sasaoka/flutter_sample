@@ -84,7 +84,9 @@ lib/src/features/map/
 
 スポット詳細モーダルから「ルート案内」ボタンを押下、または出発地と目的地を指定することで、現在地から目的地までの経路案内を開始します。
 
-- **Google Routes API 連携**: 出発地と目的地、および選択された移動手段をもとに Google Routes サーバーから実際の経路・走行距離・所要時間・警告情報（`warnings`）を取得します。
+- **ルート案内データ取得と環境別切り替え**:
+  - **local 環境 (`Flavor.local`)**: `MockRouteRepository` により、API キーおよび外部通信不要で即座にリアルな補間座標（折れ線）・距離・所要時間を算出し、オフラインで快適に開発・動作確認を行えます。
+  - **dev / stg / prod 環境**: `RouteRepositoryImpl` がプロキシサーバー（Firebase Cloud Functions）へリクエストを送信し、安全に Google Routes API の結果を取得します。
 - **経路描画 (`Polyline`)**: 道路に沿った経由座標点（ウェイポイント）を青色の Polyline（線幅 5、丸型キャップ）として地図上に描画します。
 - **カメラ自動ズーム (`LatLngBounds`)**: 経路全体が画面内に綺麗に収まるよう `CameraUpdate.newLatLngBounds(route.bounds, 64)` によるスムーズなカメラ調整を実行します。
 - **案内カードオーバーレイ (`RouteNavigationCard`)**: 画面上部に目的地名称、移動手段切り替え用 `SegmentedButton`（車、徒歩、自転車、公共交通）、予想所要時間（分）、総距離（km）、および案内終了ボタン（×）を表示します。移動手段を切り替えると即座に新しい手段でのルート再計算が実行されます。案内終了ボタンを押下するとルート案内状態がクリアされ、Polyline およびカードが地図上から非表示になります。

@@ -16,8 +16,4 @@ abstract class AppEnv {
   /// App Checkのデバッグ用トークン（秘匿情報）
   @EnviedField(varName: 'DEBUG_TOKEN')
   static final String debugToken = _AppEnv.debugToken;
-
-  /// Google Maps APIキー（秘匿情報）
-  @EnviedField(varName: 'MAPS_API_KEY', defaultValue: '')
-  static final String mapsApiKey = _AppEnv.mapsApiKey;
 }

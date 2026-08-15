@@ -53,4 +53,4 @@ final class RouteRepositoryProvider
   }
 }
 
-String _$routeRepositoryHash() => r'16be6fb7483705d8311178d1ea6adbe2b4056387';
+String _$routeRepositoryHash() => r'ec3f4694a10c2a1884ffb385114b5ef1b5ec6da9';

@@ -76,15 +76,13 @@ cd ..
 | `GOOGLE_REVERSED_CLIENT_ID` | iOS の URL Scheme 設定に必要な逆クライアント ID                                     |
 | `MAPS_ANDROID_API_KEY`      | Android Maps SDK 用 API キー（パッケージ名 + SHA-1 制限）                           |
 | `MAPS_IOS_API_KEY`          | iOS Maps SDK 用 API キー（Bundle ID 制限）                                          |
-| `MAPS_API_KEY`              | Google Routes API / Webサービス用 API キー（APIの制限: Routes API のみ許可）        |
 
 > 🛡️ **Google Maps API キーのセキュリティ設計（ベストプラクティス）**:
 >
-> - **クライアント露出キー（Client-Exposed Key）**: モバイルアプリに埋め込まれる API キーは公開される前提の識別子です。そのため、Google Cloud Console 側でプラットフォーム別・用途別の適切な制限を設定することが必須となります。
-> - **Android (`MAPS_ANDROID_API_KEY`)**: アプリケーション制限で「Android アプリ（パッケージ名と SHA-1 証明書指紋）」、API 制限で「Maps SDK for Android」のみを指定します。
-> - **iOS (`MAPS_IOS_API_KEY`)**: アプリケーション制限で「iOS アプリ（Bundle Identifier）」、API 制限で「Maps SDK for iOS」のみを指定します。
-> - **Routes API (`MAPS_API_KEY`)**: Web サービス API のため Bundle ID / パッケージ名制限は適用できません。アプリケーション制限は「なし」とし、API 制限で「Routes API」のみを許可した上で、1日あたりのクォータ制限（最大リクエスト数）や予算アラートを設定します。
-> - **サーバー中継（Proxy）の推奨**: 本番環境でより強固なセキュリティを担保する場合は、アプリから直接 Routes API を呼び出すのではなく、Firebase Cloud Functions などのバックエンドを経由し、IP 制限付きサーバーキーで中継する構成を推奨します。
+> - **ネイティブ Maps SDK 表示キー (`MAPS_ANDROID_API_KEY` / `MAPS_IOS_API_KEY`)**: Google Maps タイル描画のためアプリ内に埋め込まれます。Google Cloud Console 側で Android（パッケージ名＋SHA-1）、iOS（Bundle ID）による厳格なアプリケーション制限を設定します。
+> - **Routes API のクライアントキー廃止とサーバープロキシ/モック構成**: Web サービス用キーをクライアントに保持させない設計を採用しています。
+>   - **local 環境 (`main_local.dart`)**: API キーおよび外部通信不要の `MockRouteRepository` により、オフラインで即座にリアルなルート計算・描画が可能です。
+>   - **dev / stg / prod 環境**: 将来作成する Firebase Cloud Functions プロキシを経由して通信するため、Flutter クライアント側には Web API キーを持たせません（詳細は `docs/map.md` を参照）。
 
 ## 5️⃣ Firebase利用準備
 

@@ -28,7 +28,6 @@ void main() {
     test('Google Routes API 成功時に正常な MapRoute を生成して返すこと', () async {
       final repository = RouteRepositoryImpl(
         dio: mockDio,
-        apiKey: 'test_api_key',
       );
 
       final mockApiResponse = {
@@ -94,7 +93,6 @@ void main() {
       () async {
         final repository = RouteRepositoryImpl(
           dio: mockDio,
-          apiKey: 'test_api_key',
         );
 
         final mockApiResponse = {
@@ -127,24 +125,9 @@ void main() {
       },
     );
 
-    test('APIキーが未設定の場合は RouteApiException をスローすること', () async {
-      final repository = RouteRepositoryImpl(
-        dio: mockDio,
-        apiKey: '',
-      );
-
-      await check(
-        repository.calculateRoute(
-          origin: origin,
-          destination: destination,
-        ),
-      ).throws<RouteApiException>();
-    });
-
     test('レスポンスデータが null の場合は RouteApiException をスローすること', () async {
       final repository = RouteRepositoryImpl(
         dio: mockDio,
-        apiKey: 'test_api_key',
       );
 
       when(
@@ -170,7 +153,6 @@ void main() {
     test('routes 配列が空の場合は RouteApiException をスローすること', () async {
       final repository = RouteRepositoryImpl(
         dio: mockDio,
-        apiKey: 'test_api_key',
       );
 
       final mockApiResponse = {
@@ -201,7 +183,6 @@ void main() {
     test('DioException 発生時に API エラーメッセージを抽出してスローすること', () async {
       final repository = RouteRepositoryImpl(
         dio: mockDio,
-        apiKey: 'test_api_key',
       );
 
       final dioException = DioException(
@@ -237,7 +218,6 @@ void main() {
     test('DioException 発生時にレスポンスがない場合 DioException.message をスローすること', () async {
       final repository = RouteRepositoryImpl(
         dio: mockDio,
-        apiKey: 'test_api_key',
       );
 
       final dioException = DioException(
@@ -264,7 +244,6 @@ void main() {
     test('travelMode に walking を指定した場合に travelMode に WALK が渡されること', () async {
       final repository = RouteRepositoryImpl(
         dio: mockDio,
-        apiKey: 'test_api_key',
       );
 
       final mockApiResponse = {
@@ -322,7 +301,6 @@ void main() {
     test('duration が数値または末尾sなし文字列の場合でも正しくパースされること', () async {
       final repository = RouteRepositoryImpl(
         dio: mockDio,
-        apiKey: 'test_api_key',
       );
 
       final mockApiResponse = {
@@ -359,7 +337,6 @@ void main() {
     test('カスタム directionsApiUrl が指定された場合にそのURLへ POST リクエストすること', () async {
       final repository = RouteRepositoryImpl(
         dio: mockDio,
-        apiKey: 'test_api_key',
         directionsApiUrl: 'https://custom-proxy.example.com/computeRoutes',
       );
 
@@ -398,7 +375,6 @@ void main() {
     test('routes レスポンスに warnings が含まれている場合に MapRoute に格納されること', () async {
       final repository = RouteRepositoryImpl(
         dio: mockDio,
-        apiKey: 'test_api_key',
       );
 
       final mockApiResponse = {
@@ -439,17 +415,82 @@ void main() {
       check(exception.toString()).equals('カスタムエラー');
     });
 
-    test('routeRepositoryProvider から RouteRepository インスタンスを取得できること', () {
-      final container = ProviderContainer(
+    group('MockRouteRepository Tests', () {
+      const mockRepo = MockRouteRepository();
+
+      test('各移動手段で適切な所要時間・距離・補間ポイントを返すこと', () async {
+        final drivingRoute = await mockRepo.calculateRoute(
+          origin: origin,
+          destination: destination,
+          destinationName: 'テスト目的地',
+        );
+
+        check(drivingRoute.origin).equals(origin);
+        check(drivingRoute.destination).equals(destination);
+        check(drivingRoute.destinationName).equals('テスト目的地');
+        check(drivingRoute.travelMode).equals(TravelMode.driving);
+        check(drivingRoute.points.length).equals(5);
+        check(drivingRoute.distanceMeters).isGreaterThan(0);
+        check(drivingRoute.durationSeconds).isGreaterThan(0);
+
+        final walkingRoute = await mockRepo.calculateRoute(
+          origin: origin,
+          destination: destination,
+          travelMode: TravelMode.walking,
+        );
+        check(walkingRoute.travelMode).equals(TravelMode.walking);
+        check(
+          walkingRoute.durationSeconds,
+        ).isGreaterThan(drivingRoute.durationSeconds);
+
+        final bikingRoute = await mockRepo.calculateRoute(
+          origin: origin,
+          destination: destination,
+          travelMode: TravelMode.bicycling,
+        );
+        check(bikingRoute.travelMode).equals(TravelMode.bicycling);
+
+        final transitRoute = await mockRepo.calculateRoute(
+          origin: origin,
+          destination: destination,
+          travelMode: TravelMode.transit,
+        );
+        check(transitRoute.travelMode).equals(TravelMode.transit);
+      });
+
+      test('destinationName が未指定の場合デフォルト名が設定されること', () async {
+        final route = await mockRepo.calculateRoute(
+          origin: origin,
+          destination: destination,
+        );
+        check(route.destinationName).equals('モック目的地');
+      });
+    });
+
+    test('routeRepositoryProvider が Flavor に応じて適切なリポジトリを返すこと', () {
+      // dev 環境 -> RouteRepositoryImpl
+      final devContainer = ProviderContainer(
         overrides: [
           flavorProvider.overrideWithValue(Flavor.dev),
           loggerProvider.overrideWithValue(Talker()),
         ],
       );
-      addTearDown(container.dispose);
+      addTearDown(devContainer.dispose);
+      check(
+        devContainer.read(routeRepositoryProvider),
+      ).isA<RouteRepositoryImpl>();
 
-      final repository = container.read(routeRepositoryProvider);
-      check(repository).isA<RouteRepositoryImpl>();
+      // local 環境 -> MockRouteRepository
+      final localContainer = ProviderContainer(
+        overrides: [
+          flavorProvider.overrideWithValue(Flavor.local),
+          loggerProvider.overrideWithValue(Talker()),
+        ],
+      );
+      addTearDown(localContainer.dispose);
+      check(
+        localContainer.read(routeRepositoryProvider),
+      ).isA<MockRouteRepository>();
     });
   });
 }
