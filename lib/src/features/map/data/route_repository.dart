@@ -22,7 +22,7 @@ abstract interface class RouteRepository {
   });
 }
 
-/// Google Directions API を使用したルート計算リポジトリの実装クラス
+/// Google Routes API を使用したルート計算リポジトリの実装クラス
 class RouteRepositoryImpl implements RouteRepository {
   /// コンストラクタ
   const RouteRepositoryImpl({
@@ -51,65 +51,98 @@ class RouteRepositoryImpl implements RouteRepository {
       );
     }
 
-    final response = await _dio.get<Map<String, dynamic>>(
-      _directionsApiUrl,
-      queryParameters: {
-        'origin': '${origin.latitude},${origin.longitude}',
-        'destination': '${destination.latitude},${destination.longitude}',
-        'mode': travelMode.apiValue,
-        'key': _apiKey,
-      },
-    );
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        _directionsApiUrl,
+        data: {
+          'origin': {
+            'location': {
+              'latLng': {
+                'latitude': origin.latitude,
+                'longitude': origin.longitude,
+              },
+            },
+          },
+          'destination': {
+            'location': {
+              'latLng': {
+                'latitude': destination.latitude,
+                'longitude': destination.longitude,
+              },
+            },
+          },
+          'travelMode': travelMode.apiValue,
+        },
+        options: Options(
+          headers: {
+            'X-Goog-Api-Key': _apiKey,
+            'X-Goog-FieldMask':
+                'routes.duration,routes.distanceMeters,'
+                'routes.polyline.encodedPolyline',
+          },
+        ),
+      );
 
-    final data = response.data;
-    if (data == null) {
-      throw const RouteApiException('Route response data is empty.');
+      final data = response.data;
+      if (data == null) {
+        throw const RouteApiException('Route response data is empty.');
+      }
+
+      final routes = data['routes'] as List<dynamic>?;
+      if (routes == null || routes.isEmpty) {
+        throw const RouteApiException('No route found in response.');
+      }
+
+      final firstRoute = routes.first as Map<String, dynamic>;
+      final polylineMap = firstRoute['polyline'] as Map<String, dynamic>?;
+      final encodedPoints = polylineMap?['encodedPolyline'] as String? ?? '';
+      final points = decodePolyline(encodedPoints);
+
+      final distanceMeters =
+          (firstRoute['distanceMeters'] as num?)?.toDouble() ?? 0.0;
+      final durationRaw = firstRoute['duration'];
+      final durationSeconds = _parseDurationSeconds(durationRaw);
+
+      final id =
+          'route_${origin.latitude}_${origin.longitude}_'
+          '${destination.latitude}_${destination.longitude}_'
+          '${travelMode.apiValue}';
+
+      return MapRoute(
+        id: id,
+        origin: origin,
+        destination: destination,
+        points: points.isNotEmpty ? points : [origin, destination],
+        distanceMeters: distanceMeters,
+        durationSeconds: durationSeconds,
+        destinationName: destinationName,
+        travelMode: travelMode,
+      );
+    } on DioException catch (e) {
+      final responseData = e.response?.data;
+      if (responseData is Map<String, dynamic>) {
+        final errorMap = responseData['error'] as Map<String, dynamic>?;
+        final message = errorMap?['message'] as String?;
+        if (message != null && message.isNotEmpty) {
+          throw RouteApiException(message);
+        }
+      }
+      throw RouteApiException(e.message ?? 'Failed to calculate route.');
     }
+  }
 
-    final status = data['status'] as String?;
-    if (status != 'OK') {
-      final errorMessage =
-          data['error_message'] as String? ?? 'Failed to find route ($status).';
-      throw RouteApiException(errorMessage);
+  /// 秒数表記（例: "480s" や 480）から秒数を整数で抽出する
+  int _parseDurationSeconds(dynamic duration) {
+    if (duration is num) {
+      return duration.toInt();
     }
-
-    final routes = data['routes'] as List<dynamic>?;
-    if (routes == null || routes.isEmpty) {
-      throw const RouteApiException('No route found in response.');
+    if (duration is String) {
+      final sanitized = duration.endsWith('s')
+          ? duration.substring(0, duration.length - 1)
+          : duration;
+      return double.tryParse(sanitized)?.toInt() ?? 0;
     }
-
-    final firstRoute = routes.first as Map<String, dynamic>;
-    final overviewPolyline =
-        firstRoute['overview_polyline'] as Map<String, dynamic>?;
-    final encodedPoints = overviewPolyline?['points'] as String? ?? '';
-    final points = decodePolyline(encodedPoints);
-
-    final legs = firstRoute['legs'] as List<dynamic>?;
-    final firstLeg = (legs != null && legs.isNotEmpty)
-        ? legs.first as Map<String, dynamic>
-        : null;
-
-    final distanceMap = firstLeg?['distance'] as Map<String, dynamic>?;
-    final distanceMeters = (distanceMap?['value'] as num?)?.toDouble() ?? 0.0;
-
-    final durationMap = firstLeg?['duration'] as Map<String, dynamic>?;
-    final durationSeconds = (durationMap?['value'] as num?)?.toInt() ?? 0;
-
-    final id =
-        'route_${origin.latitude}_${origin.longitude}_'
-        '${destination.latitude}_${destination.longitude}_'
-        '${travelMode.apiValue}';
-
-    return MapRoute(
-      id: id,
-      origin: origin,
-      destination: destination,
-      points: points.isNotEmpty ? points : [origin, destination],
-      distanceMeters: distanceMeters,
-      durationSeconds: durationSeconds,
-      destinationName: destinationName,
-      travelMode: travelMode,
-    );
+    return 0;
   }
 }
 

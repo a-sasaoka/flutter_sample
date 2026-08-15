@@ -60,7 +60,7 @@ lib/src/features/map/
 
 `LocationRepository`、`GeocodingRepository`、`RouteRepository` および `SpotRepository` にて外部依存・通信ロジックを集約し、テスト時にモックやテスト用ハンドラを注入可能とすることで、100% 決定論的な単体・ウィジェットテストを可能にしています。
 
-- **`RouteRepositoryImpl`**: Google Directions API (`https://maps.googleapis.com/maps/api/directions/json`) と通信し、指定された `TravelMode`（車、徒歩、自転車、公共交通機関）の道路ネットワークに沿った経路 Polyline、総距離、所要時間を取得します。圧縮された座標文字列は `decodePolyline` ユーティリティにより `List<LatLng>` に復元されます。
+- **`RouteRepositoryImpl`**: Google Routes API (`https://routes.googleapis.com/directions/v2:computeRoutes`) と POST 通信し、指定された `TravelMode`（車: `DRIVE`、徒歩: `WALK`、自転車: `BICYCLE`、公共交通機関: `TRANSIT`）の道路ネットワークに沿った経路 Polyline、総距離、所要時間を取得します。ヘッダーには `X-Goog-Api-Key` および `X-Goog-FieldMask` を付与し、必要なフィールドのみを効率的に取得します。圧縮された座標文字列は `decodePolyline` ユーティリティにより `List<LatLng>` に復元されます。
 
 ### 3. 多言語対応 (Presentation層)
 
@@ -84,7 +84,7 @@ lib/src/features/map/
 
 スポット詳細モーダルから「ルート案内」ボタンを押下、または出発地と目的地を指定することで、現在地から目的地までの経路案内を開始します。
 
-- **Google Directions API 連携**: 出発地と目的地、および選択された移動手段をもとに Google サーバーから実際の経路・走行距離・所要時間を取得します。
+- **Google Routes API 連携**: 出発地と目的地、および選択された移動手段をもとに Google Routes サーバーから実際の経路・走行距離・所要時間を取得します。
 - **経路描画 (`Polyline`)**: 道路に沿った経由座標点（ウェイポイント）を青色の Polyline（線幅 5、丸型キャップ）として地図上に描画します。
 - **カメラ自動ズーム (`LatLngBounds`)**: 経路全体が画面内に綺麗に収まるよう `CameraUpdate.newLatLngBounds(route.bounds, 64)` によるスムーズなカメラ調整を実行します。
 - **案内カードオーバーレイ (`RouteNavigationCard`)**: 画面上部に目的地名称、移動手段切り替え用 `SegmentedButton`（車、徒歩、自転車、公共交通）、予想所要時間（分）、総距離（km）、および案内終了ボタン（×）を表示します。移動手段を切り替えると即座に新しい手段でのルート再計算が実行されます。案内終了ボタンを押下するとルート案内状態がクリアされ、Polyline およびカードが地図上から非表示になります。

@@ -13,7 +13,7 @@ import 'package:talker_flutter/talker_flutter.dart';
 class MockDio extends Mock implements Dio {}
 
 void main() {
-  group('RouteRepository Tests', () {
+  group('RouteRepository Tests (Google Routes API)', () {
     late MockDio mockDio;
 
     setUp(() {
@@ -22,34 +22,50 @@ void main() {
 
     const origin = LatLng(35.681236, 139.767125);
     const destination = LatLng(35.6585805, 139.7454329);
+    const expectedUrl =
+        'https://routes.googleapis.com/directions/v2:computeRoutes';
 
-    test('Google Directions API 成功時に正常な MapRoute を生成して返すこと', () async {
+    test('Google Routes API 成功時に正常な MapRoute を生成して返すこと', () async {
       final repository = RouteRepositoryImpl(
         dio: mockDio,
         apiKey: 'test_api_key',
       );
 
       final mockApiResponse = {
-        'status': 'OK',
         'routes': [
           {
-            'overview_polyline': {
-              'points': '_p~iF~ps|U_ulLnnqC_mqNvxq`@',
+            'polyline': {
+              'encodedPolyline': '_p~iF~ps|U_ulLnnqC_mqNvxq`@',
             },
-            'legs': [
-              {
-                'distance': {'value': 4200, 'text': '4.2 km'},
-                'duration': {'value': 480, 'text': '8分'},
-              },
-            ],
+            'distanceMeters': 4200,
+            'duration': '480s',
           },
         ],
       };
 
       when(
-        () => mockDio.get<Map<String, dynamic>>(
-          'https://maps.googleapis.com/maps/api/directions/json',
-          queryParameters: any(named: 'queryParameters'),
+        () => mockDio.post<Map<String, dynamic>>(
+          expectedUrl,
+          data: {
+            'origin': {
+              'location': {
+                'latLng': {
+                  'latitude': origin.latitude,
+                  'longitude': origin.longitude,
+                },
+              },
+            },
+            'destination': {
+              'location': {
+                'latLng': {
+                  'latitude': destination.latitude,
+                  'longitude': destination.longitude,
+                },
+              },
+            },
+            'travelMode': 'DRIVE',
+          },
+          options: any(named: 'options'),
         ),
       ).thenAnswer(
         (_) async => Response(
@@ -70,10 +86,11 @@ void main() {
       check(route.distanceMeters).equals(4200);
       check(route.durationSeconds).equals(480);
       check(route.points.length).equals(3);
+      check(route.travelMode).equals(TravelMode.driving);
     });
 
     test(
-      'overview_polyline や legs が空の場合でもフォールバックして MapRoute を生成すること',
+      'polyline や duration が空の場合でもフォールバックして MapRoute を生成すること',
       () async {
         final repository = RouteRepositoryImpl(
           dio: mockDio,
@@ -81,16 +98,16 @@ void main() {
         );
 
         final mockApiResponse = {
-          'status': 'OK',
           'routes': [
             <String, dynamic>{},
           ],
         };
 
         when(
-          () => mockDio.get<Map<String, dynamic>>(
-            'https://maps.googleapis.com/maps/api/directions/json',
-            queryParameters: any(named: 'queryParameters'),
+          () => mockDio.post<Map<String, dynamic>>(
+            expectedUrl,
+            data: any(named: 'data'),
+            options: any(named: 'options'),
           ),
         ).thenAnswer(
           (_) async => Response(
@@ -131,77 +148,14 @@ void main() {
       );
 
       when(
-        () => mockDio.get<Map<String, dynamic>>(
-          'https://maps.googleapis.com/maps/api/directions/json',
-          queryParameters: any(named: 'queryParameters'),
+        () => mockDio.post<Map<String, dynamic>>(
+          expectedUrl,
+          data: any(named: 'data'),
+          options: any(named: 'options'),
         ),
       ).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(),
-        ),
-      );
-
-      await check(
-        repository.calculateRoute(
-          origin: origin,
-          destination: destination,
-        ),
-      ).throws<RouteApiException>();
-    });
-
-    test(
-      'API ステータスが OK 以外の場合は error_message を含む RouteApiException をスローすること',
-      () async {
-        final repository = RouteRepositoryImpl(
-          dio: mockDio,
-          apiKey: 'test_api_key',
-        );
-
-        final mockApiResponse = {
-          'status': 'ZERO_RESULTS',
-          'error_message': '経路が見つかりませんでした',
-        };
-
-        when(
-          () => mockDio.get<Map<String, dynamic>>(
-            'https://maps.googleapis.com/maps/api/directions/json',
-            queryParameters: any(named: 'queryParameters'),
-          ),
-        ).thenAnswer(
-          (_) async => Response(
-            requestOptions: RequestOptions(),
-            data: mockApiResponse,
-          ),
-        );
-
-        await check(
-          repository.calculateRoute(
-            origin: origin,
-            destination: destination,
-          ),
-        ).throws<RouteApiException>();
-      },
-    );
-
-    test('API ステータスが OK 以外で error_message がない場合のデフォルトメッセージ確認', () async {
-      final repository = RouteRepositoryImpl(
-        dio: mockDio,
-        apiKey: 'test_api_key',
-      );
-
-      final mockApiResponse = {
-        'status': 'REQUEST_DENIED',
-      };
-
-      when(
-        () => mockDio.get<Map<String, dynamic>>(
-          'https://maps.googleapis.com/maps/api/directions/json',
-          queryParameters: any(named: 'queryParameters'),
-        ),
-      ).thenAnswer(
-        (_) async => Response(
-          requestOptions: RequestOptions(),
-          data: mockApiResponse,
         ),
       );
 
@@ -220,14 +174,14 @@ void main() {
       );
 
       final mockApiResponse = {
-        'status': 'OK',
         'routes': <dynamic>[],
       };
 
       when(
-        () => mockDio.get<Map<String, dynamic>>(
-          'https://maps.googleapis.com/maps/api/directions/json',
-          queryParameters: any(named: 'queryParameters'),
+        () => mockDio.post<Map<String, dynamic>>(
+          expectedUrl,
+          data: any(named: 'data'),
+          options: any(named: 'options'),
         ),
       ).thenAnswer(
         (_) async => Response(
@@ -244,36 +198,108 @@ void main() {
       ).throws<RouteApiException>();
     });
 
-    test('travelMode に walking を指定した場合に mode パラメータに walking が渡されること', () async {
+    test('DioException 発生時に API エラーメッセージを抽出してスローすること', () async {
+      final repository = RouteRepositoryImpl(
+        dio: mockDio,
+        apiKey: 'test_api_key',
+      );
+
+      final dioException = DioException(
+        requestOptions: RequestOptions(),
+        response: Response(
+          requestOptions: RequestOptions(),
+          data: {
+            'error': {
+              'code': 400,
+              'message': 'API key not valid. Please pass a valid API key.',
+              'status': 'INVALID_ARGUMENT',
+            },
+          },
+        ),
+      );
+
+      when(
+        () => mockDio.post<Map<String, dynamic>>(
+          expectedUrl,
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(dioException);
+
+      await check(
+        repository.calculateRoute(
+          origin: origin,
+          destination: destination,
+        ),
+      ).throws<RouteApiException>();
+    });
+
+    test('DioException 発生時にレスポンスがない場合 DioException.message をスローすること', () async {
+      final repository = RouteRepositoryImpl(
+        dio: mockDio,
+        apiKey: 'test_api_key',
+      );
+
+      final dioException = DioException(
+        requestOptions: RequestOptions(),
+        message: 'ネットワーク接続エラー',
+      );
+
+      when(
+        () => mockDio.post<Map<String, dynamic>>(
+          expectedUrl,
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(dioException);
+
+      await check(
+        repository.calculateRoute(
+          origin: origin,
+          destination: destination,
+        ),
+      ).throws<RouteApiException>();
+    });
+
+    test('travelMode に walking を指定した場合に travelMode に WALK が渡されること', () async {
       final repository = RouteRepositoryImpl(
         dio: mockDio,
         apiKey: 'test_api_key',
       );
 
       final mockApiResponse = {
-        'status': 'OK',
         'routes': [
           {
-            'overview_polyline': {'points': '_p~iF~ps|U'},
-            'legs': [
-              {
-                'distance': {'value': 2500, 'text': '2.5 km'},
-                'duration': {'value': 1800, 'text': '30分'},
-              },
-            ],
+            'polyline': {'encodedPolyline': '_p~iF~ps|U'},
+            'distanceMeters': 2500,
+            'duration': '1800s',
           },
         ],
       };
 
       when(
-        () => mockDio.get<Map<String, dynamic>>(
-          'https://maps.googleapis.com/maps/api/directions/json',
-          queryParameters: {
-            'origin': '${origin.latitude},${origin.longitude}',
-            'destination': '${destination.latitude},${destination.longitude}',
-            'mode': 'walking',
-            'key': 'test_api_key',
+        () => mockDio.post<Map<String, dynamic>>(
+          expectedUrl,
+          data: {
+            'origin': {
+              'location': {
+                'latLng': {
+                  'latitude': origin.latitude,
+                  'longitude': origin.longitude,
+                },
+              },
+            },
+            'destination': {
+              'location': {
+                'latLng': {
+                  'latitude': destination.latitude,
+                  'longitude': destination.longitude,
+                },
+              },
+            },
+            'travelMode': 'WALK',
           },
+          options: any(named: 'options'),
         ),
       ).thenAnswer(
         (_) async => Response(
@@ -293,32 +319,65 @@ void main() {
       check(route.durationSeconds).equals(1800);
     });
 
-    test('カスタム directionsApiUrl が指定された場合にそのURLへリクエストすること', () async {
+    test('duration が数値または末尾sなし文字列の場合でも正しくパースされること', () async {
       final repository = RouteRepositoryImpl(
         dio: mockDio,
         apiKey: 'test_api_key',
-        directionsApiUrl: 'https://custom-proxy.example.com/directions',
       );
 
       final mockApiResponse = {
-        'status': 'OK',
         'routes': [
           {
-            'overview_polyline': {'points': '_p~iF~ps|U'},
-            'legs': [
-              {
-                'distance': {'value': 1000, 'text': '1 km'},
-                'duration': {'value': 120, 'text': '2分'},
-              },
-            ],
+            'polyline': {'encodedPolyline': '_p~iF~ps|U'},
+            'distanceMeters': 1000,
+            'duration': 300,
           },
         ],
       };
 
       when(
-        () => mockDio.get<Map<String, dynamic>>(
-          'https://custom-proxy.example.com/directions',
-          queryParameters: any(named: 'queryParameters'),
+        () => mockDio.post<Map<String, dynamic>>(
+          expectedUrl,
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      ).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(),
+          data: mockApiResponse,
+        ),
+      );
+
+      final route = await repository.calculateRoute(
+        origin: origin,
+        destination: destination,
+      );
+
+      check(route.durationSeconds).equals(300);
+    });
+
+    test('カスタム directionsApiUrl が指定された場合にそのURLへ POST リクエストすること', () async {
+      final repository = RouteRepositoryImpl(
+        dio: mockDio,
+        apiKey: 'test_api_key',
+        directionsApiUrl: 'https://custom-proxy.example.com/computeRoutes',
+      );
+
+      final mockApiResponse = {
+        'routes': [
+          {
+            'polyline': {'encodedPolyline': '_p~iF~ps|U'},
+            'distanceMeters': 1000,
+            'duration': '120s',
+          },
+        ],
+      };
+
+      when(
+        () => mockDio.post<Map<String, dynamic>>(
+          'https://custom-proxy.example.com/computeRoutes',
+          data: any(named: 'data'),
+          options: any(named: 'options'),
         ),
       ).thenAnswer(
         (_) async => Response(

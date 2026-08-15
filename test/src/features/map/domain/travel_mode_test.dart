@@ -4,11 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('TravelMode Enum Tests', () {
-    test('各列挙値の apiValue が Google Directions API 仕様と一致すること', () {
-      check(TravelMode.driving.apiValue).equals('driving');
-      check(TravelMode.walking.apiValue).equals('walking');
-      check(TravelMode.bicycling.apiValue).equals('bicycling');
-      check(TravelMode.transit.apiValue).equals('transit');
+    test('各列挙値の apiValue が Google Routes API 仕様と一致すること', () {
+      check(TravelMode.driving.apiValue).equals('DRIVE');
+      check(TravelMode.walking.apiValue).equals('WALK');
+      check(TravelMode.bicycling.apiValue).equals('BICYCLE');
+      check(TravelMode.transit.apiValue).equals('TRANSIT');
     });
 
     test('values に 4 つの移動手段が含まれていること', () {
