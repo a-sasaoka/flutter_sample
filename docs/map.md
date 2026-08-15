@@ -152,15 +152,16 @@ sequenceDiagram
 
 ### 2. 各環境（Flavor）の構成設計
 
-| Flavor | `BASE_URL` | `GOOGLE_DIRECTIONS_API_URL` | 動作環境・役割 |
-| :--- | :--- | :--- | :--- |
-| **local** (`main_local.dart`) | `http://localhost:3000`<br/>(PC上のモックサーバー) | `http://localhost:5001/YOUR_PROJECT_ID/us-central1/computeRoutesProxy`<br/>(Functions エミュレータ) | オフライン開発 & ローカルプロキシ接続検証 |
-| **dev** (`main_dev.dart`) | `http://localhost:5001/YOUR_PROJECT_ID/us-central1`<br/>(Functions エミュレータ) | `http://localhost:5001/YOUR_PROJECT_ID/us-central1/computeRoutesProxy`<br/>(Functions エミュレータ) | ローカル完全統合テスト環境 |
-| **stg** (`main_stg.dart`) | `https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/api` | `https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/computeRoutesProxy` | 検証用ステージング環境 |
-| **prod** (`main_prod.dart`) | `https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/api` | `https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/computeRoutesProxy` | 本番環境 |
+| Flavor                        | `BASE_URL`                                                                       | `GOOGLE_DIRECTIONS_API_URL`                                                                         | 動作環境・役割                            |
+| :---------------------------- | :------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------- | :---------------------------------------- |
+| **local** (`main_local.dart`) | `http://localhost:3000`<br/>(PC上のモックサーバー)                               | `http://localhost:5001/YOUR_PROJECT_ID/us-central1/computeRoutesProxy`<br/>(Functions エミュレータ) | オフライン開発 & ローカルプロキシ接続検証 |
+| **dev** (`main_dev.dart`)     | `http://localhost:5001/YOUR_PROJECT_ID/us-central1`<br/>(Functions エミュレータ) | `http://localhost:5001/YOUR_PROJECT_ID/us-central1/computeRoutesProxy`<br/>(Functions エミュレータ) | ローカル完全統合テスト環境                |
+| **stg** (`main_stg.dart`)     | `https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/api`                     | `https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/computeRoutesProxy`                         | 検証用ステージング環境                    |
+| **prod** (`main_prod.dart`)   | `https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/api`                     | `https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/computeRoutesProxy`                         | 本番環境                                  |
 
 > 💡 **個人環境のオーバーライド**:
-> チーム共通のデフォルト値は `config/flavor_*.json` に定義されていますが、開発者個人の Firebase プロジェクト ID や Android エミュレータ（`http://10.0.2.2:5001/...`）、実機（`http://192.168.x.x:5001/...`）で接続する場合は、`.env.local` や `.env.dev` の `GOOGLE_DIRECTIONS_API_URL` で優先上書きできます（詳細は `env.example` および `docs/setup.md` を参照）。
+> チーム共通のデフォルト値は `config/flavor_*.json` に定義されていますが、開発者個人の Firebase プロジェクト ID や Android エミュレータ（`http://10.0.2.2:5001/...`）、実機（`http://192.168.x.x:5001/...`）で接続する場合は、`.env.local` や `.env.dev` の `BASE_URL` および `GOOGLE_DIRECTIONS_API_URL` で優先上書きできます（詳細は `env.example` および `docs/setup.md` を参照）。
+> ※ リリースビルド（`stg` / `prod`）では `localhost` は使用せず、リリース前に `config/flavor_stg.json` および `config/flavor_prod.json`（または `.env.stg` / `.env.prod`）の `YOUR_PROJECT_ID` を実際の Firebase プロジェクト ID に設定してデプロイしてください。
 
 ### 3. サーバー側（Firebase Cloud Functions）実装例 (TypeScript)
 
@@ -177,9 +178,9 @@ import axios, { isAxiosError } from "axios";
 /**
  * Express リクエストから Firebase ID トークンを抽出し UID を検証するヘルパー
  */
-async function getUidFromRequest(
-  req: { headers: { authorization?: string } }
-): Promise<string | null> {
+async function getUidFromRequest(req: {
+  headers: { authorization?: string };
+}): Promise<string | null> {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return null;
@@ -210,7 +211,9 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
 
     // 2. リクエストボディのバリデーション (origin, destination の存在確認)
     if (!req.body || typeof req.body !== "object") {
-      res.status(400).json({ error: "Bad Request: リクエストボディが空です。" });
+      res
+        .status(400)
+        .json({ error: "Bad Request: リクエストボディが空です。" });
       return;
     }
     const { origin, destination } = req.body;
@@ -273,7 +276,7 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
       req.body,
       {
         headers: requestHeaders,
-      }
+      },
     );
 
     res.status(200).json(googleResponse.data);
@@ -283,7 +286,7 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
         "Routes API Error: status =",
         error.response.status,
         "data =",
-        JSON.stringify(error.response.data)
+        JSON.stringify(error.response.data),
       );
       res.status(error.response.status).json(error.response.data);
       return;
@@ -313,3 +316,10 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
    ```
 
    - アプリにログイン後、マップ画面でスポット詳細の「ルート案内」ボタンをタップし、経路 Polyline および所要時間・距離カードが表示されることを確認します。
+
+> 📌 **設定適用の優先順位**:
+>
+> 1. `--dart-define-from-file=.env.*`（個人のローカル環境設定。指定されている場合最優先）
+> 2. `--dart-define-from-file=config/flavor_*.json`（チーム共通のデフォルト設定）
+>
+> リリースビルド時（`stg`, `prod`）は `.env.*` で `localhost` が上書きされないよう注意し、本番のクラウド Functions URL に接続してください。
