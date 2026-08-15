@@ -1,10 +1,10 @@
-# ローカル自作APIサーバー (Firebase Functions エミュレータ)
+# ローカル自作APIサーバー (Firebase Functions & Firestore エミュレータ)
 
 ## 概要
 
-このプロジェクトでは、`dev`（開発）フレーバーにおいて、ローカルPC上でAPIプログラム（Cloud Functions）を動かしながら、クラウド上の本物の Firebase サービス（Auth / Firestore）と組み合わせてデバッグできる、効率的でセキュアなハイブリッド環境を構築しています。
+このプロジェクトでは、`dev`（開発）フレーバーにおいて、ローカルPC上でAPIプログラム（Cloud Functions）およびデータストア（Cloud Firestore）のエミュレータを動かしながら、クラウド上の本物の Firebase Auth と組み合わせてデバッグできる、効率的でセキュアなハイブリッド環境を構築しています。
 
-アプリのログイン情報（IDトークン）をAPI側で自動検証し、クラウドの Firestore にユーザーごとの個別のデータ（`users/{uid}/memos` など）を安全に読み書きします。
+アプリのログイン情報（IDトークン）をAPI側で自動検証し、ローカルの Firestore エミュレータにユーザーごとの個別のデータ（`users/{uid}/memos` や `rate_limits` など）を安全に読み書きします。
 
 ---
 
@@ -45,14 +45,15 @@ npm run --prefix functions build
 
 ### 2. APIエミュレータの起動
 
-ローカルPC上で自作APIのみを起動します。FirestoreやAuthのエミュレータは起動せず、自動的に本物の Firebase（クラウド）と通信を行います。
+ローカルPC上で自作API（Functions）およびデータストア（Firestore）のエミュレータを起動します。Authのエミュレータは起動せず、自動的にクラウド上の本物の Firebase Auth と通信を行ってログイン・トークン検証を行います。
 
 ```bash
-npx -y firebase-tools@latest emulators:start --only functions
+npx -y firebase-tools@latest emulators:start --only functions,firestore
 ```
 
 起動が成功すると、ターミナルに以下のようなURLが公開されます。  
-`✔  functions[us-central1-memos]: http function initialized (http://127.0.0.1:5001/<プロジェクトID>/us-central1/memos).`
+`✔  functions[us-central1-memos]: http function initialized (http://127.0.0.1:5001/<プロジェクトID>/us-central1/memos).`  
+`✔  Emulator UI: http://127.0.0.1:4000/`
 
 ### 3. アプリ（Flutter）の起動
 
@@ -74,31 +75,34 @@ fvm flutter run --flavor dev -t lib/main_dev.dart --dart-define-from-file=config
 
 ```mermaid
 graph TD
-    subgraph "Flutter App (iOS Simulator)"
+    subgraph "Flutter App"
         A["アプリ起動 / ログイン"]
     end
 
     subgraph "Firebase Cloud (本物)"
         B["Firebase Auth (本物)"]
-        D["Cloud Firestore (本物)"]
     end
 
-    subgraph "PC Local (仮想環境)"
+    subgraph "PC Local (エミュレータ)"
         C["自作API: Functions エミュレータ :5001"]
+        D["Cloud Firestore エミュレータ :8080"]
+        E["Emulator Suite UI :4000"]
     end
 
     A -->|1. ログイン実行| B
     A -->|2. APIリクエスト| C
     C -->|3. トークンを検証| B
-    C -->|4. データを保存| D
+    C -->|4. データを保存・レート制限| D
+    D -.->|リアルタイム確認| E
 ```
 
 1. **セキュアな通信**:
    - アプリがログインすると、自動的に「本物のIDトークン」が取得され、APIリクエストの `Authorization` ヘッダーに付与されてローカルAPIに送信されます。
 2. **トークンの自動検証**:
    - ローカルで動くAPI（Functions）は、送られてきたトークンを本物の Firebase Auth に問い合わせて検証し、「ログイン中のユーザーの UID」を安全に特定します。
-3. **データ分離**:
-   - 特定した UID を元に、クラウド上の本物 Firestore の `users/{uid}/memos` などの階層にデータを保存します。他のユーザーのデータと完全に隔離されて安全にデータが保管されます。
+3. **ローカル完結のデータ保管**:
+   - 特定した UID を元に、ローカルの Firestore エミュレータ（`users/{uid}/memos` や `rate_limits` など）にデータを安全に保存します。ローカル完結のため、クラウドの本番・開発DBを汚すことなく自由にテスト・デバッグが可能です。
+   - Emulator Suite UI（`http://localhost:4000/firestore`）から、保存されたデータをブラウザ上でリアルタイムに閲覧・確認できます。
 
 ---
 

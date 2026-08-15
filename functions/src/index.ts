@@ -368,28 +368,60 @@ export const users = onRequest(async (req, res) => {
   }
 });
 
-// ユーザーごとのレート制限管理 (1分あたり最大30回)
-const routeRateLimits = new Map<string, number[]>();
+// ユーザーごとのレート制限管理 (Cloud Firestore による全インスタンス共通制御: 1分あたり最大30回)
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const MAX_REQUESTS_PER_MINUTE = 30;
 
 /**
- * Checks whether the specified UID exceeds the rate limit.
+ * Checks whether the specified UID exceeds the rate limit using Firestore.
  *
  * @param {string} uid User ID.
- * @return {boolean} True if allowed, false if rate limited.
+ * @return {Promise<boolean>} True if allowed, false if rate limited.
  */
-function checkRateLimit(uid: string): boolean {
+async function checkRateLimit(uid: string): Promise<boolean> {
   const now = Date.now();
-  const timestamps = (routeRateLimits.get(uid) || []).filter(
-    (t) => now - t < RATE_LIMIT_WINDOW_MS
-  );
-  if (timestamps.length >= MAX_REQUESTS_PER_MINUTE) {
-    return false;
+  const docRef = admin
+    .firestore()
+    .collection("rate_limits")
+    .doc(`routes_${uid}`);
+
+  try {
+    return await admin.firestore().runTransaction(async (tx) => {
+      const snap = await tx.get(docRef);
+      if (!snap.exists) {
+        tx.set(docRef, {
+          count: 1,
+          resetAt: now + RATE_LIMIT_WINDOW_MS,
+        });
+        return true;
+      }
+
+      const data = snap.data();
+      const resetAt = data?.resetAt || 0;
+      const count = data?.count || 0;
+
+      if (now > resetAt) {
+        tx.set(docRef, {
+          count: 1,
+          resetAt: now + RATE_LIMIT_WINDOW_MS,
+        });
+        return true;
+      }
+
+      if (count >= MAX_REQUESTS_PER_MINUTE) {
+        return false;
+      }
+
+      tx.update(docRef, {
+        count: count + 1,
+      });
+      return true;
+    });
+  } catch (error) {
+    logger.error("Rate limit check failed in Firestore: ", error);
+    // 障害時はユーザー操作をブロックしないようフェイルオープン
+    return true;
   }
-  timestamps.push(now);
-  routeRateLimits.set(uid, timestamps);
-  return true;
 }
 
 /**
@@ -411,8 +443,9 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
       return;
     }
 
-    // 2. ユーザーごとのレート制限チェック (短時間の過剰リクエスト・課金急増の防止)
-    if (!checkRateLimit(uid)) {
+    // 2. ユーザーごとのレート制限チェック (Cloud Firestore による全インスタンス共通制御)
+    const isAllowed = await checkRateLimit(uid);
+    if (!isAllowed) {
       res.status(429).json({
         error: "Too Many Requests: リクエストが多すぎます。しばらく待ってから再試行してください。",
       });

@@ -6,5 +6,4 @@ BUNDLE_NAME=[Local] Sample
 BUNDLE_DISPLAY_NAME=[Local] Sample
 #include "Dart-Defines.xcconfig"
 CUSTOM_URL_SCHEME=flsamplelocal
-ATS_ALLOWS_LOCAL=NO
 

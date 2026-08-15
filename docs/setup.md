@@ -124,12 +124,12 @@ fvm flutter run -t lib/main_dev.dart --flavor dev --dart-define-from-file=config
 1. ターミナルで `./mock/start.sh` を実行してサーバーを起動する。
 2. Flutterアプリを `local` フレーバーで起動する。
 
-### 💡 ローカル自作APIサーバー（Firebase Functions）の活用
+### 💡 ローカル自作APIサーバー（Firebase Functions & Firestore エミュレータ）の活用
 
-dev環境において、ローカルPC上でAPIを動かしながら、クラウド上の本物のAuth/Firestoreと通信してデバッグする場合は、以下の手順で実行します。詳細は [ローカル自作APIサーバーのドキュメント](./local_api_server.md) を参照してください。
+dev環境において、ローカルPC上でAPIプログラム（Functions）およびデータストア（Firestore）のエミュレータを動かしながら、クラウド上の本物のAuthと通信してデバッグする場合は、以下の手順で実行します。詳細は [ローカル自作APIサーバーのドキュメント](./local_api_server.md) を参照してください。
 
 1. ターミナルで `npm run --prefix functions build` を実行してAPIをビルドする。
-2. `firebase emulators:start --only functions` でAPIのみエミュレータを起動する。
+2. `firebase emulators:start --only functions,firestore` で Functions と Firestore のエミュレータを起動する（UI: `http://localhost:4000`）。
 3. Flutterアプリを `dev` フレーバーで起動する。
 
 ### 📱 ローカル HTTP 通信（Cleartext / ATS）の接続ガイド
@@ -148,8 +148,10 @@ npx -y cloudflared tunnel --url http://localhost:5001
 
 #### 方法 B: 開発環境のみ HTTP 通信を許可する
 
-- **Android**: `android/app/src/debug/AndroidManifest.xml`（Debug 専用マニフェスト）に `android:usesCleartextTraffic="true"` が設定されています。
-- **iOS (実機接続時)**: `ios/Flutter/*Debug.xcconfig` に `ATS_ALLOWS_LOCAL=YES`、`*Release.xcconfig` に `ATS_ALLOWS_LOCAL=NO` が設定されており、Debug ビルド時のみローカル通信（`NSAllowsLocalNetworking`）が自動で有効化されます（本番リリースビルドでは自動で無効化されます）。
+- **Android**: `android/app/src/debug/AndroidManifest.xml`（Debug 専用マニフェスト）に `android:usesCleartextTraffic="true"` が設定されています（Release ビルドでは自動で無効化されます）。
+- **iOS (シミュレータ / 実機接続)**:
+  - **iOS シミュレータ**: Apple 標準機能により設定不要で `localhost` への通信が許可されます。
+  - **iOS 実機**: 本番用 `ios/Runner/Info.plist` のセキュリティ（HTTPS 必須）を保護するため、実機接続時は **方法 A（HTTPS トンネル）** の利用を推奨します（※ CI テスト `release_security_config_test.dart` により、本番設定ファイルに通信例外設定が含まれていないことが常に自動検証されます）。
 
 ---
 
