@@ -1142,11 +1142,11 @@ void main() {
         final startRouteButtonFinder = find.byKey(
           const Key('spotDetailStartRouteButton'),
         );
-        check(startRouteButtonFinder).findsOne();
-
         await tester.tap(startRouteButtonFinder);
         await tester.pump();
+        await tester.pump(const Duration(milliseconds: 750));
 
+        check(find.byType(SpotDetailBottomSheet)).findsNothing();
         check(testRouteNotifier.searchDestinationName).equals('東京タワー');
         check(
           testRouteNotifier.searchOrigin,
@@ -1201,7 +1201,9 @@ void main() {
 
         await tester.tap(startRouteButtonFinder);
         await tester.pump();
+        await tester.pump(const Duration(milliseconds: 750));
 
+        check(find.byType(SpotDetailBottomSheet)).findsNothing();
         check(testRouteNotifier.searchDestinationName).equals('東京タワー');
         check(
           testRouteNotifier.searchOrigin,
