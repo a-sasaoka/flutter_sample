@@ -168,7 +168,7 @@ sequenceDiagram
 実装コードの詳細については [`functions/src/index.ts`](../functions/src/index.ts) を参照してください。以下の安全対策を施したプロキシエンドポイント（`computeRoutesProxy`）を提供しています。
 
 1. **ログイン認証チェック**: `getUidFromRequest` による Firebase Auth ID トークンの検証（未認証は 401 遮断）。
-2. **レート制限 (利用制限)**: UID 単位で 1分間に最大30リクエストに制限し、短時間の過剰アクセスや意図しない課金急増を防止（超過時は 429 遮断）。
+2. **レート制限 (利用制限)**: UID 単位で 1分間に最大30リクエストに制限し、短時間の過剰アクセスや意図しない課金急増を防止（超過時は 429 遮断。※レイテンシ増加とDB読み書き課金を避けるため Functions インスタンスごとのインメモリ制御を採用しており、将来的なマルチインスタンスでの厳密な分散共有が必要な場合は Cloud Firestore や Redis 等の共有ストアへ拡張可能な設計）。
 3. **入力バリデーション・ホワイトリスト再構築**: `origin` と `destination` の座標必須チェック、および許可パラメータ（`origin`, `destination`, `travelMode`）のみを検証して安全な `upstreamBody` を再構築して中継（未許可項目や座標不正は 400 遮断、`travelMode` の未指定・不正値は安全に `DRIVE` へフォールバック）。
 4. **Google IAM / ADC 認証**: クライアントに Web サービス用 API キーを持たせず、サーバー側で安全に取得した一時通行証（OAuth 2.0 Bearer トークン）で Google Routes API へ中継。
 5. **フィールドマスクの制限**: 許可されたフィールド（`duration`, `distanceMeters`, `polyline`, `warnings`）のみを通過させ、不要なデータ取得や課金増加を防止。
