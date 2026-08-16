@@ -22,7 +22,12 @@ flutter_sample
 ├── functions/                                                  # Firebase Cloud Functions (自作API) のソースコード (TypeScript)
 │   ├── src/                                                   # API実装コード (index.ts)
 │   ├── package.json                                           # Node.js依存パッケージとビルド定義
-│   └── tsconfig.json                                          # TypeScriptのコンパイル設定
+├── mock/                                                       # ローカル開発用モックサーバー（json-server / middleware）
+│   ├── db.json                                                # モックデータ
+│   ├── routes.json                                            # ルーティング設定
+│   ├── middleware.js                                          # 動的APIモック処理・エラースイッチ
+│   ├── error_on.sh / error_off.sh                             # 擬似エラー切り替えスクリプト
+│   └── start.sh                                               # サーバー起動スクリプト
 ├── firebase.json                                               # Firebaseエミュレータ/Hostingの設定ファイル
 ├── firestore.rules                                             # Firestoreのセキュリティルール設定
 ├── firestore.indexes.json                                      # Firestoreのインデックス設定

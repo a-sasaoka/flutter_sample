@@ -77,7 +77,6 @@ cd ..
 | `MAPS_ANDROID_API_KEY`      | 必須 | Android Maps SDK 用 API キー（パッケージ名 + SHA-1 制限）                                                                                                           |
 | `MAPS_IOS_API_KEY`          | 必須 | iOS Maps SDK 用 API キー（Bundle ID 制限）                                                                                                                          |
 | `BASE_URL`                  | 任意 | API サーバー URL（チーム共通値 `config/flavor_*.json` を個人プロジェクトや端末環境に合わせて上書きする場合。※stg/prod ではローカルURLを設定しないでください）       |
-| `GOOGLE_DIRECTIONS_API_URL` | 任意 | ルート検索プロキシ URL（チーム共通値 `config/flavor_*.json` を個人プロジェクトや端末環境に合わせて上書きする場合。※stg/prod ではローカルURLを設定しないでください） |
 
 > 🛡️ **Google Maps API キーのセキュリティ設計（ベストプラクティス）**:
 >
@@ -143,7 +142,7 @@ OS の設定を変更せず、無料のトンネリングツールでローカ�
 ```bash
 # cloudflared を使って一時的な HTTPS URL を発行する例
 npx -y cloudflared tunnel --url http://localhost:5001
-# 出力された https://xxx.trycloudflare.com を .env.dev の BASE_URL / GOOGLE_DIRECTIONS_API_URL に設定
+# 出力された https://xxx.trycloudflare.com を .env.dev の BASE_URL に設定
 ```
 
 #### 方法 B: 開発環境のみ HTTP 通信を許可する

@@ -36,6 +36,31 @@
 - **主な項目**: `DEBUG_TOKEN` (AppEnv/Envied用)、`GOOGLE_REVERSED_CLIENT_ID` / `APP_LINK_DOMAIN` (ネイティブビルド用)、**`BASE_URL` (個人用オーバーライド)**
 - **取得手段**: `AppEnv` (Envied による難読化) / ネイティブビルド設定 / `--dart-define-from-file` による優先上書き
 
+### 3. 各環境の API 接続先設計（`BASE_URL` 集約）
+
+本プロジェクトでは個別 API ごとの URL 定義を持たず、環境ごとに単一の `BASE_URL` から各エンドポイント（`/memos`, `/users`, `/computeRoutesProxy`, `/placesSearchProxy` 等）を自動構築します。
+
+| Flavor | デフォルトの `BASE_URL` (`config/flavor_*.json`) | 接続先・主な用途 |
+| :--- | :--- | :--- |
+| **local** (`main_local.dart`) | `http://localhost:3000` | [モックサーバー (json-server)](./mock_server.md) による完全ローカル・オフライン開発 |
+| **dev** (`main_dev.dart`) | `http://localhost:5001/YOUR_PROJECT_ID/us-central1` | [自作API (Functions & Firestore エミュレータ)](./local_api_server.md) によるローカル結合テスト |
+| **stg** (`main_stg.dart`) | `https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net` | クラウド上の検証用ステージング環境 (Firebase Cloud Functions) |
+| **prod** (`main_prod.dart`) | `https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net` | クラウド上の本番環境 (Firebase Cloud Functions) |
+
+> 💡 **個人環境・端末別のオーバーライド (`.env.*`)**:
+> チーム共通のデフォルト値は `config/flavor_*.json` に定義されていますが、Android エミュレータやスマホ実機から接続する場合は、ホスト名解決のため `.env.local` や `.env.dev` の `BASE_URL` で優先上書きします（詳細は `env.example` および `docs/setup.md` を参照）。
+>
+> - **`local` 環境 (モックサーバー接続)**:
+>   - **iOS シミュレータ / Web**: デフォルトの `http://localhost:3000` で接続可能
+>   - **Android エミュレータ**: `BASE_URL=http://10.0.2.2:3000` を `.env.local` に設定
+>   - **スマホ実機 (iOS / Android)**: 同一 Wi-Fi 上の開発 PC の IP アドレスを指定（例: `BASE_URL=http://192.168.x.x:3000` を `.env.local` に設定）
+> - **`dev` 環境 (Functions & Firestore エミュレータ接続)**:
+>   - **iOS シミュレータ / Web**: `http://localhost:5001/<プロジェクトID>/us-central1`
+>   - **Android エミュレータ**: `BASE_URL=http://10.0.2.2:5001/<プロジェクトID>/us-central1` を `.env.dev` に設定
+>   - **スマホ実機**: `BASE_URL=http://<開発PCのIPアドレス>:5001/<プロジェクトID>/us-central1` を `.env.dev` に設定
+>
+> ※ リリースビルド（`stg` / `prod`）では `localhost` は使用せず、リリース前に `config/flavor_stg.json` および `config/flavor_prod.json`（または `.env.stg` / `.env.prod`）の `YOUR_PROJECT_ID` を実際の Firebase プロジェクト ID に設定してデプロイしてください。
+
 ---
 
 ## 🧩 コードレベルの役割分担

@@ -54,6 +54,38 @@ async function isAdminRequest(
 }
 
 /**
+ * Helper to fetch a Google IAM / ADC access token with a timeout.
+ * @param {GoogleAuth} auth GoogleAuth instance
+ * @param {number} timeoutMs Timeout in milliseconds
+ * @return {Promise<string | null | undefined>} Access token string
+ */
+async function getAccessTokenWithTimeout(
+  auth: GoogleAuth,
+  timeoutMs: number
+): Promise<string | null | undefined> {
+  let timerId: NodeJS.Timeout | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timerId = setTimeout(() => {
+      reject(new Error("Authentication timed out"));
+    }, Math.max(0, timeoutMs));
+  });
+
+  const authPromise = (async () => {
+    const client = await auth.getClient();
+    const tokenResponse = await client.getAccessToken();
+    return tokenResponse.token;
+  })();
+
+  try {
+    return await Promise.race([authPromise, timeoutPromise]);
+  } finally {
+    if (timerId) {
+      clearTimeout(timerId);
+    }
+  }
+}
+
+/**
  * Memos API endpoint.
  * @param {object} req Express request object
  * @param {object} res Express response object
@@ -520,13 +552,23 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
       travelMode: validTravelMode,
     };
 
-    // 4. Google IAM / ADC によるアクセストークンの取得 (APIキー不要)
+    // 4. Google IAM / ADC によるアクセストークンの取得 (共有 10 秒タイムアウト)
+    const TIMEOUT_MS = 10000;
+    const deadline = Date.now() + TIMEOUT_MS;
+
     const auth = new GoogleAuth({
       scopes: ["https://www.googleapis.com/auth/cloud-platform"],
     });
-    const client = await auth.getClient();
-    const tokenResponse = await client.getAccessToken();
-    const accessToken = tokenResponse.token;
+
+    const remainingForAuth = deadline - Date.now();
+    if (remainingForAuth <= 0) {
+      throw new Error("Request deadline exceeded before authentication");
+    }
+
+    const accessToken = await getAccessTokenWithTimeout(
+      auth,
+      remainingForAuth
+    );
 
     // 5. 許可されたフィールドマスクのみ通過 (不正なヘッダー注入・課金増加の防止)
     const allowedFieldMasks = new Set([
@@ -567,12 +609,17 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
       requestHeaders["X-Goog-User-Project"] = projectId;
     }
 
+    const remainingForRequest = deadline - Date.now();
+    if (remainingForRequest <= 0) {
+      throw new Error("Request deadline exceeded before calling Routes API");
+    }
+
     const googleResponse = await axios.post(
       "https://routes.googleapis.com/directions/v2:computeRoutes",
       upstreamBody,
       {
         headers: requestHeaders,
-        timeout: 10000,
+        timeout: remainingForRequest,
       }
     );
 
@@ -585,7 +632,7 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
         "data =",
         JSON.stringify(error.response.data)
       );
-      res.status(error.response.status).json(error.response.data);
+      res.status(500).json({error: "Internal Server Error"});
       return;
     }
     logger.error("Error in computeRoutesProxy: ", error);
@@ -593,4 +640,157 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
   }
 });
 
+/**
+ * Google Places API (Text Search) proxy endpoint.
+ * Verifies Firebase Auth ID token and forwards request
+ * to Places API with ADC / IAM token.
+ */
+export const placesSearchProxy = onRequest(async (req, res) => {
+  try {
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method Not Allowed"});
+      return;
+    }
 
+    // 1. ユーザーログイン認証チェック (Firebase Auth ID トークン)
+    const uid = await getUidFromRequest(req);
+    if (!uid) {
+      res.status(401).json({error: "Unauthorized: ログインが必要です。"});
+      return;
+    }
+
+    // 2. ユーザーごとのレート制限チェック (Cloud Firestore トランザクション)
+    const isAllowed = await checkRateLimit(uid);
+    if (!isAllowed) {
+      res.status(429).json({
+        error:
+          "Too Many Requests: リクエストが多すぎます。" +
+          "しばらく待ってから再試行してください。",
+      });
+      return;
+    }
+
+    // 3. リクエストボディの厳格なスキーマ検証・ホワイトリスト抽出
+    if (!req.body || typeof req.body !== "object") {
+      res.status(400).json({error: "Bad Request: リクエストボディが無効です。"});
+      return;
+    }
+
+    const allowedKeys = new Set([
+      "textQuery",
+      "languageCode",
+      "maxResultCount",
+    ]);
+    const bodyKeys = Object.keys(req.body);
+    if (bodyKeys.some((key) => !allowedKeys.has(key))) {
+      res.status(400).json({
+        error: "Bad Request: 許可されていないパラメータが含まれています。",
+      });
+      return;
+    }
+
+    const {textQuery, languageCode, maxResultCount} = req.body;
+    if (
+      typeof textQuery !== "string" ||
+      textQuery.trim().length === 0 ||
+      textQuery.length > 100
+    ) {
+      res.status(400).json({
+        error:
+          "Bad Request: textQuery は 1〜100 文字の文字列である必要があります。",
+      });
+      return;
+    }
+
+    const validLang =
+      typeof languageCode === "string" &&
+      /^[a-z]{2}(-[A-Z]{2})?$/.test(languageCode) ?
+        languageCode :
+        "ja";
+
+    const validPageSize =
+      typeof maxResultCount === "number" &&
+      maxResultCount >= 1 &&
+      maxResultCount <= 20 ?
+        Math.floor(maxResultCount) :
+        10;
+
+    const upstreamBody = {
+      textQuery: textQuery.trim(),
+      languageCode: validLang,
+      pageSize: validPageSize,
+    };
+
+    // 4. Google IAM / ADC によるアクセストークンの取得 (共有 10 秒タイムアウト)
+    const TIMEOUT_MS = 10000;
+    const deadline = Date.now() + TIMEOUT_MS;
+
+    const auth = new GoogleAuth({
+      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+    });
+
+    const remainingForAuth = deadline - Date.now();
+    if (remainingForAuth <= 0) {
+      throw new Error("Request deadline exceeded before authentication");
+    }
+
+    const accessToken = await getAccessTokenWithTimeout(
+      auth,
+      remainingForAuth
+    );
+
+    // 5. 許可されたフィールドマスクのみ通過
+    const allowedFieldMasks = new Set([
+      "places.id",
+      "places.displayName",
+      "places.formattedAddress",
+      "places.location",
+      "places.primaryType",
+      "places.rating",
+    ]);
+    const defaultFieldMask = Array.from(allowedFieldMasks).join(",");
+
+    const projectId =
+      process.env.GCLOUD_PROJECT ||
+      process.env.GOOGLE_CLOUD_PROJECT ||
+      admin.app().options.projectId;
+
+    const requestHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`,
+      "X-Goog-FieldMask": defaultFieldMask,
+    };
+    if (projectId) {
+      requestHeaders["X-Goog-User-Project"] = projectId;
+    }
+
+    const remainingForRequest = deadline - Date.now();
+    if (remainingForRequest <= 0) {
+      throw new Error("Request deadline exceeded before calling Places API");
+    }
+
+    const googleResponse = await axios.post(
+      "https://places.googleapis.com/v1/places:searchText",
+      upstreamBody,
+      {
+        headers: requestHeaders,
+        timeout: remainingForRequest,
+      }
+    );
+
+    res.status(200).json(googleResponse.data);
+  } catch (error: unknown) {
+    if (isAxiosError(error) && error.response) {
+      logger.error(
+        "Places API Error: status =",
+        error.response.status,
+        "data =",
+        JSON.stringify(error.response.data)
+      );
+      res.status(500).json({error: "Internal Server Error"});
+      return;
+    }
+    logger.error("Error in placesSearchProxy: ", error);
+    res.status(500).json({error: "Internal Server Error"});
+  }
+});

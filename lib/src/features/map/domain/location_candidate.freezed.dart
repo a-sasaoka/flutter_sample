@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$LocationCandidate {
 
- double get latitude; double get longitude; String get name; String? get address;
+ double get latitude; double get longitude; String get name; String? get address; String? get placeId; String? get primaryType; double? get rating;
 /// Create a copy of LocationCandidate
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $LocationCandidateCopyWith<LocationCandidate> get copyWith => _$LocationCandidat
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LocationCandidate&&(identical(other.latitude, latitude) || other.latitude == latitude)&&(identical(other.longitude, longitude) || other.longitude == longitude)&&(identical(other.name, name) || other.name == name)&&(identical(other.address, address) || other.address == address));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LocationCandidate&&(identical(other.latitude, latitude) || other.latitude == latitude)&&(identical(other.longitude, longitude) || other.longitude == longitude)&&(identical(other.name, name) || other.name == name)&&(identical(other.address, address) || other.address == address)&&(identical(other.placeId, placeId) || other.placeId == placeId)&&(identical(other.primaryType, primaryType) || other.primaryType == primaryType)&&(identical(other.rating, rating) || other.rating == rating));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,latitude,longitude,name,address);
+int get hashCode => Object.hash(runtimeType,latitude,longitude,name,address,placeId,primaryType,rating);
 
 @override
 String toString() {
-  return 'LocationCandidate(latitude: $latitude, longitude: $longitude, name: $name, address: $address)';
+  return 'LocationCandidate(latitude: $latitude, longitude: $longitude, name: $name, address: $address, placeId: $placeId, primaryType: $primaryType, rating: $rating)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $LocationCandidateCopyWith<$Res>  {
   factory $LocationCandidateCopyWith(LocationCandidate value, $Res Function(LocationCandidate) _then) = _$LocationCandidateCopyWithImpl;
 @useResult
 $Res call({
- double latitude, double longitude, String name, String? address
+ double latitude, double longitude, String name, String? address, String? placeId, String? primaryType, double? rating
 });
 
 
@@ -62,13 +62,16 @@ class _$LocationCandidateCopyWithImpl<$Res>
 
 /// Create a copy of LocationCandidate
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? latitude = null,Object? longitude = null,Object? name = null,Object? address = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? latitude = null,Object? longitude = null,Object? name = null,Object? address = freezed,Object? placeId = freezed,Object? primaryType = freezed,Object? rating = freezed,}) {
   return _then(_self.copyWith(
 latitude: null == latitude ? _self.latitude : latitude // ignore: cast_nullable_to_non_nullable
 as double,longitude: null == longitude ? _self.longitude : longitude // ignore: cast_nullable_to_non_nullable
 as double,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,address: freezed == address ? _self.address : address // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,placeId: freezed == placeId ? _self.placeId : placeId // ignore: cast_nullable_to_non_nullable
+as String?,primaryType: freezed == primaryType ? _self.primaryType : primaryType // ignore: cast_nullable_to_non_nullable
+as String?,rating: freezed == rating ? _self.rating : rating // ignore: cast_nullable_to_non_nullable
+as double?,
   ));
 }
 
@@ -153,10 +156,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double latitude,  double longitude,  String name,  String? address)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double latitude,  double longitude,  String name,  String? address,  String? placeId,  String? primaryType,  double? rating)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LocationCandidate() when $default != null:
-return $default(_that.latitude,_that.longitude,_that.name,_that.address);case _:
+return $default(_that.latitude,_that.longitude,_that.name,_that.address,_that.placeId,_that.primaryType,_that.rating);case _:
   return orElse();
 
 }
@@ -174,10 +177,10 @@ return $default(_that.latitude,_that.longitude,_that.name,_that.address);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double latitude,  double longitude,  String name,  String? address)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double latitude,  double longitude,  String name,  String? address,  String? placeId,  String? primaryType,  double? rating)  $default,) {final _that = this;
 switch (_that) {
 case _LocationCandidate():
-return $default(_that.latitude,_that.longitude,_that.name,_that.address);case _:
+return $default(_that.latitude,_that.longitude,_that.name,_that.address,_that.placeId,_that.primaryType,_that.rating);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -194,10 +197,10 @@ return $default(_that.latitude,_that.longitude,_that.name,_that.address);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double latitude,  double longitude,  String name,  String? address)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double latitude,  double longitude,  String name,  String? address,  String? placeId,  String? primaryType,  double? rating)?  $default,) {final _that = this;
 switch (_that) {
 case _LocationCandidate() when $default != null:
-return $default(_that.latitude,_that.longitude,_that.name,_that.address);case _:
+return $default(_that.latitude,_that.longitude,_that.name,_that.address,_that.placeId,_that.primaryType,_that.rating);case _:
   return null;
 
 }
@@ -209,13 +212,16 @@ return $default(_that.latitude,_that.longitude,_that.name,_that.address);case _:
 
 
 class _LocationCandidate implements LocationCandidate {
-  const _LocationCandidate({required this.latitude, required this.longitude, required this.name, this.address});
+  const _LocationCandidate({required this.latitude, required this.longitude, required this.name, this.address, this.placeId, this.primaryType, this.rating});
   
 
 @override final  double latitude;
 @override final  double longitude;
 @override final  String name;
 @override final  String? address;
+@override final  String? placeId;
+@override final  String? primaryType;
+@override final  double? rating;
 
 /// Create a copy of LocationCandidate
 /// with the given fields replaced by the non-null parameter values.
@@ -227,16 +233,16 @@ _$LocationCandidateCopyWith<_LocationCandidate> get copyWith => __$LocationCandi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LocationCandidate&&(identical(other.latitude, latitude) || other.latitude == latitude)&&(identical(other.longitude, longitude) || other.longitude == longitude)&&(identical(other.name, name) || other.name == name)&&(identical(other.address, address) || other.address == address));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LocationCandidate&&(identical(other.latitude, latitude) || other.latitude == latitude)&&(identical(other.longitude, longitude) || other.longitude == longitude)&&(identical(other.name, name) || other.name == name)&&(identical(other.address, address) || other.address == address)&&(identical(other.placeId, placeId) || other.placeId == placeId)&&(identical(other.primaryType, primaryType) || other.primaryType == primaryType)&&(identical(other.rating, rating) || other.rating == rating));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,latitude,longitude,name,address);
+int get hashCode => Object.hash(runtimeType,latitude,longitude,name,address,placeId,primaryType,rating);
 
 @override
 String toString() {
-  return 'LocationCandidate(latitude: $latitude, longitude: $longitude, name: $name, address: $address)';
+  return 'LocationCandidate(latitude: $latitude, longitude: $longitude, name: $name, address: $address, placeId: $placeId, primaryType: $primaryType, rating: $rating)';
 }
 
 
@@ -247,7 +253,7 @@ abstract mixin class _$LocationCandidateCopyWith<$Res> implements $LocationCandi
   factory _$LocationCandidateCopyWith(_LocationCandidate value, $Res Function(_LocationCandidate) _then) = __$LocationCandidateCopyWithImpl;
 @override @useResult
 $Res call({
- double latitude, double longitude, String name, String? address
+ double latitude, double longitude, String name, String? address, String? placeId, String? primaryType, double? rating
 });
 
 
@@ -264,13 +270,16 @@ class __$LocationCandidateCopyWithImpl<$Res>
 
 /// Create a copy of LocationCandidate
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? latitude = null,Object? longitude = null,Object? name = null,Object? address = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? latitude = null,Object? longitude = null,Object? name = null,Object? address = freezed,Object? placeId = freezed,Object? primaryType = freezed,Object? rating = freezed,}) {
   return _then(_LocationCandidate(
 latitude: null == latitude ? _self.latitude : latitude // ignore: cast_nullable_to_non_nullable
 as double,longitude: null == longitude ? _self.longitude : longitude // ignore: cast_nullable_to_non_nullable
 as double,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,address: freezed == address ? _self.address : address // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,placeId: freezed == placeId ? _self.placeId : placeId // ignore: cast_nullable_to_non_nullable
+as String?,primaryType: freezed == primaryType ? _self.primaryType : primaryType // ignore: cast_nullable_to_non_nullable
+as String?,rating: freezed == rating ? _self.rating : rating // ignore: cast_nullable_to_non_nullable
+as double?,
   ));
 }
 

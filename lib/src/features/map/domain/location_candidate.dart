@@ -11,5 +11,8 @@ abstract class LocationCandidate with _$LocationCandidate {
     required double longitude,
     required String name,
     String? address,
+    String? placeId,
+    String? primaryType,
+    double? rating,
   }) = _LocationCandidate;
 }

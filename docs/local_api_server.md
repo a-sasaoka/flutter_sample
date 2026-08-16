@@ -22,7 +22,7 @@
 ```plaintext
 functions/
  ├── src/
- │    └── index.ts     # APIのエントリポイント（memos、users/me、users、computeRoutesProxyを実装）
+ │    └── index.ts     # APIのエントリポイント（memos、users/me、users、computeRoutesProxy、placesSearchProxyを実装）
  ├── package.json      # Node.jsの依存関係パッケージとビルドスクリプトの定義
  └── tsconfig.json     # TypeScript of コンパイル設定
 ```
