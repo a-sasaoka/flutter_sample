@@ -54,6 +54,38 @@ async function isAdminRequest(
 }
 
 /**
+ * Helper to fetch a Google IAM / ADC access token with a timeout.
+ * @param {GoogleAuth} auth GoogleAuth instance
+ * @param {number} timeoutMs Timeout in milliseconds
+ * @return {Promise<string | null | undefined>} Access token string
+ */
+async function getAccessTokenWithTimeout(
+  auth: GoogleAuth,
+  timeoutMs: number
+): Promise<string | null | undefined> {
+  let timerId: NodeJS.Timeout | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timerId = setTimeout(() => {
+      reject(new Error("Authentication timed out"));
+    }, Math.max(0, timeoutMs));
+  });
+
+  const authPromise = (async () => {
+    const client = await auth.getClient();
+    const tokenResponse = await client.getAccessToken();
+    return tokenResponse.token;
+  })();
+
+  try {
+    return await Promise.race([authPromise, timeoutPromise]);
+  } finally {
+    if (timerId) {
+      clearTimeout(timerId);
+    }
+  }
+}
+
+/**
  * Memos API endpoint.
  * @param {object} req Express request object
  * @param {object} res Express response object
@@ -520,13 +552,23 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
       travelMode: validTravelMode,
     };
 
-    // 4. Google IAM / ADC によるアクセストークンの取得 (APIキー不要)
+    // 4. Google IAM / ADC によるアクセストークンの取得 (共有 10 秒タイムアウト)
+    const TIMEOUT_MS = 10000;
+    const deadline = Date.now() + TIMEOUT_MS;
+
     const auth = new GoogleAuth({
       scopes: ["https://www.googleapis.com/auth/cloud-platform"],
     });
-    const client = await auth.getClient();
-    const tokenResponse = await client.getAccessToken();
-    const accessToken = tokenResponse.token;
+
+    const remainingForAuth = deadline - Date.now();
+    if (remainingForAuth <= 0) {
+      throw new Error("Request deadline exceeded before authentication");
+    }
+
+    const accessToken = await getAccessTokenWithTimeout(
+      auth,
+      remainingForAuth
+    );
 
     // 5. 許可されたフィールドマスクのみ通過 (不正なヘッダー注入・課金増加の防止)
     const allowedFieldMasks = new Set([
@@ -567,12 +609,17 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
       requestHeaders["X-Goog-User-Project"] = projectId;
     }
 
+    const remainingForRequest = deadline - Date.now();
+    if (remainingForRequest <= 0) {
+      throw new Error("Request deadline exceeded before calling Routes API");
+    }
+
     const googleResponse = await axios.post(
       "https://routes.googleapis.com/directions/v2:computeRoutes",
       upstreamBody,
       {
         headers: requestHeaders,
-        timeout: 10000,
+        timeout: remainingForRequest,
       }
     );
 
@@ -674,13 +721,23 @@ export const placesSearchProxy = onRequest(async (req, res) => {
       pageSize: validPageSize,
     };
 
-    // 4. Google IAM / ADC によるアクセストークンの取得
+    // 4. Google IAM / ADC によるアクセストークンの取得 (共有 10 秒タイムアウト)
+    const TIMEOUT_MS = 10000;
+    const deadline = Date.now() + TIMEOUT_MS;
+
     const auth = new GoogleAuth({
       scopes: ["https://www.googleapis.com/auth/cloud-platform"],
     });
-    const client = await auth.getClient();
-    const tokenResponse = await client.getAccessToken();
-    const accessToken = tokenResponse.token;
+
+    const remainingForAuth = deadline - Date.now();
+    if (remainingForAuth <= 0) {
+      throw new Error("Request deadline exceeded before authentication");
+    }
+
+    const accessToken = await getAccessTokenWithTimeout(
+      auth,
+      remainingForAuth
+    );
 
     // 5. 許可されたフィールドマスクのみ通過
     const allowedFieldMasks = new Set([
@@ -707,12 +764,17 @@ export const placesSearchProxy = onRequest(async (req, res) => {
       requestHeaders["X-Goog-User-Project"] = projectId;
     }
 
+    const remainingForRequest = deadline - Date.now();
+    if (remainingForRequest <= 0) {
+      throw new Error("Request deadline exceeded before calling Places API");
+    }
+
     const googleResponse = await axios.post(
       "https://places.googleapis.com/v1/places:searchText",
       upstreamBody,
       {
         headers: requestHeaders,
-        timeout: 10000,
+        timeout: remainingForRequest,
       }
     );
 
