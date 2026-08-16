@@ -632,7 +632,7 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
         "data =",
         JSON.stringify(error.response.data)
       );
-      res.status(error.response.status).json(error.response.data);
+      res.status(500).json({error: "Internal Server Error"});
       return;
     }
     logger.error("Error in computeRoutesProxy: ", error);
@@ -787,7 +787,7 @@ export const placesSearchProxy = onRequest(async (req, res) => {
         "data =",
         JSON.stringify(error.response.data)
       );
-      res.status(error.response.status).json(error.response.data);
+      res.status(500).json({error: "Internal Server Error"});
       return;
     }
     logger.error("Error in placesSearchProxy: ", error);
