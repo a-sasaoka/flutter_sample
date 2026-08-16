@@ -47,8 +47,18 @@
 | **stg** (`main_stg.dart`) | `https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net` | クラウド上の検証用ステージング環境 (Firebase Cloud Functions) |
 | **prod** (`main_prod.dart`) | `https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net` | クラウド上の本番環境 (Firebase Cloud Functions) |
 
-> 💡 **個人環境のオーバーライド**:
-> チーム共通のデフォルト値は `config/flavor_*.json` に定義されていますが、開発者個人の Firebase プロジェクト ID や Android エミュレータ（`http://10.0.2.2:5001/...`）、実機（`http://192.168.x.x:5001/...`）で接続する場合は、`.env.dev` 等の `BASE_URL` で優先上書きできます（詳細は `env.example` および `docs/setup.md` を参照）。
+> 💡 **個人環境・端末別のオーバーライド (`.env.*`)**:
+> チーム共通のデフォルト値は `config/flavor_*.json` に定義されていますが、Android エミュレータやスマホ実機から接続する場合は、ホスト名解決のため `.env.local` や `.env.dev` の `BASE_URL` で優先上書きします（詳細は `env.example` および `docs/setup.md` を参照）。
+>
+> - **`local` 環境 (モックサーバー接続)**:
+>   - **iOS シミュレータ / Web**: デフォルトの `http://localhost:3000` で接続可能
+>   - **Android エミュレータ**: `BASE_URL=http://10.0.2.2:3000` を `.env.local` に設定
+>   - **スマホ実機 (iOS / Android)**: 同一 Wi-Fi 上の開発 PC の IP アドレスを指定（例: `BASE_URL=http://192.168.x.x:3000` を `.env.local` に設定）
+> - **`dev` 環境 (Functions & Firestore エミュレータ接続)**:
+>   - **iOS シミュレータ / Web**: `http://localhost:5001/<プロジェクトID>/us-central1`
+>   - **Android エミュレータ**: `BASE_URL=http://10.0.2.2:5001/<プロジェクトID>/us-central1` を `.env.dev` に設定
+>   - **スマホ実機**: `BASE_URL=http://<開発PCのIPアドレス>:5001/<プロジェクトID>/us-central1` を `.env.dev` に設定
+>
 > ※ リリースビルド（`stg` / `prod`）では `localhost` は使用せず、リリース前に `config/flavor_stg.json` および `config/flavor_prod.json`（または `.env.stg` / `.env.prod`）の `YOUR_PROJECT_ID` を実際の Firebase プロジェクト ID に設定してデプロイしてください。
 
 ---
