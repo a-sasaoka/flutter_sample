@@ -154,24 +154,52 @@ module.exports = (req, res, next) => {
   if (req.method === 'POST' && (req.path === '/computeRoutesProxy' || req.url === '/computeRoutesProxy')) {
     console.log('📍 [Mock Server] POST /computeRoutesProxy received:', req.body);
     const body = req.body || {};
-    const originLat = body.origin?.location?.latLng?.latitude ?? 35.681236;
-    const originLng = body.origin?.location?.latLng?.longitude ?? 139.767125;
-    const destLat = body.destination?.location?.latLng?.latitude ?? 35.6585805;
-    const destLng = body.destination?.location?.latLng?.longitude ?? 139.7454329;
-    const travelMode = (body.travelMode || 'DRIVE').toUpperCase();
+    if (typeof body !== 'object') {
+      return res.status(400).json({ error: 'Bad Request: リクエストボディが無効です。' });
+    }
+
+    const { origin, destination, travelMode } = body;
+    const originLat = origin?.location?.latLng?.latitude;
+    const originLng = origin?.location?.latLng?.longitude;
+    const destLat = destination?.location?.latLng?.latitude;
+    const destLng = destination?.location?.latLng?.longitude;
+
+    if (
+      typeof originLat !== 'number' ||
+      typeof originLng !== 'number' ||
+      typeof destLat !== 'number' ||
+      typeof destLng !== 'number'
+    ) {
+      return res.status(400).json({
+        error: 'Bad Request: origin と destination の有効な座標(数値)が必要です。',
+      });
+    }
+
+    // travelMode の許可値チェック & 安全な正規化
+    const allowedTravelModes = new Set([
+      'DRIVE',
+      'WALK',
+      'BICYCLE',
+      'TWO_WHEELER',
+      'TRANSIT',
+    ]);
+    const validTravelMode =
+      typeof travelMode === 'string' && allowedTravelModes.has(travelMode.toUpperCase())
+        ? travelMode.toUpperCase()
+        : 'DRIVE';
 
     const distanceMeters = Math.max(approximateDistance(originLat, originLng, destLat, destLng), 500);
 
     // 移動手段ごとの概算速度（m/s）
     let speedMps = 10; // DRIVE: 約36km/h
     let warnings;
-    if (travelMode === 'WALK') {
+    if (validTravelMode === 'WALK') {
       speedMps = 1.3; // WALK: 約4.7km/h
       warnings = ['徒歩ルートには歩道が整備されていない区間が含まれる場合があります。'];
-    } else if (travelMode === 'BICYCLE') {
+    } else if (validTravelMode === 'BICYCLE') {
       speedMps = 4.2; // BICYCLE: 約15km/h
       warnings = ['自転車ルートには自転車専用レーンがない道路が含まれる場合があります。'];
-    } else if (travelMode === 'TRANSIT') {
+    } else if (validTravelMode === 'TRANSIT') {
       speedMps = 8.0; // TRANSIT: 約28km/h
     }
 
