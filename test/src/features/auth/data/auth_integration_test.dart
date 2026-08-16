@@ -63,7 +63,6 @@ void main() {
                 sendTimeout: 10,
                 useFirebaseAuth: true,
                 useAgentPlatform: true,
-                googleDirectionsApiUrl: defaultGoogleDirectionsApiUrl,
               ),
             ),
             // 2. 共通の認証オーバーライドを適用
@@ -126,7 +125,6 @@ void main() {
                 sendTimeout: 10,
                 useFirebaseAuth: false,
                 useAgentPlatform: true,
-                googleDirectionsApiUrl: defaultGoogleDirectionsApiUrl,
               ),
             ),
             // 2. 共通の認証オーバーライドを適用
@@ -184,7 +182,6 @@ void main() {
                 sendTimeout: 10,
                 useFirebaseAuth: true,
                 useAgentPlatform: true,
-                googleDirectionsApiUrl: defaultGoogleDirectionsApiUrl,
               ),
             ),
             ...getAuthOverrides().cast(),

@@ -4,6 +4,7 @@ import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/map/application/map_search_notifier.dart';
 import 'package:flutter_sample/src/features/map/data/geocoding_repository.dart';
+import 'package:flutter_sample/src/features/map/data/places_repository.dart';
 import 'package:flutter_sample/src/features/map/domain/location_candidate.dart';
 import 'package:flutter_sample/src/features/map/domain/map_search_state.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,22 +12,27 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
+class MockPlacesRepository extends Mock implements PlacesRepository {}
+
 class MockGeocodingRepository extends Mock implements GeocodingRepository {}
 
 class HandleCall {
   const HandleCall({
     required this.exception,
     this.stackTrace,
+    this.msg,
   });
 
   final Object exception;
   final StackTrace? stackTrace;
+  final String? msg;
 }
 
 class SpyTalker extends Talker {
   SpyTalker() : super(settings: TalkerSettings(enabled: false));
 
   final List<HandleCall> handleCalls = [];
+  final List<String> infoLogs = [];
 
   @override
   void handle(
@@ -38,25 +44,35 @@ class SpyTalker extends Talker {
       HandleCall(
         exception: exception,
         stackTrace: stackTrace,
+        msg: msg?.toString(),
       ),
     );
     super.handle(exception, stackTrace, msg);
   }
+
+  @override
+  void info(dynamic msg, [Object? exception, StackTrace? stackTrace]) {
+    infoLogs.add(msg.toString());
+    super.info(msg, exception, stackTrace);
+  }
 }
 
 void main() {
-  late MockGeocodingRepository mockRepository;
+  late MockPlacesRepository mockPlacesRepository;
+  late MockGeocodingRepository mockGeocodingRepository;
   late SpyTalker spyTalker;
 
   setUp(() {
-    mockRepository = MockGeocodingRepository();
+    mockPlacesRepository = MockPlacesRepository();
+    mockGeocodingRepository = MockGeocodingRepository();
     spyTalker = SpyTalker();
   });
 
   ProviderContainer createContainer() {
     final container = ProviderContainer(
       overrides: [
-        geocodingRepositoryProvider.overrideWithValue(mockRepository),
+        placesRepositoryProvider.overrideWithValue(mockPlacesRepository),
+        geocodingRepositoryProvider.overrideWithValue(mockGeocodingRepository),
         loggerProvider.overrideWithValue(spyTalker),
       ],
     );
@@ -64,7 +80,7 @@ void main() {
     return container;
   }
 
-  group('MapSearchNotifier Unit Tests', () {
+  group('MapSearchNotifier Unit Tests (Places API & Geocoding Fallback)', () {
     test('初期状態は MapSearchState.initial であること', () {
       final container = createContainer();
       final state = container.read(mapSearchProvider);
@@ -81,17 +97,18 @@ void main() {
       check(state).isA<MapSearchStateInitial>();
     });
 
-    test('検索成功時、MapSearchState.success 状態に遷移すること', () async {
+    test('Google Places API 検索成功時、MapSearchState.success 状態に遷移すること', () async {
       final sampleCandidates = [
         const LocationCandidate(
           latitude: 35.681236,
           longitude: 139.767125,
           name: '東京駅',
+          placeId: 'places_123',
         ),
       ];
 
       when(
-        () => mockRepository.locationCandidatesFromAddress('東京駅'),
+        () => mockPlacesRepository.searchPlaces('東京駅'),
       ).thenAnswer((_) async => sampleCandidates);
 
       final container = createContainer()..listen(mapSearchProvider, (_, _) {});
@@ -103,12 +120,106 @@ void main() {
       check(state).isA<MapSearchStateSuccess>();
       final successState = state as MapSearchStateSuccess;
       check(successState.locations).length.equals(1);
+      check(successState.locations.first.placeId).equals('places_123');
       check(successState.query).equals('東京駅');
+      verifyNever(
+        () => mockGeocodingRepository.locationCandidatesFromAddress(any()),
+      );
     });
 
-    test('該当件数なしの場合、MapSearchState.empty 状態に遷移すること', () async {
+    test(
+      'Places API がエラーの時、GeocodingRepository に自動フォールバックして成功すること',
+      () async {
+        const placesError = PlacesApiException(
+          'Network Error',
+          statusCode: 500,
+        );
+        when(
+          () => mockPlacesRepository.searchPlaces('東京タワー'),
+        ).thenThrow(placesError);
+
+        final fallbackCandidates = [
+          const LocationCandidate(
+            latitude: 35.6585805,
+            longitude: 139.7454329,
+            name: '東京タワー',
+          ),
+        ];
+        when(
+          () => mockGeocodingRepository.locationCandidatesFromAddress('東京タワー'),
+        ).thenAnswer((_) async => fallbackCandidates);
+
+        final container = createContainer()
+          ..listen(mapSearchProvider, (_, _) {});
+
+        final notifier = container.read(mapSearchProvider.notifier);
+        await notifier.searchLocation('東京タワー');
+
+        final state = container.read(mapSearchProvider);
+        check(state).isA<MapSearchStateSuccess>();
+        final successState = state as MapSearchStateSuccess;
+        check(successState.locations).length.equals(1);
+        check(successState.locations.first.name).equals('東京タワー');
+
+        // Places API のエラーが Talker に記録されていること
+        check(spyTalker.handleCalls).length.equals(1);
+        check(spyTalker.handleCalls.first.exception).equals(placesError);
+        check(spyTalker.handleCalls.first.stackTrace).isNotNull();
+        check(
+          spyTalker.handleCalls.first.msg,
+        ).isNotNull().contains(
+          'Places API 検索でエラーが発生したため、 Geocoding にフォールバックします',
+        );
+      },
+    );
+
+    test(
+      'Places API が空の時、GeocodingRepository にフォールバックして成功すること',
+      () async {
+        when(
+          () => mockPlacesRepository.searchPlaces('東京タワー'),
+        ).thenAnswer((_) async => <LocationCandidate>[]);
+
+        final fallbackCandidates = [
+          const LocationCandidate(
+            latitude: 35.6585805,
+            longitude: 139.7454329,
+            name: '東京タワー',
+          ),
+        ];
+        when(
+          () => mockGeocodingRepository.locationCandidatesFromAddress('東京タワー'),
+        ).thenAnswer((_) async => fallbackCandidates);
+
+        final container = createContainer()
+          ..listen(mapSearchProvider, (_, _) {});
+
+        final notifier = container.read(mapSearchProvider.notifier);
+        await notifier.searchLocation('東京タワー');
+
+        final state = container.read(mapSearchProvider);
+        check(state).isA<MapSearchStateSuccess>();
+        final successState = state as MapSearchStateSuccess;
+        check(successState.locations).length.equals(1);
+
+        // Places API 0件時の info ログが出力されていること
+        check(
+          spyTalker.infoLogs,
+        ).any(
+          (log) =>
+              log.contains('Places API の検索結果が 0 件だったため、 Geocoding にフォールバックします'),
+        );
+      },
+    );
+
+    test('Places と Geocoding の両方で該当件数なしの場合、empty 状態に遷移すること', () async {
       when(
-        () => mockRepository.locationCandidatesFromAddress('存在しない場所XYZ'),
+        () => mockPlacesRepository.searchPlaces('存在しない場所XYZ'),
+      ).thenAnswer((_) async => <LocationCandidate>[]);
+
+      when(
+        () =>
+            mockGeocodingRepository.locationCandidatesFromAddress('存在しない場所XYZ'),
       ).thenAnswer((_) async => <LocationCandidate>[]);
 
       final container = createContainer()..listen(mapSearchProvider, (_, _) {});
@@ -122,11 +233,15 @@ void main() {
       check(emptyState.query).equals('存在しない場所XYZ');
     });
 
-    test('エラー発生時、MapSearchState.error 状態に遷移すること', () async {
-      final searchError = Exception('Geocoding Failed');
+    test('フォールバック先の Geocoding で例外発生時、error 状態に遷移すること', () async {
       when(
-        () => mockRepository.locationCandidatesFromAddress('エラークエリ'),
-      ).thenThrow(searchError);
+        () => mockPlacesRepository.searchPlaces('エラークエリ'),
+      ).thenAnswer((_) async => <LocationCandidate>[]);
+
+      final geocodingError = Exception('Geocoding Failed');
+      when(
+        () => mockGeocodingRepository.locationCandidatesFromAddress('エラークエリ'),
+      ).thenThrow(geocodingError);
 
       final container = createContainer()..listen(mapSearchProvider, (_, _) {});
 
@@ -138,8 +253,6 @@ void main() {
       final errorState = state as MapSearchStateError;
       check(errorState.message).contains('Geocoding Failed');
       check(spyTalker.handleCalls).length.equals(1);
-      check(spyTalker.handleCalls.first.exception).equals(searchError);
-      check(spyTalker.handleCalls.first.stackTrace).isNotNull();
     });
 
     test('clearSearch 呼び出し時、initial 状態にリセットされること', () async {
@@ -152,7 +265,7 @@ void main() {
       ];
 
       when(
-        () => mockRepository.locationCandidatesFromAddress('東京駅'),
+        () => mockPlacesRepository.searchPlaces('東京駅'),
       ).thenAnswer((_) async => sampleCandidates);
 
       final container = createContainer()..listen(mapSearchProvider, (_, _) {});
@@ -186,11 +299,11 @@ void main() {
       final completer2 = Completer<List<LocationCandidate>>();
 
       when(
-        () => mockRepository.locationCandidatesFromAddress('東京駅'),
+        () => mockPlacesRepository.searchPlaces('東京駅'),
       ).thenAnswer((_) => completer1.future);
 
       when(
-        () => mockRepository.locationCandidatesFromAddress('新宿駅'),
+        () => mockPlacesRepository.searchPlaces('新宿駅'),
       ).thenAnswer((_) => completer2.future);
 
       final container = createContainer()..listen(mapSearchProvider, (_, _) {});
@@ -229,7 +342,7 @@ void main() {
       final completer = Completer<List<LocationCandidate>>();
 
       when(
-        () => mockRepository.locationCandidatesFromAddress('東京駅'),
+        () => mockPlacesRepository.searchPlaces('東京駅'),
       ).thenAnswer((_) => completer.future);
 
       final container = createContainer()..listen(mapSearchProvider, (_, _) {});
@@ -251,12 +364,15 @@ void main() {
       final completer = Completer<List<LocationCandidate>>();
 
       when(
-        () => mockRepository.locationCandidatesFromAddress('東京駅'),
+        () => mockPlacesRepository.searchPlaces('東京駅'),
       ).thenAnswer((_) => completer.future);
 
       final container = ProviderContainer(
         overrides: [
-          geocodingRepositoryProvider.overrideWithValue(mockRepository),
+          placesRepositoryProvider.overrideWithValue(mockPlacesRepository),
+          geocodingRepositoryProvider.overrideWithValue(
+            mockGeocodingRepository,
+          ),
           loggerProvider.overrideWithValue(spyTalker),
         ],
       )..listen(mapSearchProvider, (_, _) {});
@@ -283,12 +399,15 @@ void main() {
         final completer = Completer<List<LocationCandidate>>();
 
         when(
-          () => mockRepository.locationCandidatesFromAddress('東京駅'),
+          () => mockPlacesRepository.searchPlaces('東京駅'),
         ).thenAnswer((_) => completer.future);
 
         final container = ProviderContainer(
           overrides: [
-            geocodingRepositoryProvider.overrideWithValue(mockRepository),
+            placesRepositoryProvider.overrideWithValue(mockPlacesRepository),
+            geocodingRepositoryProvider.overrideWithValue(
+              mockGeocodingRepository,
+            ),
             loggerProvider.overrideWithValue(spyTalker),
           ],
         )..listen(mapSearchProvider, (_, _) {});

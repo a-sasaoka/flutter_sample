@@ -30,9 +30,6 @@ sealed class EnvConfigState with _$EnvConfigState {
 
     /// Agent Platform (旧 Vertex AI) を使用するかどうか (false の場合は Google AI / Developer API)
     required bool useAgentPlatform,
-
-    /// Google Directions API の URL
-    required String googleDirectionsApiUrl,
   }) = _EnvConfigState;
 
   const EnvConfigState._();
@@ -44,7 +41,6 @@ sealed class EnvConfigState with _$EnvConfigState {
 🆔 Package Name      : ${packageInfo.packageName}
 ✨ Version           : ${packageInfo.version} (${packageInfo.buildNumber})
 📍 API Base URL      : $baseUrl
-🗺️ Directions API    : $googleDirectionsApiUrl
 🤖 AI Model          : $aiModel
 ⏱️ Timeouts (C/R/S)  : $connectTimeout / $receiveTimeout / $sendTimeout
 🔥 Firebase Auth     : $useFirebaseAuth
@@ -53,10 +49,6 @@ sealed class EnvConfigState with _$EnvConfigState {
 
 /// デフォルトの API ベース URL（サンプルの動作確認用）
 const defaultBaseUrl = 'https://jsonplaceholder.typicode.com';
-
-/// デフォルトの Google Routes API プロキシ URL（サンプル用）
-const defaultGoogleDirectionsApiUrl =
-    'https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/computeRoutesProxy';
 
 /// デフォルトの AI モデル名
 const defaultAiModel = 'gemini-3.5-flash-lite';
@@ -107,10 +99,6 @@ EnvConfigState envConfig(Ref ref) {
     useAgentPlatform: bool.fromEnvironment(
       'USE_AGENT_PLATFORM',
       defaultValue: defaultUseAgentPlatform,
-    ),
-    googleDirectionsApiUrl: String.fromEnvironment(
-      'GOOGLE_DIRECTIONS_API_URL',
-      defaultValue: defaultGoogleDirectionsApiUrl,
     ),
   );
 }

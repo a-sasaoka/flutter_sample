@@ -176,7 +176,6 @@ void main() {
               sendTimeout: 10,
               useFirebaseAuth: true,
               useAgentPlatform: true,
-              googleDirectionsApiUrl: defaultGoogleDirectionsApiUrl,
             ),
           ),
           updateRequestControllerProvider.overrideWith(

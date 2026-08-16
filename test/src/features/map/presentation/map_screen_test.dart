@@ -589,12 +589,12 @@ void main() {
         longitude: 139.767125,
         name: '東京駅 (JR)',
         address: '東京都千代田区丸の内一丁目',
+        rating: 4.8,
       );
       const candidate2 = LocationCandidate(
         latitude: 35.681500,
         longitude: 139.767200,
         name: '東京駅 (メトロ)',
-        address: '東京都千代田区丸の内一丁目4-1',
       );
 
       testSearchNotifier.currentState = const MapSearchState.success(
@@ -608,6 +608,8 @@ void main() {
       check(find.text('検索結果を選択')).findsOne();
       check(find.byKey(const Key('mapCandidateTile_0'))).findsOne();
       check(find.byKey(const Key('mapCandidateTile_1'))).findsOne();
+      check(find.byIcon(Icons.star)).findsOne();
+      check(find.text('4.8')).findsOne();
 
       // 2つ目の候補をタップ
       await tester.tap(find.byKey(const Key('mapCandidateTile_1')));

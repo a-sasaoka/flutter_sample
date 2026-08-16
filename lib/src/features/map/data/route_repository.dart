@@ -26,7 +26,8 @@ class RouteRepositoryImpl implements RouteRepository {
   /// コンストラクタ
   const RouteRepositoryImpl({
     required Dio dio,
-    String directionsApiUrl = defaultGoogleDirectionsApiUrl,
+    String directionsApiUrl =
+        'http://localhost:5001/flutter-sample-local/us-central1/computeRoutesProxy',
   }) : _dio = dio,
        _directionsApiUrl = directionsApiUrl;
 
@@ -237,6 +238,6 @@ RouteRepository routeRepository(Ref ref) {
   final envConfig = ref.watch(envConfigProvider);
   return RouteRepositoryImpl(
     dio: dio,
-    directionsApiUrl: envConfig.googleDirectionsApiUrl,
+    directionsApiUrl: '${envConfig.baseUrl}/computeRoutesProxy',
   );
 }

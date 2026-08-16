@@ -278,6 +278,27 @@ class MapScreen extends HookConsumerWidget {
                                   subtitle: candidate.address != null
                                       ? Text(candidate.address!)
                                       : null,
+                                  trailing: candidate.rating != null
+                                      ? Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                              Icons.star,
+                                              size: 16,
+                                              color: Colors.amber,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              candidate.rating!.toStringAsFixed(
+                                                1,
+                                              ),
+                                              style: Theme.of(
+                                                context,
+                                              ).textTheme.bodySmall,
+                                            ),
+                                          ],
+                                        )
+                                      : null,
                                   onTap: () {
                                     Navigator.of(modalContext).pop();
                                     final latLng = LatLng(

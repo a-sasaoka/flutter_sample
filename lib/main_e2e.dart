@@ -166,7 +166,6 @@ Future<void> main() async {
           sendTimeout: 10,
           useFirebaseAuth: false, // Firebase Authを無効化
           useAgentPlatform: true,
-          googleDirectionsApiUrl: defaultGoogleDirectionsApiUrl,
         );
       }),
       // 2. ネットワーク状態を「オフライン」として固定（これでサーバーとの不要なAPI通信を防ぎます）

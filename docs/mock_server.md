@@ -21,9 +21,12 @@
 
 ```plaintext
 mock/
- ├── db.json          # データの「倉庫」。APIが返す実データを定義
- ├── routes.json      # パスの「案内図」。カスタムURL（/auth/login等）の紐付け
- └── start.sh         # 起動用スクリプト
+ ├── db.json          # データの「倉庫」。APIが返す実データ（users, memos, me等）を定義
+ ├── routes.json      # パスの「案内図」。カスタムURL（/users/me等）のルーティング設定
+ ├── middleware.js    # 動的処理・プロキシモック・エラースイッチハンドラー
+ ├── error_on.sh      # 擬似エラーON用スクリプト（fail ファイル作成）
+ ├── error_off.sh     # 擬似エラーOFF用スクリプト（fail ファイル削除）
+ └── start.sh         # json-server 起動用スクリプト
 ```
 
 ---
@@ -38,12 +41,25 @@ mock/
 ./mock/start.sh
 ```
 
-成功すると、`http://localhost:3000/users` などのエンドポイントが有効になります。
+成功すると、`http://localhost:3000` でモックサーバーが起動します。
 
 ### 2. アプリの起動
 
 Flutterアプリを **`local` フレーバー** で起動してください。  
 `config/flavor_local.json` の `BASE_URL` が `http://localhost:3000` に設定されているため、自動的にモックサーバーへ接続されます。
+
+---
+
+## 📡 サポートされているモック API 一覧
+
+| カテゴリ | メソッド / パス | 動作概要 |
+| :--- | :--- | :--- |
+| **ユーザー管理** | `GET /users`<br>`POST /users`<br>`PATCH /users/:id`<br>`DELETE /users/:id` | ユーザー一覧取得、新規追加、編集、削除（`db.json` に永続化） |
+| **プロフィール** | `GET /users/me`<br>`PUT /users/me` | ログインユーザー本人のプロフィール取得・更新 |
+| **認証** | `POST /auth/login`<br>`POST /auth/refresh` | ダミートークン発行、アクセストークン更新 |
+| **メモ管理** | `GET /memos`<br>`POST /memos`<br>`PUT /memos/:id`<br>`DELETE /memos/:id` | メモ一覧取得、新規作成、編集、論理/物理削除（`db.json` に永続化） |
+| **ルート検索** | `POST /computeRoutesProxy` | 出発地・目的地の座標補間ポリライン自動生成、移動手段ごとの所要時間・距離計算 |
+| **場所検索** | `POST /placesSearchProxy` | 東京駅・東京タワーなど主要スポット検索、入力キーワードに応じた動的候補生成 |
 
 ---
 
@@ -60,12 +76,10 @@ Flutterアプリを **`local` フレーバー** で起動してください。
 
 例えば、アプリから「ユーザー追加（POST）」を実行すると、`mock/db.json` の中身が自動的に書き換えられ、次回の取得（GET）時には追加されたデータが含まれるようになります。
 
-### 2. 特殊なパスの紐付け (Custom Routes)
+### 2. 高度な動的モック処理 (`mock/middleware.js`)
 
-`routes.json` を使用することで、以下のようなネストされたパスやカスタムパスにも対応しています。
-
-- `/auth/login` → `db.json` の `login` データを返す
-- `/v1/users` → `db.json` の `users` リストを返す（将来的な拡張例）
+- **ルート検索プロキシ (`/computeRoutesProxy`)**: アプリから指定された出発地と目的地の緯度経度から、Google Encoded Polyline を自動エンコードして返却します。
+- **場所検索プロキシ (`/placesSearchProxy`)**: 部分一致による主要スポット検索に加え、自由入力されたキーワードに応じたダミー候補を動的に返却します。
 
 ---
 
