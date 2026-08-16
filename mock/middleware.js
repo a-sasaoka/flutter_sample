@@ -199,12 +199,23 @@ module.exports = (req, res, next) => {
   if (req.method === 'POST' && (req.path === '/placesSearchProxy' || req.url === '/placesSearchProxy')) {
     console.log('🔍 [Mock Server] POST /placesSearchProxy received:', req.body);
     const body = req.body || {};
-    const query = (body.textQuery || '').trim().toLowerCase();
-    const maxCount = body.maxResultCount || 10;
+    const { textQuery, maxResultCount } = body;
 
-    if (!query) {
-      return res.status(200).json({ places: [] });
+    // 本番プロキシと同一のバリデーション契約 (1〜100文字の文字列チェック)
+    if (typeof textQuery !== 'string' || textQuery.trim().length === 0 || textQuery.length > 100) {
+      return res.status(400).json({
+        error: 'Bad Request: textQuery は 1〜100 文字の文字列である必要があります。',
+      });
     }
+
+    // 本番プロキシと同一の maxResultCount 正規化 (1〜20 は整数化、それ以外はデフォルト 10)
+    const validPageSize =
+      typeof maxResultCount === 'number' && maxResultCount >= 1 && maxResultCount <= 20
+        ? Math.floor(maxResultCount)
+        : 10;
+
+    const trimmedQuery = textQuery.trim();
+    const query = trimmedQuery.toLowerCase();
 
     // クエリに合致するスポットを検索
     let matches = MOCK_PLACES_DATABASE.filter(
@@ -219,24 +230,24 @@ module.exports = (req, res, next) => {
       matches = [
         {
           id: `mock_place_${Date.now()}_1`,
-          displayName: { text: `${body.textQuery} 本店` },
-          formattedAddress: `東京都千代田区1-1 (${body.textQuery})`,
+          displayName: { text: `${trimmedQuery} 本店` },
+          formattedAddress: `東京都千代田区1-1 (${trimmedQuery})`,
           location: { latitude: 35.681236 + 0.005, longitude: 139.767125 + 0.005 },
           primaryType: 'point_of_interest',
           rating: 4.3,
         },
         {
           id: `mock_place_${Date.now()}_2`,
-          displayName: { text: `${body.textQuery} 新宿店` },
-          formattedAddress: `東京都新宿区3-3 (${body.textQuery})`,
+          displayName: { text: `${trimmedQuery} 新宿店` },
+          formattedAddress: `東京都新宿区3-3 (${trimmedQuery})`,
           location: { latitude: 35.689487, longitude: 139.691706 },
           primaryType: 'point_of_interest',
           rating: 4.1,
         },
         {
           id: `mock_place_${Date.now()}_3`,
-          displayName: { text: `${body.textQuery} 渋谷店` },
-          formattedAddress: `東京都渋谷区2-2 (${body.textQuery})`,
+          displayName: { text: `${trimmedQuery} 渋谷店` },
+          formattedAddress: `東京都渋谷区2-2 (${trimmedQuery})`,
           location: { latitude: 35.659482, longitude: 139.700553 },
           primaryType: 'point_of_interest',
           rating: 4.5,
@@ -245,7 +256,7 @@ module.exports = (req, res, next) => {
     }
 
     return res.status(200).json({
-      places: matches.slice(0, maxCount),
+      places: matches.slice(0, validPageSize),
     });
   }
 
