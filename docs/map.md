@@ -49,8 +49,8 @@ lib/src/features/map/
 
 `LocationRepository`、`GeocodingRepository`、`PlacesRepository`、`RouteRepository` および `SpotRepository` にて外部依存・通信ロジックを集約し、テスト時にモックやテスト用ハンドラを注入可能とすることで、100% 決定論的な単体・ウィジェットテストを可能にしています。
 
-- **`PlacesRepositoryImpl`**: `BASE_URL` を元に Cloud Functions の場所検索プロキシエンドポイント（`$BASE_URL/placesSearchProxy`）と POST 通信し、Google Places API (New: `places:searchText`) 経由で複数施設・ランドマークの候補地リスト（5〜20件）を取得します。
-- **`MockPlacesRepositoryImpl`**: 単体テストやウィジェットテスト向けに、ダミーの複数候補地データを即座に生成するオフラインリポジトリです。
+- **`PlacesRepositoryImpl`**: `BASE_URL` を元に Cloud Functions の場所検索プロキシエンドポイント（`$BASE_URL/placesSearchProxy`）と POST 通信し、Google Places API (New: `places:searchText`) 経由で複数施設・ランドマークの候補地リスト（`maxResultCount` 件まで、デフォルト10件）を取得します。
+- **`MockPlacesRepositoryImpl`**: 単体テストやウィジェットテスト向けに、デフォルトで2件のダミー候補地データ（または指定されたモック候補リスト）を即座に生成するオフラインリポジトリです。
 - **`RouteRepositoryImpl`**: `BASE_URL` を元に Cloud Functions のルート検索プロキシエンドポイント（`$BASE_URL/computeRoutesProxy`）と POST 通信し、指定された `TravelMode`（車: `DRIVE`、徒歩: `WALK`、自転車: `BICYCLE`、公共交通機関: `TRANSIT`）の道路ネットワークに沿った経路 Polyline、総距離、所要時間、警告情報（`warnings`）を取得します。クライアントに API キーを持たせない設計のため、ヘッダーには `X-Goog-FieldMask` のみを付与して必要なフィールドを安全・効率的に取得します。圧縮された座標文字列は `decodePolyline` ユーティリティにより `List<LatLng>` に復元されます。
 - **`MockRouteRepository`**: 単体テストやウィジェットテスト向けに、2点間の緯度経度から概算距離・所要時間を計算し、5点の補間座標（折れ線）を即座に生成するオフラインリポジトリです。API キーや外部通信を一切行わずに決定論的なテストを可能にします。
 
