@@ -553,7 +553,7 @@ class MapScreen extends HookConsumerWidget {
                 Positioned(
                   left: 0,
                   right: 0,
-                  bottom: 8,
+                  bottom: 8 + MediaQuery.paddingOf(context).bottom,
                   child: SizedBox(
                     width: double.infinity,
                     child: Column(
