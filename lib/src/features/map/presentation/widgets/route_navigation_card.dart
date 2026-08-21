@@ -188,22 +188,22 @@ class RouteNavigationCard extends StatelessWidget {
             segments: [
               ButtonSegment(
                 value: TravelMode.driving,
-                icon: const Icon(Icons.directions_car, size: 18),
+                icon: Icon(_getTravelModeIcon(TravelMode.driving), size: 18),
                 label: Text(l10n.mapTravelModeDriving),
               ),
               ButtonSegment(
                 value: TravelMode.walking,
-                icon: const Icon(Icons.directions_walk, size: 18),
+                icon: Icon(_getTravelModeIcon(TravelMode.walking), size: 18),
                 label: Text(l10n.mapTravelModeWalking),
               ),
               ButtonSegment(
                 value: TravelMode.bicycling,
-                icon: const Icon(Icons.directions_bike, size: 18),
+                icon: Icon(_getTravelModeIcon(TravelMode.bicycling), size: 18),
                 label: Text(l10n.mapTravelModeBicycling),
               ),
               ButtonSegment(
                 value: TravelMode.transit,
-                icon: const Icon(Icons.directions_transit, size: 18),
+                icon: Icon(_getTravelModeIcon(TravelMode.transit), size: 18),
                 label: Text(l10n.mapTravelModeTransit),
               ),
             ],
