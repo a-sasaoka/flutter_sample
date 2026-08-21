@@ -47,6 +47,24 @@ class MapScreen extends HookConsumerWidget {
     final searchController = useTextEditingController();
     useListenable(searchController);
 
+    // 検索バーのフォーカスノード
+    final searchFocusNode = useFocusNode();
+
+    // ルート案内カードの展開/折りたたみ状態（デフォルト: 詳細表示）
+    final isRouteCardExpandedState = useState<bool>(true);
+
+    // 検索バーにフォーカスが当たった際はルート案内カードを自動折りたたみ
+    useEffect(() {
+      void onFocusChange() {
+        if (searchFocusNode.hasFocus) {
+          isRouteCardExpandedState.value = false;
+        }
+      }
+
+      searchFocusNode.addListener(onFocusChange);
+      return () => searchFocusNode.removeListener(onFocusChange);
+    }, [searchFocusNode]);
+
     // MapNotifier の状態を監視
     final locationState = ref.watch(mapProvider);
 
@@ -364,6 +382,7 @@ class MapScreen extends HookConsumerWidget {
       ..listen(mapRouteProvider, (previous, next) {
         next.whenOrNull(
           success: (route) {
+            isRouteCardExpandedState.value = !searchFocusNode.hasFocus;
             final controller = mapControllerState.value;
             if (controller != null) {
               unawaited(
@@ -386,6 +405,15 @@ class MapScreen extends HookConsumerWidget {
         );
       });
 
+    // 検索実行ヘルパー（フォーカス解除 + 前のルート自動クリア + 検索開始）
+    void executeSearch(String query) {
+      searchFocusNode.unfocus();
+      ref.read(mapRouteProvider.notifier).clearRoute();
+      unawaited(
+        ref.read(mapSearchProvider.notifier).searchLocation(query),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.mapTitle),
@@ -405,6 +433,7 @@ class MapScreen extends HookConsumerWidget {
                       child: TextField(
                         key: const Key('mapSearchTextField'),
                         controller: searchController,
+                        focusNode: searchFocusNode,
                         textInputAction: TextInputAction.search,
                         decoration: InputDecoration(
                           hintText: l10n.mapSearchHint,
@@ -425,14 +454,7 @@ class MapScreen extends HookConsumerWidget {
                                 )
                               : null,
                         ),
-                        onSubmitted: (value) {
-                          FocusScope.of(context).unfocus();
-                          unawaited(
-                            ref
-                                .read(mapSearchProvider.notifier)
-                                .searchLocation(value),
-                          );
-                        },
+                        onSubmitted: executeSearch,
                       ),
                     ),
                     if (searchState is MapSearchStateLoading)
@@ -448,14 +470,7 @@ class MapScreen extends HookConsumerWidget {
                       IconButton(
                         key: const Key('mapSearchButton'),
                         icon: const Icon(Icons.send),
-                        onPressed: () {
-                          FocusScope.of(context).unfocus();
-                          unawaited(
-                            ref
-                                .read(mapSearchProvider.notifier)
-                                .searchLocation(searchController.text),
-                          );
-                        },
+                        onPressed: () => executeSearch(searchController.text),
                       ),
                   ],
                 ),
@@ -468,7 +483,17 @@ class MapScreen extends HookConsumerWidget {
             child: Stack(
               children: [
                 GoogleMap(
-                  initialCameraPosition: _initialCameraPosition,
+                  initialCameraPosition:
+                      locationState.whenOrNull(
+                        success: (position) => CameraPosition(
+                          target: LatLng(
+                            position.latitude,
+                            position.longitude,
+                          ),
+                          zoom: 16,
+                        ),
+                      ) ??
+                      _initialCameraPosition,
                   myLocationEnabled: true,
                   myLocationButtonEnabled: false,
                   zoomControlsEnabled: false,
@@ -524,46 +549,69 @@ class MapScreen extends HookConsumerWidget {
                     ),
                   ),
 
-                // ルート案内中カード (画面上部に最前面オーバーレイ表示)
-                if (routeState is MapRouteStateSuccess)
-                  Positioned(
-                    top: 8,
-                    left: 0,
-                    right: 0,
-                    child: RouteNavigationCard(
-                      route: routeState.route,
-                      onClose: () {
-                        ref.read(mapRouteProvider.notifier).clearRoute();
-                      },
-                      onTravelModeChanged: (mode) {
-                        if (mode != routeState.route.travelMode) {
-                          unawaited(
-                            ref
-                                .read(mapRouteProvider.notifier)
-                                .searchRoute(
-                                  origin: routeState.route.origin,
-                                  destination: routeState.route.destination,
-                                  destinationName:
-                                      routeState.route.destinationName,
-                                  travelMode: mode,
-                                ),
-                          );
-                        }
-                      },
+                // 画面下部コントロール群 (現在地取得 FAB ＋ ルート案内カード)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 8,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(right: 16, bottom: 8),
+                          child: FloatingActionButton.extended(
+                            heroTag: null,
+                            key: const Key('fetchLocationFab'),
+                            onPressed: () {
+                              unawaited(
+                                ref
+                                    .read(mapProvider.notifier)
+                                    .fetchCurrentLocation(),
+                              );
+                            },
+                            icon: const Icon(Icons.my_location),
+                            label: Text(l10n.mapFetchLocation),
+                          ),
+                        ),
+                        if (routeState is MapRouteStateSuccess)
+                          RouteNavigationCard(
+                            route: routeState.route,
+                            isExpanded: isRouteCardExpandedState.value,
+                            onToggleExpand: () {
+                              isRouteCardExpandedState.value =
+                                  !isRouteCardExpandedState.value;
+                            },
+                            onClose: () {
+                              ref.read(mapRouteProvider.notifier).clearRoute();
+                            },
+                            onTravelModeChanged: (mode) {
+                              if (mode != routeState.route.travelMode) {
+                                unawaited(
+                                  ref
+                                      .read(mapRouteProvider.notifier)
+                                      .searchRoute(
+                                        origin: routeState.route.origin,
+                                        destination:
+                                            routeState.route.destination,
+                                        destinationName:
+                                            routeState.route.destinationName,
+                                        travelMode: mode,
+                                      ),
+                                );
+                              }
+                            },
+                          ),
+                      ],
                     ),
                   ),
+                ),
               ],
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const Key('fetchLocationFab'),
-        onPressed: () {
-          unawaited(ref.read(mapProvider.notifier).fetchCurrentLocation());
-        },
-        icon: const Icon(Icons.my_location),
-        label: Text(l10n.mapFetchLocation),
       ),
     );
   }

@@ -216,9 +216,11 @@ void main() {
           ],
         ),
       );
-      await tester.pump();
-
-      await tester.tap(find.byKey(const Key('fetchLocationFab')));
+      final fabFinder = find.byKey(const Key('fetchLocationFab'));
+      check(fabFinder).findsOne();
+      final fab = tester.widget<FloatingActionButton>(fabFinder);
+      check(fab.onPressed).isNotNull();
+      fab.onPressed!();
       await tester.pump();
 
       check(testNotifier.fetchCurrentLocationCalled).isTrue();
@@ -1276,6 +1278,257 @@ void main() {
         await tester.pump();
 
         check(testRouteNotifier.searchTravelMode).isNull();
+      },
+    );
+
+    testWidgets(
+      'RouteNavigationCard の折りたたみボタン・展開ボタンをタップして展開状態が切り替わること',
+      (tester) async {
+        const origin = LatLng(35.681236, 139.767125);
+        const destination = LatLng(35.6585805, 139.7454329);
+        const initialRoute = MapRoute(
+          id: 'route_expand_toggle_test',
+          origin: origin,
+          destination: destination,
+          points: [origin, destination],
+          distanceMeters: 3500,
+          durationSeconds: 360,
+          destinationName: '東京タワー',
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapRouteProvider.overrideWith(
+                () => _TestMapRouteNotifier(
+                  const MapRouteState.success(initialRoute),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // 初期表示は詳細表示（折りたたみボタン ∨ が表示）
+        check(find.byIcon(Icons.keyboard_arrow_down)).findsOne();
+        check(
+          find.byKey(const Key('routeNavigationCompactCard')),
+        ).findsNothing();
+
+        // 折りたたみボタンを押下 -> コンパクト表示（展開ボタン ∧ が表示）
+        final collapseButton = tester.widget<IconButton>(
+          find.byKey(const Key('routeNavigationToggleExpandButton')),
+        );
+        check(collapseButton.onPressed).isNotNull();
+        collapseButton.onPressed!();
+        await tester.pumpAndSettle();
+
+        check(find.byKey(const Key('routeNavigationCompactCard'))).findsOne();
+        check(find.byIcon(Icons.keyboard_arrow_up)).findsOne();
+
+        // 展開ボタンを押下 -> 詳細表示に復帰
+        final expandButton = tester.widget<IconButton>(
+          find.byKey(const Key('routeNavigationToggleExpandButton')),
+        );
+        check(expandButton.onPressed).isNotNull();
+        expandButton.onPressed!();
+        await tester.pumpAndSettle();
+
+        check(find.byIcon(Icons.keyboard_arrow_down)).findsOne();
+      },
+    );
+
+    testWidgets(
+      '検索バーにフォーカスが当たると RouteNavigationCard が自動で折りたたまれること',
+      (tester) async {
+        const origin = LatLng(35.681236, 139.767125);
+        const destination = LatLng(35.6585805, 139.7454329);
+        const initialRoute = MapRoute(
+          id: 'route_focus_collapse_test',
+          origin: origin,
+          destination: destination,
+          points: [origin, destination],
+          distanceMeters: 3500,
+          durationSeconds: 360,
+          destinationName: '東京タワー',
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapRouteProvider.overrideWith(
+                () => _TestMapRouteNotifier(
+                  const MapRouteState.success(initialRoute),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // 初期は詳細表示
+        check(find.byIcon(Icons.keyboard_arrow_down)).findsOne();
+
+        // 検索欄にフォーカスを当てる
+        final textField = tester.widget<TextField>(
+          find.byKey(const Key('mapSearchTextField')),
+        );
+        textField.focusNode!.requestFocus();
+        await tester.pumpAndSettle();
+
+        // 自動的にコンパクト表示に切り替わっていること
+        check(find.byKey(const Key('routeNavigationCompactCard'))).findsOne();
+        check(find.byIcon(Icons.keyboard_arrow_up)).findsOne();
+      },
+    );
+
+    testWidgets(
+      '検索実行時（送信ボタンまたは検索キー）に clearRoute が呼ばれて前のルートがクリアされること',
+      (tester) async {
+        late _TestMapRouteNotifier testRouteNotifier;
+        late _TestMapSearchNotifier testSearchNotifier;
+        const origin = LatLng(35.681236, 139.767125);
+        const destination = LatLng(35.6585805, 139.7454329);
+        const initialRoute = MapRoute(
+          id: 'route_search_clear_test',
+          origin: origin,
+          destination: destination,
+          points: [origin, destination],
+          distanceMeters: 3500,
+          durationSeconds: 360,
+          destinationName: '東京タワー',
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapSearchProvider.overrideWith(
+                () => testSearchNotifier = _TestMapSearchNotifier(
+                  const MapSearchState.initial(),
+                ),
+              ),
+              mapRouteProvider.overrideWith(
+                () => testRouteNotifier = _TestMapRouteNotifier(
+                  const MapRouteState.success(initialRoute),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // 検索文字列を入力して送信ボタンをタップ
+        await tester.enterText(
+          find.byKey(const Key('mapSearchTextField')),
+          'スカイツリー',
+        );
+        await tester.pump();
+
+        final sendButton = tester.widget<IconButton>(
+          find.byKey(const Key('mapSearchButton')),
+        );
+        sendButton.onPressed!();
+        await tester.pumpAndSettle();
+
+        // clearRoute と searchLocation が両方呼ばれていること
+        check(testRouteNotifier.clearRouteCalled).isTrue();
+        check(testSearchNotifier.searchLocationQuery).equals('スカイツリー');
+      },
+    );
+
+    testWidgets(
+      '現在地取得済み (LocationState.success) の状態で MapScreen を開いた場合、 '
+      '現在地が initialCameraPosition に設定されること',
+      (tester) async {
+        final position = Position(
+          longitude: 139.701636,
+          latitude: 35.658034,
+          timestamp: DateTime(2026),
+          accuracy: 5,
+          altitude: 10,
+          altitudeAccuracy: 1,
+          heading: 0,
+          headingAccuracy: 1,
+          speed: 0,
+          speedAccuracy: 1,
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapProvider.overrideWith(
+                () => _TestMapNotifier(LocationState.success(position)),
+              ),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final googleMapFinder = find.byType(GoogleMap);
+        check(googleMapFinder).findsOne();
+        final googleMap = tester.widget<GoogleMap>(googleMapFinder);
+        check(googleMap.initialCameraPosition.target.latitude).equals(
+          35.658034,
+        );
+        check(googleMap.initialCameraPosition.target.longitude).equals(
+          139.701636,
+        );
+        check(googleMap.initialCameraPosition.zoom).equals(16);
+      },
+    );
+
+    testWidgets(
+      '検索バーにフォーカスがある状態でルート検索成功を受信した場合、 '
+      'カードが折りたたまれた状態（コンパクト表示）になること',
+      (tester) async {
+        late _TestMapRouteNotifier testRouteNotifier;
+        const sampleRoute = MapRoute(
+          id: 'test_route_focused',
+          origin: LatLng(35.681236, 139.767125),
+          destination: LatLng(35.6585805, 139.7454329),
+          points: [
+            LatLng(35.681236, 139.767125),
+            LatLng(35.6585805, 139.7454329),
+          ],
+          distanceMeters: 3500,
+          durationSeconds: 360,
+          destinationName: '東京タワー',
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapRouteProvider.overrideWith(
+                () => testRouteNotifier = _TestMapRouteNotifier(
+                  const MapRouteState.initial(),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // 検索欄にフォーカスを当てる
+        final textField = tester.widget<TextField>(
+          find.byKey(const Key('mapSearchTextField')),
+        );
+        textField.focusNode!.requestFocus();
+        await tester.pumpAndSettle();
+
+        // ルート検索成功を発火
+        testRouteNotifier.currentState = const MapRouteState.success(
+          sampleRoute,
+        );
+        await tester.pumpAndSettle();
+
+        // フォーカスがあるためコンパクト表示になっていること
+        check(find.byKey(const Key('routeNavigationCompactCard'))).findsOne();
+        check(find.byIcon(Icons.keyboard_arrow_up)).findsOne();
       },
     );
   });

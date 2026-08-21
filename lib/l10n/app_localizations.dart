@@ -1334,6 +1334,18 @@ abstract class AppLocalizations {
   /// **'End Guidance'**
   String get mapRouteClose;
 
+  /// No description provided for @mapRouteExpand.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand details'**
+  String get mapRouteExpand;
+
+  /// No description provided for @mapRouteCollapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse'**
+  String get mapRouteCollapse;
+
   /// No description provided for @mapRouteCalculating.
   ///
   /// In en, this message translates to:

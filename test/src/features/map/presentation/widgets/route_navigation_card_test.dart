@@ -310,5 +310,174 @@ void main() {
         find.byKey(const Key('routeNavigationWarningBanner')),
       ).findsNothing();
     });
+
+    testWidgets('詳細表示時に折りたたみボタンが表示され、タップ時に onToggleExpand が呼ばれること', (
+      tester,
+    ) async {
+      var toggleExpandCalled = false;
+      const sampleRoute = MapRoute(
+        id: 'route_card_expand_test',
+        origin: LatLng(35.681236, 139.767125),
+        destination: LatLng(35.6585805, 139.7454329),
+        points: [
+          LatLng(35.681236, 139.767125),
+          LatLng(35.6585805, 139.7454329),
+        ],
+        distanceMeters: 3500,
+        durationSeconds: 360,
+        destinationName: '東京タワー',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('ja'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Scaffold(
+            body: RouteNavigationCard(
+              route: sampleRoute,
+              onClose: () {},
+              onToggleExpand: () {
+                toggleExpandCalled = true;
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final toggleButtonFinder = find.byKey(
+        const Key('routeNavigationToggleExpandButton'),
+      );
+      check(toggleButtonFinder).findsOne();
+      check(find.byIcon(Icons.keyboard_arrow_down)).findsOne();
+
+      await tester.tap(toggleButtonFinder);
+      await tester.pump();
+
+      check(toggleExpandCalled).isTrue();
+    });
+
+    testWidgets('コンパクト表示時に1行バーが表示され、カードや展開ボタンタップで onToggleExpand が呼ばれること', (
+      tester,
+    ) async {
+      var toggleExpandCalledCount = 0;
+      var closePressed = false;
+      const sampleRoute = MapRoute(
+        id: 'route_card_compact_test',
+        origin: LatLng(35.681236, 139.767125),
+        destination: LatLng(35.6585805, 139.7454329),
+        points: [
+          LatLng(35.681236, 139.767125),
+          LatLng(35.6585805, 139.7454329),
+        ],
+        distanceMeters: 3500,
+        durationSeconds: 360,
+        destinationName: '東京タワー',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('ja'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Scaffold(
+            body: RouteNavigationCard(
+              route: sampleRoute,
+              isExpanded: false,
+              onClose: () {
+                closePressed = true;
+              },
+              onToggleExpand: () {
+                toggleExpandCalledCount++;
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // コンパクト表示の各要素が表示されていること
+      check(find.byKey(const Key('routeNavigationCompactCard'))).findsOne();
+      check(find.text('東京タワー')).findsOne();
+      check(find.text('6分')).findsOne();
+      check(find.text('(3.5 km)')).findsOne();
+      check(find.byIcon(Icons.directions_car)).findsOne();
+      check(find.byIcon(Icons.keyboard_arrow_up)).findsOne();
+
+      // 展開ボタンタップ
+      final toggleButtonFinder = find.byKey(
+        const Key('routeNavigationToggleExpandButton'),
+      );
+      await tester.tap(toggleButtonFinder);
+      await tester.pump();
+      check(toggleExpandCalledCount).equals(1);
+
+      // コンパクトカード自体のタップ
+      await tester.tap(find.byKey(const Key('routeNavigationCompactCard')));
+      await tester.pump();
+      check(toggleExpandCalledCount).equals(2);
+
+      // 閉じるボタンのタップ
+      await tester.tap(find.byKey(const Key('routeNavigationCloseButton')));
+      await tester.pump();
+      check(closePressed).isTrue();
+    });
+
+    testWidgets('コンパクト表示時に各移動手段（徒歩・自転車・公共交通）のアイコンが正しく表示されること', (
+      tester,
+    ) async {
+      for (final mode in [
+        (TravelMode.walking, Icons.directions_walk),
+        (TravelMode.bicycling, Icons.directions_bike),
+        (TravelMode.transit, Icons.directions_transit),
+      ]) {
+        final sampleRoute = MapRoute(
+          id: 'route_compact_mode_${mode.$1.name}',
+          origin: const LatLng(35.681236, 139.767125),
+          destination: const LatLng(35.6585805, 139.7454329),
+          points: const [
+            LatLng(35.681236, 139.767125),
+            LatLng(35.6585805, 139.7454329),
+          ],
+          distanceMeters: 1000,
+          durationSeconds: 600,
+          travelMode: mode.$1,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: const Locale('ja'),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: Scaffold(
+              body: RouteNavigationCard(
+                route: sampleRoute,
+                isExpanded: false,
+                onClose: () {},
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        check(find.byIcon(mode.$2)).findsOne();
+      }
+    });
   });
 }
