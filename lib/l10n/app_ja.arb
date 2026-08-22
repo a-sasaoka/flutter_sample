@@ -303,6 +303,8 @@
     }
   },
   "mapRouteClose": "案内を終了",
+  "mapRouteExpand": "詳細を展開",
+  "mapRouteCollapse": "折りたたむ",
   "mapRouteCalculating": "ルートを検索中...",
   "mapRouteError": "ルートの検索に失敗しました",
   "mapTravelModeDriving": "車",

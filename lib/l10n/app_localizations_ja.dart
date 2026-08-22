@@ -648,6 +648,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mapRouteClose => '案内を終了';
 
   @override
+  String get mapRouteExpand => '詳細を展開';
+
+  @override
+  String get mapRouteCollapse => '折りたたむ';
+
+  @override
   String get mapRouteCalculating => 'ルートを検索中...';
 
   @override

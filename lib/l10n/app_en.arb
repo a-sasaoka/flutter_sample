@@ -303,6 +303,8 @@
     }
   },
   "mapRouteClose": "End Guidance",
+  "mapRouteExpand": "Expand details",
+  "mapRouteCollapse": "Collapse",
   "mapRouteCalculating": "Searching route...",
   "mapRouteError": "Failed to search route",
   "mapTravelModeDriving": "Drive",

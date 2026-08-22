@@ -667,6 +667,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapRouteClose => 'End Guidance';
 
   @override
+  String get mapRouteExpand => 'Expand details';
+
+  @override
+  String get mapRouteCollapse => 'Collapse';
+
+  @override
   String get mapRouteCalculating => 'Searching route...';
 
   @override

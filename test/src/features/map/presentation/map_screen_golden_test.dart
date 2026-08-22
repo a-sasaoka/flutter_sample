@@ -148,12 +148,12 @@ void main() {
 
     // ignore: discarded_futures, testing framework registers tests synchronously
     goldenTest(
-      'RouteNavigationCard の描画 (ライト/ダークモード)',
+      'RouteNavigationCard の描画 (ライト/ダークモード・詳細/コンパクト)',
       fileName: 'route_navigation_card',
       builder: () => GoldenTestGroup(
         children: [
           GoldenTestScenario(
-            name: 'Light Mode',
+            name: 'Expanded - Light Mode',
             child: SizedBox(
               width: 390,
               height: 240,
@@ -169,7 +169,7 @@ void main() {
             ),
           ),
           GoldenTestScenario(
-            name: 'Dark Mode',
+            name: 'Expanded - Dark Mode',
             child: SizedBox(
               width: 390,
               height: 240,
@@ -177,6 +177,40 @@ void main() {
                 home: Scaffold(
                   body: RouteNavigationCard(
                     route: sampleRoute,
+                    onClose: () {},
+                  ),
+                ),
+                themeMode: ThemeMode.dark,
+              ),
+            ),
+          ),
+          GoldenTestScenario(
+            name: 'Compact - Light Mode',
+            child: SizedBox(
+              width: 390,
+              height: 100,
+              child: buildGoldenTestApp(
+                home: Scaffold(
+                  body: RouteNavigationCard(
+                    route: sampleRoute,
+                    isExpanded: false,
+                    onClose: () {},
+                  ),
+                ),
+                themeMode: ThemeMode.light,
+              ),
+            ),
+          ),
+          GoldenTestScenario(
+            name: 'Compact - Dark Mode',
+            child: SizedBox(
+              width: 390,
+              height: 100,
+              child: buildGoldenTestApp(
+                home: Scaffold(
+                  body: RouteNavigationCard(
+                    route: sampleRoute,
+                    isExpanded: false,
                     onClose: () {},
                   ),
                 ),
