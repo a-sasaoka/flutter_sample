@@ -380,6 +380,9 @@ class MapScreen extends HookConsumerWidget {
         );
       })
       ..listen(mapRouteProvider, (previous, next) {
+        if (next is! MapRouteStateSuccess) {
+          pendingBoundsState.value = null;
+        }
         next.whenOrNull(
           success: (route) {
             isRouteCardExpandedState.value = !searchFocusNode.hasFocus;

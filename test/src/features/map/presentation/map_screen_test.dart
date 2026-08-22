@@ -1000,6 +1000,59 @@ void main() {
       },
     );
 
+    testWidgets(
+      'コントローラ未生成時にルート検索成功を受信後、コントローラ生成前にルートがクリアされた場合は '
+      'onMapCreated 時にカメラ移動が実行されないこと',
+      (tester) async {
+        late _TestMapRouteNotifier testRouteNotifier;
+        const sampleRoute = MapRoute(
+          id: 'test_route_clear_pending',
+          origin: LatLng(35.681236, 139.767125),
+          destination: LatLng(35.6585805, 139.7454329),
+          points: [
+            LatLng(35.681236, 139.767125),
+            LatLng(35.6585805, 139.7454329),
+          ],
+          distanceMeters: 3500,
+          durationSeconds: 360,
+          destinationName: '東京タワー',
+        );
+
+        mockMapsPlatform.autoCreatePlatformView = false;
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapRouteProvider.overrideWith(
+                () => testRouteNotifier = _TestMapRouteNotifier(
+                  const MapRouteState.initial(),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+
+        // 成功状態を受信（pendingBounds に設定される）
+        testRouteNotifier.currentState = const MapRouteState.success(
+          sampleRoute,
+        );
+        await tester.pump();
+
+        // コントローラ生成前にルートが初期状態（クリア）に戻る
+        testRouteNotifier.currentState = const MapRouteState.initial();
+        await tester.pump();
+
+        // プラットフォームビュー生成（onMapCreated 実行）
+        mockMapsPlatform.triggerOnPlatformViewCreated(0);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 750));
+
+        // pendingBounds がクリアされているためカメラアニメーションは実行されないこと
+        check(mockMapsPlatform.animateCameraCalled).isFalse();
+      },
+    );
+
     testWidgets('ルート計算中 (loading) 時に CircularProgressIndicator が表示されること', (
       tester,
     ) async {
