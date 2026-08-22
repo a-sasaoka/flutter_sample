@@ -25,6 +25,7 @@
 | ⚙️ 設定           | SegmentedButton によるテーマ・言語切り替え、永続化連携、安全なログアウト処理                                                                                                                         |
 | 🔐 アプリロック   | 4桁PINパスコード＋生体認証（iOS: Face ID / Touch ID, Android: 指紋認証 / 顔認証）による最前面保護・自動復帰ロック                                                                                    |
 | 🤖 生成AI         | Firebase AI Logic（firebase_ai）を用いたストリーミング応答と履歴保持チャット                                                                                                                         |
+| 🎬 アニメーション | Lottie + flutter_gen によるベクターアニメーションの型安全な導入と制御（再生・一時停止・シークバー・ループ切替）                                                                                      |
 | 🧰 コード生成     | build_runnerによる自動生成と、JSON/Enviedを組み合わせた高度な環境切替対応                                                                                                                            |
 | 🎨 UI/UX          | FlexColorSchemeによるテーマ設定、共通エラーハンドリングUI、Haptic Feedback（触覚）の実装                                                                                                             |
 | 🧪 テスト         | mocktail等を用いた実践的なユニットテスト・ウィジェットテスト、および Maestro による E2E テストの手法                                                                                                 |
