@@ -74,8 +74,8 @@ fvm dart run build_runner build --define "envied_generator:envied=path=.env.dev"
 # アセットコードを含む全コードの一括生成
 fvm dart run build_runner build
 
-# アセット生成のみを対象に高速実行する場合
-fvm dart run build_runner build --build-filter="lib/gen/**"
+# 既存の競合ファイルを上書きして確実に再生成する場合
+fvm dart run build_runner build --delete-conflicting-outputs
 ```
 
 ---
