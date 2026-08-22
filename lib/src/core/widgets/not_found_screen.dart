@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/gen/assets.gen.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
+import 'package:flutter_sample/src/core/widgets/app_lottie_widget.dart';
 import 'package:go_router/go_router.dart';
 
 /// NotFoundScreen ウィジェット
 class NotFoundScreen extends StatelessWidget {
   /// コンストラクタ
-  const NotFoundScreen({super.key, this.unknownPath});
+  const NotFoundScreen({
+    super.key,
+    this.unknownPath,
+    this.animate,
+  });
 
   /// 不明なパス（URL）
   final String? unknownPath;
+
+  /// アニメーション再生フラグ（未指定時は実機でtrue、テスト環境でfalseに自動判別）
+  final bool? animate;
 
   @override
   Widget build(BuildContext context) {
@@ -22,12 +31,11 @@ class NotFoundScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.search_off_outlined,
-                size: 80,
-                color: Theme.of(
-                  context,
-                ).colorScheme.error.withValues(alpha: 0.5),
+              AppLottieWidget.asset(
+                lottie: Assets.animations.notFound404,
+                width: 160,
+                height: 160,
+                animate: animate,
               ),
               const SizedBox(height: 24),
               Text(

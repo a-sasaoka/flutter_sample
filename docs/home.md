@@ -21,6 +21,8 @@ AI チャット、グラフ、メモ帳、ユーザー一覧などの主要な�
 アプリの品質管理やデバッグを補助する機能です。
 
 - **統合ログ (TalkerScreen)**: 通信履歴やエラーログをアプリ上で確認できます（`prod` 環境以外で表示）。
+- **ローカルストレージ管理 (DeveloperStorageScreen)**: `SharedPreferences` や `FlutterSecureStorage` に保存されたキーと値の確認・編集・削除が行えます。
+- **Lottie アニメーションデモ (LottieDemoScreen)**: プロジェクト内の Lottie アセットの再生・一時停止・シーク操作・ループ切り替えや、ネットワークからのアニメーション読み込みを検証できます。
 - **クラッシュテスト**: Firebase Crashlytics が正しく動作するかを検証するための強制クラッシュ機能。
 - **分析テスト**: Firebase Analytics へのイベント送信をテストします。
 

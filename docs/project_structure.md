@@ -9,6 +9,7 @@ flutter_sample
 ├── .env*                                                       # 秘匿情報・個人設定ファイル（Git管理外。env.example参照）
 ├── .github/                                                    # GitHub ActionsによるCI/CDワークフロー設定
 ├── assets/                                                     # アプリで使用する画像やアプリアイコンなどのアセット
+│   ├── animations/                                             # Lottie アニメーションJSONファイル
 │   └── icons/                                                 # 各環境（Flavor）用の元アプリアイコン画像
 ├── android/
 │   └── app/src/
@@ -45,6 +46,8 @@ flutter_sample
     ├── main_dev.dart                                           # 開発環境用エントリポイント
     ├── main_stg.dart                                           # ステージング環境用エントリポイント
     ├── main_prod.dart                                          # 本番環境用エントリポイント
+    ├── gen                                                     # flutter_gen による自動生成アセットコード
+    │   └── assets.gen.dart                                     # 型安全なアセット参照クラス (Assets.*)
     ├── l10n                                                    # 多言語対応用のARBファイルを格納するディレクトリ
     │   ├── app_en.arb                                          # 英語翻訳ファイル
     │   └── app_ja.arb                                          # 日本語翻訳ファイル

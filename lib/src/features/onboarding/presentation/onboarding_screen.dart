@@ -2,14 +2,19 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_sample/gen/assets.gen.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
+import 'package:flutter_sample/src/core/widgets/app_lottie_widget.dart';
 import 'package:flutter_sample/src/features/onboarding/application/onboarding_notifier.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// アプリの初回起動時に表示されるオンボーディング画面
 class OnboardingScreen extends HookConsumerWidget {
   /// コンストラクタ
-  const OnboardingScreen({super.key});
+  const OnboardingScreen({super.key, this.animate});
+
+  /// アニメーション再生フラグ（未指定時は実機でtrue、テスト環境でfalseに自動判別）
+  final bool? animate;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -17,24 +22,24 @@ class OnboardingScreen extends HookConsumerWidget {
     final pageController = usePageController();
     final currentPage = useState(0);
 
-    // 3ページ分のデータを定義します
+    // 3ページ分のデータを定義します（Lottie アニメーションを指定）
     final pages = [
       _OnboardingPageData(
         title: l10n.onboardingPage1Title,
         description: l10n.onboardingPage1Desc,
-        icon: Icons.edit_document,
+        lottie: Assets.animations.onboardingMemo,
         colors: [Colors.blue.shade300, Colors.blue.shade700],
       ),
       _OnboardingPageData(
         title: l10n.onboardingPage2Title,
         description: l10n.onboardingPage2Desc,
-        icon: Icons.sync,
+        lottie: Assets.animations.onboardingSync,
         colors: [Colors.teal.shade300, Colors.teal.shade700],
       ),
       _OnboardingPageData(
         title: l10n.onboardingPage3Title,
         description: l10n.onboardingPage3Desc,
-        icon: Icons.chat_bubble,
+        lottie: Assets.animations.onboardingChat,
         colors: [Colors.purple.shade300, Colors.purple.shade700],
       ),
     ];
@@ -71,7 +76,10 @@ class OnboardingScreen extends HookConsumerWidget {
                 itemCount: pages.length,
                 onPageChanged: (index) => currentPage.value = index,
                 itemBuilder: (context, index) {
-                  return _OnboardingPage(data: pages[index]);
+                  return _OnboardingPage(
+                    data: pages[index],
+                    animate: animate,
+                  );
                 },
               ),
             ),
@@ -144,21 +152,25 @@ class _OnboardingPageData {
   const _OnboardingPageData({
     required this.title,
     required this.description,
-    required this.icon,
+    required this.lottie,
     required this.colors,
   });
 
   final String title;
   final String description;
-  final IconData icon;
+  final LottieGenImage lottie;
   final List<Color> colors;
 }
 
 /// 各スライドのUIを表示するウィジェット
 class _OnboardingPage extends StatelessWidget {
-  const _OnboardingPage({required this.data});
+  const _OnboardingPage({
+    required this.data,
+    this.animate,
+  });
 
   final _OnboardingPageData data;
+  final bool? animate;
 
   @override
   Widget build(BuildContext context) {
@@ -167,7 +179,7 @@ class _OnboardingPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // ビジュアルイラストカード
+          // ビジュアルイラストカード（Lottie アニメーション表示）
           Container(
             height: 220,
             width: 220,
@@ -186,10 +198,10 @@ class _OnboardingPage extends StatelessWidget {
                 ),
               ],
             ),
-            child: Icon(
-              data.icon,
-              size: 100,
-              color: Colors.white,
+            padding: const EdgeInsets.all(24),
+            child: AppLottieWidget.asset(
+              lottie: data.lottie,
+              animate: animate,
             ),
           ),
           const SizedBox(height: 48),

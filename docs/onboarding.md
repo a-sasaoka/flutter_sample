@@ -24,8 +24,8 @@
 
 - **[onboarding_screen.dart](../lib/src/features/onboarding/presentation/onboarding_screen.dart)**
   - `PageView.builder` を使って、横スクロールできるスライドショーを実現しています。
-  - スライドの動きに合わせて動く「ドットインジケータ（今どのスライドを見ているかを示す目印）」も自作しています。
-  - アセット画像は使わず、グラデーションの背景とマテリアルアイコンを使って、スッキリしたモダンなデザインに仕上げています。
+  - 各スライドには `flutter_gen` で型安全に管理された Lottie アニメーション（`Assets.animations.onboardingMemo / onboardingSync / onboardingChat`）を表示し、リッチで直感的なUIを提供しています。
+  - テスト実行時のタイムアウトを防ぐため、`animate: false` 引数で静止画レンダリングに切り替え可能な設計になっています。
 
 ### 2. 状態管理（データのやり取り）
 

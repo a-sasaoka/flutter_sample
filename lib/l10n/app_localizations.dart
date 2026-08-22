@@ -1393,6 +1393,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Bicycling directions may lack dedicated bike lanes. Follow traffic rules.'**
   String get mapRouteBicyclingWarning;
+
+  /// No description provided for @devLottieTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Lottie Animation Demo'**
+  String get devLottieTitle;
+
+  /// No description provided for @devLottieControlPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get devLottieControlPlay;
+
+  /// No description provided for @devLottieControlPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get devLottieControlPause;
+
+  /// No description provided for @devLottieControlStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get devLottieControlStop;
+
+  /// No description provided for @devLottieControlReverse.
+  ///
+  /// In en, this message translates to:
+  /// **'Reverse'**
+  String get devLottieControlReverse;
+
+  /// No description provided for @devLottieProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress (Seek): {progress}%'**
+  String devLottieProgress(int progress);
+
+  /// No description provided for @devLottieLoop.
+  ///
+  /// In en, this message translates to:
+  /// **'Loop Playback'**
+  String get devLottieLoop;
+
+  /// No description provided for @devLottieAssetSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Animation Asset'**
+  String get devLottieAssetSelect;
+
+  /// No description provided for @devLottieAssetOnboardingMemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Onboarding 1 (Memo)'**
+  String get devLottieAssetOnboardingMemo;
+
+  /// No description provided for @devLottieAssetOnboardingSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Onboarding 2 (Sync)'**
+  String get devLottieAssetOnboardingSync;
+
+  /// No description provided for @devLottieAssetOnboardingChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Onboarding 3 (Chat)'**
+  String get devLottieAssetOnboardingChat;
+
+  /// No description provided for @devLottieAssetEmptyBox.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty State (Empty Box)'**
+  String get devLottieAssetEmptyBox;
+
+  /// No description provided for @devLottieAssetNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'404 Error (Not Found)'**
+  String get devLottieAssetNotFound;
+
+  /// No description provided for @devLottieAssetSuccessCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Success Check (Success)'**
+  String get devLottieAssetSuccessCheck;
+
+  /// No description provided for @devLottieCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Animation completed!'**
+  String get devLottieCompleted;
+
+  /// No description provided for @devLottieNetworkSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Network Loading Example'**
+  String get devLottieNetworkSection;
 }
 
 class _AppLocalizationsDelegate

@@ -12,3 +12,15 @@ class DeveloperStorageRoute extends GoRouteData with $DeveloperStorageRoute {
     return const DeveloperStorageScreen();
   }
 }
+
+/// 開発者向けLottieアニメーションデモ画面のルート
+@TypedGoRoute<DeveloperLottieRoute>(path: '/dev-tools/lottie')
+class DeveloperLottieRoute extends GoRouteData with $DeveloperLottieRoute {
+  /// コンストラクタ
+  const DeveloperLottieRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const LottieDemoScreen();
+  }
+}

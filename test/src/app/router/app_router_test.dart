@@ -27,6 +27,8 @@ import 'package:flutter_sample/src/features/chart/presentation/chart_input_scree
 import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
+import 'package:flutter_sample/src/features/dev_tools/presentation/developer_storage_screen.dart';
+import 'package:flutter_sample/src/features/dev_tools/presentation/lottie_demo_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
 import 'package:flutter_sample/src/features/map/presentation/map_screen.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
@@ -213,6 +215,7 @@ void main() {
     when(() => mockL10n.versionUpUpdate).thenReturn('Update Button');
     when(() => mockL10n.versionUpCancel).thenReturn('Cancel Button');
     when(() => mockL10n.devStorageTitle).thenReturn('Storage');
+    when(() => mockL10n.devLottieTitle).thenReturn('Lottie Demo');
     when(() => mockL10n.chatTitle).thenReturn('Chat');
     when(() => mockL10n.memoTitle).thenReturn('Memo');
     when(() => mockL10n.navHome).thenReturn('Home');
@@ -647,6 +650,22 @@ void main() {
         MockGoRouterState(),
       );
       check(widget).isA<SplashScreen>();
+    });
+
+    test('DeveloperStorageRoute.build: DeveloperStorageScreen を返すこと', () {
+      final widget = const DeveloperStorageRoute().build(
+        MockBuildContext(),
+        MockGoRouterState(),
+      );
+      check(widget).isA<DeveloperStorageScreen>();
+    });
+
+    test('DeveloperLottieRoute.build: LottieDemoScreen を返すこと', () {
+      final widget = const DeveloperLottieRoute().build(
+        MockBuildContext(),
+        MockGoRouterState(),
+      );
+      check(widget).isA<LottieDemoScreen>();
     });
 
     test('SignUpRoute.build: FirebaseSignUpScreen を返すこと', () {

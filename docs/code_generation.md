@@ -12,6 +12,7 @@
 - **GoRouter Builder**: `@TypedGoRoute` による型安全なルーティング定義
 - **Envied**: `.env` ファイルからの秘匿情報（デバッグトークン等）の生成
 - **Drift (drift_dev)**: データベースのテーブル定義とクエリコードの生成
+- **flutter_gen_runner**: 画像やLottieアニメーションなどの型安全なアセット参照クラス（`Assets.*`）の生成
 - **flutter_launcher_icons**: 各Flavorごとのアプリアイコン生成
 
 ---

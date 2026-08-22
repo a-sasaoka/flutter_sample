@@ -678,4 +678,54 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get mapRouteBicyclingWarning =>
       '自転車ルートには専用道がない区間が含まれる場合があります。交通ルールに従って走行してください。';
+
+  @override
+  String get devLottieTitle => 'Lottie アニメーションデモ';
+
+  @override
+  String get devLottieControlPlay => '再生';
+
+  @override
+  String get devLottieControlPause => '一時停止';
+
+  @override
+  String get devLottieControlStop => '停止';
+
+  @override
+  String get devLottieControlReverse => '逆再生';
+
+  @override
+  String devLottieProgress(int progress) {
+    return '進捗（シークバー）: $progress%';
+  }
+
+  @override
+  String get devLottieLoop => 'ループ再生';
+
+  @override
+  String get devLottieAssetSelect => '表示アセットの切り替え';
+
+  @override
+  String get devLottieAssetOnboardingMemo => 'オンボーディング1 (Memo)';
+
+  @override
+  String get devLottieAssetOnboardingSync => 'オンボーディング2 (Sync)';
+
+  @override
+  String get devLottieAssetOnboardingChat => 'オンボーディング3 (Chat)';
+
+  @override
+  String get devLottieAssetEmptyBox => '空データ表示 (Empty Box)';
+
+  @override
+  String get devLottieAssetNotFound => '404 エラー (Not Found)';
+
+  @override
+  String get devLottieAssetSuccessCheck => '成功チェック (Success)';
+
+  @override
+  String get devLottieCompleted => 'アニメーションが完了しました！';
+
+  @override
+  String get devLottieNetworkSection => 'ネットワーク読み込みの例';
 }

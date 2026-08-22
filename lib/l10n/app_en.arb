@@ -312,6 +312,31 @@
   "mapTravelModeBicycling": "Bike",
   "mapTravelModeTransit": "Transit",
   "mapRouteWalkingWarning": "Walking directions may lack sidewalks or pedestrian paths. Use caution.",
-  "mapRouteBicyclingWarning": "Bicycling directions may lack dedicated bike lanes. Follow traffic rules."
+  "mapRouteBicyclingWarning": "Bicycling directions may lack dedicated bike lanes. Follow traffic rules.",
+
+  "@_DEV_LOTTIE": {},
+  "devLottieTitle": "Lottie Animation Demo",
+  "devLottieControlPlay": "Play",
+  "devLottieControlPause": "Pause",
+  "devLottieControlStop": "Stop",
+  "devLottieControlReverse": "Reverse",
+  "devLottieProgress": "Progress (Seek): {progress}%",
+  "@devLottieProgress": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "devLottieLoop": "Loop Playback",
+  "devLottieAssetSelect": "Select Animation Asset",
+  "devLottieAssetOnboardingMemo": "Onboarding 1 (Memo)",
+  "devLottieAssetOnboardingSync": "Onboarding 2 (Sync)",
+  "devLottieAssetOnboardingChat": "Onboarding 3 (Chat)",
+  "devLottieAssetEmptyBox": "Empty State (Empty Box)",
+  "devLottieAssetNotFound": "404 Error (Not Found)",
+  "devLottieAssetSuccessCheck": "Success Check (Success)",
+  "devLottieCompleted": "Animation completed!",
+  "devLottieNetworkSection": "Network Loading Example"
 }
 
