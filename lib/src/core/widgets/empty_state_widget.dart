@@ -12,7 +12,7 @@ class EmptyStateWidget extends StatelessWidget {
     this.description,
     this.actionLabel,
     this.onAction,
-    this.animate = true,
+    this.animate,
     this.lottieSize = 180,
   });
 
@@ -31,8 +31,8 @@ class EmptyStateWidget extends StatelessWidget {
   /// アクションボタンタップ時の処理（省略可）
   final VoidCallback? onAction;
 
-  /// アニメーション再生フラグ（テスト時は false）
-  final bool animate;
+  /// アニメーション再生フラグ（未指定時は実機で自動再生、テスト環境で自動静止画）
+  final bool? animate;
 
   /// アニメーションのサイズ（幅・高さ）
   final double lottieSize;

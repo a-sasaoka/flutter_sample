@@ -14,7 +14,6 @@ void main() {
           home: Scaffold(
             body: EmptyStateWidget(
               title: 'データがありません',
-              animate: false,
             ),
           ),
         ),
