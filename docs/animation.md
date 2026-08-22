@@ -112,12 +112,12 @@ class MemoListEmptyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return EmptyStateWidget(
-      // Lottie アニメーションを指定（未指定時は標準アイコンが表示されます）
+      // Lottie アニメーションを指定（未指定時はデフォルトで Assets.animations.emptyBox が使用されます）
       lottie: Assets.animations.emptyBox,
       title: 'メモがまだありません',
       description: '右下の「＋」ボタンから新しいメモを作成してみましょう。',
       actionLabel: 'メモを作成',
-      onActionPressed: () {
+      onAction: () {
         // ボタンタップ時の処理
       },
     );
