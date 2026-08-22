@@ -312,6 +312,25 @@
   "mapTravelModeBicycling": "Bike",
   "mapTravelModeTransit": "Transit",
   "mapRouteWalkingWarning": "Walking directions may lack sidewalks or pedestrian paths. Use caution.",
-  "mapRouteBicyclingWarning": "Bicycling directions may lack dedicated bike lanes. Follow traffic rules."
+  "mapRouteBicyclingWarning": "Bicycling directions may lack dedicated bike lanes. Follow traffic rules.",
+
+  "@_DEV_LOTTIE": {},
+  "devLottieTitle": "Lottie Animation Demo",
+  "devLottieControlPlay": "Play",
+  "devLottieControlPause": "Pause",
+  "devLottieControlStop": "Stop",
+  "devLottieControlReverse": "Reverse",
+  "devLottieProgress": "Progress (Seek): {progress}%",
+  "@devLottieProgress": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "devLottieLoop": "Loop Playback",
+  "devLottieAssetSelect": "Select Animation Asset",
+  "devLottieCompleted": "Animation completed!",
+  "devLottieNetworkSection": "Network Loading Example"
 }
 

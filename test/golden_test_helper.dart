@@ -15,10 +15,40 @@ Widget buildGoldenTestApp({
       textTheme: AppTheme.light().textTheme.apply(
         fontFamily: 'NotoSansJP',
       ),
+      primaryTextTheme: AppTheme.light().primaryTextTheme.apply(
+        fontFamily: 'NotoSansJP',
+      ),
+      chipTheme: AppTheme.light().chipTheme.copyWith(
+        labelStyle:
+            AppTheme.light().chipTheme.labelStyle?.copyWith(
+              fontFamily: 'NotoSansJP',
+            ) ??
+            const TextStyle(fontFamily: 'NotoSansJP'),
+        secondaryLabelStyle:
+            AppTheme.light().chipTheme.secondaryLabelStyle?.copyWith(
+              fontFamily: 'NotoSansJP',
+            ) ??
+            const TextStyle(fontFamily: 'NotoSansJP'),
+      ),
     ),
     darkTheme: AppTheme.dark().copyWith(
       textTheme: AppTheme.dark().textTheme.apply(
         fontFamily: 'NotoSansJP',
+      ),
+      primaryTextTheme: AppTheme.dark().primaryTextTheme.apply(
+        fontFamily: 'NotoSansJP',
+      ),
+      chipTheme: AppTheme.dark().chipTheme.copyWith(
+        labelStyle:
+            AppTheme.dark().chipTheme.labelStyle?.copyWith(
+              fontFamily: 'NotoSansJP',
+            ) ??
+            const TextStyle(fontFamily: 'NotoSansJP'),
+        secondaryLabelStyle:
+            AppTheme.dark().chipTheme.secondaryLabelStyle?.copyWith(
+              fontFamily: 'NotoSansJP',
+            ) ??
+            const TextStyle(fontFamily: 'NotoSansJP'),
       ),
     ),
     themeMode: themeMode,

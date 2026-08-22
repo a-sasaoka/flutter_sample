@@ -697,4 +697,36 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get mapRouteBicyclingWarning =>
       'Bicycling directions may lack dedicated bike lanes. Follow traffic rules.';
+
+  @override
+  String get devLottieTitle => 'Lottie Animation Demo';
+
+  @override
+  String get devLottieControlPlay => 'Play';
+
+  @override
+  String get devLottieControlPause => 'Pause';
+
+  @override
+  String get devLottieControlStop => 'Stop';
+
+  @override
+  String get devLottieControlReverse => 'Reverse';
+
+  @override
+  String devLottieProgress(int progress) {
+    return 'Progress (Seek): $progress%';
+  }
+
+  @override
+  String get devLottieLoop => 'Loop Playback';
+
+  @override
+  String get devLottieAssetSelect => 'Select Animation Asset';
+
+  @override
+  String get devLottieCompleted => 'Animation completed!';
+
+  @override
+  String get devLottieNetworkSection => 'Network Loading Example';
 }

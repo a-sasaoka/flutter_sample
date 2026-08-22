@@ -33,7 +33,7 @@ void main() {
             GlobalCupertinoLocalizations.delegate,
           ],
           supportedLocales: const [Locale('ja')],
-          home: const OnboardingScreen(),
+          home: const OnboardingScreen(animate: false),
         ),
       ),
     );

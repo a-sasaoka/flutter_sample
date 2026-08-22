@@ -56,7 +56,10 @@ void main() {
           ],
           home: InheritedGoRouter(
             goRouter: mockGoRouter,
-            child: NotFoundScreen(unknownPath: unknownPath),
+            child: NotFoundScreen(
+              unknownPath: unknownPath,
+              animate: false,
+            ),
           ),
           debugShowCheckedModeBanner: false,
         ),

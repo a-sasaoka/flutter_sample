@@ -50,6 +50,7 @@ Flutter開発のサンプルプロジェクトです。\
 - [プロフィール登録・変更機能 (Profile)](docs/profile.md)
 - [アプリロック機能 (App Lock)](docs/app_lock.md)
 - [地図機能 (Google Maps)](docs/map.md)
+- [リッチアニメーションとアセット管理 (Lottie & flutter_gen)](docs/animation.md)
 
 ### E. 開発運用
 

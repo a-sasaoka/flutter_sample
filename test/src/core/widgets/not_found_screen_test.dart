@@ -2,6 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_sample/src/core/widgets/app_lottie_widget.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -39,7 +40,10 @@ void main() {
           ],
           home: InheritedGoRouter(
             goRouter: mockGoRouter,
-            child: NotFoundScreen(unknownPath: unknownPath),
+            child: NotFoundScreen(
+              unknownPath: unknownPath,
+              animate: false,
+            ),
           ),
         ),
       );
@@ -52,7 +56,7 @@ void main() {
       check(find.text('Page Not Found')).findsExactly(2);
       check(find.text('The page could not be found.')).findsOne();
       check(find.text('Back to Home')).findsOne();
-      check(find.byIcon(Icons.search_off_outlined)).findsOne();
+      check(find.byType(AppLottieWidget)).findsOne();
     });
 
     testWidgets('unknownPathがあっても正しく描画される', (tester) async {

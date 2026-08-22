@@ -46,7 +46,7 @@ void main() {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          home: const OnboardingScreen(),
+          home: const OnboardingScreen(animate: false),
           debugShowCheckedModeBanner: false,
         ),
       );

@@ -312,6 +312,25 @@
   "mapTravelModeBicycling": "自転車",
   "mapTravelModeTransit": "公共交通",
   "mapRouteWalkingWarning": "徒歩ルートには歩道がない区間が含まれる場合があります。周囲の交通にご注意ください。",
-  "mapRouteBicyclingWarning": "自転車ルートには専用道がない区間が含まれる場合があります。交通ルールに従って走行してください。"
+  "mapRouteBicyclingWarning": "自転車ルートには専用道がない区間が含まれる場合があります。交通ルールに従って走行してください。",
+
+  "@_DEV_LOTTIE": {},
+  "devLottieTitle": "Lottie アニメーションデモ",
+  "devLottieControlPlay": "再生",
+  "devLottieControlPause": "一時停止",
+  "devLottieControlStop": "停止",
+  "devLottieControlReverse": "逆再生",
+  "devLottieProgress": "進捗（シークバー）: {progress}%",
+  "@devLottieProgress": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "devLottieLoop": "ループ再生",
+  "devLottieAssetSelect": "表示アセットの切り替え",
+  "devLottieCompleted": "アニメーションが完了しました！",
+  "devLottieNetworkSection": "ネットワーク読み込みの例"
 }
 

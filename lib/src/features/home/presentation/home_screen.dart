@@ -143,6 +143,12 @@ class _HomeBody extends ConsumerWidget {
                 ),
                 const Divider(height: 1, indent: 56),
                 _MenuTile(
+                  icon: Icons.animation_outlined,
+                  title: l10n.devLottieTitle,
+                  onTap: () => const DeveloperLottieRoute().push<void>(context),
+                ),
+                const Divider(height: 1, indent: 56),
+                _MenuTile(
                   icon: Icons.terminal_outlined,
                   title: l10n.developerLogTitle,
                   onTap: () => Navigator.of(context).push(
