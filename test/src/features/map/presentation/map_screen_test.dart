@@ -339,6 +339,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 750));
 
       check(find.byType(SnackBar)).findsOne();
+      check(find.text('位置情報の取得に失敗しました')).findsOne();
     });
 
     testWidgets('success 状態時に カメラアニメーション移動が実行されること', (tester) async {
@@ -566,6 +567,35 @@ void main() {
       await tester.pump(const Duration(milliseconds: 750));
 
       check(mockMapsPlatform.animateCameraCalled).isTrue();
+    });
+
+    testWidgets('MapSearchState.success で locations が空リストの場合、早期リターンすること', (
+      tester,
+    ) async {
+      late _TestMapSearchNotifier testSearchNotifier;
+      await tester.pumpWidget(
+        createTestWidget(
+          child: const MapScreen(),
+          overrides: [
+            mapSearchProvider.overrideWith(
+              () => testSearchNotifier = _TestMapSearchNotifier(
+                const MapSearchState.initial(),
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 750));
+
+      testSearchNotifier.currentState = const MapSearchState.success(
+        locations: [],
+        query: '該当なし',
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 750));
+
+      check(find.byType(SpotDetailBottomSheet)).findsNothing();
     });
 
     testWidgets('複数検索成功 (success) 時に候補選択ボトムシートが表示され、タップした候補地へ移動すること', (
@@ -1582,6 +1612,223 @@ void main() {
         // フォーカスがあるためコンパクト表示になっていること
         check(find.byKey(const Key('routeNavigationCompactCard'))).findsOne();
         check(find.byIcon(Icons.keyboard_arrow_up)).findsOne();
+      },
+    );
+
+    testWidgets(
+      '単一検索成功 (success) 時に SpotDetailBottomSheet が自動表示され、 '
+      'ルート案内を開始できること',
+      (tester) async {
+        late _TestMapSearchNotifier testSearchNotifier;
+        late _TestMapRouteNotifier testRouteNotifier;
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapSearchProvider.overrideWith(
+                () => testSearchNotifier = _TestMapSearchNotifier(
+                  const MapSearchState.initial(),
+                ),
+              ),
+              mapRouteProvider.overrideWith(
+                () => testRouteNotifier = _TestMapRouteNotifier(
+                  const MapRouteState.initial(),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        const candidate = LocationCandidate(
+          latitude: 35.6585805,
+          longitude: 139.7454329,
+          name: '東京タワー',
+          address: '東京都港区芝公園4-2-8',
+          primaryType: 'tourist_attraction',
+          rating: 4.6,
+        );
+
+        testSearchNotifier.currentState = const MapSearchState.success(
+          locations: [candidate],
+          query: '東京タワー',
+        );
+        await tester.pumpAndSettle();
+
+        // SpotDetailBottomSheet が自動で表示されていること
+        check(find.byType(SpotDetailBottomSheet)).findsOne();
+        check(find.text('東京タワー')).findsOne();
+        check(find.text('東京都港区芝公園4-2-8')).findsOne();
+        check(find.text('4.6')).findsOne();
+        check(find.text('観光地')).findsOne();
+
+        // ルート案内ボタンをタップ
+        final routeButton = find.byKey(const Key('spotDetailStartRouteButton'));
+        check(routeButton).findsOne();
+        await tester.tap(routeButton);
+        await tester.pumpAndSettle();
+
+        // searchRoute が呼ばれていること
+        check(testRouteNotifier.searchDestinationName).equals('東京タワー');
+        check(testRouteNotifier.searchDestination?.latitude).equals(35.6585805);
+        check(testRouteNotifier.searchDestination?.longitude).equals(
+          139.7454329,
+        );
+
+        // GoogleMap にマーカーが登録されており onTap で再表示できること
+        final googleMap = tester.widget<GoogleMap>(find.byType(GoogleMap));
+        final searchMarker = googleMap.markers.firstWhere(
+          (m) => m.markerId.value == 'search_result',
+        );
+        check(searchMarker.onTap).isNotNull();
+        searchMarker.onTap!();
+        await tester.pumpAndSettle();
+        check(find.byType(SpotDetailBottomSheet)).findsOne();
+      },
+    );
+
+    testWidgets(
+      '複数候補選択時に選択した地点の SpotDetailBottomSheet が自動表示され、 '
+      'マーカーの onTap でも再表示できること',
+      (tester) async {
+        late _TestMapSearchNotifier testSearchNotifier;
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapSearchProvider.overrideWith(
+                () => testSearchNotifier = _TestMapSearchNotifier(
+                  const MapSearchState.initial(),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        const candidate1 = LocationCandidate(
+          latitude: 35.681236,
+          longitude: 139.767125,
+          name: '東京駅 (JR)',
+          address: '東京都千代田区丸の内一丁目',
+          primaryType: 'store',
+          rating: 4.8,
+        );
+        const candidate2 = LocationCandidate(
+          latitude: 35.681500,
+          longitude: 139.767200,
+          name: '東京駅 (メトロ)',
+          primaryType: 'cafe',
+        );
+
+        testSearchNotifier.currentState = const MapSearchState.success(
+          locations: [candidate1, candidate2],
+          query: '東京駅',
+        );
+        await tester.pumpAndSettle();
+
+        // 候補リストの2番目をタップ
+        await tester.tap(find.byKey(const Key('mapCandidateTile_1')));
+        await tester.pumpAndSettle();
+
+        // 選択した候補の SpotDetailBottomSheet が表示されていること
+        check(find.byType(SpotDetailBottomSheet)).findsOne();
+        check(find.text('東京駅 (メトロ)')).findsOne();
+        check(find.text('カフェ')).findsOne();
+
+        // GoogleMap にマーカーが登録されており onTap が設定されていること
+        final googleMap = tester.widget<GoogleMap>(find.byType(GoogleMap));
+        final searchMarker = googleMap.markers.firstWhere(
+          (m) => m.markerId.value == 'search_result_1',
+        );
+        check(searchMarker.onTap).isNotNull();
+
+        // ボトムシートを閉じる
+        Navigator.of(tester.element(find.byType(SpotDetailBottomSheet))).pop();
+        await tester.pumpAndSettle();
+        check(find.byType(SpotDetailBottomSheet)).findsNothing();
+
+        // マーカーの onTap を実行して再度 SpotDetailBottomSheet が開くこと
+        searchMarker.onTap!();
+        await tester.pumpAndSettle();
+        check(find.byType(SpotDetailBottomSheet)).findsOne();
+        check(find.text('東京駅 (メトロ)')).findsOne();
+      },
+    );
+
+    testWidgets(
+      '検索結果表示後に現在地が取得された場合、 '
+      '最新の現在地を出発地としてルート案内が開始されること',
+      (tester) async {
+        late _TestMapNotifier testMapNotifier;
+        late _TestMapSearchNotifier testSearchNotifier;
+        late _TestMapRouteNotifier testRouteNotifier;
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapProvider.overrideWith(
+                () => testMapNotifier = _TestMapNotifier(
+                  const LocationState.initial(),
+                ),
+              ),
+              mapSearchProvider.overrideWith(
+                () => testSearchNotifier = _TestMapSearchNotifier(
+                  const MapSearchState.initial(),
+                ),
+              ),
+              mapRouteProvider.overrideWith(
+                () => testRouteNotifier = _TestMapRouteNotifier(
+                  const MapRouteState.initial(),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        const candidate = LocationCandidate(
+          latitude: 35.6585805,
+          longitude: 139.7454329,
+          name: '東京タワー',
+        );
+
+        // 1. 検索結果を表示
+        testSearchNotifier.currentState = const MapSearchState.success(
+          locations: [candidate],
+          query: '東京タワー',
+        );
+        await tester.pumpAndSettle();
+
+        // 2. 検索結果表示後に現在地取得が成功
+        final newPosition = Position(
+          longitude: 139.700000,
+          latitude: 35.690000,
+          timestamp: DateTime(2026),
+          accuracy: 5,
+          altitude: 10,
+          altitudeAccuracy: 1,
+          heading: 0,
+          headingAccuracy: 1,
+          speed: 0,
+          speedAccuracy: 1,
+        );
+        testMapNotifier.currentState = LocationState.success(newPosition);
+        await tester.pumpAndSettle();
+
+        // 3. ルート案内ボタンをタップ
+        final routeButton = find.byKey(const Key('spotDetailStartRouteButton'));
+        check(routeButton).findsOne();
+        await tester.tap(routeButton);
+        await tester.pumpAndSettle();
+
+        // 4. searchRoute の出発地が最新の現在地 (35.69, 139.70) であること
+        check(testRouteNotifier.searchOrigin?.latitude).equals(35.690000);
+        check(testRouteNotifier.searchOrigin?.longitude).equals(139.700000);
+        check(testRouteNotifier.searchDestinationName).equals('東京タワー');
       },
     );
   });
