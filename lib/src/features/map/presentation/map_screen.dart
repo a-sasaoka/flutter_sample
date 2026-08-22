@@ -7,6 +7,7 @@ import 'package:flutter_sample/src/features/map/application/map_notifier.dart';
 import 'package:flutter_sample/src/features/map/application/map_route_notifier.dart';
 import 'package:flutter_sample/src/features/map/application/map_search_notifier.dart';
 import 'package:flutter_sample/src/features/map/application/spot_notifier.dart';
+import 'package:flutter_sample/src/features/map/domain/location_candidate.dart';
 import 'package:flutter_sample/src/features/map/domain/location_state.dart';
 import 'package:flutter_sample/src/features/map/domain/map_route_state.dart';
 import 'package:flutter_sample/src/features/map/domain/map_search_state.dart';
@@ -77,6 +78,53 @@ class MapScreen extends HookConsumerWidget {
     // MapRouteNotifier のルート状態を監視
     final routeState = ref.watch(mapRouteProvider);
 
+    // スポット詳細ボトムシートを表示する共通関数
+    void showSpotDetail(MapSpot spot) {
+      final latLng = LatLng(spot.latitude, spot.longitude);
+      final controller = mapControllerState.value;
+      if (controller != null) {
+        unawaited(
+          controller.animateCamera(
+            CameraUpdate.newCameraPosition(
+              CameraPosition(
+                target: latLng,
+                zoom: 16,
+              ),
+            ),
+          ),
+        );
+      }
+      unawaited(
+        showModalBottomSheet<void>(
+          context: context,
+          builder: (modalContext) {
+            return SpotDetailBottomSheet(
+              spot: spot,
+              onStartRoutePressed: () {
+                final currentLocation =
+                    ref
+                        .read(mapProvider)
+                        .whenOrNull(
+                          success: (pos) => LatLng(pos.latitude, pos.longitude),
+                        ) ??
+                    _initialCameraPosition.target;
+
+                unawaited(
+                  ref
+                      .read(mapRouteProvider.notifier)
+                      .searchRoute(
+                        origin: currentLocation,
+                        destination: latLng,
+                        destinationName: spot.name,
+                      ),
+                );
+              },
+            );
+          },
+        ),
+      );
+    }
+
     // スポット一覧から GoogleMap 用のカスタムマーカー集合を生成
     final spotMarkers = spotsState.maybeWhen(
       data: (spots) => spots.map<Marker>((spot) {
@@ -89,49 +137,7 @@ class MapScreen extends HookConsumerWidget {
             title: spot.name,
             snippet: spot.address,
           ),
-          onTap: () {
-            final controller = mapControllerState.value;
-            if (controller != null) {
-              unawaited(
-                controller.animateCamera(
-                  CameraUpdate.newCameraPosition(
-                    CameraPosition(
-                      target: latLng,
-                      zoom: 16,
-                    ),
-                  ),
-                ),
-              );
-            }
-            unawaited(
-              showModalBottomSheet<void>(
-                context: context,
-                builder: (modalContext) {
-                  return SpotDetailBottomSheet(
-                    spot: spot,
-                    onStartRoutePressed: () {
-                      final currentLocation =
-                          locationState.whenOrNull(
-                            success: (pos) =>
-                                LatLng(pos.latitude, pos.longitude),
-                          ) ??
-                          _initialCameraPosition.target;
-
-                      unawaited(
-                        ref
-                            .read(mapRouteProvider.notifier)
-                            .searchRoute(
-                              origin: currentLocation,
-                              destination: latLng,
-                              destinationName: spot.name,
-                            ),
-                      );
-                    },
-                  );
-                },
-              ),
-            );
-          },
+          onTap: () => showSpotDetail(spot),
         );
       }).toSet(),
       orElse: () => <Marker>{},
@@ -233,15 +239,20 @@ class MapScreen extends HookConsumerWidget {
 
             if (locations.length == 1) {
               final target = locations.first;
+              final spot = target.toMapSpot();
               final latLng = LatLng(target.latitude, target.longitude);
               markersState.value = {
                 Marker(
                   markerId: const MarkerId('search_result'),
                   position: latLng,
+                  icon: BitmapDescriptor.defaultMarkerWithHue(
+                    spot.category.markerHue,
+                  ),
                   infoWindow: InfoWindow(
                     title: target.name,
                     snippet: target.address,
                   ),
+                  onTap: () => showSpotDetail(spot),
                 ),
               };
               final controller = mapControllerState.value;
@@ -259,6 +270,7 @@ class MapScreen extends HookConsumerWidget {
               } else {
                 pendingLatLngState.value = latLng;
               }
+              showSpotDetail(spot);
             } else {
               // 複数候補がある場合は候補選択ボトムシートを表示
               unawaited(
@@ -286,11 +298,12 @@ class MapScreen extends HookConsumerWidget {
                               itemCount: locations.length,
                               itemBuilder: (context, index) {
                                 final candidate = locations[index];
+                                final spot = candidate.toMapSpot();
                                 return ListTile(
                                   key: Key('mapCandidateTile_$index'),
-                                  leading: const Icon(
-                                    Icons.place,
-                                    color: Colors.red,
+                                  leading: Icon(
+                                    spot.category.icon,
+                                    color: spot.category.color,
                                   ),
                                   title: Text(candidate.name),
                                   subtitle: candidate.address != null
@@ -323,16 +336,22 @@ class MapScreen extends HookConsumerWidget {
                                       candidate.latitude,
                                       candidate.longitude,
                                     );
+                                    final markerIcon =
+                                        BitmapDescriptor.defaultMarkerWithHue(
+                                          spot.category.markerHue,
+                                        );
                                     markersState.value = {
                                       Marker(
                                         markerId: MarkerId(
                                           'search_result_$index',
                                         ),
                                         position: latLng,
+                                        icon: markerIcon,
                                         infoWindow: InfoWindow(
                                           title: candidate.name,
                                           snippet: candidate.address,
                                         ),
+                                        onTap: () => showSpotDetail(spot),
                                       ),
                                     };
                                     final controller = mapControllerState.value;
@@ -350,6 +369,7 @@ class MapScreen extends HookConsumerWidget {
                                     } else {
                                       pendingLatLngState.value = latLng;
                                     }
+                                    showSpotDetail(spot);
                                   },
                                 );
                               },
