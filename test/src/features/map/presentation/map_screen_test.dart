@@ -1831,6 +1831,99 @@ void main() {
         check(testRouteNotifier.searchDestinationName).equals('東京タワー');
       },
     );
+
+    testWidgets(
+      'mapProvider が initial および loading 状態に変化した場合にリスナーが安全に処理されること',
+      (tester) async {
+        late _TestMapNotifier testMapNotifier;
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapProvider.overrideWith(
+                () => testMapNotifier = _TestMapNotifier(
+                  const LocationState.serviceDisabled(),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+
+        // loading への遷移 (CircularProgressIndicator が回るため pump を使用)
+        testMapNotifier.currentState = const LocationState.loading();
+        await tester.pump();
+
+        // initial への遷移
+        testMapNotifier.currentState = const LocationState.initial();
+        await tester.pump();
+
+        check(find.byType(GoogleMap)).findsOne();
+      },
+    );
+
+    testWidgets(
+      'mapSearchProvider が initial および loading 状態に変化した場合にリスナーが安全に処理されること',
+      (tester) async {
+        late _TestMapSearchNotifier testSearchNotifier;
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapSearchProvider.overrideWith(
+                () => testSearchNotifier = _TestMapSearchNotifier(
+                  const MapSearchState.empty(query: 'test'),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+
+        // loading への遷移
+        testSearchNotifier.currentState = const MapSearchState.loading();
+        await tester.pump();
+
+        // initial への遷移
+        testSearchNotifier.currentState = const MapSearchState.initial();
+        await tester.pump();
+
+        check(find.byType(GoogleMap)).findsOne();
+      },
+    );
+
+    testWidgets(
+      'mapRouteProvider が initial および loading 状態に変化した場合にリスナーが安全に処理されること',
+      (tester) async {
+        late _TestMapRouteNotifier testRouteNotifier;
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: const MapScreen(),
+            overrides: [
+              mapRouteProvider.overrideWith(
+                () => testRouteNotifier = _TestMapRouteNotifier(
+                  const MapRouteState.error('error'),
+                ),
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+
+        // loading への遷移
+        testRouteNotifier.currentState = const MapRouteState.loading();
+        await tester.pump();
+
+        // initial への遷移
+        testRouteNotifier.currentState = const MapRouteState.initial();
+        await tester.pump();
+
+        check(find.byType(GoogleMap)).findsOne();
+      },
+    );
   });
 }
 
