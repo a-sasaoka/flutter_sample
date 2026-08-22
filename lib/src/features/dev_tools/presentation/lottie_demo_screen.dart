@@ -62,7 +62,18 @@ class LottieDemoScreen extends HookWidget {
       ),
     ];
 
-    // 4. アニメーションの進捗・完了を監視するリスナー
+    // 4. 初回マウント時の自動再生制御
+    useEffect(
+      () {
+        if (animate) {
+          unawaited(controller.forward());
+        }
+        return null;
+      },
+      [controller, animate],
+    );
+
+    // 5. アニメーションの進捗・完了を監視するリスナー
     useEffect(
       () {
         void listener() {
@@ -89,18 +100,13 @@ class LottieDemoScreen extends HookWidget {
           ..addListener(listener)
           ..addStatusListener(statusListener);
 
-        // 自動再生フラグが有効な場合のみ再生開始
-        if (animate) {
-          unawaited(controller.forward());
-        }
-
         return () {
           controller
             ..removeListener(listener)
             ..removeStatusListener(statusListener);
         };
       },
-      [controller, isLoop.value, animate],
+      [controller, isLoop.value],
     );
 
     final selectedAsset = assetList[selectedIndex.value];
