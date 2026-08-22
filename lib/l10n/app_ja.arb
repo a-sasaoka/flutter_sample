@@ -330,6 +330,12 @@
   },
   "devLottieLoop": "ループ再生",
   "devLottieAssetSelect": "表示アセットの切り替え",
+  "devLottieAssetOnboardingMemo": "オンボーディング1 (Memo)",
+  "devLottieAssetOnboardingSync": "オンボーディング2 (Sync)",
+  "devLottieAssetOnboardingChat": "オンボーディング3 (Chat)",
+  "devLottieAssetEmptyBox": "空データ表示 (Empty Box)",
+  "devLottieAssetNotFound": "404 エラー (Not Found)",
+  "devLottieAssetSuccessCheck": "成功チェック (Success)",
   "devLottieCompleted": "アニメーションが完了しました！",
   "devLottieNetworkSection": "ネットワーク読み込みの例"
 }

@@ -36,12 +36,30 @@ class LottieDemoScreen extends HookWidget {
 
     // 3. 表示可能なアセット一覧の定義
     final assetList = [
-      (name: 'オンボーディング1 (Memo)', lottie: Assets.animations.onboardingMemo),
-      (name: 'オンボーディング2 (Sync)', lottie: Assets.animations.onboardingSync),
-      (name: 'オンボーディング3 (Chat)', lottie: Assets.animations.onboardingChat),
-      (name: '空データ表示 (Empty Box)', lottie: Assets.animations.emptyBox),
-      (name: '404 エラー (Not Found)', lottie: Assets.animations.notFound404),
-      (name: '成功チェック (Success)', lottie: Assets.animations.successCheck),
+      (
+        name: l10n.devLottieAssetOnboardingMemo,
+        lottie: Assets.animations.onboardingMemo,
+      ),
+      (
+        name: l10n.devLottieAssetOnboardingSync,
+        lottie: Assets.animations.onboardingSync,
+      ),
+      (
+        name: l10n.devLottieAssetOnboardingChat,
+        lottie: Assets.animations.onboardingChat,
+      ),
+      (
+        name: l10n.devLottieAssetEmptyBox,
+        lottie: Assets.animations.emptyBox,
+      ),
+      (
+        name: l10n.devLottieAssetNotFound,
+        lottie: Assets.animations.notFound404,
+      ),
+      (
+        name: l10n.devLottieAssetSuccessCheck,
+        lottie: Assets.animations.successCheck,
+      ),
     ];
 
     // 4. アニメーションの進捗・完了を監視するリスナー

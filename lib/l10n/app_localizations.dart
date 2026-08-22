@@ -1442,6 +1442,42 @@ abstract class AppLocalizations {
   /// **'Select Animation Asset'**
   String get devLottieAssetSelect;
 
+  /// No description provided for @devLottieAssetOnboardingMemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Onboarding 1 (Memo)'**
+  String get devLottieAssetOnboardingMemo;
+
+  /// No description provided for @devLottieAssetOnboardingSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Onboarding 2 (Sync)'**
+  String get devLottieAssetOnboardingSync;
+
+  /// No description provided for @devLottieAssetOnboardingChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Onboarding 3 (Chat)'**
+  String get devLottieAssetOnboardingChat;
+
+  /// No description provided for @devLottieAssetEmptyBox.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty State (Empty Box)'**
+  String get devLottieAssetEmptyBox;
+
+  /// No description provided for @devLottieAssetNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'404 Error (Not Found)'**
+  String get devLottieAssetNotFound;
+
+  /// No description provided for @devLottieAssetSuccessCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Success Check (Success)'**
+  String get devLottieAssetSuccessCheck;
+
   /// No description provided for @devLottieCompleted.
   ///
   /// In en, this message translates to:

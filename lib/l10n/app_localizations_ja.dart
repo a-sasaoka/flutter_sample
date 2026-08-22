@@ -706,6 +706,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String get devLottieAssetSelect => '表示アセットの切り替え';
 
   @override
+  String get devLottieAssetOnboardingMemo => 'オンボーディング1 (Memo)';
+
+  @override
+  String get devLottieAssetOnboardingSync => 'オンボーディング2 (Sync)';
+
+  @override
+  String get devLottieAssetOnboardingChat => 'オンボーディング3 (Chat)';
+
+  @override
+  String get devLottieAssetEmptyBox => '空データ表示 (Empty Box)';
+
+  @override
+  String get devLottieAssetNotFound => '404 エラー (Not Found)';
+
+  @override
+  String get devLottieAssetSuccessCheck => '成功チェック (Success)';
+
+  @override
   String get devLottieCompleted => 'アニメーションが完了しました！';
 
   @override

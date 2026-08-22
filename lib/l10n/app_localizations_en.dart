@@ -725,6 +725,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get devLottieAssetSelect => 'Select Animation Asset';
 
   @override
+  String get devLottieAssetOnboardingMemo => 'Onboarding 1 (Memo)';
+
+  @override
+  String get devLottieAssetOnboardingSync => 'Onboarding 2 (Sync)';
+
+  @override
+  String get devLottieAssetOnboardingChat => 'Onboarding 3 (Chat)';
+
+  @override
+  String get devLottieAssetEmptyBox => 'Empty State (Empty Box)';
+
+  @override
+  String get devLottieAssetNotFound => '404 Error (Not Found)';
+
+  @override
+  String get devLottieAssetSuccessCheck => 'Success Check (Success)';
+
+  @override
   String get devLottieCompleted => 'Animation completed!';
 
   @override

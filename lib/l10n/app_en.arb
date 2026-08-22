@@ -330,6 +330,12 @@
   },
   "devLottieLoop": "Loop Playback",
   "devLottieAssetSelect": "Select Animation Asset",
+  "devLottieAssetOnboardingMemo": "Onboarding 1 (Memo)",
+  "devLottieAssetOnboardingSync": "Onboarding 2 (Sync)",
+  "devLottieAssetOnboardingChat": "Onboarding 3 (Chat)",
+  "devLottieAssetEmptyBox": "Empty State (Empty Box)",
+  "devLottieAssetNotFound": "404 Error (Not Found)",
+  "devLottieAssetSuccessCheck": "Success Check (Success)",
   "devLottieCompleted": "Animation completed!",
   "devLottieNetworkSection": "Network Loading Example"
 }
