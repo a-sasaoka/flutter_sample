@@ -66,6 +66,20 @@ fvm dart run build_runner build --define "envied_generator:envied=path=.env.dev"
 
 ---
 
+## 🖼️ アセットコードの生成 (flutter_gen)
+
+`assets/` ディレクトリに新しい画像や Lottie アニメーション JSON を追加した場合は、以下のコマンドで型安全な参照クラス（`Assets.*`）を生成します（`flutter_gen_runner` は `build_runner` のビルダーとして動作します）。
+
+```bash
+# アセットコードを含む全コードの一括生成
+fvm dart run build_runner build
+
+# 既存の競合ファイルを上書きして確実に再生成する場合
+fvm dart run build_runner build --delete-conflicting-outputs
+```
+
+---
+
 ## 🎨 アプリアイコンの生成 (flutter_launcher_icons)
 
 アイコン画像や設定（`flutter_launcher_icons-*.yaml`）を更新した場合は、以下のコマンドを実行します。

@@ -71,3 +71,4 @@ AI チャット、グラフ、メモ帳、ユーザー一覧などの主要な�
 - `test/src/features/home/presentation/home_screen_test.dart`
 - `lib/src/features/map/presentation/map_screen.dart`
 - `docs/map.md`
+- `docs/animation.md`
