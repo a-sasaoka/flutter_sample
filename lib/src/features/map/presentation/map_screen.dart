@@ -101,13 +101,13 @@ class MapScreen extends HookConsumerWidget {
             return SpotDetailBottomSheet(
               spot: spot,
               onStartRoutePressed: () {
-                final currentLocation =
-                    ref
-                        .read(mapProvider)
-                        .whenOrNull(
-                          success: (pos) => LatLng(pos.latitude, pos.longitude),
-                        ) ??
-                    _initialCameraPosition.target;
+                final currentLocation = switch (ref.read(mapProvider)) {
+                  LocationStateSuccess(:final position) => LatLng(
+                    position.latitude,
+                    position.longitude,
+                  ),
+                  _ => _initialCameraPosition.target,
+                };
 
                 unawaited(
                   ref
@@ -126,13 +126,15 @@ class MapScreen extends HookConsumerWidget {
     }
 
     // スポット一覧から GoogleMap 用のカスタムマーカー集合を生成
-    final spotMarkers = spotsState.maybeWhen(
-      data: (spots) => spots.map<Marker>((spot) {
+    final spotMarkers = switch (spotsState) {
+      AsyncData(:final value) => value.map<Marker>((spot) {
         final latLng = LatLng(spot.latitude, spot.longitude);
         return Marker(
           markerId: MarkerId('spot_${spot.id}'),
           position: latLng,
-          icon: BitmapDescriptor.defaultMarkerWithHue(spot.category.markerHue),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            spot.category.markerHue,
+          ),
           infoWindow: InfoWindow(
             title: spot.name,
             snippet: spot.address,
@@ -140,15 +142,15 @@ class MapScreen extends HookConsumerWidget {
           onTap: () => showSpotDetail(spot),
         );
       }).toSet(),
-      orElse: () => <Marker>{},
-    );
+      _ => <Marker>{},
+    };
 
     // 全マーカーの結合 (スポットマーカー + 検索マーカー)
     final allMarkers = <Marker>{...spotMarkers, ...markersState.value};
 
     // ルート案内時の Polyline 集合を生成
-    final polylines = routeState.maybeWhen(
-      success: (route) => {
+    final polylines = switch (routeState) {
+      MapRouteStateSuccess(:final route) => {
         Polyline(
           polylineId: PolylineId(route.id),
           points: route.points,
@@ -158,14 +160,14 @@ class MapScreen extends HookConsumerWidget {
           endCap: Cap.roundCap,
         ),
       },
-      orElse: () => <Polyline>{},
-    );
+      _ => <Polyline>{},
+    };
 
     // 状態変化に伴うカメラ移動や対話ダイアログのリスナー
     ref
       ..listen(mapProvider, (previous, next) {
-        next.whenOrNull(
-          success: (position) {
+        switch (next) {
+          case LocationStateSuccess(:final position):
             final latLng = LatLng(position.latitude, position.longitude);
             final controller = mapControllerState.value;
             if (controller != null) {
@@ -184,13 +186,11 @@ class MapScreen extends HookConsumerWidget {
               // 地図コントローラ生成前は保留状態として保持
               pendingLatLngState.value = latLng;
             }
-          },
-          permissionDenied: () {
+          case LocationStatePermissionDenied():
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(l10n.mapPermissionDenied)),
             );
-          },
-          permissionDeniedForever: () {
+          case LocationStatePermissionDeniedForever():
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(l10n.mapPermissionDeniedForever),
@@ -204,8 +204,7 @@ class MapScreen extends HookConsumerWidget {
                 ),
               ),
             );
-          },
-          serviceDisabled: () {
+          case LocationStateServiceDisabled():
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(l10n.mapServiceDisabled),
@@ -219,20 +218,20 @@ class MapScreen extends HookConsumerWidget {
                 ),
               ),
             );
-          },
-          error: (message) {
+          case LocationStateError():
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(l10n.mapFetchError),
                 backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
-          },
-        );
+          case LocationStateInitial() || LocationStateLoading():
+            break;
+        }
       })
       ..listen(mapSearchProvider, (previous, next) {
-        next.whenOrNull(
-          success: (locations, query) {
+        switch (next) {
+          case MapSearchStateSuccess(:final locations):
             if (locations.isEmpty) {
               return;
             }
@@ -382,29 +381,28 @@ class MapScreen extends HookConsumerWidget {
                 ),
               );
             }
-          },
-          empty: (query) {
+          case MapSearchStateEmpty(:final query):
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(l10n.mapSearchEmpty(query)),
               ),
             );
-          },
-          error: (message) {
+          case MapSearchStateError():
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(l10n.mapSearchError),
               ),
             );
-          },
-        );
+          case MapSearchStateInitial() || MapSearchStateLoading():
+            break;
+        }
       })
       ..listen(mapRouteProvider, (previous, next) {
         if (next is! MapRouteStateSuccess) {
           pendingBoundsState.value = null;
         }
-        next.whenOrNull(
-          success: (route) {
+        switch (next) {
+          case MapRouteStateSuccess(:final route):
             isRouteCardExpandedState.value = !searchFocusNode.hasFocus;
             final controller = mapControllerState.value;
             if (controller != null) {
@@ -416,16 +414,16 @@ class MapScreen extends HookConsumerWidget {
             } else {
               pendingBoundsState.value = route.bounds;
             }
-          },
-          error: (message) {
+          case MapRouteStateError():
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(l10n.mapRouteError),
                 backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
-          },
-        );
+          case MapRouteStateInitial() || MapRouteStateLoading():
+            break;
+        }
       });
 
     // 検索実行ヘルパー（フォーカス解除 + 前のルート自動クリア + 検索開始）
@@ -506,17 +504,16 @@ class MapScreen extends HookConsumerWidget {
             child: Stack(
               children: [
                 GoogleMap(
-                  initialCameraPosition:
-                      locationState.whenOrNull(
-                        success: (position) => CameraPosition(
-                          target: LatLng(
-                            position.latitude,
-                            position.longitude,
-                          ),
-                          zoom: 16,
-                        ),
-                      ) ??
-                      _initialCameraPosition,
+                  initialCameraPosition: switch (locationState) {
+                    LocationStateSuccess(:final position) => CameraPosition(
+                      target: LatLng(
+                        position.latitude,
+                        position.longitude,
+                      ),
+                      zoom: 16,
+                    ),
+                    _ => _initialCameraPosition,
+                  },
                   myLocationEnabled: true,
                   myLocationButtonEnabled: false,
                   zoomControlsEnabled: false,

@@ -69,19 +69,21 @@ class DeveloperStorageScreen extends HookConsumerWidget {
         controller: tabController,
         children: [
           // SharedPreferences タブ
-          prefsState.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) =>
-                Center(child: Text(l10n.devStorageError(err.toString()))),
-            data: (data) => _SharedPreferencesTab(data: data),
-          ),
+          switch (prefsState) {
+            AsyncData(:final value) => _SharedPreferencesTab(data: value),
+            AsyncError(:final error) => Center(
+              child: Text(l10n.devStorageError(error.toString())),
+            ),
+            _ => const Center(child: CircularProgressIndicator()),
+          },
           // SecureStorage タブ
-          secureState.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) =>
-                Center(child: Text(l10n.devStorageError(err.toString()))),
-            data: (data) => _SecureStorageTab(data: data),
-          ),
+          switch (secureState) {
+            AsyncData(:final value) => _SecureStorageTab(data: value),
+            AsyncError(:final error) => Center(
+              child: Text(l10n.devStorageError(error.toString())),
+            ),
+            _ => const Center(child: CircularProgressIndicator()),
+          },
         ],
       ),
       floatingActionButton: FloatingActionButton(
