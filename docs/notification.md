@@ -67,8 +67,8 @@ sealed class NotificationPayload with _$NotificationPayload {
     String? title,
     /// 通知本文
     String? body,
-    /// 拡張データ用マップ
-    Map<String, dynamic>? data,
+    /// その他のカスタムデータ（デフォルトは空マップ）
+    @Default({}) Map<String, dynamic> data,
   }) = _NotificationPayload;
 
   factory NotificationPayload.fromJson(Map<String, dynamic> json) =>
