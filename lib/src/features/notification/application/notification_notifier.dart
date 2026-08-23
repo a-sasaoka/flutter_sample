@@ -35,12 +35,13 @@ class NotificationNotifier extends _$NotificationNotifier {
         initialPayload: initialPayload,
       );
 
-      service.onTokenRefresh.listen((newToken) {
+      final subscription = service.onTokenRefresh.listen((newToken) {
         if (!ref.mounted) return;
         if (state case final NotificationStateData dataState) {
           state = dataState.copyWith(fcmToken: newToken);
         }
       });
+      ref.onDispose(subscription.cancel);
     } on Object catch (e) {
       if (!ref.mounted) return;
       state = NotificationState.error(message: e.toString());
