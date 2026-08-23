@@ -33,10 +33,15 @@ sealed class NotificationPayload with _$NotificationPayload {
     String? title,
     String? body,
   }) {
+    String? extractValidPath(String key) {
+      final value = (map[key] as String?)?.trim();
+      return (value != null && value.isNotEmpty) ? value : null;
+    }
+
     final path =
-        map['path'] as String? ??
-        map['route'] as String? ??
-        map['deep_link'] as String?;
+        extractValidPath('path') ??
+        extractValidPath('route') ??
+        extractValidPath('deep_link');
 
     return NotificationPayload(
       path: path,

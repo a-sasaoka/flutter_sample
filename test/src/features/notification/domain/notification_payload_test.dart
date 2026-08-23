@@ -39,6 +39,36 @@ void main() {
       check(payloadDeepLink.isNavigable).isTrue();
     });
 
+    test('fromMap で path が空文字または空白のみの場合、route や deep_link へフォールバックすること', () {
+      final payloadFromEmpty = NotificationPayload.fromMap({
+        'path': '',
+        'route': '/chat',
+      });
+      check(payloadFromEmpty.path).equals('/chat');
+
+      final payloadFromWhitespace = NotificationPayload.fromMap({
+        'path': '   ',
+        'route': '',
+        'deep_link': '/settings',
+      });
+      check(payloadFromWhitespace.path).equals('/settings');
+    });
+
+    test('fromMap で path の前後の空白がトリムされること', () {
+      final payload = NotificationPayload.fromMap({'path': '  /chat  '});
+      check(payload.path).equals('/chat');
+    });
+
+    test('fromMap で候補がすべて空または空白の場合、path が null になること', () {
+      final payload = NotificationPayload.fromMap({
+        'path': '   ',
+        'route': '',
+        'deep_link': ' ',
+      });
+      check(payload.path).isNull();
+      check(payload.isNavigable).isFalse();
+    });
+
     test('fromJson / toJson で相互変換できること', () {
       final json = {
         'path': '/dev-tools',
