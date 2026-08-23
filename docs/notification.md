@@ -58,11 +58,21 @@ lib/src/features/notification/
 通知のデータ部分（`data`）に含まれる遷移先パスやタイトル・本文を保持するイミュータブルなデータモデルです。
 
 ```dart
+/// path, route, deep_link の候補から有効な遷移パスを抽出するヘルパー
+Object? _readPath(Map<dynamic, dynamic> json, String key) {
+  String? checkKey(String k) {
+    final val = (json[k] as String?)?.trim();
+    return (val != null && val.isNotEmpty) ? val : null;
+  }
+
+  return checkKey('path') ?? checkKey('route') ?? checkKey('deep_link');
+}
+
 @freezed
 sealed class NotificationPayload with _$NotificationPayload {
   const factory NotificationPayload({
-    /// 画面遷移先パス（例: '/chat', '/memos'）
-    String? path,
+    /// 画面遷移先パス（`path` / `route` / `deep_link` の各キーに対応）
+    @JsonKey(readValue: _readPath) String? path,
     /// 通知タイトル
     String? title,
     /// 通知本文
@@ -71,10 +81,32 @@ sealed class NotificationPayload with _$NotificationPayload {
     @Default({}) Map<String, dynamic> data,
   }) = _NotificationPayload;
 
+  const NotificationPayload._();
+
   factory NotificationPayload.fromJson(Map<String, dynamic> json) =>
       _$NotificationPayloadFromJson(json);
+
+  /// Firebase RemoteMessage.data などの Map から生成するファクトリ
+  factory NotificationPayload.fromMap(
+    Map<String, dynamic> map, {
+    String? title,
+    String? body,
+  }) {
+    final payload = NotificationPayload.fromJson(map);
+    return payload.copyWith(
+      title: title ?? payload.title,
+      body: body ?? payload.body,
+      data: Map<String, dynamic>.from(map),
+    );
+  }
+
+  /// 画面遷移が可能なパスが含まれているかどうか
+  bool get isNavigable => path != null && path!.trim().isNotEmpty;
 }
 ```
+
+> **💡 ペイロードキーの柔軟な解決 (`_readPath`)**:
+> FCM ペイロードのデータ部（`data`）において、`path`, `route`, `deep_link` のいずれのキーでパスが指定されていても、自動的に前後の空白を除去した上で `path` フィールドへマッピングされます。また、`fromMap` を介して受信通知の `title` / `body` と `data` マップ全体を安全に保持します。
 
 ### 2. `PushNotificationService` (データ層)
 
