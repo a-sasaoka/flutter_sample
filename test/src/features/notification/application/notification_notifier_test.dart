@@ -185,6 +185,35 @@ void main() {
       check(dataState.fcmToken).equals('updated_token_123');
     });
 
+    test(
+      '初期化中（getToken等の処理中）に onTokenRefresh が発生した場合、 '
+      '更新されたトークンが反映されること',
+      () async {
+        final tokenCompleter = Completer<String?>();
+        when(
+          () => mockService.getToken(),
+        ).thenAnswer((_) => tokenCompleter.future);
+
+        final container = createContainer();
+
+        // 初期化が開始され getToken 待ち状態になるまで少し待機
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+
+        // getToken 完了前に onTokenRefresh で新しいトークンを発行
+        tokenRefreshController.add('refreshed_during_init_token');
+
+        // getToken を完了させる（古いトークンを返す）
+        tokenCompleter.complete('old_token');
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        final state = container.read(notificationProvider);
+        check(state).isA<NotificationStateData>();
+        final dataState = state as NotificationStateData;
+        // refreshedToken が優先されていること
+        check(dataState.fcmToken).equals('refreshed_during_init_token');
+      },
+    );
+
     test('container が dispose された後の onTokenRefresh は無視されること', () async {
       var notificationCount = 0;
       final container =

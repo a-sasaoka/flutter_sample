@@ -23,6 +23,16 @@ class NotificationNotifier extends _$NotificationNotifier {
 
       await service.initialize();
 
+      String? refreshedToken;
+      final subscription = service.onTokenRefresh.listen((newToken) {
+        refreshedToken = newToken;
+        if (!ref.mounted) return;
+        if (state case final NotificationStateData dataState) {
+          state = dataState.copyWith(fcmToken: newToken);
+        }
+      });
+      ref.onDispose(subscription.cancel);
+
       final token = await service.getToken();
       final settings = await service.getNotificationSettings();
       final initialPayload = await service.getInitialNotification();
@@ -30,18 +40,10 @@ class NotificationNotifier extends _$NotificationNotifier {
       if (!ref.mounted) return;
 
       state = NotificationState.data(
-        fcmToken: token,
+        fcmToken: refreshedToken ?? token,
         authorizationStatus: settings?.authorizationStatus,
         initialPayload: initialPayload,
       );
-
-      final subscription = service.onTokenRefresh.listen((newToken) {
-        if (!ref.mounted) return;
-        if (state case final NotificationStateData dataState) {
-          state = dataState.copyWith(fcmToken: newToken);
-        }
-      });
-      ref.onDispose(subscription.cancel);
     } on Object catch (e) {
       if (!ref.mounted) return;
       state = NotificationState.error(message: e.toString());
