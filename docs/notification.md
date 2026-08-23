@@ -91,10 +91,26 @@ Riverpod の `@riverpod` Notifier として動作し、トークン取得やデ�
 ```dart
 @Riverpod(keepAlive: true)
 class NotificationNotifier extends _$NotificationNotifier {
+  NotificationPayload? _pendingPayload;
+
   @override
   NotificationState build() {
-    _init();
+    unawaited(_init());
     return const NotificationState.loading();
+  }
+
+  Future<void> _init() async {
+    // トークン取得、通知権限、初期通知 (initialPayload) の非同期取得
+    // ...
+    final pending = _pendingPayload;
+    _pendingPayload = null;
+
+    state = NotificationState.data(
+      fcmToken: refreshedToken ?? token,
+      authorizationStatus: settings?.authorizationStatus,
+      initialPayload: initialPayload,
+      latestPayload: pending,
+    );
   }
 
   /// 初期起動時の通知ペイロードを取り出し、二重遷移を防ぐために消費（クリア）する
@@ -125,13 +141,16 @@ class NotificationNotifier extends _$NotificationNotifier {
   void handleNotificationTap(NotificationPayload payload) {
     if (state case final NotificationStateData dataState) {
       state = dataState.copyWith(latestPayload: payload);
+    } else {
+      // 非同期初期化中の通知タップは一時退避し、_init 完了時に latestPayload へ反映する
+      _pendingPayload = payload;
     }
   }
 }
 ```
 
-> **💡 アーキテクチャのポイント (単方向データフロー)**:
-> `NotificationNotifier` はルーター（`routerProvider`）に直接依存せず、状態（`latestPayload`）の更新のみを担当します。実際のディープリンク画面遷移は、`app_router.dart` 内の `ref.listen(notificationProvider, ...)` が `latestPayload` の変更を検知して `router.go(path)` を呼び出すことで、循環依存エラー（`CircularDependencyError`）を確実に防止しています。
+> **💡 アーキテクチャのポイント (単方向データフロー & 初期化時バッファリング)**:
+> `NotificationNotifier` はルーター（`routerProvider`）に直接依存せず、状態（`latestPayload`）の更新のみを担当します。実際のディープリンク画面遷移は、`app_router.dart` 内の `ref.listen(notificationProvider, ...)` が `latestPayload` の変更を検知して `router.go(path)` を呼び出すことで、循環依存エラー（`CircularDependencyError`）を確実に防止しています。また、非同期初期化中に発生した通知タップもバッファリングされ、初期化完了時に安全に画面遷移がトリガーされます。
 
 ---
 
