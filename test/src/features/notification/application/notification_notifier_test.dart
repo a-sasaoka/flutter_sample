@@ -327,5 +327,42 @@ void main() {
         check(notifier.consumeLatestPayload()).isNull();
       },
     );
+
+    test(
+      '初期化処理中（loading中）に handleNotificationTap が呼ばれた場合、 '
+      '初期化完了時に latestPayload へ反映されること',
+      () async {
+        final initCompleter = Completer<String?>();
+        when(
+          () => mockService.getToken(),
+        ).thenAnswer((_) => initCompleter.future);
+
+        final container = createContainer();
+
+        // 初期化中（loading中）であることを確認
+        check(
+          container.read(notificationProvider),
+        ).isA<NotificationStateLoading>();
+
+        const pendingPayload = NotificationPayload(
+          path: '/chat',
+          title: 'Pending Chat',
+        );
+
+        // loading 中にタップハンドラが呼ばれる
+        container
+            .read(notificationProvider.notifier)
+            .handleNotificationTap(pendingPayload);
+
+        // 初期化処理を完了させる
+        initCompleter.complete('fcm_token_123');
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        final state = container.read(notificationProvider);
+        check(state).isA<NotificationStateData>();
+        final dataState = state as NotificationStateData;
+        check(dataState.latestPayload).equals(pendingPayload);
+      },
+    );
   });
 }

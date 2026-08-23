@@ -10,6 +10,8 @@ part 'notification_notifier.g.dart';
 /// 🔔 通知の状態とアクションを管理する Notifier
 @Riverpod(keepAlive: true)
 class NotificationNotifier extends _$NotificationNotifier {
+  NotificationPayload? _pendingPayload;
+
   @override
   NotificationState build() {
     unawaited(_init());
@@ -38,10 +40,14 @@ class NotificationNotifier extends _$NotificationNotifier {
 
       if (!ref.mounted) return;
 
+      final pending = _pendingPayload;
+      _pendingPayload = null;
+
       state = NotificationState.data(
         fcmToken: refreshedToken ?? token,
         authorizationStatus: settings?.authorizationStatus,
         initialPayload: initialPayload,
+        latestPayload: pending,
       );
     } on Object catch (e) {
       if (!ref.mounted) return;
@@ -96,6 +102,8 @@ class NotificationNotifier extends _$NotificationNotifier {
   void handleNotificationTap(NotificationPayload payload) {
     if (state case final NotificationStateData dataState) {
       state = dataState.copyWith(latestPayload: payload);
+    } else {
+      _pendingPayload = payload;
     }
   }
 }
