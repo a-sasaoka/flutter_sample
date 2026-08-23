@@ -62,7 +62,7 @@ class PushNotificationService {
       await androidPlugin?.createNotificationChannel(highImportanceChannel);
 
       const initializationSettingsAndroid = AndroidInitializationSettings(
-        '@mipmap/ic_launcher',
+        '@drawable/ic_notification',
       );
       const initializationSettingsDarwin = DarwinInitializationSettings(
         requestAlertPermission: false,
@@ -254,7 +254,7 @@ class PushNotificationService {
       channelDescription: highImportanceChannel.description,
       importance: Importance.max,
       priority: Priority.high,
-      icon: '@mipmap/ic_launcher',
+      icon: '@drawable/ic_notification',
     );
     const darwinDetails = DarwinNotificationDetails(
       presentAlert: true,
