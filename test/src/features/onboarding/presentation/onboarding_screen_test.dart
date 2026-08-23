@@ -113,5 +113,45 @@ void main() {
 
       verify(() => mockPrefs.setBool('onboarding_completed', true)).called(1);
     });
+
+    testWidgets('完了処理（Skip）でエラーが発生した場合、エラー用スナックバーが表示されること', (
+      tester,
+    ) async {
+      when(
+        () => mockPrefs.setBool('onboarding_completed', true),
+      ).thenThrow(Exception('Failed to save'));
+
+      await pumpOnboardingScreen(tester);
+
+      // 「Skip」をタップ
+      await tester.tap(find.text(mockL10n.onboardingSkip));
+      await tester.pump(); // 非同期処理発火
+      await tester.pump(); // スナックバー描画
+
+      check(find.text(mockL10n.chatError)).findsOne();
+    });
+
+    testWidgets('完了処理（はじめる）でエラーが発生した場合、エラー用スナックバーが表示されること', (
+      tester,
+    ) async {
+      when(
+        () => mockPrefs.setBool('onboarding_completed', true),
+      ).thenThrow(Exception('Failed to save'));
+
+      await pumpOnboardingScreen(tester);
+
+      // 3ページ目へ移動
+      await tester.tap(find.text(mockL10n.onboardingNext));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(mockL10n.onboardingNext));
+      await tester.pumpAndSettle();
+
+      // 「はじめる」をタップ
+      await tester.tap(find.text(mockL10n.onboardingStart));
+      await tester.pump(); // 非同期処理発火
+      await tester.pump(); // スナックバー描画
+
+      check(find.text(mockL10n.chatError)).findsOne();
+    });
   });
 }

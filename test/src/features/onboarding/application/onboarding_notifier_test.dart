@@ -60,5 +60,21 @@ void main() {
       check(state).isNotNull().isTrue();
       verify(() => mockPrefs.setBool('onboarding_completed', true)).called(1);
     });
+
+    test('complete(): setBool で例外が発生した場合、状態が AsyncError になること', () async {
+      mockPrefs = setupMockPrefs();
+      when(
+        () => mockPrefs.setBool('onboarding_completed', true),
+      ).thenThrow(Exception('Storage error'));
+
+      final container = createContainer();
+      final notifier = container.read(onboardingProvider.notifier);
+      container.listen(onboardingProvider, (_, _) {});
+
+      await notifier.complete();
+
+      final state = container.read(onboardingProvider);
+      check(state).isA<AsyncError<bool>>();
+    });
   });
 }

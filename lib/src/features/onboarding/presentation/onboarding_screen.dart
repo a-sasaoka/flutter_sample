@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/gen/assets.gen.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
+import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:flutter_sample/src/core/widgets/app_lottie_widget.dart';
 import 'package:flutter_sample/src/features/onboarding/application/onboarding_notifier.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -43,6 +44,16 @@ class OnboardingScreen extends HookConsumerWidget {
         colors: [Colors.purple.shade300, Colors.purple.shade700],
       ),
     ];
+
+    // オンボーディング完了失敗時のエラーメッセージ通知
+    ref.listen<AsyncValue<bool>>(
+      onboardingProvider,
+      (previous, next) {
+        if (next is AsyncError) {
+          context.showErrorSnackBar(l10n.chatError);
+        }
+      },
+    );
 
     Future<void> completeOnboarding() async {
       await ref.read(onboardingProvider.notifier).complete();

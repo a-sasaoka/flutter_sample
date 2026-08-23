@@ -22,6 +22,8 @@ MockAppLocalizations setupMockL10n() {
   when(
     () => mockL10n.onboardingPage3Desc,
   ).thenReturn('メモのまとめを作ったり、アイデアのブレインストーミングをAIアシスタントがサポートします。');
+  when(() => mockL10n.chatError).thenReturn('エラーが発生しました');
+  when(() => mockL10n.close).thenReturn('閉じる');
   return mockL10n;
 }
 
