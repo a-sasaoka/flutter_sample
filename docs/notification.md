@@ -115,6 +115,7 @@ Firebase Messaging と `FlutterLocalNotificationsPlugin` のやり取りをラ�
 - **フォアグラウンド受信時**: `FirebaseMessaging.onMessage` を検知し、ローカル通知（高優先度バナー）を即座に表示します。
 - **通知タップ時**: `onNotificationTap` コールバックを通じて `NotificationPayload` を上位（Notifier）へ伝達します。
 - **アプリ終了状態からの起動時**: `getInitialNotification()` により Firebase 及びローカル通知の起動情報を取得し、初期通知ペイロードとして保持します。
+- **Android ネイティブ高重要度チャンネル初期化**: アプリ未起動（terminated）状態でのFCM通知受信時にも高重要度（バナー/サウンド）で確実に表示されるよう、`MainApplication.kt` の `onCreate()` で `high_importance_channel` をネイティブ初期化しています。
 
 ### 3. `NotificationNotifier` (アプリケーション層)
 
