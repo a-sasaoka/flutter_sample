@@ -390,6 +390,9 @@ void main() {
       check(fakeLocalNotifications.lastShowBody).equals(
         'You got a new message',
       );
+      check(
+        fakeLocalNotifications.lastShowPayload,
+      ).isNotNull().contains('"/chat"');
     });
 
     test('handleForegroundMessage で showLocalNotification が呼ばれること', () async {
