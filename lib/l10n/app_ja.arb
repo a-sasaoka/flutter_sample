@@ -337,6 +337,43 @@
   "devLottieAssetNotFound": "404 エラー (Not Found)",
   "devLottieAssetSuccessCheck": "成功チェック (Success)",
   "devLottieCompleted": "アニメーションが完了しました！",
-  "devLottieNetworkSection": "ネットワーク読み込みの例"
+  "devLottieNetworkSection": "ネットワーク読み込みの例",
+
+  "@_NOTIFICATION": {},
+  "notificationChannelHighImportanceName": "高優先度通知",
+  "notificationChannelHighImportanceDescription": "重要なメッセージやリマインダーを即時通知します。",
+  "notificationDefaultTitle": "お知らせ",
+  "devNotificationTitle": "Push通知・ディープリンク検証",
+  "devNotificationTokenLabel": "FCM トークン",
+  "devNotificationTokenCopy": "トークンをコピー",
+  "devNotificationTokenCopied": "FCM トークンをクリップボードにコピーしました",
+  "devNotificationPermissionLabel": "通知許可ステータス: {status}",
+  "@devNotificationPermissionLabel": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "devNotificationRequestPermission": "通知権限をリクエスト",
+  "devNotificationTestSection": "テスト通知の発火（ディープリンク検証）",
+  "devNotificationTestChatTitle": "AIチャット通知テスト",
+  "devNotificationTestChatBody": "AIアシスタントから新着メッセージがあります。タップしてチャットを開きます。",
+  "devNotificationTestMemoTitle": "メモ詳細通知テスト",
+  "devNotificationTestMemoBody": "最新のメモが更新されました。タップして詳細を確認します。",
+  "devNotificationTestProfileTitle": "プロフィール通知テスト",
+  "devNotificationTestProfileBody": "会員情報が更新されました。タップして確認します。",
+  "devNotificationSendTest": "テスト通知を送信",
+  "devNotificationLatestPayloadLabel": "最後に検知した通知ペイロード",
+  "devNotificationTokenNotObtained": "トークン未取得（実機またはシミュレータ環境）",
+  "devNotificationStatusAuthorized": "許可 (Authorized)",
+  "devNotificationStatusDenied": "拒否 (Denied)",
+  "devNotificationStatusNotDetermined": "未設定 (Not Determined)",
+  "devNotificationStatusProvisional": "仮許可 (Provisional)",
+  "notificationBannerTitle": "通知をオンにして最新情報を受け取ろう",
+  "notificationBannerBody": "メッセージの返信や重要なお知らせをリアルタイムでお届けします。",
+  "notificationBannerEnableButton": "通知をオンにする",
+  "notificationBannerSettingsButton": "設定を開く",
+  "notificationBannerDismiss": "閉じる"
 }
 

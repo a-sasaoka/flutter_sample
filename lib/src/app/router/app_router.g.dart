@@ -14,6 +14,7 @@ List<RouteBase> get $appRoutes => [
   $splashRoute,
   $developerStorageRoute,
   $developerLottieRoute,
+  $pushNotificationDemoRoute,
 ];
 
 RouteBase get $loginRoute => GoRouteData.$route(
@@ -485,6 +486,33 @@ mixin $DeveloperLottieRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/dev-tools/lottie');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $pushNotificationDemoRoute => GoRouteData.$route(
+  path: '/dev-tools/notification',
+  hasOverriddenOnExit: false,
+  factory: $PushNotificationDemoRoute._fromState,
+);
+
+mixin $PushNotificationDemoRoute on GoRouteData {
+  static PushNotificationDemoRoute _fromState(GoRouterState state) =>
+      const PushNotificationDemoRoute();
+
+  @override
+  String get location => GoRouteData.$location('/dev-tools/notification');
 
   @override
   void go(BuildContext context) => context.go(location);

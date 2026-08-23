@@ -51,6 +51,7 @@ Flutter開発のサンプルプロジェクトです。\
 - [アプリロック機能 (App Lock)](docs/app_lock.md)
 - [地図機能 (Google Maps)](docs/map.md)
 - [リッチアニメーションとアセット管理 (Lottie & flutter_gen)](docs/animation.md)
+- [Push通知 & ディープリンク連携 (FCM / flutter_local_notifications)](docs/notification.md)
 
 ### E. 開発運用
 

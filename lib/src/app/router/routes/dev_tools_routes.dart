@@ -24,3 +24,16 @@ class DeveloperLottieRoute extends GoRouteData with $DeveloperLottieRoute {
     return const LottieDemoScreen();
   }
 }
+
+/// 開発者向けPush通知・ディープリンク検証デモ画面のルート
+@TypedGoRoute<PushNotificationDemoRoute>(path: '/dev-tools/notification')
+class PushNotificationDemoRoute extends GoRouteData
+    with $PushNotificationDemoRoute {
+  /// コンストラクタ
+  const PushNotificationDemoRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const PushNotificationDemoScreen();
+  }
+}

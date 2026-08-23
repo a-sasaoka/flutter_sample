@@ -76,6 +76,7 @@ flutter_sample
             ├── home                                            # ホーム画面
             ├── map                                             # 地図・現在地表示・住所ランドマーク検索・2点間ルート案内機能
             ├── memos                                           # メモ一覧・オフライン操作機能
+            ├── notification                                    # Push通知・ローカル通知・ディープリンク機能
             ├── onboarding                                      # オンボーディング機能
             ├── profile                                         # プロフィール登録・変更機能
             ├── settings                                        # 設定画面

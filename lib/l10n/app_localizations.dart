@@ -1489,6 +1489,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Network Loading Example'**
   String get devLottieNetworkSection;
+
+  /// No description provided for @notificationChannelHighImportanceName.
+  ///
+  /// In en, this message translates to:
+  /// **'High Importance Notifications'**
+  String get notificationChannelHighImportanceName;
+
+  /// No description provided for @notificationChannelHighImportanceDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Used for important notifications and reminders.'**
+  String get notificationChannelHighImportanceDescription;
+
+  /// No description provided for @notificationDefaultTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification'**
+  String get notificationDefaultTitle;
+
+  /// No description provided for @devNotificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Push Notifications & DeepLink Demo'**
+  String get devNotificationTitle;
+
+  /// No description provided for @devNotificationTokenLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'FCM Token'**
+  String get devNotificationTokenLabel;
+
+  /// No description provided for @devNotificationTokenCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Token'**
+  String get devNotificationTokenCopy;
+
+  /// No description provided for @devNotificationTokenCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'FCM Token copied to clipboard'**
+  String get devNotificationTokenCopied;
+
+  /// No description provided for @devNotificationPermissionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification Permission: {status}'**
+  String devNotificationPermissionLabel(String status);
+
+  /// No description provided for @devNotificationRequestPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Request Permission'**
+  String get devNotificationRequestPermission;
+
+  /// No description provided for @devNotificationTestSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Trigger Test Notifications (DeepLink Verification)'**
+  String get devNotificationTestSection;
+
+  /// No description provided for @devNotificationTestChatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Chat Notification Test'**
+  String get devNotificationTestChatTitle;
+
+  /// No description provided for @devNotificationTestChatBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You have a new message from AI Assistant. Tap to open chat.'**
+  String get devNotificationTestChatBody;
+
+  /// No description provided for @devNotificationTestMemoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Memo Detail Notification Test'**
+  String get devNotificationTestMemoTitle;
+
+  /// No description provided for @devNotificationTestMemoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your memo has been updated. Tap to view details.'**
+  String get devNotificationTestMemoBody;
+
+  /// No description provided for @devNotificationTestProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile Notification Test'**
+  String get devNotificationTestProfileTitle;
+
+  /// No description provided for @devNotificationTestProfileBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your profile information was updated. Tap to check.'**
+  String get devNotificationTestProfileBody;
+
+  /// No description provided for @devNotificationSendTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Test Notification'**
+  String get devNotificationSendTest;
+
+  /// No description provided for @devNotificationLatestPayloadLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest Detected Notification Payload'**
+  String get devNotificationLatestPayloadLabel;
+
+  /// No description provided for @devNotificationTokenNotObtained.
+  ///
+  /// In en, this message translates to:
+  /// **'Token not obtained (Real device or simulator)'**
+  String get devNotificationTokenNotObtained;
+
+  /// No description provided for @devNotificationStatusAuthorized.
+  ///
+  /// In en, this message translates to:
+  /// **'Authorized'**
+  String get devNotificationStatusAuthorized;
+
+  /// No description provided for @devNotificationStatusDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Denied'**
+  String get devNotificationStatusDenied;
+
+  /// No description provided for @devNotificationStatusNotDetermined.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Determined'**
+  String get devNotificationStatusNotDetermined;
+
+  /// No description provided for @devNotificationStatusProvisional.
+  ///
+  /// In en, this message translates to:
+  /// **'Provisional'**
+  String get devNotificationStatusProvisional;
+
+  /// No description provided for @notificationBannerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Notifications to Stay Updated'**
+  String get notificationBannerTitle;
+
+  /// No description provided for @notificationBannerBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive real-time updates for messages and important announcements.'**
+  String get notificationBannerBody;
+
+  /// No description provided for @notificationBannerEnableButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Notifications'**
+  String get notificationBannerEnableButton;
+
+  /// No description provided for @notificationBannerSettingsButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get notificationBannerSettingsButton;
+
+  /// No description provided for @notificationBannerDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get notificationBannerDismiss;
 }
 
 class _AppLocalizationsDelegate

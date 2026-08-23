@@ -747,4 +747,99 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get devLottieNetworkSection => 'Network Loading Example';
+
+  @override
+  String get notificationChannelHighImportanceName =>
+      'High Importance Notifications';
+
+  @override
+  String get notificationChannelHighImportanceDescription =>
+      'Used for important notifications and reminders.';
+
+  @override
+  String get notificationDefaultTitle => 'Notification';
+
+  @override
+  String get devNotificationTitle => 'Push Notifications & DeepLink Demo';
+
+  @override
+  String get devNotificationTokenLabel => 'FCM Token';
+
+  @override
+  String get devNotificationTokenCopy => 'Copy Token';
+
+  @override
+  String get devNotificationTokenCopied => 'FCM Token copied to clipboard';
+
+  @override
+  String devNotificationPermissionLabel(String status) {
+    return 'Notification Permission: $status';
+  }
+
+  @override
+  String get devNotificationRequestPermission => 'Request Permission';
+
+  @override
+  String get devNotificationTestSection =>
+      'Trigger Test Notifications (DeepLink Verification)';
+
+  @override
+  String get devNotificationTestChatTitle => 'AI Chat Notification Test';
+
+  @override
+  String get devNotificationTestChatBody =>
+      'You have a new message from AI Assistant. Tap to open chat.';
+
+  @override
+  String get devNotificationTestMemoTitle => 'Memo Detail Notification Test';
+
+  @override
+  String get devNotificationTestMemoBody =>
+      'Your memo has been updated. Tap to view details.';
+
+  @override
+  String get devNotificationTestProfileTitle => 'Profile Notification Test';
+
+  @override
+  String get devNotificationTestProfileBody =>
+      'Your profile information was updated. Tap to check.';
+
+  @override
+  String get devNotificationSendTest => 'Send Test Notification';
+
+  @override
+  String get devNotificationLatestPayloadLabel =>
+      'Latest Detected Notification Payload';
+
+  @override
+  String get devNotificationTokenNotObtained =>
+      'Token not obtained (Real device or simulator)';
+
+  @override
+  String get devNotificationStatusAuthorized => 'Authorized';
+
+  @override
+  String get devNotificationStatusDenied => 'Denied';
+
+  @override
+  String get devNotificationStatusNotDetermined => 'Not Determined';
+
+  @override
+  String get devNotificationStatusProvisional => 'Provisional';
+
+  @override
+  String get notificationBannerTitle => 'Enable Notifications to Stay Updated';
+
+  @override
+  String get notificationBannerBody =>
+      'Receive real-time updates for messages and important announcements.';
+
+  @override
+  String get notificationBannerEnableButton => 'Enable Notifications';
+
+  @override
+  String get notificationBannerSettingsButton => 'Open Settings';
+
+  @override
+  String get notificationBannerDismiss => 'Dismiss';
 }

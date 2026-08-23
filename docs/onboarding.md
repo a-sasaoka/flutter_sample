@@ -56,6 +56,7 @@
 2. **ウィジェットテスト ([onboarding_screen_test.dart](../test/src/features/onboarding/presentation/onboarding_screen_test.dart))**
    - スライドをめくったときにタイトルや文章が切り替わること。
    - ボタン表示が「次へ」から「はじめる」に変わること。
-   - 「スキップ」や「はじめる」をタップすると完了処理が呼ばれること。
+   - 「はじめる」をタップすると完了処理が呼ばれること。
+   - 「スキップ」をタップした際も即座に完了処理が呼ばれること。
 3. **ゴールデンテスト ([onboarding_screen_golden_test.dart](../test/src/features/onboarding/presentation/onboarding_screen_golden_test.dart))**
    - スマートフォンの見た目通りに正しく画面が描画されるかを、画像比較（Alchemist）を用いてビジュアルテストしています。

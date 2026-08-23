@@ -166,6 +166,18 @@ Vertex AI（Gemini API）等とやりとりするチャット画面です。
   - ネットワーク読み込み例カードの見出しとアイコンが正しく配置されているか。
 - **画像リンク**: [📷 画像を表示する (lottie_demo_screen.png)](../test/src/features/dev_tools/presentation/goldens/macos/lottie_demo_screen.png)
 
+#### Push通知・ディープリンク検証画面 (PushNotificationDemoScreen)
+
+FCM トークンの確認・コピー、権限リクエスト、テスト通知発火（ディープリンク検証）を行う開発者向け画面です。
+
+- **テスト対象**: ライトモード、ダークモードの計2状態
+- **チェックポイント**:
+  - FCM トークン文字列とコピーボタン（アイコン＋ラベル）が正しく配置されているか。
+  - 通知権限ステータス（「許可 (Authorized)」等）と権限リクエストボタンが表示されているか。
+  - テスト通知発火セクションに AIチャット・メモ詳細・プロフィールの各テスト通知カードが並んでいるか。
+  - 最新検知ペイロードカードに受信したペイロード内容が適切に表示されているか。
+- **画像リンク**: [📷 画像を表示する (push_notification_demo_screen.png)](../test/src/features/dev_tools/presentation/goldens/macos/push_notification_demo_screen.png)
+
 ---
 
 ### 6. ホーム画面 & スプラッシュ・その他 (Main & Others)

@@ -29,6 +29,7 @@ import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/developer_storage_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/lottie_demo_screen.dart';
+import 'package:flutter_sample/src/features/dev_tools/presentation/push_notification_demo_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
 import 'package:flutter_sample/src/features/map/presentation/map_screen.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
@@ -216,6 +217,18 @@ void main() {
     when(() => mockL10n.versionUpCancel).thenReturn('Cancel Button');
     when(() => mockL10n.devStorageTitle).thenReturn('Storage');
     when(() => mockL10n.devLottieTitle).thenReturn('Lottie Demo');
+    when(() => mockL10n.devNotificationTitle).thenReturn('Notification Demo');
+    when(
+      () => mockL10n.notificationBannerTitle,
+    ).thenReturn('Notification Banner Title');
+    when(
+      () => mockL10n.notificationBannerBody,
+    ).thenReturn('Notification Banner Body');
+    when(() => mockL10n.notificationBannerEnableButton).thenReturn('Enable');
+    when(
+      () => mockL10n.notificationBannerSettingsButton,
+    ).thenReturn('Settings');
+    when(() => mockL10n.notificationBannerDismiss).thenReturn('Dismiss');
     when(() => mockL10n.chatTitle).thenReturn('Chat');
     when(() => mockL10n.memoTitle).thenReturn('Memo');
     when(() => mockL10n.navHome).thenReturn('Home');
@@ -667,6 +680,17 @@ void main() {
       );
       check(widget).isA<LottieDemoScreen>();
     });
+
+    test(
+      'PushNotificationDemoRoute.build: PushNotificationDemoScreen を返すこと',
+      () {
+        final widget = const PushNotificationDemoRoute().build(
+          MockBuildContext(),
+          MockGoRouterState(),
+        );
+        check(widget).isA<PushNotificationDemoScreen>();
+      },
+    );
 
     test('SignUpRoute.build: FirebaseSignUpScreen を返すこと', () {
       final widget = const SignUpRoute().build(

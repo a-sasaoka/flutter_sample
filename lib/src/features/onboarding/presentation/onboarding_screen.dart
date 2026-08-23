@@ -44,8 +44,8 @@ class OnboardingScreen extends HookConsumerWidget {
       ),
     ];
 
-    void completeOnboarding() {
-      unawaited(ref.read(onboardingProvider.notifier).complete());
+    Future<void> completeOnboarding() async {
+      await ref.read(onboardingProvider.notifier).complete();
     }
 
     return Scaffold(
@@ -58,7 +58,7 @@ class OnboardingScreen extends HookConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.only(top: 8, right: 16),
                 child: TextButton(
-                  onPressed: completeOnboarding,
+                  onPressed: () => unawaited(completeOnboarding()),
                   child: Text(
                     l10n.onboardingSkip,
                     style: TextStyle(
@@ -111,7 +111,7 @@ class OnboardingScreen extends HookConsumerWidget {
                   ElevatedButton(
                     onPressed: () {
                       if (currentPage.value == pages.length - 1) {
-                        completeOnboarding();
+                        unawaited(completeOnboarding());
                       } else {
                         unawaited(
                           pageController.nextPage(
