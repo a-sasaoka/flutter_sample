@@ -211,11 +211,13 @@ class PushNotificationService {
   Stream<String> get onTokenRefresh =>
       _messaging?.onTokenRefresh ?? const Stream.empty();
 
+  int _notificationIdCounter = 0;
+
   int _generateNotificationId(RemoteMessage message) {
     if (message.messageId != null) {
       return message.messageId.hashCode.abs() % 2147483647;
     }
-    return DateTime.now().millisecondsSinceEpoch.remainder(2147483647);
+    return _notificationIdCounter = (_notificationIdCounter + 1) % 2147483647;
   }
 
   /// フォアグラウンド受信時のメッセージ処理

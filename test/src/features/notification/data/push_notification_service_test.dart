@@ -518,6 +518,29 @@ void main() {
       check(id1 != id2).isTrue();
     });
 
+    test(
+      'messageId が null の通知を連続受信した際に異なる通知IDで表示されること',
+      () async {
+        const nullMsg1 = RemoteMessage(
+          data: {'path': '/item/1'},
+          notification: RemoteNotification(title: 'Null Msg 1'),
+        );
+        const nullMsg2 = RemoteMessage(
+          data: {'path': '/item/2'},
+          notification: RemoteNotification(title: 'Null Msg 2'),
+        );
+
+        await service.handleForegroundMessage(nullMsg1);
+        await service.handleForegroundMessage(nullMsg2);
+
+        check(fakeLocalNotifications.showCallCount).equals(2);
+        check(fakeLocalNotifications.shownNotificationIds.length).equals(2);
+        final id1 = fakeLocalNotifications.shownNotificationIds[0];
+        final id2 = fakeLocalNotifications.shownNotificationIds[1];
+        check(id1 != id2).isTrue();
+      },
+    );
+
     test('handleMessageOpenedApp で onNotificationTap が呼ばれること', () {
       NotificationPayload? tappedPayload;
       final serviceWithCallback = PushNotificationService(
