@@ -136,6 +136,18 @@ class _FakeNotificationNotifier extends NotificationNotifier {
   set notificationState(NotificationState newState) {
     state = newState;
   }
+
+  @override
+  NotificationPayload? consumeLatestPayload() {
+    if (state case final NotificationStateData dataState) {
+      final payload = dataState.latestPayload;
+      if (payload != null) {
+        state = dataState.copyWith(latestPayload: null);
+        return payload;
+      }
+    }
+    return null;
+  }
 }
 
 void main() {
@@ -513,6 +525,40 @@ void main() {
 
       // ChatScreen に自動遷移することを確認
       check(find.byType(ChatScreen)).findsOne();
+
+      await teardownWidget(tester, container);
+    });
+
+    testWidgets('アプリ表示中に通知タップ（latestPayload）が発生した際、指定された画面へ遷移すること', (
+      tester,
+    ) async {
+      final fakeNotifier = _FakeNotificationNotifier();
+      final container = createContainer(
+        isLoggedIn: true,
+        useFirebase: false,
+        fakeNotificationNotifier: fakeNotifier,
+      );
+
+      await tester.pumpWidget(createTestWidget(tester, container));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // 最初は HomeScreen が表示されていること
+      check(find.byType(HomeScreen)).findsOne();
+
+      // 通知タップが発生して latestPayload が更新された状態に変更
+      fakeNotifier.notificationState = const NotificationState.data(
+        latestPayload: NotificationPayload(
+          path: '/memos',
+          title: 'Memo Tap',
+        ),
+      );
+
+      // 画面遷移を処理
+      await tester.pumpAndSettle();
+
+      // MemoScreen に遷移していることを確認
+      check(find.byType(MemoScreen)).findsOne();
 
       await teardownWidget(tester, container);
     });

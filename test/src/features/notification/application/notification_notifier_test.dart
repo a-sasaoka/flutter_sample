@@ -294,45 +294,38 @@ void main() {
       verify(() => mockService.showLocalNotification(payload)).called(1);
     });
 
-    test('handleNotificationTap で有効なパスがある場合 GoRouter.go が呼ばれること', () async {
-      final container = createContainer();
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+    test(
+      'handleNotificationTap で latestPayload が更新され '
+      'consumeLatestPayload で消費できること',
+      () async {
+        final container = createContainer();
+        await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      const payload = NotificationPayload(
-        path: '/memos',
-        title: 'Memo',
-      );
+        const payload = NotificationPayload(
+          path: '/memos',
+          title: 'Memo',
+        );
 
-      when(() => mockRouter.go('/memos')).thenReturn(null);
+        final notifier = container.read(notificationProvider.notifier)
+          ..handleNotificationTap(payload);
 
-      container
-          .read(notificationProvider.notifier)
-          .handleNotificationTap(payload);
+        final state = container.read(notificationProvider);
+        check(state).isA<NotificationStateData>();
+        final dataState = state as NotificationStateData;
+        check(dataState.latestPayload).equals(payload);
 
-      final state = container.read(notificationProvider);
-      check(state).isA<NotificationStateData>();
-      final dataState = state as NotificationStateData;
-      check(dataState.latestPayload).equals(payload);
-      verify(() => mockRouter.go('/memos')).called(1);
-    });
+        // consumeLatestPayload でペイロードが取り出され、null に更新されること
+        final consumed = notifier.consumeLatestPayload();
+        check(consumed).equals(payload);
 
-    test('handleNotificationTap でパスがない場合 GoRouter.go は呼ばれないこと', () async {
-      final container = createContainer();
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+        final afterState = container.read(notificationProvider);
+        check(afterState).isA<NotificationStateData>();
+        final afterDataState = afterState as NotificationStateData;
+        check(afterDataState.latestPayload).isNull();
 
-      const payload = NotificationPayload(
-        title: 'No Path',
-      );
-
-      container
-          .read(notificationProvider.notifier)
-          .handleNotificationTap(payload);
-
-      final state = container.read(notificationProvider);
-      check(state).isA<NotificationStateData>();
-      final dataState = state as NotificationStateData;
-      check(dataState.latestPayload).equals(payload);
-      verifyNever(() => mockRouter.go(any()));
-    });
+        // 2回目の消費は null
+        check(notifier.consumeLatestPayload()).isNull();
+      },
+    );
   });
 }

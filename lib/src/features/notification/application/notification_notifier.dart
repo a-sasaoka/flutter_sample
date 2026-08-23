@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/features/notification/application/notification_state.dart';
 import 'package:flutter_sample/src/features/notification/data/push_notification_service_provider.dart';
 import 'package:flutter_sample/src/features/notification/domain/notification_payload.dart';
@@ -62,6 +61,18 @@ class NotificationNotifier extends _$NotificationNotifier {
     return null;
   }
 
+  /// 最新のタップ通知ペイロードを取り出し、二重遷移を防ぐために消費（クリア）する
+  NotificationPayload? consumeLatestPayload() {
+    if (state case final NotificationStateData dataState) {
+      final payload = dataState.latestPayload;
+      if (payload != null) {
+        state = dataState.copyWith(latestPayload: null);
+        return payload;
+      }
+    }
+    return null;
+  }
+
   /// 通知パーミッションを要求
   Future<void> requestPermission() async {
     final service = ref.read(pushNotificationServiceProvider);
@@ -85,9 +96,6 @@ class NotificationNotifier extends _$NotificationNotifier {
   void handleNotificationTap(NotificationPayload payload) {
     if (state case final NotificationStateData dataState) {
       state = dataState.copyWith(latestPayload: payload);
-    }
-    if (payload.isNavigable && payload.path != null) {
-      ref.read(routerProvider).go(payload.path!);
     }
   }
 }
