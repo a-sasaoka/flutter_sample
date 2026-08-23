@@ -23,7 +23,7 @@ AI チャット、グラフ、メモ帳、ユーザー一覧などの主要な�
 - **統合ログ (TalkerScreen)**: 通信履歴やエラーログをアプリ上で確認できます（`prod` 環境以外で表示）。
 - **ローカルストレージ管理 (DeveloperStorageScreen)**: `SharedPreferences` や `FlutterSecureStorage` に保存されたキーと値の確認・編集・削除が行えます。
 - **Lottie アニメーションデモ (LottieDemoScreen)**: プロジェクト内の Lottie アセットの再生・一時停止・シーク操作・ループ切り替えや、ネットワークからのアニメーション読み込みを検証できます。
-- **Push通知・ディープリンク検証 (PushNotificationDemoScreen)**: FCM トークンの確認・コピー、通知パーミッション要求、テスト通知発火（`/chat`, `/memos`, `/settings`）によるディープリンク検証を行えます。
+- **Push通知・ディープリンク検証 (PushNotificationDemoScreen)**: FCM トークンの確認・コピー、通知パーミッション要求、テスト通知発火（`/chat`, `/memos`, `/settings/profile`）によるディープリンク検証を行えます。
 - **クラッシュテスト**: Firebase Crashlytics が正しく動作するかを検証するための強制クラッシュ機能。
 - **分析テスト**: Firebase Analytics へのイベント送信をテストします。
 
