@@ -144,6 +144,12 @@ void main() {
         else if (initialPayload != null)
           notificationProvider.overrideWith(
             () => _FakeNotificationNotifierWithPayload(initialPayload),
+          )
+        else
+          notificationProvider.overrideWith(
+            () => _FakeNotificationNotifierWithState(
+              const NotificationState.data(),
+            ),
           ),
       ],
     );
@@ -204,8 +210,9 @@ void main() {
       check(result).isNotNull().contains('from=${Uri.encodeComponent('/')}');
     });
 
-    test('スプラッシュ未完了の場合、常に SplashRoute にリダイレクトすること', () {
+    test('スプラッシュ未完了の場合、SplashRoute にリダイレクトすること', () {
       final mockUser = MockUser();
+      when(() => mockUser.emailVerified).thenReturn(true);
       final result = executeGuard(
         AsyncData(mockUser),
         isSplashFinished: false,
@@ -215,6 +222,7 @@ void main() {
 
     test('スプラッシュ完了後、スプラッシュ画面にいてログイン済みの場合、ホーム画面へリダイレクトすること', () {
       final mockUser = MockUser();
+      when(() => mockUser.emailVerified).thenReturn(true);
       final result = executeGuard(
         AsyncData(mockUser),
         location: const SplashRoute().location,
@@ -222,18 +230,20 @@ void main() {
       check(result).equals(const HomeRoute().location);
     });
 
-    test('ログイン済みで通知状態がローディング中の場合、ホーム画面へリダイレクトすること', () {
+    test('ログイン済みで通知状態がローディング中の場合、スプラッシュを維持すること（nullを返す）', () {
       final mockUser = MockUser();
+      when(() => mockUser.emailVerified).thenReturn(true);
       final result = executeGuard(
         AsyncData(mockUser),
         location: const SplashRoute().location,
         notificationState: const NotificationState.loading(),
       );
-      check(result).equals(const HomeRoute().location);
+      check(result).isNull();
     });
 
     test('ログイン済みでスプラッシュ画面に初期通知（initialPayload）が存在する場合、通知パスへリダイレクトすること', () {
       final mockUser = MockUser();
+      when(() => mockUser.emailVerified).thenReturn(true);
       const payload = NotificationPayload(
         path: '/chat',
         title: 'Initial Chat',

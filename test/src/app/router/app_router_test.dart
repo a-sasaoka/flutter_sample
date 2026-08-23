@@ -529,6 +529,44 @@ void main() {
       await teardownWidget(tester, container);
     });
 
+    testWidgets(
+      'スプラッシュ完了後も通知状態が loading の間は SplashScreen を維持し、 '
+      'data 完了時に HomeScreen へ遷移すること',
+      (tester) async {
+        final fakeNotifier = _FakeNotificationNotifier(
+          initialState: const NotificationState.loading(),
+        );
+        final container = createContainer(
+          isLoggedIn: true,
+          useFirebase: false,
+          isSplashFinished: false,
+          fakeNotificationNotifier: fakeNotifier,
+        );
+
+        await tester.pumpWidget(createTestWidget(tester, container));
+        await tester.pump();
+
+        // 最初は SplashScreen が表示されていること
+        check(find.byType(SplashScreen)).findsOne();
+
+        // スプラッシュ完了状態にするが、通知状態は依然 loading
+        container.read(splashStateProvider.notifier).finishSplash();
+        await tester.pumpAndSettle();
+
+        // 通知が loading 中のため、依然として SplashScreen を維持していること
+        check(find.byType(SplashScreen)).findsOne();
+
+        // 通知状態が通常の data（通知なし）で完了
+        fakeNotifier.notificationState = const NotificationState.data();
+        await tester.pumpAndSettle();
+
+        // HomeScreen へ遷移することを確認
+        check(find.byType(HomeScreen)).findsOne();
+
+        await teardownWidget(tester, container);
+      },
+    );
+
     testWidgets('アプリ表示中に通知タップ（latestPayload）が発生した際、指定された画面へ遷移すること', (
       tester,
     ) async {

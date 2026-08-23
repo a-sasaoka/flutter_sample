@@ -37,6 +37,32 @@ class _FakeNotificationNotifierWithPayload extends NotificationNotifier {
   }
 }
 
+class _FakeNotificationNotifierWithState extends NotificationNotifier {
+  _FakeNotificationNotifierWithState(this.initialState);
+  final NotificationState initialState;
+  bool _consumed = false;
+
+  @override
+  NotificationState build() {
+    if (_consumed && initialState is NotificationStateData) {
+      return (initialState as NotificationStateData).copyWith(
+        initialPayload: null,
+      );
+    }
+    return initialState;
+  }
+
+  @override
+  NotificationPayload? consumeInitialPayload() {
+    if (_consumed) return null;
+    _consumed = true;
+    if (initialState case final NotificationStateData data) {
+      return data.initialPayload;
+    }
+    return null;
+  }
+}
+
 // --- SplashStateのフェイク定義 ---
 class FakeSplashState extends SplashState {
   FakeSplashState({required this.initialValue});
@@ -113,6 +139,7 @@ void main() {
     bool isOnboardingLoading = false,
     bool isOnboardingError = false,
     NotificationPayload? initialPayload,
+    NotificationState? notificationState,
   }) {
     when(() => mockState.matchedLocation).thenReturn(location);
     when(() => mockState.uri).thenReturn(Uri.parse(location));
@@ -133,9 +160,19 @@ void main() {
             hasError: isOnboardingError,
           ),
         ),
-        if (initialPayload != null)
+        if (notificationState != null)
+          notificationProvider.overrideWith(
+            () => _FakeNotificationNotifierWithState(notificationState),
+          )
+        else if (initialPayload != null)
           notificationProvider.overrideWith(
             () => _FakeNotificationNotifierWithPayload(initialPayload),
+          )
+        else
+          notificationProvider.overrideWith(
+            () => _FakeNotificationNotifierWithState(
+              const NotificationState.data(),
+            ),
           ),
       ],
     );
@@ -228,6 +265,15 @@ void main() {
         location: const SplashRoute().location,
       );
       check(result).equals(const HomeRoute().location);
+    });
+
+    test('ログイン済みで通知状態がローディング中の場合、スプラッシュを維持すること（nullを返す）', () {
+      final result = executeGuard(
+        const AsyncData<bool>(true),
+        location: const SplashRoute().location,
+        notificationState: const NotificationState.loading(),
+      );
+      check(result).isNull();
     });
 
     test('オンボーディングが未完了の場合、オンボーディング画面へリダイレクトすること', () {

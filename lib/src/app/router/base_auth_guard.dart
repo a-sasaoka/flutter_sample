@@ -155,6 +155,10 @@ String? checkBaseRedirect({
       // 🔔 初期通知によるディープリンク指定がある場合は優先的にそこへリダイレクト
       try {
         final notificationState = ref.read(notificationProvider);
+        if (notificationState is NotificationStateLoading) {
+          // 初期通知の読み込み待ち中はスプラッシュ画面を維持する
+          return null;
+        }
         if (notificationState case final NotificationStateData data) {
           final initialPath = data.initialPayload?.path;
           if (initialPath != null && initialPath.isNotEmpty) {
