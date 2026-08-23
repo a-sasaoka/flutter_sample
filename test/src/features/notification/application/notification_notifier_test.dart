@@ -105,6 +105,39 @@ void main() {
       }
     });
 
+    test('初期化時に例外が発生した場合 NotificationState.error に遷移すること', () async {
+      when(
+        () => mockService.initialize(),
+      ).thenAnswer((_) async => throw Exception('Init failed'));
+
+      final container = createContainer()..read(notificationProvider);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final state = container.read(notificationProvider);
+      check(state).isA<NotificationStateError>();
+      if (state case final NotificationStateError errorState) {
+        check(errorState.message).contains('Init failed');
+      }
+    });
+
+    test('初期化中にコンテナが破棄された場合、状態更新が行われないこと', () async {
+      final completer = Completer<void>();
+      when(() => mockService.initialize()).thenAnswer((_) => completer.future);
+
+      ProviderContainer(
+          overrides: [
+            pushNotificationServiceProvider.overrideWithValue(mockService),
+            routerProvider.overrideWithValue(mockRouter),
+          ],
+        )
+        ..listen(notificationProvider, (_, _) {})
+        // 初期化処理の途中でコンテナを破棄
+        ..dispose();
+
+      completer.complete();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    });
+
     test(
       '初期通知が存在する場合 initialPayload に保持され consumeInitialPayload で消費できること',
       () async {
