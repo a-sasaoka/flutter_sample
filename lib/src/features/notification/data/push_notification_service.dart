@@ -97,11 +97,8 @@ class PushNotificationService {
     final messaging = _messaging;
     if (messaging != null) {
       // フォアグラウンドでの通知バナー表示オプション（iOS）
-      await messaging.setForegroundNotificationPresentationOptions(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+      // 自前で showLocalNotification によるバナー表示を行うため、二重表示を防ぐよう無効化（デフォルト: false）
+      await messaging.setForegroundNotificationPresentationOptions();
 
       // フォアグラウンド受信リスナー
       FirebaseMessaging.onMessage.listen(handleForegroundMessage);

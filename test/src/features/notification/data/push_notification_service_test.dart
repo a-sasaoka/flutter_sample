@@ -157,6 +157,10 @@ void main() {
         () => mockAndroidPlugin.createNotificationChannel(any()),
       ).called(1);
 
+      verify(
+        () => mockMessaging.setForegroundNotificationPresentationOptions(),
+      ).called(1);
+
       check(fakeLocalNotifications.initializeCalled).isTrue();
     });
 
