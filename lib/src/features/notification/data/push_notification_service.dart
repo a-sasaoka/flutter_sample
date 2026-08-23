@@ -77,7 +77,7 @@ class PushNotificationService {
       await _localNotifications.initialize(
         settings: initializationSettings,
         onDidReceiveNotificationResponse: (response) {
-          _talker.info('🔔 ローカル通知がタップされました: ${response.payload}');
+          _talker.info('🔔 ローカル通知がタップされました');
           if (response.payload != null) {
             try {
               final map = jsonDecode(response.payload!) as Map<String, dynamic>;
@@ -140,7 +140,7 @@ class PushNotificationService {
         final rawPayload = launchDetails.notificationResponse!.payload;
         if (rawPayload != null && rawPayload.isNotEmpty) {
           final json = jsonDecode(rawPayload) as Map<String, dynamic>;
-          _talker.info('🔔 ローカル通知タップからのアプリ起動を検知: $rawPayload');
+          _talker.info('🔔 ローカル通知タップからのアプリ起動を検知');
           return NotificationPayload.fromJson(json);
         }
       }
@@ -194,7 +194,7 @@ class PushNotificationService {
     if (messaging == null) return null;
     try {
       final token = await messaging.getToken();
-      _talker.info('🔔 FCM トークン取得成功: $token');
+      _talker.info('🔔 FCM トークン取得成功');
       return token;
     } on Object catch (e, st) {
       _talker.error('FCM トークンの取得に失敗しました', e, st);
