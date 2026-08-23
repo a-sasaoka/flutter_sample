@@ -16,6 +16,7 @@ T _$identity<T>(T value) => value;
 mixin _$NotificationPayload {
 
 /// 遷移先の画面パス（例: `/chat`, `/memos/detail?id=123`）
+// ignore: invalid_annotation_target
 @JsonKey(readValue: _readPath) String? get path;/// 通知のタイトル
  String? get title;/// 通知の本文
  String? get body;/// その他のカスタムデータ
@@ -214,6 +215,7 @@ class _NotificationPayload extends NotificationPayload {
   factory _NotificationPayload.fromJson(Map<String, dynamic> json) => _$NotificationPayloadFromJson(json);
 
 /// 遷移先の画面パス（例: `/chat`, `/memos/detail?id=123`）
+// ignore: invalid_annotation_target
 @override@JsonKey(readValue: _readPath) final  String? path;
 /// 通知のタイトル
 @override final  String? title;

@@ -27,6 +27,7 @@ import 'package:flutter_sample/src/features/dev_tools/presentation/push_notifica
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
 import 'package:flutter_sample/src/features/map/presentation/map_screen.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
+import 'package:flutter_sample/src/features/notification/application/notification_notifier.dart';
 import 'package:flutter_sample/src/features/onboarding/application/onboarding_notifier.dart';
 import 'package:flutter_sample/src/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:flutter_sample/src/features/profile/presentation/profile_edit_screen.dart';
@@ -67,6 +68,11 @@ GoRouter router(Ref ref) {
     // オンボーディング完了状態が更新されたときも、画面遷移を再評価する
     ..listen(
       onboardingProvider,
+      (_, _) => routerListenable.value = !routerListenable.value,
+    )
+    // 通知状態（初期通知ディープリンク等）が更新されたときも、画面遷移を再評価する
+    ..listen(
+      notificationProvider,
       (_, _) => routerListenable.value = !routerListenable.value,
     );
 
