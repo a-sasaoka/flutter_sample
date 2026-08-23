@@ -25,6 +25,7 @@ class PushNotificationService {
   final FirebaseMessaging? _messaging;
   final FlutterLocalNotificationsPlugin _localNotifications;
   final Talker _talker;
+  bool _isLocalNotificationsInitialized = false;
 
   /// 通知チャンネル名（多言語対応）
   final String channelName;
@@ -74,7 +75,7 @@ class PushNotificationService {
         macOS: initializationSettingsDarwin,
       );
 
-      await _localNotifications.initialize(
+      final initialized = await _localNotifications.initialize(
         settings: initializationSettings,
         onDidReceiveNotificationResponse: (response) {
           _talker.info('🔔 ローカル通知がタップされました');
@@ -89,21 +90,25 @@ class PushNotificationService {
           }
         },
       );
+      _isLocalNotificationsInitialized = initialized ?? true;
     } on Object catch (e, st) {
+      _isLocalNotificationsInitialized = false;
       _talker.warning('ローカル通知プラグインの初期化をスキップしました', e, st);
     }
 
-    // 3. Firebase Messaging リスナーの設定（インスタンスが存在する場合）
+    // 2. Firebase Messaging リスナーの設定（インスタンスが存在する場合）
     final messaging = _messaging;
     if (messaging != null) {
-      // フォアグラウンドでの通知バナー表示オプション（iOS）
-      // 自前で showLocalNotification によるバナー表示を行うため、二重表示を防ぐよう無効化（デフォルト: false）
-      await messaging.setForegroundNotificationPresentationOptions();
+      if (_isLocalNotificationsInitialized) {
+        // フォアグラウンドでの通知バナー表示オプション（iOS）
+        // 自前で showLocalNotification によるバナー表示を行うため、二重表示を防ぐよう無効化（デフォルト: false）
+        await messaging.setForegroundNotificationPresentationOptions();
 
-      // フォアグラウンド受信リスナー
-      FirebaseMessaging.onMessage.listen(handleForegroundMessage);
+        // フォアグラウンド受信リスナー（ローカル通知が初期化されている場合のみ自前バナーを表示）
+        FirebaseMessaging.onMessage.listen(handleForegroundMessage);
+      }
 
-      // バックグラウンド通知タップリスナー
+      // バックグラウンド通知タップリスナー（ローカル通知の成否にかかわらず登録）
       FirebaseMessaging.onMessageOpenedApp.listen(handleMessageOpenedApp);
     }
   }

@@ -46,6 +46,8 @@ class FakeFlutterLocalNotificationsPlugin extends Fake
     return null;
   }
 
+  bool throwOnInitialize = false;
+
   @override
   Future<bool?> initialize({
     required InitializationSettings settings,
@@ -53,6 +55,9 @@ class FakeFlutterLocalNotificationsPlugin extends Fake
     DidReceiveBackgroundNotificationResponseCallback?
     onDidReceiveBackgroundNotificationResponse,
   }) async {
+    if (throwOnInitialize) {
+      throw Exception('Local notification init failed');
+    }
     initializeCalled = true;
     onNotificationResponseCallback = onDidReceiveNotificationResponse;
     return true;
@@ -162,6 +167,25 @@ void main() {
       ).called(1);
 
       check(fakeLocalNotifications.initializeCalled).isTrue();
+    });
+
+    test('初期化時にローカル通知の初期化が例外で失敗した場合、警告ログを出力しフォアグラウンド表示設定をスキップすること', () async {
+      fakeLocalNotifications.throwOnInitialize = true;
+
+      await service.initialize();
+
+      verify(
+        () => mockTalker.warning(
+          any<String>(),
+          any<Object>(),
+          any<StackTrace>(),
+        ),
+      ).called(1);
+
+      // フォアグラウンド表示オプションが無効化（スキップ）されていること
+      verifyNever(
+        () => mockMessaging.setForegroundNotificationPresentationOptions(),
+      );
     });
 
     test('getInitialNotification でFirebaseの初期通知が取得できること', () async {
