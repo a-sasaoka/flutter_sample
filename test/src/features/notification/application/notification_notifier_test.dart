@@ -186,17 +186,26 @@ void main() {
     });
 
     test('container が dispose された後の onTokenRefresh は無視されること', () async {
-      final container = ProviderContainer(
-        overrides: [
-          pushNotificationServiceProvider.overrideWithValue(mockService),
-          routerProvider.overrideWithValue(mockRouter),
-        ],
-      )..listen(notificationProvider, (previous, next) {});
+      var notificationCount = 0;
+      final container =
+          ProviderContainer(
+            overrides: [
+              pushNotificationServiceProvider.overrideWithValue(mockService),
+              routerProvider.overrideWithValue(mockRouter),
+            ],
+          )..listen(notificationProvider, (previous, next) {
+            notificationCount++;
+          });
       await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final countBeforeDispose = notificationCount;
+      check(countBeforeDispose).isGreaterThan(0);
 
       container.dispose();
       tokenRefreshController.add('ignore_token');
       await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      check(notificationCount).equals(countBeforeDispose);
     });
 
     test('requestPermission でステータスが更新されること', () async {
