@@ -211,6 +211,13 @@ class PushNotificationService {
   Stream<String> get onTokenRefresh =>
       _messaging?.onTokenRefresh ?? const Stream.empty();
 
+  int _generateNotificationId(RemoteMessage message) {
+    if (message.messageId != null) {
+      return message.messageId.hashCode.abs() % 2147483647;
+    }
+    return DateTime.now().millisecondsSinceEpoch.remainder(2147483647);
+  }
+
   /// フォアグラウンド受信時のメッセージ処理
   Future<void> handleForegroundMessage(RemoteMessage message) async {
     _talker.info('🔔 フォアグラウンド通知を受信: ${message.messageId}');
@@ -219,7 +226,8 @@ class PushNotificationService {
       title: message.notification?.title,
       body: message.notification?.body,
     );
-    await showLocalNotification(payload);
+    final notificationId = _generateNotificationId(message);
+    await showLocalNotification(payload, id: notificationId);
   }
 
   /// バックグラウンド通知タップ時のメッセージ処理

@@ -75,6 +75,8 @@ class FakeFlutterLocalNotificationsPlugin extends Fake
     return launchDetails;
   }
 
+  final shownNotificationIds = <int>[];
+
   @override
   Future<void> show({
     required int id,
@@ -88,6 +90,7 @@ class FakeFlutterLocalNotificationsPlugin extends Fake
     lastShowTitle = title;
     lastShowBody = body;
     lastShowPayload = payload;
+    shownNotificationIds.add(id);
   }
 }
 
@@ -455,22 +458,64 @@ void main() {
       ).isNotNull().contains('"/chat"');
     });
 
-    test('handleForegroundMessage で showLocalNotification が呼ばれること', () async {
+    test(
+      'handleForegroundMessage で一意な通知IDが生成され showLocalNotification が呼ばれること',
+      () async {
+        const message = RemoteMessage(
+          messageId: 'fg_123',
+          data: {'path': '/profile'},
+          notification: RemoteNotification(
+            title: 'Foreground Title',
+            body: 'Foreground Body',
+          ),
+        );
+
+        await service.handleForegroundMessage(message);
+
+        final expectedId = 'fg_123'.hashCode.abs() % 2147483647;
+        check(fakeLocalNotifications.showCallCount).equals(1);
+        check(fakeLocalNotifications.lastShowId).equals(expectedId);
+        check(fakeLocalNotifications.lastShowTitle).equals('Foreground Title');
+        check(fakeLocalNotifications.lastShowBody).equals('Foreground Body');
+      },
+    );
+
+    test('messageId が null の場合でも通知IDが生成されて表示されること', () async {
       const message = RemoteMessage(
-        messageId: 'fg_123',
         data: {'path': '/profile'},
         notification: RemoteNotification(
-          title: 'Foreground Title',
-          body: 'Foreground Body',
+          title: 'No MessageId Title',
+          body: 'No MessageId Body',
         ),
       );
 
       await service.handleForegroundMessage(message);
 
       check(fakeLocalNotifications.showCallCount).equals(1);
-      check(fakeLocalNotifications.lastShowId).equals(0);
-      check(fakeLocalNotifications.lastShowTitle).equals('Foreground Title');
-      check(fakeLocalNotifications.lastShowBody).equals('Foreground Body');
+      check(fakeLocalNotifications.lastShowId).isNotNull();
+      check(fakeLocalNotifications.lastShowTitle).equals('No MessageId Title');
+    });
+
+    test('連続して複数のフォアグラウンド通知を受信した際に異なる通知IDで表示されること', () async {
+      const message1 = RemoteMessage(
+        messageId: 'msg_1',
+        data: {'path': '/chat/1'},
+        notification: RemoteNotification(title: 'Msg 1'),
+      );
+      const message2 = RemoteMessage(
+        messageId: 'msg_2',
+        data: {'path': '/chat/2'},
+        notification: RemoteNotification(title: 'Msg 2'),
+      );
+
+      await service.handleForegroundMessage(message1);
+      await service.handleForegroundMessage(message2);
+
+      check(fakeLocalNotifications.showCallCount).equals(2);
+      check(fakeLocalNotifications.shownNotificationIds.length).equals(2);
+      final id1 = fakeLocalNotifications.shownNotificationIds[0];
+      final id2 = fakeLocalNotifications.shownNotificationIds[1];
+      check(id1 != id2).isTrue();
     });
 
     test('handleMessageOpenedApp で onNotificationTap が呼ばれること', () {
