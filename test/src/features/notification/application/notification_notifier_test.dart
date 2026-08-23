@@ -154,18 +154,18 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 50));
 
         final state = container.read(notificationProvider);
-        if (state case final NotificationStateData dataState) {
-          check(dataState.initialPayload).equals(initialPayload);
-        }
+        check(state).isA<NotificationStateData>();
+        final dataState = state as NotificationStateData;
+        check(dataState.initialPayload).equals(initialPayload);
 
         final notifier = container.read(notificationProvider.notifier);
         final consumed = notifier.consumeInitialPayload();
         check(consumed).equals(initialPayload);
 
         final nextState = container.read(notificationProvider);
-        if (nextState case final NotificationStateData dataState) {
-          check(dataState.initialPayload).isNull();
-        }
+        check(nextState).isA<NotificationStateData>();
+        final nextDataState = nextState as NotificationStateData;
+        check(nextDataState.initialPayload).isNull();
 
         // 2回目の消費は null
         check(notifier.consumeInitialPayload()).isNull();
@@ -180,9 +180,9 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
       final state = container.read(notificationProvider);
-      if (state case final NotificationStateData dataState) {
-        check(dataState.fcmToken).equals('updated_token_123');
-      }
+      check(state).isA<NotificationStateData>();
+      final dataState = state as NotificationStateData;
+      check(dataState.fcmToken).equals('updated_token_123');
     });
 
     test('container が dispose された後の onTokenRefresh は無視されること', () async {
@@ -215,11 +215,11 @@ void main() {
       await notifier.requestPermission();
 
       final state = container.read(notificationProvider);
-      if (state case final NotificationStateData dataState) {
-        check(
-          dataState.authorizationStatus,
-        ).equals(AuthorizationStatus.authorized);
-      }
+      check(state).isA<NotificationStateData>();
+      final dataState = state as NotificationStateData;
+      check(
+        dataState.authorizationStatus,
+      ).equals(AuthorizationStatus.authorized);
     });
 
     test('requestPermission で settings が null の場合ステータスは変化しないこと', () async {
@@ -231,9 +231,9 @@ void main() {
       await container.read(notificationProvider.notifier).requestPermission();
 
       final state = container.read(notificationProvider);
-      if (state case final NotificationStateData dataState) {
-        check(dataState.authorizationStatus).isNull();
-      }
+      check(state).isA<NotificationStateData>();
+      final dataState = state as NotificationStateData;
+      check(dataState.authorizationStatus).isNull();
     });
 
     test('sendTestNotification でサービスの showLocalNotification が呼ばれること', () async {
@@ -272,9 +272,9 @@ void main() {
           .handleNotificationTap(payload);
 
       final state = container.read(notificationProvider);
-      if (state case final NotificationStateData dataState) {
-        check(dataState.latestPayload).equals(payload);
-      }
+      check(state).isA<NotificationStateData>();
+      final dataState = state as NotificationStateData;
+      check(dataState.latestPayload).equals(payload);
       verify(() => mockRouter.go('/memos')).called(1);
     });
 
@@ -291,9 +291,9 @@ void main() {
           .handleNotificationTap(payload);
 
       final state = container.read(notificationProvider);
-      if (state case final NotificationStateData dataState) {
-        check(dataState.latestPayload).equals(payload);
-      }
+      check(state).isA<NotificationStateData>();
+      final dataState = state as NotificationStateData;
+      check(dataState.latestPayload).equals(payload);
       verifyNever(() => mockRouter.go(any()));
     });
   });
