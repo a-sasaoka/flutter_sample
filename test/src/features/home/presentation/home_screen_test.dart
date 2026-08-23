@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:checks/checks.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -15,6 +16,8 @@ import 'package:flutter_sample/src/core/network/firebase_crashlytics_provider.da
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
+import 'package:flutter_sample/src/features/notification/application/notification_notifier.dart';
+import 'package:flutter_sample/src/features/notification/application/notification_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -23,6 +26,21 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 // --- モッククラスの定義 ---
+
+class MockNotificationNotifier extends NotificationNotifier {
+  @override
+  NotificationState build() => const NotificationState.data(
+    authorizationStatus: AuthorizationStatus.authorized,
+  );
+}
+
+class _SpyNotificationNotifier extends NotificationNotifier {
+  _SpyNotificationNotifier(this.initialState);
+  final NotificationState initialState;
+
+  @override
+  NotificationState build() => initialState;
+}
 
 class MockAppLocalizations extends Mock implements AppLocalizations {}
 
@@ -122,7 +140,17 @@ void main() {
     when(() => mockL10n.ok).thenReturn('OK');
     when(() => mockL10n.devStorageTitle).thenReturn('ストレージ確認・編集');
     when(() => mockL10n.devLottieTitle).thenReturn('Lottie アニメーションデモ');
+    when(() => mockL10n.devNotificationTitle).thenReturn('Push通知・ディープリンク検証');
     when(() => mockL10n.mapTitle).thenReturn('地図');
+    when(
+      () => mockL10n.notificationBannerTitle,
+    ).thenReturn('通知をオンにして最新情報を受け取ろう');
+    when(
+      () => mockL10n.notificationBannerBody,
+    ).thenReturn('メッセージの返信や重要なお知らせをリアルタイムでお届けします。');
+    when(() => mockL10n.notificationBannerEnableButton).thenReturn('通知をオンにする');
+    when(() => mockL10n.notificationBannerSettingsButton).thenReturn('設定を開く');
+    when(() => mockL10n.notificationBannerDismiss).thenReturn('閉じる');
   });
 
   Future<void> setupWidget(
@@ -189,6 +217,7 @@ void main() {
           loggerProvider.overrideWithValue(mockTalker),
           analyticsServiceProvider.overrideWithValue(mockAnalyticsService),
           packageInfoProvider.overrideWithValue(dummyPackageInfo),
+          notificationProvider.overrideWith(MockNotificationNotifier.new),
         ],
         child: MaterialApp.router(
           routerConfig: router,
@@ -508,6 +537,94 @@ void main() {
       await tester.pumpAndSettle();
 
       check(find.text('LottieDemo Destination')).findsOne();
+    });
+
+    testWidgets('Push通知デモメニューをタップすると該当ルートへ遷移すること', (
+      tester,
+    ) async {
+      await setupWidget(
+        tester,
+        additionalRoutes: [
+          GoRoute(
+            path: '/dev-tools/notification',
+            builder: (context, state) =>
+                const Scaffold(body: Text('NotificationDemo Destination')),
+          ),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      final finder = find.widgetWithText(ListTile, 'Push通知・ディープリンク検証');
+      await tester.dragUntilVisible(
+        finder,
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+
+      check(find.text('NotificationDemo Destination')).findsOne();
+    });
+
+    testWidgets('通知権限が未設定(notDetermined)の場合、HomeScreen上部に通知プロンプトバナーが表示されること', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            flavorProvider.overrideWithValue(Flavor.local),
+            envConfigProvider.overrideWithValue(
+              const EnvConfigState(
+                baseUrl: 'https://test.example.com',
+                aiModel: 'test-model',
+                connectTimeout: 10,
+                receiveTimeout: 15,
+                sendTimeout: 10,
+                useFirebaseAuth: true,
+                useAgentPlatform: true,
+              ),
+            ),
+            updateRequestControllerProvider.overrideWith(
+              FakeUpdateRequestController.new,
+            ),
+            cancelControllerProvider.overrideWith(
+              () => FakeCancelController(initialValue: false),
+            ),
+            firebaseCrashlyticsProvider.overrideWithValue(mockCrashlytics),
+            loggerProvider.overrideWithValue(mockTalker),
+            analyticsServiceProvider.overrideWithValue(mockAnalyticsService),
+            packageInfoProvider.overrideWithValue(
+              PackageInfo(
+                appName: 'テストアプリ',
+                packageName: 'com.example.testapp',
+                version: '1.0.0',
+                buildNumber: '1',
+                buildSignature: 'test_sig',
+              ),
+            ),
+            notificationProvider.overrideWith(
+              () => _SpyNotificationNotifier(
+                const NotificationState.data(
+                  authorizationStatus: AuthorizationStatus.notDetermined,
+                ),
+              ),
+            ),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: [
+              MockLocalizationsDelegate(mockL10n),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: const HomeScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      check(find.text('通知をオンにして最新情報を受け取ろう')).findsOne();
+      check(find.text('通知をオンにする')).findsOne();
     });
   });
 }

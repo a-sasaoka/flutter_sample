@@ -29,11 +29,15 @@ import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/developer_storage_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/lottie_demo_screen.dart';
+import 'package:flutter_sample/src/features/dev_tools/presentation/push_notification_demo_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
 import 'package:flutter_sample/src/features/map/presentation/map_screen.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
+import 'package:flutter_sample/src/features/notification/application/notification_notifier.dart';
+import 'package:flutter_sample/src/features/notification/application/notification_state.dart';
+import 'package:flutter_sample/src/features/notification/domain/notification_payload.dart';
 import 'package:flutter_sample/src/features/onboarding/application/onboarding_notifier.dart';
 import 'package:flutter_sample/src/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:flutter_sample/src/features/profile/presentation/profile_edit_screen.dart';
@@ -116,6 +120,33 @@ class _FakeOnboardingNotifier extends OnboardingNotifier {
   @override
   Future<void> complete() async {
     state = const AsyncData(true);
+  }
+}
+
+class _FakeNotificationNotifier extends NotificationNotifier {
+  _FakeNotificationNotifier({
+    this.initialState = const NotificationState.data(),
+  });
+  final NotificationState initialState;
+
+  @override
+  NotificationState build() => initialState;
+
+  NotificationState get notificationState => state;
+  set notificationState(NotificationState newState) {
+    state = newState;
+  }
+
+  @override
+  NotificationPayload? consumeLatestPayload() {
+    if (state case final NotificationStateData dataState) {
+      final payload = dataState.latestPayload;
+      if (payload != null) {
+        state = dataState.copyWith(latestPayload: null);
+        return payload;
+      }
+    }
+    return null;
   }
 }
 
@@ -216,6 +247,18 @@ void main() {
     when(() => mockL10n.versionUpCancel).thenReturn('Cancel Button');
     when(() => mockL10n.devStorageTitle).thenReturn('Storage');
     when(() => mockL10n.devLottieTitle).thenReturn('Lottie Demo');
+    when(() => mockL10n.devNotificationTitle).thenReturn('Notification Demo');
+    when(
+      () => mockL10n.notificationBannerTitle,
+    ).thenReturn('Notification Banner Title');
+    when(
+      () => mockL10n.notificationBannerBody,
+    ).thenReturn('Notification Banner Body');
+    when(() => mockL10n.notificationBannerEnableButton).thenReturn('Enable');
+    when(
+      () => mockL10n.notificationBannerSettingsButton,
+    ).thenReturn('Settings');
+    when(() => mockL10n.notificationBannerDismiss).thenReturn('Dismiss');
     when(() => mockL10n.chatTitle).thenReturn('Chat');
     when(() => mockL10n.memoTitle).thenReturn('Memo');
     when(() => mockL10n.navHome).thenReturn('Home');
@@ -273,6 +316,7 @@ void main() {
     required bool useFirebase,
     bool isSplashFinished = true,
     bool isOnboardingCompleted = true,
+    _FakeNotificationNotifier? fakeNotificationNotifier,
   }) {
     final fakeNotifier = _FakeFirebaseAuthStateNotifier(
       isLoggedIn: isLoggedIn,
@@ -309,6 +353,10 @@ void main() {
         onboardingProvider.overrideWith(
           () => _FakeOnboardingNotifier(completed: isOnboardingCompleted),
         ),
+        if (fakeNotificationNotifier != null)
+          notificationProvider.overrideWith(
+            () => fakeNotificationNotifier,
+          ),
       ],
     )..listen(routerProvider, (_, _) {});
     return container;
@@ -440,6 +488,115 @@ void main() {
 
       // スプラッシュが完了したので HomeScreen に遷移すること
       check(find.byType(HomeScreen)).findsOne();
+
+      await teardownWidget(tester, container);
+    });
+
+    testWidgets('スプラッシュ中に初期通知の読み込み完了（loading -> data）した際、ディープリンク先へ遷移すること', (
+      tester,
+    ) async {
+      final fakeNotifier = _FakeNotificationNotifier(
+        initialState: const NotificationState.loading(),
+      );
+      final container = createContainer(
+        isLoggedIn: true,
+        useFirebase: false,
+        isSplashFinished: false,
+        fakeNotificationNotifier: fakeNotifier,
+      );
+
+      await tester.pumpWidget(createTestWidget(tester, container));
+      await tester.pump();
+
+      // 最初は SplashScreen が表示されていること
+      check(find.byType(SplashScreen)).findsOne();
+
+      // 通知状態が initialPayload 付きで完了した状態に変更
+      fakeNotifier.notificationState = const NotificationState.data(
+        initialPayload: NotificationPayload(
+          path: '/chat',
+          title: 'Initial Chat',
+        ),
+      );
+
+      // スプラッシュ完了状態にする
+      container.read(splashStateProvider.notifier).finishSplash();
+      await tester.pumpAndSettle();
+
+      // ChatScreen に自動遷移することを確認
+      check(find.byType(ChatScreen)).findsOne();
+
+      await teardownWidget(tester, container);
+    });
+
+    testWidgets(
+      'スプラッシュ完了後も通知状態が loading の間は SplashScreen を維持し、 '
+      'data 完了時に HomeScreen へ遷移すること',
+      (tester) async {
+        final fakeNotifier = _FakeNotificationNotifier(
+          initialState: const NotificationState.loading(),
+        );
+        final container = createContainer(
+          isLoggedIn: true,
+          useFirebase: false,
+          isSplashFinished: false,
+          fakeNotificationNotifier: fakeNotifier,
+        );
+
+        await tester.pumpWidget(createTestWidget(tester, container));
+        await tester.pump();
+
+        // 最初は SplashScreen が表示されていること
+        check(find.byType(SplashScreen)).findsOne();
+
+        // スプラッシュ完了状態にするが、通知状態は依然 loading
+        container.read(splashStateProvider.notifier).finishSplash();
+        await tester.pumpAndSettle();
+
+        // 通知が loading 中のため、依然として SplashScreen を維持していること
+        check(find.byType(SplashScreen)).findsOne();
+
+        // 通知状態が通常の data（通知なし）で完了
+        fakeNotifier.notificationState = const NotificationState.data();
+        await tester.pumpAndSettle();
+
+        // HomeScreen へ遷移することを確認
+        check(find.byType(HomeScreen)).findsOne();
+
+        await teardownWidget(tester, container);
+      },
+    );
+
+    testWidgets('アプリ表示中に通知タップ（latestPayload）が発生した際、指定された画面へ遷移すること', (
+      tester,
+    ) async {
+      final fakeNotifier = _FakeNotificationNotifier();
+      final container = createContainer(
+        isLoggedIn: true,
+        useFirebase: false,
+        fakeNotificationNotifier: fakeNotifier,
+      );
+
+      await tester.pumpWidget(createTestWidget(tester, container));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // 最初は HomeScreen が表示されていること
+      check(find.byType(HomeScreen)).findsOne();
+
+      // 通知タップが発生して latestPayload が更新された状態に変更
+      fakeNotifier.notificationState = const NotificationState.data(
+        latestPayload: NotificationPayload(
+          path: '/memos',
+          title: 'Memo Tap',
+        ),
+      );
+
+      // 画面遷移を処理
+      await tester.pumpAndSettle();
+
+      // MemoScreen に遷移していることを確認
+      check(find.byType(MemoScreen)).findsOne();
 
       await teardownWidget(tester, container);
     });
@@ -667,6 +824,17 @@ void main() {
       );
       check(widget).isA<LottieDemoScreen>();
     });
+
+    test(
+      'PushNotificationDemoRoute.build: PushNotificationDemoScreen を返すこと',
+      () {
+        final widget = const PushNotificationDemoRoute().build(
+          MockBuildContext(),
+          MockGoRouterState(),
+        );
+        check(widget).isA<PushNotificationDemoScreen>();
+      },
+    );
 
     test('SignUpRoute.build: FirebaseSignUpScreen を返すこと', () {
       final widget = const SignUpRoute().build(

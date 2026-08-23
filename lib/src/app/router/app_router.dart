@@ -23,9 +23,12 @@ import 'package:flutter_sample/src/features/chart/presentation/chart_input_scree
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/developer_storage_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/lottie_demo_screen.dart';
+import 'package:flutter_sample/src/features/dev_tools/presentation/push_notification_demo_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
 import 'package:flutter_sample/src/features/map/presentation/map_screen.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
+import 'package:flutter_sample/src/features/notification/application/notification_notifier.dart';
+import 'package:flutter_sample/src/features/notification/application/notification_state.dart';
 import 'package:flutter_sample/src/features/onboarding/application/onboarding_notifier.dart';
 import 'package:flutter_sample/src/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:flutter_sample/src/features/profile/presentation/profile_edit_screen.dart';
@@ -84,7 +87,7 @@ GoRouter router(Ref ref) {
 
   ref.onDispose(routerListenable.dispose);
 
-  return GoRouter(
+  final router = GoRouter(
     refreshListenable: routerListenable,
     routes: $appRoutes,
     redirect: (context, state) {
@@ -105,4 +108,25 @@ GoRouter router(Ref ref) {
       ),
     ],
   );
+
+  // 🔔 通知状態の更新（初期通知ディープリンク再評価および通知タップ時の画面遷移）を監視
+  ref.listen(
+    notificationProvider,
+    (previous, next) {
+      routerListenable.value = !routerListenable.value;
+
+      if (next case final NotificationStateData nextData) {
+        final latestPayload = nextData.latestPayload;
+        if (latestPayload != null && latestPayload.isNavigable) {
+          final path = latestPayload.path;
+          if (path != null) {
+            ref.read(notificationProvider.notifier).consumeLatestPayload();
+            router.go(path);
+          }
+        }
+      }
+    },
+  );
+
+  return router;
 }

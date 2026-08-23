@@ -337,6 +337,43 @@
   "devLottieAssetNotFound": "404 Error (Not Found)",
   "devLottieAssetSuccessCheck": "Success Check (Success)",
   "devLottieCompleted": "Animation completed!",
-  "devLottieNetworkSection": "Network Loading Example"
+  "devLottieNetworkSection": "Network Loading Example",
+
+  "@_NOTIFICATION": {},
+  "notificationChannelHighImportanceName": "High Importance Notifications",
+  "notificationChannelHighImportanceDescription": "Used for important notifications and reminders.",
+  "notificationDefaultTitle": "Notification",
+  "devNotificationTitle": "Push Notifications & DeepLink Demo",
+  "devNotificationTokenLabel": "FCM Token",
+  "devNotificationTokenCopy": "Copy Token",
+  "devNotificationTokenCopied": "FCM Token copied to clipboard",
+  "devNotificationPermissionLabel": "Notification Permission: {status}",
+  "@devNotificationPermissionLabel": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "devNotificationRequestPermission": "Request Permission",
+  "devNotificationTestSection": "Trigger Test Notifications (DeepLink Verification)",
+  "devNotificationTestChatTitle": "AI Chat Notification Test",
+  "devNotificationTestChatBody": "You have a new message from AI Assistant. Tap to open chat.",
+  "devNotificationTestMemoTitle": "Memo Detail Notification Test",
+  "devNotificationTestMemoBody": "Your memo has been updated. Tap to view details.",
+  "devNotificationTestProfileTitle": "Profile Notification Test",
+  "devNotificationTestProfileBody": "Your profile information was updated. Tap to check.",
+  "devNotificationSendTest": "Send Test Notification",
+  "devNotificationLatestPayloadLabel": "Latest Detected Notification Payload",
+  "devNotificationTokenNotObtained": "Token not obtained (Real device or simulator)",
+  "devNotificationStatusAuthorized": "Authorized",
+  "devNotificationStatusDenied": "Denied",
+  "devNotificationStatusNotDetermined": "Not Determined",
+  "devNotificationStatusProvisional": "Provisional",
+  "notificationBannerTitle": "Enable Notifications to Stay Updated",
+  "notificationBannerBody": "Receive real-time updates for messages and important announcements.",
+  "notificationBannerEnableButton": "Enable Notifications",
+  "notificationBannerSettingsButton": "Open Settings",
+  "notificationBannerDismiss": "Dismiss"
 }
 

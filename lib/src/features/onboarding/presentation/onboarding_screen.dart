@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/gen/assets.gen.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
+import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:flutter_sample/src/core/widgets/app_lottie_widget.dart';
 import 'package:flutter_sample/src/features/onboarding/application/onboarding_notifier.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -44,8 +45,18 @@ class OnboardingScreen extends HookConsumerWidget {
       ),
     ];
 
-    void completeOnboarding() {
-      unawaited(ref.read(onboardingProvider.notifier).complete());
+    // オンボーディング完了失敗時のエラーメッセージ通知
+    ref.listen<AsyncValue<bool>>(
+      onboardingProvider,
+      (previous, next) {
+        if (next is AsyncError) {
+          context.showErrorSnackBar(l10n.chatError);
+        }
+      },
+    );
+
+    Future<void> completeOnboarding() async {
+      await ref.read(onboardingProvider.notifier).complete();
     }
 
     return Scaffold(
@@ -58,7 +69,7 @@ class OnboardingScreen extends HookConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.only(top: 8, right: 16),
                 child: TextButton(
-                  onPressed: completeOnboarding,
+                  onPressed: () => unawaited(completeOnboarding()),
                   child: Text(
                     l10n.onboardingSkip,
                     style: TextStyle(
@@ -111,7 +122,7 @@ class OnboardingScreen extends HookConsumerWidget {
                   ElevatedButton(
                     onPressed: () {
                       if (currentPage.value == pages.length - 1) {
-                        completeOnboarding();
+                        unawaited(completeOnboarding());
                       } else {
                         unawaited(
                           pageController.nextPage(

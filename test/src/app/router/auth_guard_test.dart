@@ -5,6 +5,9 @@ import 'package:flutter/foundation.dart'; // SynchronousFuture 用
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/app/router/auth_guard.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
+import 'package:flutter_sample/src/features/notification/application/notification_notifier.dart';
+import 'package:flutter_sample/src/features/notification/application/notification_state.dart';
+import 'package:flutter_sample/src/features/notification/domain/notification_payload.dart';
 import 'package:flutter_sample/src/features/onboarding/application/onboarding_notifier.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_state_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,6 +16,52 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockGoRouterState extends Mock implements GoRouterState {}
+
+class _FakeNotificationNotifierWithPayload extends NotificationNotifier {
+  _FakeNotificationNotifierWithPayload(this.initialPayload);
+  final NotificationPayload initialPayload;
+  bool _consumed = false;
+
+  @override
+  NotificationState build() {
+    return NotificationState.data(
+      initialPayload: _consumed ? null : initialPayload,
+    );
+  }
+
+  @override
+  NotificationPayload? consumeInitialPayload() {
+    if (_consumed) return null;
+    _consumed = true;
+    return initialPayload;
+  }
+}
+
+class _FakeNotificationNotifierWithState extends NotificationNotifier {
+  _FakeNotificationNotifierWithState(this.initialState);
+  final NotificationState initialState;
+  bool _consumed = false;
+
+  @override
+  NotificationState build() {
+    if (_consumed && initialState is NotificationStateData) {
+      return (initialState as NotificationStateData).copyWith(
+        initialPayload: null,
+      );
+    }
+    return initialState;
+  }
+
+  @override
+  NotificationPayload? consumeInitialPayload() {
+    if (_consumed) return null;
+    _consumed = true;
+    if (initialState case final NotificationStateData data) {
+      return data.initialPayload;
+    }
+    return null;
+  }
+}
 
 // --- SplashStateのフェイク定義 ---
 class FakeSplashState extends SplashState {
@@ -89,6 +138,8 @@ void main() {
     bool isOnboardingCompleted = true,
     bool isOnboardingLoading = false,
     bool isOnboardingError = false,
+    NotificationPayload? initialPayload,
+    NotificationState? notificationState,
   }) {
     when(() => mockState.matchedLocation).thenReturn(location);
     when(() => mockState.uri).thenReturn(Uri.parse(location));
@@ -109,6 +160,20 @@ void main() {
             hasError: isOnboardingError,
           ),
         ),
+        if (notificationState != null)
+          notificationProvider.overrideWith(
+            () => _FakeNotificationNotifierWithState(notificationState),
+          )
+        else if (initialPayload != null)
+          notificationProvider.overrideWith(
+            () => _FakeNotificationNotifierWithPayload(initialPayload),
+          )
+        else
+          notificationProvider.overrideWith(
+            () => _FakeNotificationNotifierWithState(
+              const NotificationState.data(),
+            ),
+          ),
       ],
     );
     addTearDown(container.dispose);
@@ -138,6 +203,34 @@ void main() {
       );
       check(result).isNull();
     });
+
+    test('ログイン済みでスプラッシュ画面に初期通知（initialPayload）が存在する場合、通知パスへリダイレクトすること', () {
+      const payload = NotificationPayload(
+        path: '/chat',
+        title: 'Initial Chat',
+      );
+      final result = executeGuard(
+        const AsyncData<bool>(true),
+        location: const SplashRoute().location,
+        initialPayload: payload,
+      );
+      check(result).equals('/chat');
+    });
+
+    test(
+      'ログイン済みでスプラッシュ画面の初期通知が無効（pathなし/isNavigable false）の場合、ホーム画面へリダイレクトすること',
+      () {
+        const payload = NotificationPayload(
+          title: 'No Path',
+        );
+        final result = executeGuard(
+          const AsyncData<bool>(true),
+          location: const SplashRoute().location,
+          initialPayload: payload,
+        );
+        check(result).equals(const HomeRoute().location);
+      },
+    );
 
     test('未ログイン（Data: false）の場合、ホームからログイン画面にリダイレクトすること', () {
       final result = executeGuard(
@@ -187,6 +280,15 @@ void main() {
         location: const SplashRoute().location,
       );
       check(result).equals(const HomeRoute().location);
+    });
+
+    test('ログイン済みで通知状態がローディング中の場合、スプラッシュを維持すること（nullを返す）', () {
+      final result = executeGuard(
+        const AsyncData<bool>(true),
+        location: const SplashRoute().location,
+        notificationState: const NotificationState.loading(),
+      );
+      check(result).isNull();
     });
 
     test('オンボーディングが未完了の場合、オンボーディング画面へリダイレクトすること', () {

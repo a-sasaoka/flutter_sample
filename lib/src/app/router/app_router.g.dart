@@ -14,6 +14,7 @@ List<RouteBase> get $appRoutes => [
   $splashRoute,
   $developerStorageRoute,
   $developerLottieRoute,
+  $pushNotificationDemoRoute,
 ];
 
 RouteBase get $loginRoute => GoRouteData.$route(
@@ -500,6 +501,33 @@ mixin $DeveloperLottieRoute on GoRouteData {
   void replace(BuildContext context) => context.replace(location);
 }
 
+RouteBase get $pushNotificationDemoRoute => GoRouteData.$route(
+  path: '/dev-tools/notification',
+  hasOverriddenOnExit: false,
+  factory: $PushNotificationDemoRoute._fromState,
+);
+
+mixin $PushNotificationDemoRoute on GoRouteData {
+  static PushNotificationDemoRoute _fromState(GoRouterState state) =>
+      const PushNotificationDemoRoute();
+
+  @override
+  String get location => GoRouteData.$location('/dev-tools/notification');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
@@ -550,4 +578,4 @@ final class RouterProvider
   }
 }
 
-String _$routerHash() => r'aed1b3ba88b72fac54e7e1e28b8187ff986508d4';
+String _$routerHash() => r'8dbb66f529f6edbc356436311a1bf5aa35e713df';

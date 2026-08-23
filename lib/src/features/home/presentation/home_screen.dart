@@ -11,6 +11,7 @@ import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:flutter_sample/src/core/widgets/version_up_dialog.dart';
+import 'package:flutter_sample/src/features/notification/presentation/notification_prompt_banner.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:talker_flutter/talker_flutter.dart';
@@ -108,6 +109,7 @@ class _HomeBody extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       children: [
+        const NotificationPromptBanner(),
         // 環境情報ヘッダー
         _SectionHeader(
           title: l10n.homeCurrentEnv,
@@ -146,6 +148,13 @@ class _HomeBody extends ConsumerWidget {
                   icon: Icons.animation_outlined,
                   title: l10n.devLottieTitle,
                   onTap: () => const DeveloperLottieRoute().push<void>(context),
+                ),
+                const Divider(height: 1, indent: 56),
+                _MenuTile(
+                  icon: Icons.notifications_active_outlined,
+                  title: l10n.devNotificationTitle,
+                  onTap: () =>
+                      const PushNotificationDemoRoute().push<void>(context),
                 ),
                 const Divider(height: 1, indent: 56),
                 _MenuTile(

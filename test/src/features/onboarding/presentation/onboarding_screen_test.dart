@@ -19,7 +19,10 @@ void main() {
     mockPrefs = setupMockPrefs();
   });
 
-  Future<void> pumpOnboardingScreen(WidgetTester tester) async {
+  Future<void> pumpOnboardingScreen(
+    WidgetTester tester, {
+    bool? animate = false,
+  }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -33,7 +36,7 @@ void main() {
             GlobalCupertinoLocalizations.delegate,
           ],
           supportedLocales: const [Locale('ja')],
-          home: const OnboardingScreen(animate: false),
+          home: OnboardingScreen(animate: animate),
         ),
       ),
     );
@@ -41,6 +44,11 @@ void main() {
   }
 
   group('OnboardingScreen ウィジェットテスト', () {
+    testWidgets('animate未指定(null)でも正しく描画されること', (tester) async {
+      await pumpOnboardingScreen(tester, animate: null);
+      check(find.text(mockL10n.onboardingPage1Title)).findsOne();
+    });
+
     testWidgets('初期表示で1枚目のスライドが正しく表示されること', (tester) async {
       await pumpOnboardingScreen(tester);
 
@@ -87,14 +95,16 @@ void main() {
       check(find.text(mockL10n.onboardingNext)).findsNothing();
       check(find.text(mockL10n.onboardingStart)).findsOne();
 
-      // 「はじめる」をタップすると、SharedPreferencesに保存されること
+      // 「はじめる」をタップすると、SharedPreferencesに完了が保存されること
       await tester.tap(find.text(mockL10n.onboardingStart));
       await tester.pump(); // Notifierの非同期処理を発火
 
       verify(() => mockPrefs.setBool('onboarding_completed', true)).called(1);
     });
 
-    testWidgets('「Skip」ボタンをタップすると即座に完了処理が呼ばれること', (tester) async {
+    testWidgets('「Skip」ボタンをタップすると即座に完了処理が呼ばれること', (
+      tester,
+    ) async {
       await pumpOnboardingScreen(tester);
 
       // 「Skip」をタップ
@@ -102,6 +112,46 @@ void main() {
       await tester.pump();
 
       verify(() => mockPrefs.setBool('onboarding_completed', true)).called(1);
+    });
+
+    testWidgets('完了処理（Skip）でエラーが発生した場合、エラー用スナックバーが表示されること', (
+      tester,
+    ) async {
+      when(
+        () => mockPrefs.setBool('onboarding_completed', true),
+      ).thenThrow(Exception('Failed to save'));
+
+      await pumpOnboardingScreen(tester);
+
+      // 「Skip」をタップ
+      await tester.tap(find.text(mockL10n.onboardingSkip));
+      await tester.pump(); // 非同期処理発火
+      await tester.pump(); // スナックバー描画
+
+      check(find.text(mockL10n.chatError)).findsOne();
+    });
+
+    testWidgets('完了処理（はじめる）でエラーが発生した場合、エラー用スナックバーが表示されること', (
+      tester,
+    ) async {
+      when(
+        () => mockPrefs.setBool('onboarding_completed', true),
+      ).thenThrow(Exception('Failed to save'));
+
+      await pumpOnboardingScreen(tester);
+
+      // 3ページ目へ移動
+      await tester.tap(find.text(mockL10n.onboardingNext));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(mockL10n.onboardingNext));
+      await tester.pumpAndSettle();
+
+      // 「はじめる」をタップ
+      await tester.tap(find.text(mockL10n.onboardingStart));
+      await tester.pump(); // 非同期処理発火
+      await tester.pump(); // スナックバー描画
+
+      check(find.text(mockL10n.chatError)).findsOne();
     });
   });
 }

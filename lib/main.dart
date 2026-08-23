@@ -19,6 +19,7 @@ import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:flutter_sample/src/core/utils/scaffold_messenger_key.dart';
 import 'package:flutter_sample/src/features/app_lock/presentation/app_lock_wrapper.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_overrides.dart';
+import 'package:flutter_sample/src/features/notification/application/notification_notifier.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart' show Override;
@@ -123,7 +124,10 @@ Future<void> mainCommon(
     parameters: {'env': flavor.name},
   );
 
-  // 12. コンテナは破棄 (dispose) せず、そのままアプリに渡して起動
+  // 12. Push通知基盤の初期化（バックグラウンドで開始）
+  container.read(notificationProvider);
+
+  // 13. コンテナは破棄 (dispose) せず、そのままアプリに渡して起動
   runApp(
     UncontrolledProviderScope(
       container: container,

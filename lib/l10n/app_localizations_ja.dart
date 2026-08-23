@@ -728,4 +728,92 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get devLottieNetworkSection => 'ネットワーク読み込みの例';
+
+  @override
+  String get notificationChannelHighImportanceName => '高優先度通知';
+
+  @override
+  String get notificationChannelHighImportanceDescription =>
+      '重要なメッセージやリマインダーを即時通知します。';
+
+  @override
+  String get notificationDefaultTitle => 'お知らせ';
+
+  @override
+  String get devNotificationTitle => 'Push通知・ディープリンク検証';
+
+  @override
+  String get devNotificationTokenLabel => 'FCM トークン';
+
+  @override
+  String get devNotificationTokenCopy => 'トークンをコピー';
+
+  @override
+  String get devNotificationTokenCopied => 'FCM トークンをクリップボードにコピーしました';
+
+  @override
+  String devNotificationPermissionLabel(String status) {
+    return '通知許可ステータス: $status';
+  }
+
+  @override
+  String get devNotificationRequestPermission => '通知権限をリクエスト';
+
+  @override
+  String get devNotificationTestSection => 'テスト通知の発火（ディープリンク検証）';
+
+  @override
+  String get devNotificationTestChatTitle => 'AIチャット通知テスト';
+
+  @override
+  String get devNotificationTestChatBody =>
+      'AIアシスタントから新着メッセージがあります。タップしてチャットを開きます。';
+
+  @override
+  String get devNotificationTestMemoTitle => 'メモ詳細通知テスト';
+
+  @override
+  String get devNotificationTestMemoBody => '最新のメモが更新されました。タップして詳細を確認します。';
+
+  @override
+  String get devNotificationTestProfileTitle => 'プロフィール通知テスト';
+
+  @override
+  String get devNotificationTestProfileBody => '会員情報が更新されました。タップして確認します。';
+
+  @override
+  String get devNotificationSendTest => 'テスト通知を送信';
+
+  @override
+  String get devNotificationLatestPayloadLabel => '最後に検知した通知ペイロード';
+
+  @override
+  String get devNotificationTokenNotObtained => 'トークン未取得（実機またはシミュレータ環境）';
+
+  @override
+  String get devNotificationStatusAuthorized => '許可 (Authorized)';
+
+  @override
+  String get devNotificationStatusDenied => '拒否 (Denied)';
+
+  @override
+  String get devNotificationStatusNotDetermined => '未設定 (Not Determined)';
+
+  @override
+  String get devNotificationStatusProvisional => '仮許可 (Provisional)';
+
+  @override
+  String get notificationBannerTitle => '通知をオンにして最新情報を受け取ろう';
+
+  @override
+  String get notificationBannerBody => 'メッセージの返信や重要なお知らせをリアルタイムでお届けします。';
+
+  @override
+  String get notificationBannerEnableButton => '通知をオンにする';
+
+  @override
+  String get notificationBannerSettingsButton => '設定を開く';
+
+  @override
+  String get notificationBannerDismiss => '閉じる';
 }

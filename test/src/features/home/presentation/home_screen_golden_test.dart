@@ -8,6 +8,7 @@ import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
+import 'package:flutter_sample/src/features/notification/application/notification_notifier.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
@@ -45,7 +46,19 @@ void main() {
       when(() => mockL10n.ok).thenReturn('OK');
       when(() => mockL10n.devStorageTitle).thenReturn('ストレージ確認・編集');
       when(() => mockL10n.devLottieTitle).thenReturn('Lottie アニメーションデモ');
+      when(() => mockL10n.devNotificationTitle).thenReturn('Push通知・ディープリンク検証');
       when(() => mockL10n.mapTitle).thenReturn('地図');
+      when(
+        () => mockL10n.notificationBannerTitle,
+      ).thenReturn('通知をオンにして最新情報を受け取ろう');
+      when(
+        () => mockL10n.notificationBannerBody,
+      ).thenReturn('メッセージの返信や重要なお知らせをリアルタイムでお届けします。');
+      when(
+        () => mockL10n.notificationBannerEnableButton,
+      ).thenReturn('通知をオンにする');
+      when(() => mockL10n.notificationBannerSettingsButton).thenReturn('設定を開く');
+      when(() => mockL10n.notificationBannerDismiss).thenReturn('閉じる');
     });
 
     Widget buildHomeForGolden({required ThemeMode themeMode}) {
@@ -79,6 +92,7 @@ void main() {
           ),
           loggerProvider.overrideWithValue(mockTalker),
           packageInfoProvider.overrideWithValue(dummyPackageInfo),
+          notificationProvider.overrideWith(MockNotificationNotifier.new),
         ],
         child: MaterialApp(
           theme: AppTheme.light().copyWith(
