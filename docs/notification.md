@@ -109,17 +109,29 @@ class NotificationNotifier extends _$NotificationNotifier {
     return null;
   }
 
-  /// 通知タップ時のディープリンク遷移処理
+  /// 最新のタップ通知ペイロードを取り出し、二重遷移を防ぐために消費（クリア）する
+  NotificationPayload? consumeLatestPayload() {
+    if (state case final NotificationStateData dataState) {
+      final payload = dataState.latestPayload;
+      if (payload != null) {
+        state = dataState.copyWith(latestPayload: null);
+        return payload;
+      }
+    }
+    return null;
+  }
+
+  /// 通知タップ時のディープリンク状態更新
   void handleNotificationTap(NotificationPayload payload) {
-    final path = payload.path;
-    if (path != null && path.isNotEmpty) {
-      final router = ref.read(routerProvider);
-      // GoRouter を用いて指定された画面へ直接ジャンプ
-      router.go(path);
+    if (state case final NotificationStateData dataState) {
+      state = dataState.copyWith(latestPayload: payload);
     }
   }
 }
 ```
+
+> **💡 アーキテクチャのポイント (単方向データフロー)**:
+> `NotificationNotifier` はルーター（`routerProvider`）に直接依存せず、状態（`latestPayload`）の更新のみを担当します。実際のディープリンク画面遷移は、`app_router.dart` 内の `ref.listen(notificationProvider, ...)` が `latestPayload` の変更を検知して `router.go(path)` を呼び出すことで、循環依存エラー（`CircularDependencyError`）を確実に防止しています。
 
 ---
 

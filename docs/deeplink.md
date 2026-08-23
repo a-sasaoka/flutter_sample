@@ -198,5 +198,5 @@ adb shell am start -W -a android.intent.action.VIEW -d "https://your-firebase-pr
 Push通知のデータペイロード（`data`）に含まれる `path`（例: `{"path": "/chat"}`）をタップした際も、ディープリンクとして GoRouter とシームレスに連携します。
 
 1. **フォアグラウンド / バックグラウンド受信**: `PushNotificationService` が通知タップを検知
-2. **ルーティング実行**: `NotificationNotifier.handleNotificationTap(payload)` がペイロードの `path` を読み取り、`GoRouter.go(path)` を呼び出して目的の画面へ自動遷移
+2. **状態更新とルーティング実行**: `NotificationNotifier.handleNotificationTap(payload)` が `latestPayload` を更新し、`routerProvider`（`app_router.dart`）のリスナーが検知して `router.go(path)` で目的の画面へ自動遷移（単方向データフロー設計により循環依存を防止）
 3. **詳細仕様**: 詳細は [Push通知仕様書 (docs/notification.md)](notification.md) を参照してください。
