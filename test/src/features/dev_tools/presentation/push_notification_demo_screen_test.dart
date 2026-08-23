@@ -173,7 +173,9 @@ void main() {
       await tester.pump();
 
       check(spyNotifier.sentTestNotifications.length).equals(3);
-      check(spyNotifier.sentTestNotifications[2].path).equals('/settings');
+      check(
+        spyNotifier.sentTestNotifications[2].path,
+      ).equals('/settings/profile');
     });
 
     testWidgets('latestPayload が存在する場合にカードが表示されること', (tester) async {

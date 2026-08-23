@@ -146,7 +146,7 @@ class NotificationNotifier extends _$NotificationNotifier {
 - **テスト通知発火（ディープリンク検証）**:
   - 💬 **AIチャット通知テスト**: バナーをタップすると `/chat` へ遷移
   - 📝 **メモ詳細通知テスト**: バナーをタップすると `/memos` へ遷移
-  - 👤 **プロフィール通知テスト**: バナーをタップすると `/settings` へ遷移
+  - 👤 **プロフィール通知テスト**: バナーをタップすると `/settings/profile` へ遷移
 
 ---
 

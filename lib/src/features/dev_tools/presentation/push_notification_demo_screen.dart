@@ -213,7 +213,7 @@ class PushNotificationDemoScreen extends HookConsumerWidget {
                                   .read(notificationProvider.notifier)
                                   .sendTestNotification(
                                     NotificationPayload(
-                                      path: '/settings',
+                                      path: '/settings/profile',
                                       title:
                                           l10n.devNotificationTestProfileTitle,
                                       body: l10n.devNotificationTestProfileBody,
