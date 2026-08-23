@@ -1,6 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
@@ -118,12 +119,29 @@ void main() {
       },
     );
 
-    testWidgets('denied (拒否) のとき、「設定を開く」ボタンが表示されタップできること', (tester) async {
+    testWidgets('denied (拒否) のとき、「設定を開く」ボタンが表示されタップで設定を開くこと', (tester) async {
       final notifier = _MockNotificationNotifier(
         initialState: const NotificationState.data(
           authorizationStatus: AuthorizationStatus.denied,
         ),
       );
+
+      final methodCalls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            const MethodChannel('com.spencerccf.app_settings/methods'),
+            (methodCall) async {
+              methodCalls.add(methodCall);
+              return null;
+            },
+          );
+      addTearDown(() {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(
+              const MethodChannel('com.spencerccf.app_settings/methods'),
+              null,
+            );
+      });
 
       await pumpBanner(tester, notifier: notifier);
 
@@ -134,6 +152,9 @@ void main() {
       // 「設定を開く」ボタンをタップ
       await tester.tap(find.text(l10n.notificationBannerSettingsButton));
       await tester.pump();
+
+      check(methodCalls).isNotEmpty();
+      check(methodCalls.first.method).equals('openSettings');
     });
 
     testWidgets('閉じる(✕)ボタンをタップするとバナーが非表示になること', (tester) async {
