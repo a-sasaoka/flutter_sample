@@ -118,7 +118,7 @@ Firebase Messaging と `FlutterLocalNotificationsPlugin` のやり取りをラ�
 
 ### 3. `NotificationNotifier` (アプリケーション層)
 
-Riverpod の `@riverpod` Notifier として動作し、トークン取得やディープリンク遷移を実行します。
+Riverpod の `@riverpod` Notifier として動作し、FCMトークンの取得や通知状態の管理・更新を担当します（実際のディープリンク画面遷移はルーターリスナーが実行します）。
 
 ```dart
 @Riverpod(keepAlive: true)
