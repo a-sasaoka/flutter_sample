@@ -1,4 +1,6 @@
 import 'package:flutter_sample/src/app/router/app_router.dart';
+import 'package:flutter_sample/src/features/notification/application/notification_notifier.dart';
+import 'package:flutter_sample/src/features/notification/application/notification_state.dart';
 import 'package:flutter_sample/src/features/onboarding/application/onboarding_notifier.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_state_provider.dart';
 import 'package:go_router/go_router.dart';
@@ -149,9 +151,23 @@ String? checkBaseRedirect({
   // 5. スプラッシュ表示が完了しており、かつ現在スプラッシュ画面にいる場合は、
   // ログイン状態に応じた適切な画面（ホームまたはログイン）へリダイレクトする
   if (state.uri.path == const SplashRoute().location) {
-    return isLoggedIn
-        ? const HomeRoute().location
-        : const LoginRoute().location;
+    if (isLoggedIn) {
+      // 🔔 初期通知によるディープリンク指定がある場合は優先的にそこへリダイレクト
+      try {
+        final notificationState = ref.read(notificationProvider);
+        if (notificationState case final NotificationStateData data) {
+          final initialPath = data.initialPayload?.path;
+          if (initialPath != null && initialPath.isNotEmpty) {
+            ref.read(notificationProvider.notifier).consumeInitialPayload();
+            return initialPath;
+          }
+        }
+      } on Object {
+        // テスト環境などで通知プロバイダが未初期化の場合は安全に無視
+      }
+      return const HomeRoute().location;
+    }
+    return const LoginRoute().location;
   }
 
   return null;

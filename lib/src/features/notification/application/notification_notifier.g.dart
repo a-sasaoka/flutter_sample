@@ -45,7 +45,7 @@ final class NotificationNotifierProvider
 }
 
 String _$notificationNotifierHash() =>
-    r'91efeb7b8faa20f839bc5fab144719059f50b03f';
+    r'74159d98bade82af8045a02458606dffd70b6a2a';
 
 /// 🔔 通知の状態とアクションを管理する Notifier
 

@@ -44,6 +44,9 @@ void main() {
       () => mockService.getNotificationSettings(),
     ).thenAnswer((_) async => null);
     when(
+      () => mockService.getInitialNotification(),
+    ).thenAnswer((_) async => null);
+    when(
       () => mockService.onTokenRefresh,
     ).thenAnswer((_) => tokenRefreshController.stream);
   });
@@ -101,6 +104,40 @@ void main() {
         ).equals(AuthorizationStatus.authorized);
       }
     });
+
+    test(
+      '初期通知が存在する場合 initialPayload に保持され consumeInitialPayload で消費できること',
+      () async {
+        const initialPayload = NotificationPayload(
+          path: '/chat',
+          title: 'Initial Chat',
+          body: 'Hello',
+        );
+        when(
+          () => mockService.getInitialNotification(),
+        ).thenAnswer((_) async => initialPayload);
+
+        final container = createContainer();
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        final state = container.read(notificationProvider);
+        if (state case final NotificationStateData dataState) {
+          check(dataState.initialPayload).equals(initialPayload);
+        }
+
+        final notifier = container.read(notificationProvider.notifier);
+        final consumed = notifier.consumeInitialPayload();
+        check(consumed).equals(initialPayload);
+
+        final nextState = container.read(notificationProvider);
+        if (nextState case final NotificationStateData dataState) {
+          check(dataState.initialPayload).isNull();
+        }
+
+        // 2回目の消費は null
+        check(notifier.consumeInitialPayload()).isNull();
+      },
+    );
 
     test('onTokenRefresh で新しいトークンが反映されること', () async {
       final container = createContainer();

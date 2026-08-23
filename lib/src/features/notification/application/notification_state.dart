@@ -20,6 +20,9 @@ sealed class NotificationState with _$NotificationState {
 
     /// 最後に受信・タップされた通知ペイロード
     NotificationPayload? latestPayload,
+
+    /// アプリ起動時（終了状態からタップ起動）に検知された初期通知ペイロード
+    NotificationPayload? initialPayload,
   }) = NotificationStateData;
 
   /// エラー発生状態

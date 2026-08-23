@@ -108,19 +108,50 @@ class PushNotificationService {
 
       // バックグラウンド通知タップリスナー
       FirebaseMessaging.onMessageOpenedApp.listen(handleMessageOpenedApp);
+    }
+  }
 
-      // アプリ終了状態からの通知タップ起動チェック
-      final initialMessage = await messaging.getInitialMessage();
-      if (initialMessage != null) {
-        _talker.info('🔔 アプリ終了状態からの通知タップを検知: ${initialMessage.messageId}');
-        final payload = NotificationPayload.fromMap(
-          initialMessage.data,
-          title: initialMessage.notification?.title,
-          body: initialMessage.notification?.body,
-        );
-        onNotificationTap?.call(payload);
+  /// アプリ起動時（終了状態からの通知タップ起動）の初期通知ペイロードを取得
+  Future<NotificationPayload?> getInitialNotification() async {
+    // 1. Firebase Messaging からの起動通知をチェック
+    final messaging = _messaging;
+    if (messaging != null) {
+      try {
+        final initialMessage = await messaging.getInitialMessage();
+        if (initialMessage != null) {
+          _talker.info(
+            '🔔 Firebase通知タップからのアプリ起動を検知: ${initialMessage.messageId}',
+          );
+          return NotificationPayload.fromMap(
+            initialMessage.data,
+            title: initialMessage.notification?.title,
+            body: initialMessage.notification?.body,
+          );
+        }
+      } on Object catch (e, st) {
+        _talker.error('Firebase 初期通知の取得に失敗しました', e, st);
       }
     }
+
+    // 2. ローカル通知プラグインからの起動通知をチェック
+    try {
+      final launchDetails = await _localNotifications
+          .getNotificationAppLaunchDetails();
+      if (launchDetails != null &&
+          launchDetails.didNotificationLaunchApp &&
+          launchDetails.notificationResponse != null) {
+        final rawPayload = launchDetails.notificationResponse!.payload;
+        if (rawPayload != null && rawPayload.isNotEmpty) {
+          final json = jsonDecode(rawPayload) as Map<String, dynamic>;
+          _talker.info('🔔 ローカル通知タップからのアプリ起動を検知: $rawPayload');
+          return NotificationPayload.fromJson(json);
+        }
+      }
+    } on Object catch (e, st) {
+      _talker.error('ローカル初期通知の取得に失敗しました', e, st);
+    }
+
+    return null;
   }
 
   /// 通知パーミッションの要求（Firebase Messaging & iOSローカル通知）

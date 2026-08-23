@@ -58,6 +58,18 @@ class FakeFlutterLocalNotificationsPlugin extends Fake
     return true;
   }
 
+  NotificationAppLaunchDetails? launchDetails;
+  bool throwOnGetLaunchDetails = false;
+
+  @override
+  Future<NotificationAppLaunchDetails?>
+  getNotificationAppLaunchDetails() async {
+    if (throwOnGetLaunchDetails) {
+      throw Exception('Launch details error');
+    }
+    return launchDetails;
+  }
+
   @override
   Future<void> show({
     required int id,
@@ -148,20 +160,7 @@ void main() {
       check(fakeLocalNotifications.initializeCalled).isTrue();
     });
 
-    test('初期化時に終了状態の通知が存在する場合 onNotificationTap が呼ばれること', () async {
-      NotificationPayload? receivedPayload;
-      final serviceWithCallback = PushNotificationService(
-        messaging: mockMessaging,
-        localNotifications: fakeLocalNotifications,
-        talker: mockTalker,
-        channelName: 'Test Channel',
-        channelDescription: 'Test Description',
-        defaultTitle: 'Test Title',
-        onNotificationTap: (payload) {
-          receivedPayload = payload;
-        },
-      );
-
+    test('getInitialNotification でFirebaseの初期通知が取得できること', () async {
       const message = RemoteMessage(
         messageId: 'initial_123',
         data: {'path': '/memos'},
@@ -175,12 +174,45 @@ void main() {
         () => mockMessaging.getInitialMessage(),
       ).thenAnswer((_) async => message);
 
-      await serviceWithCallback.initialize();
+      final payload = await service.getInitialNotification();
 
-      check(receivedPayload).isNotNull();
-      check(receivedPayload?.path).equals('/memos');
-      check(receivedPayload?.title).equals('Initial Title');
-      check(receivedPayload?.body).equals('Initial Body');
+      check(payload).isNotNull();
+      check(payload?.path).equals('/memos');
+      check(payload?.title).equals('Initial Title');
+      check(payload?.body).equals('Initial Body');
+    });
+
+    test('getInitialNotification でローカル通知の起動情報が取得できること', () async {
+      fakeLocalNotifications.launchDetails = const NotificationAppLaunchDetails(
+        true,
+        notificationResponse: NotificationResponse(
+          notificationResponseType:
+              NotificationResponseType.selectedNotificationAction,
+          payload: '{"path":"/chat","title":"Chat","body":"Hello"}',
+        ),
+      );
+
+      final payload = await service.getInitialNotification();
+
+      check(payload).isNotNull();
+      check(payload?.path).equals('/chat');
+      check(payload?.title).equals('Chat');
+      check(payload?.body).equals('Hello');
+    });
+
+    test('getInitialNotification で初期通知がない場合 null を返すこと', () async {
+      final payload = await service.getInitialNotification();
+      check(payload).isNull();
+    });
+
+    test('getInitialNotification で例外発生時に安全に null を返すこと', () async {
+      when(
+        () => mockMessaging.getInitialMessage(),
+      ).thenThrow(Exception('Firebase error'));
+      fakeLocalNotifications.throwOnGetLaunchDetails = true;
+
+      final payload = await service.getInitialNotification();
+      check(payload).isNull();
     });
 
     test('ローカル通知タップ時に onNotificationTap が呼ばれること', () async {

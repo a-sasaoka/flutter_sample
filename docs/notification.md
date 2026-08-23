@@ -82,6 +82,7 @@ Firebase Messaging と `FlutterLocalNotificationsPlugin` のやり取りをラ�
 
 - **フォアグラウンド受信時**: `FirebaseMessaging.onMessage` を検知し、ローカル通知（高優先度バナー）を即座に表示します。
 - **通知タップ時**: `onNotificationTap` コールバックを通じて `NotificationPayload` を上位（Notifier）へ伝達します。
+- **アプリ終了状態からの起動時**: `getInitialNotification()` により Firebase 及びローカル通知の起動情報を取得し、初期通知ペイロードとして保持します。
 
 ### 3. `NotificationNotifier` (アプリケーション層)
 
@@ -94,6 +95,18 @@ class NotificationNotifier extends _$NotificationNotifier {
   NotificationState build() {
     _init();
     return const NotificationState.loading();
+  }
+
+  /// 初期起動時の通知ペイロードを取り出し、二重遷移を防ぐために消費（クリア）する
+  NotificationPayload? consumeInitialPayload() {
+    if (state case final NotificationStateData dataState) {
+      final payload = dataState.initialPayload;
+      if (payload != null) {
+        state = dataState.copyWith(initialPayload: null);
+        return payload;
+      }
+    }
+    return null;
   }
 
   /// 通知タップ時のディープリンク遷移処理
