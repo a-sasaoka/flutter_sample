@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 mixin _$NotificationPayload {
 
 /// 遷移先の画面パス（例: `/chat`, `/memos/detail?id=123`）
- String? get path;/// 通知のタイトル
+@JsonKey(readValue: _readPath) String? get path;/// 通知のタイトル
  String? get title;/// 通知の本文
  String? get body;/// その他のカスタムデータ
  Map<String, dynamic> get data;
@@ -52,7 +52,7 @@ abstract mixin class $NotificationPayloadCopyWith<$Res>  {
   factory $NotificationPayloadCopyWith(NotificationPayload value, $Res Function(NotificationPayload) _then) = _$NotificationPayloadCopyWithImpl;
 @useResult
 $Res call({
- String? path, String? title, String? body, Map<String, dynamic> data
+@JsonKey(readValue: _readPath) String? path, String? title, String? body, Map<String, dynamic> data
 });
 
 
@@ -157,7 +157,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? path,  String? title,  String? body,  Map<String, dynamic> data)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(readValue: _readPath)  String? path,  String? title,  String? body,  Map<String, dynamic> data)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _NotificationPayload() when $default != null:
 return $default(_that.path,_that.title,_that.body,_that.data);case _:
@@ -178,7 +178,7 @@ return $default(_that.path,_that.title,_that.body,_that.data);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? path,  String? title,  String? body,  Map<String, dynamic> data)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(readValue: _readPath)  String? path,  String? title,  String? body,  Map<String, dynamic> data)  $default,) {final _that = this;
 switch (_that) {
 case _NotificationPayload():
 return $default(_that.path,_that.title,_that.body,_that.data);}
@@ -195,7 +195,7 @@ return $default(_that.path,_that.title,_that.body,_that.data);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? path,  String? title,  String? body,  Map<String, dynamic> data)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(readValue: _readPath)  String? path,  String? title,  String? body,  Map<String, dynamic> data)?  $default,) {final _that = this;
 switch (_that) {
 case _NotificationPayload() when $default != null:
 return $default(_that.path,_that.title,_that.body,_that.data);case _:
@@ -210,11 +210,11 @@ return $default(_that.path,_that.title,_that.body,_that.data);case _:
 @JsonSerializable()
 
 class _NotificationPayload extends NotificationPayload {
-  const _NotificationPayload({this.path, this.title, this.body, final  Map<String, dynamic> data = const {}}): _data = data,super._();
+  const _NotificationPayload({@JsonKey(readValue: _readPath) this.path, this.title, this.body, final  Map<String, dynamic> data = const {}}): _data = data,super._();
   factory _NotificationPayload.fromJson(Map<String, dynamic> json) => _$NotificationPayloadFromJson(json);
 
 /// 遷移先の画面パス（例: `/chat`, `/memos/detail?id=123`）
-@override final  String? path;
+@override@JsonKey(readValue: _readPath) final  String? path;
 /// 通知のタイトル
 @override final  String? title;
 /// 通知の本文
@@ -262,7 +262,7 @@ abstract mixin class _$NotificationPayloadCopyWith<$Res> implements $Notificatio
   factory _$NotificationPayloadCopyWith(_NotificationPayload value, $Res Function(_NotificationPayload) _then) = __$NotificationPayloadCopyWithImpl;
 @override @useResult
 $Res call({
- String? path, String? title, String? body, Map<String, dynamic> data
+@JsonKey(readValue: _readPath) String? path, String? title, String? body, Map<String, dynamic> data
 });
 
 

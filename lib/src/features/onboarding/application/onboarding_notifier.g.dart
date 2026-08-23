@@ -37,7 +37,7 @@ final class OnboardingNotifierProvider
 }
 
 String _$onboardingNotifierHash() =>
-    r'76e5b68d30274639c98d75c690fad2ec4b74faa6';
+    r'9597a05c03a90788372507b9215d213635188f6c';
 
 /// アプリの初回起動（オンボーディング）の状態を管理するNotifier
 

@@ -89,6 +89,20 @@ void main() {
       check(serialized['body']).equals('Test Body');
     });
 
+    test('fromJson で route や deep_link からも path が解決されること', () {
+      final payloadRoute = NotificationPayload.fromJson({
+        'route': '/memos',
+        'title': 'Memo',
+      });
+      check(payloadRoute.path).equals('/memos');
+      check(payloadRoute.title).equals('Memo');
+
+      final payloadDeepLink = NotificationPayload.fromJson({
+        'deep_link': '  /profile  ',
+      });
+      check(payloadDeepLink.path).equals('/profile');
+    });
+
     test('isNavigable が空文字や空白のみの場合は false を返すこと', () {
       const emptyPayload = NotificationPayload(path: '');
       check(emptyPayload.isNavigable).isFalse();

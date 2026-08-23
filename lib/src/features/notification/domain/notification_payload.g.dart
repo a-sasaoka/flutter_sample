@@ -8,7 +8,7 @@ part of 'notification_payload.dart';
 
 _NotificationPayload _$NotificationPayloadFromJson(Map<String, dynamic> json) =>
     _NotificationPayload(
-      path: json['path'] as String?,
+      path: _readPath(json, 'path') as String?,
       title: json['title'] as String?,
       body: json['body'] as String?,
       data: json['data'] as Map<String, dynamic>? ?? const {},
