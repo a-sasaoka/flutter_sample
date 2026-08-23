@@ -17,10 +17,14 @@ part 'push_notification_service_provider.g.dart';
 PushNotificationService pushNotificationService(Ref ref) {
   final talker = ref.watch(loggerProvider);
 
-  // 1. 現在の言語設定（未設定の場合は端末のロケール）を取得
-  final currentLocale =
+  // 1. 現在の言語設定（未設定の場合は端末のロケール）を取得し、サポート対象ロケールへ安全にフォールバック
+  final preferredLocale =
       ref.watch(localeProvider).value ?? PlatformDispatcher.instance.locale;
-  final l10n = lookupAppLocalizations(currentLocale);
+  final matchedLocale = AppLocalizations.supportedLocales.firstWhere(
+    (supported) => supported.languageCode == preferredLocale.languageCode,
+    orElse: () => AppLocalizations.supportedLocales.first,
+  );
+  final l10n = lookupAppLocalizations(matchedLocale);
 
   // 2. Firebase 初期化状態を安全に判定
   // coverage:ignore-start
