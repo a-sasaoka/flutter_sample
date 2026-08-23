@@ -160,10 +160,13 @@ String? checkBaseRedirect({
           return null;
         }
         if (notificationState case final NotificationStateData data) {
-          final initialPath = data.initialPayload?.path;
-          if (initialPath != null && initialPath.isNotEmpty) {
-            ref.read(notificationProvider.notifier).consumeInitialPayload();
-            return initialPath;
+          final initialPayload = data.initialPayload;
+          if (initialPayload != null && initialPayload.isNavigable) {
+            final path = initialPayload.path;
+            if (path != null) {
+              ref.read(notificationProvider.notifier).consumeInitialPayload();
+              return path;
+            }
           }
         }
       } on Object {

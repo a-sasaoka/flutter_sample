@@ -217,6 +217,21 @@ void main() {
       check(result).equals('/chat');
     });
 
+    test(
+      'ログイン済みでスプラッシュ画面の初期通知が無効（pathなし/isNavigable false）の場合、ホーム画面へリダイレクトすること',
+      () {
+        const payload = NotificationPayload(
+          title: 'No Path',
+        );
+        final result = executeGuard(
+          const AsyncData<bool>(true),
+          location: const SplashRoute().location,
+          initialPayload: payload,
+        );
+        check(result).equals(const HomeRoute().location);
+      },
+    );
+
     test('未ログイン（Data: false）の場合、ホームからログイン画面にリダイレクトすること', () {
       final result = executeGuard(
         const AsyncData<bool>(false),
