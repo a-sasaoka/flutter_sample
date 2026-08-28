@@ -6,7 +6,7 @@ part 'map_route.freezed.dart';
 
 /// 2点間のルート情報を表すドメインモデル
 @freezed
-abstract class MapRoute with _$MapRoute {
+sealed class MapRoute with _$MapRoute {
   /// MapRoute のファクトリコンストラクタ
   const factory MapRoute({
     /// ルートの固有ID
