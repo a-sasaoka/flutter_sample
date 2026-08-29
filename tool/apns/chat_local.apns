@@ -1,0 +1,14 @@
+{
+  "Simulator Target Bundle": "jp.example.sample.local",
+  "aps": {
+    "alert": {
+      "title": "💬 AIチャット通知",
+      "body": "AIアシスタントから新しいメッセージが届きました。"
+    },
+    "badge": 1,
+    "sound": "default"
+  },
+  "gcm.message_id": "sim_chat_001",
+  "path": "/chat",
+  "payload": "{\"path\":\"/chat\"}"
+}

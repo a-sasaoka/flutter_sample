@@ -78,12 +78,18 @@ class PushNotificationService {
       final initialized = await _localNotifications.initialize(
         settings: initializationSettings,
         onDidReceiveNotificationResponse: (response) {
-          _talker.info('🔔 ローカル通知がタップされました');
-          if (response.payload != null) {
+          _talker.info('🔔 通知がタップされました (id: ${response.id})');
+          final rawPayload = response.payload;
+          if (rawPayload != null && rawPayload.isNotEmpty) {
             try {
-              final map = jsonDecode(response.payload!) as Map<String, dynamic>;
-              final payload = NotificationPayload.fromMap(map);
-              onNotificationTap?.call(payload);
+              if (rawPayload.startsWith('{')) {
+                final map = jsonDecode(rawPayload) as Map<String, dynamic>;
+                final payload = NotificationPayload.fromMap(map);
+                onNotificationTap?.call(payload);
+              } else {
+                final payload = NotificationPayload(path: rawPayload);
+                onNotificationTap?.call(payload);
+              }
             } on Object catch (e, st) {
               _talker.handle(e, st, '通知ペイロードのパースに失敗しました');
             }
@@ -144,9 +150,14 @@ class PushNotificationService {
           launchDetails.notificationResponse != null) {
         final rawPayload = launchDetails.notificationResponse!.payload;
         if (rawPayload != null && rawPayload.isNotEmpty) {
-          final json = jsonDecode(rawPayload) as Map<String, dynamic>;
-          _talker.info('🔔 ローカル通知タップからのアプリ起動を検知');
-          return NotificationPayload.fromJson(json);
+          if (rawPayload.startsWith('{')) {
+            final json = jsonDecode(rawPayload) as Map<String, dynamic>;
+            _talker.info('🔔 ローカル通知タップからのアプリ起動を検知');
+            return NotificationPayload.fromJson(json);
+          } else {
+            _talker.info('🔔 ローカル通知タップからのアプリ起動を検知 (パス文字列)');
+            return NotificationPayload(path: rawPayload);
+          }
         }
       }
     } on Object catch (e, st) {
