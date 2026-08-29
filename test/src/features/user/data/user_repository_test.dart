@@ -247,7 +247,7 @@ void main() {
       );
 
       // Act & Assert
-      await check(repository.fetchUsers()).throws<AppException>();
+      await check(repository.fetchUsers()).throws<DataParseException>();
       verify(
         () => mockTalker.handle(
           any<Object>(),
@@ -274,7 +274,7 @@ void main() {
         ).thenAnswer((_) async => mockResponse);
 
         // Act & Assert
-        await check(repository.fetchUsers()).throws<AppException>();
+        await check(repository.fetchUsers()).throws<DataParseException>();
         verify(
           () => mockTalker.handle(
             any<Object>(),
@@ -389,7 +389,7 @@ void main() {
       // Act & Assert
       await check(
         repository.createUser('Name', 'email@example.com'),
-      ).throws<AppException>();
+      ).throws<DataParseException>();
 
       verify(
         () => mockTalker.handle(
@@ -412,7 +412,7 @@ void main() {
       // Act & Assert
       await check(
         repository.createUser('Name', 'email@example.com'),
-      ).throws<AppException>();
+      ).throws<DataParseException>();
 
       verify(
         () => mockTalker.handle(
@@ -437,7 +437,7 @@ void main() {
       // Act & Assert
       await check(
         repository.updateUserName(1, 'New Name'),
-      ).throws<AppException>();
+      ).throws<DataParseException>();
 
       verify(
         () => mockTalker.handle(

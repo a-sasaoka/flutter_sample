@@ -87,7 +87,7 @@ void main() {
             ),
           );
 
-          await check(repository.fetchProfile()).throws<AppException>();
+          await check(repository.fetchProfile()).throws<DataParseException>();
           verify(
             () => mockTalker.handle(
               const AppException.dataParse(),
@@ -109,7 +109,7 @@ void main() {
             ),
           );
 
-          await check(repository.fetchProfile()).throws<AppException>();
+          await check(repository.fetchProfile()).throws<DataParseException>();
           verify(
             () => mockTalker.handle(
               any<Object>(),
@@ -158,7 +158,7 @@ void main() {
 
           await check(
             repository.updateProfile(testProfile),
-          ).throws<AppException>();
+          ).throws<DataParseException>();
           verify(
             () => mockTalker.handle(
               const AppException.dataParse(),
