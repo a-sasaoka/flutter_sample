@@ -59,7 +59,12 @@ class ProfileRepository {
 
   UserProfile _parseProfile(Object? responseData, String errorMessage) {
     if (responseData case final Map<String, dynamic> data) {
-      return UserProfile.fromJson(data);
+      try {
+        return UserProfile.fromJson(data);
+      } on Object catch (e, st) {
+        talker.handle(e, st, '$errorMessage: Failed to parse UserProfile');
+        throw const AppException.dataParse();
+      }
     }
     talker.handle(
       const AppException.dataParse(),

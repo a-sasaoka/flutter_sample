@@ -348,6 +348,29 @@ void main() {
       ).called(1);
     });
 
+    test('createUser: レスポンスデータがMapだが型不一致の場合、例外を投げること', () async {
+      // Arrange
+      final mockResponse = MockMapResponse();
+      when(() => mockResponse.data).thenReturn({'id': 'not-an-int'});
+      when(
+        () =>
+            mockApi.post<Map<String, dynamic>>(any(), data: any(named: 'data')),
+      ).thenAnswer((_) async => mockResponse);
+
+      // Act & Assert
+      await check(
+        repository.createUser('Name', 'email@example.com'),
+      ).throws<AppException>();
+
+      verify(
+        () => mockTalker.handle(
+          any<Object>(),
+          any<StackTrace>(),
+          'Failed to parse created user data: Failed to parse UserModel',
+        ),
+      ).called(1);
+    });
+
     test('updateUserName: レスポンスデータがnullの場合、例外を投げること', () async {
       // Arrange
       final mockResponse = MockMapResponse();

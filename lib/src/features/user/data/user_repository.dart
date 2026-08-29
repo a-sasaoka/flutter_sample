@@ -141,7 +141,12 @@ class UserRepository {
 
   UserModel _parseUser(Object? responseData, String errorMessage) {
     if (responseData case final Map<String, dynamic> data) {
-      return UserModel.fromJson(data);
+      try {
+        return UserModel.fromJson(data);
+      } on Object catch (e, st) {
+        talker.handle(e, st, '$errorMessage: Failed to parse UserModel');
+        throw const AppException.dataParse();
+      }
     }
     talker.handle(
       const AppException.dataParse(),

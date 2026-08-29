@@ -78,7 +78,7 @@ void main() {
       });
 
       test(
-        'GET /users/me レスポンスデータのパースに失敗した際、AppException.dataParse をスローすること',
+        'GET /users/me レスポンスデータが null (not Map) の際、AppException.dataParse をスローすること',
         () async {
           when(() => mockApi.get<Map<String, dynamic>>('/users/me')).thenAnswer(
             (_) async => Response(
@@ -93,6 +93,28 @@ void main() {
               const AppException.dataParse(),
               any<StackTrace>(),
               any<String>(that: contains('Failed to parse profile data')),
+            ),
+          ).called(1);
+        },
+      );
+
+      test(
+        'GET /users/me レスポンスデータが Map だが不正な型を含む際、AppException.dataParse をスローし実際の例外をログすること',
+        () async {
+          when(() => mockApi.get<Map<String, dynamic>>('/users/me')).thenAnswer(
+            (_) async => Response(
+              requestOptions: RequestOptions(path: '/users/me'),
+              data: {'name': 12345}, // name が String ではなく int
+              statusCode: 200,
+            ),
+          );
+
+          await check(repository.fetchProfile()).throws<AppException>();
+          verify(
+            () => mockTalker.handle(
+              any<Object>(),
+              any<StackTrace>(),
+              any<String>(that: contains('Failed to parse UserProfile')),
             ),
           ).called(1);
         },
