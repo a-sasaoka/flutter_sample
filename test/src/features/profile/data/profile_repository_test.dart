@@ -15,6 +15,11 @@ class MockApiClient extends Mock implements ApiClient {}
 class MockTalker extends Mock implements Talker {}
 
 void main() {
+  setUpAll(() {
+    registerFallbackValue(StackTrace.current);
+    registerFallbackValue(const AppException.dataParse());
+  });
+
   late MockApiClient mockApi;
   late MockTalker mockTalker;
   late ProfileRepository repository;
@@ -22,6 +27,14 @@ void main() {
   setUp(() {
     mockApi = MockApiClient();
     mockTalker = MockTalker();
+    when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
+    when(
+      () => mockTalker.handle(
+        any<Object>(),
+        any<StackTrace?>(),
+        any<dynamic>(),
+      ),
+    ).thenReturn(null);
     repository = ProfileRepository(api: mockApi, talker: mockTalker);
   });
 
@@ -75,6 +88,13 @@ void main() {
           );
 
           await check(repository.fetchProfile()).throws<AppException>();
+          verify(
+            () => mockTalker.handle(
+              const AppException.dataParse(),
+              any<StackTrace>(),
+              any<String>(that: contains('Failed to parse profile data')),
+            ),
+          ).called(1);
         },
       );
     });
@@ -117,6 +137,15 @@ void main() {
           await check(
             repository.updateProfile(testProfile),
           ).throws<AppException>();
+          verify(
+            () => mockTalker.handle(
+              const AppException.dataParse(),
+              any<StackTrace>(),
+              any<String>(
+                that: contains('Failed to parse updated profile data'),
+              ),
+            ),
+          ).called(1);
         },
       );
     });

@@ -70,9 +70,9 @@ void main() {
       ).thenAnswer((_) async {});
     });
 
-    test('isProd = true の場合、onError で recordError が呼ばれること', () {
+    test('enableCrashlytics = true の場合、onError で recordError が呼ばれること', () {
       final observer = CustomTalkerObserver(
-        isProd: true,
+        enableCrashlytics: true,
         recordError: mockRecordError.call,
       );
 
@@ -90,72 +90,81 @@ void main() {
       ).called(1);
     });
 
-    test('isProd = false の場合、onError で recordError が呼ばれないこと', () {
-      final observer = CustomTalkerObserver(
-        isProd: false,
-        recordError: mockRecordError.call,
-      );
+    test(
+      'enableCrashlytics = false の場合、onError で recordError が呼ばれないこと',
+      () {
+        final observer = CustomTalkerObserver(
+          enableCrashlytics: false,
+          recordError: mockRecordError.call,
+        );
 
-      final mockTalkerError = MockTalkerError();
-      final error = ArgumentError('test error');
-      const stackTrace = StackTrace.empty;
+        final mockTalkerError = MockTalkerError();
+        final error = ArgumentError('test error');
+        const stackTrace = StackTrace.empty;
 
-      when(() => mockTalkerError.error).thenReturn(error);
-      when(() => mockTalkerError.stackTrace).thenReturn(stackTrace);
+        when(() => mockTalkerError.error).thenReturn(error);
+        when(() => mockTalkerError.stackTrace).thenReturn(stackTrace);
 
-      observer.onError(mockTalkerError);
+        observer.onError(mockTalkerError);
 
-      verifyNever(
-        () => mockRecordError.call(
-          any<dynamic>(),
-          any<StackTrace?>(),
-          fatal: any(named: 'fatal'),
-        ),
-      );
-    });
+        verifyNever(
+          () => mockRecordError.call(
+            any<dynamic>(),
+            any<StackTrace?>(),
+            fatal: any(named: 'fatal'),
+          ),
+        );
+      },
+    );
 
-    test('isProd = true の場合、onException で recordError が呼ばれること', () {
-      final observer = CustomTalkerObserver(
-        isProd: true,
-        recordError: mockRecordError.call,
-      );
+    test(
+      'enableCrashlytics = true の場合、onException で recordError が呼ばれること',
+      () {
+        final observer = CustomTalkerObserver(
+          enableCrashlytics: true,
+          recordError: mockRecordError.call,
+        );
 
-      final mockTalkerException = MockTalkerException();
-      final exception = Exception('test exception');
-      const stackTrace = StackTrace.empty;
+        final mockTalkerException = MockTalkerException();
+        final exception = Exception('test exception');
+        const stackTrace = StackTrace.empty;
 
-      when(() => mockTalkerException.exception).thenReturn(exception);
-      when(() => mockTalkerException.stackTrace).thenReturn(stackTrace);
+        when(() => mockTalkerException.exception).thenReturn(exception);
+        when(() => mockTalkerException.stackTrace).thenReturn(stackTrace);
 
-      observer.onException(mockTalkerException);
+        observer.onException(mockTalkerException);
 
-      verify(
-        () => mockRecordError.call(exception, stackTrace, fatal: false),
-      ).called(1);
-    });
+        verify(
+          () => mockRecordError.call(exception, stackTrace, fatal: false),
+        ).called(1);
+      },
+    );
 
-    test('isProd = false の場合、onException で recordError が呼ばれないこと', () {
-      final observer = CustomTalkerObserver(
-        isProd: false,
-        recordError: mockRecordError.call,
-      );
+    test(
+      'enableCrashlytics = false の場合、onException で recordError が呼ばれないこと',
+      () {
+        final observer = CustomTalkerObserver(
+          enableCrashlytics: false,
+          recordError: mockRecordError.call,
+        );
 
-      final mockTalkerException = MockTalkerException();
-      final exception = Exception('test exception');
-      const stackTrace = StackTrace.empty;
+        final mockTalkerException = MockTalkerException();
+        final exception = Exception('test exception');
+        const stackTrace = StackTrace.empty;
 
-      when(() => mockTalkerException.exception).thenReturn(exception);
-      when(() => mockTalkerException.stackTrace).thenReturn(stackTrace);
+        when(() => mockTalkerException.exception).thenReturn(exception);
+        when(() => mockTalkerException.stackTrace).thenReturn(stackTrace);
 
-      observer.onException(mockTalkerException);
+        observer.onException(mockTalkerException);
 
-      verifyNever(
-        () => mockRecordError.call(
-          any<dynamic>(),
-          any<StackTrace?>(),
-          fatal: any(named: 'fatal'),
-        ),
-      );
-    });
+        verifyNever(
+          () => mockRecordError.call(
+            any<dynamic>(),
+            any<StackTrace?>(),
+            fatal: any(named: 'fatal'),
+          ),
+        );
+      },
+    );
   });
 }

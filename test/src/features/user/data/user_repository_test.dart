@@ -26,6 +26,11 @@ class MockMapResponse extends Mock implements Response<Map<String, dynamic>> {}
 class MockVoidResponse extends Mock implements Response<void> {}
 
 void main() {
+  setUpAll(() {
+    registerFallbackValue(StackTrace.current);
+    registerFallbackValue(const AppException.dataParse());
+  });
+
   late MockApiClient mockApi;
   late MockCacheManager mockCache;
   late MockTalker mockTalker;
@@ -38,6 +43,13 @@ void main() {
 
     when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
     when(() => mockTalker.error(any<dynamic>())).thenReturn(null);
+    when(
+      () => mockTalker.handle(
+        any<Object>(),
+        any<StackTrace?>(),
+        any<dynamic>(),
+      ),
+    ).thenReturn(null);
 
     repository = UserRepository(
       api: mockApi,
@@ -328,7 +340,9 @@ void main() {
       ).throws<AppException>();
 
       verify(
-        () => mockTalker.error(
+        () => mockTalker.handle(
+          const AppException.dataParse(),
+          any<StackTrace>(),
           'Failed to parse created user data: Response data is invalid.',
         ),
       ).called(1);
@@ -351,7 +365,9 @@ void main() {
       ).throws<AppException>();
 
       verify(
-        () => mockTalker.error(
+        () => mockTalker.handle(
+          const AppException.dataParse(),
+          any<StackTrace>(),
           'Failed to parse updated user data: Response data is invalid.',
         ),
       ).called(1);

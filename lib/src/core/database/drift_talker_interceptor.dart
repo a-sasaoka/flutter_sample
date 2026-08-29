@@ -28,11 +28,11 @@ class DriftTalkerInterceptor extends QueryInterceptor {
       return result;
     } on Exception catch (e, st) {
       sw.stop();
-      _talker.error(
-        '[Drift] $method Error after ${sw.elapsedMilliseconds}ms: '
-        '$statement | Args: $args',
+      _talker.handle(
         e,
         st,
+        '[Drift] $method Error after ${sw.elapsedMilliseconds}ms: '
+        '$statement | Args: $args',
       );
       rethrow;
     }
@@ -123,11 +123,11 @@ class DriftTalkerInterceptor extends QueryInterceptor {
       );
     } on Exception catch (e, st) {
       sw.stop();
-      _talker.error(
-        '[Drift] Batched Error after ${sw.elapsedMilliseconds}ms: '
-        '$count statements',
+      _talker.handle(
         e,
         st,
+        '[Drift] Batched Error after ${sw.elapsedMilliseconds}ms: '
+        '$count statements',
       );
       rethrow;
     }

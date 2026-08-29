@@ -61,8 +61,12 @@ class Profile extends _$Profile {
                   .read(profileRepositoryProvider)
                   .updateProfile(oldProfile);
               talker.debug('Successfully rolled back server update.');
-            } on Object catch (rollbackError) {
-              talker.error('Failed to rollback server update: $rollbackError');
+            } on Object catch (rollbackError, rollbackSt) {
+              talker.handle(
+                rollbackError,
+                rollbackSt,
+                'Failed to rollback server update',
+              );
             }
           }
           rethrow;

@@ -61,7 +61,11 @@ class ProfileRepository {
     if (responseData case final Map<String, dynamic> data) {
       return UserProfile.fromJson(data);
     }
-    talker.error('$errorMessage: Response data is invalid.');
+    talker.handle(
+      const AppException.dataParse(),
+      StackTrace.current,
+      '$errorMessage: Response data is invalid.',
+    );
     throw const AppException.dataParse();
   }
 }

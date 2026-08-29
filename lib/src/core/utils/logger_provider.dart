@@ -20,12 +20,12 @@ Talker logger(Ref ref) {
 class CustomTalkerObserver extends TalkerObserver {
   /// コンストラクタ
   CustomTalkerObserver({
-    required this.isProd,
+    required this.enableCrashlytics,
     required this.recordError,
   });
 
-  /// 本番環境かどうか
-  final bool isProd;
+  /// Crashlytics への送信を有効にするかどうか（prod / stg で true）
+  final bool enableCrashlytics;
 
   /// 外部から送信処理を注入できるようにする
   final Future<void> Function(
@@ -38,7 +38,7 @@ class CustomTalkerObserver extends TalkerObserver {
   @override
   void onError(TalkerError err) {
     super.onError(err);
-    if (isProd) {
+    if (enableCrashlytics) {
       unawaited(recordError(err.error, err.stackTrace, fatal: false));
     }
   }
@@ -46,7 +46,7 @@ class CustomTalkerObserver extends TalkerObserver {
   @override
   void onException(TalkerException err) {
     super.onException(err);
-    if (isProd) {
+    if (enableCrashlytics) {
       unawaited(recordError(err.exception, err.stackTrace, fatal: false));
     }
   }

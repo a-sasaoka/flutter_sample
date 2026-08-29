@@ -60,7 +60,7 @@ Future<void> mainCommon(
       useHistory: !isProd,
     ),
     observer: CustomTalkerObserver(
-      isProd: isProd,
+      enableCrashlytics: flavor == Flavor.prod || flavor == Flavor.stg,
       recordError: (error, stack, {required fatal}) async {
         // CustomTalkerObserver 側で指定された fatal フラグ をそのまま渡す
         await FirebaseCrashlytics.instance.recordError(

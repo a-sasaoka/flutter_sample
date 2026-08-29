@@ -16,6 +16,10 @@ class MockPackageInfo extends Mock implements PackageInfo {}
 class MockTalker extends Mock implements Talker {}
 
 void main() {
+  setUpAll(() {
+    registerFallbackValue(StackTrace.current);
+  });
+
   group('UpdateService', () {
     late MockFirebaseRemoteConfig mockRemoteConfig;
     late MockPackageInfo mockPackageInfo;
@@ -116,7 +120,7 @@ void main() {
       check(result).equals(UpdateRequestType.not);
     });
 
-    test('JSONのパースに失敗した場合、例外をキャッチして not を返し、警告ログを出すこと', () async {
+    test('JSONのパースに失敗した場合、例外をキャッチして not を返し、エラーログをhandleすること', () async {
       when(
         () => mockRemoteConfig.getString('update_info'),
       ).thenReturn('invalid-json');
@@ -126,7 +130,11 @@ void main() {
 
       check(result).equals(UpdateRequestType.not);
       verify(
-        () => mockTalker.warning(any<String>(that: contains('Failed'))),
+        () => mockTalker.handle(
+          any<Object>(),
+          any<StackTrace>(),
+          any<String>(that: contains('Failed')),
+        ),
       ).called(1);
     });
   });

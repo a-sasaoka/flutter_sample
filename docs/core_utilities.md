@@ -29,12 +29,14 @@ logger.warning('リトライ可能な警告です');
 
 ### Crashlyticsとの連携ルール
 
-`CustomTalkerObserver` を実装しており、**本番環境（prod）でのみ**、Talkerで処理されたエラーが自動的に Firebase Crashlytics に「非致命的エラー（Non-fatal）」として送信されます。
+`CustomTalkerObserver` を実装しており、**本番環境（prod）およびステージング環境（stg）** において、Talkerで処理されたシステムエラーが自動的に Firebase Crashlytics に「非致命的エラー（Non-fatal）」として送信されます。
 
-- **`logger.handle(exception, stackTrace)`**
-  例外のログを出力しつつ、自動的に Crashlytics へ送信します。（※推奨）
-- **`logger.error('メッセージ', exception, stackTrace)`**
-  ログ出力のみを行い、Crashlytics には送信しません。
+- **`logger.handle(exception, stackTrace, [message])`**
+  システム障害・DB破損・通信例外・パース失敗などの予期せぬエラー時に使用します。ログを出力しつつ、自動的に Crashlytics へ Non-fatal エラーとして送信されます。
+- **`logger.warning('メッセージ', [exception, stackTrace])`**
+  パスワード誤入力や入力バリデーションなど、ユーザーの操作起因のエラー時に使用します。ログ出力のみを行い、Crashlytics には送信されません。
+- **`logger.error('メッセージ', [exception, stackTrace])`**
+  Fatal エラーのログ出力や、Crashlytics への自動送信を伴わないエラーログ出力に使用します。
 
 ### 🛠 開発者用メニュー（TalkerScreen）
 

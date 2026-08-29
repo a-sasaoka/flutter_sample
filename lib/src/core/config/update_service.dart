@@ -60,8 +60,12 @@ class UpdateService {
       return entity.canCancel
           ? UpdateRequestType.cancelable
           : UpdateRequestType.forcibly;
-    } on Exception catch (e) {
-      _talker.warning('Failed to retrieve or parse the update information: $e');
+    } on Exception catch (e, st) {
+      _talker.handle(
+        e,
+        st,
+        'Failed to retrieve or parse the update information',
+      );
       // 失敗時は安全のため「アップデートなし」として扱う
       return UpdateRequestType.not;
     }
