@@ -271,6 +271,22 @@ void main() {
       check(payload?.body).equals('Hello');
     });
 
+    test('getInitialNotification でローカル通知の起動情報がプレーンパス文字列でも取得できること', () async {
+      fakeLocalNotifications.launchDetails = const NotificationAppLaunchDetails(
+        true,
+        notificationResponse: NotificationResponse(
+          notificationResponseType:
+              NotificationResponseType.selectedNotificationAction,
+          payload: '/settings/profile',
+        ),
+      );
+
+      final payload = await service.getInitialNotification();
+
+      check(payload).isNotNull();
+      check(payload?.path).equals('/settings/profile');
+    });
+
     test('getInitialNotification で初期通知がない場合 null を返すこと', () async {
       final payload = await service.getInitialNotification();
       check(payload).isNull();
@@ -314,12 +330,38 @@ void main() {
       check(tappedPayload?.title).equals('Hello');
     });
 
+    test('ローカル通知タップ時にプレーンなパス文字列でも onNotificationTap が呼ばれること', () async {
+      NotificationPayload? tappedPayload;
+      final serviceWithCallback = PushNotificationService(
+        messaging: mockMessaging,
+        localNotifications: fakeLocalNotifications,
+        talker: mockTalker,
+        channelName: 'Test Channel',
+        channelDescription: 'Test Description',
+        defaultTitle: 'Test Title',
+        onNotificationTap: (payload) {
+          tappedPayload = payload;
+        },
+      );
+
+      await serviceWithCallback.initialize();
+
+      const response = NotificationResponse(
+        notificationResponseType: NotificationResponseType.selectedNotification,
+        payload: '/memos',
+      );
+      fakeLocalNotifications.onNotificationResponseCallback?.call(response);
+
+      check(tappedPayload).isNotNull();
+      check(tappedPayload?.path).equals('/memos');
+    });
+
     test('ローカル通知タップ時のJSONが不正な場合エラーログがhandleされること', () async {
       await service.initialize();
 
       const invalidResponse = NotificationResponse(
         notificationResponseType: NotificationResponseType.selectedNotification,
-        payload: 'invalid-json',
+        payload: '{invalid-json',
       );
       fakeLocalNotifications.onNotificationResponseCallback?.call(
         invalidResponse,

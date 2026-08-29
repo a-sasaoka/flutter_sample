@@ -1,0 +1,14 @@
+{
+  "Simulator Target Bundle": "jp.example.sample.local",
+  "aps": {
+    "alert": {
+      "title": "👤 プロフィール通知",
+      "body": "プロフィール設定画面を開きます。"
+    },
+    "badge": 1,
+    "sound": "default"
+  },
+  "gcm.message_id": "sim_profile_001",
+  "path": "/settings/profile",
+  "payload": "{\"path\":\"/settings/profile\"}"
+}

@@ -1,0 +1,14 @@
+{
+  "Simulator Target Bundle": "jp.example.sample.local",
+  "aps": {
+    "alert": {
+      "title": "通知タイトル（ここを書き換えてください）",
+      "body": "通知の本文です（ここを書き換えてください）"
+    },
+    "badge": 1,
+    "sound": "default"
+  },
+  "gcm.message_id": "sim_template_001",
+  "path": "/chat",
+  "payload": "{\"path\":\"/chat\"}"
+}

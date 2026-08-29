@@ -37,7 +37,9 @@ flutter_sample
 │       └── Firebase/                                           # iOS用の環境別Firebase設定を格納
 ├── maestro/                                                    # Maestro による E2E テストシナリオ（YAML）を格納
 ├── test/                                                       # テストコード（lib配下と完全に1対1のディレクトリ構成）
-├── tool/                                                       # 開発補助スクリプト（Git Hooks等）
+├── tool/                                                       # 開発補助スクリプト・ツール
+│   ├── apns/                                                   # iOSシミュレーター用 APNs ペイロード＆プッシュ通知送信スクリプト
+│   └── hooks/                                                  # Git Pre-commit フック等
 └── lib
     ├── firebase_options_*.dart                                 # 各環境別のFirebase設定ファイル（Git管理外）
     ├── main.dart                                               # 共通のアプリ起動ロジック（各main_*.dartから呼び出される）

@@ -1,0 +1,14 @@
+{
+  "Simulator Target Bundle": "jp.example.sample.local",
+  "aps": {
+    "alert": {
+      "title": "📝 メモ一覧通知",
+      "body": "メモ一覧画面を確認しましょう。"
+    },
+    "badge": 1,
+    "sound": "default"
+  },
+  "gcm.message_id": "sim_memos_001",
+  "path": "/memos",
+  "payload": "{\"path\":\"/memos\"}"
+}

@@ -30,6 +30,7 @@ flowchart TD
 5. **Freezed Sealed Union 状態管理**: `NotificationState`（`loading`, `data`, `error`）により安全な状態遷移を実現。
 6. **型安全なディープリンク遷移**: 通知のデータペイロードに含まれる `path`（例: `/chat`, `/memos`）を検知し、GoRouter で自動ルーティング。
 7. **開発者向け検証メニュー**: `/dev-tools/notification` から実機・シミュレータでトークンコピー、権限リクエスト、テスト通知発火が可能。
+8. **アプリアイコンバッジの自動クリア**: iOS ネイティブ（`AppDelegate.swift`）にて、アプリ起動時およびフォアグラウンド復帰時にバッジカウントを自動リセット（0）し、バッジの残留を防止。
 
 ---
 
@@ -138,7 +139,35 @@ Riverpod の `@Riverpod(keepAlive: true)` Notifier として動作し、FCMト�
 
 ---
 
-### 📱 2. Firebase Console からの FCM Push通知テスト（Firebase設定が必要）
+### 🍎 2. iOSシミュレーターでの APNs リモートプッシュ通知テスト（Firebase設定不要）
+
+iOSシミュレーターでは、有料の Apple Developer アカウントや APNs サーバーがなくても、`.apns` ファイルまたは送信スクリプト（`tool/apns/send_push.sh`）を使って本番同等のリモートプッシュ通知とディープリンクの動作確認が可能です。
+
+詳細なマニュアルは [tool/apns/README.md](../tool/apns/README.md) を参照してください。
+
+#### A. ドラッグ＆ドロップで送信
+
+1. アプリを iOS シミュレーターで起動（local フレーバー）し、通知権限を許可します。
+2. `tool/apns/chat_local.apns` または `tool/apns/memos_local.apns` などのファイルをシミュレーター画面へ直接ドラッグ＆ドロップします。
+3. 画面上部にプッシュ通知バナーが表示され、タップすると `/chat` や `/memos` へ自動遷移します。
+
+#### B. 送信スクリプト（`send_push.sh`）で送信
+
+1. ターミナルでスクリプトを実行します（対話型メニューで直感的に操作可能）。
+
+   ```bash
+   ./tool/apns/send_push.sh
+   ```
+
+2. または CLI 引数で即座に送信します。
+
+   ```bash
+   ./tool/apns/send_push.sh -p /chat -t "💬 チャット通知" -b "新しいメッセージがあります"
+   ```
+
+---
+
+### 📱 3. Firebase Console からの FCM Push通知テスト（Firebase設定が必要）
 
 Firebase Console から直接 Push 通知を送信して実機で受信確認を行う手順です。
 
@@ -161,6 +190,6 @@ Firebase Console から直接 Push 通知を送信して実機で受信確認を
 
 ---
 
-### 🛡️ 3. Firebase 未接続環境でのセーフガード
+### 🛡️ 4. Firebase 未接続環境でのセーフガード
 
 Firebase が初期化されていない環境（Local Flavor や一部のテスト環境など）でも、`Firebase.apps.isNotEmpty` による自動セーフガードが働くため、アプリがクラッシュすることなく安全に動作します。
