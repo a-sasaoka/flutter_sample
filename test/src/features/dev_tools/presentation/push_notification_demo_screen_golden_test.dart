@@ -22,6 +22,7 @@ void main() {
       fcmToken: 'sample_fcm_token_for_golden_test_1234567890',
       authorizationStatus: AuthorizationStatus.authorized,
       latestPayload: dummyPayload,
+      lastReceivedPayload: dummyPayload,
     );
 
     Widget buildScreen({required ThemeMode themeMode}) {

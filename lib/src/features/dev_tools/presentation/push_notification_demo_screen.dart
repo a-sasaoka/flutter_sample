@@ -34,7 +34,7 @@ class PushNotificationDemoScreen extends HookConsumerWidget {
         NotificationStateData(
           :final fcmToken,
           :final authorizationStatus,
-          :final latestPayload,
+          :final lastReceivedPayload,
         ) =>
           ListView(
             padding: const EdgeInsets.all(16),
@@ -229,8 +229,8 @@ class PushNotificationDemoScreen extends HookConsumerWidget {
                 ),
               ),
 
-              // 4. 最新タップペイロード表示
-              if (latestPayload != null) ...[
+              // 4. 直近検知ペイロード表示
+              if (lastReceivedPayload != null) ...[
                 const SizedBox(height: 16),
                 Card(
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -245,7 +245,7 @@ class PushNotificationDemoScreen extends HookConsumerWidget {
                         ),
                         const SizedBox(height: 4),
                         SelectableText(
-                          latestPayload.toString(),
+                          lastReceivedPayload.toString(),
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],

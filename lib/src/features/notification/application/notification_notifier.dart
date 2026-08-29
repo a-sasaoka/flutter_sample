@@ -48,6 +48,7 @@ class NotificationNotifier extends _$NotificationNotifier {
         authorizationStatus: settings?.authorizationStatus,
         initialPayload: initialPayload,
         latestPayload: pending,
+        lastReceivedPayload: pending ?? initialPayload,
       );
     } on Object catch (e) {
       if (!ref.mounted) return;
@@ -101,7 +102,10 @@ class NotificationNotifier extends _$NotificationNotifier {
   /// 通知タップ時のディープリンク画面遷移ハンドラ
   void handleNotificationTap(NotificationPayload payload) {
     if (state case final NotificationStateData dataState) {
-      state = dataState.copyWith(latestPayload: payload);
+      state = dataState.copyWith(
+        latestPayload: payload,
+        lastReceivedPayload: payload,
+      );
     } else {
       _pendingPayload = payload;
     }

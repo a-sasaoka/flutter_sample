@@ -122,11 +122,11 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  loading,TResult Function( String? fcmToken,  AuthorizationStatus? authorizationStatus,  NotificationPayload? latestPayload,  NotificationPayload? initialPayload)?  data,TResult Function( String message)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  loading,TResult Function( String? fcmToken,  AuthorizationStatus? authorizationStatus,  NotificationPayload? latestPayload,  NotificationPayload? lastReceivedPayload,  NotificationPayload? initialPayload)?  data,TResult Function( String message)?  error,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case NotificationStateLoading() when loading != null:
 return loading();case NotificationStateData() when data != null:
-return data(_that.fcmToken,_that.authorizationStatus,_that.latestPayload,_that.initialPayload);case NotificationStateError() when error != null:
+return data(_that.fcmToken,_that.authorizationStatus,_that.latestPayload,_that.lastReceivedPayload,_that.initialPayload);case NotificationStateError() when error != null:
 return error(_that.message);case _:
   return orElse();
 
@@ -145,11 +145,11 @@ return error(_that.message);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  loading,required TResult Function( String? fcmToken,  AuthorizationStatus? authorizationStatus,  NotificationPayload? latestPayload,  NotificationPayload? initialPayload)  data,required TResult Function( String message)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  loading,required TResult Function( String? fcmToken,  AuthorizationStatus? authorizationStatus,  NotificationPayload? latestPayload,  NotificationPayload? lastReceivedPayload,  NotificationPayload? initialPayload)  data,required TResult Function( String message)  error,}) {final _that = this;
 switch (_that) {
 case NotificationStateLoading():
 return loading();case NotificationStateData():
-return data(_that.fcmToken,_that.authorizationStatus,_that.latestPayload,_that.initialPayload);case NotificationStateError():
+return data(_that.fcmToken,_that.authorizationStatus,_that.latestPayload,_that.lastReceivedPayload,_that.initialPayload);case NotificationStateError():
 return error(_that.message);}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -164,11 +164,11 @@ return error(_that.message);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  loading,TResult? Function( String? fcmToken,  AuthorizationStatus? authorizationStatus,  NotificationPayload? latestPayload,  NotificationPayload? initialPayload)?  data,TResult? Function( String message)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  loading,TResult? Function( String? fcmToken,  AuthorizationStatus? authorizationStatus,  NotificationPayload? latestPayload,  NotificationPayload? lastReceivedPayload,  NotificationPayload? initialPayload)?  data,TResult? Function( String message)?  error,}) {final _that = this;
 switch (_that) {
 case NotificationStateLoading() when loading != null:
 return loading();case NotificationStateData() when data != null:
-return data(_that.fcmToken,_that.authorizationStatus,_that.latestPayload,_that.initialPayload);case NotificationStateError() when error != null:
+return data(_that.fcmToken,_that.authorizationStatus,_that.latestPayload,_that.lastReceivedPayload,_that.initialPayload);case NotificationStateError() when error != null:
 return error(_that.message);case _:
   return null;
 
@@ -213,15 +213,17 @@ String toString() {
 
 
 class NotificationStateData implements NotificationState {
-  const NotificationStateData({this.fcmToken, this.authorizationStatus, this.latestPayload, this.initialPayload});
+  const NotificationStateData({this.fcmToken, this.authorizationStatus, this.latestPayload, this.lastReceivedPayload, this.initialPayload});
   
 
 /// 取得した FCM トークン
  final  String? fcmToken;
 /// 通知権限のステータス
  final  AuthorizationStatus? authorizationStatus;
-/// 最後に受信・タップされた通知ペイロード
+/// 最後に受信・タップされた通知ペイロード（画面遷移トリガー用・消費される）
  final  NotificationPayload? latestPayload;
+/// 直近で受信・タップされた通知ペイロード（デバッグ・確認専用・消費されない）
+ final  NotificationPayload? lastReceivedPayload;
 /// アプリ起動時（終了状態からタップ起動）に検知された初期通知ペイロード
  final  NotificationPayload? initialPayload;
 
@@ -235,16 +237,16 @@ $NotificationStateDataCopyWith<NotificationStateData> get copyWith => _$Notifica
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationStateData&&(identical(other.fcmToken, fcmToken) || other.fcmToken == fcmToken)&&(identical(other.authorizationStatus, authorizationStatus) || other.authorizationStatus == authorizationStatus)&&(identical(other.latestPayload, latestPayload) || other.latestPayload == latestPayload)&&(identical(other.initialPayload, initialPayload) || other.initialPayload == initialPayload));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationStateData&&(identical(other.fcmToken, fcmToken) || other.fcmToken == fcmToken)&&(identical(other.authorizationStatus, authorizationStatus) || other.authorizationStatus == authorizationStatus)&&(identical(other.latestPayload, latestPayload) || other.latestPayload == latestPayload)&&(identical(other.lastReceivedPayload, lastReceivedPayload) || other.lastReceivedPayload == lastReceivedPayload)&&(identical(other.initialPayload, initialPayload) || other.initialPayload == initialPayload));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,fcmToken,authorizationStatus,latestPayload,initialPayload);
+int get hashCode => Object.hash(runtimeType,fcmToken,authorizationStatus,latestPayload,lastReceivedPayload,initialPayload);
 
 @override
 String toString() {
-  return 'NotificationState.data(fcmToken: $fcmToken, authorizationStatus: $authorizationStatus, latestPayload: $latestPayload, initialPayload: $initialPayload)';
+  return 'NotificationState.data(fcmToken: $fcmToken, authorizationStatus: $authorizationStatus, latestPayload: $latestPayload, lastReceivedPayload: $lastReceivedPayload, initialPayload: $initialPayload)';
 }
 
 
@@ -255,11 +257,11 @@ abstract mixin class $NotificationStateDataCopyWith<$Res> implements $Notificati
   factory $NotificationStateDataCopyWith(NotificationStateData value, $Res Function(NotificationStateData) _then) = _$NotificationStateDataCopyWithImpl;
 @useResult
 $Res call({
- String? fcmToken, AuthorizationStatus? authorizationStatus, NotificationPayload? latestPayload, NotificationPayload? initialPayload
+ String? fcmToken, AuthorizationStatus? authorizationStatus, NotificationPayload? latestPayload, NotificationPayload? lastReceivedPayload, NotificationPayload? initialPayload
 });
 
 
-$NotificationPayloadCopyWith<$Res>? get latestPayload;$NotificationPayloadCopyWith<$Res>? get initialPayload;
+$NotificationPayloadCopyWith<$Res>? get latestPayload;$NotificationPayloadCopyWith<$Res>? get lastReceivedPayload;$NotificationPayloadCopyWith<$Res>? get initialPayload;
 
 }
 /// @nodoc
@@ -272,11 +274,12 @@ class _$NotificationStateDataCopyWithImpl<$Res>
 
 /// Create a copy of NotificationState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? fcmToken = freezed,Object? authorizationStatus = freezed,Object? latestPayload = freezed,Object? initialPayload = freezed,}) {
+@pragma('vm:prefer-inline') $Res call({Object? fcmToken = freezed,Object? authorizationStatus = freezed,Object? latestPayload = freezed,Object? lastReceivedPayload = freezed,Object? initialPayload = freezed,}) {
   return _then(NotificationStateData(
 fcmToken: freezed == fcmToken ? _self.fcmToken : fcmToken // ignore: cast_nullable_to_non_nullable
 as String?,authorizationStatus: freezed == authorizationStatus ? _self.authorizationStatus : authorizationStatus // ignore: cast_nullable_to_non_nullable
 as AuthorizationStatus?,latestPayload: freezed == latestPayload ? _self.latestPayload : latestPayload // ignore: cast_nullable_to_non_nullable
+as NotificationPayload?,lastReceivedPayload: freezed == lastReceivedPayload ? _self.lastReceivedPayload : lastReceivedPayload // ignore: cast_nullable_to_non_nullable
 as NotificationPayload?,initialPayload: freezed == initialPayload ? _self.initialPayload : initialPayload // ignore: cast_nullable_to_non_nullable
 as NotificationPayload?,
   ));
@@ -293,6 +296,18 @@ $NotificationPayloadCopyWith<$Res>? get latestPayload {
 
   return $NotificationPayloadCopyWith<$Res>(_self.latestPayload!, (value) {
     return _then(_self.copyWith(latestPayload: value));
+  });
+}/// Create a copy of NotificationState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$NotificationPayloadCopyWith<$Res>? get lastReceivedPayload {
+    if (_self.lastReceivedPayload == null) {
+    return null;
+  }
+
+  return $NotificationPayloadCopyWith<$Res>(_self.lastReceivedPayload!, (value) {
+    return _then(_self.copyWith(lastReceivedPayload: value));
   });
 }/// Create a copy of NotificationState
 /// with the given fields replaced by the non-null parameter values.

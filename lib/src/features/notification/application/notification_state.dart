@@ -18,8 +18,11 @@ sealed class NotificationState with _$NotificationState {
     /// 通知権限のステータス
     AuthorizationStatus? authorizationStatus,
 
-    /// 最後に受信・タップされた通知ペイロード
+    /// 最後に受信・タップされた通知ペイロード（画面遷移トリガー用・消費される）
     NotificationPayload? latestPayload,
+
+    /// 直近で受信・タップされた通知ペイロード（デバッグ・確認専用・消費されない）
+    NotificationPayload? lastReceivedPayload,
 
     /// アプリ起動時（終了状態からタップ起動）に検知された初期通知ペイロード
     NotificationPayload? initialPayload,
