@@ -56,10 +56,13 @@ lib/src/features/notification/
 
 ### 1. `NotificationPayload` (ドメインモデル)
 
-通知のデータ部分（`data`）に含まれる遷移先パスやタイトル・本文を保持するイミュータブルなデータモデルです。実装詳細は [notification_payload.dart](../lib/src/features/notification/domain/notification_payload.dart) を参照してください。
+通知の表示メタデータ（タイトル・本文）およびデータ部（`data`）に含まれる遷移先パスやカスタムデータを統合して保持するイミュータブルなデータモデルです。実装詳細は [notification_payload.dart](../lib/src/features/notification/domain/notification_payload.dart) を参照してください。
+
+- **通知メタデータ (`title` / `body`)**: FCM の `message.notification` やローカル通知から渡される、ユーザー向けの表示用テキストです。`NotificationPayload.fromMap()` の名前付き引数経由で設定されます。
+- **データペイロード (`path` / `data`)**: FCM の `message.data` に含まれるカスタムデータです。画面遷移パスや追加パラメータが保持されます。
 
 > **💡 ペイロードキーの柔軟な解決 (`_readPath`)**:
-> FCM ペイロードのデータ部（`data`）において、`path`, `route`, `deep_link` のいずれのキーでパスが指定されていても、自動的に前後の空白を除去した上で `path` フィールドへマッピングされます。また、`fromMap` を介して受信通知の `title` / `body` と `data` マップ全体を安全に保持します。
+> FCM ペイロードのデータ部（`data`）において、`path`, `route`, `deep_link` のいずれのキーでパスが指定されていても、`_readPath` により自動的に前後の空白を除去した上で `path` フィールドへマッピングされます。また、`fromMap` を介して `data` マップ全体も安全に保持されます。
 
 ### 2. `PushNotificationService` (データ層)
 
