@@ -47,8 +47,8 @@ sealed class EnvConfigState with _$EnvConfigState {
 🤖 Use Agent Platform: $useAgentPlatform''';
 }
 
-/// デフォルトの API ベース URL（サンプルの動作確認用）
-const defaultBaseUrl = 'https://jsonplaceholder.typicode.com';
+/// デフォルトの API ベース URL（ローカルモックサーバーの動作確認用）
+const defaultBaseUrl = 'http://localhost:3000';
 
 /// デフォルトの AI モデル名
 const defaultAiModel = 'gemini-3.5-flash-lite';

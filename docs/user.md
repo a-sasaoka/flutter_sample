@@ -2,7 +2,7 @@
 
 ## 概要
 
-本機能は、外部 API（[JSONPlaceholder](https://jsonplaceholder.typicode.com/)）からユーザー一覧を取得し、リスト表示するデモ機能です。\
+本機能は、[ローカルモックサーバー](./mock_server.md)（`http://localhost:3000/users`）からユーザー一覧を取得し、リスト表示するデモ機能です。\
 API 通信、キャッシュ管理、エラーハンドリング、およびモダンなリスト UI の実装パターンを示しています。
 
 ---
@@ -70,3 +70,4 @@ user/
 
 - [API通信とエラーハンドリングの基盤設計](./api_and_error_handling.md)
 - [キャッシュ管理（SharedPreferencesAsync）](./cache.md)
+- [ローカルモックサーバー (json-server)](./mock_server.md)
