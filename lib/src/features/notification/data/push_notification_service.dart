@@ -78,7 +78,7 @@ class PushNotificationService {
       final initialized = await _localNotifications.initialize(
         settings: initializationSettings,
         onDidReceiveNotificationResponse: (response) {
-          _talker.info('🔔 通知がタップされました: ${response.payload}');
+          _talker.info('🔔 通知がタップされました (id: ${response.id})');
           final rawPayload = response.payload;
           if (rawPayload != null && rawPayload.isNotEmpty) {
             try {
@@ -91,7 +91,7 @@ class PushNotificationService {
                 onNotificationTap?.call(payload);
               }
             } on Object catch (e, st) {
-              _talker.handle(e, st, '通知ペイロードのパースに失敗しました: $rawPayload');
+              _talker.handle(e, st, '通知ペイロードのパースに失敗しました');
             }
           }
         },
