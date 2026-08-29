@@ -76,7 +76,7 @@ Firebase Messaging と `FlutterLocalNotificationsPlugin` のやり取りをラ�
 
 ### 3. `NotificationNotifier` (アプリケーション層)
 
-Riverpod の `@riverpod` Notifier として動作し、FCMトークンの取得や通知状態の管理・更新を担当します（実際のディープリンク画面遷移はルーターリスナーが実行します）。実装詳細は [notification_notifier.dart](../lib/src/features/notification/application/notification_notifier.dart) を参照してください。
+Riverpod の `@Riverpod(keepAlive: true)` Notifier として動作し、FCMトークンの取得や通知状態の管理・更新を担当します（実際のディープリンク画面遷移はルーターリスナーが実行します）。実装詳細は [notification_notifier.dart](../lib/src/features/notification/application/notification_notifier.dart) を参照してください。
 
 - **初期化 (`_init`)**: トークン取得、権限ステータス確認、アプリ起動時通知（`initialPayload`）の取得を非同期で実行します。
 - **ペイロード消費 (`consumeInitialPayload` / `consumeLatestPayload`)**: 画面遷移処理の重複を防ぐため、一度遷移に使われたペイロードをクリア（消費）します。
