@@ -50,7 +50,7 @@ lib/src/core/config/
 
 ## 🏗 アプリへの適用
 
-[main.dart](../lib/main.dart) の `MyApp` 内で `themeModeProvider` を監視（`watch`）し、`MaterialApp.router` の `themeMode` や `theme`, `darkTheme` プロパティに `AppTheme.light()` / `AppTheme.dark()` を注入しています。  
+[main.dart](../lib/main.dart) の `MyApp` 内で `appConfigProvider` を監視（`watch`）し、取得したテーマ設定（`theme`）を `MaterialApp.router` の `themeMode` に渡しつつ、`theme` と `darkTheme` プロパティに `AppTheme.light()` / `AppTheme.dark()` を注入しています。  
 これにより、ユーザーの設定変更に合わせてアプリ全体のテーマがリアクティブに切り替わります。
 
 ---
