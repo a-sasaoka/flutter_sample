@@ -90,26 +90,51 @@ INTERACTIVE=true
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -f|--flavor)
+      if [[ $# -lt 2 ]]; then
+        echo "❌ エラー: $1 オプションには値（フレーバー名）が必要です。" >&2
+        echo "💡 '$0 --help' で使用方法を確認してください。" >&2
+        exit 1
+      fi
       FLAVOR="$2"
       INTERACTIVE=false
       shift 2
       ;;
     -p|--path)
+      if [[ $# -lt 2 ]]; then
+        echo "❌ エラー: $1 オプションには値（遷移先パス）が必要です。" >&2
+        echo "💡 '$0 --help' で使用方法を確認してください。" >&2
+        exit 1
+      fi
       TARGET_PATH="$2"
       INTERACTIVE=false
       shift 2
       ;;
     -t|--title)
+      if [[ $# -lt 2 ]]; then
+        echo "❌ エラー: $1 オプションには値（通知タイトル）が必要です。" >&2
+        echo "💡 '$0 --help' で使用方法を確認してください。" >&2
+        exit 1
+      fi
       TITLE="$2"
       INTERACTIVE=false
       shift 2
       ;;
     -b|--body)
+      if [[ $# -lt 2 ]]; then
+        echo "❌ エラー: $1 オプションには値（通知本文）が必要です。" >&2
+        echo "💡 '$0 --help' で使用方法を確認してください。" >&2
+        exit 1
+      fi
       BODY="$2"
       INTERACTIVE=false
       shift 2
       ;;
     -i|--file)
+      if [[ $# -lt 2 ]]; then
+        echo "❌ エラー: $1 オプションには値（ファイルパス）が必要です。" >&2
+        echo "💡 '$0 --help' で使用方法を確認してください。" >&2
+        exit 1
+      fi
       APNS_FILE="$2"
       INTERACTIVE=false
       shift 2
