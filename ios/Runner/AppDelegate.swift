@@ -19,22 +19,25 @@ import flutter_local_notifications
     }
 
     // 🔔 アプリ起動時にアプリアイコンのバッジをリセット
-    resetBadge(application)
+    resetBadge()
+
+    // 🔔 Sceneの有無に関わらず、アプリがアクティブになった通知を確実に検知してバッジをリセット
+    NotificationCenter.default.addObserver(
+      forName: UIApplication.didBecomeActiveNotification,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      self?.resetBadge()
+    }
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
-  // 🔔 バックグラウンドからアプリに復帰（アクティブ化）した時にもバッジをリセット
-  override func applicationDidBecomeActive(_ application: UIApplication) {
-    super.applicationDidBecomeActive(application)
-    resetBadge(application)
-  }
-
-  private func resetBadge(_ application: UIApplication) {
+  private func resetBadge() {
     if #available(iOS 17.0, *) {
       UNUserNotificationCenter.current().setBadgeCount(0)
     } else {
-      application.applicationIconBadgeNumber = 0
+      UIApplication.shared.applicationIconBadgeNumber = 0
     }
   }
 
