@@ -1,7 +1,7 @@
 # API通信とエラーハンドリング
 
 [Dio](https://pub.dev/packages/dio) と [Riverpod](https://pub.dev/packages/flutter_riverpod) を組み合わせ、外部APIからデータを取得してUIに表示する堅牢な仕組みを実装しています。\
-以下は `https://jsonplaceholder.typicode.com/users` を利用したユーザー一覧取得のデモアーキテクチャです。
+以下は `http://localhost:3000/users`（[ローカルモックサーバー](./mock_server.md)）を利用したユーザー一覧取得のデモアーキテクチャです。
 
 ## 📁 構成例（レイヤードアーキテクチャ）
 
