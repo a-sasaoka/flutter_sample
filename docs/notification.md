@@ -143,6 +143,7 @@ class NotificationNotifier extends _$NotificationNotifier {
       authorizationStatus: settings?.authorizationStatus,
       initialPayload: initialPayload,
       latestPayload: pending,
+      lastReceivedPayload: pending ?? initialPayload,
     );
   }
 
@@ -173,7 +174,10 @@ class NotificationNotifier extends _$NotificationNotifier {
   /// 通知タップ時のディープリンク状態更新
   void handleNotificationTap(NotificationPayload payload) {
     if (state case final NotificationStateData dataState) {
-      state = dataState.copyWith(latestPayload: payload);
+      state = dataState.copyWith(
+        latestPayload: payload,
+        lastReceivedPayload: payload,
+      );
     } else {
       // 非同期初期化中の通知タップは一時退避し、_init 完了時に latestPayload へ反映する
       _pendingPayload = payload;
@@ -182,8 +186,8 @@ class NotificationNotifier extends _$NotificationNotifier {
 }
 ```
 
-> **💡 アーキテクチャのポイント (単方向データフロー & 初期化時バッファリング)**:
-> `NotificationNotifier` はルーター（`routerProvider`）に直接依存せず、状態（`latestPayload`）の更新のみを担当します。実際のディープリンク画面遷移は、`app_router.dart` 内の `ref.listen(notificationProvider, ...)` が `latestPayload` の変更を検知して `router.go(path)` を呼び出すことで、循環依存エラー（`CircularDependencyError`）を確実に防止しています。また、非同期初期化中に発生した通知タップもバッファリングされ、初期化完了時に安全に画面遷移がトリガーされます。
+> **💡 アーキテクチャのポイント (単方向データフロー & 確認用履歴の保持)**:
+> `NotificationNotifier` はルーター（`routerProvider`）に直接依存せず、状態の更新のみを担当します。画面遷移トリガー用の `latestPayload` は `app_router.dart` の `ref.listen` によって二重遷移防止のために即座に消費（`consumeLatestPayload()`）されますが、確認・デバッグ専用の `lastReceivedPayload` は消去されずに保持されるため、画面遷移後もデモ画面等で直近の通知ペイロードを安全に確認できます。また、非同期初期化中に発生した通知タップもバッファリングされ、初期化完了時に安全に画面遷移がトリガーされます。
 
 ---
 

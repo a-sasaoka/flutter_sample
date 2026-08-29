@@ -295,8 +295,9 @@ void main() {
     });
 
     test(
-      'handleNotificationTap で latestPayload が更新され '
-      'consumeLatestPayload で消費できること',
+      'handleNotificationTap で latestPayload と lastReceivedPayload が更新され '
+      'consumeLatestPayload で latestPayload が消費されても '
+      'lastReceivedPayload は維持されること',
       () async {
         final container = createContainer();
         await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -313,8 +314,10 @@ void main() {
         check(state).isA<NotificationStateData>();
         final dataState = state as NotificationStateData;
         check(dataState.latestPayload).equals(payload);
+        check(dataState.lastReceivedPayload).equals(payload);
 
-        // consumeLatestPayload でペイロードが取り出され、null に更新されること
+        // consumeLatestPayload で latestPayload が取り出され、null に更新されるが
+        // lastReceivedPayload は維持されること
         final consumed = notifier.consumeLatestPayload();
         check(consumed).equals(payload);
 
@@ -322,6 +325,7 @@ void main() {
         check(afterState).isA<NotificationStateData>();
         final afterDataState = afterState as NotificationStateData;
         check(afterDataState.latestPayload).isNull();
+        check(afterDataState.lastReceivedPayload).equals(payload);
 
         // 2回目の消費は null
         check(notifier.consumeLatestPayload()).isNull();
@@ -330,7 +334,7 @@ void main() {
 
     test(
       '初期化処理中（loading中）に handleNotificationTap が呼ばれた場合、 '
-      '初期化完了時に latestPayload へ反映されること',
+      '初期化完了時に latestPayload および lastReceivedPayload へ反映されること',
       () async {
         final initCompleter = Completer<String?>();
         when(
@@ -362,6 +366,7 @@ void main() {
         check(state).isA<NotificationStateData>();
         final dataState = state as NotificationStateData;
         check(dataState.latestPayload).equals(pendingPayload);
+        check(dataState.lastReceivedPayload).equals(pendingPayload);
       },
     );
   });

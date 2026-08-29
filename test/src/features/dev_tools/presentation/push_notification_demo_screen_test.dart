@@ -178,7 +178,7 @@ void main() {
       ).equals('/settings/profile');
     });
 
-    testWidgets('latestPayload が存在する場合にカードが表示されること', (tester) async {
+    testWidgets('lastReceivedPayload が存在する場合にカードが表示されること', (tester) async {
       const payload = NotificationPayload(
         path: '/chat',
         title: 'Latest Title',
@@ -187,7 +187,7 @@ void main() {
 
       final spyNotifier = _SpyNotificationNotifier(
         const NotificationState.data(
-          latestPayload: payload,
+          lastReceivedPayload: payload,
         ),
       );
 
