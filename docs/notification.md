@@ -113,6 +113,7 @@ sealed class NotificationPayload with _$NotificationPayload {
 Firebase Messaging と `FlutterLocalNotificationsPlugin` のやり取りをラップします。
 
 - **フォアグラウンド受信時**: `FirebaseMessaging.onMessage` を検知し、ローカル通知（高優先度バナー）を即座に表示します。
+- **バックグラウンド・終了時のデータ受信**: `@pragma('vm:entry-point')` のトップレベルハンドラ `firebaseMessagingBackgroundHandler` により、アプリ停止時でも安全にバックグラウンドメッセージを受信・処理します。
 - **通知タップ時**: `onNotificationTap` コールバックを通じて `NotificationPayload` を上位（Notifier）へ伝達します。
 - **アプリ終了状態からの起動時**: `getInitialNotification()` により Firebase 及びローカル通知の起動情報を取得し、初期通知ペイロードとして保持します。
 - **Android ネイティブ高重要度チャンネル初期化**: アプリ未起動（terminated）状態でのFCM通知受信時にも高重要度（バナー/サウンド）で確実に表示されるよう、`MainApplication.kt` の `onCreate()` で `high_importance_channel` をネイティブ初期化しています。
@@ -249,7 +250,9 @@ Firebase Console から直接 Push 通知を送信して実機で受信確認を
 #### 事前準備
 
 - **Android**: `android/app/google-services.json` が配置されていること。
-- **iOS**: Apple Developer Program（有料）の APNs 認証キー（`.p8`）が Firebase Console に登録されていること（実機受信の場合）。
+- **iOS**:
+  - Apple Developer Program（有料）の APNs 認証キー（`.p8`）が Firebase Console に登録されていること（実機受信の場合）。
+  - Xcode（`ios/Runner.xcworkspace`）の **Runner** ターゲット ➔ **Signing & Capabilities** にて **「Push Notifications」** 機能（Capability）が追加されていること（`Runner.entitlements` の生成）。
 
 #### 送信テスト手順
 

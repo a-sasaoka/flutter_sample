@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_sample/src/features/notification/data/firebase_messaging_background_handler.dart';
 import 'package:flutter_sample/src/features/notification/domain/notification_payload.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
@@ -99,6 +100,9 @@ class PushNotificationService {
     // 2. Firebase Messaging リスナーの設定（インスタンスが存在する場合）
     final messaging = _messaging;
     if (messaging != null) {
+      // バックグラウンドメッセージハンドラを登録
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
       if (_isLocalNotificationsInitialized) {
         // フォアグラウンドでの通知バナー表示オプション（iOS）
         // 自前で showLocalNotification によるバナー表示を行うため、二重表示を防ぐよう無効化（デフォルト: false）
@@ -156,24 +160,65 @@ class PushNotificationService {
     return null;
   }
 
-  /// 通知パーミッションの要求（Firebase Messaging & iOSローカル通知）
+  /// 通知パーミッションの要求（Firebase Messaging & ローカル通知）
   Future<NotificationSettings?> requestPermission() async {
+    bool? localGranted;
     try {
       final iosPlugin = _localNotifications
           .resolvePlatformSpecificImplementation<
             IOSFlutterLocalNotificationsPlugin
           >();
-      await iosPlugin?.requestPermissions(
+      final iosGranted = await iosPlugin?.requestPermissions(
         alert: true,
         badge: true,
         sound: true,
       );
+
+      final androidPlugin = _localNotifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      final androidGranted = await androidPlugin
+          ?.requestNotificationsPermission();
+
+      localGranted = iosGranted ?? androidGranted;
     } on Object catch (e, st) {
-      _talker.handle(e, st, 'iOSローカル通知権限リクエストに失敗しました');
+      _talker.handle(e, st, 'ローカル通知権限リクエストに失敗しました');
     }
 
     final messaging = _messaging;
-    if (messaging == null) return null;
+    if (messaging == null) {
+      if (localGranted != null) {
+        return NotificationSettings(
+          alert: localGranted
+              ? AppleNotificationSetting.enabled
+              : AppleNotificationSetting.disabled,
+          announcement: AppleNotificationSetting.notSupported,
+          authorizationStatus: localGranted
+              ? AuthorizationStatus.authorized
+              : AuthorizationStatus.denied,
+          badge: localGranted
+              ? AppleNotificationSetting.enabled
+              : AppleNotificationSetting.disabled,
+          carPlay: AppleNotificationSetting.notSupported,
+          criticalAlert: AppleNotificationSetting.notSupported,
+          lockScreen: localGranted
+              ? AppleNotificationSetting.enabled
+              : AppleNotificationSetting.disabled,
+          notificationCenter: localGranted
+              ? AppleNotificationSetting.enabled
+              : AppleNotificationSetting.disabled,
+          showPreviews: AppleShowPreviewSetting.always,
+          timeSensitive: AppleNotificationSetting.notSupported,
+          sound: localGranted
+              ? AppleNotificationSetting.enabled
+              : AppleNotificationSetting.disabled,
+          providesAppNotificationSettings:
+              AppleNotificationSetting.notSupported,
+        );
+      }
+      return null;
+    }
     final settings = await messaging.requestPermission();
     _talker.info('🔔 通知権限ステータス: ${settings.authorizationStatus}');
     return settings;

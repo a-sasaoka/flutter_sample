@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:checks/checks.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_sample/src/features/notification/data/firebase_messaging_background_handler.dart';
 import 'package:flutter_sample/src/features/notification/data/push_notification_service.dart';
 import 'package:flutter_sample/src/features/notification/domain/notification_payload.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -105,7 +107,35 @@ void main() {
   late MockTalker mockTalker;
   late PushNotificationService service;
 
+  const dummySettings = NotificationSettings(
+    alert: AppleNotificationSetting.enabled,
+    announcement: AppleNotificationSetting.notSupported,
+    authorizationStatus: AuthorizationStatus.authorized,
+    badge: AppleNotificationSetting.enabled,
+    carPlay: AppleNotificationSetting.notSupported,
+    criticalAlert: AppleNotificationSetting.notSupported,
+    lockScreen: AppleNotificationSetting.enabled,
+    notificationCenter: AppleNotificationSetting.enabled,
+    showPreviews: AppleShowPreviewSetting.always,
+    timeSensitive: AppleNotificationSetting.notSupported,
+    sound: AppleNotificationSetting.enabled,
+    providesAppNotificationSettings: AppleNotificationSetting.notSupported,
+  );
+
   setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('plugins.flutter.io/firebase_messaging'),
+          (call) async => null,
+        );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel(
+            'plugins.flutter.io/firebase_messaging_background',
+          ),
+          (call) async => null,
+        );
     registerFallbackValue(FakeAndroidNotificationChannel());
     registerFallbackValue(StackTrace.current);
     registerFallbackValue(Exception('fallback'));
@@ -131,6 +161,14 @@ void main() {
         sound: any(named: 'sound'),
       ),
     ).thenAnswer((_) async => true);
+
+    when(
+      () => mockAndroidPlugin.requestNotificationsPermission(),
+    ).thenAnswer((_) async => true);
+
+    when(
+      () => mockMessaging.requestPermission(),
+    ).thenAnswer((_) async => dummySettings);
 
     when(
       () => mockMessaging.setForegroundNotificationPresentationOptions(
@@ -297,7 +335,17 @@ void main() {
       ).called(1);
     });
 
-    test('requestPermission が正常に NotificationSettings を返すこと', () async {
+    test('firebaseMessagingBackgroundHandler が例外なく完了すること', () async {
+      const message = RemoteMessage(
+        messageId: 'bg_msg_123',
+        data: {'key': 'value'},
+      );
+      await check(
+        firebaseMessagingBackgroundHandler(message),
+      ).completes();
+    });
+
+    test('requestPermission でAndroidおよびiOSプラグインの権限要求が実行されステータスを返すこと', () async {
       final mockSettings = MockNotificationSettings();
       when(
         () => mockSettings.authorizationStatus,
@@ -309,10 +357,77 @@ void main() {
       final result = await service.requestPermission();
       check(result).isNotNull();
       check(result?.authorizationStatus).equals(AuthorizationStatus.authorized);
+
+      verify(
+        () => mockIOSPlugin.requestPermissions(
+          alert: true,
+          badge: true,
+          sound: true,
+        ),
+      ).called(1);
+      verify(
+        () => mockAndroidPlugin.requestNotificationsPermission(),
+      ).called(1);
     });
 
-    test('messaging が null の場合 requestPermission は null を返すこと', () async {
+    test(
+      'messaging が null かつローカル権限が許可された場合 authorized な settings を返すこと',
+      () async {
+        final serviceWithoutMessaging = PushNotificationService(
+          localNotifications: fakeLocalNotifications,
+          talker: mockTalker,
+          channelName: 'Test Channel',
+          channelDescription: 'Test Description',
+          defaultTitle: 'Test Title',
+        );
+
+        final result = await serviceWithoutMessaging.requestPermission();
+        check(result).isNotNull();
+        check(
+          result?.authorizationStatus,
+        ).equals(AuthorizationStatus.authorized);
+      },
+    );
+
+    test('messaging が null かつローカル権限が拒否された場合 denied な settings を返すこと', () async {
+      when(
+        () => mockIOSPlugin.requestPermissions(
+          alert: any(named: 'alert'),
+          badge: any(named: 'badge'),
+          sound: any(named: 'sound'),
+        ),
+      ).thenAnswer((_) async => false);
+      when(
+        () => mockAndroidPlugin.requestNotificationsPermission(),
+      ).thenAnswer((_) async => false);
+
       final serviceWithoutMessaging = PushNotificationService(
+        localNotifications: fakeLocalNotifications,
+        talker: mockTalker,
+        channelName: 'Test Channel',
+        channelDescription: 'Test Description',
+        defaultTitle: 'Test Title',
+      );
+
+      final result = await serviceWithoutMessaging.requestPermission();
+      check(result).isNotNull();
+      check(result?.authorizationStatus).equals(AuthorizationStatus.denied);
+    });
+
+    test('messaging が null かつローカル権限結果が null の場合 null を返すこと', () async {
+      when(
+        () => mockIOSPlugin.requestPermissions(
+          alert: any(named: 'alert'),
+          badge: any(named: 'badge'),
+          sound: any(named: 'sound'),
+        ),
+      ).thenAnswer((_) async => null);
+      when(
+        () => mockAndroidPlugin.requestNotificationsPermission(),
+      ).thenAnswer((_) async => null);
+
+      final serviceWithoutMessaging = PushNotificationService(
+        localNotifications: fakeLocalNotifications,
         talker: mockTalker,
         channelName: 'Test Channel',
         channelDescription: 'Test Description',
@@ -321,6 +436,35 @@ void main() {
 
       final result = await serviceWithoutMessaging.requestPermission();
       check(result).isNull();
+    });
+
+    test('ローカル権限リクエスト時に例外が発生した場合エラーログをhandleすること', () async {
+      when(
+        () => mockIOSPlugin.requestPermissions(
+          alert: any(named: 'alert'),
+          badge: any(named: 'badge'),
+          sound: any(named: 'sound'),
+        ),
+      ).thenThrow(Exception('Permission error'));
+
+      final serviceWithoutMessaging = PushNotificationService(
+        localNotifications: fakeLocalNotifications,
+        talker: mockTalker,
+        channelName: 'Test Channel',
+        channelDescription: 'Test Description',
+        defaultTitle: 'Test Title',
+      );
+
+      final result = await serviceWithoutMessaging.requestPermission();
+      check(result).isNull();
+
+      verify(
+        () => mockTalker.handle(
+          any<Object>(),
+          any<StackTrace>(),
+          any<String>(),
+        ),
+      ).called(1);
     });
 
     test('getNotificationSettings が正常にステータスを返すこと', () async {
