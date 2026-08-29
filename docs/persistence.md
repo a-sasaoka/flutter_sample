@@ -125,7 +125,7 @@ DioのInterceptor（通信割り込み）と連携し、APIリクエスト時に
 永続化層はすべて Riverpod で抽象化されているため、テスト時にインメモリデータベースやモックへ差し替えることが容易です。
 
 - **Drift**: `NativeDatabase.memory()` を使うことで、高速なインメモリテストが可能です。テスト実装例は [app_database_test.dart](../test/src/app/database/app_database_test.dart) を参照してください。
-- **SharedPreferences**: `SharedPreferencesAsync.setMockInitialValues()` でテスト用の初期値を設定できます。テスト実装例は [shared_preferences_provider_test.dart](../test/src/features/dev_tools/application/shared_preferences_provider_test.dart) を参照してください。
+- **SharedPreferences**: `mocktail` を用いて `MockSharedPreferencesAsync` を作成し、`sharedPreferencesProvider.overrideWithValue(mockPrefs)` で注入することで、柔軟で高速なモックテストが可能です。テスト実装例は [shared_preferences_provider_test.dart](../test/src/features/dev_tools/application/shared_preferences_provider_test.dart) を参照してください。
 
 この構成により、実際のデバイスストレージに依存しない、高速でクリーンなテスト環境を実現しています。
 
