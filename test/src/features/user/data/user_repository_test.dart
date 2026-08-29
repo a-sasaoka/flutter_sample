@@ -26,6 +26,11 @@ class MockMapResponse extends Mock implements Response<Map<String, dynamic>> {}
 class MockVoidResponse extends Mock implements Response<void> {}
 
 void main() {
+  setUpAll(() {
+    registerFallbackValue(StackTrace.current);
+    registerFallbackValue(const AppException.dataParse());
+  });
+
   late MockApiClient mockApi;
   late MockCacheManager mockCache;
   late MockTalker mockTalker;
@@ -38,6 +43,13 @@ void main() {
 
     when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
     when(() => mockTalker.error(any<dynamic>())).thenReturn(null);
+    when(
+      () => mockTalker.handle(
+        any<Object>(),
+        any<StackTrace?>(),
+        any<dynamic>(),
+      ),
+    ).thenReturn(null);
 
     repository = UserRepository(
       api: mockApi,
@@ -220,6 +232,58 @@ void main() {
       // エラーが起きたので、キャッシュ保存は絶対に呼ばれていないことを確認
       verifyNever(() => mockCache.save(any<String>(), any<dynamic>()));
     });
+
+    test('キャッシュ内のデータが不正な場合、AppException.dataParse をスローしログを出力すること', () async {
+      // Arrange
+      when(
+        () => mockCache.getWithTimestamp('users'),
+      ).thenAnswer(
+        (_) async => (
+          [
+            {'id': 'invalid-id'},
+          ],
+          dummyTimestamp,
+        ),
+      );
+
+      // Act & Assert
+      await check(repository.fetchUsers()).throws<DataParseException>();
+      verify(
+        () => mockTalker.handle(
+          any<Object>(),
+          any<StackTrace>(),
+          'Failed to parse cached user data: Failed to parse UserModel',
+        ),
+      ).called(1);
+    });
+
+    test(
+      'APIレスポンスのリスト内に不正データが含まれる場合、AppException.dataParse をスローしログを出力すること',
+      () async {
+        // Arrange
+        when(
+          () => mockCache.getWithTimestamp('users'),
+        ).thenAnswer((_) async => (null, null));
+
+        final mockResponse = MockResponse();
+        when(() => mockResponse.data).thenReturn([
+          {'id': 'invalid-id'},
+        ]);
+        when(
+          () => mockApi.get<List<dynamic>>('/users'),
+        ).thenAnswer((_) async => mockResponse);
+
+        // Act & Assert
+        await check(repository.fetchUsers()).throws<DataParseException>();
+        verify(
+          () => mockTalker.handle(
+            any<Object>(),
+            any<StackTrace>(),
+            'Failed to parse API user data: Failed to parse UserModel',
+          ),
+        ).called(1);
+      },
+    );
   });
 
   group('UserRepository - CRUD operations', () {
@@ -325,11 +389,36 @@ void main() {
       // Act & Assert
       await check(
         repository.createUser('Name', 'email@example.com'),
-      ).throws<AppException>();
+      ).throws<DataParseException>();
 
       verify(
-        () => mockTalker.error(
+        () => mockTalker.handle(
+          const AppException.dataParse(),
+          any<StackTrace>(),
           'Failed to parse created user data: Response data is invalid.',
+        ),
+      ).called(1);
+    });
+
+    test('createUser: レスポンスデータがMapだが型不一致の場合、例外を投げること', () async {
+      // Arrange
+      final mockResponse = MockMapResponse();
+      when(() => mockResponse.data).thenReturn({'id': 'not-an-int'});
+      when(
+        () =>
+            mockApi.post<Map<String, dynamic>>(any(), data: any(named: 'data')),
+      ).thenAnswer((_) async => mockResponse);
+
+      // Act & Assert
+      await check(
+        repository.createUser('Name', 'email@example.com'),
+      ).throws<DataParseException>();
+
+      verify(
+        () => mockTalker.handle(
+          any<Object>(),
+          any<StackTrace>(),
+          'Failed to parse created user data: Failed to parse UserModel',
         ),
       ).called(1);
     });
@@ -348,10 +437,12 @@ void main() {
       // Act & Assert
       await check(
         repository.updateUserName(1, 'New Name'),
-      ).throws<AppException>();
+      ).throws<DataParseException>();
 
       verify(
-        () => mockTalker.error(
+        () => mockTalker.handle(
+          const AppException.dataParse(),
+          any<StackTrace>(),
           'Failed to parse updated user data: Response data is invalid.',
         ),
       ).called(1);

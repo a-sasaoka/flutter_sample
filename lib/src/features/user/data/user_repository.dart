@@ -56,12 +56,10 @@ class UserRepository {
       if (cachedData case final List<dynamic> data) {
         // キャッシュから読み込む
         talker.debug('Loaded users from cache.');
-        return (
-          data
-              .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
-              .toList(growable: false),
-          timestamp ?? clock(),
-        );
+        final users = data
+            .map((e) => _parseUser(e, 'Failed to parse cached user data'))
+            .toList(growable: false);
+        return (users, timestamp ?? clock());
       }
     }
 
@@ -69,7 +67,7 @@ class UserRepository {
     final response = await api.get<List<dynamic>>('/users');
     if (response.data case final List<dynamic> data) {
       final users = data
-          .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
+          .map((e) => _parseUser(e, 'Failed to parse API user data'))
           .toList(growable: false);
 
       // キャッシュに保存（上書き）
@@ -141,9 +139,18 @@ class UserRepository {
 
   UserModel _parseUser(Object? responseData, String errorMessage) {
     if (responseData case final Map<String, dynamic> data) {
-      return UserModel.fromJson(data);
+      try {
+        return UserModel.fromJson(data);
+      } on Object catch (e, st) {
+        talker.handle(e, st, '$errorMessage: Failed to parse UserModel');
+        throw const AppException.dataParse();
+      }
     }
-    talker.error('$errorMessage: Response data is invalid.');
+    talker.handle(
+      const AppException.dataParse(),
+      StackTrace.current,
+      '$errorMessage: Response data is invalid.',
+    );
     throw const AppException.dataParse();
   }
 }

@@ -15,6 +15,11 @@ class MockApiClient extends Mock implements ApiClient {}
 class MockTalker extends Mock implements Talker {}
 
 void main() {
+  setUpAll(() {
+    registerFallbackValue(StackTrace.current);
+    registerFallbackValue(const AppException.dataParse());
+  });
+
   late MockApiClient mockApi;
   late MockTalker mockTalker;
   late ProfileRepository repository;
@@ -22,6 +27,14 @@ void main() {
   setUp(() {
     mockApi = MockApiClient();
     mockTalker = MockTalker();
+    when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
+    when(
+      () => mockTalker.handle(
+        any<Object>(),
+        any<StackTrace?>(),
+        any<dynamic>(),
+      ),
+    ).thenReturn(null);
     repository = ProfileRepository(api: mockApi, talker: mockTalker);
   });
 
@@ -65,7 +78,7 @@ void main() {
       });
 
       test(
-        'GET /users/me レスポンスデータのパースに失敗した際、AppException.dataParse をスローすること',
+        'GET /users/me レスポンスデータが null (not Map) の際、AppException.dataParse をスローすること',
         () async {
           when(() => mockApi.get<Map<String, dynamic>>('/users/me')).thenAnswer(
             (_) async => Response(
@@ -74,7 +87,36 @@ void main() {
             ),
           );
 
-          await check(repository.fetchProfile()).throws<AppException>();
+          await check(repository.fetchProfile()).throws<DataParseException>();
+          verify(
+            () => mockTalker.handle(
+              const AppException.dataParse(),
+              any<StackTrace>(),
+              any<String>(that: contains('Failed to parse profile data')),
+            ),
+          ).called(1);
+        },
+      );
+
+      test(
+        'GET /users/me レスポンスデータが Map だが不正な型を含む際、AppException.dataParse をスローし実際の例外をログすること',
+        () async {
+          when(() => mockApi.get<Map<String, dynamic>>('/users/me')).thenAnswer(
+            (_) async => Response(
+              requestOptions: RequestOptions(path: '/users/me'),
+              data: {'name': 12345}, // name が String ではなく int
+              statusCode: 200,
+            ),
+          );
+
+          await check(repository.fetchProfile()).throws<DataParseException>();
+          verify(
+            () => mockTalker.handle(
+              any<Object>(),
+              any<StackTrace>(),
+              any<String>(that: contains('Failed to parse UserProfile')),
+            ),
+          ).called(1);
         },
       );
     });
@@ -116,7 +158,16 @@ void main() {
 
           await check(
             repository.updateProfile(testProfile),
-          ).throws<AppException>();
+          ).throws<DataParseException>();
+          verify(
+            () => mockTalker.handle(
+              const AppException.dataParse(),
+              any<StackTrace>(),
+              any<String>(
+                that: contains('Failed to parse updated profile data'),
+              ),
+            ),
+          ).called(1);
         },
       );
     });

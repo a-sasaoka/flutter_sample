@@ -85,7 +85,7 @@ class PushNotificationService {
               final payload = NotificationPayload.fromMap(map);
               onNotificationTap?.call(payload);
             } on Object catch (e, st) {
-              _talker.error('通知ペイロードのパースに失敗しました', e, st);
+              _talker.handle(e, st, '通知ペイロードのパースに失敗しました');
             }
           }
         },
@@ -93,7 +93,7 @@ class PushNotificationService {
       _isLocalNotificationsInitialized = initialized ?? true;
     } on Object catch (e, st) {
       _isLocalNotificationsInitialized = false;
-      _talker.warning('ローカル通知プラグインの初期化をスキップしました', e, st);
+      _talker.handle(e, st, 'ローカル通知プラグインの初期化に失敗しました');
     }
 
     // 2. Firebase Messaging リスナーの設定（インスタンスが存在する場合）
@@ -131,7 +131,7 @@ class PushNotificationService {
           );
         }
       } on Object catch (e, st) {
-        _talker.error('Firebase 初期通知の取得に失敗しました', e, st);
+        _talker.handle(e, st, 'Firebase 初期通知の取得に失敗しました');
       }
     }
 
@@ -150,7 +150,7 @@ class PushNotificationService {
         }
       }
     } on Object catch (e, st) {
-      _talker.error('ローカル初期通知の取得に失敗しました', e, st);
+      _talker.handle(e, st, 'ローカル初期通知の取得に失敗しました');
     }
 
     return null;
@@ -169,7 +169,7 @@ class PushNotificationService {
         sound: true,
       );
     } on Object catch (e, st) {
-      _talker.warning('iOSローカル通知権限リクエストをスキップしました', e, st);
+      _talker.handle(e, st, 'iOSローカル通知権限リクエストに失敗しました');
     }
 
     final messaging = _messaging;
@@ -188,7 +188,7 @@ class PushNotificationService {
       _talker.info('🔔 現在の通知権限ステータス: ${settings.authorizationStatus}');
       return settings;
     } on Object catch (e, st) {
-      _talker.error('通知権限ステータスの取得に失敗しました', e, st);
+      _talker.handle(e, st, '通知権限ステータスの取得に失敗しました');
       return null;
     }
   }
@@ -202,7 +202,7 @@ class PushNotificationService {
       _talker.info('🔔 FCM トークン取得成功');
       return token;
     } on Object catch (e, st) {
-      _talker.error('FCM トークンの取得に失敗しました', e, st);
+      _talker.handle(e, st, 'FCM トークンの取得に失敗しました');
       return null;
     }
   }

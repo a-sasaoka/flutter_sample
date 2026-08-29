@@ -16,6 +16,10 @@ class FakeBatchedStatements extends Fake implements BatchedStatements {
 }
 
 void main() {
+  setUpAll(() {
+    registerFallbackValue(StackTrace.current);
+  });
+
   group('DriftTalkerInterceptor', () {
     late MockTalker mockTalker;
     late MockQueryExecutor mockExecutor;
@@ -119,7 +123,7 @@ void main() {
       verify(() => mockExecutor.runBatched(statements)).called(1);
     });
 
-    test('エラー発生時に Talker.error が呼び出されること', () async {
+    test('エラー発生時に Talker.handle が呼び出されること', () async {
       const sql = 'SELECT * FROM error_table';
       final args = <Object?>[];
       final exception = Exception('DB Error');
@@ -131,15 +135,15 @@ void main() {
       ).throws<Exception>();
 
       verify(
-        () => mockTalker.error(
-          any<String>(that: contains('[Drift] Select Error')),
+        () => mockTalker.handle(
           exception,
-          any(),
+          any<StackTrace>(),
+          any<String>(that: contains('[Drift] Select Error')),
         ),
       ).called(1);
     });
 
-    test('runBatched でエラーが発生した場合、Talker.error が呼び出されること', () async {
+    test('runBatched でエラーが発生した場合、Talker.handle が呼び出されること', () async {
       final statements = FakeBatchedStatements();
       final exception = Exception('Batch Error');
 
@@ -150,10 +154,10 @@ void main() {
       ).legacyMatcher(throwsA(exception));
 
       verify(
-        () => mockTalker.error(
-          any<String>(that: contains('[Drift] Batched Error')),
+        () => mockTalker.handle(
           exception,
-          any(),
+          any<StackTrace>(),
+          any<String>(that: contains('[Drift] Batched Error')),
         ),
       ).called(1);
     });

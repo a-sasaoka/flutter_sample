@@ -172,24 +172,27 @@ void main() {
       check(fakeLocalNotifications.initializeCalled).isTrue();
     });
 
-    test('初期化時にローカル通知の初期化が例外で失敗した場合、警告ログを出力しフォアグラウンド表示設定をスキップすること', () async {
-      fakeLocalNotifications.throwOnInitialize = true;
+    test(
+      '初期化時にローカル通知の初期化が例外で失敗した場合、エラーログをhandleしフォアグラウンド表示設定をスキップすること',
+      () async {
+        fakeLocalNotifications.throwOnInitialize = true;
 
-      await service.initialize();
+        await service.initialize();
 
-      verify(
-        () => mockTalker.warning(
-          any<String>(),
-          any<Object>(),
-          any<StackTrace>(),
-        ),
-      ).called(1);
+        verify(
+          () => mockTalker.handle(
+            any<Object>(),
+            any<StackTrace>(),
+            any<String>(),
+          ),
+        ).called(1);
 
-      // フォアグラウンド表示オプションが無効化（スキップ）されていること
-      verifyNever(
-        () => mockMessaging.setForegroundNotificationPresentationOptions(),
-      );
-    });
+        // フォアグラウンド表示オプションが無効化（スキップ）されていること
+        verifyNever(
+          () => mockMessaging.setForegroundNotificationPresentationOptions(),
+        );
+      },
+    );
 
     test('getInitialNotification でFirebaseの初期通知が取得できること', () async {
       const message = RemoteMessage(
@@ -274,7 +277,7 @@ void main() {
       check(tappedPayload?.title).equals('Hello');
     });
 
-    test('ローカル通知タップ時のJSONが不正な場合エラーログが出力されること', () async {
+    test('ローカル通知タップ時のJSONが不正な場合エラーログがhandleされること', () async {
       await service.initialize();
 
       const invalidResponse = NotificationResponse(
@@ -286,10 +289,10 @@ void main() {
       );
 
       verify(
-        () => mockTalker.error(
-          any<String>(),
+        () => mockTalker.handle(
           any<Object>(),
           any<StackTrace>(),
+          any<String>(),
         ),
       ).called(1);
     });
@@ -346,7 +349,7 @@ void main() {
       ).equals(AuthorizationStatus.authorized);
     });
 
-    test('getNotificationSettings で例外発生時に null を返しエラーログを出力すること', () async {
+    test('getNotificationSettings で例外発生時に null を返しエラーログをhandleすること', () async {
       when(
         () => mockMessaging.getNotificationSettings(),
       ).thenThrow(Exception('Settings error'));
@@ -354,10 +357,10 @@ void main() {
       final settings = await service.getNotificationSettings();
       check(settings).isNull();
       verify(
-        () => mockTalker.error(
-          any<String>(),
+        () => mockTalker.handle(
           any<Object>(),
           any<StackTrace>(),
+          any<String>(),
         ),
       ).called(1);
     });
@@ -383,16 +386,16 @@ void main() {
       check(token).equals('sample_fcm_token');
     });
 
-    test('getToken で例外発生時に null を返しエラーログを出力すること', () async {
+    test('getToken で例外発生時に null を返しエラーログをhandleすること', () async {
       when(() => mockMessaging.getToken()).thenThrow(Exception('FCM error'));
 
       final token = await service.getToken();
       check(token).isNull();
       verify(
-        () => mockTalker.error(
-          any<String>(),
+        () => mockTalker.handle(
           any<Object>(),
           any<StackTrace>(),
+          any<String>(),
         ),
       ).called(1);
     });

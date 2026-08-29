@@ -31,6 +31,7 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(testProfile);
+    registerFallbackValue(StackTrace.current);
   });
 
   setUp(() {
@@ -41,6 +42,13 @@ void main() {
     // デフォルトのモック設定
     when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
     when(() => mockTalker.error(any<dynamic>())).thenReturn(null);
+    when(
+      () => mockTalker.handle(
+        any<Object>(),
+        any<StackTrace?>(),
+        any<dynamic>(),
+      ),
+    ).thenReturn(null);
     when(
       () => mockProfileRepo.fetchProfile(),
     ).thenAnswer((_) async => testProfile);
@@ -264,6 +272,13 @@ void main() {
         // 1回目の更新とロールバック（2回目の更新）が両方呼ばれたことを確認
         verify(() => mockProfileRepo.updateProfile(updated)).called(1);
         verify(() => mockProfileRepo.updateProfile(testProfile)).called(1);
+        verify(
+          () => mockTalker.handle(
+            rollbackException,
+            any<StackTrace>(),
+            any<String>(that: contains('Failed to rollback')),
+          ),
+        ).called(1);
 
         subscription.close();
       },

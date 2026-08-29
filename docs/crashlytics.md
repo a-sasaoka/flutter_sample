@@ -27,6 +27,19 @@ lib/src/features/home/presentation/home_screen.dart     # 動作確認用のク�
 `FirebaseCrashlytics.instance` を直接呼び出すのではなく、`firebaseCrashlyticsProvider` を経由して取得する設計にしています。  
 これにより、UIや各機能のRepositoryから手動で例外ログ（`recordError`）を送りたい場合でも、テスト時にモックへ差し替えることが可能です。
 
+### 3. 非致命的エラー（Non-fatal Error）の自動収集と運用ルール
+
+ロギング基盤（Talker）にカスタムオブザーバー（`CustomTalkerObserver`）を連携させ、**本番環境（prod）およびステージング環境（stg）** において、システムエラーを自動的に Crashlytics に送信しています。
+
+- **自動送信されるエラー (`talker.handle`)**:
+  - プッシュ通知基盤の初期化・FCMトークン取得失敗
+  - ローカルデータベース（Drift / SQLite）のクエリ例外・破損
+  - 強制アップデート判定（Remote Config）の取得・パース失敗
+  - サーバーレスポンスのパース失敗（API仕様変更やデータ不整合）
+- **自動送信から除外されるエラー (`talker.warning` / `talker.error`)**:
+  - ユーザーの操作ミス（パスワード誤入力、未登録ユーザー、入力バリデーションなど）
+  - 一般的な通信切断（オフライン時の通常の失敗）
+
 ---
 
 ## ⚙️ ネイティブ側のセットアップ内容
