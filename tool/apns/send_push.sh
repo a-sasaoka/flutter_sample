@@ -255,27 +255,32 @@ if [ -n "$APNS_FILE" ]; then
   echo "  - 送信ファイル: $APNS_FILE"
   xcrun simctl push booted "$BUNDLE_ID" "$APNS_FILE"
 else
-  # 動的ペイロードの送信（Firebase Messaging 用の gcm.message_id とローカル通知用の payload を含める）
+  # 動的ペイロードの送信（Python の json.dumps を使用して安全に JSON を生成）
   echo "  - 遷移先パス: $TARGET_PATH"
   echo "  - タイトル  : $TITLE"
   echo "  - 本文      : $BODY"
 
-  xcrun simctl push booted "$BUNDLE_ID" - <<EOF
-{
-  "Simulator Target Bundle": "$BUNDLE_ID",
-  "aps": {
-    "alert": {
-      "title": "$TITLE",
-      "body": "$BODY"
+  JSON_PAYLOAD=$(python3 -c '
+import sys, json
+title, body, path, bundle_id, msg_id = sys.argv[1:6]
+payload = {
+    "Simulator Target Bundle": bundle_id,
+    "aps": {
+        "alert": {
+            "title": title,
+            "body": body,
+        },
+        "badge": 1,
+        "sound": "default",
     },
-    "badge": 1,
-    "sound": "default"
-  },
-  "gcm.message_id": "$MESSAGE_ID",
-  "path": "$TARGET_PATH",
-  "payload": "{\"path\":\"$TARGET_PATH\"}"
+    "gcm.message_id": msg_id,
+    "path": path,
+    "payload": json.dumps({"path": path}),
 }
-EOF
+print(json.dumps(payload, ensure_ascii=False, indent=2))
+' "$TITLE" "$BODY" "$TARGET_PATH" "$BUNDLE_ID" "$MESSAGE_ID")
+
+  echo "$JSON_PAYLOAD" | xcrun simctl push booted "$BUNDLE_ID" -
 fi
 
 echo ""
