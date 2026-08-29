@@ -4,7 +4,6 @@ import 'package:checks/checks.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_sample/src/features/notification/data/firebase_messaging_background_handler.dart';
 import 'package:flutter_sample/src/features/notification/data/push_notification_service.dart';
 import 'package:flutter_sample/src/features/notification/domain/notification_payload.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -333,16 +332,6 @@ void main() {
           any<String>(),
         ),
       ).called(1);
-    });
-
-    test('firebaseMessagingBackgroundHandler が例外なく完了すること', () async {
-      const message = RemoteMessage(
-        messageId: 'bg_msg_123',
-        data: {'key': 'value'},
-      );
-      await check(
-        firebaseMessagingBackgroundHandler(message),
-      ).completes();
     });
 
     test('requestPermission でAndroidおよびiOSプラグインの権限要求が実行されステータスを返すこと', () async {

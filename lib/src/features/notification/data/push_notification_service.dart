@@ -3,7 +3,6 @@ import 'dart:convert';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_sample/src/features/notification/data/firebase_messaging_background_handler.dart';
 import 'package:flutter_sample/src/features/notification/domain/notification_payload.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
@@ -100,9 +99,6 @@ class PushNotificationService {
     // 2. Firebase Messaging リスナーの設定（インスタンスが存在する場合）
     final messaging = _messaging;
     if (messaging != null) {
-      // バックグラウンドメッセージハンドラを登録
-      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-
       if (_isLocalNotificationsInitialized) {
         // フォアグラウンドでの通知バナー表示オプション（iOS）
         // 自前で showLocalNotification によるバナー表示を行うため、二重表示を防ぐよう無効化（デフォルト: false）
