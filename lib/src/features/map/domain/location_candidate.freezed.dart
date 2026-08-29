@@ -118,10 +118,7 @@ return $default(_that);case _:
 final _that = this;
 switch (_that) {
 case _LocationCandidate():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
+return $default(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -180,10 +177,7 @@ return $default(_that.latitude,_that.longitude,_that.name,_that.address,_that.pl
 @optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double latitude,  double longitude,  String name,  String? address,  String? placeId,  String? primaryType,  double? rating)  $default,) {final _that = this;
 switch (_that) {
 case _LocationCandidate():
-return $default(_that.latitude,_that.longitude,_that.name,_that.address,_that.placeId,_that.primaryType,_that.rating);case _:
-  throw StateError('Unexpected subclass');
-
-}
+return $default(_that.latitude,_that.longitude,_that.name,_that.address,_that.placeId,_that.primaryType,_that.rating);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///

@@ -129,10 +129,7 @@ return $default(_that);case _:
 final _that = this;
 switch (_that) {
 case _MapRoute():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
+return $default(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -191,10 +188,7 @@ return $default(_that.id,_that.origin,_that.destination,_that.points,_that.dista
 @optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  LatLng origin,  LatLng destination,  List<LatLng> points,  double distanceMeters,  int durationSeconds,  String? destinationName,  TravelMode travelMode,  List<String> warnings)  $default,) {final _that = this;
 switch (_that) {
 case _MapRoute():
-return $default(_that.id,_that.origin,_that.destination,_that.points,_that.distanceMeters,_that.durationSeconds,_that.destinationName,_that.travelMode,_that.warnings);case _:
-  throw StateError('Unexpected subclass');
-
-}
+return $default(_that.id,_that.origin,_that.destination,_that.points,_that.distanceMeters,_that.durationSeconds,_that.destinationName,_that.travelMode,_that.warnings);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///

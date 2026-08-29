@@ -103,7 +103,7 @@ extension SpotCategoryX on SpotCategory {
 
 /// 🗺️ 地図上にプロットするスポット（施設・ピン）のドメインモデル
 @freezed
-abstract class MapSpot with _$MapSpot {
+sealed class MapSpot with _$MapSpot {
   /// コンストラクタ
   const factory MapSpot({
     /// スポット ID
