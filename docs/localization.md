@@ -60,70 +60,19 @@ fvm flutter gen-l10n
 
 ## 🏗 MaterialApp への組み込み
 
-`main.dart` などで、アプリ全体の `MaterialApp` にローカライズ設定を注入します。
+[main.dart](../lib/main.dart) の `MyApp` において、`MaterialApp.router` の `localizationsDelegates` および `supportedLocales` に `AppLocalizations` の設定を注入してアプリ全体で多言語対応を有効化しています。
 
-```dart
-MaterialApp.router(
-  routerConfig: router,
-  localizationsDelegates: AppLocalizations.localizationsDelegates,
-  supportedLocales: AppLocalizations.supportedLocales,
-)
-```
+## 🧩 翻訳の利用方法
 
-## 🧩 翻訳の利用例
-
-```dart
-// context を経由して翻訳テキストを取得
-final l10n = AppLocalizations.of(context)!;
-
-Text(l10n.appTitle);
-Text(l10n.errorUnknown);
-```
+UI ウィジェット内では、`BuildContext` を通じて `final l10n = AppLocalizations.of(context)!;` を取得し、`l10n.appTitle` のように型安全に翻訳テキストを参照します。具体的な利用例は [home_screen.dart](../lib/src/features/home/presentation/home_screen.dart) などを参照してください。
 
 ---
 
 ## 🧪 Widgetテストでの多言語化のモック（ベストプラクティス）
 
-画面（Widget）のテストを行う際、翻訳データが存在しないとエラーになるため、`mocktail` を用いて多言語化クラスをモック（偽装）して注入します。
+画面（Widget）のテストを行う際、翻訳データが存在しないとエラーになるため、`mocktail` を用いて多言語化クラス（`MockAppLocalizations`）と専用の `LocalizationsDelegate` を定義して `MaterialApp` に注入します。
 
-```dart
-import 'package:mocktail/mocktail.dart';
-
-// 1. モッククラスの定義
-class MockAppLocalizations extends Mock implements AppLocalizations {}
-
-// 2. テスト用の Delegate を作成
-class _MockLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
-  const _MockLocalizationsDelegate(this.mock);
-  final MockAppLocalizations mock;
-
-  @override
-  bool isSupported(Locale locale) => true;
-  @override
-  Future<AppLocalizations> load(Locale locale) async => mock;
-  @override
-  bool shouldReload(covariant _) => false;
-}
-
-void main() {
-  testWidgets('テスト例', (tester) async {
-    final mockL10n = MockAppLocalizations();
-
-    // 3. 必要な翻訳テキストをモックする
-    when(() => mockL10n.appTitle).thenReturn('Test Title');
-
-    // 4. MaterialApp に注入してテスト環境を構築
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: [_MockLocalizationsDelegate(mockL10n)],
-        home: const TargetScreen(),
-      ),
-    );
-
-    check(find.text('Test Title')).findsOne();
-  });
-}
-```
+具体的なテストのセットアップ実装は [empty_state_widget_test.dart](../test/src/core/widgets/empty_state_widget_test.dart) などのウィジェットテストを参照してください。
 
 ---
 

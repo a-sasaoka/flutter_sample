@@ -90,27 +90,13 @@ DBの値が変更されると、それを監視しているUIが自動的に更�
 
 ### 1. シンプルで安全なプロバイダ定義
 
-```dart
-// lib/src/core/storage/shared_preferences_provider.dart
-@Riverpod(keepAlive: true)
-SharedPreferencesAsync sharedPreferences(Ref ref) {
-  // SharedPreferencesAsync はコンストラクタで I/O を行わないため、同期的に提供可能
-  return SharedPreferencesAsync();
-}
-```
+`SharedPreferencesAsync` はコンストラクタで I/O を行わないため、Riverpod の `@Riverpod(keepAlive: true)` を用いて同期的に安全にインスタンスを提供できます。実装詳細は [shared_preferences_provider.dart](../lib/src/core/storage/shared_preferences_provider.dart) を参照してください。
 
 ### 2. コンストラクタ注入（DI）の徹底
 
-`CacheManager` や `TokenStorage` は、コンストラクタで直接 `SharedPreferencesAsync` を受け取ります。  
-これにより、Riverpod の `Ref` に依存せず、純粋な Dart クラスとして動作します。
-
-```dart
-// 使用例
-final manager = CacheManager(
-  prefs: SharedPreferencesAsync(),
-  getCurrentDateTime: () => DateTime.now(),
-);
-```
+`CacheManager` は、コンストラクタで直接 `SharedPreferencesAsync` を受け取ります。  
+`TokenStorage` は、コンストラクタで直接 `FlutterSecureStorage` を受け取ります。  
+これにより、Riverpod の `Ref` に依存せず、純粋な Dart クラスとして動作します。実装詳細は [cache_manager.dart](../lib/src/core/storage/cache_manager.dart) や [token_storage.dart](../lib/src/features/auth/data/token_storage.dart) を参照してください。
 
 ### 3. 非同期前提のアーキテクチャ
 
@@ -138,55 +124,8 @@ DioのInterceptor（通信割り込み）と連携し、APIリクエスト時に
 
 永続化層はすべて Riverpod で抽象化されているため、テスト時にインメモリデータベースやモックへ差し替えることが容易です。
 
-- **Drift**: `NativeDatabase.memory()` を使うことで、高速なインメモリテストが可能です。
-
-```dart
-void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
-  group('AppDatabase', () {
-    late AppDatabase database;
-
-    setUp(() {
-      // テスト時はメモリ上で動くデータベースを使用する
-      database = AppDatabase(NativeDatabase.memory());
-    });
-
-    tearDown(() async {
-      await database.close();
-    });
-
-    test('schemaVersion returns 1', () {
-      check(database.schemaVersion).equals(1);
-    });
-
-    // ... その他のテストケース
-  });
-}
-```
-
-- **SharedPreferences**: `SharedPreferencesAsync.setMockInitialValues()` で初期値を設定できます。
-
-```dart
-void main() {
-  testWidgets('SharedPreferencesAsyncを利用したテスト例', (tester) async {
-    // 💡 SharedPreferencesAsync 用のインメモリキャッシュ等をテスト用に設定
-    SharedPreferencesAsync.setMockInitialValues({
-      'theme_mode': 'dark',
-    });
-
-    // プロバイダの差し替えが不要な場合もありますが、
-    // 必要に応じて Repository や Storage クラス自体を mocktail でモック化して注入します。
-    await tester.pumpWidget(
-      ProviderScope(
-        child: const MyApp(),
-      ),
-    );
-
-    // ... アサーション
-  });
-}
-```
+- **Drift**: `NativeDatabase.memory()` を使うことで、高速なインメモリテストが可能です。テスト実装例は [app_database_test.dart](../test/src/app/database/app_database_test.dart) を参照してください。
+- **SharedPreferences**: `mocktail` を用いて `MockSharedPreferencesAsync` を作成し、`sharedPreferencesProvider.overrideWithValue(mockPrefs)` で注入することで、柔軟で高速なモックテストが可能です。テスト実装例は [shared_preferences_provider_test.dart](../test/src/features/dev_tools/application/shared_preferences_provider_test.dart) を参照してください。
 
 この構成により、実際のデバイスストレージに依存しない、高速でクリーンなテスト環境を実現しています。
 

@@ -38,29 +38,10 @@ UI層から FirebaseAnalytics を直接操作するのではなく、**`Analytic
 - **ユーザー識別と属性**: ユーザー ID (`setUserId`) や、会員ランク等のユーザープロパティ (`setUserProperty`) の設定もサポートしています。
 - **クラッシュ防止**: 送信処理は `try-catch` で保護されており、通信エラー等が発生してもアプリの動作を止めない安全な設計です。
 
-### 使用例
+### 使用方法
 
-#### イベントの送信（UI層から）
-
-```dart
-// 💡 Enum を指定するだけで、安全にイベントが送信される
-ref.read(analyticsServiceProvider).logEvent(
-  event: AnalyticsEvent.homeButtonTapped,
-  parameters: {'source': 'header'},
-);
-```
-
-#### ユーザー属性の設定（ログイン・設定変更時）
-
-```dart
-final analytics = ref.read(analyticsServiceProvider);
-
-// ユーザーIDの設定（ログイン時など）
-await analytics.setUserId('user_12345');
-
-// 会員ランクの設定
-await analytics.setUserProperty(name: 'member_rank', value: 'premium');
-```
+- **イベントの送信（UI層から）**: `ref.read(analyticsServiceProvider).logEvent(event: AnalyticsEvent.xxx, parameters: ...)` を呼び出すことで、型安全にイベントが送信されます。具体的な呼び出し例は [home_screen.dart](../lib/src/features/home/presentation/home_screen.dart) などを参照してください。
+- **ユーザー識別と属性設定**: `setUserId()` や `setUserProperty()` を使用してログインユーザーの追跡やセグメント分析を行います。実装詳細は [analytics_service.dart](../lib/src/core/analytics/analytics_service.dart) および [analytics_service_test.dart](../test/src/core/analytics/analytics_service_test.dart) を参照してください。
 
 ---
 

@@ -12,29 +12,13 @@
 
 ---
 
-### 📘 TypedGoRouteの使用例
+### 📘 TypedGoRoute の定義と画面遷移
 
-ルートごとにクラスを定義して、型安全な遷移を実現します。
+各画面へのルートは、`@TypedGoRoute` アノテーションを付与した `GoRouteData` クラスとして定義します。  
+具体的なルート定義の実装は [home_tab_routes.dart](../lib/src/app/router/routes/home_tab_routes.dart)（`HomeRoute`）などを参照してください。
 
-```dart
-// lib/src/app/router/routes/home_tab_routes.dart (分割管理の例)
-
-@TypedGoRoute<HomeRoute>(path: '/')
-class HomeRoute extends GoRouteData with $HomeRoute {
-  const HomeRoute();
-
-  @override
-  Widget build(BuildContext context, GoRouterState state) {
-    return const HomeScreen();
-  }
-}
-
-// 画面遷移例
-const HomeRoute().go(context); // "/" に遷移
-```
-
-これにより、文字列ベースのルーティング記述を避けられ、IDE補完が有効になります。  
-IDEでルートクラスを補完することで、タイプミスやパス指定ミスを防げます。
+- **画面遷移の呼び出し**: `const HomeRoute().go(context);` のように型安全に実行できます。
+- **メリット**: 文字列ベース（パス直書き）のルーティングを避け、IDE補完によるタイプミス防止やリファクタリング耐性を向上させます。
 
 ---
 

@@ -58,72 +58,19 @@ lib/
 
 ### 1. `AppLottieWidget` (汎用Lottieウィジェット)
 
-プロジェクト全体で Lottie を安全かつ統一的に表示するための基本コンポーネントです。
+プロジェクト全体で Lottie を安全かつ統一的に表示するための基本コンポーネントです。実装詳細は [app_lottie_widget.dart](../lib/src/core/widgets/app_lottie_widget.dart) を参照してください。
 
-#### ローカルアセットの表示 (`AppLottieWidget.asset`)
-
-```dart
-import 'package:flutter/material.dart';
-import 'package:flutter_sample/gen/assets.gen.dart';
-import 'package:flutter_sample/src/core/widgets/app_lottie_widget.dart';
-
-class MyAnimationCard extends StatelessWidget {
-  const MyAnimationCard({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return AppLottieWidget.asset(
-      // flutter_gen で生成されたアセットオブジェクトを指定
-      lottie: Assets.animations.onboardingMemo,
-      width: 200,
-      height: 200,
-      repeat: true,       // ループ再生するか
-      animate: true,      // 自動再生するか（テスト時は false に指定可能）
-      fit: BoxFit.contain,
-    );
-  }
-}
-```
-
-#### ネットワークURLからの表示 (`AppLottieWidget.network`)
-
-```dart
-AppLottieWidget.network(
-  url: 'https://assets5.lottiefiles.com/packages/lf20_example.json',
-  width: 150,
-  height: 150,
-)
-```
+- **ローカルアセットの表示 (`AppLottieWidget.asset`)**: `flutter_gen` で生成された `Assets.animations.*` を指定して描画します。利用例は [onboarding_screen.dart](../lib/src/features/onboarding/presentation/onboarding_screen.dart) や [not_found_screen.dart](../lib/src/core/widgets/not_found_screen.dart) を参照してください。
+- **ネットワークURLからの表示 (`AppLottieWidget.network`)**: Web上の Lottie JSON URL から非同期で読み込んで描画します。利用例は [lottie_demo_screen.dart](../lib/src/features/dev_tools/presentation/lottie_demo_screen.dart) を参照してください。
 
 ---
 
 ### 2. `EmptyStateWidget` (空状態・エラー状態表示)
 
-データが0件の時や通信エラー時に、ユーザーにわかりやすく状態を伝える共通Widgetです。
+データが0件の時や通信エラー時に、ユーザーにわかりやすく状態を伝える共通Widgetです。実装詳細は [empty_state_widget.dart](../lib/src/core/widgets/empty_state_widget.dart) を参照してください。
 
-```dart
-import 'package:flutter/material.dart';
-import 'package:flutter_sample/gen/assets.gen.dart';
-import 'package:flutter_sample/src/core/widgets/empty_state_widget.dart';
-
-class MemoListEmptyView extends StatelessWidget {
-  const MemoListEmptyView({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return EmptyStateWidget(
-      // Lottie アニメーションを指定（未指定時はデフォルトで Assets.animations.emptyBox が使用されます）
-      lottie: Assets.animations.emptyBox,
-      title: 'メモがまだありません',
-      description: '右下の「＋」ボタンから新しいメモを作成してみましょう。',
-      actionLabel: 'メモを作成',
-      onAction: () {
-        // ボタンタップ時の処理
-      },
-    );
-  }
-}
-```
+- **主なプロパティ**: `lottie`（指定なしの場合はデフォルトで `Assets.animations.emptyBox`）、`title`、`description`、`actionLabel`、`onAction`（ボタン押下時のコールバック）などを渡せます。
+- **利用例**: ユーザー一覧画面での空状態表示などは [user_list_screen.dart](../lib/src/features/user/presentation/user_list_screen.dart) を参照してください。
 
 ---
 

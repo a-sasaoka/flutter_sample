@@ -56,62 +56,17 @@ lib/src/features/notification/
 
 ### 1. `NotificationPayload` (ドメインモデル)
 
-通知のデータ部分（`data`）に含まれる遷移先パスやタイトル・本文を保持するイミュータブルなデータモデルです。
+通知の表示メタデータ（タイトル・本文）およびデータ部（`data`）に含まれる遷移先パスやカスタムデータを統合して保持するイミュータブルなデータモデルです。実装詳細は [notification_payload.dart](../lib/src/features/notification/domain/notification_payload.dart) を参照してください。
 
-```dart
-/// path, route, deep_link の候補から有効な遷移パスを抽出するヘルパー
-Object? _readPath(Map<dynamic, dynamic> json, String key) {
-  String? checkKey(String k) {
-    final val = (json[k] as String?)?.trim();
-    return (val != null && val.isNotEmpty) ? val : null;
-  }
-
-  return checkKey('path') ?? checkKey('route') ?? checkKey('deep_link');
-}
-
-@freezed
-sealed class NotificationPayload with _$NotificationPayload {
-  const factory NotificationPayload({
-    /// 画面遷移先パス（`path` / `route` / `deep_link` の各キーに対応）
-    @JsonKey(readValue: _readPath) String? path,
-    /// 通知タイトル
-    String? title,
-    /// 通知本文
-    String? body,
-    /// その他のカスタムデータ（デフォルトは空マップ）
-    @Default({}) Map<String, dynamic> data,
-  }) = _NotificationPayload;
-
-  const NotificationPayload._();
-
-  factory NotificationPayload.fromJson(Map<String, dynamic> json) =>
-      _$NotificationPayloadFromJson(json);
-
-  /// Firebase RemoteMessage.data などの Map から生成するファクトリ
-  factory NotificationPayload.fromMap(
-    Map<String, dynamic> map, {
-    String? title,
-    String? body,
-  }) {
-    final payload = NotificationPayload.fromJson(map);
-    return payload.copyWith(
-      title: title ?? payload.title,
-      body: body ?? payload.body,
-      data: Map<String, dynamic>.from(map),
-    );
-  }
-
-  /// 画面遷移が可能なパスが含まれているかどうか
-  bool get isNavigable => path != null && path!.trim().isNotEmpty;
-}
-```
+- **通知メタデータ (`title` / `body`)**: FCM の `message.notification` やローカル通知から渡される、ユーザー向けの表示用テキストです。`NotificationPayload.fromMap()` の名前付き引数経由で設定されます。
+- **データペイロード (`path` / `data`)**: FCM の `message.data` に含まれるカスタムデータです。画面遷移パスや追加パラメータが保持されます。
 
 > **💡 ペイロードキーの柔軟な解決 (`_readPath`)**:
-> FCM ペイロードのデータ部（`data`）において、`path`, `route`, `deep_link` のいずれのキーでパスが指定されていても、自動的に前後の空白を除去した上で `path` フィールドへマッピングされます。また、`fromMap` を介して受信通知の `title` / `body` と `data` マップ全体を安全に保持します。
+> FCM ペイロードのデータ部（`data`）において、`path`, `route`, `deep_link` のいずれのキーでパスが指定されていても、`_readPath` により自動的に前後の空白を除去した上で `path` フィールドへマッピングされます。また、`fromMap` を介して `data` マップ全体も安全に保持されます。
 
 ### 2. `PushNotificationService` (データ層)
 
-Firebase Messaging と `FlutterLocalNotificationsPlugin` のやり取りをラップします。
+Firebase Messaging と `FlutterLocalNotificationsPlugin` のやり取りをラップします。実装詳細は [push_notification_service.dart](../lib/src/features/notification/data/push_notification_service.dart) を参照してください。
 
 - **フォアグラウンド受信時**: `FirebaseMessaging.onMessage` を検知し、ローカル通知（高優先度バナー）を即座に表示します。
 - **バックグラウンド・終了時のデータ受信**: `mainCommon` の `Firebase.initializeApp()` 直後に `@pragma('vm:entry-point')` のトップレベルハンドラ `firebaseMessagingBackgroundHandler` が登録され、バックグラウンドでのメッセージ受信時に呼び出されます（※独立した Isolate で動作するため、UI 操作や Riverpod による状態管理は行えません）。
@@ -121,72 +76,11 @@ Firebase Messaging と `FlutterLocalNotificationsPlugin` のやり取りをラ�
 
 ### 3. `NotificationNotifier` (アプリケーション層)
 
-Riverpod の `@riverpod` Notifier として動作し、FCMトークンの取得や通知状態の管理・更新を担当します（実際のディープリンク画面遷移はルーターリスナーが実行します）。
+Riverpod の `@Riverpod(keepAlive: true)` Notifier として動作し、FCMトークンの取得や通知状態の管理・更新を担当します（実際のディープリンク画面遷移はルーターリスナーが実行します）。実装詳細は [notification_notifier.dart](../lib/src/features/notification/application/notification_notifier.dart) を参照してください。
 
-```dart
-@Riverpod(keepAlive: true)
-class NotificationNotifier extends _$NotificationNotifier {
-  NotificationPayload? _pendingPayload;
-
-  @override
-  NotificationState build() {
-    unawaited(_init());
-    return const NotificationState.loading();
-  }
-
-  Future<void> _init() async {
-    // トークン取得、通知権限、初期通知 (initialPayload) の非同期取得
-    // ...
-    final pending = _pendingPayload;
-    _pendingPayload = null;
-
-    state = NotificationState.data(
-      fcmToken: refreshedToken ?? token,
-      authorizationStatus: settings?.authorizationStatus,
-      initialPayload: initialPayload,
-      latestPayload: pending,
-      lastReceivedPayload: pending ?? initialPayload,
-    );
-  }
-
-  /// 初期起動時の通知ペイロードを取り出し、二重遷移を防ぐために消費（クリア）する
-  NotificationPayload? consumeInitialPayload() {
-    if (state case final NotificationStateData dataState) {
-      final payload = dataState.initialPayload;
-      if (payload != null) {
-        state = dataState.copyWith(initialPayload: null);
-        return payload;
-      }
-    }
-    return null;
-  }
-
-  /// 最新のタップ通知ペイロードを取り出し、二重遷移を防ぐために消費（クリア）する
-  NotificationPayload? consumeLatestPayload() {
-    if (state case final NotificationStateData dataState) {
-      final payload = dataState.latestPayload;
-      if (payload != null) {
-        state = dataState.copyWith(latestPayload: null);
-        return payload;
-      }
-    }
-    return null;
-  }
-
-  /// 通知タップ時のディープリンク状態更新
-  void handleNotificationTap(NotificationPayload payload) {
-    if (state case final NotificationStateData dataState) {
-      state = dataState.copyWith(
-        latestPayload: payload,
-        lastReceivedPayload: payload,
-      );
-    } else {
-      // 非同期初期化中の通知タップは一時退避し、_init 完了時に latestPayload へ反映する
-      _pendingPayload = payload;
-    }
-  }
-}
-```
+- **初期化 (`_init`)**: トークン取得、権限ステータス確認、アプリ起動時通知（`initialPayload`）の取得を非同期で実行します。
+- **ペイロード消費 (`consumeInitialPayload` / `consumeLatestPayload`)**: 画面遷移処理の重複を防ぐため、一度遷移に使われたペイロードをクリア（消費）します。
+- **通知タップ処理 (`handleNotificationTap`)**: 通知タップ時にペイロードを受け取り、状態（`latestPayload`, `lastReceivedPayload`）を更新します。非同期初期化中のタップは一時バッファリングされます。
 
 > **💡 アーキテクチャのポイント (単方向データフロー & 確認用履歴の保持)**:
 > `NotificationNotifier` はルーター（`routerProvider`）に直接依存せず、状態の更新のみを担当します。画面遷移トリガー用の `latestPayload` は `app_router.dart` の `ref.listen` によって二重遷移防止のために即座に消費（`consumeLatestPayload()`）されますが、確認・デバッグ専用の `lastReceivedPayload` は消去されずに保持されるため、画面遷移後もデモ画面等で直近の通知ペイロードを安全に確認できます。また、非同期初期化中に発生した通知タップもバッファリングされ、初期化完了時に安全に画面遷移がトリガーされます。

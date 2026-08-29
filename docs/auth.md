@@ -25,21 +25,9 @@ lib/src/features/auth/data/
 `core/network/dio_provider.dart` が `features/auth` を直接参照すると **レイヤーの逆参照** が発生してしまうため、以下の通り **依存関係の逆転（Dependency Inversion）** パターンを採用しています。
 
 1. **基盤層（core）での定義**:
-   `core/network/dio_provider.dart` では、抽象的な `authInterceptorsProvider`（デフォルトは空リスト `[]`）を定義し、それを `dioProvider` が読み込みます。
+   [dio_provider.dart](../lib/src/core/network/dio_provider.dart) では、抽象的な `authInterceptorsProvider`（デフォルトは空リスト `[]`）を定義し、それを `dioProvider` が読み込みます。
 2. **アプリ起動時（auth_overrides.dart）での注入**:
-   `auth_overrides.dart` 内で `authInterceptorsProvider` をオーバーライドし、`tokenInterceptorProvider` を注入します。
-
-```dart
-// auth_overrides.dart での依存関係の注入例
-List<dynamic> getAuthOverrides() {
-  return [
-    authInterceptorsProvider.overrideWith(
-      (ref) => [ref.watch(tokenInterceptorProvider)],
-    ),
-    // ...
-  ];
-}
-```
+   [auth_overrides.dart](../lib/src/features/auth/data/auth_overrides.dart) の `getAuthOverrides()` 内で `authInterceptorsProvider` をオーバーライドし、`tokenInterceptorProvider` を動的に注入します。
 
 この設計により、Core層が特定機能へ依存せず、完全な自己完結性と再利用性を保持する**極めて独立性の高いネットワーク基盤**を実現しています。
 
@@ -47,23 +35,10 @@ List<dynamic> getAuthOverrides() {
 
 ## 🧩 Dioへの組み込み順序（重要）
 
-`dio_provider.dart` にて、Interceptorの登録順序は以下の通りに設定されています👇
+[dio_provider.dart](../lib/src/core/network/dio_provider.dart) において、Interceptor の登録順序は以下のように意図して制御されています。
 
-```dart
-// ① トークン付与・リフレッシュ（追加のインターセプターとして先頭に挿入）
-if (additionalInterceptors.isNotEmpty) {
-  dio.interceptors.addAll(additionalInterceptors);
-}
-// ② ログ出力・エラーハンドリング（共通の例外処理）
-dio.interceptors.add(ref.watch(dioInterceptorProvider));
-```
-
-### 💡 理由
-
-| 順番               | 説明                                                    |
-| ------------------ | ------------------------------------------------------- |
-| ① tokenInterceptor | リクエスト前に認証ヘッダーを追加・401検知でリフレッシュ |
-| ② dioInterceptor   | 通信全体のログ・例外処理を担当（最終層で処理）          |
+1. **① tokenInterceptor (`additionalInterceptors`)**: リクエスト前に認証ヘッダーを追加し、401検知時にトークンをリフレッシュ（追加のインターセプターとして先頭に挿入）。
+2. **② dioInterceptor**: 通信全体のログ出力・例外変換を担当（最終層で処理）。
 
 > ⚠️ 順番を逆にすると、ログに出力されるリクエストにトークンが含まれなかったり、401エラー時の自動リフレッシュ（再リクエスト）が正常にログに記録されない・動作しないことがあります。
 
