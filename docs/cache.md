@@ -39,28 +39,7 @@ Riverpodの標準機能である `ref.refresh` は「メモリ上の状態」を
 
 また、**「リフレッシュが失敗（オフライン等）した際に、キャッシュがあればそれを表示し続ける」**という高度な UX を実現するため、UI側で `AsyncValue` のパターンマッチングを工夫しています。
 
-以下の例では、`RefreshIndicator` を利用してスワイプ操作で最新データを取得します。
-
-```dart
-// lib/src/features/user/presentation/user_list_screen.dart
-
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.userListTitle)),
-      body: switch (usersAsync) {
-        // 💡 データがある場合 (エラーやローディング中でも、データがあれば表示)
-        AsyncValue(value: (final value, _)?) when value.isNotEmpty => RefreshIndicator(
-          onRefresh: onRefresh,
-          child: ListView.builder(
-            itemCount: value.length,
-            itemBuilder: (context, index) => _UserCard(user: value[index]),
-          ),
-        ),
-        // 💡 エラー状態 (データがない場合のみ)
-        AsyncError() => ErrorWidget(...),
-        _ => const Center(child: CircularProgressIndicator()),
-      },
-    );
-```
+ユーザー一覧画面（[user_list_screen.dart](../lib/src/features/user/presentation/user_list_screen.dart)）では、`RefreshIndicator` と `switch (usersAsync)` のパターンマッチングを組み合わせ、データが存在する場合はローディング中やエラー発生時でも一覧を表示し続ける堅牢な UI を実装しています。
 
 ## 💡 補足とアーキテクチャの解説
 

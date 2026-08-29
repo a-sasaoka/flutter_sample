@@ -16,16 +16,8 @@
 
 ### 特徴と使用方法
 
-UIやRepositoryでログを出力したい場合は、`ref.watch(loggerProvider)` または `ref.read(loggerProvider)` を使用します。\
+UIやRepositoryでログを出力したい場合は、`ref.watch(loggerProvider)` または `ref.read(loggerProvider)` を使用して Talker の各ログメソッド（`debug`, `info`, `warning`, `error`, `handle`）を呼び出します。実装詳細は [logger_provider.dart](../lib/src/core/utils/logger_provider.dart) を参照してください。\
 また、本プロジェクトでは **Drift（ローカルDB）のクエリログ** も Talker に統合されており、実行された SQL やその引数が自動的にログ出力されます。
-
-```dart
-final logger = ref.read(loggerProvider);
-
-logger.debug('デバッグ用のログです');
-logger.info('API通信が成功しました');
-logger.warning('リトライ可能な警告です');
-```
 
 ### Crashlyticsとの連携ルール
 
@@ -55,19 +47,8 @@ logger.warning('リトライ可能な警告です');
 
 ### 特徴と使用方法
 
-「現在オンラインかどうか」を `bool` 値で返す `isOnlineProvider` を提供しています。  
-これを監視（watch）することで、オフライン時にボタンを非活性にしたり、API通信の前にエラーを表示したりすることが可能です。
-
-```dart
-Widget build(BuildContext context, WidgetRef ref) {
-  final isOnline = ref.watch(isOnlineProvider);
-
-  return ElevatedButton(
-    onPressed: isOnline ? () => submitData() : null,
-    child: Text(isOnline ? '送信する' : 'オフラインです'),
-  );
-}
-```
+「現在オンラインかどうか」を `bool` 値で返す `isOnlineProvider` を提供しています。実装詳細は [connectivity_provider.dart](../lib/src/core/utils/connectivity_provider.dart) を参照してください。  
+これを監視（`watch`）することで、オフライン時にボタンを非活性（タップ不可）にしたり、API通信の前に警告を表示したりすることが可能です（利用例: [chat_screen.dart](../lib/src/features/chat/presentation/chat_screen.dart) など）。
 
 ### 💡 判定ロジックの分離
 
@@ -101,22 +82,12 @@ Flutter標準の `WidgetsBindingObserver` を Riverpod でラップし、現在�
 
 ### 特徴と使用方法
 
-`clockProvider` は **「現在の時刻を返す関数 (`DateTime Function()`)」** を提供します。  
-Riverpod のキャッシュによる「時刻の固定」を防ぎ、呼び出すたびに必ず最新の時刻を取得できます。
-
-```dart
-// Repositoryなどでの利用例
-final now = ref.read(clockProvider)();
-```
+`clockProvider` は **「現在の時刻を返す関数 (`DateTime Function()`)」** を提供します。実装詳細は [date_time_provider.dart](../lib/src/core/utils/date_time_provider.dart) を参照してください。  
+Riverpod のキャッシュによる「時刻の固定」を防ぎ、呼び出すたびに最新の時刻（`ref.read(clockProvider)()`）を取得できます。
 
 ### テストでの利点
 
-テストコードにおいて、時間を進めたり固定したりすることが容易になります。
-
-```dart
-// テストでの上書き例
-clockProvider.overrideWithValue(() => DateTime(2026, 5, 10)),
-```
+テストコードにおいて、`clockProvider.overrideWithValue(...)` を用いて時間を進めたり固定したりすることが容易になります（テスト実装例: [memo_repository_test.dart](../test/src/features/memos/data/memo_repository_test.dart) を参照）。
 
 ---
 
@@ -158,36 +129,13 @@ clockProvider.overrideWithValue(() => DateTime(2026, 5, 10)),
 
 ### 特徴と使用方法
 
-`DateTime` クラスに対して、`toFormattedString([String? locale])` メソッドが拡張されています。  
-このメソッドは内部で `intl` パッケージの `DateFormat` を使用し、ロケールに応じた最適な書式に自動変換します（引数を省略、または `null` を渡した場合はシステムのデフォルトロケールが使用されます）。
+`DateTime` クラスに対して、`toFormattedString([String? locale])` メソッドが拡張されています。実装詳細は [date_time_extension.dart](../lib/src/core/utils/date_time_extension.dart) を参照してください。  
+このメソッドは内部で `intl` パッケージの `DateFormat` を使用し、指定されたロケール（例: `ja` で `2026/7/11 8:09`、`en` で `7/11/2026 08:09`）に応じた最適な書式に自動変換します（引数を省略、または `null` を渡した場合はシステムのデフォルトロケールが使用されます）。
 
-```dart
-import 'package:flutter_sample/src/core/utils/date_time_extension.dart';
-
-final now = DateTime.now();
-
-// 日本語環境の場合（出力例: 2026/7/11 8:09）
-final jaString = now.toFormattedString('ja');
-
-// 英語環境の場合（出力例: 7/11/2026 08:09）
-final enString = now.toFormattedString('en');
-
-// 引数を省略した場合はシステムデフォルトのロケールを使用
-final defaultString = now.toFormattedString();
-```
-
-UI上で日付を表示する際は、この拡張関数を利用します。  
-引数にロケール情報（例: `l10n.localeName`）を渡すことで、一貫した多言語対応の日付表示を実現できます（引数を省略した場合は、システムデフォルトのロケールでフォーマットされます）。
+UI上で日付を表示する際は、この拡張関数を利用し、引数にロケール情報（例: `l10n.localeName`）を渡すことで一貫した多言語対応の日付表示を実現できます。単体テスト実装は [date_time_extension_test.dart](../test/src/core/utils/date_time_extension_test.dart) を参照してください。
 
 ### ⏰ タイムゾーン付きフォーマット（toFormattedStringWithTimezone）
 
-AI プロンプト等で、端末 OS から自動取得したタイムゾーン（時差オフセットおよび時差名）を含めた標準日時文字列を取得するための拡張関数です。
-
-```dart
-final now = DateTime.now();
-
-// 出力例: 2026-08-11 07:30 (Timezone: +09:00, JST)
-final tzString = now.toFormattedStringWithTimezone();
-```
+AI プロンプト等で、端末 OS から自動取得したタイムゾーン（時差オフセットおよび時差名）を含めた標準日時文字列（例: `2026-08-11 07:30 (Timezone: +09:00, JST)`）を取得するための拡張関数です。実装詳細は [date_time_extension.dart](../lib/src/core/utils/date_time_extension.dart) を参照してください。
 
 時差指定がない文字列を AI（LLM）が UTC と誤認識して現地日付が 1 日ずれる不具合を防ぐために利用します。

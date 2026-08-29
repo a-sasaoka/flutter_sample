@@ -82,27 +82,9 @@ lib/src/core/ui/
 
 ### 2. UI層のテスト (Repositoryのモック)
 
-UIの振る舞いをテストする際、Notifierをごまかすのではなく、一番奥の **`UserRepository`（データ層）だけをモック化** することで、実際のアプリと全く同じ「通信→ロード→表示」のライフサイクルをテストできます。
+UIの振る舞いをテストする際、Notifierをごまかすのではなく、一番奥の **`UserRepository`（データ層）だけをモック化** することで、実際の通信を発生させずに Notifier や UI の状態遷移（ロード中・データ表示・エラー表示）を正確にテストできます（※実際の HTTP 通信成功・失敗ロジックは Repository 層の単体テストでカバーされます）。
 
-```dart
-// テストコードの例
-final mockRepository = MockUserRepository();
-when(() => mockRepository.fetchUsers()).thenAnswer((_) async => dummyUsers);
-
-await tester.pumpWidget(
-  ProviderScope(
-    overrides: [
-      // 💡 Repositoryだけをモックにすり替え！Notifier等は本物が動く
-      userRepositoryProvider.overrideWithValue(mockRepository),
-    ],
-    child: const UserListScreen(),
-  ),
-);
-
-// 画面の描画を待って検証
-await tester.pumpAndSettle();
-check(find.byType(Card)).findsExactly(dummyUsers.length);
-```
+具体的なテスト実装は [user_list_screen_test.dart](../test/src/features/user/presentation/user_list_screen_test.dart) を参照してください。`ProviderScope` の `overrides` で `userRepositoryProvider` のみモックに差し替え、Notifier 等は本物を動かして検証しています。
 
 このように、レイヤーを綺麗に分離することで、単体テストからウィジェットテストまで、カバレッジ100%を安全に達成できる構造になっています。
 

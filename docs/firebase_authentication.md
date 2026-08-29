@@ -30,17 +30,10 @@ lib/src/features/auth/
 
 ## 💡 Firebase × Riverpod の状態監視（ベストプラクティス）
 
-本プロジェクトの認証状態監視では、Firebase公式の `authStateChanges()` ではなく、あえて **`userChanges()`** を監視（watch）しています。
+本プロジェクトの認証状態監視では、Firebase公式の `authStateChanges()` ではなく、あえて **`userChanges()`** を監視（`watch`）しています。実装詳細は [firebase_auth_repository.dart](../lib/src/features/auth/data/firebase_auth_repository.dart)（`authStateChangesProvider`）を参照してください。
 
-```dart
-// lib/src/features/auth/data/firebase_auth_repository.dart
-@Riverpod(keepAlive: true)
-Stream<User?> authStateChanges(Ref ref) {
-  // 💡 user.reload() が呼ばれた時にも自動的にストリームが発火する！
-  // 💡 keepAlive: true により、画面遷移の合間に状態がリセットされるのを防ぎます。
-  return ref.watch(firebaseAuthProvider).userChanges();
-}
-```
+- **`user.reload()` との連動**: `user.reload()` が呼ばれた際にも自動的にストリームが発火します。
+- **画面遷移時の状態維持**: `@Riverpod(keepAlive: true)` により、画面遷移の合間に状態がリセットされるのを防ぎます。
 
 これにより、「バックグラウンドで `reloadCurrentUser()` を呼ぶだけで、UI側（Riverpod）が自動的にユーザー状態の変更（メール認証完了など）を検知して画面を切り替える」という、非常にクリーンでリアクティブな設計を実現しています。
 
@@ -62,38 +55,13 @@ Stream<User?> authStateChanges(Ref ref) {
 
 ### 1. サインアップと確認メールの送信
 
-```dart
-// lib/src/features/auth/presentation/firebase_sign_up_screen.dart
-
-final authRepo = ref.read(firebaseAuthRepositoryProvider);
-
-// サインアップと確認メール送信
-await authRepo.signUp(emailCtrl.text, passwordCtrl.text);
-await authRepo.sendEmailVerification();
-
-// 💡 登録が成功すると、認証状態の変更をルーター（GoRouter）が検知し、
-// 💡 認証ガード（firebaseAuthGuard）の働きによって自動的にメール認証画面へリダイレクトされます。
-```
+ユーザー登録画面（[firebase_sign_up_screen.dart](../lib/src/features/auth/presentation/firebase_sign_up_screen.dart)）から `FirebaseAuthRepository.signUp()` および `sendEmailVerification()` を呼び出します。登録が成功すると認証状態の変更をルーター（GoRouter）が検知し、認証ガード（`firebaseAuthGuard`）の働きによって自動的にメール認証画面へリダイレクトされます。
 
 ### 2. メールアプリから戻った際の自動チェック（ライフサイクルの監視）
 
-ユーザーが「メールアプリを開いてリンクを踏み、再びこのアプリに戻ってくる」という行動を前提とし、アプリのライフサイクルを監視して **フォアグラウンド復帰時（resumed）** に自動でユーザー情報をリロードします。
+ユーザーが「メールアプリを開いてリンクを踏み、再びこのアプリに戻ってくる」という行動を前提とし、メール認証画面（[firebase_email_verification_screen.dart](../lib/src/features/auth/presentation/firebase_email_verification_screen.dart)）において `appLifecycleProvider` を監視し、**フォアグラウンド復帰時（`AppLifecycleState.resumed`）** に自動で `FirebaseAuthRepository.reloadCurrentUser()` を実行します。
 
-```dart
-// lib/src/features/auth/presentation/firebase_email_verification_screen.dart
-
-// 💡 1. ライフサイクルを監視して、フォアグラウンド復帰時にリロードを実行
-ref.listen(appLifecycleProvider, (previous, next) {
-  if (next == AppLifecycleState.resumed) {
-    unawaited(
-      ref.read(firebaseAuthRepositoryProvider).reloadCurrentUser(),
-    );
-  }
-});
-
-// 💡 2. 状態の変更（メール認証の完了）はルーター（app_router.dart / firebaseAuthGuard）が自動検知し、
-// 💡    自動でホーム画面（HomeRoute）へリダイレクトするため、画面側での監視・遷移処理は不要です。
-```
+メール認証の完了はルーター（[app_router.dart](../lib/src/app/router/app_router.dart) / `firebaseAuthGuard`）が自動検知してホーム画面（`HomeRoute`）へリダイレクトするため、画面側での監視・手動遷移処理は不要です。
 
 この実装により、無駄な通信を一切行わず、ユーザーがアプリに戻ってきた瞬間にスッと次の画面へ進む最高クラスのUXを提供しています。
 （※万が一自動検知から漏れた場合のために、UI側には手動のリロードボタンも完備しています）

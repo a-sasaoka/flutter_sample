@@ -50,38 +50,16 @@ lib/src/core/config/
 
 ## 🏗 アプリへの適用
 
-`MyApp` 内で `themeModeProvider` を監視（watch）し、`MaterialApp` の各プロパティに流し込んでいます。
-
-```dart
-// main.dart 等での利用イメージ
-final themeMode = ref.watch(themeModeProvider);
-
-return MaterialApp.router(
-  theme: AppTheme.light(),
-  darkTheme: AppTheme.dark(),
-  themeMode: themeMode, // 💡 状態に応じて自動切り替え
-  // ...
-);
-```
+[main.dart](../lib/main.dart) の `MyApp` 内で `themeModeProvider` を監視（`watch`）し、`MaterialApp.router` の `themeMode` や `theme`, `darkTheme` プロパティに `AppTheme.light()` / `AppTheme.dark()` を注入しています。  
+これにより、ユーザーの設定変更に合わせてアプリ全体のテーマがリアクティブに切り替わります。
 
 ---
 
 ## 🧪 テスト手法
 
-テーマ設定が期待通りに動作するかを検証するために、以下のテストを実施しています。
+テーマ設定が期待通りに動作するかを検証するために、以下のテストを実施しています。具体的なテスト実装は [theme_mode_provider_test.dart](../test/src/core/config/theme_mode_provider_test.dart) を参照してください。
 
-- **Providerテスト**: `ThemeMode` を変更した際に、ストレージへ正しく保存されるか、状態が更新されるかを検証します。
+- **Providerテスト**: `ThemeMode` を変更した際に、`SharedPreferencesAsync` へ正しく保存されるか、状態が更新されるかを検証します。
 - **Widgetテスト**: テーマの変更によって、特定のWidgetの色やスタイルが意図した通りに変化するかを確認します。
-
-```dart
-// テスト例
-test('テーマモードを変更すると状態が更新されること', () async {
-  final container = createContainer();
-  final notifier = container.read(themeModeProvider.notifier);
-
-  await notifier.setThemeMode(ThemeMode.dark);
-  check(container.read(themeModeProvider)).equals(ThemeMode.dark);
-});
-```
 
 ---
