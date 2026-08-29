@@ -255,6 +255,13 @@ if [ -n "$APNS_FILE" ]; then
   echo "  - 送信ファイル: $APNS_FILE"
   xcrun simctl push booted "$BUNDLE_ID" "$APNS_FILE"
 else
+  # 動的ペイロード生成に必要な Python 3 の存在チェック
+  if ! command -v python3 &> /dev/null; then
+    echo "❌ エラー: python3 が見つかりません。動的な JSON ペイロードの生成には Python 3 が必要です。" >&2
+    echo "💡 解決策: 'xcode-select --install' で Command Line Tools をインストールするか、'--file' オプションで既存の .apns ファイルを直接指定して送信してください。" >&2
+    exit 1
+  fi
+
   # 動的ペイロードの送信（Python の json.dumps を使用して安全に JSON を生成）
   echo "  - 遷移先パス: $TARGET_PATH"
   echo "  - タイトル  : $TITLE"
