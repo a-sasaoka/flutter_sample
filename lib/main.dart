@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
@@ -20,6 +21,7 @@ import 'package:flutter_sample/src/core/utils/scaffold_messenger_key.dart';
 import 'package:flutter_sample/src/features/app_lock/presentation/app_lock_wrapper.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_overrides.dart';
 import 'package:flutter_sample/src/features/notification/application/notification_notifier.dart';
+import 'package:flutter_sample/src/features/notification/data/firebase_messaging_background_handler.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart' show Override;
@@ -41,6 +43,9 @@ Future<void> mainCommon(
 
   // 3. Firebaseの初期化（DefaultFirebaseOptionsは環境別の内容を読み込む）
   await Firebase.initializeApp(options: firebaseOptionsWithFlavor(flavor));
+
+  // 🔔 バックグラウンドメッセージハンドラを登録（アプリ起動前の最速タイミングで1度だけ実行）
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   // 4. デバッグ用のトークン（秘匿情報のため Envied から取得を維持）
   final myDebugToken = AppEnv.debugToken;
