@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_performance/firebase_performance.dart';
@@ -179,6 +181,72 @@ void main() {
       },
     );
 
+    test('onRequest: 日本語マルチバイト文字列で正確なUTF-8バイト数が設定されること', () async {
+      // 「こんにちは」は5文字だが、UTF-8では15バイト
+      final japaneseOptions = RequestOptions(
+        path: 'https://api.example.com/text',
+        method: 'POST',
+        data: 'こんにちは',
+      );
+      final handler = MockRequestInterceptorHandler();
+      await interceptor.onRequest(japaneseOptions, handler);
+      verify(() => mockMetric.requestPayloadSize = 15).called(1);
+    });
+
+    test('onRequest: JSON Map / List でシリアライズされたUTF-8バイト数が設定されること', () async {
+      final mapData = <String, dynamic>{'name': '山田太郎', 'age': 30};
+      final mapOptions = RequestOptions(
+        path: 'https://api.example.com/user',
+        method: 'POST',
+        data: mapData,
+      );
+      final mapHandler = MockRequestInterceptorHandler();
+      await interceptor.onRequest(mapOptions, mapHandler);
+      // {"name":"山田太郎","age":30} -> UTF-8 byte count
+      final expectedMapBytes = utf8.encode(jsonEncode(mapData)).length;
+      verify(() => mockMetric.requestPayloadSize = expectedMapBytes).called(1);
+
+      final listData = <dynamic>[
+        {'id': 1, 'title': '記事1'},
+        {'id': 2, 'title': '記事2'},
+      ];
+      final listOptions = RequestOptions(
+        path: 'https://api.example.com/posts',
+        method: 'POST',
+        data: listData,
+      );
+      final listHandler = MockRequestInterceptorHandler();
+      await interceptor.onRequest(listOptions, listHandler);
+      final expectedListBytes = utf8.encode(jsonEncode(listData)).length;
+      verify(() => mockMetric.requestPayloadSize = expectedListBytes).called(1);
+    });
+
+    test('onRequest: FormData の場合にバイト数が設定されること', () async {
+      final formData = FormData.fromMap({
+        'name': 'taro',
+        'age': 25,
+      });
+      final formOptions = RequestOptions(
+        path: 'https://api.example.com/form',
+        method: 'POST',
+        data: formData,
+      );
+      final formHandler = MockRequestInterceptorHandler();
+      await interceptor.onRequest(formOptions, formHandler);
+      verify(() => mockMetric.requestPayloadSize = formData.length).called(1);
+    });
+
+    test('onRequest: シリアライズできないデータの場合は安全にスキップされること', () async {
+      final options = RequestOptions(
+        path: 'https://api.example.com/unsupported',
+        method: 'POST',
+        data: Object(),
+      );
+      final handler = MockRequestInterceptorHandler();
+      await interceptor.onRequest(options, handler);
+      verifyNever(() => mockMetric.requestPayloadSize = any());
+    });
+
     test(
       'onRequest: 例外発生時に talker.handle が呼ばれ、リクエストは handler.next で継続されること',
       () async {
@@ -230,6 +298,62 @@ void main() {
         verify(() => mockMetric.responsePayloadSize = 15).called(1);
         verify(() => mockMetric.stop()).called(1);
         verify(() => handler.next(response)).called(1);
+      },
+    );
+
+    test('onResponse: 日本語文字列で正確なUTF-8バイト数が設定されること', () async {
+      final options = RequestOptions(path: 'https://api.example.com/text')
+        ..extra['_firebase_performance_metric'] = mockMetric;
+      // 「成功しました」は6文字、UTF-8では18バイト
+      final response = Response<dynamic>(
+        requestOptions: options,
+        statusCode: 200,
+        data: '成功しました',
+      );
+      final handler = MockResponseInterceptorHandler();
+
+      await interceptor.onResponse(response, handler);
+
+      verify(() => mockMetric.responsePayloadSize = 18).called(1);
+      verify(() => mockMetric.stop()).called(1);
+    });
+
+    test('onResponse: JSON Map / List で正確なUTF-8バイト数が設定されること', () async {
+      final options = RequestOptions(path: 'https://api.example.com/json')
+        ..extra['_firebase_performance_metric'] = mockMetric;
+      final mapData = <String, dynamic>{'message': '完了', 'code': 200};
+      final response = Response<dynamic>(
+        requestOptions: options,
+        statusCode: 200,
+        data: mapData,
+      );
+      final handler = MockResponseInterceptorHandler();
+
+      await interceptor.onResponse(response, handler);
+
+      final expectedBytes = utf8.encode(jsonEncode(mapData)).length;
+      verify(() => mockMetric.responsePayloadSize = expectedBytes).called(1);
+      verify(() => mockMetric.stop()).called(1);
+    });
+
+    test(
+      'onResponse: data が null でも Content-Length ヘッダーからサイズを取得できること',
+      () async {
+        final options = RequestOptions(path: 'https://api.example.com/download')
+          ..extra['_firebase_performance_metric'] = mockMetric;
+        final response = Response<dynamic>(
+          requestOptions: options,
+          statusCode: 200,
+          headers: Headers.fromMap({
+            Headers.contentLengthHeader: ['2048'],
+          }),
+        );
+        final handler = MockResponseInterceptorHandler();
+
+        await interceptor.onResponse(response, handler);
+
+        verify(() => mockMetric.responsePayloadSize = 2048).called(1);
+        verify(() => mockMetric.stop()).called(1);
       },
     );
 

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:firebase_performance/firebase_performance.dart';
 import 'package:flutter_sample/src/core/performance/firebase_performance_provider.dart';
@@ -48,10 +50,8 @@ class FirebasePerformanceDioInterceptor extends Interceptor {
         if (method != null) {
           final metric = perf.newHttpMetric(uri.toString(), method);
           await metric.start();
-          if (options.data case final List<int> bytes) {
-            metric.requestPayloadSize = bytes.length;
-          } else if (options.data case final String text) {
-            metric.requestPayloadSize = text.length;
+          if (_calculatePayloadSize(options.data) case final int size) {
+            metric.requestPayloadSize = size;
           }
           options.extra[_metricKey] = metric;
         }
@@ -75,10 +75,11 @@ class FirebasePerformanceDioInterceptor extends Interceptor {
           ..responseContentType = response.headers.value(
             Headers.contentTypeHeader,
           );
-        if (response.data case final List<int> bytes) {
-          metric.responsePayloadSize = bytes.length;
-        } else if (response.data case final String text) {
-          metric.responsePayloadSize = text.length;
+        if (_calculatePayloadSize(response.data) case final int size) {
+          metric.responsePayloadSize = size;
+        } else if (response.headers.value(Headers.contentLengthHeader)
+            case final String lengthStr when int.tryParse(lengthStr) != null) {
+          metric.responsePayloadSize = int.parse(lengthStr);
         }
         await metric.stop();
       }
@@ -86,6 +87,30 @@ class FirebasePerformanceDioInterceptor extends Interceptor {
       talker.handle(e, st, 'Failed to stop HttpMetric on response');
     }
     handler.next(response);
+  }
+
+  /// ペイロードのバイトサイズ（UTF-8）を計算
+  static int? _calculatePayloadSize(dynamic data) {
+    if (data == null) {
+      return null;
+    }
+    return switch (data) {
+      final List<int> bytes => bytes.length,
+      final String text => utf8.encode(text).length,
+      final Map<dynamic, dynamic> map => _encodeJsonLength(map),
+      final List<dynamic> list => _encodeJsonLength(list),
+      final FormData formData => formData.length >= 0 ? formData.length : null,
+      _ => null,
+    };
+  }
+
+  /// JSON オブジェクトのシリアライズ後 UTF-8 バイト数を計算
+  static int? _encodeJsonLength(Object jsonObject) {
+    try {
+      return utf8.encode(jsonEncode(jsonObject)).length;
+    } on Object {
+      return null;
+    }
   }
 
   @override
