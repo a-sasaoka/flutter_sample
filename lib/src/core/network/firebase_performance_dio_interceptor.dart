@@ -70,23 +70,49 @@ class FirebasePerformanceDioInterceptor extends Interceptor {
     try {
       if (response.requestOptions.extra[_metricKey]
           case final HttpMetric metric) {
-        metric
-          ..httpResponseCode = response.statusCode
-          ..responseContentType = response.headers.value(
-            Headers.contentTypeHeader,
-          );
-        if (_calculatePayloadSize(response.data) case final int size) {
-          metric.responsePayloadSize = size;
-        } else if (response.headers.value(Headers.contentLengthHeader)
-            case final String lengthStr when int.tryParse(lengthStr) != null) {
-          metric.responsePayloadSize = int.parse(lengthStr);
-        }
+        _populateResponseInfo(metric, response);
         await metric.stop();
       }
     } on Object catch (e, st) {
       talker.handle(e, st, 'Failed to stop HttpMetric on response');
     }
     handler.next(response);
+  }
+
+  @override
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
+    try {
+      if (err.requestOptions.extra[_metricKey] case final HttpMetric metric) {
+        if (err.response case final Response<dynamic> response) {
+          _populateResponseInfo(metric, response);
+        }
+        await metric.stop();
+      }
+    } on Object catch (e, st) {
+      talker.handle(e, st, 'Failed to stop HttpMetric on error');
+    }
+    handler.next(err);
+  }
+
+  /// レスポンス情報（ステータスコード、ContentType、サイズ）を HttpMetric に設定
+  static void _populateResponseInfo(
+    HttpMetric metric,
+    Response<dynamic> response,
+  ) {
+    metric
+      ..httpResponseCode = response.statusCode
+      ..responseContentType = response.headers.value(
+        Headers.contentTypeHeader,
+      );
+    if (_calculatePayloadSize(response.data) case final int size) {
+      metric.responsePayloadSize = size;
+    } else if (response.headers.value(Headers.contentLengthHeader)
+        case final String lengthStr when int.tryParse(lengthStr) != null) {
+      metric.responsePayloadSize = int.parse(lengthStr);
+    }
   }
 
   /// ペイロードのバイトサイズ（UTF-8）を計算
@@ -111,24 +137,6 @@ class FirebasePerformanceDioInterceptor extends Interceptor {
     } on Object {
       return null;
     }
-  }
-
-  @override
-  Future<void> onError(
-    DioException err,
-    ErrorInterceptorHandler handler,
-  ) async {
-    try {
-      if (err.requestOptions.extra[_metricKey] case final HttpMetric metric) {
-        if (err.response?.statusCode case final int statusCode) {
-          metric.httpResponseCode = statusCode;
-        }
-        await metric.stop();
-      }
-    } on Object catch (e, st) {
-      talker.handle(e, st, 'Failed to stop HttpMetric on error');
-    }
-    handler.next(err);
   }
 }
 

@@ -403,18 +403,51 @@ void main() {
       },
     );
 
-    test('onError: エラーステータスコードが設定され metric.stop() が呼ばれること', () async {
-      final options = RequestOptions(path: 'https://api.example.com/error')
-        ..extra['_firebase_performance_metric'] = mockMetric;
+    test(
+      'onError: '
+      'エラーレスポンスのステータスコード、ContentType、ペイロードサイズが設定され metric.stop() が呼ばれること',
+      () async {
+        final options = RequestOptions(path: 'https://api.example.com/error')
+          ..extra['_firebase_performance_metric'] = mockMetric;
+        final errorData = <String, dynamic>{'error': '見つかりません'};
+        final err = DioException(
+          requestOptions: options,
+          response: Response(
+            requestOptions: options,
+            statusCode: 404,
+            headers: Headers.fromMap({
+              Headers.contentTypeHeader: ['application/json'],
+            }),
+            data: errorData,
+          ),
+        );
+        final handler = MockErrorInterceptorHandler();
+
+        await interceptor.onError(err, handler);
+
+        final expectedBytes = utf8.encode(jsonEncode(errorData)).length;
+        verify(() => mockMetric.httpResponseCode = 404).called(1);
+        verify(
+          () => mockMetric.responseContentType = 'application/json',
+        ).called(1);
+        verify(() => mockMetric.responsePayloadSize = expectedBytes).called(1);
+        verify(() => mockMetric.stop()).called(1);
+        verify(() => handler.next(err)).called(1);
+      },
+    );
+
+    test('onError: err.response が null の場合でも metric.stop() が呼ばれること', () async {
+      final options = RequestOptions(
+        path: 'https://api.example.com/network-fail',
+      )..extra['_firebase_performance_metric'] = mockMetric;
       final err = DioException(
         requestOptions: options,
-        response: Response(requestOptions: options, statusCode: 500),
       );
       final handler = MockErrorInterceptorHandler();
 
       await interceptor.onError(err, handler);
 
-      verify(() => mockMetric.httpResponseCode = 500).called(1);
+      verifyNever(() => mockMetric.httpResponseCode = any());
       verify(() => mockMetric.stop()).called(1);
       verify(() => handler.next(err)).called(1);
     });
