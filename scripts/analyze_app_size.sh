@@ -41,11 +41,12 @@ echo "========================================================"
 case "${PLATFORM}" in
   android|appbundle)
     OUTPUT_JSON="${OUTPUT_DIR}/size_analysis_android_${FLAVOR}_${TIMESTAMP}.json"
-    echo "🔨 Android AppBundle をビルド中 (--analyze-size)..."
+    echo "🔨 Android AppBundle をビルド中 (--analyze-size, android-arm64)..."
     fvm flutter build appbundle \
       --flavor "${FLAVOR}" \
       --target "lib/main_${FLAVOR}.dart" \
       --dart-define-from-file="${CONFIG_FILE}" \
+      --target-platform android-arm64 \
       --analyze-size \
       --code-size-directory="${OUTPUT_DIR}"
 
@@ -62,11 +63,12 @@ case "${PLATFORM}" in
 
   apk)
     OUTPUT_JSON="${OUTPUT_DIR}/size_analysis_apk_${FLAVOR}_${TIMESTAMP}.json"
-    echo "🔨 Android APK をビルド中 (--analyze-size)..."
+    echo "🔨 Android APK をビルド中 (--analyze-size, android-arm64)..."
     fvm flutter build apk \
       --flavor "${FLAVOR}" \
       --target "lib/main_${FLAVOR}.dart" \
       --dart-define-from-file="${CONFIG_FILE}" \
+      --target-platform android-arm64 \
       --analyze-size \
       --code-size-directory="${OUTPUT_DIR}"
 
