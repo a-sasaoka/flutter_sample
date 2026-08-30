@@ -274,49 +274,82 @@ void main() {
       },
     );
 
+    test('onResponse: レスポンス情報が設定され metric.stop() が呼ばれること', () async {
+      final options = RequestOptions(path: 'https://api.example.com/users')
+        ..extra['_firebase_performance_metric'] = mockMetric;
+      final response = Response<dynamic>(
+        requestOptions: options,
+        statusCode: 200,
+        headers: Headers.fromMap({
+          Headers.contentTypeHeader: ['application/json'],
+        }),
+        data: <String, dynamic>{'status': 'ok'},
+      );
+      final handler = MockResponseInterceptorHandler();
+
+      await interceptor.onResponse(response, handler);
+
+      verify(() => mockMetric.httpResponseCode = 200).called(1);
+      verify(
+        () => mockMetric.responseContentType = 'application/json',
+      ).called(1);
+      verify(() => mockMetric.responsePayloadSize = 15).called(1);
+      verify(() => mockMetric.stop()).called(1);
+      verify(() => handler.next(response)).called(1);
+    });
+
     test(
-      'onResponse: レスポンス情報が設定され metric.stop() が呼ばれること',
+      'onResponse: '
+      'application/json の日本語文字列レスポンスで JSON エンコード後の UTF-8 バイト数が設定されること',
       () async {
-        final options = RequestOptions(path: 'https://api.example.com/users')
-          ..extra['_firebase_performance_metric'] = mockMetric;
+        final options = RequestOptions(
+          path: 'https://api.example.com/json-string',
+          responseType: ResponseType.json,
+        )..extra['_firebase_performance_metric'] = mockMetric;
+        // 「成功しました」はUTF-8で18バイト、JSONエンコード（前後のクォート2バイト付与）で20バイト
         final response = Response<dynamic>(
           requestOptions: options,
           statusCode: 200,
           headers: Headers.fromMap({
             Headers.contentTypeHeader: ['application/json'],
           }),
-          data: '{"status":"ok"}',
+          data: '成功しました',
         );
         final handler = MockResponseInterceptorHandler();
 
         await interceptor.onResponse(response, handler);
 
-        verify(() => mockMetric.httpResponseCode = 200).called(1);
-        verify(
-          () => mockMetric.responseContentType = 'application/json',
-        ).called(1);
-        verify(() => mockMetric.responsePayloadSize = 15).called(1);
+        final expectedBytes = utf8.encode(jsonEncode('成功しました')).length;
+        verify(() => mockMetric.responsePayloadSize = expectedBytes).called(1);
         verify(() => mockMetric.stop()).called(1);
-        verify(() => handler.next(response)).called(1);
       },
     );
 
-    test('onResponse: 日本語文字列で正確なUTF-8バイト数が設定されること', () async {
-      final options = RequestOptions(path: 'https://api.example.com/text')
-        ..extra['_firebase_performance_metric'] = mockMetric;
-      // 「成功しました」は6文字、UTF-8では18バイト
-      final response = Response<dynamic>(
-        requestOptions: options,
-        statusCode: 200,
-        data: '成功しました',
-      );
-      final handler = MockResponseInterceptorHandler();
+    test(
+      'onResponse: '
+      'text/plain かつ ResponseType.plain の日本語文字列で生の UTF-8 バイト数が設定されること',
+      () async {
+        final options = RequestOptions(
+          path: 'https://api.example.com/plain-text',
+          responseType: ResponseType.plain,
+        )..extra['_firebase_performance_metric'] = mockMetric;
+        // 「成功しました」は6文字、UTF-8では18バイト
+        final response = Response<dynamic>(
+          requestOptions: options,
+          statusCode: 200,
+          headers: Headers.fromMap({
+            Headers.contentTypeHeader: ['text/plain'],
+          }),
+          data: '成功しました',
+        );
+        final handler = MockResponseInterceptorHandler();
 
-      await interceptor.onResponse(response, handler);
+        await interceptor.onResponse(response, handler);
 
-      verify(() => mockMetric.responsePayloadSize = 18).called(1);
-      verify(() => mockMetric.stop()).called(1);
-    });
+        verify(() => mockMetric.responsePayloadSize = 18).called(1);
+        verify(() => mockMetric.stop()).called(1);
+      },
+    );
 
     test('onResponse: JSON Map / List で正確なUTF-8バイト数が設定されること', () async {
       final options = RequestOptions(path: 'https://api.example.com/json')

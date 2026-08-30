@@ -108,17 +108,39 @@ class FirebasePerformanceDioInterceptor extends Interceptor {
     HttpMetric metric,
     Response<dynamic> response,
   ) {
+    final contentType = response.headers.value(Headers.contentTypeHeader);
     metric
       ..httpResponseCode = response.statusCode
-      ..responseContentType = response.headers.value(
-        Headers.contentTypeHeader,
-      );
-    if (_calculatePayloadSize(response.data) case final int size) {
+      ..responseContentType = contentType;
+    if (_calculateResponsePayloadSize(response, contentType)
+        case final int size) {
       metric.responsePayloadSize = size;
     } else if (response.headers.value(Headers.contentLengthHeader)
         case final String lengthStr when int.tryParse(lengthStr) != null) {
       metric.responsePayloadSize = int.parse(lengthStr);
     }
+  }
+
+  /// レスポンスデータのバイトサイズ（UTF-8）を計算
+  static int? _calculateResponsePayloadSize(
+    Response<dynamic> response,
+    String? contentType,
+  ) {
+    final data = response.data;
+    if (data == null) {
+      return null;
+    }
+    if (data is String) {
+      final isJson =
+          response.requestOptions.responseType == ResponseType.json ||
+          (contentType != null && contentType.contains('application/json'));
+      if (isJson &&
+          response.requestOptions.responseType != ResponseType.plain) {
+        return utf8.encode(jsonEncode(data)).length;
+      }
+      return utf8.encode(data).length;
+    }
+    return _calculatePayloadSize(data);
   }
 
   /// ペイロードのバイトサイズ（UTF-8）を計算
