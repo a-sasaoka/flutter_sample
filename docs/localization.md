@@ -64,7 +64,7 @@ fvm flutter gen-l10n
 
 ## 🧩 翻訳の利用方法
 
-UI ウィジェット内では、`BuildContext` を通じて `final l10n = AppLocalizations.of(context)!;` を取得し、`l10n.appTitle` のように型安全に翻訳テキストを参照します。具体的な利用例は [home_screen.dart](../lib/src/features/home/presentation/home_screen.dart) などを参照してください。
+UI ウィジェット内では、`BuildContext` の拡張プロパティ `context.l10n`（[l10n_extension.dart](../lib/src/core/ui/l10n_extension.dart)）を通じて `final l10n = context.l10n;` を取得し、`l10n.appTitle` のように型安全かつ簡潔に翻訳テキストを参照します。具体的な利用例は [home_screen.dart](../lib/src/features/home/presentation/home_screen.dart) や [memo_screen.dart](../lib/src/features/memos/presentation/memo_screen.dart) などを参照してください。
 
 ---
 

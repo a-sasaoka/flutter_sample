@@ -159,4 +159,37 @@ void main() {
       check(find.text(message2)).findsOne();
     },
   );
+
+  testWidgets('showSnackBar uses custom action when provided', (
+    tester,
+  ) async {
+    const testMessage = 'Test Action Message';
+    var actionPressed = false;
+
+    await tester.pumpWidget(
+      buildTestApp((context) {
+        context.showSnackBar(
+          testMessage,
+          action: SnackBarAction(
+            label: 'Custom Action',
+            onPressed: () {
+              actionPressed = true;
+            },
+          ),
+        );
+      }),
+    );
+
+    await tester.tap(find.text('Show SnackBar'));
+    await tester.pumpAndSettle();
+
+    check(find.text(testMessage)).findsOne();
+    check(find.text('Custom Action')).findsOne();
+    check(find.text('Close')).findsNothing();
+
+    await tester.tap(find.text('Custom Action'));
+    await tester.pumpAndSettle();
+
+    check(actionPressed).isTrue();
+  });
 }

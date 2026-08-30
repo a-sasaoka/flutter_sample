@@ -5,6 +5,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/core/widgets/empty_state_widget.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_sort_order.dart';
@@ -283,25 +284,11 @@ class _MemoListView extends ConsumerWidget {
 
     return switch (memosAsyncValue) {
       AsyncData(value: final memos) when memos.isEmpty => ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          SizedBox(height: MediaQuery.sizeOf(context).height * 0.3),
-          Center(
-            child: Column(
-              children: [
-                Icon(
-                  Icons.note_alt_outlined,
-                  size: 64,
-                  color: Theme.of(context).colorScheme.outline,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  l10n.memoEmpty,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                ),
-              ],
-            ),
+          SizedBox(height: MediaQuery.sizeOf(context).height * 0.15),
+          EmptyStateWidget(
+            title: l10n.memoEmpty,
           ),
         ],
       ),

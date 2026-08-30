@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/gen/assets.gen.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
+import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:flutter_sample/src/core/widgets/app_lottie_widget.dart';
 
 /// 🎨 Lottie アニメーションの操作・デモ画面
@@ -85,12 +86,9 @@ class LottieDemoScreen extends HookWidget {
             if (isLoop.value) {
               unawaited(controller.forward(from: 0));
             } else {
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(l10n.devLottieCompleted),
-                  duration: const Duration(seconds: 1),
-                ),
+              context.showSnackBar(
+                l10n.devLottieCompleted,
+                duration: const Duration(seconds: 1),
               );
             }
           }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
+import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:flutter_sample/src/features/map/application/map_notifier.dart';
 import 'package:flutter_sample/src/features/map/application/map_route_notifier.dart';
 import 'package:flutter_sample/src/features/map/application/map_search_notifier.dart';
@@ -187,44 +188,33 @@ class MapScreen extends HookConsumerWidget {
               pendingLatLngState.value = latLng;
             }
           case LocationStatePermissionDenied():
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(l10n.mapPermissionDenied)),
-            );
+            context.showSnackBar(l10n.mapPermissionDenied);
           case LocationStatePermissionDeniedForever():
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(l10n.mapPermissionDeniedForever),
-                action: SnackBarAction(
-                  label: l10n.mapOpenSettings,
-                  onPressed: () {
-                    unawaited(
-                      ref.read(mapProvider.notifier).openAppSettings(),
-                    );
-                  },
-                ),
+            context.showSnackBar(
+              l10n.mapPermissionDeniedForever,
+              action: SnackBarAction(
+                label: l10n.mapOpenSettings,
+                onPressed: () {
+                  unawaited(
+                    ref.read(mapProvider.notifier).openAppSettings(),
+                  );
+                },
               ),
             );
           case LocationStateServiceDisabled():
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(l10n.mapServiceDisabled),
-                action: SnackBarAction(
-                  label: l10n.mapOpenSettings,
-                  onPressed: () {
-                    unawaited(
-                      ref.read(mapProvider.notifier).openLocationSettings(),
-                    );
-                  },
-                ),
+            context.showSnackBar(
+              l10n.mapServiceDisabled,
+              action: SnackBarAction(
+                label: l10n.mapOpenSettings,
+                onPressed: () {
+                  unawaited(
+                    ref.read(mapProvider.notifier).openLocationSettings(),
+                  );
+                },
               ),
             );
           case LocationStateError():
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(l10n.mapFetchError),
-                backgroundColor: Theme.of(context).colorScheme.error,
-              ),
-            );
+            context.showErrorSnackBar(l10n.mapFetchError);
           case LocationStateInitial() || LocationStateLoading():
             break;
         }
@@ -382,17 +372,9 @@ class MapScreen extends HookConsumerWidget {
               );
             }
           case MapSearchStateEmpty(:final query):
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(l10n.mapSearchEmpty(query)),
-              ),
-            );
+            context.showSnackBar(l10n.mapSearchEmpty(query));
           case MapSearchStateError():
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(l10n.mapSearchError),
-              ),
-            );
+            context.showErrorSnackBar(l10n.mapSearchError);
           case MapSearchStateInitial() || MapSearchStateLoading():
             break;
         }
@@ -415,12 +397,7 @@ class MapScreen extends HookConsumerWidget {
               pendingBoundsState.value = route.bounds;
             }
           case MapRouteStateError():
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(l10n.mapRouteError),
-                backgroundColor: Theme.of(context).colorScheme.error,
-              ),
-            );
+            context.showErrorSnackBar(l10n.mapRouteError);
           case MapRouteStateInitial() || MapRouteStateLoading():
             break;
         }

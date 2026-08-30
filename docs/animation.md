@@ -70,7 +70,7 @@ lib/
 データが0件の時や通信エラー時に、ユーザーにわかりやすく状態を伝える共通Widgetです。実装詳細は [empty_state_widget.dart](../lib/src/core/widgets/empty_state_widget.dart) を参照してください。
 
 - **主なプロパティ**: `lottie`（指定なしの場合はデフォルトで `Assets.animations.emptyBox`）、`title`、`description`、`actionLabel`、`onAction`（ボタン押下時のコールバック）などを渡せます。
-- **利用例**: ユーザー一覧画面での空状態表示などは [user_list_screen.dart](../lib/src/features/user/presentation/user_list_screen.dart) を参照してください。
+- **利用例**: ユーザー一覧画面（[user_list_screen.dart](../lib/src/features/user/presentation/user_list_screen.dart)）、メモ一覧画面（[memo_screen.dart](../lib/src/features/memos/presentation/memo_screen.dart)）、グラフ画面（[chart_display_screen.dart](../lib/src/features/chart/presentation/chart_display_screen.dart)）などの空状態表示を参照してください。
 
 ---
 

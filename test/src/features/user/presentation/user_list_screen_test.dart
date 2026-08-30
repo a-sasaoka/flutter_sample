@@ -4,6 +4,7 @@ import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_sample/src/core/widgets/empty_state_widget.dart';
 import 'package:flutter_sample/src/features/user/data/user_repository.dart';
 import 'package:flutter_sample/src/features/user/domain/user_model.dart';
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
@@ -120,7 +121,7 @@ void main() {
       await tester.pumpAndSettle();
 
       check(find.text('No users found.')).findsOne();
-      check(find.byIcon(Icons.people_outline)).findsOne();
+      check(find.byType(EmptyStateWidget)).findsOne();
     });
 
     testWidgets('【正常系】引っ張って更新（Pull-to-Refresh）でデータが再取得されること', (tester) async {

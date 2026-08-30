@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
+import 'package:flutter_sample/src/core/widgets/empty_state_widget.dart';
 import 'package:flutter_sample/src/features/chart/application/chart_notifier.dart';
 import 'package:flutter_sample/src/features/chart/application/chart_state.dart';
 import 'package:flutter_sample/src/features/chart/domain/chart_type.dart';
@@ -25,13 +26,8 @@ class ChartDisplayScreen extends ConsumerWidget {
         ),
       ),
       body: state.items.isEmpty
-          ? Center(
-              child: Text(
-                l10n.chartNoData,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
-                ),
-              ),
+          ? EmptyStateWidget(
+              title: l10n.chartNoData,
             )
           : CustomScrollView(
               slivers: [

@@ -145,17 +145,29 @@ void main() {
 
       // ループスイッチをOFFにする
       final switchTile = find.byType(SwitchListTile);
-      await tester.tap(switchTile);
-      await tester.pump();
-
-      // 再生ボタンを押して完了まで進める（単発再生のため完了で停止しsettleする）
-      final playButton = find.byIcon(Icons.play_arrow);
-      await tester.tap(playButton);
+      await tester.ensureVisible(switchTile);
       await tester.pumpAndSettle();
+      await tester.tap(switchTile);
+      await tester.pumpAndSettle();
+
+      // 再生ボタンを押して完了まで進める
+      final playButton = find.byIcon(Icons.play_arrow);
+      await tester.ensureVisible(playButton);
+      await tester.pumpAndSettle();
+      await tester.tap(playButton);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2, milliseconds: 50));
+      await tester.pump();
 
       check(find.text('アニメーションが完了しました！')).findsOne();
 
+      // スナックバーが自動消去されるのを待つ
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+
       // 停止状態でループスイッチを再度ONにした場合、自動的に再生が再開されること
+      await tester.ensureVisible(switchTile);
+      await tester.pumpAndSettle();
       await tester.tap(switchTile);
       await tester.pump(const Duration(milliseconds: 100));
     });
