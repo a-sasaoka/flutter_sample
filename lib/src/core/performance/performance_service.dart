@@ -38,6 +38,7 @@ class PerformanceService {
     }
 
     Trace? trace;
+    var isStarted = false;
     try {
       trace = perf.newTrace(traceName);
       if (attributes != null) {
@@ -51,6 +52,7 @@ class PerformanceService {
         }
       }
       await trace.start();
+      isStarted = true;
     } on Object catch (e, st) {
       talker.handle(e, st, 'Failed to start performance trace: $traceName');
     }
@@ -58,7 +60,7 @@ class PerformanceService {
     try {
       return await action();
     } finally {
-      if (trace != null) {
+      if (trace != null && isStarted) {
         try {
           await trace.stop();
           talker.debug('⚡️ Performance trace finished: $traceName');

@@ -122,7 +122,8 @@ void main() {
     );
 
     test(
-      'traceExecution 異常系: trace.start() 時に例外が発生しても action は実行されること',
+      'traceExecution 異常系: '
+      'trace.start() 時に例外が発生しても action は実行され、stop() は呼ばれないこと',
       () async {
         final startException = Exception('Failed to start trace');
         when(() => mockTrace.start()).thenThrow(startException);
@@ -140,7 +141,7 @@ void main() {
             'Failed to start performance trace: start_failing_trace',
           ),
         ).called(1);
-        verify(() => mockTrace.stop()).called(1);
+        verifyNever(() => mockTrace.stop());
       },
     );
 
