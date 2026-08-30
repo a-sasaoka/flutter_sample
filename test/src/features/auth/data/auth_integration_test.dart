@@ -57,6 +57,7 @@ void main() {
             envConfigProvider.overrideWithValue(
               const EnvConfigState(
                 baseUrl: 'https://example.com',
+                imageBaseUrl: defaultImageBaseUrl,
                 aiModel: 'gemini-3.5-flash-lite',
                 connectTimeout: 10,
                 receiveTimeout: 15,
@@ -119,6 +120,7 @@ void main() {
             envConfigProvider.overrideWithValue(
               const EnvConfigState(
                 baseUrl: 'https://example.com',
+                imageBaseUrl: defaultImageBaseUrl,
                 aiModel: 'gemini-3.5-flash-lite',
                 connectTimeout: 10,
                 receiveTimeout: 15,
@@ -176,6 +178,7 @@ void main() {
             envConfigProvider.overrideWithValue(
               const EnvConfigState(
                 baseUrl: 'https://example.com',
+                imageBaseUrl: defaultImageBaseUrl,
                 aiModel: 'gemini-3.5-flash-lite',
                 connectTimeout: 10,
                 receiveTimeout: 15,

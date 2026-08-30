@@ -5,6 +5,7 @@ import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
+import 'package:flutter_sample/src/core/network/firebase_performance_dio_interceptor.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/token_interceptor.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -170,6 +171,7 @@ void main() {
           envConfigProvider.overrideWithValue(
             const EnvConfigState(
               baseUrl: 'https://api.example.com',
+              imageBaseUrl: defaultImageBaseUrl,
               aiModel: 'test-model',
               connectTimeout: 10,
               receiveTimeout: 15,
@@ -198,9 +200,10 @@ void main() {
           .map((i) => i.runtimeType)
           .toList();
 
-      check(interceptorTypes[1]).equals(MockTokenInterceptor);
-      check(interceptorTypes[2]).equals(MockDioInterceptor);
-      check(interceptorTypes[3]).equals(TalkerDioLogger);
+      check(interceptorTypes).contains(MockTokenInterceptor);
+      check(interceptorTypes).contains(MockDioInterceptor);
+      check(interceptorTypes).contains(FirebasePerformanceDioInterceptor);
+      check(interceptorTypes).contains(TalkerDioLogger);
 
       testContainer.dispose();
     });

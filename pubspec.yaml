@@ -74,17 +74,22 @@ dependencies:
 
   # --- 🔐 Firebase ---
   firebase_core: ^4.2.1
-  firebase_crashlytics: ^5.0.5
-  firebase_analytics: ^12.0.4
-  firebase_auth: ^6.1.2
+  firebase_crashlytics: ^5.3.0
+  firebase_analytics: ^12.5.0
+  firebase_auth: ^6.6.1
   google_sign_in: ^7.2.0
-  firebase_remote_config: ^6.1.4
-  firebase_ai: ^3.9.0
-  firebase_app_check: ^0.4.1+5
-  firebase_messaging: ^16.5.0
+  firebase_remote_config: ^6.6.0
+  firebase_ai: ^3.15.0
+  firebase_app_check: ^0.4.7
+  firebase_messaging: ^16.6.0
+  firebase_performance: ^0.11.5
 
   # --- 🔔 通知 ---
   flutter_local_notifications: ^22.3.0
+
+  # --- 🖼️ 画像キャッシュ ---
+  cached_network_image: ^3.4.1
+  flutter_cache_manager: ^3.4.1
 
   # --- Util ---
   flutter_markdown_plus: ^1.0.7

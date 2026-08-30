@@ -816,4 +816,46 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get notificationBannerDismiss => '閉じる';
+
+  @override
+  String get devImageCacheTitle => '画像キャッシュデモ';
+
+  @override
+  String get devImageCacheDescription =>
+      'cached_network_image を使用した画像の高速読み込み、シマープレースホルダー、エラーフォールバック、およびキャッシュクリアの動作確認ができます。';
+
+  @override
+  String get devImageCacheSectionShapes => '形状・表示バリエーション';
+
+  @override
+  String get devImageCacheStandard => '標準（四角形）';
+
+  @override
+  String get devImageCacheRounded => '角丸（Rounded）';
+
+  @override
+  String get devImageCacheCircle => '円形アバター（Circle）';
+
+  @override
+  String get devImageCacheSectionErrors => 'エラー・未設定時のフォールバック';
+
+  @override
+  String get devImageCacheErrorUrl => '存在しないURL（404エラー）';
+
+  @override
+  String get devImageCacheEmptyUrl => '未設定（null / 空文字）';
+
+  @override
+  String get devImageCacheSectionOperations => 'キャッシュ操作';
+
+  @override
+  String get devImageCacheClearButton => '画像キャッシュをクリア';
+
+  @override
+  String get devImageCacheClearSuccess => '画像キャッシュをクリアしました';
+
+  @override
+  String devImageCacheClearError(String error) {
+    return 'キャッシュのクリアに失敗しました: $error';
+  }
 }

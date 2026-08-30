@@ -13,7 +13,7 @@
 | 🧠 高度なテスト | Maestro による E2E テストの導入（iOS 達成）。今後はテストケースの拡充および CI (GitHub Actions) での自動実行の整備 |
 | 🚀 自動デプロイ | Fastlane を組み合わせた、App Store / Google Play への完全自動リリース（CD）パイプラインの構築 |
 | ☁️ API | GraphQL や gRPC など、REST以外の通信方式への対応・検証 |
-| ⚡️ パフォーマンス | 画像キャッシュ戦略、アプリサイズの軽量化、Firebase Performance Monitoring を用いた実環境の監視 |
+| ⚡️ パフォーマンス | 画像キャッシュ戦略、アプリサイズの軽量化、Firebase Performance Monitoring を用いた実環境の監視 (✅ 完了) |
 | ♿️ アクセシビリティ | Semantics を活用したスクリーンリーダー対応（一部達成）、アプリ全体への Semantics 適用とダイナミックタイプ対応 |
 | 🎨 UX / デザイン | Lottie を用いたリッチなアニメーションの導入 (✅ 完了) |
 | 🏗️ アーキテクチャ | Melosを用いたマルチパッケージ（Monorepo）構成の構築 |

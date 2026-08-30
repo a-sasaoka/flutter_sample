@@ -1657,6 +1657,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dismiss'**
   String get notificationBannerDismiss;
+
+  /// No description provided for @devImageCacheTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Image Cache Demo'**
+  String get devImageCacheTitle;
+
+  /// No description provided for @devImageCacheDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Demonstrates high-performance image loading, shimmer placeholders, error fallbacks, and cache clearance using cached_network_image.'**
+  String get devImageCacheDescription;
+
+  /// No description provided for @devImageCacheSectionShapes.
+  ///
+  /// In en, this message translates to:
+  /// **'Shapes & Display Variations'**
+  String get devImageCacheSectionShapes;
+
+  /// No description provided for @devImageCacheStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard (Rectangle)'**
+  String get devImageCacheStandard;
+
+  /// No description provided for @devImageCacheRounded.
+  ///
+  /// In en, this message translates to:
+  /// **'Rounded Corners'**
+  String get devImageCacheRounded;
+
+  /// No description provided for @devImageCacheCircle.
+  ///
+  /// In en, this message translates to:
+  /// **'Circular Avatar'**
+  String get devImageCacheCircle;
+
+  /// No description provided for @devImageCacheSectionErrors.
+  ///
+  /// In en, this message translates to:
+  /// **'Fallbacks on Error / Unset'**
+  String get devImageCacheSectionErrors;
+
+  /// No description provided for @devImageCacheErrorUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Non-existent URL (404 Error)'**
+  String get devImageCacheErrorUrl;
+
+  /// No description provided for @devImageCacheEmptyUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Unset (null / empty string)'**
+  String get devImageCacheEmptyUrl;
+
+  /// No description provided for @devImageCacheSectionOperations.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache Operations'**
+  String get devImageCacheSectionOperations;
+
+  /// No description provided for @devImageCacheClearButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Image Cache'**
+  String get devImageCacheClearButton;
+
+  /// No description provided for @devImageCacheClearSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Image cache cleared successfully'**
+  String get devImageCacheClearSuccess;
+
+  /// No description provided for @devImageCacheClearError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to clear cache: {error}'**
+  String devImageCacheClearError(String error);
 }
 
 class _AppLocalizationsDelegate

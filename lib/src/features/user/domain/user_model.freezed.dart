@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$UserModel {
 
- int get id; String get name; String get email; String get phone; String get website; Address get address;
+ int get id; String get name; String get email; String get phone; String get website; Address get address; String? get avatarUrl;
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $UserModelCopyWith<UserModel> get copyWith => _$UserModelCopyWithImpl<UserModel>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.website, website) || other.website == website)&&(identical(other.address, address) || other.address == address));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.website, website) || other.website == website)&&(identical(other.address, address) || other.address == address)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,email,phone,website,address);
+int get hashCode => Object.hash(runtimeType,id,name,email,phone,website,address,avatarUrl);
 
 @override
 String toString() {
-  return 'UserModel(id: $id, name: $name, email: $email, phone: $phone, website: $website, address: $address)';
+  return 'UserModel(id: $id, name: $name, email: $email, phone: $phone, website: $website, address: $address, avatarUrl: $avatarUrl)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $UserModelCopyWith<$Res>  {
   factory $UserModelCopyWith(UserModel value, $Res Function(UserModel) _then) = _$UserModelCopyWithImpl;
 @useResult
 $Res call({
- int id, String name, String email, String phone, String website, Address address
+ int id, String name, String email, String phone, String website, Address address, String? avatarUrl
 });
 
 
@@ -65,7 +65,7 @@ class _$UserModelCopyWithImpl<$Res>
 
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? email = null,Object? phone = null,Object? website = null,Object? address = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? email = null,Object? phone = null,Object? website = null,Object? address = null,Object? avatarUrl = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -73,7 +73,8 @@ as String,email: null == email ? _self.email : email // ignore: cast_nullable_to
 as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
 as String,website: null == website ? _self.website : website // ignore: cast_nullable_to_non_nullable
 as String,address: null == address ? _self.address : address // ignore: cast_nullable_to_non_nullable
-as Address,
+as Address,avatarUrl: freezed == avatarUrl ? _self.avatarUrl : avatarUrl // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 /// Create a copy of UserModel
@@ -164,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  String email,  String phone,  String website,  Address address)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  String email,  String phone,  String website,  Address address,  String? avatarUrl)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserModel() when $default != null:
-return $default(_that.id,_that.name,_that.email,_that.phone,_that.website,_that.address);case _:
+return $default(_that.id,_that.name,_that.email,_that.phone,_that.website,_that.address,_that.avatarUrl);case _:
   return orElse();
 
 }
@@ -185,10 +186,10 @@ return $default(_that.id,_that.name,_that.email,_that.phone,_that.website,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  String email,  String phone,  String website,  Address address)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  String email,  String phone,  String website,  Address address,  String? avatarUrl)  $default,) {final _that = this;
 switch (_that) {
 case _UserModel():
-return $default(_that.id,_that.name,_that.email,_that.phone,_that.website,_that.address);}
+return $default(_that.id,_that.name,_that.email,_that.phone,_that.website,_that.address,_that.avatarUrl);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -202,10 +203,10 @@ return $default(_that.id,_that.name,_that.email,_that.phone,_that.website,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  String email,  String phone,  String website,  Address address)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  String email,  String phone,  String website,  Address address,  String? avatarUrl)?  $default,) {final _that = this;
 switch (_that) {
 case _UserModel() when $default != null:
-return $default(_that.id,_that.name,_that.email,_that.phone,_that.website,_that.address);case _:
+return $default(_that.id,_that.name,_that.email,_that.phone,_that.website,_that.address,_that.avatarUrl);case _:
   return null;
 
 }
@@ -217,7 +218,7 @@ return $default(_that.id,_that.name,_that.email,_that.phone,_that.website,_that.
 @JsonSerializable()
 
 class _UserModel implements UserModel {
-  const _UserModel({required this.id, required this.name, required this.email, required this.phone, required this.website, required this.address});
+  const _UserModel({required this.id, required this.name, required this.email, required this.phone, required this.website, required this.address, this.avatarUrl});
   factory _UserModel.fromJson(Map<String, dynamic> json) => _$UserModelFromJson(json);
 
 @override final  int id;
@@ -226,6 +227,7 @@ class _UserModel implements UserModel {
 @override final  String phone;
 @override final  String website;
 @override final  Address address;
+@override final  String? avatarUrl;
 
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
@@ -240,16 +242,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.website, website) || other.website == website)&&(identical(other.address, address) || other.address == address));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.website, website) || other.website == website)&&(identical(other.address, address) || other.address == address)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,email,phone,website,address);
+int get hashCode => Object.hash(runtimeType,id,name,email,phone,website,address,avatarUrl);
 
 @override
 String toString() {
-  return 'UserModel(id: $id, name: $name, email: $email, phone: $phone, website: $website, address: $address)';
+  return 'UserModel(id: $id, name: $name, email: $email, phone: $phone, website: $website, address: $address, avatarUrl: $avatarUrl)';
 }
 
 
@@ -260,7 +262,7 @@ abstract mixin class _$UserModelCopyWith<$Res> implements $UserModelCopyWith<$Re
   factory _$UserModelCopyWith(_UserModel value, $Res Function(_UserModel) _then) = __$UserModelCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String name, String email, String phone, String website, Address address
+ int id, String name, String email, String phone, String website, Address address, String? avatarUrl
 });
 
 
@@ -277,7 +279,7 @@ class __$UserModelCopyWithImpl<$Res>
 
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? email = null,Object? phone = null,Object? website = null,Object? address = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? email = null,Object? phone = null,Object? website = null,Object? address = null,Object? avatarUrl = freezed,}) {
   return _then(_UserModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -285,7 +287,8 @@ as String,email: null == email ? _self.email : email // ignore: cast_nullable_to
 as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
 as String,website: null == website ? _self.website : website // ignore: cast_nullable_to_non_nullable
 as String,address: null == address ? _self.address : address // ignore: cast_nullable_to_non_nullable
-as Address,
+as Address,avatarUrl: freezed == avatarUrl ? _self.avatarUrl : avatarUrl // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

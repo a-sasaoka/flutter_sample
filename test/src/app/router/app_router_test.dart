@@ -248,6 +248,7 @@ void main() {
     when(() => mockL10n.devStorageTitle).thenReturn('Storage');
     when(() => mockL10n.devLottieTitle).thenReturn('Lottie Demo');
     when(() => mockL10n.devNotificationTitle).thenReturn('Notification Demo');
+    when(() => mockL10n.devImageCacheTitle).thenReturn('Image Cache Demo');
     when(
       () => mockL10n.notificationBannerTitle,
     ).thenReturn('Notification Banner Title');
@@ -333,6 +334,7 @@ void main() {
         envConfigProvider.overrideWithValue(
           EnvConfigState(
             baseUrl: 'https://test.example.com',
+            imageBaseUrl: defaultImageBaseUrl,
             aiModel: 'test-model',
             connectTimeout: 10,
             receiveTimeout: 15,
@@ -694,6 +696,7 @@ void main() {
           envConfigProvider.overrideWithValue(
             const EnvConfigState(
               baseUrl: 'https://test.example.com',
+              imageBaseUrl: defaultImageBaseUrl,
               aiModel: 'test-model',
               connectTimeout: 10,
               receiveTimeout: 15,

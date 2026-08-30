@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
+import 'package:flutter_sample/src/core/network/firebase_performance_dio_interceptor.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:talker_dio_logger/talker_dio_logger.dart';
@@ -88,7 +89,10 @@ Dio _createDio(
   // 2. 共通のエラー変換・簡易ログインターセプターを追加
   dio.interceptors.add(ref.watch(dioInterceptorProvider));
 
-  // 3. 開発時のみ詳細なログインターセプターを追加
+  // 3. パフォーマンス計測インターセプターを追加
+  dio.interceptors.add(ref.watch(firebasePerformanceDioInterceptorProvider));
+
+  // 4. 開発時のみ詳細なログインターセプターを追加
   if (kDebugMode) {
     dio.interceptors.add(
       TalkerDioLogger(

@@ -15,6 +15,7 @@ sealed class UserModel with _$UserModel {
     required String phone,
     required String website,
     required Address address,
+    String? avatarUrl,
   }) = _UserModel;
 
   /// JSONからUserModelオブジェクトを生成するファクトリコンストラクタ

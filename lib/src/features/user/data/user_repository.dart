@@ -1,3 +1,4 @@
+import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/storage/cache_manager.dart';
@@ -17,6 +18,7 @@ UserRepository userRepository(Ref ref) {
     cache: ref.watch(cacheManagerProvider),
     talker: ref.watch(loggerProvider),
     clock: ref.watch(clockProvider),
+    imageBaseUrl: ref.watch(envConfigProvider).imageBaseUrl,
   );
 }
 
@@ -28,6 +30,7 @@ class UserRepository {
     required this.cache,
     required this.talker,
     required this.clock,
+    this.imageBaseUrl = '',
   });
 
   /// APIクライアント
@@ -41,6 +44,9 @@ class UserRepository {
 
   /// 現在日時取得関数
   final DateTime Function() clock;
+
+  /// 画像ベースURL
+  final String imageBaseUrl;
 
   /// キャッシュのキー
   static const cacheKey = 'users';
@@ -140,7 +146,13 @@ class UserRepository {
   UserModel _parseUser(Object? responseData, String errorMessage) {
     if (responseData case final Map<String, dynamic> data) {
       try {
-        return UserModel.fromJson(data);
+        final user = UserModel.fromJson(data);
+        if (user.avatarUrl == null && imageBaseUrl.isNotEmpty) {
+          return user.copyWith(
+            avatarUrl: '$imageBaseUrl/seed/${user.id}/150/150',
+          );
+        }
+        return user;
       } on Object catch (e, st) {
         talker.handle(e, st, '$errorMessage: Failed to parse UserModel');
         throw const AppException.dataParse();

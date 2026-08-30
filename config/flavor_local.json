@@ -1,5 +1,6 @@
 {
   "BASE_URL": "http://localhost:3000",
+  "IMAGE_BASE_URL": "https://picsum.photos",
   "AI_MODEL": "gemini-3.5-flash-lite",
   "CONNECT_TIMEOUT": 10,
   "RECEIVE_TIMEOUT": 15,

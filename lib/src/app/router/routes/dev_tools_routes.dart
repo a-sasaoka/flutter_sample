@@ -37,3 +37,15 @@ class PushNotificationDemoRoute extends GoRouteData
     return const PushNotificationDemoScreen();
   }
 }
+
+/// 開発者向け画像キャッシュデモ画面のルート
+@TypedGoRoute<ImageCacheDemoRoute>(path: '/dev-tools/image-cache')
+class ImageCacheDemoRoute extends GoRouteData with $ImageCacheDemoRoute {
+  /// コンストラクタ
+  const ImageCacheDemoRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const ImageCacheDemoScreen();
+  }
+}

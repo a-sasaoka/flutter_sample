@@ -36,6 +36,8 @@ flutter_sample
 │   └── Runner/
 │       └── Firebase/                                           # iOS用の環境別Firebase設定を格納
 ├── maestro/                                                    # Maestro による E2E テストシナリオ（YAML）を格納
+├── scripts/                                                    # ビルドサイズ分析などの各種運用スクリプト
+│   └── analyze_app_size.sh                                     # アプリサイズ分析・DevToolsスナップショット生成
 ├── test/                                                       # テストコード（lib配下と完全に1対1のディレクトリ構成）
 ├── tool/                                                       # 開発補助スクリプト・ツール
 │   ├── apns/                                                   # iOSシミュレーター用 APNs ペイロード＆プッシュ通知送信スクリプト
@@ -64,11 +66,12 @@ flutter_sample
         │   ├── config                                          # 環境設定（EnvConfig, AppEnv）、テーマ等
         │   ├── database                                        # データベースインスタンスの提供、Talker連携
         │   ├── exceptions                                      # 共通の例外クラス定義
-        │   ├── network                                         # APIクライアント、Interceptor
-        │   ├── storage                                         # 永続化関連（SharedPreferences・SecureStorage・キャッシュ）
+        │   ├── network                                         # APIクライアント、Interceptor（パフォーマンス自動計測含む）
+        │   ├── performance                                     # パフォーマンス計測基盤（Firebase Performance）
+        │   ├── storage                                         # 永続化・キャッシュ（SharedPreferences・SecureStorage・画像キャッシュ）
         │   ├── ui                                              # 共通UI関連（エラーハンドリングなど）
         │   ├── utils                                           # 共通ユーティリティ（ロギング・通信状態・ライフサイクル監視等）
-        │   └── widgets                                         # 汎用UI部品（ダイアログや共通画面）
+        │   └── widgets                                         # 汎用UI部品（ダイアログや画像キャッシュウィジェット、共通画面）
         └── features                                            # 各機能ごとのモジュール（Layered Architecture）
             ├── app_lock                                        # アプリロック機能（PINパスコード / 生体認証）
             ├── auth                                            # 認証機能

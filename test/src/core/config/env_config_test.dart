@@ -20,11 +20,13 @@ void main() {
       check(config.sendTimeout).equals(defaultSendTimeout);
       check(config.useFirebaseAuth).equals(defaultUseFirebaseAuth);
       check(config.useAgentPlatform).equals(defaultUseAgentPlatform);
+      check(config.imageBaseUrl).equals(defaultImageBaseUrl);
     });
 
     test('getDebugReport が正しいフォーマットで文字列を生成すること', () {
       const config = EnvConfigState(
         baseUrl: 'https://test.com',
+        imageBaseUrl: 'https://images.test.com',
         aiModel: 'test-model',
         connectTimeout: 1,
         receiveTimeout: 2,
@@ -46,6 +48,7 @@ void main() {
       check(report).contains('🆔 Package Name      : com.test.app');
       check(report).contains('✨ Version           : 1.0.0 (1)');
       check(report).contains('📍 API Base URL      : https://test.com');
+      check(report).contains('🖼️ Image Base URL    : https://images.test.com');
       check(report).contains('🤖 AI Model          : test-model');
       check(report).contains('⏱️ Timeouts (C/R/S)  : 1 / 2 / 3');
       check(report).contains('🔥 Firebase Auth     : false');

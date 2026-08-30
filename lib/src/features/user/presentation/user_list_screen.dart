@@ -3,6 +3,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/utils/date_time_extension.dart';
+import 'package:flutter_sample/src/core/widgets/app_cached_image.dart';
 import 'package:flutter_sample/src/features/user/application/user_notifier.dart';
 import 'package:flutter_sample/src/features/user/domain/user_model.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -173,9 +174,13 @@ class _UserCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
-        leading: CircleAvatar(
-          backgroundColor: colorScheme.primaryContainer,
-          child: Icon(Icons.person, color: colorScheme.onPrimaryContainer),
+        leading: AppCachedImage.circle(
+          imageUrl: user.avatarUrl,
+          size: 40,
+          fallbackWidget: CircleAvatar(
+            backgroundColor: colorScheme.primaryContainer,
+            child: Icon(Icons.person, color: colorScheme.onPrimaryContainer),
+          ),
         ),
         title: Text(
           user.name,
