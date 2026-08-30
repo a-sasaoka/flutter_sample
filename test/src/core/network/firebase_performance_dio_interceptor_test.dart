@@ -404,6 +404,35 @@ void main() {
     );
 
     test(
+      'onResponse: レスポンス情報設定時に例外が発生しても finally で metric.stop() が呼ばれること',
+      () async {
+        when(
+          () => mockMetric.httpResponseCode = any(),
+        ).thenThrow(Exception('Response setter failure'));
+
+        final options = RequestOptions(path: 'https://api.example.com/users')
+          ..extra['_firebase_performance_metric'] = mockMetric;
+        final response = Response<dynamic>(
+          requestOptions: options,
+          statusCode: 200,
+        );
+        final handler = MockResponseInterceptorHandler();
+
+        await interceptor.onResponse(response, handler);
+
+        verify(() => mockMetric.stop()).called(1);
+        verify(
+          () => mockTalker.handle(
+            any<Object>(),
+            any<StackTrace?>(),
+            'Failed to stop HttpMetric on response',
+          ),
+        ).called(1);
+        verify(() => handler.next(response)).called(1);
+      },
+    );
+
+    test(
       'onError: '
       'エラーレスポンスのステータスコード、ContentType、ペイロードサイズが設定され metric.stop() が呼ばれること',
       () async {
@@ -432,6 +461,38 @@ void main() {
         ).called(1);
         verify(() => mockMetric.responsePayloadSize = expectedBytes).called(1);
         verify(() => mockMetric.stop()).called(1);
+        verify(() => handler.next(err)).called(1);
+      },
+    );
+
+    test(
+      'onError: レスポンス情報設定時に例外が発生しても finally で metric.stop() が呼ばれること',
+      () async {
+        when(
+          () => mockMetric.httpResponseCode = any(),
+        ).thenThrow(Exception('Error setter failure'));
+
+        final options = RequestOptions(path: 'https://api.example.com/error')
+          ..extra['_firebase_performance_metric'] = mockMetric;
+        final err = DioException(
+          requestOptions: options,
+          response: Response(
+            requestOptions: options,
+            statusCode: 500,
+          ),
+        );
+        final handler = MockErrorInterceptorHandler();
+
+        await interceptor.onError(err, handler);
+
+        verify(() => mockMetric.stop()).called(1);
+        verify(
+          () => mockTalker.handle(
+            any<Object>(),
+            any<StackTrace?>(),
+            'Failed to stop HttpMetric on error',
+          ),
+        ).called(1);
         verify(() => handler.next(err)).called(1);
       },
     );

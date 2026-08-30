@@ -50,10 +50,10 @@ class FirebasePerformanceDioInterceptor extends Interceptor {
         if (method != null) {
           final metric = perf.newHttpMetric(uri.toString(), method);
           await metric.start();
+          options.extra[_metricKey] = metric;
           if (_calculatePayloadSize(options.data) case final int size) {
             metric.requestPayloadSize = size;
           }
-          options.extra[_metricKey] = metric;
         }
       } on Object catch (e, st) {
         talker.handle(e, st, 'Failed to start HttpMetric on request');
@@ -70,8 +70,11 @@ class FirebasePerformanceDioInterceptor extends Interceptor {
     try {
       if (response.requestOptions.extra[_metricKey]
           case final HttpMetric metric) {
-        _populateResponseInfo(metric, response);
-        await metric.stop();
+        try {
+          _populateResponseInfo(metric, response);
+        } finally {
+          await metric.stop();
+        }
       }
     } on Object catch (e, st) {
       talker.handle(e, st, 'Failed to stop HttpMetric on response');
@@ -86,10 +89,13 @@ class FirebasePerformanceDioInterceptor extends Interceptor {
   ) async {
     try {
       if (err.requestOptions.extra[_metricKey] case final HttpMetric metric) {
-        if (err.response case final Response<dynamic> response) {
-          _populateResponseInfo(metric, response);
+        try {
+          if (err.response case final Response<dynamic> response) {
+            _populateResponseInfo(metric, response);
+          }
+        } finally {
+          await metric.stop();
         }
-        await metric.stop();
       }
     } on Object catch (e, st) {
       talker.handle(e, st, 'Failed to stop HttpMetric on error');
