@@ -20,6 +20,7 @@ extension SnackBarExtension on BuildContext {
     String message, {
     SnackBarType type = SnackBarType.info,
     Duration duration = const Duration(seconds: 3),
+    SnackBarAction? action,
   }) {
     final l10n = this.l10n;
 
@@ -51,13 +52,15 @@ extension SnackBarExtension on BuildContext {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
-        action: SnackBarAction(
-          label: l10n.close,
-          textColor: _getOnBackgroundColor(type).withValues(alpha: 0.8),
-          onPressed: () {
-            ScaffoldMessenger.of(this).hideCurrentSnackBar();
-          },
-        ),
+        action:
+            action ??
+            SnackBarAction(
+              label: l10n.close,
+              textColor: _getOnBackgroundColor(type).withValues(alpha: 0.8),
+              onPressed: () {
+                ScaffoldMessenger.of(this).hideCurrentSnackBar();
+              },
+            ),
       ),
     );
   }

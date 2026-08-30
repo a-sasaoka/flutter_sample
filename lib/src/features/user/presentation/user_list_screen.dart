@@ -4,6 +4,7 @@ import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/utils/date_time_extension.dart';
 import 'package:flutter_sample/src/core/widgets/app_cached_image.dart';
+import 'package:flutter_sample/src/core/widgets/empty_state_widget.dart';
 import 'package:flutter_sample/src/features/user/application/user_notifier.dart';
 import 'package:flutter_sample/src/features/user/domain/user_model.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -72,25 +73,9 @@ class UserListScreen extends HookConsumerWidget {
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
-                SizedBox(height: MediaQuery.sizeOf(context).height * 0.3),
-                Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.people_outline,
-                        size: 64,
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        l10n.userListEmpty,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
-                      ),
-                    ],
-                  ),
+                SizedBox(height: MediaQuery.sizeOf(context).height * 0.15),
+                EmptyStateWidget(
+                  title: l10n.userListEmpty,
                 ),
               ],
             ),

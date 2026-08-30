@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
+import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:flutter_sample/src/features/profile/application/profile_notifier.dart';
 import 'package:flutter_sample/src/features/profile/domain/user_profile.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
@@ -118,9 +119,7 @@ class _ProfileEditForm extends HookConsumerWidget {
               .read(profileProvider.notifier)
               .updateProfile(updatedProfile);
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(l10n.profileSaveSuccess)),
-            );
+            context.showSuccessSnackBar(l10n.profileSaveSuccess);
           }
         } on Exception catch (e) {
           if (context.mounted) {

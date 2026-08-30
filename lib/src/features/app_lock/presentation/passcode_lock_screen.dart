@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
 import 'package:flutter_sample/src/features/app_lock/presentation/widgets/numeric_keyboard.dart';
@@ -25,7 +25,7 @@ class PasscodeLockScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
     final theme = Theme.of(context);
 
     final inputPin = useState<String>('');

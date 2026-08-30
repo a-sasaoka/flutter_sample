@@ -8,6 +8,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/core/widgets/empty_state_widget.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
@@ -142,7 +143,7 @@ void main() {
       await tester.pumpAndSettle();
 
       check(find.text('メモがありません')).findsOne();
-      check(find.byIcon(Icons.note_alt_outlined)).findsOne();
+      check(find.byType(EmptyStateWidget)).findsOne();
     });
 
     testWidgets('データが存在する場合、カードリストとして表示されること', (tester) async {

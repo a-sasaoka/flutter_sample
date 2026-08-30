@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
+import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:flutter_sample/src/features/notification/application/notification_notifier.dart';
 import 'package:flutter_sample/src/features/notification/application/notification_state.dart';
 import 'package:flutter_sample/src/features/notification/domain/notification_payload.dart';
@@ -72,12 +73,8 @@ class PushNotificationDemoScreen extends HookConsumerWidget {
                                   ClipboardData(text: fcmToken),
                                 );
                                 if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        l10n.devNotificationTokenCopied,
-                                      ),
-                                    ),
+                                  context.showSuccessSnackBar(
+                                    l10n.devNotificationTokenCopied,
                                   );
                                 }
                               },
