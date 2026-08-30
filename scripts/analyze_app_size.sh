@@ -49,6 +49,12 @@ case "${PLATFORM}" in
       --analyze-size \
       --code-size-directory="${OUTPUT_DIR}"
 
+    LATEST_JSON=$(ls -t "${HOME}/.flutter-devtools"/app-size-analysis-*.json 2>/dev/null | head -n 1 || true)
+    if [ -n "${LATEST_JSON}" ] && [ -f "${LATEST_JSON}" ]; then
+      cp "${LATEST_JSON}" "${OUTPUT_JSON}"
+      echo "📄 解析スナップショットJSON: ${OUTPUT_JSON}"
+    fi
+
     echo ""
     echo "✅ Android のサイズ分析データが出力されました:"
     echo "📁 出力先ディレクトリ: ${OUTPUT_DIR}"
@@ -64,6 +70,12 @@ case "${PLATFORM}" in
       --analyze-size \
       --code-size-directory="${OUTPUT_DIR}"
 
+    LATEST_JSON=$(ls -t "${HOME}/.flutter-devtools"/app-size-analysis-*.json 2>/dev/null | head -n 1 || true)
+    if [ -n "${LATEST_JSON}" ] && [ -f "${LATEST_JSON}" ]; then
+      cp "${LATEST_JSON}" "${OUTPUT_JSON}"
+      echo "📄 解析スナップショットJSON: ${OUTPUT_JSON}"
+    fi
+
     echo ""
     echo "✅ APK のサイズ分析データが出力されました:"
     echo "📁 出力先ディレクトリ: ${OUTPUT_DIR}"
@@ -78,6 +90,12 @@ case "${PLATFORM}" in
       --dart-define-from-file="${CONFIG_FILE}" \
       --analyze-size \
       --code-size-directory="${OUTPUT_DIR}"
+
+    LATEST_JSON=$(ls -t "${HOME}/.flutter-devtools"/app-size-analysis-*.json 2>/dev/null | head -n 1 || true)
+    if [ -n "${LATEST_JSON}" ] && [ -f "${LATEST_JSON}" ]; then
+      cp "${LATEST_JSON}" "${OUTPUT_JSON}"
+      echo "📄 解析スナップショットJSON: ${OUTPUT_JSON}"
+    fi
 
     echo ""
     echo "✅ iOS のサイズ分析データが出力されました:"

@@ -160,7 +160,7 @@ final result = await performanceService.traceExecution(
    ```
 
 2. ブラウザで開いた DevTools 画面上部の **「App Size」** タブをクリックします。
-3. `build/size_analysis/` フォルダに出力された JSON ファイル（例: `size_analysis_android_prod_20260830_120000.json`）をドラッグ＆ドロップで読み込みます。
+3. スクリプト実行によって `build/size_analysis/` フォルダに出力された JSON ファイル（例: `size_analysis_android_prod_20260830_120000.json`、または `~/.flutter-devtools/app-size-analysis-*.json`）をドラッグ＆ドロップで読み込みます。
 4. **ツリーマップ（Treemap）表示**により、どのパッケージやアセット（画像・フォント）がアプリ容量の大半を占めているかを視覚的に特定できます。
 
 ```mermaid
