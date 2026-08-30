@@ -160,24 +160,19 @@ class AppCachedImage extends ConsumerWidget {
     return _applyShape(imageWidget);
   }
 
-  /// URLからクエリパラメータ等を除去してログ記録用にサニタイズ
+  /// URLから認証情報・クエリ・フラグメント等を除去してログ記録用にサニタイズ
   static String _sanitizeUrl(String url) {
     final uri = Uri.tryParse(url);
     if (uri == null) {
-      return url;
+      return '[invalid-url]';
     }
-    if (uri.hasQuery) {
-      final sanitized = Uri(
-        scheme: uri.scheme.isEmpty ? null : uri.scheme,
-        userInfo: uri.userInfo.isEmpty ? null : uri.userInfo,
-        host: uri.host.isEmpty ? null : uri.host,
-        port: uri.hasPort ? uri.port : null,
-        path: uri.path,
-        fragment: uri.hasFragment ? uri.fragment : null,
-      );
-      return sanitized.toString();
-    }
-    return url;
+    final sanitized = Uri(
+      scheme: uri.scheme.isEmpty ? null : uri.scheme,
+      host: uri.host.isEmpty ? null : uri.host,
+      port: uri.hasPort ? uri.port : null,
+      path: uri.path,
+    );
+    return sanitized.toString();
   }
 
   /// 形状に応じたクリッピング・装飾を適用

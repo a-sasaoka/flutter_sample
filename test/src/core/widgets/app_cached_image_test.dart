@@ -282,5 +282,72 @@ void main() {
         ),
       ).called(1);
     });
+
+    testWidgets(
+      'errorWidget で userInfo や fragment が含まれる場合もサニタイズされてログ出力されること',
+      (tester) async {
+        await tester.pumpWidget(
+          createWidget(
+            child: AppCachedImage(
+              imageUrl: 'https://admin:secret@example.com/image.png#section',
+              cacheManager: mockCacheManager,
+            ),
+          ),
+        );
+
+        final cachedImage = tester.widget<CachedNetworkImage>(
+          find.byType(CachedNetworkImage),
+        );
+
+        final element = tester.element(find.byType(AppCachedImage));
+        final errorResult = cachedImage.errorWidget!(
+          element,
+          'https://admin:secret@example.com/image.png#section',
+          Exception('Load error'),
+        );
+
+        check(errorResult).isNotNull();
+        verify(
+          () => mockTalker.handle(
+            any<Object>(),
+            any<StackTrace>(),
+            'Failed to load cached image (https://example.com/image.png)',
+          ),
+        ).called(1);
+      },
+    );
+
+    testWidgets('errorWidget で不正なURL形式の場合、[invalid-url] としてサニタイズされること', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createWidget(
+          child: AppCachedImage(
+            imageUrl: 'http://:invalid',
+            cacheManager: mockCacheManager,
+          ),
+        ),
+      );
+
+      final cachedImage = tester.widget<CachedNetworkImage>(
+        find.byType(CachedNetworkImage),
+      );
+
+      final element = tester.element(find.byType(AppCachedImage));
+      final errorResult = cachedImage.errorWidget!(
+        element,
+        'http://:invalid',
+        Exception('Parse error'),
+      );
+
+      check(errorResult).isNotNull();
+      verify(
+        () => mockTalker.handle(
+          any<Object>(),
+          any<StackTrace>(),
+          'Failed to load cached image ([invalid-url])',
+        ),
+      ).called(1);
+    });
   });
 }
