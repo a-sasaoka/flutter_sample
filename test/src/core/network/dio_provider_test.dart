@@ -4,6 +4,7 @@ import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
+import 'package:flutter_sample/src/core/network/firebase_performance_dio_interceptor.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/token_interceptor.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,6 +17,9 @@ import 'package:talker_flutter/talker_flutter.dart';
 class MockTokenInterceptor extends Mock implements Interceptor {}
 
 class MockDioInterceptor extends Mock implements InterceptorsWrapper {}
+
+class MockFirebasePerformanceDioInterceptor extends Mock
+    implements FirebasePerformanceDioInterceptor {}
 
 class MockTalker extends Mock implements Talker {
   String? lastWarningMessage;
@@ -32,11 +36,13 @@ class MockTalker extends Mock implements Talker {
 void main() {
   late MockTokenInterceptor mockTokenInterceptor;
   late MockDioInterceptor mockDioInterceptor;
+  late MockFirebasePerformanceDioInterceptor mockPerformanceInterceptor;
   late MockTalker mockTalker;
 
   setUp(() {
     mockTokenInterceptor = MockTokenInterceptor();
     mockDioInterceptor = MockDioInterceptor();
+    mockPerformanceInterceptor = MockFirebasePerformanceDioInterceptor();
     mockTalker = MockTalker();
   });
 
@@ -51,6 +57,9 @@ void main() {
         authInterceptorsProvider.overrideWithValue([mockTokenInterceptor]),
         tokenInterceptorProvider.overrideWithValue(mockTokenInterceptor),
         dioInterceptorProvider.overrideWithValue(mockDioInterceptor),
+        firebasePerformanceDioInterceptorProvider.overrideWithValue(
+          mockPerformanceInterceptor,
+        ),
         loggerProvider.overrideWithValue(mockTalker),
       ],
     );
@@ -62,6 +71,7 @@ void main() {
     test('正しい設定とインターセプター（トークンあり）でDioが生成されること', () {
       const config = EnvConfigState(
         baseUrl: 'https://test.com',
+        imageBaseUrl: defaultImageBaseUrl,
         aiModel: 'test-model',
         connectTimeout: 5,
         receiveTimeout: 10,
@@ -87,6 +97,7 @@ void main() {
 
       check(interceptorTypes).contains(mockTokenInterceptor.runtimeType);
       check(interceptorTypes).contains(mockDioInterceptor.runtimeType);
+      check(interceptorTypes).contains(mockPerformanceInterceptor.runtimeType);
       check(interceptorTypes).contains(TalkerDioLogger);
     });
 
@@ -96,6 +107,7 @@ void main() {
       () {
         const config = EnvConfigState(
           baseUrl: 'https://us-central1-sample.cloudfunctions.net',
+          imageBaseUrl: defaultImageBaseUrl,
           aiModel: 'test-model',
           connectTimeout: 5,
           receiveTimeout: 10,
@@ -126,6 +138,7 @@ void main() {
         // 大文字ホスト名 (CLOUDFUNCTIONS.NET) での検証
         const uppercaseConfig = EnvConfigState(
           baseUrl: 'HTTPS://US-CENTRAL1-SAMPLE.CLOUDFUNCTIONS.NET',
+          imageBaseUrl: defaultImageBaseUrl,
           aiModel: 'test-model',
           connectTimeout: 5,
           receiveTimeout: 10,
@@ -149,6 +162,7 @@ void main() {
       () {
         const config = EnvConfigState(
           baseUrl: 'https://us-central1-sample.cloudfunctions.net',
+          imageBaseUrl: defaultImageBaseUrl,
           aiModel: 'test-model',
           connectTimeout: 5,
           receiveTimeout: 10,
@@ -175,6 +189,7 @@ void main() {
     test('正しい設定とインターセプター（トークンなし）でDioが生成されること', () {
       const config = EnvConfigState(
         baseUrl: 'https://base.com',
+        imageBaseUrl: defaultImageBaseUrl,
         aiModel: 'test-model',
         connectTimeout: 3,
         receiveTimeout: 3,

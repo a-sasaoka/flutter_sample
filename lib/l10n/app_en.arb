@@ -374,6 +374,28 @@
   "notificationBannerBody": "Receive real-time updates for messages and important announcements.",
   "notificationBannerEnableButton": "Enable Notifications",
   "notificationBannerSettingsButton": "Open Settings",
-  "notificationBannerDismiss": "Dismiss"
+  "notificationBannerDismiss": "Dismiss",
+
+  "@_DEV_IMAGE_CACHE": {},
+  "devImageCacheTitle": "Image Cache Demo",
+  "devImageCacheDescription": "Demonstrates high-performance image loading, shimmer placeholders, error fallbacks, and cache clearance using cached_network_image.",
+  "devImageCacheSectionShapes": "Shapes & Display Variations",
+  "devImageCacheStandard": "Standard (Rectangle)",
+  "devImageCacheRounded": "Rounded Corners",
+  "devImageCacheCircle": "Circular Avatar",
+  "devImageCacheSectionErrors": "Fallbacks on Error / Unset",
+  "devImageCacheErrorUrl": "Non-existent URL (404 Error)",
+  "devImageCacheEmptyUrl": "Unset (null / empty string)",
+  "devImageCacheSectionOperations": "Cache Operations",
+  "devImageCacheClearButton": "Clear Image Cache",
+  "devImageCacheClearSuccess": "Image cache cleared successfully",
+  "devImageCacheClearError": "Failed to clear cache: {error}",
+  "@devImageCacheClearError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
 }
 

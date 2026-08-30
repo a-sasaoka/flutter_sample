@@ -160,6 +160,7 @@ Future<void> main() async {
       envConfigProvider.overrideWith((ref) {
         return const EnvConfigState(
           baseUrl: 'http://localhost:3000',
+          imageBaseUrl: defaultImageBaseUrl,
           aiModel: 'gemini-3.5-flash-lite',
           connectTimeout: 10,
           receiveTimeout: 15,

@@ -28,18 +28,20 @@ lib/src/features/user/
 ```plaintext
 lib/src/core/
   ├── network/
-  │   ├── api_client.dart        # 通信の抽象インターフェースとDioによる実装
-  │   ├── dio_provider.dart      # Dioインスタンスの生成と共通設定 (baseDio, dio)
-  │   └── dio_interceptor.dart   # 共通の通信ログ・エラー変換
+  │   ├── api_client.dart                               # 通信の抽象インターフェースとDioによる実装
+  │   ├── dio_provider.dart                             # Dioインスタンスの生成と共通設定 (baseDio, dio)
+  │   ├── dio_interceptor.dart                          # 共通の通信ログ・エラー変換
+  │   └── firebase_performance_dio_interceptor.dart     # 通信パフォーマンスの自動計測 (HttpMetric)
 ```
 
-| 項目           | 内容                                                                                    |
-| -------------- | --------------------------------------------------------------------------------------- |
-| 抽象化の徹底   | `ApiClient` をインターフェース化。通信ライブラリ(Dio)への直接依存を排除                 |
-| 認証の疎結合化 | `authInterceptorsProvider` を通じて、`features/auth` の `TokenInterceptor` を動的に注入 |
-| 二重更新防止   | 複数の401エラーが同時に発生しても、リフレッシュAPIの呼び出しを1回に集約                 |
-| 環境別設定     | `envConfigProvider` (JSON) より、環境に応じた `BASE_URL` やタイムアウトを適用           |
-| エラーの一元化 | `AppException` に変換することで、UI層でのエラー分岐をシンプル化                         |
+| 項目                   | 内容                                                                                    |
+| ---------------------- | --------------------------------------------------------------------------------------- |
+| 抽象化の徹底           | `ApiClient` をインターフェース化。通信ライブラリ(Dio)への直接依存を排除                 |
+| 認証の疎結合化         | `authInterceptorsProvider` を通じて、`features/auth` の `TokenInterceptor` を動的に注入 |
+| 二重更新防止           | 複数の401エラーが同時に発生しても、リフレッシュAPIの呼び出しを1回に集約                 |
+| 環境別設定             | `envConfigProvider` (JSON) より、環境に応じた `BASE_URL` やタイムアウトを適用           |
+| パフォーマンス自動計測 | Firebase Performance により全リクエストの通信時間・データサイズを自動計測               |
+| エラーの一元化         | `AppException` に変換することで、UI層でのエラー分岐をシンプル化                         |
 
 ---
 

@@ -27,6 +27,7 @@
 | 🤖 生成AI         | Firebase AI Logic（firebase_ai）を用いたストリーミング応答と履歴保持チャット                                                                                                                         |
 | 🎬 アニメーション | Lottie + flutter_gen によるベクターアニメーションの型安全な導入と制御（再生・一時停止・シークバー・ループ切替）                                                                                      |
 | 🔔 Push通知       | FCM + flutter_local_notifications による通知受信・バナー表示、通知タップ時の GoRouter 自動ディープリンク遷移                                                                                         |
+| ⚡️ パフォーマンス | cached_network_image による画像キャッシュ・メモリ最適化、Firebase Performance による通信・処理時間の自動監視、DevTools を用いたアプリサイズ分析                                                      |
 | 🧰 コード生成     | build_runnerによる自動生成と、JSON/Enviedを組み合わせた高度な環境切替対応                                                                                                                            |
 | 🎨 UI/UX          | FlexColorSchemeによるテーマ設定、共通エラーハンドリングUI、Haptic Feedback（触覚）の実装                                                                                                             |
 | 🧪 テスト         | mocktail等を用いた実践的なユニットテスト・ウィジェットテスト、および Maestro による E2E テストの手法                                                                                                 |

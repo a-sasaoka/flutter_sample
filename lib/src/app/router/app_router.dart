@@ -22,6 +22,7 @@ import 'package:flutter_sample/src/features/chart/presentation/chart_display_scr
 import 'package:flutter_sample/src/features/chart/presentation/chart_input_screen.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/developer_storage_screen.dart';
+import 'package:flutter_sample/src/features/dev_tools/presentation/image_cache_demo_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/lottie_demo_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/push_notification_demo_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';

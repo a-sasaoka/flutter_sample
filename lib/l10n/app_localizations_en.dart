@@ -842,4 +842,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationBannerDismiss => 'Dismiss';
+
+  @override
+  String get devImageCacheTitle => 'Image Cache Demo';
+
+  @override
+  String get devImageCacheDescription =>
+      'Demonstrates high-performance image loading, shimmer placeholders, error fallbacks, and cache clearance using cached_network_image.';
+
+  @override
+  String get devImageCacheSectionShapes => 'Shapes & Display Variations';
+
+  @override
+  String get devImageCacheStandard => 'Standard (Rectangle)';
+
+  @override
+  String get devImageCacheRounded => 'Rounded Corners';
+
+  @override
+  String get devImageCacheCircle => 'Circular Avatar';
+
+  @override
+  String get devImageCacheSectionErrors => 'Fallbacks on Error / Unset';
+
+  @override
+  String get devImageCacheErrorUrl => 'Non-existent URL (404 Error)';
+
+  @override
+  String get devImageCacheEmptyUrl => 'Unset (null / empty string)';
+
+  @override
+  String get devImageCacheSectionOperations => 'Cache Operations';
+
+  @override
+  String get devImageCacheClearButton => 'Clear Image Cache';
+
+  @override
+  String get devImageCacheClearSuccess => 'Image cache cleared successfully';
+
+  @override
+  String devImageCacheClearError(String error) {
+    return 'Failed to clear cache: $error';
+  }
 }

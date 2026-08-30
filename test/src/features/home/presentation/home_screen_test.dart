@@ -141,6 +141,7 @@ void main() {
     when(() => mockL10n.devStorageTitle).thenReturn('ストレージ確認・編集');
     when(() => mockL10n.devLottieTitle).thenReturn('Lottie アニメーションデモ');
     when(() => mockL10n.devNotificationTitle).thenReturn('Push通知・ディープリンク検証');
+    when(() => mockL10n.devImageCacheTitle).thenReturn('画像キャッシュデモ');
     when(() => mockL10n.mapTitle).thenReturn('地図');
     when(
       () => mockL10n.notificationBannerTitle,
@@ -199,6 +200,7 @@ void main() {
           envConfigProvider.overrideWithValue(
             const EnvConfigState(
               baseUrl: 'https://test.example.com',
+              imageBaseUrl: defaultImageBaseUrl,
               aiModel: 'test-model',
               connectTimeout: 10,
               receiveTimeout: 15,
@@ -566,6 +568,33 @@ void main() {
       check(find.text('NotificationDemo Destination')).findsOne();
     });
 
+    testWidgets('画像キャッシュデモメニューをタップすると該当ルートへ遷移すること', (
+      tester,
+    ) async {
+      await setupWidget(
+        tester,
+        additionalRoutes: [
+          GoRoute(
+            path: '/dev-tools/image-cache',
+            builder: (context, state) =>
+                const Scaffold(body: Text('ImageCacheDemo Destination')),
+          ),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      final finder = find.widgetWithText(ListTile, '画像キャッシュデモ');
+      await tester.dragUntilVisible(
+        finder,
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+
+      check(find.text('ImageCacheDemo Destination')).findsOne();
+    });
+
     testWidgets('通知権限が未設定(notDetermined)の場合、HomeScreen上部に通知プロンプトバナーが表示されること', (
       tester,
     ) async {
@@ -576,6 +605,7 @@ void main() {
             envConfigProvider.overrideWithValue(
               const EnvConfigState(
                 baseUrl: 'https://test.example.com',
+                imageBaseUrl: defaultImageBaseUrl,
                 aiModel: 'test-model',
                 connectTimeout: 10,
                 receiveTimeout: 15,

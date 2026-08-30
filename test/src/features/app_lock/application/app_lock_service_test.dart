@@ -74,6 +74,7 @@ void main() {
         envConfigProvider.overrideWithValue(
           EnvConfigState(
             baseUrl: 'http://example.com',
+            imageBaseUrl: defaultImageBaseUrl,
             aiModel: 'gemini-3.5-flash-lite',
             connectTimeout: 10,
             receiveTimeout: 15,

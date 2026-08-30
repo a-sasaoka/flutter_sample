@@ -47,6 +47,7 @@ void main() {
       when(() => mockL10n.devStorageTitle).thenReturn('ストレージ確認・編集');
       when(() => mockL10n.devLottieTitle).thenReturn('Lottie アニメーションデモ');
       when(() => mockL10n.devNotificationTitle).thenReturn('Push通知・ディープリンク検証');
+      when(() => mockL10n.devImageCacheTitle).thenReturn('画像キャッシュデモ');
       when(() => mockL10n.mapTitle).thenReturn('地図');
       when(
         () => mockL10n.notificationBannerTitle,
@@ -76,6 +77,7 @@ void main() {
           envConfigProvider.overrideWithValue(
             const EnvConfigState(
               baseUrl: 'https://test.example.com',
+              imageBaseUrl: defaultImageBaseUrl,
               aiModel: 'test-model',
               connectTimeout: 10,
               receiveTimeout: 15,

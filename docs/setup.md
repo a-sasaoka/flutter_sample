@@ -77,6 +77,7 @@ cd ..
 | `MAPS_ANDROID_API_KEY`      | 必須 | Android Maps SDK 用 API キー（パッケージ名 + SHA-1 制限）                                                                                                           |
 | `MAPS_IOS_API_KEY`          | 必須 | iOS Maps SDK 用 API キー（Bundle ID 制限）                                                                                                                          |
 | `BASE_URL`                  | 任意 | API サーバー URL（チーム共通値 `config/flavor_*.json` を個人プロジェクトや端末環境に合わせて上書きする場合。※stg/prod ではローカルURLを設定しないでください）       |
+| `IMAGE_BASE_URL`            | 任意 | 画像配信サーバーのベース URL（チーム共通値 `config/flavor_*.json` を個人用に上書きする場合）                                                                        |
 
 > 🛡️ **Google Maps API キーのセキュリティ設計（ベストプラクティス）**:
 >

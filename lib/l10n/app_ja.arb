@@ -374,6 +374,28 @@
   "notificationBannerBody": "メッセージの返信や重要なお知らせをリアルタイムでお届けします。",
   "notificationBannerEnableButton": "通知をオンにする",
   "notificationBannerSettingsButton": "設定を開く",
-  "notificationBannerDismiss": "閉じる"
+  "notificationBannerDismiss": "閉じる",
+
+  "@_DEV_IMAGE_CACHE": {},
+  "devImageCacheTitle": "画像キャッシュデモ",
+  "devImageCacheDescription": "cached_network_image を使用した画像の高速読み込み、シマープレースホルダー、エラーフォールバック、およびキャッシュクリアの動作確認ができます。",
+  "devImageCacheSectionShapes": "形状・表示バリエーション",
+  "devImageCacheStandard": "標準（四角形）",
+  "devImageCacheRounded": "角丸（Rounded）",
+  "devImageCacheCircle": "円形アバター（Circle）",
+  "devImageCacheSectionErrors": "エラー・未設定時のフォールバック",
+  "devImageCacheErrorUrl": "存在しないURL（404エラー）",
+  "devImageCacheEmptyUrl": "未設定（null / 空文字）",
+  "devImageCacheSectionOperations": "キャッシュ操作",
+  "devImageCacheClearButton": "画像キャッシュをクリア",
+  "devImageCacheClearSuccess": "画像キャッシュをクリアしました",
+  "devImageCacheClearError": "キャッシュのクリアに失敗しました: {error}",
+  "@devImageCacheClearError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
 }
 

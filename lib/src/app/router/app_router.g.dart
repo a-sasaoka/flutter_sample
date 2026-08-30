@@ -15,6 +15,7 @@ List<RouteBase> get $appRoutes => [
   $developerStorageRoute,
   $developerLottieRoute,
   $pushNotificationDemoRoute,
+  $imageCacheDemoRoute,
 ];
 
 RouteBase get $loginRoute => GoRouteData.$route(
@@ -513,6 +514,33 @@ mixin $PushNotificationDemoRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/dev-tools/notification');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $imageCacheDemoRoute => GoRouteData.$route(
+  path: '/dev-tools/image-cache',
+  hasOverriddenOnExit: false,
+  factory: $ImageCacheDemoRoute._fromState,
+);
+
+mixin $ImageCacheDemoRoute on GoRouteData {
+  static ImageCacheDemoRoute _fromState(GoRouterState state) =>
+      const ImageCacheDemoRoute();
+
+  @override
+  String get location => GoRouteData.$location('/dev-tools/image-cache');
 
   @override
   void go(BuildContext context) => context.go(location);

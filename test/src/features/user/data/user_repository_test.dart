@@ -257,6 +257,36 @@ void main() {
       ).called(1);
     });
 
+    test('imageBaseUrl が設定されている場合、avatarUrl が動的に付与されること', () async {
+      final repoWithImage = UserRepository(
+        api: mockApi,
+        cache: mockCache,
+        talker: mockTalker,
+        clock: () => DateTime(2026, 5, 17, 10),
+        imageBaseUrl: 'https://picsum.photos',
+      );
+
+      when(
+        () => mockCache.getWithTimestamp('users'),
+      ).thenAnswer((_) async => (dummyJsonList, dummyTimestamp));
+
+      final (users, _) = await repoWithImage.fetchUsers();
+
+      check(
+        users.first.avatarUrl,
+      ).equals('https://picsum.photos/seed/1/150/150');
+    });
+
+    test('imageBaseUrl が空文字の場合、avatarUrl は null のままであること', () async {
+      when(
+        () => mockCache.getWithTimestamp('users'),
+      ).thenAnswer((_) async => (dummyJsonList, dummyTimestamp));
+
+      final (users, _) = await repository.fetchUsers();
+
+      check(users.first.avatarUrl).isNull();
+    });
+
     test(
       'APIレスポンスのリスト内に不正データが含まれる場合、AppException.dataParse をスローしログを出力すること',
       () async {

@@ -178,6 +178,18 @@ FCM トークンの確認・コピー、権限リクエスト、テスト通知�
   - 最新検知ペイロードカードに受信したペイロード内容が適切に表示されているか。
 - **画像リンク**: [📷 画像を表示する (push_notification_demo_screen.png)](../test/src/features/dev_tools/presentation/goldens/macos/push_notification_demo_screen.png)
 
+#### 画像キャッシュデモ画面 (ImageCacheDemoScreen)
+
+画像キャッシュ（CachedNetworkImage）の各種形状・状態およびキャッシュクリア動作を確認する開発者向け画面です。
+
+- **テスト対象**: ライトモード、ダークモードの計2状態
+- **チェックポイント**:
+  - 「1. キャッシュ操作」カードに「画像キャッシュをクリア」ボタンが正しく配置されているか。
+  - 「2. 形状バリエーション」セクションで通常（四角形）、角丸（Rounded）、円形（Circle Avatar）の画像が綺麗にレンダリングされているか。
+  - 「3. 状態別表示（フォールバック）」セクションで、存在しない画像URL（404 Not Found）および未設定URL（null/空文字）のフォールバックアイコンが適切に表示されているか。
+  - 各種見出しやラベルが文字化け（□）せずに日本語（Noto Sans JP）で綺麗に表示されているか。
+- **画像リンク**: [📷 画像を表示する (image_cache_demo_screen.png)](../test/src/features/dev_tools/presentation/goldens/macos/image_cache_demo_screen.png)
+
 ---
 
 ### 6. ホーム画面 & スプラッシュ・その他 (Main & Others)
@@ -188,7 +200,7 @@ FCM トークンの確認・コピー、権限リクエスト、テスト通知�
 
 - **テスト対象**: ライトモード、ダークモードの計2状態
 - **チェックポイント**:
-  - 開発用ツールやデバッグ用のメニュー、およびアプリ情報が正しく並んでいるか。
+  - 開発用ツール（画像キャッシュデモ、Lottieデモ、データ管理、Push通知デモ）やデバッグ用のメニュー、およびアプリ情報が正しく並んでいるか。
   - 画面下部にアプリ情報（アプリ名、バージョン、Bundle ID、現在の環境）が正しく配置されているか。
 - **画像リンク**: [📷 画像を表示する (home_screen.png)](../test/src/features/home/presentation/goldens/macos/home_screen.png)
 
@@ -252,7 +264,7 @@ API経由で取得したユーザー一覧を表示する画面です。
 
 - **テスト対象**: ユーザーあり状態（ライト/ダーク）、ユーザーなし状態（ライト/ダーク）の計4状態
 - **チェックポイント**:
-  - ユーザーありのとき、名前やメールアドレス、電話番号などのカードが正しくリスト表示されているか。
+  - ユーザーありのとき、円形アバター画像（`AppCachedImage.circle`）、名前やメールアドレス、電話番号などのカードが正しくリスト表示されているか。
   - ユーザーなしのとき、「No users found.」というメッセージが表示されているか。
 - **画像リンク**: [📷 画像を表示する (user_list_screen.png)](../test/src/features/user/presentation/goldens/macos/user_list_screen.png)
 

@@ -61,6 +61,15 @@
 >
 > ※ リリースビルド（`stg` / `prod`）では `localhost` は使用せず、リリース前に `config/flavor_stg.json` および `config/flavor_prod.json`（または `.env.stg` / `.env.prod`）の `YOUR_PROJECT_ID` を実際の Firebase プロジェクト ID に設定してデプロイしてください。
 
+### 4. 画像ベースURL設定（`IMAGE_BASE_URL` 集約）
+
+`BASE_URL` と同一の思想に基づき、画像配信元のベースURLも `config/flavor_*.json` および `.env.*` で環境ごとに切り替え可能です。
+
+| Flavor | `IMAGE_BASE_URL` の値 | 動作 |
+| :--- | :--- | :--- |
+| **local** / **dev** | `"https://picsum.photos"` | ダミー画像サービスから画像を自動取得しキャッシュ |
+| **stg** / **prod** | `""`（空文字・未定） | 未設定として安全にデフォルトアイコンを表示 |
+
 ---
 
 ## 🧩 コードレベルの役割分担

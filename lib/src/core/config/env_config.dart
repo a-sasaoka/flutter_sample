@@ -30,6 +30,9 @@ sealed class EnvConfigState with _$EnvConfigState {
 
     /// Agent Platform (旧 Vertex AI) を使用するかどうか (false の場合は Google AI / Developer API)
     required bool useAgentPlatform,
+
+    /// 画像ベース URL (未設定時は空文字)
+    required String imageBaseUrl,
   }) = _EnvConfigState;
 
   const EnvConfigState._();
@@ -41,6 +44,7 @@ sealed class EnvConfigState with _$EnvConfigState {
 🆔 Package Name      : ${packageInfo.packageName}
 ✨ Version           : ${packageInfo.version} (${packageInfo.buildNumber})
 📍 API Base URL      : $baseUrl
+🖼️ Image Base URL    : $imageBaseUrl
 🤖 AI Model          : $aiModel
 ⏱️ Timeouts (C/R/S)  : $connectTimeout / $receiveTimeout / $sendTimeout
 🔥 Firebase Auth     : $useFirebaseAuth
@@ -49,6 +53,9 @@ sealed class EnvConfigState with _$EnvConfigState {
 
 /// デフォルトの API ベース URL（ローカルモックサーバーの動作確認用）
 const defaultBaseUrl = 'http://localhost:3000';
+
+/// デフォルトの画像ベース URL（ローカル・開発環境用）
+const defaultImageBaseUrl = 'https://picsum.photos';
 
 /// デフォルトの AI モデル名
 const defaultAiModel = 'gemini-3.5-flash-lite';
@@ -75,6 +82,10 @@ EnvConfigState envConfig(Ref ref) {
     baseUrl: String.fromEnvironment(
       'BASE_URL',
       defaultValue: defaultBaseUrl,
+    ),
+    imageBaseUrl: String.fromEnvironment(
+      'IMAGE_BASE_URL',
+      defaultValue: defaultImageBaseUrl,
     ),
     aiModel: String.fromEnvironment(
       'AI_MODEL',

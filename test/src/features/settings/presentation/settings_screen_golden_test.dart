@@ -72,6 +72,7 @@ void main() {
           envConfigProvider.overrideWithValue(
             const EnvConfigState(
               baseUrl: 'https://test.example.com',
+              imageBaseUrl: defaultImageBaseUrl,
               aiModel: 'test-model',
               connectTimeout: 10,
               receiveTimeout: 15,
