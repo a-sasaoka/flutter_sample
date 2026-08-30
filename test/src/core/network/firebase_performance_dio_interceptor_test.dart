@@ -351,6 +351,31 @@ void main() {
       },
     );
 
+    test(
+      'onResponse: '
+      'text/plain かつ ResponseType.json の日本語文字列でクォートなしの生 UTF-8 バイト数が設定されること',
+      () async {
+        final options = RequestOptions(
+          path: 'https://api.example.com/plain-default',
+        )..extra['_firebase_performance_metric'] = mockMetric;
+        // 「成功しました」は6文字、UTF-8では18バイト
+        final response = Response<dynamic>(
+          requestOptions: options,
+          statusCode: 200,
+          headers: Headers.fromMap({
+            Headers.contentTypeHeader: ['text/plain'],
+          }),
+          data: '成功しました',
+        );
+        final handler = MockResponseInterceptorHandler();
+
+        await interceptor.onResponse(response, handler);
+
+        verify(() => mockMetric.responsePayloadSize = 18).called(1);
+        verify(() => mockMetric.stop()).called(1);
+      },
+    );
+
     test('onResponse: JSON Map / List で正確なUTF-8バイト数が設定されること', () async {
       final options = RequestOptions(path: 'https://api.example.com/json')
         ..extra['_firebase_performance_metric'] = mockMetric;

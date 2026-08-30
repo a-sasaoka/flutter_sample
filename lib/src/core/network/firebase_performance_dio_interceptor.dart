@@ -131,11 +131,11 @@ class FirebasePerformanceDioInterceptor extends Interceptor {
       return null;
     }
     if (data is String) {
-      final isJson =
-          response.requestOptions.responseType == ResponseType.json ||
-          (contentType != null && contentType.contains('application/json'));
-      if (isJson &&
-          response.requestOptions.responseType != ResponseType.plain) {
+      final isJsonString =
+          response.requestOptions.responseType == ResponseType.json &&
+          contentType != null &&
+          contentType.contains('application/json');
+      if (isJsonString) {
         return utf8.encode(jsonEncode(data)).length;
       }
       return utf8.encode(data).length;
