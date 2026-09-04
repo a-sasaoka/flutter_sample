@@ -46,9 +46,8 @@ class MapScreen extends HookConsumerWidget {
     // 検索マーカーの集合を保持
     final markersState = useState<Set<Marker>>({});
 
-    // 検索入力コントローラの生成と変更検知
+    // 検索入力コントローラの生成
     final searchController = useTextEditingController();
-    useListenable(searchController);
 
     // 検索バーのフォーカスノード
     final searchFocusNode = useFocusNode();
