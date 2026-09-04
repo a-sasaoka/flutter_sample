@@ -13,6 +13,7 @@ import 'package:flutter_sample/src/features/map/domain/location_state.dart';
 import 'package:flutter_sample/src/features/map/domain/map_route_state.dart';
 import 'package:flutter_sample/src/features/map/domain/map_search_state.dart';
 import 'package:flutter_sample/src/features/map/domain/map_spot.dart';
+import 'package:flutter_sample/src/features/map/presentation/widgets/map_search_bar.dart';
 import 'package:flutter_sample/src/features/map/presentation/widgets/route_navigation_card.dart';
 import 'package:flutter_sample/src/features/map/presentation/widgets/spot_detail_bottom_sheet.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -419,61 +420,16 @@ class MapScreen extends HookConsumerWidget {
       body: Column(
         children: [
           // 上部 検索バー UI
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        key: const Key('mapSearchTextField'),
-                        controller: searchController,
-                        focusNode: searchFocusNode,
-                        textInputAction: TextInputAction.search,
-                        decoration: InputDecoration(
-                          hintText: l10n.mapSearchHint,
-                          border: InputBorder.none,
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: searchController.text.isNotEmpty
-                              ? IconButton(
-                                  key: const Key('mapSearchClearButton'),
-                                  icon: const Icon(Icons.clear),
-                                  tooltip: l10n.mapSearchClear,
-                                  onPressed: () {
-                                    searchController.clear();
-                                    markersState.value = {};
-                                    ref
-                                        .read(mapSearchProvider.notifier)
-                                        .clearSearch();
-                                  },
-                                )
-                              : null,
-                        ),
-                        onSubmitted: executeSearch,
-                      ),
-                    ),
-                    if (searchState is MapSearchStateLoading)
-                      const Padding(
-                        padding: EdgeInsets.all(8),
-                        child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      )
-                    else
-                      IconButton(
-                        key: const Key('mapSearchButton'),
-                        icon: const Icon(Icons.send),
-                        onPressed: () => executeSearch(searchController.text),
-                      ),
-                  ],
-                ),
-              ),
-            ),
+          MapSearchBar(
+            controller: searchController,
+            focusNode: searchFocusNode,
+            isLoading: searchState is MapSearchStateLoading,
+            onSubmitted: executeSearch,
+            onClear: () {
+              searchController.clear();
+              markersState.value = {};
+              ref.read(mapSearchProvider.notifier).clearSearch();
+            },
           ),
 
           // 地図 & ローディングオーバーレイ

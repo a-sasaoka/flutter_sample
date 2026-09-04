@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
@@ -72,9 +73,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('パスコードを入力'), findsOneWidget);
-      expect(find.byIcon(Icons.security), findsOneWidget);
-      expect(find.byIcon(Icons.fingerprint), findsOneWidget);
+      check(find.text('パスコードを入力')).findsOne();
+      check(find.byIcon(Icons.security)).findsOne();
+      check(find.byIcon(Icons.fingerprint)).findsOne();
     });
 
     testWidgets('生体認証が無効な場合は指紋アイコンが表示されない', (tester) async {
@@ -85,8 +86,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('パスコードを入力'), findsOneWidget);
-      expect(find.byIcon(Icons.fingerprint), findsNothing);
+      check(find.text('パスコードを入力')).findsOne();
+      check(find.byIcon(Icons.fingerprint)).findsNothing();
     });
 
     testWidgets('正しいパスコードを4桁入力すると解除成功する', (tester) async {
@@ -130,7 +131,7 @@ void main() {
       }
       await tester.pumpAndSettle();
 
-      expect(find.text('パスコードが正しくありません'), findsOneWidget);
+      check(find.text('パスコードが正しくありません')).findsOne();
     });
 
     testWidgets('ロックアウト時は残時間入りのエラーメッセージが表示される', (tester) async {
@@ -152,10 +153,9 @@ void main() {
       }
       await tester.pumpAndSettle();
 
-      expect(
+      check(
         find.textContaining('ロックアウトされています。あと'),
-        findsOneWidget,
-      );
+      ).findsOne();
     });
 
     testWidgets('入力中に Backspace を押すと一文字削除される', (tester) async {

@@ -99,7 +99,6 @@ class _ThemeCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final themeModeNotifier = ref.read(themeModeProvider.notifier);
 
     return Card(
       child: Column(
@@ -127,7 +126,9 @@ class _ThemeCard extends ConsumerWidget {
                   ],
                   selected: {currentMode},
                   onSelectionChanged: (selection) async {
-                    await themeModeNotifier.set(selection.first);
+                    await ref
+                        .read(themeModeProvider.notifier)
+                        .set(selection.first);
                   },
                 ),
               ],
@@ -138,7 +139,8 @@ class _ThemeCard extends ConsumerWidget {
             title: Text(l10n.settingsThemeToggle),
             secondary: const Icon(Icons.contrast),
             value: currentMode == ThemeMode.dark,
-            onChanged: (_) => themeModeNotifier.toggleLightDark(),
+            onChanged: (_) =>
+                ref.read(themeModeProvider.notifier).toggleLightDark(),
           ),
         ],
       ),
@@ -155,7 +157,6 @@ class _LocaleCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final localeNotifier = ref.read(localeProvider.notifier);
 
     return Card(
       child: Padding(
@@ -181,7 +182,9 @@ class _LocaleCard extends ConsumerWidget {
               ],
               selected: {currentLocale?.languageCode},
               onSelectionChanged: (selection) async {
-                await localeNotifier.setLocale(selection.first);
+                await ref
+                    .read(localeProvider.notifier)
+                    .setLocale(selection.first);
               },
             ),
             const SizedBox(height: 16),

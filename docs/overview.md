@@ -30,7 +30,7 @@
 | ⚡️ パフォーマンス | cached_network_image による画像キャッシュ・メモリ最適化、Firebase Performance による通信・処理時間の自動監視、DevTools を用いたアプリサイズ分析                                                      |
 | 🧰 コード生成     | build_runnerによる自動生成と、JSON/Enviedを組み合わせた高度な環境切替対応                                                                                                                            |
 | 🎨 UI/UX          | FlexColorSchemeによるテーマ設定、共通エラーハンドリングUI、Haptic Feedback（触覚）の実装                                                                                                             |
-| 🧪 テスト         | mocktail等を用いた実践的なユニットテスト・ウィジェットテスト、および Maestro による E2E テストの手法                                                                                                 |
+| 🧪 テスト         | package:checks / mocktail を用いた実践的なユニット・ウィジェットテスト、Alchemist によるゴールデンテスト、および Maestro による E2E テストの手法                                                     |
 | 🧩 Lint・CI/CD    | custom_lint 等の実用設定と、GitHub Actions による自動化（CI/CD）基盤                                                                                                                                 |
 | 🚀 開発効率       | FVM + VSCode設定 + Git Hooks で統一開発環境を構築                                                                                                                                                    |
 | 🏗️ アーキテクチャ | マルチエントリーポイントによるFlavor（Local/Dev/Stg/Prod）の完全分離と堅牢な管理方式                                                                                                                 |

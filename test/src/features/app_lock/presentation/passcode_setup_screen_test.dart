@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
@@ -50,8 +51,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('パスコードの設定'), findsOneWidget);
-      expect(find.text('新しい4桁のパスコードを入力してください'), findsOneWidget);
+      check(find.text('パスコードの設定')).findsOne();
+      check(find.text('新しい4桁のパスコードを入力してください')).findsOne();
     });
 
     testWidgets('Backspaceを押すと入力文字が削除される', (tester) async {
@@ -89,7 +90,7 @@ void main() {
       }
       await tester.pumpAndSettle();
 
-      expect(find.text('確認のため、もう一度入力してください'), findsOneWidget);
+      check(find.text('確認のため、もう一度入力してください')).findsOne();
 
       // 2回目入力中にBackspaceを押す
       await tester.tap(find.widgetWithText(OutlinedButton, '1'));
@@ -118,7 +119,7 @@ void main() {
       }
       await tester.pumpAndSettle();
 
-      expect(find.text('パスコードが一致しません。最初からやり直してください'), findsOneWidget);
+      check(find.text('パスコードが一致しません。最初からやり直してください')).findsOne();
     });
 
     testWidgets('生体認証非対応端末の場合、一致入力で自動的に生体認証がスキップされる', (tester) async {
@@ -177,7 +178,7 @@ void main() {
       }
       await tester.pumpAndSettle();
 
-      expect(find.text('生体認証の有効化'), findsOneWidget);
+      check(find.text('生体認証の有効化')).findsOne();
 
       // 「スキップ」をタップ
       await tester.tap(find.text('スキップ'));

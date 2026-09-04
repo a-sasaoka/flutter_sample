@@ -58,6 +58,7 @@ Flutter開発のサンプルプロジェクトです。\
 
 - [コード生成コマンド](docs/code_generation.md)
 - [テスト方針とゴールデンテスト](docs/testing.md)
+- [ゴールデンテスト画面状態 詳細仕様書](docs/golden_test_details.md)
 - [E2Eテスト (Maestro)](docs/e2e_testing_maestro.md)
 - [iOSシミュレーター Push通知検証 (APNs)](tool/apns/README.md)
 - [アプリアイコンの変更手順](docs/app_icon.md)

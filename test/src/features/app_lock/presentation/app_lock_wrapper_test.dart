@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/utils/app_lifecycle_provider.dart';
@@ -87,9 +88,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Main Screen Content'), findsOneWidget);
-      expect(find.byType(PasscodeSetupScreen), findsNothing);
-      expect(find.byType(PasscodeLockScreen), findsNothing);
+      check(find.text('Main Screen Content')).findsOne();
+      check(find.byType(PasscodeSetupScreen)).findsNothing();
+      check(find.byType(PasscodeLockScreen)).findsNothing();
     });
 
     testWidgets('AppLockStateUnlocked 時は通常コンテンツのみ表示される', (tester) async {
@@ -105,9 +106,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Main Screen Content'), findsOneWidget);
-      expect(find.byType(PasscodeSetupScreen), findsNothing);
-      expect(find.byType(PasscodeLockScreen), findsNothing);
+      check(find.text('Main Screen Content')).findsOne();
+      check(find.byType(PasscodeSetupScreen)).findsNothing();
+      check(find.byType(PasscodeLockScreen)).findsNothing();
     });
 
     testWidgets(
@@ -125,9 +126,9 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('Main Screen Content'), findsOneWidget);
-        expect(find.byType(PasscodeSetupScreen), findsOneWidget);
-        expect(find.byType(PasscodeLockScreen), findsNothing);
+        check(find.text('Main Screen Content')).findsOne();
+        check(find.byType(PasscodeSetupScreen)).findsOne();
+        check(find.byType(PasscodeLockScreen)).findsNothing();
       },
     );
 
@@ -146,9 +147,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Main Screen Content'), findsOneWidget);
-      expect(find.byType(PasscodeSetupScreen), findsNothing);
-      expect(find.byType(PasscodeLockScreen), findsOneWidget);
+      check(find.text('Main Screen Content')).findsOne();
+      check(find.byType(PasscodeSetupScreen)).findsNothing();
+      check(find.byType(PasscodeLockScreen)).findsOne();
     });
 
     testWidgets(
@@ -177,7 +178,7 @@ void main() {
         mockLifecycle.updateLifecycleState(AppLifecycleState.resumed);
         await tester.pump();
 
-        expect(mockService.lockAppCalledCount, equals(0));
+        check(mockService.lockAppCalledCount).equals(0);
       },
     );
 
@@ -210,7 +211,7 @@ void main() {
         mockLifecycle.updateLifecycleState(AppLifecycleState.resumed);
         await tester.pump();
 
-        expect(mockService.lockAppCalledCount, equals(1));
+        check(mockService.lockAppCalledCount).equals(1);
       },
     );
 
@@ -243,7 +244,7 @@ void main() {
         mockLifecycle.updateLifecycleState(AppLifecycleState.resumed);
         await tester.pump();
 
-        expect(mockService.lockAppCalledCount, equals(1));
+        check(mockService.lockAppCalledCount).equals(1);
       },
     );
 
@@ -280,7 +281,7 @@ void main() {
         mockLifecycle.updateLifecycleState(AppLifecycleState.resumed);
         await tester.pump();
 
-        expect(mockService.lockAppCalledCount, equals(1));
+        check(mockService.lockAppCalledCount).equals(1);
       },
     );
 
@@ -295,12 +296,11 @@ void main() {
       );
       await tester.pump();
 
-      expect(
+      check(
         find.byKey(const Key('app_lock_loading_shield')),
-        findsOneWidget,
-      );
-      expect(find.byType(PasscodeSetupScreen), findsNothing);
-      expect(find.byType(PasscodeLockScreen), findsNothing);
+      ).findsOne();
+      check(find.byType(PasscodeSetupScreen)).findsNothing();
+      check(find.byType(PasscodeLockScreen)).findsNothing();
     });
 
     testWidgets('error 状態の時は PasscodeLockScreen にフォールバック描画される', (tester) async {
@@ -314,10 +314,9 @@ void main() {
       );
       await tester.pump();
 
-      expect(
+      check(
         find.byKey(const Key('app_lock_error_fallback')),
-        findsOneWidget,
-      );
+      ).findsOne();
     });
   });
 }

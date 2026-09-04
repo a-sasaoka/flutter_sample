@@ -19,7 +19,6 @@ class ChartInputScreen extends HookConsumerWidget {
       chartProvider.select((s) => s.items.map((i) => i.id).toList()),
     );
 
-    final notifier = ref.read(chartProvider.notifier);
     final l10n = context.l10n;
 
     return GestureDetector(
@@ -56,7 +55,7 @@ class ChartInputScreen extends HookConsumerWidget {
                   ),
                 );
                 if (confirmed == true) {
-                  notifier.reset();
+                  ref.read(chartProvider.notifier).reset();
                 }
               },
               tooltip: l10n.chartClearAll,
@@ -89,7 +88,9 @@ class ChartInputScreen extends HookConsumerWidget {
                     .toList(),
                 selected: {chartType},
                 onSelectionChanged: (selection) {
-                  notifier.updateChartType(selection.first);
+                  ref
+                      .read(chartProvider.notifier)
+                      .updateChartType(selection.first);
                 },
               ),
             ),
@@ -120,7 +121,7 @@ class ChartInputScreen extends HookConsumerWidget {
           ],
         ),
         floatingActionButton: FloatingActionButton.extended(
-          onPressed: notifier.addItem,
+          onPressed: () => ref.read(chartProvider.notifier).addItem(),
           icon: const Icon(Icons.add),
           label: Text(l10n.chartAddItem),
         ),
@@ -163,7 +164,6 @@ class _ChartItemInput extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    final notifier = ref.read(chartProvider.notifier);
     final l10n = context.l10n;
 
     return Card(
@@ -183,7 +183,8 @@ class _ChartItemInput extends ConsumerWidget {
                   border: const OutlineInputBorder(),
                   isDense: true,
                 ),
-                onChanged: (value) => notifier.updateLabel(id, value),
+                onChanged: (value) =>
+                    ref.read(chartProvider.notifier).updateLabel(id, value),
               ),
             ),
             const SizedBox(width: 12),
@@ -203,7 +204,7 @@ class _ChartItemInput extends ConsumerWidget {
                 ),
                 onChanged: (value) {
                   final doubleValue = double.tryParse(value) ?? 0.0;
-                  notifier.updateValue(id, doubleValue);
+                  ref.read(chartProvider.notifier).updateValue(id, doubleValue);
                 },
               ),
             ),
@@ -215,7 +216,7 @@ class _ChartItemInput extends ConsumerWidget {
                   context,
                 ).colorScheme.error.withValues(alpha: 0.7),
               ),
-              onPressed: () => notifier.removeItem(id),
+              onPressed: () => ref.read(chartProvider.notifier).removeItem(id),
             ),
           ],
         ),

@@ -63,3 +63,32 @@ lib/src/core/config/
 - **Widgetテスト**: テーマの変更によって、特定のWidgetの色やスタイルが意図した通りに変化するかを確認します。
 
 ---
+
+## 🛠 高度なカスタマイズ
+
+### 1. シード色から独自のカラースキームを生成する
+
+プリセット（`FlexScheme`）ではなく、ブランドカラーなどの単一色（シード色）から自動計算したい場合は、`colorScheme` に `SeedColorScheme.fromSeeds` を指定します。
+
+```dart
+static const _seed = Color(0xFF4F46E5); // ブランドカラー
+
+static ThemeData light() {
+  return FlexThemeData.light(
+    colorScheme: SeedColorScheme.fromSeeds(
+      primaryKey: _seed,
+      brightness: Brightness.light,
+    ),
+    subThemesData: _subThemesData,
+    visualDensity: VisualDensity.standard,
+  );
+}
+```
+
+### 2. タイポグラフィ（文字のスタイル）を調整する
+
+アプリ全体の文字スタイルを細かく指定したい場合は、`typography` プロパティを利用します。
+
+```dart
+typography: Typography.material2021(),
+```
