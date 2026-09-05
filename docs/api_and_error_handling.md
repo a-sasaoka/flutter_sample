@@ -17,7 +17,7 @@ lib/src/features/user/
   ├── application/
   │   └── user_notifier.dart    # 状態管理（ロード中・成功・エラー）
   └── presentation/
-      └── user_list_screen.dart. # 一覧表示画面（Cardデザイン採用）
+      └── user_list_screen.dart # 一覧表示画面（Cardデザイン採用）
 ```
 
 ## 🌐 ネットワーク基盤とインターセプタ

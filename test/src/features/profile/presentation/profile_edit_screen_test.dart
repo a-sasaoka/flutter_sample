@@ -380,7 +380,7 @@ void main() {
       await tester.pump(); // Notifier.state が AsyncLoading になる
 
       // フォームのテキストフィールドが維持され、フルスクリーンロードに切り替わっていないことを確認
-      expect(find.byType(TextFormField), findsNWidgets(4));
+      check(find.byType(TextFormField)).findsExactly(4);
 
       completer.complete();
       await tester.pumpAndSettle();

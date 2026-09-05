@@ -3,10 +3,8 @@ import 'package:flutter/material.dart';
 
 /// アプリ全体のテーマ設定をまとめたクラス
 abstract final class AppTheme {
-  // ベースとなる色（お好みでOK）
-  // static const _seed = Color(0xFF4F46E5); // indigo-ish
-
   // 共通のカラースキーム設定
+  // ※ シード色やタイポグラフィのカスタマイズ方法は docs/theme.md を参照
   static const FlexScheme _scheme = FlexScheme.indigoM3;
 
   // 共通のサブテーマ設定
@@ -45,16 +43,9 @@ abstract final class AppTheme {
   /// ライトテーマ
   static ThemeData light() {
     return FlexThemeData.light(
-      scheme: _scheme, // プリセットを使う or …
-      // ↓ シード色から自動生成したカラースキームを使いたいときは下記でもOK
-      // colorScheme: SeedColorScheme.fromSeeds(
-      //   primaryKey: _seed,
-      //   brightness: Brightness.light,
-      // ),
+      scheme: _scheme,
       subThemesData: _subThemesData,
       visualDensity: VisualDensity.standard,
-      // アプリ全体の細かいトーン調整が必要なら下記で追記
-      // typography: Typography.material2021(),
     );
   }
 
@@ -62,10 +53,6 @@ abstract final class AppTheme {
   static ThemeData dark() {
     return FlexThemeData.dark(
       scheme: _scheme,
-      // colorScheme: SeedColorScheme.fromSeeds(
-      //   primaryKey: _seed,
-      //   brightness: Brightness.dark,
-      // ),
       subThemesData: _subThemesData,
       visualDensity: VisualDensity.standard,
     );

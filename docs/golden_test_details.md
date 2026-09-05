@@ -302,3 +302,28 @@ Google Maps による地図描画および現在地取得アクションボタ�
   - ナビゲーションアイコン、目的地名（例：「東京タワー」）、および案内終了（×）ボタンが表示されているか。
   - 所要時間（例：「6分」）と総移動距離（例：「3.5 km」）が分かりやすく左右に配置されているか。
 - **画像リンク**: [📷 画像を表示する (route_navigation_card.png)](../test/src/features/map/presentation/goldens/macos/route_navigation_card.png)
+
+---
+
+### 8. アプリロック機能 (App Lock Features)
+
+#### 8.1 パスコード設定画面 (PasscodeSetupScreen)
+
+アプリロックの初期パスコードを設定する画面です。
+
+- **テスト対象**: ライトモード、ダークモードの計2状態
+- **チェックポイント**:
+  - タイトル「パスコードの設定」、説明文、PINドット表示、および数値キーパッド（0-9、削除ボタン）が正しく配置されているか。
+  - ライト／ダークモードでPINドットや数字キーのコントラストが適切に保たれているか。
+- **画像リンク**: [📷 画像を表示する (passcode_setup_screen.png)](../test/src/features/app_lock/presentation/goldens/macos/passcode_setup_screen.png)
+
+#### 8.2 パスコードロック画面 (PasscodeLockScreen)
+
+アプリ復帰時やロック時に最前面に表示される認証画面です。
+
+- **テスト対象**: 生体認証有効状態（ライトモード）、生体認証無効状態（ダークモード）の計2状態
+- **チェックポイント**:
+  - タイトル「パスコードを入力」、PINドット表示、数値キーパッドが正しく表示されているか。
+  - 生体認証有効時（`isBiometricEnabled: true`）に、左下に生体認証アイコンボタン（指紋・顔認証）が表示されているか。
+  - 生体認証無効時（`isBiometricEnabled: false`）に、左下の生体認証ボタンが非表示になっているか。
+- **画像リンク**: [📷 画像を表示する (passcode_lock_screen.png)](../test/src/features/app_lock/presentation/goldens/macos/passcode_lock_screen.png)
