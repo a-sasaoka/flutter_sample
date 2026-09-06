@@ -35,6 +35,8 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     required String password,
   }) async {
     try {
+      // 初期化（build）の完了を待機して、初期化結果による状態の上書きを防ぐ
+      await future;
       await ref.read(authRepositoryProvider).login(email, password);
       state = const AsyncData(true);
     } catch (e, st) {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
@@ -11,11 +13,13 @@ class MockAuthRepository extends Mock implements AuthRepository {}
 class FakeTokenStorage extends Mock implements TokenStorage {
   FakeTokenStorage({
     this.mockAccessToken,
+    this.mockAccessTokenFuture,
     this.shouldThrowOnSave = false,
     this.shouldThrowOnClear = false,
   });
 
   final String? mockAccessToken;
+  final Future<String?>? mockAccessTokenFuture;
   final bool shouldThrowOnSave;
   final bool shouldThrowOnClear;
 
@@ -24,7 +28,9 @@ class FakeTokenStorage extends Mock implements TokenStorage {
   bool isClearCalled = false;
 
   @override
-  Future<String?> getAccessToken() async => mockAccessToken;
+  Future<String?> getAccessToken() async => mockAccessTokenFuture != null
+      ? await mockAccessTokenFuture!
+      : mockAccessToken;
 
   @override
   Future<void> saveTokens({
@@ -52,11 +58,11 @@ void main() {
     FakeTokenStorage? fakeStorage,
     MockAuthRepository? mockAuthRepository,
   }) {
+    final storage = fakeStorage ?? FakeTokenStorage();
     final container = ProviderContainer(
       overrides: [
         // tokenStorageProvider を Fake クラスに差し替える
-        if (fakeStorage != null)
-          tokenStorageProvider.overrideWith((ref) => fakeStorage),
+        tokenStorageProvider.overrideWith((ref) => storage),
         // authRepositoryProvider を Mock クラスに差し替える
         if (mockAuthRepository != null)
           authRepositoryProvider.overrideWith((ref) => mockAuthRepository),
@@ -182,6 +188,48 @@ void main() {
         check(
           container.read(authStateProvider).hasError,
         ).equals(true);
+      },
+    );
+
+    test(
+      'loginWithCredentials: build 完了を待機してからログインし state を true にすること',
+      () async {
+        // Arrange
+        final tokenCompleter = Completer<String?>();
+        final fakeStorage = FakeTokenStorage(
+          mockAccessTokenFuture: tokenCompleter.future,
+        );
+        final mockAuthRepository = MockAuthRepository();
+        when(
+          () => mockAuthRepository.login(any(), any()),
+        ).thenAnswer((_) async {});
+
+        final container = createContainer(
+          fakeStorage: fakeStorage,
+          mockAuthRepository: mockAuthRepository,
+        );
+        final notifier = container.read(authStateProvider.notifier);
+
+        // Act: build() がまだ完了していないタイミングでログインを実行
+        final loginFuture = notifier.loginWithCredentials(
+          email: 'test@example.com',
+          password: 'password123',
+        );
+
+        // Assert: build() の完了待ちのため、この時点ではまだ login は呼ばれていないこと
+        verifyNever(() => mockAuthRepository.login(any(), any()));
+
+        // 遅延していた初期化を完了させる（保存されたトークンはなし = false）
+        tokenCompleter.complete(null);
+
+        // ログイン処理の完了を待機
+        await loginFuture;
+
+        // Assert: ログインAPIが呼ばれ、初期化結果で上書きされずに true になっていること
+        verify(
+          () => mockAuthRepository.login('test@example.com', 'password123'),
+        ).called(1);
+        check(container.read(authStateProvider).value).equals(true);
       },
     );
 
