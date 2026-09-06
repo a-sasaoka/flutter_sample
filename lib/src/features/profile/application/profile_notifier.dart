@@ -39,7 +39,15 @@ class Profile extends _$Profile {
       talker.debug('Starting profile update process...');
 
       final oldProfile = previousState.value;
-      final oldAvatarUrl = oldProfile?.avatarUrl;
+      if (oldProfile == null) {
+        talker.warning(
+          'Cannot update profile: Current profile is not loaded.',
+        );
+        throw const AppException.unknown(
+          message: 'Cannot update profile: Current profile is not loaded.',
+        );
+      }
+      final oldAvatarUrl = oldProfile.avatarUrl;
       var targetProfile = updatedProfile;
       String? newlyUploadedAvatarUrl;
 
@@ -127,22 +135,16 @@ class Profile extends _$Profile {
             'Failed to sync to Firebase Auth. Rolling back server update...',
           );
           var serverRollbackSucceeded = false;
-          if (oldProfile != null) {
-            try {
-              await ref
-                  .read(profileRepositoryProvider)
-                  .updateProfile(oldProfile);
-              serverRollbackSucceeded = true;
-              talker.debug('Successfully rolled back server update.');
-            } on Object catch (rollbackError, rollbackSt) {
-              talker.handle(
-                rollbackError,
-                rollbackSt,
-                'Failed to rollback server update',
-              );
-            }
-          } else {
+          try {
+            await ref.read(profileRepositoryProvider).updateProfile(oldProfile);
             serverRollbackSucceeded = true;
+            talker.debug('Successfully rolled back server update.');
+          } on Object catch (rollbackError, rollbackSt) {
+            talker.handle(
+              rollbackError,
+              rollbackSt,
+              'Failed to rollback server update',
+            );
           }
 
           if (serverRollbackSucceeded && newlyUploadedAvatarUrl != null) {
@@ -160,7 +162,6 @@ class Profile extends _$Profile {
         // 4. 更新・同期完了後に旧アバター画像を削除
         final shouldDeleteOldAvatar =
             (newlyUploadedAvatarUrl != null || deleteAvatar) &&
-            oldAvatarUrl != null &&
             oldAvatarUrl.isNotEmpty &&
             (oldAvatarUrl.startsWith('http://') ||
                 oldAvatarUrl.startsWith('https://') ||

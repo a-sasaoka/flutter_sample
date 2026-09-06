@@ -113,6 +113,7 @@ void main() {
     test('updateProfile: useFirebaseAuth: false の時、自前サーバーのみ更新すること', () async {
       final container = createContainer(useAuth: false);
       final subscription = container.listen(profileProvider, (prev, next) {});
+      await container.read(profileProvider.future);
 
       const updated = UserProfile(
         name: '更新太郎',
@@ -149,6 +150,7 @@ void main() {
       () async {
         final container = createContainer(useAuth: true);
         final subscription = container.listen(profileProvider, (prev, next) {});
+        await container.read(profileProvider.future);
 
         const updated = UserProfile(
           name: '更新太郎',
@@ -188,9 +190,41 @@ void main() {
       },
     );
 
+    test(
+      'updateProfile: プロフィールが未ロード（oldProfile が null）の時、 '
+      '外部更新を行わずに AppException をスローすること',
+      () async {
+        final container = createContainer(useAuth: false);
+        // 初期ロード（.future）を待たずに即座に updateProfile を実行
+        final subscription = container.listen(profileProvider, (prev, next) {});
+
+        await container
+            .read(profileProvider.notifier)
+            .updateProfile(testProfile);
+
+        final state = container.read(profileProvider);
+        check(state.hasError).isTrue();
+        check(state.error).isA<AppException>();
+        final error = state.error! as AppException;
+        check(error).isA<UnknownException>();
+
+        // 外部リポジトリやStorageへの更新・削除通信は一切行われないこと
+        verifyNever(() => mockProfileRepo.updateProfile(any()));
+        verifyNever(
+          () => mockStorageService.uploadAvatar(
+            userId: any(named: 'userId'),
+            file: any(named: 'file'),
+          ),
+        );
+
+        subscription.close();
+      },
+    );
+
     test('updateProfile: エラー発生時、AsyncError 状態になること', () async {
       final container = createContainer(useAuth: false);
       final subscription = container.listen(profileProvider, (prev, next) {});
+      await container.read(profileProvider.future);
 
       final exception = Exception('Update failed');
       when(() => mockProfileRepo.updateProfile(any())).thenThrow(exception);
@@ -313,6 +347,7 @@ void main() {
         when(() => mockAuthRepo.currentUserId).thenReturn(null);
         final container = createContainer(useAuth: true);
         final subscription = container.listen(profileProvider, (prev, next) {});
+        await container.read(profileProvider.future);
 
         // 実行：プロフィール更新を呼び出す
         await container
@@ -336,6 +371,7 @@ void main() {
       () async {
         final container = createContainer(useAuth: true);
         final subscription = container.listen(profileProvider, (prev, next) {});
+        await container.read(profileProvider.future);
 
         final mockFile = MockFile();
         const uploadedUrl = 'https://storage.googleapis.com/avatar.jpg';
@@ -597,6 +633,7 @@ void main() {
       () async {
         final container = createContainer(useAuth: false);
         final subscription = container.listen(profileProvider, (prev, next) {});
+        await container.read(profileProvider.future);
 
         final mockFile = MockFile();
         when(() => mockFile.path).thenReturn('/path/to/local/avatar.jpg');
@@ -637,6 +674,7 @@ void main() {
       () async {
         final container = createContainer(useAuth: false);
         final subscription = container.listen(profileProvider, (prev, next) {});
+        await container.read(profileProvider.future);
 
         const initialProfile = UserProfile(
           name: 'テスト太郎',
@@ -679,6 +717,7 @@ void main() {
       () async {
         final container = createContainer(useAuth: true);
         final subscription = container.listen(profileProvider, (prev, next) {});
+        await container.read(profileProvider.future);
 
         final mockFile = MockFile();
         const uploadedUrl = 'https://storage.googleapis.com/avatar.jpg';
