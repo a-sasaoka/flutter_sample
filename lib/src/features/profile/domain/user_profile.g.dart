@@ -11,6 +11,7 @@ _UserProfile _$UserProfileFromJson(Map<String, dynamic> json) => _UserProfile(
   email: json['email'] as String,
   displayName: json['displayName'] as String? ?? '',
   phone: json['phone'] as String? ?? '',
+  avatarUrl: json['avatarUrl'] as String? ?? '',
 );
 
 Map<String, dynamic> _$UserProfileToJson(_UserProfile instance) =>
@@ -19,4 +20,5 @@ Map<String, dynamic> _$UserProfileToJson(_UserProfile instance) =>
       'email': instance.email,
       'displayName': instance.displayName,
       'phone': instance.phone,
+      'avatarUrl': instance.avatarUrl,
     };

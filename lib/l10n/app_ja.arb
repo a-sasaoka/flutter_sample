@@ -225,6 +225,14 @@
     }
   },
   "profileValueNotSet": "未設定",
+  "profileAvatarSelectTitle": "アイコン写真の変更",
+  "profileAvatarCamera": "カメラで撮影",
+  "profileAvatarGallery": "アルバムから選択",
+  "profileAvatarDelete": "現在の写真を削除",
+  "profileAvatarPermissionDeniedTitle": "アクセス許可が必要です",
+  "profileAvatarPermissionDeniedMessage": "写真の選択または撮影を行うには、端末の設定からアクセスを許可してください。",
+  "profileAvatarOpenSettings": "設定を開く",
+  "profileAvatarCropperTitle": "写真の切り抜き",
 
   "@_APP_LOCK": {},
   "appLockSetupTitle": "パスコードの設定",

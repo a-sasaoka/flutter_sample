@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:alchemist/alchemist.dart';
 import 'package:flutter/material.dart';
@@ -32,7 +33,11 @@ class GoldenProfileNotifier extends Profile {
   }
 
   @override
-  Future<void> updateProfile(UserProfile profile) async {}
+  Future<void> updateProfile(
+    UserProfile profile, {
+    File? avatarFile,
+    bool deleteAvatar = false,
+  }) async {}
 }
 
 void main() {

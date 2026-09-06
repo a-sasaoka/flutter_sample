@@ -322,6 +322,7 @@
     "name": "テスト太郎",
     "email": "test@example.com",
     "displayName": "タロウ",
-    "phone": "09012345678"
+    "phone": "09012345678",
+    "avatarUrl": ""
   }
 }

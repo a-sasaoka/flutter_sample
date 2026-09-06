@@ -10,6 +10,7 @@ void main() {
         'email': 'test@example.com',
         'displayName': 'タロウ',
         'phone': '09012345678',
+        'avatarUrl': 'https://example.com/avatar.jpg',
       };
 
       final profile = UserProfile.fromJson(json);
@@ -18,9 +19,10 @@ void main() {
       check(profile.email).equals('test@example.com');
       check(profile.displayName).equals('タロウ');
       check(profile.phone).equals('09012345678');
+      check(profile.avatarUrl).equals('https://example.com/avatar.jpg');
     });
 
-    test('fromJson: デフォルト値の確認 (displayName, phoneがない場合)', () {
+    test('fromJson: デフォルト値の確認 (displayName, phone, avatarUrlがない場合)', () {
       final json = {
         'name': 'テスト太郎',
         'email': 'test@example.com',
@@ -32,6 +34,7 @@ void main() {
       check(profile.email).equals('test@example.com');
       check(profile.displayName).equals('');
       check(profile.phone).equals('');
+      check(profile.avatarUrl).equals('');
     });
 
     test('toJson: 正しくシリアライズできること', () {
@@ -40,6 +43,7 @@ void main() {
         email: 'test@example.com',
         displayName: 'タロウ',
         phone: '09012345678',
+        avatarUrl: 'https://example.com/avatar.jpg',
       );
 
       final json = profile.toJson();
@@ -48,6 +52,7 @@ void main() {
       check(json['email']).equals('test@example.com');
       check(json['displayName']).equals('タロウ');
       check(json['phone']).equals('09012345678');
+      check(json['avatarUrl']).equals('https://example.com/avatar.jpg');
     });
   });
 }

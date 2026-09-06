@@ -124,6 +124,9 @@ class FirebaseAuthRepository {
     }
   }
 
+  /// 現在ログイン中のユーザーID（未ログイン時はnull）
+  String? get currentUserId => _firebaseAuth.currentUser?.uid;
+
   /// Firebase から現在のユーザー情報を再読み込みする
   Future<void> reloadCurrentUser() async {
     final user = _firebaseAuth.currentUser;
@@ -132,15 +135,17 @@ class FirebaseAuthRepository {
     }
   }
 
-  /// Firebase Auth の現在のユーザー情報（表示名、メールアドレス）を更新して再読み込みする
+  /// Firebase Auth の現在のユーザー情報（表示名、メールアドレス、写真URL）を更新して再読み込みする
   Future<void> updateAuthProfile({
     required String displayName,
     required String email,
+    String? photoUrl,
   }) async {
     final user = _firebaseAuth.currentUser;
     if (user != null) {
       _talker.debug(
-        'Updating Firebase user: displayName=$displayName, email=$email',
+        'Updating Firebase user: displayName=$displayName, email=$email, '
+        'photoUrl=$photoUrl',
       );
       // 表示名が変更されている場合のみ更新する
       if (user.displayName != displayName) {
@@ -149,6 +154,10 @@ class FirebaseAuthRepository {
       // メールアドレスが変更されている場合のみ更新要求を送る
       if (user.email != email) {
         await user.verifyBeforeUpdateEmail(email);
+      }
+      // 写真URLが変更されている場合のみ更新する
+      if (photoUrl != null && user.photoURL != photoUrl) {
+        await user.updatePhotoURL(photoUrl.isEmpty ? null : photoUrl);
       }
       await user.reload();
       _talker.debug('Successfully updated and reloaded Firebase user.');

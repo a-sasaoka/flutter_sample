@@ -1100,6 +1100,54 @@ abstract class AppLocalizations {
   /// **'Not set'**
   String get profileValueNotSet;
 
+  /// No description provided for @profileAvatarSelectTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Profile Photo'**
+  String get profileAvatarSelectTitle;
+
+  /// No description provided for @profileAvatarCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Take Photo'**
+  String get profileAvatarCamera;
+
+  /// No description provided for @profileAvatarGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from Library'**
+  String get profileAvatarGallery;
+
+  /// No description provided for @profileAvatarDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Current Photo'**
+  String get profileAvatarDelete;
+
+  /// No description provided for @profileAvatarPermissionDeniedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission Required'**
+  String get profileAvatarPermissionDeniedTitle;
+
+  /// No description provided for @profileAvatarPermissionDeniedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Please allow access to Camera and Photos in your device settings.'**
+  String get profileAvatarPermissionDeniedMessage;
+
+  /// No description provided for @profileAvatarOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get profileAvatarOpenSettings;
+
+  /// No description provided for @profileAvatarCropperTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Crop Photo'**
+  String get profileAvatarCropperTitle;
+
   /// No description provided for @appLockSetupTitle.
   ///
   /// In en, this message translates to:

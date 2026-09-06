@@ -1,11 +1,16 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
+import 'package:flutter_sample/src/core/widgets/app_cached_image.dart';
 import 'package:flutter_sample/src/features/profile/application/profile_notifier.dart';
+import 'package:flutter_sample/src/features/profile/data/image_picker_service.dart';
 import 'package:flutter_sample/src/features/profile/domain/user_profile.dart';
+import 'package:flutter_sample/src/features/profile/presentation/widgets/avatar_action_bottom_sheet.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -104,10 +109,131 @@ class _ProfileEditForm extends HookConsumerWidget {
     final profileState = ref.watch(profileProvider);
     final isLoading = profileState.isLoading;
 
+    // アバター編集用の一時状態
+    final avatarFile = useState<File?>(null);
+    final deleteAvatar = useState<bool>(false);
+
+    final hasCurrentAvatar =
+        (avatarFile.value != null || profile.avatarUrl.isNotEmpty) &&
+        !deleteAvatar.value;
+
+    Future<void> showPermissionDeniedDialog() {
+      return showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(l10n.profileAvatarPermissionDeniedTitle),
+          content: Text(l10n.profileAvatarPermissionDeniedMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(l10n.close),
+            ),
+            FilledButton(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                await ref.read(imagePickerServiceProvider).openSettings();
+              },
+              child: Text(l10n.profileAvatarOpenSettings),
+            ),
+          ],
+        ),
+      );
+    }
+
+    Future<void> onAvatarTap() async {
+      final action = await AvatarActionBottomSheet.show(
+        context,
+        hasAvatar: hasCurrentAvatar,
+      );
+      if (action == null || !context.mounted) return;
+
+      Future<void> pickAndSetAvatar(AvatarPickSource source) async {
+        try {
+          final path = await ref
+              .read(imagePickerServiceProvider)
+              .pickAndCropAvatar(
+                source: source,
+                cropperTitle: l10n.profileAvatarCropperTitle,
+              );
+          if (path != null) {
+            avatarFile.value = File(path);
+            deleteAvatar.value = false;
+          }
+        } on AvatarPermissionDeniedException {
+          if (context.mounted) {
+            await showPermissionDeniedDialog();
+          }
+        }
+      }
+
+      switch (action) {
+        case AvatarActionType.camera:
+          await pickAndSetAvatar(AvatarPickSource.camera);
+        case AvatarActionType.gallery:
+          await pickAndSetAvatar(AvatarPickSource.gallery);
+        case AvatarActionType.delete:
+          avatarFile.value = null;
+          deleteAvatar.value = true;
+      }
+    }
+
+    Widget buildDefaultAvatarIcon() {
+      return CircleAvatar(
+        radius: 50,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: Icon(
+          Icons.person,
+          size: 60,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      );
+    }
+
+    Widget buildAvatarImage() {
+      // 1. フォーム編集中に選択した一時ファイルがある場合
+      if (avatarFile.value != null) {
+        return ClipOval(
+          child: Image.file(
+            avatarFile.value!,
+            width: 100,
+            height: 100,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => buildDefaultAvatarIcon(),
+          ),
+        );
+      }
+      // 2. 削除指定されておらず、既存のアバターURLがある場合
+      if (!deleteAvatar.value && profile.avatarUrl.isNotEmpty) {
+        // ローカルファイルパスの場合 (Firebase Auth不使用のローカルモック環境など)
+        if (profile.avatarUrl.startsWith('/') ||
+            profile.avatarUrl.startsWith('file://')) {
+          final filePath = profile.avatarUrl.startsWith('file://')
+              ? profile.avatarUrl.replaceFirst('file://', '')
+              : profile.avatarUrl;
+          return ClipOval(
+            child: Image.file(
+              File(filePath),
+              width: 100,
+              height: 100,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => buildDefaultAvatarIcon(),
+            ),
+          );
+        }
+        // ネットワークURLの場合
+        return AppCachedImage.circle(
+          imageUrl: profile.avatarUrl,
+          size: 100,
+        );
+      }
+      // 3. デフォルトのアバターアイコン
+      return buildDefaultAvatarIcon();
+    }
+
     // 保存ボタン押下時の処理
     Future<void> onSubmit() async {
       if (formKey.currentState?.validate() ?? false) {
-        final updatedProfile = UserProfile(
+        final updatedProfile = profile.copyWith(
           name: nameController.text.trim(),
           email: emailController.text.trim(),
           displayName: displayNameController.text.trim(),
@@ -117,7 +243,11 @@ class _ProfileEditForm extends HookConsumerWidget {
         try {
           await ref
               .read(profileProvider.notifier)
-              .updateProfile(updatedProfile);
+              .updateProfile(
+                updatedProfile,
+                avatarFile: avatarFile.value,
+                deleteAvatar: deleteAvatar.value,
+              );
           if (context.mounted) {
             context.showSuccessSnackBar(l10n.profileSaveSuccess);
           }
@@ -136,6 +266,45 @@ class _ProfileEditForm extends HookConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // アバター画像表示 & 変更トリガー
+            Center(
+              child: Stack(
+                children: [
+                  Semantics(
+                    label: l10n.profileAvatarSelectTitle,
+                    button: true,
+                    child: InkWell(
+                      onTap: isLoading ? null : onAvatarTap,
+                      customBorder: const CircleBorder(),
+                      child: buildAvatarImage(),
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: IgnorePointer(
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.surface,
+                            width: 2,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.camera_alt,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
             // 氏名
             Text(
               l10n.profileCurrentValue(

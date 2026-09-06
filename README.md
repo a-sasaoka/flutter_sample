@@ -47,7 +47,7 @@ Flutter開発のサンプルプロジェクトです。\
 - [オフラインメモ機能（Memos）](docs/memos.md)
 - [設定機能（Settings）](docs/settings.md)
 - [オンボーディング機能 (Onboarding)](docs/onboarding.md)
-- [プロフィール登録・変更機能 (Profile)](docs/profile.md)
+- [プロフィール登録・変更・アバター画像設定機能 (Profile)](docs/profile.md)
 - [アプリロック機能 (App Lock)](docs/app_lock.md)
 - [地図機能 (Google Maps)](docs/map.md)
 - [リッチアニメーションとアセット管理 (Lottie & flutter_gen)](docs/animation.md)

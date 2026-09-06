@@ -19,7 +19,8 @@ mixin _$UserProfile {
  String get name;/// メールアドレス
  String get email;/// 表示名（任意入力のためデフォルト空文字）
  String get displayName;/// 電話番号（任意入力のためデフォルト空文字）
- String get phone;
+ String get phone;/// アバター画像URL（未設定時はデフォルト空文字）
+ String get avatarUrl;
 /// Create a copy of UserProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -32,16 +33,16 @@ $UserProfileCopyWith<UserProfile> get copyWith => _$UserProfileCopyWithImpl<User
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserProfile&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.phone, phone) || other.phone == phone));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserProfile&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,name,email,displayName,phone);
+int get hashCode => Object.hash(runtimeType,name,email,displayName,phone,avatarUrl);
 
 @override
 String toString() {
-  return 'UserProfile(name: $name, email: $email, displayName: $displayName, phone: $phone)';
+  return 'UserProfile(name: $name, email: $email, displayName: $displayName, phone: $phone, avatarUrl: $avatarUrl)';
 }
 
 
@@ -52,7 +53,7 @@ abstract mixin class $UserProfileCopyWith<$Res>  {
   factory $UserProfileCopyWith(UserProfile value, $Res Function(UserProfile) _then) = _$UserProfileCopyWithImpl;
 @useResult
 $Res call({
- String name, String email, String displayName, String phone
+ String name, String email, String displayName, String phone, String avatarUrl
 });
 
 
@@ -69,12 +70,13 @@ class _$UserProfileCopyWithImpl<$Res>
 
 /// Create a copy of UserProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? email = null,Object? displayName = null,Object? phone = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? email = null,Object? displayName = null,Object? phone = null,Object? avatarUrl = null,}) {
   return _then(_self.copyWith(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
+as String,avatarUrl: null == avatarUrl ? _self.avatarUrl : avatarUrl // ignore: cast_nullable_to_non_nullable
 as String,
   ));
 }
@@ -157,10 +159,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  String email,  String displayName,  String phone)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  String email,  String displayName,  String phone,  String avatarUrl)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserProfile() when $default != null:
-return $default(_that.name,_that.email,_that.displayName,_that.phone);case _:
+return $default(_that.name,_that.email,_that.displayName,_that.phone,_that.avatarUrl);case _:
   return orElse();
 
 }
@@ -178,10 +180,10 @@ return $default(_that.name,_that.email,_that.displayName,_that.phone);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  String email,  String displayName,  String phone)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  String email,  String displayName,  String phone,  String avatarUrl)  $default,) {final _that = this;
 switch (_that) {
 case _UserProfile():
-return $default(_that.name,_that.email,_that.displayName,_that.phone);}
+return $default(_that.name,_that.email,_that.displayName,_that.phone,_that.avatarUrl);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -195,10 +197,10 @@ return $default(_that.name,_that.email,_that.displayName,_that.phone);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  String email,  String displayName,  String phone)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  String email,  String displayName,  String phone,  String avatarUrl)?  $default,) {final _that = this;
 switch (_that) {
 case _UserProfile() when $default != null:
-return $default(_that.name,_that.email,_that.displayName,_that.phone);case _:
+return $default(_that.name,_that.email,_that.displayName,_that.phone,_that.avatarUrl);case _:
   return null;
 
 }
@@ -210,7 +212,7 @@ return $default(_that.name,_that.email,_that.displayName,_that.phone);case _:
 @JsonSerializable()
 
 class _UserProfile implements UserProfile {
-  const _UserProfile({required this.name, required this.email, this.displayName = '', this.phone = ''});
+  const _UserProfile({required this.name, required this.email, this.displayName = '', this.phone = '', this.avatarUrl = ''});
   factory _UserProfile.fromJson(Map<String, dynamic> json) => _$UserProfileFromJson(json);
 
 /// 氏名
@@ -221,6 +223,8 @@ class _UserProfile implements UserProfile {
 @override@JsonKey() final  String displayName;
 /// 電話番号（任意入力のためデフォルト空文字）
 @override@JsonKey() final  String phone;
+/// アバター画像URL（未設定時はデフォルト空文字）
+@override@JsonKey() final  String avatarUrl;
 
 /// Create a copy of UserProfile
 /// with the given fields replaced by the non-null parameter values.
@@ -235,16 +239,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserProfile&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.phone, phone) || other.phone == phone));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserProfile&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,name,email,displayName,phone);
+int get hashCode => Object.hash(runtimeType,name,email,displayName,phone,avatarUrl);
 
 @override
 String toString() {
-  return 'UserProfile(name: $name, email: $email, displayName: $displayName, phone: $phone)';
+  return 'UserProfile(name: $name, email: $email, displayName: $displayName, phone: $phone, avatarUrl: $avatarUrl)';
 }
 
 
@@ -255,7 +259,7 @@ abstract mixin class _$UserProfileCopyWith<$Res> implements $UserProfileCopyWith
   factory _$UserProfileCopyWith(_UserProfile value, $Res Function(_UserProfile) _then) = __$UserProfileCopyWithImpl;
 @override @useResult
 $Res call({
- String name, String email, String displayName, String phone
+ String name, String email, String displayName, String phone, String avatarUrl
 });
 
 
@@ -272,12 +276,13 @@ class __$UserProfileCopyWithImpl<$Res>
 
 /// Create a copy of UserProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? email = null,Object? displayName = null,Object? phone = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? email = null,Object? displayName = null,Object? phone = null,Object? avatarUrl = null,}) {
   return _then(_UserProfile(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
+as String,avatarUrl: null == avatarUrl ? _self.avatarUrl : avatarUrl // ignore: cast_nullable_to_non_nullable
 as String,
   ));
 }

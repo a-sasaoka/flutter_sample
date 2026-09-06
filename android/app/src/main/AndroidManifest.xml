@@ -4,6 +4,8 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- 🔔 Push通知権限 (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 📷 カメラ・画像選択権限 -->
+    <uses-permission android:name="android.permission.CAMERA" />
 
     <application
         android:label="@string/app_name"
@@ -53,6 +55,12 @@
                 <data android:pathPrefix="/users" />
             </intent-filter>
         </activity>
+
+        <!-- 🖼️ 画像切り抜きアクティビティ (image_cropper) -->
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
         <!-- 🗺️ Google Maps API Key (build.gradle.kts より動的注入) -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
