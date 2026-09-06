@@ -246,12 +246,19 @@ export const users = onRequest(async (req, res) => {
           return;
         }
 
-        const updateData: Record<string, string> = {
-          name: name || "",
-          displayName: displayName || "",
-          phone: phone || "",
-          email: email || "",
-        };
+        const updateData: Record<string, string> = {};
+        if (name !== undefined) {
+          updateData.name = name;
+        }
+        if (displayName !== undefined) {
+          updateData.displayName = displayName;
+        }
+        if (phone !== undefined) {
+          updateData.phone = phone;
+        }
+        if (email !== undefined) {
+          updateData.email = email;
+        }
         if (avatarUrl !== undefined) {
           updateData.avatarUrl = avatarUrl;
         }
