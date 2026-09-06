@@ -135,13 +135,18 @@ void main() {
       'loginWithCredentials: 認証に成功した場合、リポジトリのloginを呼び出し、state を true に更新すること',
       () async {
         // Arrange
+        final fakeStorage = FakeTokenStorage();
         final mockAuthRepository = MockAuthRepository();
         when(
           () => mockAuthRepository.login(any(), any()),
         ).thenAnswer((_) async {});
         final container = createContainer(
+          fakeStorage: fakeStorage,
           mockAuthRepository: mockAuthRepository,
         );
+
+        // buildの完了を待つ
+        await container.read(authStateProvider.future);
         final notifier = container.read(authStateProvider.notifier);
 
         // Act
@@ -164,13 +169,18 @@ void main() {
       'loginWithCredentials: 認証に失敗した場合、例外がスローされ state が AsyncError になること',
       () async {
         // Arrange
+        final fakeStorage = FakeTokenStorage();
         final mockAuthRepository = MockAuthRepository();
         when(
           () => mockAuthRepository.login(any(), any()),
         ).thenThrow(Exception('Login failed'));
         final container = createContainer(
+          fakeStorage: fakeStorage,
           mockAuthRepository: mockAuthRepository,
         );
+
+        // buildの完了を待つ
+        await container.read(authStateProvider.future);
         final notifier = container.read(authStateProvider.notifier);
 
         // Act & Assert
