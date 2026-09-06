@@ -118,8 +118,15 @@ cd ..
    service firebase.storage {
      match /b/{bucket}/o {
        match /avatars/{fileName} {
-         allow read, write: if request.auth != null
+         // 読み取り・削除: 本人のみ許可
+         allow read, delete: if request.auth != null
            && fileName.matches('^' + request.auth.uid + '_[0-9]+\\.jpg$');
+
+         // 新規アップロード: 本人のみ、サイズ5MB以下、JPEG画像のみ許可
+         allow create: if request.auth != null
+           && fileName.matches('^' + request.auth.uid + '_[0-9]+\\.jpg$')
+           && request.resource.size < 5 * 1024 * 1024
+           && request.resource.contentType == 'image/jpeg';
        }
      }
    }
