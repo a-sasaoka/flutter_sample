@@ -22,7 +22,7 @@ bool isAuthenticated(Ref ref) {
 }
 
 /// 認証関連の高レベルな操作（ログアウト、アプリロック連携など）を提供するサービス
-@riverpod
+@Riverpod(keepAlive: true)
 AuthService authService(Ref ref) {
   return AuthService(ref);
 }

@@ -71,7 +71,7 @@ final class AuthServiceProvider
         argument: null,
         retry: null,
         name: r'authServiceProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -98,4 +98,4 @@ final class AuthServiceProvider
   }
 }
 
-String _$authServiceHash() => r'6711806bedab93e8773d783b7a58465c6db8fff2';
+String _$authServiceHash() => r'6415031415e34148267bbee2c8f393b6f960e1e0';
