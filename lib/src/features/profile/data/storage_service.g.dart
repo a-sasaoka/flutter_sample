@@ -99,4 +99,4 @@ final class StorageServiceProvider
   }
 }
 
-String _$storageServiceHash() => r'71b92796c94ede7218b70ea33374fef9475b9d87';
+String _$storageServiceHash() => r'eafc724808b1d5739c48b753cbd5500c40542aca';

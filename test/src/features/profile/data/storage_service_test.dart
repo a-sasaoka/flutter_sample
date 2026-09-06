@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:talker_flutter/talker_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 class MockFirebaseStorage extends Mock implements FirebaseStorage {}
 
@@ -34,6 +35,8 @@ class MockTalker extends Mock implements Talker {}
 
 class MockFile extends Mock implements File {}
 
+class MockUuid extends Mock implements Uuid {}
+
 void main() {
   late MockFirebaseStorage mockStorage;
   late MockReference mockRootRef;
@@ -42,6 +45,7 @@ void main() {
   late MockTaskSnapshot mockTaskSnapshot;
   late MockTalker mockTalker;
   late MockFile mockFile;
+  late MockUuid mockUuid;
   late StorageService service;
 
   setUpAll(() {
@@ -57,6 +61,7 @@ void main() {
     mockTaskSnapshot = MockTaskSnapshot();
     mockTalker = MockTalker();
     mockFile = MockFile();
+    mockUuid = MockUuid();
 
     when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
     when(
@@ -71,10 +76,12 @@ void main() {
     when(() => mockStorage.refFromURL(any())).thenReturn(mockFileRef);
     when(() => mockRootRef.child('avatars')).thenReturn(mockAvatarsRef);
     when(() => mockAvatarsRef.child(any())).thenReturn(mockFileRef);
+    when(() => mockUuid.v4()).thenReturn('test-uuid-1234');
 
     service = StorageService(
       storage: mockStorage,
       talker: mockTalker,
+      uuid: mockUuid,
     );
   });
 
@@ -98,7 +105,9 @@ void main() {
 
       check(result).equals(downloadUrl);
       verify(
-        () => mockAvatarsRef.child(any(that: startsWith('${userId}_'))),
+        () => mockAvatarsRef.child(
+          any(that: matches('^${userId}_[0-9]+_test-uuid-1234\\.jpg\$')),
+        ),
       ).called(1);
       verify(() => mockFileRef.putFile(mockFile, any())).called(1);
     });

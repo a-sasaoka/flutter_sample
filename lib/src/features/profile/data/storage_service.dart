@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:talker_flutter/talker_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 part 'storage_service.g.dart';
 
@@ -20,6 +22,7 @@ StorageService storageService(Ref ref) {
   return StorageService(
     storage: ref.watch(firebaseStorageProvider),
     talker: ref.watch(loggerProvider),
+    uuid: ref.watch(uuidProvider),
   );
 }
 
@@ -29,6 +32,7 @@ class StorageService {
   const StorageService({
     required this.storage,
     required this.talker,
+    this.uuid = const Uuid(),
   });
 
   /// FirebaseStorage インスタンス
@@ -36,6 +40,9 @@ class StorageService {
 
   /// ロガー
   final Talker talker;
+
+  /// UUID生成器
+  final Uuid uuid;
 
   /// アバター画像を Firebase Storage にアップロードし、ダウンロードURLを返す
   Future<String> uploadAvatar({
@@ -45,7 +52,8 @@ class StorageService {
     try {
       talker.debug('Uploading avatar image for user: $userId');
       final timestamp = DateTime.now().toUtc().millisecondsSinceEpoch;
-      final fileName = '${userId}_$timestamp.jpg';
+      final randomId = uuid.v4();
+      final fileName = '${userId}_${timestamp}_$randomId.jpg';
       final ref = storage.ref().child('avatars').child(fileName);
       final metadata = SettableMetadata(
         contentType: 'image/jpeg',
