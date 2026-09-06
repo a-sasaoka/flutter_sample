@@ -33,12 +33,12 @@ class LoginScreen extends HookConsumerWidget {
 
       isLoading.value = true;
       try {
-        // 仮のトークンを保存（API連携前提で後で置き換えOK）
+        // 認証リポジトリ経由でログイン処理を実行
         await ref
             .read(authStateProvider.notifier)
-            .login(
-              'dummy_access_token',
-              'dummy_refresh_token',
+            .loginWithCredentials(
+              email: emailController.text.trim(),
+              password: passwordController.text,
             );
 
         if (context.mounted) {

@@ -360,5 +360,67 @@ void main() {
       );
       check(result).isNull();
     });
+
+    group('非Firebase環境での未対応画面へのアクセス制御', () {
+      test(
+        '未ログイン時、未対応の画面（サインアップ/パスワードリセット/メール認証）へアクセスした場合はログイン画面へリダイレクトすること',
+        () {
+          // Arrange & Act & Assert
+          // 1. サインアップ画面へのアクセス
+          check(
+            executeGuard(
+              const AsyncData<bool>(false),
+              location: const SignUpRoute().location,
+            ),
+          ).equals(const LoginRoute().location);
+
+          // 2. パスワードリセット画面へのアクセス
+          check(
+            executeGuard(
+              const AsyncData<bool>(false),
+              location: const ResetPasswordRoute().location,
+            ),
+          ).equals(const LoginRoute().location);
+
+          // 3. メール認証画面へのアクセス
+          check(
+            executeGuard(
+              const AsyncData<bool>(false),
+              location: const EmailVerificationRoute().location,
+            ),
+          ).equals(const LoginRoute().location);
+        },
+      );
+
+      test(
+        'ログイン済み時、未対応の画面（サインアップ/パスワードリセット/メール認証）へアクセスした場合はホーム画面へリダイレクトすること',
+        () {
+          // Arrange & Act & Assert
+          // 1. サインアップ画面へのアクセス
+          check(
+            executeGuard(
+              const AsyncData<bool>(true),
+              location: const SignUpRoute().location,
+            ),
+          ).equals(const HomeRoute().location);
+
+          // 2. パスワードリセット画面へのアクセス
+          check(
+            executeGuard(
+              const AsyncData<bool>(true),
+              location: const ResetPasswordRoute().location,
+            ),
+          ).equals(const HomeRoute().location);
+
+          // 3. メール認証画面へのアクセス
+          check(
+            executeGuard(
+              const AsyncData<bool>(true),
+              location: const EmailVerificationRoute().location,
+            ),
+          ).equals(const HomeRoute().location);
+        },
+      );
+    });
   });
 }

@@ -22,6 +22,14 @@ class FakeAuthStateNotifier extends AuthStateNotifier {
   Future<void> login(String accessToken, String refreshToken) async {
     await onLogin(accessToken, refreshToken);
   }
+
+  @override
+  Future<void> loginWithCredentials({
+    required String email,
+    required String password,
+  }) async {
+    await onLogin(email, password);
+  }
 }
 
 class MockAnalyticsService extends Mock implements AnalyticsService {}

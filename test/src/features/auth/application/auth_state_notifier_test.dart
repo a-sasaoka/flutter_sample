@@ -1,9 +1,12 @@
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
+import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+
+class MockAuthRepository extends Mock implements AuthRepository {}
 
 class FakeTokenStorage extends Mock implements TokenStorage {
   FakeTokenStorage({
@@ -45,11 +48,18 @@ class FakeTokenStorage extends Mock implements TokenStorage {
 
 void main() {
   /// テストごとにクリーンな ProviderContainer を作成するヘルパー
-  ProviderContainer createContainer(FakeTokenStorage fakeStorage) {
+  ProviderContainer createContainer({
+    FakeTokenStorage? fakeStorage,
+    MockAuthRepository? mockAuthRepository,
+  }) {
     final container = ProviderContainer(
       overrides: [
         // tokenStorageProvider を Fake クラスに差し替える
-        tokenStorageProvider.overrideWith((ref) => fakeStorage),
+        if (fakeStorage != null)
+          tokenStorageProvider.overrideWith((ref) => fakeStorage),
+        // authRepositoryProvider を Mock クラスに差し替える
+        if (mockAuthRepository != null)
+          authRepositoryProvider.overrideWith((ref) => mockAuthRepository),
       ],
     );
     addTearDown(container.dispose);
@@ -60,7 +70,7 @@ void main() {
     test('初期化: トークンが存在する場合、state が true になること', () async {
       // Arrange: 有効なトークンを返す Fake を作成
       final fakeStorage = FakeTokenStorage(mockAccessToken: 'valid_token');
-      final container = createContainer(fakeStorage);
+      final container = createContainer(fakeStorage: fakeStorage);
 
       // Act
       final authState = await container.read(authStateProvider.future);
@@ -72,7 +82,7 @@ void main() {
     test('初期化: トークンがない場合、state が false になること', () async {
       // Arrange: トークンがない Fake を作成
       final fakeStorage = FakeTokenStorage();
-      final container = createContainer(fakeStorage);
+      final container = createContainer(fakeStorage: fakeStorage);
 
       // Act
       final authState = await container.read(authStateProvider.future);
@@ -86,7 +96,7 @@ void main() {
     test('login: トークンを保存し、state を true に更新すること', () async {
       // Arrange
       final fakeStorage = FakeTokenStorage();
-      final container = createContainer(fakeStorage);
+      final container = createContainer(fakeStorage: fakeStorage);
       final notifier = container.read(authStateProvider.notifier);
 
       // Act
@@ -102,7 +112,7 @@ void main() {
     test('login: トークンの保存に失敗した場合、例外がスローされ state が AsyncError になること', () async {
       // Arrange
       final fakeStorage = FakeTokenStorage(shouldThrowOnSave: true);
-      final container = createContainer(fakeStorage);
+      final container = createContainer(fakeStorage: fakeStorage);
       final notifier = container.read(authStateProvider.notifier);
 
       // Act & Assert
@@ -115,11 +125,71 @@ void main() {
       ).equals(true); // state が AsyncError か
     });
 
+    test(
+      'loginWithCredentials: 認証に成功した場合、リポジトリのloginを呼び出し、state を true に更新すること',
+      () async {
+        // Arrange
+        final mockAuthRepository = MockAuthRepository();
+        when(
+          () => mockAuthRepository.login(any(), any()),
+        ).thenAnswer((_) async {});
+        final container = createContainer(
+          mockAuthRepository: mockAuthRepository,
+        );
+        final notifier = container.read(authStateProvider.notifier);
+
+        // Act
+        await notifier.loginWithCredentials(
+          email: 'test@example.com',
+          password: 'password123',
+        );
+
+        // Assert
+        verify(
+          () => mockAuthRepository.login('test@example.com', 'password123'),
+        ).called(1);
+        check(
+          container.read(authStateProvider).value,
+        ).equals(true);
+      },
+    );
+
+    test(
+      'loginWithCredentials: 認証に失敗した場合、例外がスローされ state が AsyncError になること',
+      () async {
+        // Arrange
+        final mockAuthRepository = MockAuthRepository();
+        when(
+          () => mockAuthRepository.login(any(), any()),
+        ).thenThrow(Exception('Login failed'));
+        final container = createContainer(
+          mockAuthRepository: mockAuthRepository,
+        );
+        final notifier = container.read(authStateProvider.notifier);
+
+        // Act & Assert
+        await check(
+          notifier.loginWithCredentials(
+            email: 'test@example.com',
+            password: 'password123',
+          ),
+        ).throws<Exception>();
+
+        // Assert
+        verify(
+          () => mockAuthRepository.login('test@example.com', 'password123'),
+        ).called(1);
+        check(
+          container.read(authStateProvider).hasError,
+        ).equals(true);
+      },
+    );
+
     test('logout: トークンを削除し、state を false に更新すること', () async {
       // Arrange
       // ログアウト前はログイン状態 (true) だったと仮定する
       final fakeStorage = FakeTokenStorage(mockAccessToken: 'old_token');
-      final container = createContainer(fakeStorage);
+      final container = createContainer(fakeStorage: fakeStorage);
       final notifier = container.read(authStateProvider.notifier);
 
       // buildの完了を待つ
@@ -141,7 +211,7 @@ void main() {
         mockAccessToken: 'old_token',
         shouldThrowOnClear: true,
       );
-      final container = createContainer(fakeStorage);
+      final container = createContainer(fakeStorage: fakeStorage);
       final notifier = container.read(authStateProvider.notifier);
 
       // buildの完了を待つ
