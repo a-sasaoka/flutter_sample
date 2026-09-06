@@ -234,7 +234,8 @@ Drift（SQLite）を使用したローカルメモ帳画面です。
   - **ローディング状態**: [📷 画像を表示 (profile_edit_screen_loading.png)](../test/src/features/profile/presentation/goldens/macos/profile_edit_screen_loading.png)（ライト）
   - **エラー状態**: [📷 画像を表示 (profile_edit_screen_error.png)](../test/src/features/profile/presentation/goldens/macos/profile_edit_screen_error.png)（ライト）
 - **チェックポイント**:
-  - 正常系で、氏名やメールアドレスの入力フォームに初期データ（テスト太郎など）が入っているか。
+  - 正常系で、画面上部に丸型のアバターアイコンおよびカメラバッジアイコンが表示され、氏名やメールアドレスの入力フォームに初期データ（テスト太郎など）が入っているか。
+  - アバター画像が未設定の場合は人物シルエットのデフォルトアイコン、設定済みの場合はネットワーク画像やプレビュー画像が円形にクリップされて表示されているか。
   - ローディング状態で中央に読み込みインジケータが表示されているか。
   - エラー状態で適切なエラーメッセージが表示されているか。
 

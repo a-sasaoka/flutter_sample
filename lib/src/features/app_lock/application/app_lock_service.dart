@@ -24,10 +24,13 @@ class AppLockService extends _$AppLockService {
   /// OSの生体認証プロンプトが完全に消去されるまでの待機時間
   static const Duration biometricPromptDelay = Duration(milliseconds: 1000);
 
-  /// OS標準生体認証ダイアログの表示に伴うライフサイクル変化（resumed）による誤ロックを防ぐフラグ
-  bool _isAuthenticating = false;
+  /// OS標準生体認証やカメラ・写真選択など、OS別画面を開く際の誤ロックを防ぐ実行中カウンタ
+  int _suppressionCount = 0;
 
-  /// OSの生体認証プロンプト消去起因の1回限りの復帰イベントを消費してスキップするフラグ
+  /// 現在ロックが一時停止中（生体認証、カメラ、アルバム等を開いている）かどうか
+  bool get isLockSuppressed => _suppressionCount > 0;
+
+  /// OSのプロンプト消去起因の1回限りの復帰イベントを消費してスキップするフラグ
   bool _shouldSkipNextLock = false;
 
   @override
@@ -93,15 +96,12 @@ class AppLockService extends _$AppLockService {
 
   /// 生体認証の有効化（動作テストを行い、成功した場合のみON、キャンセル時も設定完了として進む）
   Future<bool> enableBiometric({required String localizedReason}) async {
-    _isAuthenticating = true;
     final repository = ref.read(appLockRepositoryProvider);
 
-    try {
+    return runWithLockSuppression(() async {
       final authenticated = await repository.authenticateWithBiometrics(
         localizedReason: localizedReason,
       );
-
-      _shouldSkipNextLock = true;
 
       if (authenticated) {
         // 成功した場合: 生体認証を有効にして設定完了し、早期リターン
@@ -127,9 +127,7 @@ class AppLockService extends _$AppLockService {
           .info('[AppLockService] Biometric cancelled/disabled');
 
       return false;
-    } finally {
-      _isAuthenticating = false;
-    }
+    });
   }
 
   /// パスコード入力によるロック解除試行
@@ -193,6 +191,25 @@ class AppLockService extends _$AppLockService {
     return const UnlockResultSuccess();
   }
 
+  /// OS別画面（生体認証、カメラ、アルバム等）を開く処理を誤ロックなしで実行する共通ガード
+  Future<T> runWithLockSuppression<T>(Future<T> Function() action) async {
+    _suppressionCount++;
+    var isSuccess = false;
+    try {
+      final result = await action();
+      isSuccess = true;
+      return result;
+    } finally {
+      if (_suppressionCount > 0) {
+        _suppressionCount--;
+      }
+      // 最外層のガードかつ例外なく正常完了した場合のみ次回復帰ロックのスキップを有効化
+      if (_suppressionCount == 0 && isSuccess) {
+        _shouldSkipNextLock = true;
+      }
+    }
+  }
+
   /// 生体認証によるロック解除試行
   Future<bool> unlockWithBiometrics({required String localizedReason}) async {
     if (state.value case AppLockStateLocked(isBiometricEnabled: true)) {
@@ -201,20 +218,17 @@ class AppLockService extends _$AppLockService {
       return false;
     }
 
-    _isAuthenticating = true;
     final repository = ref.read(appLockRepositoryProvider);
 
-    try {
-      final authenticated = await repository.authenticateWithBiometrics(
+    final authenticated = await runWithLockSuppression(() async {
+      final result = await repository.authenticateWithBiometrics(
         localizedReason: localizedReason,
       );
 
-      if (!authenticated) {
+      if (!result) {
         ref.read(loggerProvider).warning('[AppLockService] Biometric failed');
         return false;
       }
-
-      _shouldSkipNextLock = true;
 
       // OSのFace IDダイアログが完全に消え去るまで余裕を持って1000ms待機
       await Future<void>.delayed(biometricPromptDelay);
@@ -227,18 +241,23 @@ class AppLockService extends _$AppLockService {
           .info('[AppLockService] Unlocked with biometrics');
 
       return true;
-    } finally {
-      _isAuthenticating = false;
+    });
+
+    // 認証失敗またはキャンセルの場合はアンロックされないため、次回の誤ロックスキップは無効化する
+    if (!authenticated) {
+      _shouldSkipNextLock = false;
     }
+
+    return authenticated;
   }
 
   /// アプリをロック状態にする（バックグラウンド復帰時など）
   void lockApp() {
-    if (_isAuthenticating) {
-      return; // 生体認証実行中は誤ロック防止のためスキップ
+    if (isLockSuppressed) {
+      return; // 生体認証やカメラ等の外部操作中は誤ロック防止のためスキップ
     }
 
-    // OSの生体認証プロンプトが閉じられたことによる1回限りの復帰イベントを消費・スキップ
+    // OSプロンプト消去起因の1回限りの復帰イベントを消費・スキップ
     if (_shouldSkipNextLock) {
       _shouldSkipNextLock = false;
       return;

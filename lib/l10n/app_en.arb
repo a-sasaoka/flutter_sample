@@ -225,6 +225,14 @@
     }
   },
   "profileValueNotSet": "Not set",
+  "profileAvatarSelectTitle": "Change Profile Photo",
+  "profileAvatarCamera": "Take Photo",
+  "profileAvatarGallery": "Choose from Library",
+  "profileAvatarDelete": "Remove Current Photo",
+  "profileAvatarPermissionDeniedTitle": "Permission Required",
+  "profileAvatarPermissionDeniedMessage": "Please allow access to Camera and Photos in your device settings.",
+  "profileAvatarOpenSettings": "Open Settings",
+  "profileAvatarCropperTitle": "Crop Photo",
 
   "@_APP_LOCK": {},
   "appLockSetupTitle": "Set Passcode",

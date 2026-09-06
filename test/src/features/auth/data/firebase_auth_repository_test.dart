@@ -281,6 +281,18 @@ void main() {
       verify(() => mockGoogleSignIn.signOut()).called(1);
     });
 
+    test('currentUserId: ログイン中は uid を返し、未ログイン時は null を返すこと', () {
+      final repo = container.read(firebaseAuthRepositoryProvider);
+      final mockUser = MockUser();
+
+      when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+      when(() => mockUser.uid).thenReturn('user_123');
+      check(repo.currentUserId).equals('user_123');
+
+      when(() => mockFirebaseAuth.currentUser).thenReturn(null);
+      check(repo.currentUserId).isNull();
+    });
+
     group('updateAuthProfile', () {
       test(
         'currentUser が null の場合、警告ログを出して unauthenticated 例外をスローすること',
@@ -423,6 +435,37 @@ void main() {
             () => mockUser.verifyBeforeUpdateEmail('new@example.com'),
           ).called(1);
           verifyNever(mockUser.reload);
+        },
+      );
+
+      test(
+        'photoUrl の変更がある場合、updatePhotoURL が呼ばれること',
+        () async {
+          final repo = container.read(firebaseAuthRepositoryProvider);
+          final mockUser = MockUser();
+
+          when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+          when(() => mockUser.displayName).thenReturn('表示名');
+          when(() => mockUser.email).thenReturn('test@example.com');
+          when(() => mockUser.photoURL).thenReturn('https://old.jpg');
+          when(() => mockUser.updatePhotoURL(any())).thenAnswer((_) async {});
+          when(mockUser.reload).thenAnswer((_) async {});
+
+          // 写真URLを新しいURLに変更
+          await repo.updateAuthProfile(
+            displayName: '表示名',
+            email: 'test@example.com',
+            photoUrl: 'https://new.jpg',
+          );
+          verify(() => mockUser.updatePhotoURL('https://new.jpg')).called(1);
+
+          // 空文字の場合は null で削除されること
+          await repo.updateAuthProfile(
+            displayName: '表示名',
+            email: 'test@example.com',
+            photoUrl: '',
+          );
+          verify(() => mockUser.updatePhotoURL(null)).called(1);
         },
       );
     });

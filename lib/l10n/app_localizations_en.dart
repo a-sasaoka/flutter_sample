@@ -536,6 +536,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileValueNotSet => 'Not set';
 
   @override
+  String get profileAvatarSelectTitle => 'Change Profile Photo';
+
+  @override
+  String get profileAvatarCamera => 'Take Photo';
+
+  @override
+  String get profileAvatarGallery => 'Choose from Library';
+
+  @override
+  String get profileAvatarDelete => 'Remove Current Photo';
+
+  @override
+  String get profileAvatarPermissionDeniedTitle => 'Permission Required';
+
+  @override
+  String get profileAvatarPermissionDeniedMessage =>
+      'Please allow access to Camera and Photos in your device settings.';
+
+  @override
+  String get profileAvatarOpenSettings => 'Open Settings';
+
+  @override
+  String get profileAvatarCropperTitle => 'Crop Photo';
+
+  @override
   String get appLockSetupTitle => 'Set Passcode';
 
   @override

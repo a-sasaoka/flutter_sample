@@ -226,6 +226,7 @@ export const users = onRequest(async (req, res) => {
             email: userRecord.email || "",
             displayName: userRecord.displayName || "テスト",
             phone: userRecord.phoneNumber || "",
+            avatarUrl: userRecord.photoURL || "",
           };
           await docRef.set(initialProfile);
           res.status(200).json(initialProfile);
@@ -233,25 +234,39 @@ export const users = onRequest(async (req, res) => {
           res.status(200).json(doc.data());
         }
       } else if (req.method === "PUT") {
-        const {name, displayName, phone, email} = req.body;
+        const {name, displayName, phone, email, avatarUrl} = req.body;
         if (
           (name !== undefined && typeof name !== "string") ||
           (displayName !== undefined && typeof displayName !== "string") ||
           (phone !== undefined && typeof phone !== "string") ||
-          (email !== undefined && typeof email !== "string")
+          (email !== undefined && typeof email !== "string") ||
+          (avatarUrl !== undefined && typeof avatarUrl !== "string")
         ) {
           res.status(400).send("Bad Request: Profile fields must be strings");
           return;
         }
 
-        const updatedProfile = {
+        const updateData: Record<string, string> = {
           name: name || "",
           displayName: displayName || "",
           phone: phone || "",
           email: email || "",
         };
-        await docRef.set(updatedProfile, {merge: true});
-        res.status(200).json(updatedProfile);
+        if (avatarUrl !== undefined) {
+          updateData.avatarUrl = avatarUrl;
+        }
+
+        await docRef.set(updateData, {merge: true});
+        const savedDoc = await docRef.get();
+        const savedData = savedDoc.data() || {};
+        const responseProfile = {
+          name: (savedData.name as string) || "",
+          displayName: (savedData.displayName as string) || "",
+          phone: (savedData.phone as string) || "",
+          email: (savedData.email as string) || "",
+          avatarUrl: (savedData.avatarUrl as string) || "",
+        };
+        res.status(200).json(responseProfile);
       } else {
         res.status(405).send("Method Not Allowed");
       }

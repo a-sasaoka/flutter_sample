@@ -106,7 +106,7 @@ graph TD
 2. **トークンの自動検証**:
    - ローカルで動くAPI（Functions）は、送られてきたトークンを本物の Firebase Auth に問い合わせて検証し、「ログイン中のユーザーの UID」を安全に特定します。
 3. **ローカル完結のデータ保管**:
-   - 特定した UID を元に、ローカルの Firestore エミュレータ（`users/{uid}/memos` や `rate_limits` など）にデータを安全に保存します。ローカル完結のため、クラウドの本番・開発DBを汚すことなく自由にテスト・デバッグが可能です。
+   - 特定した UID を元に、ローカルの Firestore エミュレータ（`users/{uid}` のプロフィール情報・`avatarUrl` や `users/{uid}/memos`、`rate_limits` など）にデータを安全に保存します。ローカル完結のため、クラウドの本番・開発DBを汚すことなく自由にテスト・デバッグが可能です。
    - Emulator Suite UI（`http://localhost:4000/firestore`）から、保存されたデータをブラウザ上でリアルタイムに閲覧・確認できます。
 
 ---

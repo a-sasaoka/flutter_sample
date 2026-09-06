@@ -77,6 +77,7 @@ dependencies:
   firebase_crashlytics: ^5.3.0
   firebase_analytics: ^12.5.0
   firebase_auth: ^6.6.1
+  firebase_storage: ^13.5.0
   google_sign_in: ^7.2.0
   firebase_remote_config: ^6.6.0
   firebase_ai: ^3.15.0
@@ -108,6 +109,11 @@ dependencies:
   geolocator: ^14.0.2
   geocoding: ^5.0.0
   app_settings: ^9.0.0
+
+  # --- 📷 写真・カメラ・画像切り抜き ---
+  image_picker: ^1.2.3
+  image_cropper: ^12.2.1
+  permission_handler: ^13.0.2
 
 # -----------------------------------------------
 # 🛠️ 開発時に使用する依存関係（コード生成・Lintなど）

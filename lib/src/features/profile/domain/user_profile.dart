@@ -19,6 +19,9 @@ sealed class UserProfile with _$UserProfile {
 
     /// 電話番号（任意入力のためデフォルト空文字）
     @Default('') String phone,
+
+    /// アバター画像URL（未設定時はデフォルト空文字）
+    @Default('') String avatarUrl,
   }) = _UserProfile;
 
   /// JSONからUserProfileオブジェクトを生成するファクトリコンストラクタ

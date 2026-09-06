@@ -520,6 +520,31 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileValueNotSet => '未設定';
 
   @override
+  String get profileAvatarSelectTitle => 'アイコン写真の変更';
+
+  @override
+  String get profileAvatarCamera => 'カメラで撮影';
+
+  @override
+  String get profileAvatarGallery => 'アルバムから選択';
+
+  @override
+  String get profileAvatarDelete => '現在の写真を削除';
+
+  @override
+  String get profileAvatarPermissionDeniedTitle => 'アクセス許可が必要です';
+
+  @override
+  String get profileAvatarPermissionDeniedMessage =>
+      '写真の選択または撮影を行うには、端末の設定からアクセスを許可してください。';
+
+  @override
+  String get profileAvatarOpenSettings => '設定を開く';
+
+  @override
+  String get profileAvatarCropperTitle => '写真の切り抜き';
+
+  @override
   String get appLockSetupTitle => 'パスコードの設定';
 
   @override

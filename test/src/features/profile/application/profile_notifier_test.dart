@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
+import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:flutter_sample/src/features/profile/application/profile_notifier.dart';
 import 'package:flutter_sample/src/features/profile/data/profile_repository.dart';
+import 'package:flutter_sample/src/features/profile/data/storage_service.dart';
 import 'package:flutter_sample/src/features/profile/domain/user_profile.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -15,11 +19,18 @@ class MockProfileRepository extends Mock implements ProfileRepository {}
 class MockFirebaseAuthRepository extends Mock
     implements FirebaseAuthRepository {}
 
+class MockStorageService extends Mock implements StorageService {}
+
+class MockFile extends Mock implements File {}
+
+class FakeFile extends Fake implements File {}
+
 class MockTalker extends Mock implements Talker {}
 
 void main() {
   late MockProfileRepository mockProfileRepo;
   late MockFirebaseAuthRepository mockAuthRepo;
+  late MockStorageService mockStorageService;
   late MockTalker mockTalker;
 
   const testProfile = UserProfile(
@@ -32,15 +43,18 @@ void main() {
   setUpAll(() {
     registerFallbackValue(testProfile);
     registerFallbackValue(StackTrace.current);
+    registerFallbackValue(FakeFile());
   });
 
   setUp(() {
     mockProfileRepo = MockProfileRepository();
     mockAuthRepo = MockFirebaseAuthRepository();
+    mockStorageService = MockStorageService();
     mockTalker = MockTalker();
 
     // デフォルトのモック設定
     when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
+    when(() => mockTalker.warning(any<dynamic>())).thenReturn(null);
     when(() => mockTalker.error(any<dynamic>())).thenReturn(null);
     when(
       () => mockTalker.handle(
@@ -52,6 +66,7 @@ void main() {
     when(
       () => mockProfileRepo.fetchProfile(),
     ).thenAnswer((_) async => testProfile);
+    when(() => mockAuthRepo.currentUserId).thenReturn('test_uid');
   });
 
   ProviderContainer createContainer({
@@ -61,6 +76,7 @@ void main() {
       overrides: [
         profileRepositoryProvider.overrideWithValue(mockProfileRepo),
         firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+        storageServiceProvider.overrideWithValue(mockStorageService),
         envConfigProvider.overrideWithValue(
           EnvConfigState(
             baseUrl: 'https://test.example.com',
@@ -148,6 +164,7 @@ void main() {
           () => mockAuthRepo.updateAuthProfile(
             displayName: updated.displayName,
             email: updated.email,
+            photoUrl: any(named: 'photoUrl'),
           ),
         ).thenAnswer((_) async {});
 
@@ -163,6 +180,7 @@ void main() {
           () => mockAuthRepo.updateAuthProfile(
             displayName: updated.displayName,
             email: updated.email,
+            photoUrl: any(named: 'photoUrl'),
           ),
         ).called(1);
 
@@ -208,6 +226,7 @@ void main() {
           () => mockAuthRepo.updateAuthProfile(
             displayName: updated.displayName,
             email: updated.email,
+            photoUrl: any(named: 'photoUrl'),
           ),
         ).thenThrow(exception);
         // ロールバック（古いプロフィールに戻す）用のモック
@@ -253,6 +272,7 @@ void main() {
           () => mockAuthRepo.updateAuthProfile(
             displayName: updated.displayName,
             email: updated.email,
+            photoUrl: any(named: 'photoUrl'),
           ),
         ).thenThrow(exception);
         // ロールバック自体も例外を投げて失敗するようにモック
@@ -278,6 +298,388 @@ void main() {
             rollbackException,
             any<StackTrace>(),
             any<String>(that: contains('Failed to rollback')),
+          ),
+        ).called(1);
+
+        subscription.close();
+      },
+    );
+
+    test(
+      'updateProfile: useFirebaseAuth: true かつ currentUserId が null の時、 '
+      'AppException.unauthenticated がスローされること',
+      () async {
+        // ログイン状態ではない（ユーザーIDが取得できない）状態をシミュレートします
+        when(() => mockAuthRepo.currentUserId).thenReturn(null);
+        final container = createContainer(useAuth: true);
+        final subscription = container.listen(profileProvider, (prev, next) {});
+
+        // 実行：プロフィール更新を呼び出す
+        await container
+            .read(profileProvider.notifier)
+            .updateProfile(testProfile);
+
+        // 検証：未認証エラーになっていることを確認
+        final state = container.read(profileProvider);
+        check(state.hasError).isTrue();
+        check(state.error).isA<AppException>();
+        final error = state.error! as AppException;
+        check(error).isA<UnauthenticatedException>();
+
+        subscription.close();
+      },
+    );
+
+    test(
+      'updateProfile: useFirebaseAuth: true かつ avatarFile が渡された時、 '
+      'Storage にアップロードして avatarUrl を更新し Auth にも同期すること',
+      () async {
+        final container = createContainer(useAuth: true);
+        final subscription = container.listen(profileProvider, (prev, next) {});
+
+        final mockFile = MockFile();
+        const uploadedUrl = 'https://storage.googleapis.com/avatar.jpg';
+        final updated = testProfile.copyWith(avatarUrl: uploadedUrl);
+
+        // モックの設定：Storageへのアップロードとサーバー・Authの更新
+        when(
+          () => mockStorageService.uploadAvatar(
+            userId: 'test_uid',
+            file: mockFile,
+          ),
+        ).thenAnswer((_) async => uploadedUrl);
+        when(
+          () => mockProfileRepo.updateProfile(updated),
+        ).thenAnswer((_) async => updated);
+        when(
+          () => mockAuthRepo.updateAuthProfile(
+            displayName: updated.displayName,
+            email: updated.email,
+            photoUrl: uploadedUrl,
+          ),
+        ).thenAnswer((_) async {});
+
+        // 実行：アバターファイルを指定して更新
+        await container
+            .read(profileProvider.notifier)
+            .updateProfile(
+              testProfile,
+              avatarFile: mockFile,
+            );
+
+        // 検証：状態が更新され、Storage・サーバー・Authの各処理が正しく呼ばれたこと
+        final state = container.read(profileProvider);
+        check(state.value).equals(updated);
+        verify(
+          () => mockStorageService.uploadAvatar(
+            userId: 'test_uid',
+            file: mockFile,
+          ),
+        ).called(1);
+        verify(() => mockProfileRepo.updateProfile(updated)).called(1);
+        verify(
+          () => mockAuthRepo.updateAuthProfile(
+            displayName: updated.displayName,
+            email: updated.email,
+            photoUrl: uploadedUrl,
+          ),
+        ).called(1);
+
+        subscription.close();
+      },
+    );
+
+    test(
+      'updateProfile: useFirebaseAuth: true かつ deleteAvatar: true の時、 '
+      'Storage から削除して avatarUrl を空文字にし Auth にも同期すること',
+      () async {
+        final container = createContainer(useAuth: true);
+        final subscription = container.listen(profileProvider, (prev, next) {});
+
+        const initialProfile = UserProfile(
+          name: 'テスト太郎',
+          email: 'test@example.com',
+          displayName: 'タロウ',
+          phone: '09012345678',
+          avatarUrl: 'https://storage.googleapis.com/old_avatar.jpg',
+        );
+        final updated = initialProfile.copyWith(avatarUrl: '');
+
+        // モックの設定：Storageからの削除とサーバー・Authの更新
+        when(
+          () => mockStorageService.deleteAvatar(userId: 'test_uid'),
+        ).thenAnswer((_) async {});
+        when(
+          () => mockProfileRepo.updateProfile(updated),
+        ).thenAnswer((_) async => updated);
+        when(
+          () => mockAuthRepo.updateAuthProfile(
+            displayName: updated.displayName,
+            email: updated.email,
+            photoUrl: '',
+          ),
+        ).thenAnswer((_) async {});
+
+        // 実行：削除フラグを立てて更新
+        await container
+            .read(profileProvider.notifier)
+            .updateProfile(
+              initialProfile,
+              deleteAvatar: true,
+            );
+
+        // 検証：アバターURLが空になり、各削除処理が呼ばれたこと
+        final state = container.read(profileProvider);
+        check(state.value).equals(updated);
+        verify(
+          () => mockStorageService.deleteAvatar(userId: 'test_uid'),
+        ).called(1);
+        verify(() => mockProfileRepo.updateProfile(updated)).called(1);
+        verify(
+          () => mockAuthRepo.updateAuthProfile(
+            displayName: updated.displayName,
+            email: updated.email,
+            photoUrl: '',
+          ),
+        ).called(1);
+
+        subscription.close();
+      },
+    );
+
+    test(
+      'updateProfile: useFirebaseAuth: false かつ avatarFile が渡された時、 '
+      'ローカルファイルパスが保持され Storage 通信は行われないこと',
+      () async {
+        final container = createContainer(useAuth: false);
+        final subscription = container.listen(profileProvider, (prev, next) {});
+
+        final mockFile = MockFile();
+        when(() => mockFile.path).thenReturn('/path/to/local/avatar.jpg');
+        final updated = testProfile.copyWith(
+          avatarUrl: '/path/to/local/avatar.jpg',
+        );
+
+        when(
+          () => mockProfileRepo.updateProfile(updated),
+        ).thenAnswer((_) async => updated);
+
+        // 実行：ローカルファイルを指定して更新
+        await container
+            .read(profileProvider.notifier)
+            .updateProfile(
+              testProfile,
+              avatarFile: mockFile,
+            );
+
+        // 検証：Storageへの通信は行われず、ローカルパスが保存されること
+        final state = container.read(profileProvider);
+        check(state.value).equals(updated);
+        verifyNever(
+          () => mockStorageService.uploadAvatar(
+            userId: any(named: 'userId'),
+            file: any(named: 'file'),
+          ),
+        );
+        verify(() => mockProfileRepo.updateProfile(updated)).called(1);
+
+        subscription.close();
+      },
+    );
+
+    test(
+      'updateProfile: useFirebaseAuth: false かつ deleteAvatar: true の時、 '
+      'avatarUrl が空文字になり Storage 通信は行われないこと',
+      () async {
+        final container = createContainer(useAuth: false);
+        final subscription = container.listen(profileProvider, (prev, next) {});
+
+        const initialProfile = UserProfile(
+          name: 'テスト太郎',
+          email: 'test@example.com',
+          displayName: 'タロウ',
+          phone: '09012345678',
+          avatarUrl: '/path/to/local/avatar.jpg',
+        );
+        final updated = initialProfile.copyWith(avatarUrl: '');
+
+        when(
+          () => mockProfileRepo.updateProfile(updated),
+        ).thenAnswer((_) async => updated);
+
+        // 実行：削除フラグを立てて更新
+        await container
+            .read(profileProvider.notifier)
+            .updateProfile(
+              initialProfile,
+              deleteAvatar: true,
+            );
+
+        // 検証：Storageへの通信は行われず、アバターURLが空になること
+        final state = container.read(profileProvider);
+        check(state.value).equals(updated);
+        verifyNever(
+          () => mockStorageService.deleteAvatar(userId: any(named: 'userId')),
+        );
+        verify(() => mockProfileRepo.updateProfile(updated)).called(1);
+
+        subscription.close();
+      },
+    );
+
+    test(
+      'updateProfile: useFirebaseAuth: true かつ avatarFile アップロード後に '
+      'サーバー更新が失敗したとき、ロールバック削除が呼ばれ、その例外も処理されること',
+      () async {
+        final container = createContainer(useAuth: true);
+        final subscription = container.listen(profileProvider, (prev, next) {});
+
+        final mockFile = MockFile();
+        const uploadedUrl = 'https://storage.googleapis.com/avatar.jpg';
+        final updated = testProfile.copyWith(avatarUrl: uploadedUrl);
+        final serverException = Exception('Server update failed');
+        final storageException = Exception('Storage delete failed');
+
+        when(
+          () => mockStorageService.uploadAvatar(
+            userId: 'test_uid',
+            file: mockFile,
+          ),
+        ).thenAnswer((_) async => uploadedUrl);
+        when(
+          () => mockProfileRepo.updateProfile(updated),
+        ).thenThrow(serverException);
+        when(
+          () => mockStorageService.deleteAvatar(userId: 'test_uid'),
+        ).thenThrow(storageException);
+
+        await container
+            .read(profileProvider.notifier)
+            .updateProfile(
+              testProfile,
+              avatarFile: mockFile,
+            );
+
+        final state = container.read(profileProvider);
+        check(state.hasError).isTrue();
+        check(state.error).equals(serverException);
+
+        verify(
+          () => mockStorageService.deleteAvatar(userId: 'test_uid'),
+        ).called(1);
+        verify(
+          () => mockTalker.handle(
+            storageException,
+            any<StackTrace>(),
+            any<String>(that: contains('Failed to rollback uploaded avatar')),
+          ),
+        ).called(1);
+
+        subscription.close();
+      },
+    );
+
+    test(
+      'updateProfile: useFirebaseAuth: true かつ avatarFile アップロード後に '
+      'Auth更新が失敗したとき、ロールバック削除が呼ばれ、その例外も処理されること',
+      () async {
+        final container = createContainer(useAuth: true);
+        final subscription = container.listen(profileProvider, (prev, next) {});
+
+        final mockFile = MockFile();
+        const uploadedUrl = 'https://storage.googleapis.com/avatar.jpg';
+        final updated = testProfile.copyWith(avatarUrl: uploadedUrl);
+        final authException = Exception('Auth update failed');
+        final storageException = Exception('Storage delete failed');
+
+        when(
+          () => mockStorageService.uploadAvatar(
+            userId: 'test_uid',
+            file: mockFile,
+          ),
+        ).thenAnswer((_) async => uploadedUrl);
+        when(
+          () => mockProfileRepo.updateProfile(updated),
+        ).thenAnswer((_) async => updated);
+        when(
+          () => mockAuthRepo.updateAuthProfile(
+            displayName: updated.displayName,
+            email: updated.email,
+            photoUrl: uploadedUrl,
+          ),
+        ).thenThrow(authException);
+        when(
+          () => mockStorageService.deleteAvatar(userId: 'test_uid'),
+        ).thenThrow(storageException);
+
+        await container
+            .read(profileProvider.notifier)
+            .updateProfile(
+              testProfile,
+              avatarFile: mockFile,
+            );
+
+        final state = container.read(profileProvider);
+        check(state.hasError).isTrue();
+        check(state.error).equals(authException);
+
+        verify(
+          () => mockStorageService.deleteAvatar(userId: 'test_uid'),
+        ).called(1);
+        verify(
+          () => mockTalker.handle(
+            storageException,
+            any<StackTrace>(),
+            any<String>(that: contains('Failed to rollback uploaded avatar')),
+          ),
+        ).called(1);
+
+        subscription.close();
+      },
+    );
+
+    test(
+      'updateProfile: useFirebaseAuth: true かつ deleteAvatar 完了後の '
+      'Storage削除で例外が発生しても、エラーが処理され正常終了すること',
+      () async {
+        final container = createContainer(useAuth: true);
+        final subscription = container.listen(profileProvider, (prev, next) {});
+
+        final updated = testProfile.copyWith(avatarUrl: '');
+        final storageException = Exception('Storage delete failed');
+
+        when(
+          () => mockProfileRepo.updateProfile(updated),
+        ).thenAnswer((_) async => updated);
+        when(
+          () => mockAuthRepo.updateAuthProfile(
+            displayName: updated.displayName,
+            email: updated.email,
+            photoUrl: '',
+          ),
+        ).thenAnswer((_) async {});
+        when(
+          () => mockStorageService.deleteAvatar(userId: 'test_uid'),
+        ).thenThrow(storageException);
+
+        await container
+            .read(profileProvider.notifier)
+            .updateProfile(
+              testProfile,
+              deleteAvatar: true,
+            );
+
+        final state = container.read(profileProvider);
+        check(state.value).equals(updated);
+
+        verify(
+          () => mockStorageService.deleteAvatar(userId: 'test_uid'),
+        ).called(1);
+        verify(
+          () => mockTalker.handle(
+            storageException,
+            any<StackTrace>(),
+            any<String>(that: contains('Failed to delete old avatar')),
           ),
         ).called(1);
 

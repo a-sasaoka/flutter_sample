@@ -50,6 +50,17 @@ cd ..
 - **Android (`android/app/src/main/kotlin/.../MainActivity.kt`)**:
   - 生体認証ダイアログの正常描画とコールバックのため、`FlutterActivity` ではなく `FlutterFragmentActivity` を継承するように設定されています。
 
+### 💡 カメラ・写真（アバター画像設定）の OS ネイティブ設定
+
+プロフィール写真の撮影・選択・切り抜き (`image_picker`, `image_cropper`) を使用するため、各プラットフォームで以下のネイティブ設定が行われています。
+
+- **iOS (`ios/Runner/Info.plist`)**:
+  - `NSCameraUsageDescription`: 「プロフィール写真を撮影するためにカメラを利用します。」
+  - `NSPhotoLibraryUsageDescription`: 「プロフィール写真を選択するために写真ライブラリを利用します。」
+- **Android (`android/app/src/main/AndroidManifest.xml`)**:
+  - カメラ撮影用パーミッション: `<uses-permission android:name="android.permission.CAMERA" />`
+  - 画像切り抜き画面: `UCropActivity`（`com.yalantis.ucrop.UCropActivity`）の登録
+
 ## 4️⃣ 環境設定ファイルの準備
 
 本プロジェクトでは、**「公開設定（JSON）」**と**「秘匿情報（.env）」**を使い分けています。
@@ -97,6 +108,10 @@ cd ..
 > 💡 **自動切り替え**: 配置したファイルは、ビルド時に選択された Flavor に応じた自動的に適用されます。
 
 3. `flutterfire configure` 等で生成された `lib/firebase_options.dart` は、環境ごとに `lib/firebase_options_local.dart` のようにリネームして配置してください。
+
+4. **Firebase Storage の有効化**:
+   - アバター画像アップロード機能を利用する場合は、Firebase Console の「Build」>「Storage」から「始める」を選択し、ストレージバケットを作成・有効化してください。
+   - ユーザー本人のみが自身のアバター画像（`/avatars/{userId}/...`）を読み書きできるように、Firebase Storage セキュリティルールが適切に設定されていることを確認してください。
 
 ## 6️⃣ アプリの実行・デバッグ
 
