@@ -36,7 +36,7 @@ final class ProfileProvider
   Profile create() => Profile();
 }
 
-String _$profileHash() => r'dabf294e9829dd27ed1517b62a4fa45e7a9e4981';
+String _$profileHash() => r'a7988259ab3283e03c55a72c9744a36cf8ae4dae';
 
 /// ユーザープロフィール情報を管理するNotifier
 

@@ -731,6 +731,7 @@ void main() {
       () async {
         final container = createContainer(useAuth: true);
         final subscription = container.listen(profileProvider, (prev, next) {});
+        await container.read(profileProvider.future);
 
         final mockFile = MockFile();
         const uploadedUrl = 'https://storage.googleapis.com/avatar.jpg';
@@ -747,6 +748,9 @@ void main() {
         when(
           () => mockProfileRepo.updateProfile(updated),
         ).thenAnswer((_) async => updated);
+        when(
+          () => mockProfileRepo.updateProfile(testProfile),
+        ).thenAnswer((_) async => testProfile);
         when(
           () => mockAuthRepo.updateAuthProfile(
             displayName: updated.displayName,
@@ -769,6 +773,7 @@ void main() {
         check(state.hasError).isTrue();
         check(state.error).equals(authException);
 
+        verify(() => mockProfileRepo.updateProfile(testProfile)).called(1);
         verify(
           () => mockStorageService.deleteAvatarByUrl(avatarUrl: uploadedUrl),
         ).called(1);
@@ -777,6 +782,71 @@ void main() {
             storageException,
             any<StackTrace>(),
             any<String>(that: contains('Failed to rollback uploaded avatar')),
+          ),
+        ).called(1);
+
+        subscription.close();
+      },
+    );
+
+    test(
+      'updateProfile: useFirebaseAuth: true かつ Auth更新後にサーバーロールバックも失敗したとき、 '
+      '新画像は削除されず保持されること',
+      () async {
+        final container = createContainer(useAuth: true);
+        final subscription = container.listen(profileProvider, (prev, next) {});
+        await container.read(profileProvider.future);
+
+        final mockFile = MockFile();
+        const uploadedUrl = 'https://storage.googleapis.com/avatar.jpg';
+        final updated = testProfile.copyWith(avatarUrl: uploadedUrl);
+        final authException = Exception('Auth update failed');
+        final serverRollbackException = Exception('Server rollback failed');
+
+        when(
+          () => mockStorageService.uploadAvatar(
+            userId: 'test_uid',
+            file: mockFile,
+          ),
+        ).thenAnswer((_) async => uploadedUrl);
+        when(
+          () => mockProfileRepo.updateProfile(updated),
+        ).thenAnswer((_) async => updated);
+        when(
+          () => mockAuthRepo.updateAuthProfile(
+            displayName: updated.displayName,
+            email: updated.email,
+            photoUrl: uploadedUrl,
+          ),
+        ).thenThrow(authException);
+        when(
+          () => mockProfileRepo.updateProfile(testProfile),
+        ).thenThrow(serverRollbackException);
+
+        await container
+            .read(profileProvider.notifier)
+            .updateProfile(
+              testProfile,
+              avatarFile: mockFile,
+            );
+
+        final state = container.read(profileProvider);
+        check(state.hasError).isTrue();
+        check(state.error).equals(authException);
+
+        // サーバーロールバックが試みられたことを確認
+        verify(() => mockProfileRepo.updateProfile(testProfile)).called(1);
+        // サーバーロールバック失敗時は新画像削除が呼ばれず、保持されること
+        verifyNever(
+          () => mockStorageService.deleteAvatarByUrl(
+            avatarUrl: any(named: 'avatarUrl'),
+          ),
+        );
+        verify(
+          () => mockTalker.handle(
+            serverRollbackException,
+            any<StackTrace>(),
+            any<String>(that: contains('Failed to rollback server update')),
           ),
         ).called(1);
 

@@ -126,20 +126,13 @@ class Profile extends _$Profile {
           talker.error(
             'Failed to sync to Firebase Auth. Rolling back server update...',
           );
-          if (newlyUploadedAvatarUrl != null) {
-            try {
-              await ref
-                  .read(storageServiceProvider)
-                  .deleteAvatarByUrl(avatarUrl: newlyUploadedAvatarUrl);
-            } on Object catch (e, st) {
-              talker.handle(e, st, 'Failed to rollback uploaded avatar');
-            }
-          }
+          var serverRollbackSucceeded = false;
           if (oldProfile != null) {
             try {
               await ref
                   .read(profileRepositoryProvider)
                   .updateProfile(oldProfile);
+              serverRollbackSucceeded = true;
               talker.debug('Successfully rolled back server update.');
             } on Object catch (rollbackError, rollbackSt) {
               talker.handle(
@@ -147,6 +140,18 @@ class Profile extends _$Profile {
                 rollbackSt,
                 'Failed to rollback server update',
               );
+            }
+          } else {
+            serverRollbackSucceeded = true;
+          }
+
+          if (serverRollbackSucceeded && newlyUploadedAvatarUrl != null) {
+            try {
+              await ref
+                  .read(storageServiceProvider)
+                  .deleteAvatarByUrl(avatarUrl: newlyUploadedAvatarUrl);
+            } on Object catch (e, st) {
+              talker.handle(e, st, 'Failed to rollback uploaded avatar');
             }
           }
           rethrow;
