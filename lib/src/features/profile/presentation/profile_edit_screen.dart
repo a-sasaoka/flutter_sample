@@ -147,41 +147,30 @@ class _ProfileEditForm extends HookConsumerWidget {
       );
       if (action == null || !context.mounted) return;
 
+      Future<void> pickAndSetAvatar(AvatarPickSource source) async {
+        try {
+          final path = await ref
+              .read(imagePickerServiceProvider)
+              .pickAndCropAvatar(
+                source: source,
+                cropperTitle: l10n.profileAvatarCropperTitle,
+              );
+          if (path != null) {
+            avatarFile.value = File(path);
+            deleteAvatar.value = false;
+          }
+        } on AvatarPermissionDeniedException {
+          if (context.mounted) {
+            await showPermissionDeniedDialog();
+          }
+        }
+      }
+
       switch (action) {
         case AvatarActionType.camera:
-          try {
-            final path = await ref
-                .read(imagePickerServiceProvider)
-                .pickAndCropAvatar(
-                  source: AvatarPickSource.camera,
-                  cropperTitle: l10n.profileAvatarCropperTitle,
-                );
-            if (path != null) {
-              avatarFile.value = File(path);
-              deleteAvatar.value = false;
-            }
-          } on AvatarPermissionDeniedException {
-            if (context.mounted) {
-              await showPermissionDeniedDialog();
-            }
-          }
+          await pickAndSetAvatar(AvatarPickSource.camera);
         case AvatarActionType.gallery:
-          try {
-            final path = await ref
-                .read(imagePickerServiceProvider)
-                .pickAndCropAvatar(
-                  source: AvatarPickSource.gallery,
-                  cropperTitle: l10n.profileAvatarCropperTitle,
-                );
-            if (path != null) {
-              avatarFile.value = File(path);
-              deleteAvatar.value = false;
-            }
-          } on AvatarPermissionDeniedException {
-            if (context.mounted) {
-              await showPermissionDeniedDialog();
-            }
-          }
+          await pickAndSetAvatar(AvatarPickSource.gallery);
         case AvatarActionType.delete:
           avatarFile.value = null;
           deleteAvatar.value = true;
