@@ -39,7 +39,9 @@ class Profile extends _$Profile {
       talker.debug('Starting profile update process...');
 
       final oldProfile = previousState.value;
+      final oldAvatarUrl = oldProfile?.avatarUrl;
       var targetProfile = updatedProfile;
+      String? newlyUploadedAvatarUrl;
 
       final useFirebase = ref.read(envConfigProvider).useFirebaseAuth;
 
@@ -59,11 +61,13 @@ class Profile extends _$Profile {
             'Uploading new avatar to Firebase Storage for: '
             '$userId...',
           );
-          final avatarUrl = await storageService.uploadAvatar(
+          newlyUploadedAvatarUrl = await storageService.uploadAvatar(
             userId: userId,
             file: avatarFile,
           );
-          targetProfile = targetProfile.copyWith(avatarUrl: avatarUrl);
+          targetProfile = targetProfile.copyWith(
+            avatarUrl: newlyUploadedAvatarUrl,
+          );
         } else if (deleteAvatar) {
           targetProfile = targetProfile.copyWith(avatarUrl: '');
         }
@@ -87,16 +91,13 @@ class Profile extends _$Profile {
             .updateProfile(targetProfile);
         talker.debug('Successfully updated profile on server.');
       } on Object catch (serverError, serverSt) {
-        if (useFirebase && avatarFile != null) {
-          final userId = ref.read(firebaseAuthRepositoryProvider).currentUserId;
-          if (userId != null) {
-            try {
-              await ref
-                  .read(storageServiceProvider)
-                  .deleteAvatar(userId: userId);
-            } on Object catch (e, st) {
-              talker.handle(e, st, 'Failed to rollback uploaded avatar');
-            }
+        if (useFirebase && newlyUploadedAvatarUrl != null) {
+          try {
+            await ref
+                .read(storageServiceProvider)
+                .deleteAvatarByUrl(avatarUrl: newlyUploadedAvatarUrl);
+          } on Object catch (e, st) {
+            talker.handle(e, st, 'Failed to rollback uploaded avatar');
           }
         }
         talker.handle(
@@ -125,18 +126,13 @@ class Profile extends _$Profile {
           talker.error(
             'Failed to sync to Firebase Auth. Rolling back server update...',
           );
-          if (avatarFile != null) {
-            final userId = ref
-                .read(firebaseAuthRepositoryProvider)
-                .currentUserId;
-            if (userId != null) {
-              try {
-                await ref
-                    .read(storageServiceProvider)
-                    .deleteAvatar(userId: userId);
-              } on Object catch (e, st) {
-                talker.handle(e, st, 'Failed to rollback uploaded avatar');
-              }
+          if (newlyUploadedAvatarUrl != null) {
+            try {
+              await ref
+                  .read(storageServiceProvider)
+                  .deleteAvatarByUrl(avatarUrl: newlyUploadedAvatarUrl);
+            } on Object catch (e, st) {
+              talker.handle(e, st, 'Failed to rollback uploaded avatar');
             }
           }
           if (oldProfile != null) {
@@ -157,17 +153,21 @@ class Profile extends _$Profile {
         }
 
         // 4. 更新・同期完了後に旧アバター画像を削除
-        if (deleteAvatar) {
-          final userId = ref.read(firebaseAuthRepositoryProvider).currentUserId;
-          if (userId != null) {
-            try {
-              await ref
-                  .read(storageServiceProvider)
-                  .deleteAvatar(userId: userId);
-              talker.debug('Successfully deleted old avatar from Storage.');
-            } on Object catch (e, st) {
-              talker.handle(e, st, 'Failed to delete old avatar after update');
-            }
+        final shouldDeleteOldAvatar =
+            (newlyUploadedAvatarUrl != null || deleteAvatar) &&
+            oldAvatarUrl != null &&
+            oldAvatarUrl.isNotEmpty &&
+            (oldAvatarUrl.startsWith('http://') ||
+                oldAvatarUrl.startsWith('https://') ||
+                oldAvatarUrl.startsWith('gs://'));
+        if (shouldDeleteOldAvatar) {
+          try {
+            await ref
+                .read(storageServiceProvider)
+                .deleteAvatarByUrl(avatarUrl: oldAvatarUrl);
+            talker.debug('Successfully deleted old avatar from Storage.');
+          } on Object catch (e, st) {
+            talker.handle(e, st, 'Failed to delete old avatar after update');
           }
         }
       } else {

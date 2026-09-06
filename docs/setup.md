@@ -111,14 +111,14 @@ cd ..
 
 4. **Firebase Storage の有効化とセキュリティルール設定**:
    - アバター画像アップロード機能を利用する場合は、Firebase Console の「Build」>「Storage」から「始める」を選択し、ストレージバケットを作成・有効化してください。
-   - アバター画像は `/avatars/{userId}.jpg` に保存されます。ログイン中のユーザー本人のみが自身のアバター画像を読み書きできるように、Firebase Storage のセキュリティルールタブで以下のルールを設定してください。
+   - アバター画像は `/avatars/{userId}_{timestamp}.jpg` に一意のキーで保存されます。ログイン中のユーザー本人のみが自身のアバター画像を読み書きできるように、Firebase Storage のセキュリティルールタブで以下のルールを設定してください。
 
    ```rules
    rules_version = '2';
    service firebase.storage {
      match /b/{bucket}/o {
-       match /avatars/{userId}.jpg {
-         allow read, write: if request.auth != null && request.auth.uid == userId;
+       match /avatars/{fileName} {
+         allow read, write: if request.auth != null && fileName.matches('^' + request.auth.uid + '.*');
        }
      }
    }

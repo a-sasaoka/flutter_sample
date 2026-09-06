@@ -68,6 +68,7 @@ void main() {
     ).thenReturn(null);
 
     when(() => mockStorage.ref()).thenReturn(mockRootRef);
+    when(() => mockStorage.refFromURL(any())).thenReturn(mockFileRef);
     when(() => mockRootRef.child('avatars')).thenReturn(mockAvatarsRef);
     when(() => mockAvatarsRef.child(any())).thenReturn(mockFileRef);
 
@@ -96,7 +97,9 @@ void main() {
       );
 
       check(result).equals(downloadUrl);
-      verify(() => mockAvatarsRef.child('$userId.jpg')).called(1);
+      verify(
+        () => mockAvatarsRef.child(any(that: startsWith('${userId}_'))),
+      ).called(1);
       verify(() => mockFileRef.putFile(mockFile, any())).called(1);
     });
 
@@ -217,6 +220,89 @@ void main() {
 
         await check(
           service.deleteAvatar(userId: userId),
+        ).throws<AppException>();
+
+        verify(
+          () => mockTalker.handle(
+            genericException,
+            any<StackTrace?>(),
+            'Unexpected error during avatar deletion',
+          ),
+        ).called(1);
+      },
+    );
+  });
+
+  group('StorageService deleteAvatarByUrl Tests', () {
+    const avatarUrl = 'https://firebasestorage.googleapis.com/avatar_123.jpg';
+
+    test('deleteAvatarByUrl: 正常系 - URL指定でファイル削除が成功すること', () async {
+      when(() => mockFileRef.delete()).thenAnswer((_) async {});
+
+      await check(
+        service.deleteAvatarByUrl(avatarUrl: avatarUrl),
+      ).completes();
+
+      verify(() => mockStorage.refFromURL(avatarUrl)).called(1);
+      verify(() => mockFileRef.delete()).called(1);
+    });
+
+    test(
+      'deleteAvatarByUrl: 正常系 - ファイルが存在しない(object-not-found)場合は例外を投げず正常終了すること',
+      () async {
+        final notFoundException = FirebaseException(
+          plugin: 'firebase_storage',
+          code: 'object-not-found',
+        );
+
+        when(() => mockFileRef.delete()).thenThrow(notFoundException);
+
+        await check(
+          service.deleteAvatarByUrl(avatarUrl: avatarUrl),
+        ).completes();
+
+        verify(
+          () => mockTalker.debug(
+            'Avatar file did not exist on Storage. Nothing to delete.',
+          ),
+        ).called(1);
+      },
+    );
+
+    test(
+      'deleteAvatarByUrl: 異常系 - '
+      'object-not-found以外のFirebaseExceptionはAppException.serverを投げること',
+      () async {
+        final firebaseException = FirebaseException(
+          plugin: 'firebase_storage',
+          code: 'unauthorized',
+        );
+
+        when(() => mockFileRef.delete()).thenThrow(firebaseException);
+
+        await check(
+          service.deleteAvatarByUrl(avatarUrl: avatarUrl),
+        ).throws<AppException>();
+
+        verify(
+          () => mockTalker.handle(
+            firebaseException,
+            any<StackTrace?>(),
+            'Firebase Storage delete error',
+          ),
+        ).called(1);
+      },
+    );
+
+    test(
+      'deleteAvatarByUrl: 異常系 - 予期せぬ例外発生時は AppException.unknown を投げること',
+      () async {
+        final genericException = Exception('Network down');
+
+        when(() => mockFileRef.delete()).thenThrow(genericException);
+
+        await check(
+          service.deleteAvatarByUrl(avatarUrl: avatarUrl),
         ).throws<AppException>();
 
         verify(

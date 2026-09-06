@@ -391,11 +391,8 @@ void main() {
 
     test(
       'updateProfile: useFirebaseAuth: true かつ deleteAvatar: true の時、 '
-      'Storage から削除して avatarUrl を空文字にし Auth にも同期すること',
+      'Storage から旧アバター画像を削除して avatarUrl を空文字にし Auth にも同期すること',
       () async {
-        final container = createContainer(useAuth: true);
-        final subscription = container.listen(profileProvider, (prev, next) {});
-
         const initialProfile = UserProfile(
           name: 'テスト太郎',
           email: 'test@example.com',
@@ -403,11 +400,21 @@ void main() {
           phone: '09012345678',
           avatarUrl: 'https://storage.googleapis.com/old_avatar.jpg',
         );
+        when(
+          () => mockProfileRepo.fetchProfile(),
+        ).thenAnswer((_) async => initialProfile);
+
+        final container = createContainer(useAuth: true);
+        final subscription = container.listen(profileProvider, (prev, next) {});
+        await container.read(profileProvider.future);
+
         final updated = initialProfile.copyWith(avatarUrl: '');
 
         // モックの設定：Storageからの削除とサーバー・Authの更新
         when(
-          () => mockStorageService.deleteAvatar(userId: 'test_uid'),
+          () => mockStorageService.deleteAvatarByUrl(
+            avatarUrl: 'https://storage.googleapis.com/old_avatar.jpg',
+          ),
         ).thenAnswer((_) async {});
         when(
           () => mockProfileRepo.updateProfile(updated),
@@ -432,7 +439,9 @@ void main() {
         final state = container.read(profileProvider);
         check(state.value).equals(updated);
         verify(
-          () => mockStorageService.deleteAvatar(userId: 'test_uid'),
+          () => mockStorageService.deleteAvatarByUrl(
+            avatarUrl: 'https://storage.googleapis.com/old_avatar.jpg',
+          ),
         ).called(1);
         verify(() => mockProfileRepo.updateProfile(updated)).called(1);
         verify(
@@ -440,6 +449,141 @@ void main() {
             displayName: updated.displayName,
             email: updated.email,
             photoUrl: '',
+          ),
+        ).called(1);
+
+        subscription.close();
+      },
+    );
+
+    test(
+      'updateProfile: useFirebaseAuth: true かつ 新規アバターアップロード成功時、 '
+      '既存の旧アバター画像が存在すればそれが削除されること',
+      () async {
+        const initialProfile = UserProfile(
+          name: 'テスト太郎',
+          email: 'test@example.com',
+          displayName: 'タロウ',
+          phone: '09012345678',
+          avatarUrl: 'https://storage.googleapis.com/old_avatar.jpg',
+        );
+        when(
+          () => mockProfileRepo.fetchProfile(),
+        ).thenAnswer((_) async => initialProfile);
+
+        final container = createContainer(useAuth: true);
+        final subscription = container.listen(profileProvider, (prev, next) {});
+        await container.read(profileProvider.future);
+
+        final mockFile = MockFile();
+        const uploadedUrl = 'https://storage.googleapis.com/new_avatar.jpg';
+        final updated = initialProfile.copyWith(avatarUrl: uploadedUrl);
+
+        when(
+          () => mockStorageService.uploadAvatar(
+            userId: 'test_uid',
+            file: mockFile,
+          ),
+        ).thenAnswer((_) async => uploadedUrl);
+        when(
+          () => mockProfileRepo.updateProfile(updated),
+        ).thenAnswer((_) async => updated);
+        when(
+          () => mockAuthRepo.updateAuthProfile(
+            displayName: updated.displayName,
+            email: updated.email,
+            photoUrl: uploadedUrl,
+          ),
+        ).thenAnswer((_) async {});
+        when(
+          () => mockStorageService.deleteAvatarByUrl(
+            avatarUrl: 'https://storage.googleapis.com/old_avatar.jpg',
+          ),
+        ).thenAnswer((_) async {});
+
+        // 実行：既存アバターがある状態で新アバターを保存
+        await container
+            .read(profileProvider.notifier)
+            .updateProfile(
+              initialProfile,
+              avatarFile: mockFile,
+            );
+
+        final state = container.read(profileProvider);
+        check(state.value).equals(updated);
+        verify(
+          () => mockStorageService.uploadAvatar(
+            userId: 'test_uid',
+            file: mockFile,
+          ),
+        ).called(1);
+        verify(() => mockProfileRepo.updateProfile(updated)).called(1);
+        verify(
+          () => mockAuthRepo.updateAuthProfile(
+            displayName: updated.displayName,
+            email: updated.email,
+            photoUrl: uploadedUrl,
+          ),
+        ).called(1);
+        verify(
+          () => mockStorageService.deleteAvatarByUrl(
+            avatarUrl: 'https://storage.googleapis.com/old_avatar.jpg',
+          ),
+        ).called(1);
+
+        subscription.close();
+      },
+    );
+
+    test(
+      'updateProfile: useFirebaseAuth: true かつ 旧アバターが gs:// 形式の時、 '
+      'deleteAvatar: true で正しく旧画像が削除されること',
+      () async {
+        const initialProfile = UserProfile(
+          name: 'テスト太郎',
+          email: 'test@example.com',
+          displayName: 'タロウ',
+          phone: '09012345678',
+          avatarUrl: 'gs://bucket/old_avatar.jpg',
+        );
+        when(
+          () => mockProfileRepo.fetchProfile(),
+        ).thenAnswer((_) async => initialProfile);
+
+        final container = createContainer(useAuth: true);
+        final subscription = container.listen(profileProvider, (prev, next) {});
+        await container.read(profileProvider.future);
+
+        final updated = initialProfile.copyWith(avatarUrl: '');
+
+        when(
+          () => mockStorageService.deleteAvatarByUrl(
+            avatarUrl: 'gs://bucket/old_avatar.jpg',
+          ),
+        ).thenAnswer((_) async {});
+        when(
+          () => mockProfileRepo.updateProfile(updated),
+        ).thenAnswer((_) async => updated);
+        when(
+          () => mockAuthRepo.updateAuthProfile(
+            displayName: updated.displayName,
+            email: updated.email,
+            photoUrl: '',
+          ),
+        ).thenAnswer((_) async {});
+
+        await container
+            .read(profileProvider.notifier)
+            .updateProfile(
+              initialProfile,
+              deleteAvatar: true,
+            );
+
+        final state = container.read(profileProvider);
+        check(state.value).equals(updated);
+        verify(
+          () => mockStorageService.deleteAvatarByUrl(
+            avatarUrl: 'gs://bucket/old_avatar.jpg',
           ),
         ).called(1);
 
@@ -550,7 +694,7 @@ void main() {
           () => mockProfileRepo.updateProfile(updated),
         ).thenThrow(serverException);
         when(
-          () => mockStorageService.deleteAvatar(userId: 'test_uid'),
+          () => mockStorageService.deleteAvatarByUrl(avatarUrl: uploadedUrl),
         ).thenThrow(storageException);
 
         await container
@@ -565,7 +709,7 @@ void main() {
         check(state.error).equals(serverException);
 
         verify(
-          () => mockStorageService.deleteAvatar(userId: 'test_uid'),
+          () => mockStorageService.deleteAvatarByUrl(avatarUrl: uploadedUrl),
         ).called(1);
         verify(
           () => mockTalker.handle(
@@ -609,7 +753,7 @@ void main() {
           ),
         ).thenThrow(authException);
         when(
-          () => mockStorageService.deleteAvatar(userId: 'test_uid'),
+          () => mockStorageService.deleteAvatarByUrl(avatarUrl: uploadedUrl),
         ).thenThrow(storageException);
 
         await container
@@ -624,7 +768,7 @@ void main() {
         check(state.error).equals(authException);
 
         verify(
-          () => mockStorageService.deleteAvatar(userId: 'test_uid'),
+          () => mockStorageService.deleteAvatarByUrl(avatarUrl: uploadedUrl),
         ).called(1);
         verify(
           () => mockTalker.handle(
@@ -642,10 +786,22 @@ void main() {
       'updateProfile: useFirebaseAuth: true かつ deleteAvatar 完了後の '
       'Storage削除で例外が発生しても、エラーが処理され正常終了すること',
       () async {
+        const initialProfile = UserProfile(
+          name: 'テスト太郎',
+          email: 'test@example.com',
+          displayName: 'タロウ',
+          phone: '09012345678',
+          avatarUrl: 'https://storage.googleapis.com/old_avatar.jpg',
+        );
+        when(
+          () => mockProfileRepo.fetchProfile(),
+        ).thenAnswer((_) async => initialProfile);
+
         final container = createContainer(useAuth: true);
         final subscription = container.listen(profileProvider, (prev, next) {});
+        await container.read(profileProvider.future);
 
-        final updated = testProfile.copyWith(avatarUrl: '');
+        final updated = initialProfile.copyWith(avatarUrl: '');
         final storageException = Exception('Storage delete failed');
 
         when(
@@ -659,13 +815,15 @@ void main() {
           ),
         ).thenAnswer((_) async {});
         when(
-          () => mockStorageService.deleteAvatar(userId: 'test_uid'),
+          () => mockStorageService.deleteAvatarByUrl(
+            avatarUrl: 'https://storage.googleapis.com/old_avatar.jpg',
+          ),
         ).thenThrow(storageException);
 
         await container
             .read(profileProvider.notifier)
             .updateProfile(
-              testProfile,
+              initialProfile,
               deleteAvatar: true,
             );
 
@@ -673,7 +831,9 @@ void main() {
         check(state.value).equals(updated);
 
         verify(
-          () => mockStorageService.deleteAvatar(userId: 'test_uid'),
+          () => mockStorageService.deleteAvatarByUrl(
+            avatarUrl: 'https://storage.googleapis.com/old_avatar.jpg',
+          ),
         ).called(1);
         verify(
           () => mockTalker.handle(

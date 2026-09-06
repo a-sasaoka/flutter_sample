@@ -44,7 +44,9 @@ class StorageService {
   }) async {
     try {
       talker.debug('Uploading avatar image for user: $userId');
-      final ref = storage.ref().child('avatars').child('$userId.jpg');
+      final timestamp = DateTime.now().toUtc().millisecondsSinceEpoch;
+      final fileName = '${userId}_$timestamp.jpg';
+      final ref = storage.ref().child('avatars').child(fileName);
       final metadata = SettableMetadata(
         contentType: 'image/jpeg',
       );
@@ -62,6 +64,36 @@ class StorageService {
       talker.handle(e, st, 'Unexpected error during avatar upload');
       throw AppException.unknown(
         message: 'Unexpected error during avatar upload',
+        error: e,
+      );
+    }
+  }
+
+  /// アバター画像を URL を指定して Firebase Storage から削除する
+  Future<void> deleteAvatarByUrl({
+    required String avatarUrl,
+  }) async {
+    try {
+      talker.debug('Deleting avatar image by URL: $avatarUrl');
+      final ref = storage.refFromURL(avatarUrl);
+      await ref.delete();
+      talker.debug('Avatar deleted successfully by URL.');
+    } on FirebaseException catch (e, st) {
+      // ファイルが存在しない場合 (object-not-found) は正常とみなす
+      if (e.code == 'object-not-found') {
+        talker.debug(
+          'Avatar file did not exist on Storage. Nothing to delete.',
+        );
+        return;
+      }
+      talker.handle(e, st, 'Firebase Storage delete error');
+      throw const AppException.server(
+        message: 'Failed to delete avatar image',
+      );
+    } on Object catch (e, st) {
+      talker.handle(e, st, 'Unexpected error during avatar deletion');
+      throw AppException.unknown(
+        message: 'Unexpected error during avatar deletion',
         error: e,
       );
     }
