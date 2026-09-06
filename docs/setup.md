@@ -109,9 +109,20 @@ cd ..
 
 3. `flutterfire configure` 等で生成された `lib/firebase_options.dart` は、環境ごとに `lib/firebase_options_local.dart` のようにリネームして配置してください。
 
-4. **Firebase Storage の有効化**:
+4. **Firebase Storage の有効化とセキュリティルール設定**:
    - アバター画像アップロード機能を利用する場合は、Firebase Console の「Build」>「Storage」から「始める」を選択し、ストレージバケットを作成・有効化してください。
-   - ユーザー本人のみが自身のアバター画像（`/avatars/{userId}/...`）を読み書きできるように、Firebase Storage セキュリティルールが適切に設定されていることを確認してください。
+   - アバター画像は `/avatars/{userId}.jpg` に保存されます。ログイン中のユーザー本人のみが自身のアバター画像を読み書きできるように、Firebase Storage のセキュリティルールタブで以下のルールを設定してください。
+
+   ```rules
+   rules_version = '2';
+   service firebase.storage {
+     match /b/{bucket}/o {
+       match /avatars/{userId}.jpg {
+         allow read, write: if request.auth != null && request.auth.uid == userId;
+       }
+     }
+   }
+   ```
 
 ## 6️⃣ アプリの実行・デバッグ
 
