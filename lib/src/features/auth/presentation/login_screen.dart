@@ -27,18 +27,20 @@ class LoginScreen extends HookConsumerWidget {
 
     Future<void> onLogin() async {
       // 簡易バリデーション（空なら弾く）
-      if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+      final email = emailController.text.trim();
+      final password = passwordController.text;
+      if (email.isEmpty || password.isEmpty) {
         return;
       }
 
       isLoading.value = true;
       try {
-        // 仮のトークンを保存（API連携前提で後で置き換えOK）
+        // 認証リポジトリ経由でログイン処理を実行
         await ref
             .read(authStateProvider.notifier)
-            .login(
-              'dummy_access_token',
-              'dummy_refresh_token',
+            .loginWithCredentials(
+              email: email,
+              password: password,
             );
 
         if (context.mounted) {

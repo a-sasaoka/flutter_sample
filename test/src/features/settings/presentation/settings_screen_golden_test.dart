@@ -6,7 +6,7 @@ import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
-import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -17,11 +17,11 @@ import 'settings_screen_test.dart';
 
 void main() {
   group('SettingsScreen Golden Tests', () {
-    late MockFirebaseAuthRepository mockAuthRepo;
+    late MockAuthService mockAuthService;
     late MockAppLocalizations mockL10n;
 
     setUp(() {
-      mockAuthRepo = MockFirebaseAuthRepository();
+      mockAuthService = MockAuthService();
       mockL10n = MockAppLocalizations();
 
       when(() => mockL10n.settingsTitle).thenReturn('設定');
@@ -81,7 +81,8 @@ void main() {
               useAgentPlatform: true,
             ),
           ),
-          firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+          isAuthenticatedProvider.overrideWithValue(true),
+          authServiceProvider.overrideWithValue(mockAuthService),
           themeModeProvider.overrideWith(() => fakeThemeNotifier),
           localeProvider.overrideWith(() => fakeLocale),
         ],

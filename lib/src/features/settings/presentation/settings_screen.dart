@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/config/app_config_provider.dart';
-import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
-import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// 設定画面ウィジェット
@@ -18,7 +17,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final configAsync = ref.watch(appConfigProvider);
     final l10n = context.l10n;
-    final useAuth = ref.watch(envConfigProvider).useFirebaseAuth;
+    final isAuthed = ref.watch(isAuthenticatedProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),
@@ -54,7 +53,7 @@ class SettingsScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               _LocaleCard(currentLocale: locale),
 
-              if (useAuth) ...[
+              if (isAuthed) ...[
                 const SizedBox(height: 48),
                 // ログアウトボタン
                 const _LogoutButton(),
@@ -207,7 +206,7 @@ class _LogoutButton extends ConsumerWidget {
 
   Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
     try {
-      await ref.read(firebaseAuthRepositoryProvider).signOut();
+      await ref.read(authServiceProvider).signOut();
     } on Exception catch (e) {
       if (context.mounted) {
         ErrorHandler.showSnackBar(context, e);

@@ -28,6 +28,18 @@ String? authGuard(Ref ref, GoRouterState state) {
     return baseRedirect;
   }
 
+  // 非Firebase環境では未対応のFirebase専用画面へのアクセスを安全にリダイレクト
+  final unsupportedPaths = {
+    const SignUpRoute().location,
+    const ResetPasswordRoute().location,
+    const EmailVerificationRoute().location,
+  };
+  if (unsupportedPaths.contains(state.uri.path)) {
+    return isLoggedIn
+        ? const HomeRoute().location
+        : const LoginRoute().location;
+  }
+
   return AuthGuardHelper(
     loginLocation: const LoginRoute().location,
     defaultLocation: const HomeRoute().location,

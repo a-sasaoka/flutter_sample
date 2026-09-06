@@ -9,7 +9,7 @@ import 'package:flutter_sample/src/core/config/app_config_provider.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
-import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -18,8 +18,7 @@ import 'package:mocktail/mocktail.dart';
 
 // --- モックとFakeクラスの定義 ---
 
-class MockFirebaseAuthRepository extends Mock
-    implements FirebaseAuthRepository {}
+class MockAuthService extends Mock implements AuthService {}
 
 class MockAppLocalizations extends Mock implements AppLocalizations {}
 
@@ -70,13 +69,13 @@ class MockLocalizationsDelegate
 enum ConfigState { loading, error, data }
 
 void main() {
-  late MockFirebaseAuthRepository mockAuthRepo;
+  late MockAuthService mockAuthService;
   late MockAppLocalizations mockL10n;
   late FakeThemeModeNotifier fakeThemeModeNotifier;
   late FakeLocaleNotifier fakeLocaleNotifier;
 
   setUp(() {
-    mockAuthRepo = MockFirebaseAuthRepository();
+    mockAuthService = MockAuthService();
     mockL10n = MockAppLocalizations();
 
     fakeThemeModeNotifier = FakeThemeModeNotifier();
@@ -103,13 +102,14 @@ void main() {
     when(() => mockL10n.errorOccurred).thenReturn('エラーが発生しました');
     when(() => mockL10n.settingsPreview).thenReturn('プレビュー');
 
-    // リポジトリメソッドのスタブ
-    when(() => mockAuthRepo.signOut()).thenAnswer((_) async {});
+    // 認証サービスメソッドのスタブ
+    when(() => mockAuthService.signOut()).thenAnswer((_) async {});
   });
 
   Widget createTestWidget({
     ConfigState configState = ConfigState.data,
     bool useAuth = true,
+    bool isAuthed = true,
   }) {
     final router = GoRouter(
       initialLocation: '/settings',
@@ -154,7 +154,8 @@ void main() {
             useAgentPlatform: true,
           ),
         ),
-        firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+        isAuthenticatedProvider.overrideWithValue(isAuthed),
+        authServiceProvider.overrideWithValue(mockAuthService),
         themeModeProvider.overrideWith(() => fakeThemeModeNotifier),
         localeProvider.overrideWith(() => fakeLocaleNotifier),
       ],
@@ -246,17 +247,17 @@ void main() {
         check(fakeLocaleNotifier.calledSetLocale).equals('en');
       });
 
-      group('ログアウトボタン (useAuthの分岐)', () {
-        testWidgets('useAuth == false の場合、ログアウトボタンは表示されないこと', (tester) async {
+      group('ログアウトボタン', () {
+        testWidgets('isAuthed == false の場合、ログアウトボタンは表示されないこと', (tester) async {
           await tester.pumpWidget(
-            createTestWidget(useAuth: false),
+            createTestWidget(isAuthed: false),
           );
           await tester.pumpAndSettle();
 
           check(find.byKey(const Key('logout_button'))).findsNothing();
         });
 
-        testWidgets('useAuth == true でログアウト成功時、signOut処理が呼ばれること', (
+        testWidgets('isAuthed == true でログアウト成功時、signOut処理が呼ばれること', (
           tester,
         ) async {
           // ビューポートサイズを固定
@@ -280,8 +281,37 @@ void main() {
           await tester.tap(logoutButton);
           await tester.pumpAndSettle();
 
-          verify(() => mockAuthRepo.signOut()).called(1);
+          verify(() => mockAuthService.signOut()).called(1);
         });
+
+        testWidgets(
+          'useAuth: false（自前認証）でもログアウトボタンが表示され signOut が呼ばれること',
+          (tester) async {
+            tester.view.physicalSize = const Size(1080, 1920);
+            tester.view.devicePixelRatio = 1.0;
+            addTearDown(() {
+              tester.view.resetPhysicalSize();
+              tester.view.resetDevicePixelRatio();
+            });
+
+            await tester.pumpWidget(
+              createTestWidget(useAuth: false),
+            );
+            await tester.pumpAndSettle();
+
+            final logoutButton = find.byKey(const Key('logout_button'));
+            await tester.dragUntilVisible(
+              logoutButton,
+              find.byType(ListView),
+              const Offset(0, -300),
+            );
+
+            await tester.tap(logoutButton);
+            await tester.pumpAndSettle();
+
+            verify(() => mockAuthService.signOut()).called(1);
+          },
+        );
 
         testWidgets('ログアウト時に例外が発生した場合、SnackBarでエラーが表示されること', (tester) async {
           tester.view.physicalSize = const Size(1080, 1920);
@@ -292,7 +322,7 @@ void main() {
           });
 
           final exception = Exception('Logout failed!');
-          when(() => mockAuthRepo.signOut()).thenThrow(exception);
+          when(() => mockAuthService.signOut()).thenThrow(exception);
 
           await tester.pumpWidget(createTestWidget());
           await tester.pumpAndSettle();
@@ -307,7 +337,7 @@ void main() {
           await tester.tap(logoutButton);
           await tester.pump();
 
-          verify(() => mockAuthRepo.signOut()).called(1);
+          verify(() => mockAuthService.signOut()).called(1);
 
           check(find.textContaining('不明なエラー')).findsOne();
           check(find.textContaining('Navigated to')).findsNothing();

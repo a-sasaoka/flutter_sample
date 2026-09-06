@@ -3,7 +3,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
-import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 import 'package:flutter_sample/src/core/network/firebase_crashlytics_provider.dart';
@@ -30,7 +29,6 @@ class HomeScreen extends HookConsumerWidget {
     final bundleId = useState('');
 
     final flavor = ref.watch(flavorProvider);
-    final envConfig = ref.watch(envConfigProvider);
 
     // データの変化を「監視」し、アップデート情報が届いた時だけ1回ダイアログを出します
     ref.listen(updateRequestControllerProvider, (previous, next) async {
@@ -71,7 +69,6 @@ class HomeScreen extends HookConsumerWidget {
       body: switch (updateRequest) {
         AsyncData() || AsyncError() => _HomeBody(
           flavor: flavor,
-          useFirebaseAuth: envConfig.useFirebaseAuth,
           appName: appName.value,
           bundleId: bundleId.value,
           onGetAppInfo: () {
@@ -89,14 +86,12 @@ class HomeScreen extends HookConsumerWidget {
 class _HomeBody extends ConsumerWidget {
   const _HomeBody({
     required this.flavor,
-    required this.useFirebaseAuth,
     required this.appName,
     required this.bundleId,
     required this.onGetAppInfo,
   });
 
   final Flavor flavor;
-  final bool useFirebaseAuth;
   final String appName;
   final String bundleId;
   final VoidCallback onGetAppInfo;

@@ -10,11 +10,15 @@
 トークン認証に関わるファイルは、責務ごとに適切なレイヤー（基盤層・機能層）に美しく分離されています。
 
 ```plaintext
-lib/src/features/auth/data/
- ├── token_storage.dart       # トークンの永続化（SecureStorage利用）
- ├── token_interceptor.dart   # DioのInterceptor（トークン自動付与・排他リフレッシュ制御）
- ├── auth_repository.dart     # ログイン処理・トークンリフレッシュAPIの呼び出し
- └── auth_overrides.dart      # 認証系プロバイダーの動的切り替え・オーバーライド設定
+lib/src/features/auth/
+ ├── application/
+ │    ├── auth_service.dart        # 共通ログアウト・認証状態判定（アプリロック連携）
+ │    └── auth_state_notifier.dart # トークン認証状態の管理
+ └── data/
+      ├── token_storage.dart       # トークンの永続化（SecureStorage利用）
+      ├── token_interceptor.dart   # DioのInterceptor（トークン自動付与・排他リフレッシュ制御）
+      ├── auth_repository.dart     # ログイン処理・トークンリフレッシュAPIの呼び出し
+      └── auth_overrides.dart      # 認証系プロバイダーの動的切り替え・オーバーライド設定
 ```
 
 ---
@@ -104,3 +108,13 @@ lib/src/features/auth/data/
   - ログアウト処理の中で `ref.read(appLockServiceProvider.notifier).clearAppLock()` を呼び出し、暗号化保存されたパスコードおよび生体認証設定を安全に全削除して `disabled` 状態へ遷移させます。
 
 詳細な仕様は [アプリロック機能 (App Lock)](app_lock.md) を参照してください。
+
+---
+
+## 🚪 共通ログアウト基盤（AuthService）
+
+本プロジェクトでは、画面側（設定画面など）が「現在 Firebase Auth を使っているか、自前のトークン認証を使っているか」を意識せずに安全にログアウトできるよう、`AuthService` を提供しています。
+
+- **認証方式の隠蔽**: `EnvConfig.useFirebaseAuth` の値に応じて、Firebase のサインアウトまたはローカルトークンの破棄を適切に実行します。
+- **アプリロック連携の自動化**: ログアウト処理の中で `AppLockService.clearAppLock()` を呼び出し、暗号化保存されたパスコード・生体認証設定を自動的にクリアします。
+- **統一されたログイン判定**: `isAuthenticatedProvider` により、UI 側は1行で「何らかの方式でログイン中か」を監視・判定できます。

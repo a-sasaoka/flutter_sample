@@ -22,6 +22,14 @@ class FakeAuthStateNotifier extends AuthStateNotifier {
   Future<void> login(String accessToken, String refreshToken) async {
     await onLogin(accessToken, refreshToken);
   }
+
+  @override
+  Future<void> loginWithCredentials({
+    required String email,
+    required String password,
+  }) async {
+    await onLogin(email, password);
+  }
 }
 
 class MockAnalyticsService extends Mock implements AnalyticsService {}
@@ -119,6 +127,22 @@ void main() {
       await tester.pumpAndSettle();
 
       // Fakeのメソッドが呼ばれていないことと、Analyticsが呼ばれていないことを確認
+      check(loginCallCount).equals(0);
+      verifyZeroInteractions(mockAnalyticsService);
+    });
+
+    testWidgets('空白文字のみを入力してボタンを押した場合は何も起きないこと(バリデーション)', (
+      tester,
+    ) async {
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).at(0), '   ');
+      await tester.enterText(find.byType(TextField).at(1), 'password123');
+
+      await tester.tap(find.text('ログインする'));
+      await tester.pumpAndSettle();
+
       check(loginCallCount).equals(0);
       verifyZeroInteractions(mockAnalyticsService);
     });

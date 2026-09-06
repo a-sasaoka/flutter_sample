@@ -1,3 +1,4 @@
+import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -21,6 +22,22 @@ class AuthStateNotifier extends _$AuthStateNotifier {
             accessToken: accessToken,
             refreshToken: refreshToken,
           );
+      state = const AsyncData(true);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  /// メールアドレスとパスワードで認証APIを呼び出してログイン状態にする
+  Future<void> loginWithCredentials({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      // 初期化（build）の完了を待機して、初期化結果による状態の上書きを防ぐ
+      await future;
+      await ref.read(authRepositoryProvider).login(email, password);
       state = const AsyncData(true);
     } catch (e, st) {
       state = AsyncError(e, st);

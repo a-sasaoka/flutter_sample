@@ -68,6 +68,9 @@
 
 公開設定（JSON）の `USE_FIREBASE_AUTH` の値に応じて、「Firebase認証用のガード（サインアップ画面等を含む）」と「Bearerトークン認証用のガード」を自動的に切り替える仕組みが組み込まれています。
 
+- **非Firebase環境での安全なリダイレクト**:
+  自前サーバー認証モード（`useFirebaseAuth: false`）では未提供である Firebase 専用画面（新規登録 `/login/signup`、パスワードリセット `/reset-password`、メール確認 `/email-verification`）への直接アクセスを検知した場合、未ログイン時は通常のログイン画面（`/login`）、ログイン済み時はホーム画面（`/`）へ安全に自動リダイレクトします。
+
 ---
 
 ### 📁 関連ファイル構成
