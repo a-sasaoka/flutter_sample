@@ -118,7 +118,8 @@ cd ..
    service firebase.storage {
      match /b/{bucket}/o {
        match /avatars/{fileName} {
-         allow read, write: if request.auth != null && fileName.matches('^' + request.auth.uid + '.*');
+         allow read, write: if request.auth != null
+           && fileName.matches('^' + request.auth.uid + '_[0-9]+\\.jpg$');
        }
      }
    }

@@ -663,7 +663,9 @@ void main() {
         final state = container.read(profileProvider);
         check(state.value).equals(updated);
         verifyNever(
-          () => mockStorageService.deleteAvatar(userId: any(named: 'userId')),
+          () => mockStorageService.deleteAvatarByUrl(
+            avatarUrl: any(named: 'avatarUrl'),
+          ),
         );
         verify(() => mockProfileRepo.updateProfile(updated)).called(1);
 

@@ -98,34 +98,4 @@ class StorageService {
       );
     }
   }
-
-  /// アバター画像を Firebase Storage から削除する
-  Future<void> deleteAvatar({
-    required String userId,
-  }) async {
-    try {
-      talker.debug('Deleting avatar image for user: $userId');
-      final ref = storage.ref().child('avatars').child('$userId.jpg');
-      await ref.delete();
-      talker.debug('Avatar deleted successfully.');
-    } on FirebaseException catch (e, st) {
-      // ファイルが存在しない場合 (object-not-found) は正常とみなす
-      if (e.code == 'object-not-found') {
-        talker.debug(
-          'Avatar file did not exist on Storage. Nothing to delete.',
-        );
-        return;
-      }
-      talker.handle(e, st, 'Firebase Storage delete error');
-      throw const AppException.server(
-        message: 'Failed to delete avatar image',
-      );
-    } on Object catch (e, st) {
-      talker.handle(e, st, 'Unexpected error during avatar deletion');
-      throw AppException.unknown(
-        message: 'Unexpected error during avatar deletion',
-        error: e,
-      );
-    }
-  }
 }
