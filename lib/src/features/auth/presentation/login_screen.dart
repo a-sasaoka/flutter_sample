@@ -27,7 +27,9 @@ class LoginScreen extends HookConsumerWidget {
 
     Future<void> onLogin() async {
       // 簡易バリデーション（空なら弾く）
-      if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+      final email = emailController.text.trim();
+      final password = passwordController.text;
+      if (email.isEmpty || password.isEmpty) {
         return;
       }
 
@@ -37,8 +39,8 @@ class LoginScreen extends HookConsumerWidget {
         await ref
             .read(authStateProvider.notifier)
             .loginWithCredentials(
-              email: emailController.text.trim(),
-              password: passwordController.text,
+              email: email,
+              password: password,
             );
 
         if (context.mounted) {

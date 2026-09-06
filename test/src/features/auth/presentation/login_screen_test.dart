@@ -131,6 +131,22 @@ void main() {
       verifyZeroInteractions(mockAnalyticsService);
     });
 
+    testWidgets('空白文字のみを入力してボタンを押した場合は何も起きないこと(バリデーション)', (
+      tester,
+    ) async {
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).at(0), '   ');
+      await tester.enterText(find.byType(TextField).at(1), 'password123');
+
+      await tester.tap(find.text('ログインする'));
+      await tester.pumpAndSettle();
+
+      check(loginCallCount).equals(0);
+      verifyZeroInteractions(mockAnalyticsService);
+    });
+
     testWidgets('ログイン処理中、ローディング表示になり入力がロックされること', (tester) async {
       // 遅延を発生させてローディング中を検証
       mockLoginAction = (a, b) async =>
