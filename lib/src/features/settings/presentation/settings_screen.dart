@@ -1,7 +1,9 @@
+import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
+import 'package:flutter_sample/src/core/config/theme_scheme_provider.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
@@ -41,6 +43,12 @@ class SettingsScreen extends ConsumerWidget {
           _SectionHeader(title: l10n.settingsThemeSection),
           const SizedBox(height: 8),
           const _ThemeCard(),
+          const SizedBox(height: 32),
+
+          // テーマカラー設定セクション
+          _SectionHeader(title: l10n.settingsColorSection),
+          const SizedBox(height: 8),
+          const _ThemeColorCard(),
           const SizedBox(height: 32),
 
           // 言語設定セクション
@@ -131,6 +139,61 @@ class _ThemeCard extends ConsumerWidget {
                 ref.read(themeModeProvider.notifier).toggleLightDark(),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// テーマカラー設定カード
+class _ThemeColorCard extends ConsumerWidget {
+  const _ThemeColorCard();
+
+  static const List<(FlexScheme, Color)> _supportedSchemes = [
+    (FlexScheme.indigoM3, Colors.indigo),
+    (FlexScheme.tealM3, Colors.teal),
+    (FlexScheme.orangeM3, Colors.orange),
+    (FlexScheme.pinkM3, Colors.pink),
+  ];
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentScheme =
+        ref.watch(themeSchemeProvider).value ??
+        ThemeSchemeNotifier.defaultScheme;
+    final l10n = context.l10n;
+
+    String schemeLabel(FlexScheme scheme) => switch (scheme) {
+      FlexScheme.indigoM3 => l10n.settingsColorIndigo,
+      FlexScheme.tealM3 => l10n.settingsColorTeal,
+      FlexScheme.orangeM3 => l10n.settingsColorOrange,
+      FlexScheme.pinkM3 => l10n.settingsColorPink,
+      _ => scheme.name, // coverage:ignore-line
+    };
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: _supportedSchemes.map((item) {
+            final (scheme, color) = item;
+            final isSelected = currentScheme == scheme;
+
+            return ChoiceChip(
+              avatar: CircleAvatar(backgroundColor: color, radius: 10),
+              label: Text(schemeLabel(scheme)),
+              selected: isSelected,
+              onSelected: (selected) async {
+                if (selected) {
+                  await ref
+                      .read(themeSchemeProvider.notifier)
+                      .setScheme(scheme);
+                }
+              },
+            );
+          }).toList(),
+        ),
       ),
     );
   }

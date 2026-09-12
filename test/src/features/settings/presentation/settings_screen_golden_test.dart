@@ -5,6 +5,7 @@ import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
+import 'package:flutter_sample/src/core/config/theme_scheme_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,6 +31,11 @@ void main() {
       when(() => mockL10n.settingsThemeLight).thenReturn('ライト');
       when(() => mockL10n.settingsThemeDark).thenReturn('ダーク');
       when(() => mockL10n.settingsThemeToggle).thenReturn('ダークモードにする');
+      when(() => mockL10n.settingsColorSection).thenReturn('テーマカラー設定');
+      when(() => mockL10n.settingsColorIndigo).thenReturn('インディゴ');
+      when(() => mockL10n.settingsColorTeal).thenReturn('ティール');
+      when(() => mockL10n.settingsColorOrange).thenReturn('オレンジ');
+      when(() => mockL10n.settingsColorPink).thenReturn('ピンク');
       when(() => mockL10n.settingsLocaleSection).thenReturn('言語設定');
       when(() => mockL10n.settingsLocaleSystem).thenReturn('システム依存');
       when(() => mockL10n.settingsLocaleJa).thenReturn('日本語');
@@ -56,8 +62,31 @@ void main() {
       // 💡 同一インスタンスが複数のProviderScopeで再利用されて
       // マウント例外 (Already mounted) が発生するのを防ぐため、
       // 呼び出しごとに新しく notifier をインスタンス化します。
+      final fakeThemeSchemeNotifier = FakeThemeSchemeNotifier();
       final fakeThemeNotifier = FakeThemeModeNotifier(themeMode);
       final fakeLocale = FakeLocaleNotifier(const Locale('ja'));
+
+      final baseTheme = isDark ? AppTheme.dark() : AppTheme.light();
+      final goldenTheme = baseTheme.copyWith(
+        textTheme: baseTheme.textTheme.apply(
+          fontFamily: 'NotoSansJP',
+        ),
+        primaryTextTheme: baseTheme.primaryTextTheme.apply(
+          fontFamily: 'NotoSansJP',
+        ),
+        chipTheme: baseTheme.chipTheme.copyWith(
+          labelStyle:
+              baseTheme.chipTheme.labelStyle?.copyWith(
+                fontFamily: 'NotoSansJP',
+              ) ??
+              const TextStyle(fontFamily: 'NotoSansJP'),
+          secondaryLabelStyle:
+              baseTheme.chipTheme.secondaryLabelStyle?.copyWith(
+                fontFamily: 'NotoSansJP',
+              ) ??
+              const TextStyle(fontFamily: 'NotoSansJP'),
+        ),
+      );
 
       return ProviderScope(
         overrides: [
@@ -75,22 +104,13 @@ void main() {
           ),
           isAuthenticatedProvider.overrideWithValue(true),
           authServiceProvider.overrideWithValue(mockAuthService),
+          themeSchemeProvider.overrideWith(() => fakeThemeSchemeNotifier),
           themeModeProvider.overrideWith(() => fakeThemeNotifier),
           localeProvider.overrideWith(() => fakeLocale),
         ],
         child: MaterialApp.router(
           routerConfig: router,
-          theme: isDark
-              ? AppTheme.dark().copyWith(
-                  textTheme: AppTheme.dark().textTheme.apply(
-                    fontFamily: 'NotoSansJP',
-                  ),
-                )
-              : AppTheme.light().copyWith(
-                  textTheme: AppTheme.light().textTheme.apply(
-                    fontFamily: 'NotoSansJP',
-                  ),
-                ),
+          theme: goldenTheme,
           themeMode: themeMode,
           localizationsDelegates: [
             MockLocalizationsDelegate(mockL10n),
@@ -113,7 +133,7 @@ void main() {
             name: 'Light Mode',
             child: SizedBox(
               width: 390,
-              height: 844,
+              height: 1000,
               child: buildSettingsForGolden(themeMode: ThemeMode.light),
             ),
           ),
@@ -121,7 +141,7 @@ void main() {
             name: 'Dark Mode',
             child: SizedBox(
               width: 390,
-              height: 844,
+              height: 1000,
               child: buildSettingsForGolden(themeMode: ThemeMode.dark),
             ),
           ),

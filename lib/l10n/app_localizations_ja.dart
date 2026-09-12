@@ -222,6 +222,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsThemeToggle => 'ダークモードに切り替える（簡易）';
 
   @override
+  String get settingsColorSection => '🎨 テーマカラー設定';
+
+  @override
+  String get settingsColorIndigo => 'インディゴ';
+
+  @override
+  String get settingsColorTeal => 'ティール';
+
+  @override
+  String get settingsColorOrange => 'オレンジ';
+
+  @override
+  String get settingsColorPink => 'ピンク';
+
+  @override
   String get settingsLocaleSection => '🌐 ロケール設定';
 
   @override

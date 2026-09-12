@@ -524,6 +524,36 @@ abstract class AppLocalizations {
   /// **'Toggle Dark Mode (simple)'**
   String get settingsThemeToggle;
 
+  /// No description provided for @settingsColorSection.
+  ///
+  /// In en, this message translates to:
+  /// **'🎨 Theme Color'**
+  String get settingsColorSection;
+
+  /// No description provided for @settingsColorIndigo.
+  ///
+  /// In en, this message translates to:
+  /// **'Indigo'**
+  String get settingsColorIndigo;
+
+  /// No description provided for @settingsColorTeal.
+  ///
+  /// In en, this message translates to:
+  /// **'Teal'**
+  String get settingsColorTeal;
+
+  /// No description provided for @settingsColorOrange.
+  ///
+  /// In en, this message translates to:
+  /// **'Orange'**
+  String get settingsColorOrange;
+
+  /// No description provided for @settingsColorPink.
+  ///
+  /// In en, this message translates to:
+  /// **'Pink'**
+  String get settingsColorPink;
+
   /// No description provided for @settingsLocaleSection.
   ///
   /// In en, this message translates to:

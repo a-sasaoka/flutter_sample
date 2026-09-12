@@ -11,7 +11,6 @@ import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/config/app_config_provider.dart';
 import 'package:flutter_sample/src/core/config/app_env.dart';
-import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/firebase_options.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
@@ -152,16 +151,24 @@ class MyApp extends ConsumerWidget {
     final configAsync = ref.watch(appConfigProvider);
 
     return switch (configAsync) {
-      AsyncData(value: (:final locale, :final theme, :final router)) =>
+      AsyncData(
+        value: (
+          :final locale,
+          :final themeMode,
+          :final lightTheme,
+          :final darkTheme,
+          :final router,
+        ),
+      ) =>
         MaterialApp.router(
           scaffoldMessengerKey: scaffoldMessengerKey,
           locale: locale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           title: '', // タイトルは _AppTitleWrapper 内で設定するため空文字
-          theme: AppTheme.light(),
-          darkTheme: AppTheme.dark(),
-          themeMode: theme,
+          theme: lightTheme,
+          darkTheme: darkTheme,
+          themeMode: themeMode,
           routerConfig: router,
           debugShowCheckedModeBanner: false,
           builder: (context, child) => AppLockWrapper(

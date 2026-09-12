@@ -1,9 +1,12 @@
 import 'package:checks/checks.dart';
+import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/config/app_config_provider.dart';
+import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
+import 'package:flutter_sample/src/core/config/theme_scheme_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -22,39 +25,49 @@ class MockLocaleNotifier extends LocaleNotifier {
   Future<Locale?> build() async => _locale;
 }
 
+class MockThemeSchemeNotifier extends ThemeSchemeNotifier {
+  MockThemeSchemeNotifier(this._scheme);
+  final FlexScheme _scheme;
+  @override
+  Future<FlexScheme> build() async => _scheme;
+}
+
 void main() {
   group('appConfigProvider テスト', () {
-    test('ルーター、テーマ、言語設定が正しく取得され、Recordとして合体して返されること', () async {
+    test('ルーター、テーマ、カラースキーム、言語設定が正しく取得され、完全なテーマと共に返されること', () async {
       // Arrange (準備)
-      // 1. 各プロバイダーが返すダミー値を用意します
-      final dummyRouter = GoRouter(routes: []); // 空のルーター
-      const dummyTheme = ThemeMode.dark; // ダークモード
-      const dummyLocale = Locale('ja', 'JP'); // 日本語
+      final dummyRouter = GoRouter(routes: []);
+      const dummyTheme = ThemeMode.dark;
+      const dummyLocale = Locale('ja', 'JP');
+      const dummyScheme = FlexScheme.tealM3;
 
-      // 2. コンテナを作成し、3つの依存プロバイダーをすべてダミー値に差し替えます
       final container = ProviderContainer(
         overrides: [
-          // routerProvider が関数の場合：
           routerProvider.overrideWith((ref) => dummyRouter),
-
-          // Notifier クラスの場合は overrideWith(() => ...) の形式で指定
           themeModeProvider.overrideWith(
             () => MockThemeModeNotifier(dummyTheme),
           ),
           localeProvider.overrideWith(() => MockLocaleNotifier(dummyLocale)),
+          themeSchemeProvider.overrideWith(
+            () => MockThemeSchemeNotifier(dummyScheme),
+          ),
         ],
       );
       addTearDown(container.dispose);
 
       // Act (実行)
-      // appConfig は非同期（Future）なので、`.future` を付けて await します
       final config = await container.read(appConfigProvider.future);
 
       // Assert (検証)
-      // Record の各プロパティ（名前付きフィールド）がダミー値と完全に一致するか確認します
       check(config.router).equals(dummyRouter);
-      check(config.theme).equals(dummyTheme);
+      check(config.themeMode).equals(dummyTheme);
       check(config.locale).equals(dummyLocale);
+      check(
+        config.lightTheme.colorScheme.primary,
+      ).equals(AppTheme.light(dummyScheme).colorScheme.primary);
+      check(
+        config.darkTheme.colorScheme.primary,
+      ).equals(AppTheme.dark(dummyScheme).colorScheme.primary);
     });
   });
 }

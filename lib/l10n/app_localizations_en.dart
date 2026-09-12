@@ -233,6 +233,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsThemeToggle => 'Toggle Dark Mode (simple)';
 
   @override
+  String get settingsColorSection => '🎨 Theme Color';
+
+  @override
+  String get settingsColorIndigo => 'Indigo';
+
+  @override
+  String get settingsColorTeal => 'Teal';
+
+  @override
+  String get settingsColorOrange => 'Orange';
+
+  @override
+  String get settingsColorPink => 'Pink';
+
+  @override
   String get settingsLocaleSection => '🌐 Locale Settings';
 
   @override

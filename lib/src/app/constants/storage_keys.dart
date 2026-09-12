@@ -33,4 +33,7 @@ abstract final class SharedPrefKeys {
 
   /// オンボーディング表示完了フラグ
   static const onboardingCompleted = 'onboarding_completed';
+
+  /// テーマカラー設定 (FlexSchemeのname)
+  static const themeScheme = 'theme_scheme';
 }

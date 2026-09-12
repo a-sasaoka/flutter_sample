@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:checks/checks.dart';
+import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
+import 'package:flutter_sample/src/core/config/theme_scheme_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,6 +22,28 @@ import 'package:mocktail/mocktail.dart';
 class MockAuthService extends Mock implements AuthService {}
 
 class MockAppLocalizations extends Mock implements AppLocalizations {}
+
+class FakeThemeSchemeNotifier extends ThemeSchemeNotifier {
+  FakeThemeSchemeNotifier([
+    this._initialScheme = ThemeSchemeNotifier.defaultScheme,
+  ]);
+  final FlexScheme _initialScheme;
+
+  FlexScheme? calledSetScheme;
+
+  @override
+  Future<FlexScheme> build() async => _initialScheme;
+
+  @override
+  Future<void> setScheme(FlexScheme scheme) async {
+    calledSetScheme = scheme;
+  }
+}
+
+class LoadingThemeSchemeNotifier extends ThemeSchemeNotifier {
+  @override
+  Future<FlexScheme> build() => Completer<FlexScheme>().future;
+}
 
 class FakeThemeModeNotifier extends ThemeModeNotifier {
   FakeThemeModeNotifier([this._initialMode = ThemeMode.system]);
@@ -83,6 +107,7 @@ class MockLocalizationsDelegate
 void main() {
   late MockAuthService mockAuthService;
   late MockAppLocalizations mockL10n;
+  late FakeThemeSchemeNotifier fakeThemeSchemeNotifier;
   late FakeThemeModeNotifier fakeThemeModeNotifier;
   late FakeLocaleNotifier fakeLocaleNotifier;
 
@@ -90,6 +115,7 @@ void main() {
     mockAuthService = MockAuthService();
     mockL10n = MockAppLocalizations();
 
+    fakeThemeSchemeNotifier = FakeThemeSchemeNotifier();
     fakeThemeModeNotifier = FakeThemeModeNotifier();
     fakeLocaleNotifier = FakeLocaleNotifier();
 
@@ -101,6 +127,11 @@ void main() {
     when(() => mockL10n.settingsThemeLight).thenReturn('ライト');
     when(() => mockL10n.settingsThemeDark).thenReturn('ダーク');
     when(() => mockL10n.settingsThemeToggle).thenReturn('ダークモードにする');
+    when(() => mockL10n.settingsColorSection).thenReturn('テーマカラー設定');
+    when(() => mockL10n.settingsColorIndigo).thenReturn('インディゴ');
+    when(() => mockL10n.settingsColorTeal).thenReturn('ティール');
+    when(() => mockL10n.settingsColorOrange).thenReturn('オレンジ');
+    when(() => mockL10n.settingsColorPink).thenReturn('ピンク');
     when(() => mockL10n.settingsLocaleSection).thenReturn('言語設定');
     when(() => mockL10n.settingsLocaleSystem).thenReturn('システム依存');
     when(() => mockL10n.settingsLocaleJa).thenReturn('日本語');
@@ -121,6 +152,7 @@ void main() {
   Widget createTestWidget({
     bool useAuth = true,
     bool isAuthed = true,
+    ThemeSchemeNotifier Function()? themeSchemeOverride,
     ThemeModeNotifier Function()? themeModeOverride,
     LocaleNotifier Function()? localeOverride,
   }) {
@@ -153,6 +185,9 @@ void main() {
         ),
         isAuthenticatedProvider.overrideWithValue(isAuthed),
         authServiceProvider.overrideWithValue(mockAuthService),
+        themeSchemeProvider.overrideWith(
+          themeSchemeOverride ?? () => fakeThemeSchemeNotifier,
+        ),
         themeModeProvider.overrideWith(
           themeModeOverride ?? () => fakeThemeModeNotifier,
         ),
@@ -173,6 +208,15 @@ void main() {
   }
 
   group('SettingsScreen', () {
+    void setMobileView(WidgetTester tester) {
+      tester.view.physicalSize = const Size(1080, 1920);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+    }
+
     testWidgets('テーマ設定が読み込み中の場合でも、デフォルト値（システム）で安全にフォールバック表示されること', (
       tester,
     ) async {
@@ -184,9 +228,21 @@ void main() {
       check(find.text('システム')).findsOne();
     });
 
+    testWidgets('テーマカラー設定が読み込み中の場合でも、デフォルト値（インディゴ）で安全にフォールバック表示されること', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestWidget(themeSchemeOverride: LoadingThemeSchemeNotifier.new),
+      );
+      await tester.pump();
+
+      check(find.text('インディゴ')).findsOne();
+    });
+
     testWidgets('言語設定が読み込み中の場合でも、デフォルト値（システム依存）で安全にフォールバック表示されること', (
       tester,
     ) async {
+      setMobileView(tester);
       await tester.pumpWidget(
         createTestWidget(localeOverride: LoadingLocaleNotifier.new),
       );
@@ -197,15 +253,39 @@ void main() {
 
     group('データ取得完了後 (Data状態)', () {
       testWidgets('UIが正しくレンダリングされること', (tester) async {
+        setMobileView(tester);
         await tester.pumpWidget(createTestWidget());
         await tester.pumpAndSettle();
 
         check(find.text('設定')).findsOne();
         check(find.text('テーマ設定')).findsOne();
         check(find.text('ライト')).findsOne();
+        check(find.text('テーマカラー設定')).findsOne();
+        check(find.text('インディゴ')).findsOne();
+        check(find.text('ティール')).findsOne();
+        check(find.text('オレンジ')).findsOne();
+        check(find.text('ピンク')).findsOne();
         check(find.text('言語設定')).findsOne();
         check(find.text('プレビュー: こんにちは！')).findsOne();
       });
+
+      testWidgets(
+        'テーマカラーのChoiceChipを変更した時、ThemeSchemeNotifier.setSchemeが呼ばれること',
+        (
+          tester,
+        ) async {
+          await tester.pumpWidget(createTestWidget());
+          await tester.pumpAndSettle();
+
+          // ティールを選択
+          await tester.tap(find.text('ティール'));
+          await tester.pumpAndSettle();
+
+          check(
+            fakeThemeSchemeNotifier.calledSetScheme,
+          ).equals(FlexScheme.tealM3);
+        },
+      );
 
       testWidgets('テーマのSegmentedButtonを変更した時、ThemeModeNotifierのsetが呼ばれること', (
         tester,
@@ -233,11 +313,19 @@ void main() {
       testWidgets('言語のSegmentedButtonを変更した時、LocaleNotifier.setLocaleが呼ばれること', (
         tester,
       ) async {
+        setMobileView(tester);
         await tester.pumpWidget(createTestWidget());
         await tester.pumpAndSettle();
 
+        final englishButton = find.text('英語');
+        await tester.dragUntilVisible(
+          englishButton,
+          find.byType(ListView),
+          const Offset(0, -300),
+        );
+
         // 英語を選択
-        await tester.tap(find.text('英語'));
+        await tester.tap(englishButton);
         await tester.pumpAndSettle();
 
         check(fakeLocaleNotifier.calledSetLocale).equals('en');
@@ -256,13 +344,7 @@ void main() {
         testWidgets('isAuthed == true でログアウト成功時、signOut処理が呼ばれること', (
           tester,
         ) async {
-          // ビューポートサイズを固定
-          tester.view.physicalSize = const Size(1080, 1920);
-          tester.view.devicePixelRatio = 1.0;
-          addTearDown(() {
-            tester.view.resetPhysicalSize();
-            tester.view.resetDevicePixelRatio();
-          });
+          setMobileView(tester);
 
           await tester.pumpWidget(createTestWidget());
           await tester.pumpAndSettle();
@@ -283,12 +365,7 @@ void main() {
         testWidgets(
           'useAuth: false（自前認証）でもログアウトボタンが表示され signOut が呼ばれること',
           (tester) async {
-            tester.view.physicalSize = const Size(1080, 1920);
-            tester.view.devicePixelRatio = 1.0;
-            addTearDown(() {
-              tester.view.resetPhysicalSize();
-              tester.view.resetDevicePixelRatio();
-            });
+            setMobileView(tester);
 
             await tester.pumpWidget(
               createTestWidget(useAuth: false),
@@ -310,12 +387,7 @@ void main() {
         );
 
         testWidgets('ログアウト時に例外が発生した場合、SnackBarでエラーが表示されること', (tester) async {
-          tester.view.physicalSize = const Size(1080, 1920);
-          tester.view.devicePixelRatio = 1.0;
-          addTearDown(() {
-            tester.view.resetPhysicalSize();
-            tester.view.resetDevicePixelRatio();
-          });
+          setMobileView(tester);
 
           final exception = Exception('Logout failed!');
           when(() => mockAuthService.signOut()).thenThrow(exception);

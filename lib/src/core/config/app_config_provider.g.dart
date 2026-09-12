@@ -18,13 +18,51 @@ final appConfigProvider = AppConfigProvider._();
 final class AppConfigProvider
     extends
         $FunctionalProvider<
-          AsyncValue<({Locale? locale, GoRouter router, ThemeMode theme})>,
-          ({Locale? locale, GoRouter router, ThemeMode theme}),
-          FutureOr<({Locale? locale, GoRouter router, ThemeMode theme})>
+          AsyncValue<
+            ({
+              ThemeData darkTheme,
+              ThemeData lightTheme,
+              Locale? locale,
+              GoRouter router,
+              ThemeMode themeMode,
+            })
+          >,
+          ({
+            ThemeData darkTheme,
+            ThemeData lightTheme,
+            Locale? locale,
+            GoRouter router,
+            ThemeMode themeMode,
+          }),
+          FutureOr<
+            ({
+              ThemeData darkTheme,
+              ThemeData lightTheme,
+              Locale? locale,
+              GoRouter router,
+              ThemeMode themeMode,
+            })
+          >
         >
     with
-        $FutureModifier<({Locale? locale, GoRouter router, ThemeMode theme})>,
-        $FutureProvider<({Locale? locale, GoRouter router, ThemeMode theme})> {
+        $FutureModifier<
+          ({
+            ThemeData darkTheme,
+            ThemeData lightTheme,
+            Locale? locale,
+            GoRouter router,
+            ThemeMode themeMode,
+          })
+        >,
+        $FutureProvider<
+          ({
+            ThemeData darkTheme,
+            ThemeData lightTheme,
+            Locale? locale,
+            GoRouter router,
+            ThemeMode themeMode,
+          })
+        > {
   /// アプリ全体の設定をまとめて取得するプロバイダ
   AppConfigProvider._()
     : super(
@@ -42,15 +80,30 @@ final class AppConfigProvider
 
   @$internal
   @override
-  $FutureProviderElement<({Locale? locale, GoRouter router, ThemeMode theme})>
+  $FutureProviderElement<
+    ({
+      ThemeData darkTheme,
+      ThemeData lightTheme,
+      Locale? locale,
+      GoRouter router,
+      ThemeMode themeMode,
+    })
+  >
   $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
 
   @override
-  FutureOr<({Locale? locale, GoRouter router, ThemeMode theme})> create(
-    Ref ref,
-  ) {
+  FutureOr<
+    ({
+      ThemeData darkTheme,
+      ThemeData lightTheme,
+      Locale? locale,
+      GoRouter router,
+      ThemeMode themeMode,
+    })
+  >
+  create(Ref ref) {
     return appConfig(ref);
   }
 }
 
-String _$appConfigHash() => r'c273de9ab09689ad485799cc7fb1f500cd0518c0';
+String _$appConfigHash() => r'0f3a3f98a2c4480b964563844e60e7a96f9f9829';

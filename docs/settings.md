@@ -16,14 +16,22 @@
 - **ダークモードトグル**: 簡易的にライト／ダークを反転させるスイッチを備えています。
 - **永続化**: 変更されたテーマ設定は `SharedPreferencesAsync` を通じて即座に保存され、次回のアプリ起動時に自動で適用されます。
 
-### 2. 言語設定 (Locale Settings)
+### 2. テーマカラー設定 (Theme Color Settings)
+
+アプリ全体のアクセントとなる基本カラーを切り替えることができます。
+
+- **ChoiceChip**: 4 つのカラー（インディゴ、ティール、オレンジ、ピンク）から直感的に選択できます。
+- **FlexColorScheme との連動**: 選択したカラースキーム（`FlexScheme`）に合わせて、アプリ全体のUIカラーが一括で切り替わります。
+- **永続化**: 変更されたカラー設定は `SharedPreferencesAsync` を通じて即座に保存され、次回のアプリ起動時に自動で適用されます。
+
+### 3. 言語設定 (Locale Settings)
 
 アプリの表示言語を切り替えることができます。
 
 - **対応言語**: 日本語、英語、およびシステム標準の設定を選択可能です。
 - **プレビュー**: 変更内容が即座に画面上の「こんにちは」などのテキストに反映され、確認が可能です。
 
-### 3. アカウント操作
+### 4. アカウント操作
 
 利用している認証方式（Firebase Auth または 自前サーバー／トークン認証）を問わず、安全にログアウトを行うことができます。
 
@@ -36,8 +44,9 @@
 
 ```plaintext
 lib/src/core/config/
- ├── theme_mode_provider.dart  # テーマ状態の管理
- └── locale_provider.dart      # 言語状態の管理
+ ├── theme_mode_provider.dart   # テーマモード（明暗）状態の管理
+ ├── theme_scheme_provider.dart # テーマカラー（FlexScheme）状態の管理
+ └── locale_provider.dart       # 言語状態の管理
 
 lib/src/features/settings/
  └── presentation/
