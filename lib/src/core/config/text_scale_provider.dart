@@ -43,8 +43,8 @@ class TextScaleNotifier extends _$TextScaleNotifier {
 
   /// 文字サイズを変更してローカルストレージに永続化
   Future<void> setScale(AppTextScale scale) async {
-    state = AsyncData(scale);
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString(SharedPrefKeys.textScale, scale.name);
+    state = AsyncData(scale);
   }
 }

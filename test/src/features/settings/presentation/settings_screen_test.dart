@@ -257,7 +257,10 @@ void main() {
       );
       await tester.pump();
 
-      check(find.text('システム')).findsOne();
+      final segmentedButton = tester.widget<SegmentedButton<ThemeMode>>(
+        find.byType(SegmentedButton<ThemeMode>),
+      );
+      check(segmentedButton.selected.single).equals(ThemeMode.system);
     });
 
     testWidgets('テーマカラー設定が読み込み中の場合でも、デフォルト値（インディゴ）で安全にフォールバック表示されること', (
@@ -268,7 +271,10 @@ void main() {
       );
       await tester.pump();
 
-      check(find.text('インディゴ')).findsOne();
+      final indigoChip = tester.widget<ChoiceChip>(
+        find.widgetWithText(ChoiceChip, 'インディゴ'),
+      );
+      check(indigoChip.selected).isTrue();
     });
 
     testWidgets('文字サイズ設定が読み込み中の場合でも、デフォルト値（標準）で安全にフォールバック表示されること', (
@@ -280,7 +286,10 @@ void main() {
       );
       await tester.pump();
 
-      check(find.text('標準')).findsOne();
+      final segmentedButton = tester.widget<SegmentedButton<AppTextScale>>(
+        find.byType(SegmentedButton<AppTextScale>),
+      );
+      check(segmentedButton.selected.single).equals(AppTextScale.normal);
     });
 
     testWidgets('言語設定が読み込み中の場合でも、デフォルト値（システム依存）で安全にフォールバック表示されること', (
@@ -292,7 +301,10 @@ void main() {
       );
       await tester.pump();
 
-      check(find.text('システム依存')).findsOne();
+      final segmentedButton = tester.widget<SegmentedButton<String?>>(
+        find.byType(SegmentedButton<String?>),
+      );
+      check(segmentedButton.selected.single).isNull();
     });
 
     group('データ取得完了後 (Data状態)', () {

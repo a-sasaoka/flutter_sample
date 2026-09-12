@@ -29,8 +29,8 @@ class ThemeSchemeNotifier extends _$ThemeSchemeNotifier {
 
   /// カラースキームを変更して保存
   Future<void> setScheme(FlexScheme scheme) async {
-    state = AsyncData(scheme); // 即時反映
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString(SharedPrefKeys.themeScheme, scheme.name);
+    state = AsyncData(scheme);
   }
 }

@@ -37,7 +37,7 @@ final class ThemeSchemeNotifierProvider
 }
 
 String _$themeSchemeNotifierHash() =>
-    r'1ef235d8e4a15a36d75d2142eae284b9994344f6';
+    r'a5022b3f263798d1656dee90468101778ef02a62';
 
 /// 🎨 テーマカラー（カラースキーム）の状態を管理・保存するプロバイダー
 
