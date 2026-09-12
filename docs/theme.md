@@ -7,8 +7,9 @@ Material 3 に完全対応し、ライト／ダーク／システムモードの
 
 ```plaintext
 lib/src/core/config/
- ├── app_theme.dart           # テーマの具体的な定義（色・形状・スタイル）
- └── theme_mode_provider.dart # ユーザーが選択したモード（Light/Dark/System）の状態管理
+ ├── app_theme.dart             # テーマの具体的な定義（色・形状・スタイル）
+ ├── theme_mode_provider.dart   # ユーザーが選択したモード（Light/Dark/System）の状態管理
+ └── theme_scheme_provider.dart # ユーザーが選択したテーマカラー（FlexScheme）の状態管理
 ```
 
 ---
@@ -17,7 +18,7 @@ lib/src/core/config/
 
 - **Material 3 準拠**: 最新の Android/iOS のデザインガイドラインに自動で適合します。
 - **高度なカスタマイズ**: `FlexThemeData` を通じて、ボタンの角丸、カードの影、色のシード値を一括で制御できます。
-- **シームレスな切り替え**: Riverpod で `ThemeMode` を管理しているため、設定変更が即座にアプリ全体に反映されます。
+- **シームレスな切り替え**: Riverpod で `ThemeMode` および `FlexScheme`（テーマカラー）を管理しているため、設定変更が即座にアプリ全体に反映されます。
 
 ---
 
@@ -39,10 +40,10 @@ lib/src/core/config/
 
 ## 💾 永続化の仕組み（SharedPreferencesAsync）
 
-ユーザーが変更したテーマ設定（ライトモード固定など）は、`SharedPreferencesAsync` を通じてデバイスに保存されます。
+ユーザーが変更したテーマ設定（ライトモード固定や選択したテーマカラー）は、`SharedPreferencesAsync` を通じてデバイスに保存されます。
 
-1. **保存**: `ThemeModeProvider` 内で設定が変更されるたびに、非同期でストレージに書き込みます。
-2. **復元**: アプリ起動時、`themeModeProvider` がストレージから値を読み取り、前回の設定を自動的に適用します。
+1. **保存**: `themeModeProvider` や `themeSchemeProvider` 内で設定が変更されるたびに、非同期でストレージに書き込みます。
+2. **復元**: アプリ起動時、各プロバイダーがストレージから値を読み取り、前回の設定を自動的に適用します。
 
 `SharedPreferencesAsync` を利用しているため、メインスレッド（UI）をブロックすることなく、高速な起動と永続化を両立しています。
 
@@ -50,16 +51,16 @@ lib/src/core/config/
 
 ## 🏗 アプリへの適用
 
-[main.dart](../lib/main.dart) の `MyApp` 内で `appConfigProvider` を監視（`watch`）し、取得したテーマ設定（`theme`）を `MaterialApp.router` の `themeMode` に渡しつつ、`theme` と `darkTheme` プロパティに `AppTheme.light()` / `AppTheme.dark()` を注入しています。  
+[main.dart](../lib/main.dart) の `MyApp` 内で `appConfigProvider` を監視（`watch`）し、取得したテーマ設定（`theme`）を `MaterialApp.router` の `themeMode` に渡しつつ、`theme` と `darkTheme` プロパティに `AppTheme.light(scheme: config.themeScheme)` / `AppTheme.dark(scheme: config.themeScheme)` を注入しています。  
 これにより、ユーザーの設定変更に合わせてアプリ全体のテーマがリアクティブに切り替わります。
 
 ---
 
 ## 🧪 テスト手法
 
-テーマ設定が期待通りに動作するかを検証するために、以下のテストを実施しています。具体的なテスト実装は [theme_mode_provider_test.dart](../test/src/core/config/theme_mode_provider_test.dart) を参照してください。
+テーマ設定が期待通りに動作するかを検証するために、以下のテストを実施しています。具体的なテスト実装は [theme_mode_provider_test.dart](../test/src/core/config/theme_mode_provider_test.dart) や [theme_scheme_provider_test.dart](../test/src/core/config/theme_scheme_provider_test.dart) を参照してください。
 
-- **Providerテスト**: `ThemeMode` を変更した際に、`SharedPreferencesAsync` へ正しく保存されるか、状態が更新されるかを検証します。
+- **Providerテスト**: `ThemeMode` や `FlexScheme` を変更した際に、`SharedPreferencesAsync` へ正しく保存されるか、状態が更新されるかを検証します。
 - **Widgetテスト**: テーマの変更によって、特定のWidgetの色やスタイルが意図した通りに変化するかを確認します。
 
 ---

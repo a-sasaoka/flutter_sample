@@ -69,7 +69,8 @@ lib/src/features/settings/
 
 - **ColorScheme の活用**: `SegmentedButton` や `Card` の配色、ログアウトボタンの警告色など、すべて `Theme.of(context).colorScheme` に連動しており、テーマ変更時に一貫したデザインを維持します。
 - **堅牢な非同期処理**: ログアウト処理等の非同期操作において `context.mounted` チェックを徹底し、画面遷移後の予期せぬクラッシュを防止しています。
-- **統合設定プロバイダー**: `appConfigProvider` により、テーマと言語の状態をまとめて監視し、UI のリビルドを効率化しています。
+- **パーツごとの自立化（疎結合設計）**: 設定画面（`SettingsScreen`）は各設定カードごとに必要なプロバイダー（`themeModeProvider`, `themeSchemeProvider`, `textScaleProvider`, `localeProvider`）を直接監視しています。これにより、1つの設定（例: 文字サイズ）を変えたときに画面全体が無駄に再描画（リビルド）されるのを防いでいます。
+- **ルートでの一括適用 (`appConfigProvider`)**: 一方でアプリの最上位（`main.dart`）では、`appConfigProvider` を介してこれら個別の設定をまとめて受け取り、`MaterialApp.router` のテーマ、ロケール、文字サイズ倍率（`textScaler`）へ一括で反映しています。
 
 ---
 
