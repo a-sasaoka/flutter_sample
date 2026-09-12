@@ -237,6 +237,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsColorPink => 'ピンク';
 
   @override
+  String get settingsTextScaleSection => '🔤 文字サイズ設定';
+
+  @override
+  String get settingsTextScaleSmall => '小';
+
+  @override
+  String get settingsTextScaleNormal => '標準';
+
+  @override
+  String get settingsTextScaleLarge => '大';
+
+  @override
+  String get settingsTextScalePreview => '文字サイズのプレビュー表示です';
+
+  @override
   String get settingsLocaleSection => '🌐 ロケール設定';
 
   @override

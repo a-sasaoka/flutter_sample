@@ -248,6 +248,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsColorPink => 'Pink';
 
   @override
+  String get settingsTextScaleSection => '🔤 Text Scale Settings';
+
+  @override
+  String get settingsTextScaleSmall => 'Small';
+
+  @override
+  String get settingsTextScaleNormal => 'Normal';
+
+  @override
+  String get settingsTextScaleLarge => 'Large';
+
+  @override
+  String get settingsTextScalePreview => 'Preview text for font scaling';
+
+  @override
   String get settingsLocaleSection => '🌐 Locale Settings';
 
   @override

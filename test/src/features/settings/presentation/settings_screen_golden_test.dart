@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
+import 'package:flutter_sample/src/core/config/text_scale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_scheme_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
@@ -36,6 +37,13 @@ void main() {
       when(() => mockL10n.settingsColorTeal).thenReturn('ティール');
       when(() => mockL10n.settingsColorOrange).thenReturn('オレンジ');
       when(() => mockL10n.settingsColorPink).thenReturn('ピンク');
+      when(() => mockL10n.settingsTextScaleSection).thenReturn('文字サイズ設定');
+      when(() => mockL10n.settingsTextScaleSmall).thenReturn('小');
+      when(() => mockL10n.settingsTextScaleNormal).thenReturn('標準');
+      when(() => mockL10n.settingsTextScaleLarge).thenReturn('大');
+      when(
+        () => mockL10n.settingsTextScalePreview,
+      ).thenReturn('文字サイズのプレビュー表示です');
       when(() => mockL10n.settingsLocaleSection).thenReturn('言語設定');
       when(() => mockL10n.settingsLocaleSystem).thenReturn('システム依存');
       when(() => mockL10n.settingsLocaleJa).thenReturn('日本語');
@@ -63,6 +71,7 @@ void main() {
       // マウント例外 (Already mounted) が発生するのを防ぐため、
       // 呼び出しごとに新しく notifier をインスタンス化します。
       final fakeThemeSchemeNotifier = FakeThemeSchemeNotifier();
+      final fakeTextScaleNotifier = FakeTextScaleNotifier();
       final fakeThemeNotifier = FakeThemeModeNotifier(themeMode);
       final fakeLocale = FakeLocaleNotifier(const Locale('ja'));
 
@@ -105,6 +114,7 @@ void main() {
           isAuthenticatedProvider.overrideWithValue(true),
           authServiceProvider.overrideWithValue(mockAuthService),
           themeSchemeProvider.overrideWith(() => fakeThemeSchemeNotifier),
+          textScaleProvider.overrideWith(() => fakeTextScaleNotifier),
           themeModeProvider.overrideWith(() => fakeThemeNotifier),
           localeProvider.overrideWith(() => fakeLocale),
         ],
@@ -133,7 +143,7 @@ void main() {
             name: 'Light Mode',
             child: SizedBox(
               width: 390,
-              height: 1000,
+              height: 1180,
               child: buildSettingsForGolden(themeMode: ThemeMode.light),
             ),
           ),
@@ -141,7 +151,7 @@ void main() {
             name: 'Dark Mode',
             child: SizedBox(
               width: 390,
-              height: 1000,
+              height: 1180,
               child: buildSettingsForGolden(themeMode: ThemeMode.dark),
             ),
           ),

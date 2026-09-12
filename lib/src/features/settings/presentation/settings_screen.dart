@@ -2,6 +2,7 @@ import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
+import 'package:flutter_sample/src/core/config/text_scale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_scheme_provider.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
@@ -49,6 +50,12 @@ class SettingsScreen extends ConsumerWidget {
           _SectionHeader(title: l10n.settingsColorSection),
           const SizedBox(height: 8),
           const _ThemeColorCard(),
+          const SizedBox(height: 32),
+
+          // 文字サイズ設定セクション
+          _SectionHeader(title: l10n.settingsTextScaleSection),
+          const SizedBox(height: 8),
+          const _TextScaleCard(),
           const SizedBox(height: 32),
 
           // 言語設定セクション
@@ -193,6 +200,59 @@ class _ThemeColorCard extends ConsumerWidget {
               },
             );
           }).toList(),
+        ),
+      ),
+    );
+  }
+}
+
+/// 文字サイズ設定カード
+class _TextScaleCard extends ConsumerWidget {
+  const _TextScaleCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final textScaleAsync = ref.watch(textScaleProvider);
+    final currentScale = textScaleAsync.value ?? TextScaleNotifier.defaultScale;
+    final l10n = context.l10n;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SegmentedButton<AppTextScale>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(
+                  value: AppTextScale.small,
+                  label: Text(l10n.settingsTextScaleSmall),
+                ),
+                ButtonSegment(
+                  value: AppTextScale.normal,
+                  label: Text(l10n.settingsTextScaleNormal),
+                ),
+                ButtonSegment(
+                  value: AppTextScale.large,
+                  label: Text(l10n.settingsTextScaleLarge),
+                ),
+              ],
+              selected: {currentScale},
+              onSelectionChanged: (selection) async {
+                await ref
+                    .read(textScaleProvider.notifier)
+                    .setScale(selection.first);
+              },
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.settingsTextScalePreview,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+              textScaler: TextScaler.linear(currentScale.scale),
+            ),
+          ],
         ),
       ),
     );

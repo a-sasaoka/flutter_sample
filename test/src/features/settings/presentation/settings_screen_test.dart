@@ -8,6 +8,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
+import 'package:flutter_sample/src/core/config/text_scale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_scheme_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
@@ -43,6 +44,26 @@ class FakeThemeSchemeNotifier extends ThemeSchemeNotifier {
 class LoadingThemeSchemeNotifier extends ThemeSchemeNotifier {
   @override
   Future<FlexScheme> build() => Completer<FlexScheme>().future;
+}
+
+class FakeTextScaleNotifier extends TextScaleNotifier {
+  FakeTextScaleNotifier([this._initialScale = TextScaleNotifier.defaultScale]);
+  final AppTextScale _initialScale;
+
+  AppTextScale? calledSetScale;
+
+  @override
+  Future<AppTextScale> build() async => _initialScale;
+
+  @override
+  Future<void> setScale(AppTextScale scale) async {
+    calledSetScale = scale;
+  }
+}
+
+class LoadingTextScaleNotifier extends TextScaleNotifier {
+  @override
+  Future<AppTextScale> build() => Completer<AppTextScale>().future;
 }
 
 class FakeThemeModeNotifier extends ThemeModeNotifier {
@@ -108,6 +129,7 @@ void main() {
   late MockAuthService mockAuthService;
   late MockAppLocalizations mockL10n;
   late FakeThemeSchemeNotifier fakeThemeSchemeNotifier;
+  late FakeTextScaleNotifier fakeTextScaleNotifier;
   late FakeThemeModeNotifier fakeThemeModeNotifier;
   late FakeLocaleNotifier fakeLocaleNotifier;
 
@@ -116,6 +138,7 @@ void main() {
     mockL10n = MockAppLocalizations();
 
     fakeThemeSchemeNotifier = FakeThemeSchemeNotifier();
+    fakeTextScaleNotifier = FakeTextScaleNotifier();
     fakeThemeModeNotifier = FakeThemeModeNotifier();
     fakeLocaleNotifier = FakeLocaleNotifier();
 
@@ -132,6 +155,11 @@ void main() {
     when(() => mockL10n.settingsColorTeal).thenReturn('ティール');
     when(() => mockL10n.settingsColorOrange).thenReturn('オレンジ');
     when(() => mockL10n.settingsColorPink).thenReturn('ピンク');
+    when(() => mockL10n.settingsTextScaleSection).thenReturn('文字サイズ設定');
+    when(() => mockL10n.settingsTextScaleSmall).thenReturn('小');
+    when(() => mockL10n.settingsTextScaleNormal).thenReturn('標準');
+    when(() => mockL10n.settingsTextScaleLarge).thenReturn('大');
+    when(() => mockL10n.settingsTextScalePreview).thenReturn('文字サイズのプレビュー表示です');
     when(() => mockL10n.settingsLocaleSection).thenReturn('言語設定');
     when(() => mockL10n.settingsLocaleSystem).thenReturn('システム依存');
     when(() => mockL10n.settingsLocaleJa).thenReturn('日本語');
@@ -153,6 +181,7 @@ void main() {
     bool useAuth = true,
     bool isAuthed = true,
     ThemeSchemeNotifier Function()? themeSchemeOverride,
+    TextScaleNotifier Function()? textScaleOverride,
     ThemeModeNotifier Function()? themeModeOverride,
     LocaleNotifier Function()? localeOverride,
   }) {
@@ -187,6 +216,9 @@ void main() {
         authServiceProvider.overrideWithValue(mockAuthService),
         themeSchemeProvider.overrideWith(
           themeSchemeOverride ?? () => fakeThemeSchemeNotifier,
+        ),
+        textScaleProvider.overrideWith(
+          textScaleOverride ?? () => fakeTextScaleNotifier,
         ),
         themeModeProvider.overrideWith(
           themeModeOverride ?? () => fakeThemeModeNotifier,
@@ -239,6 +271,18 @@ void main() {
       check(find.text('インディゴ')).findsOne();
     });
 
+    testWidgets('文字サイズ設定が読み込み中の場合でも、デフォルト値（標準）で安全にフォールバック表示されること', (
+      tester,
+    ) async {
+      setMobileView(tester);
+      await tester.pumpWidget(
+        createTestWidget(textScaleOverride: LoadingTextScaleNotifier.new),
+      );
+      await tester.pump();
+
+      check(find.text('標準')).findsOne();
+    });
+
     testWidgets('言語設定が読み込み中の場合でも、デフォルト値（システム依存）で安全にフォールバック表示されること', (
       tester,
     ) async {
@@ -265,9 +309,38 @@ void main() {
         check(find.text('ティール')).findsOne();
         check(find.text('オレンジ')).findsOne();
         check(find.text('ピンク')).findsOne();
+        check(find.text('文字サイズ設定')).findsOne();
+        check(find.text('小')).findsOne();
+        check(find.text('標準')).findsOne();
+        check(find.text('大')).findsOne();
+        check(find.text('文字サイズのプレビュー表示です')).findsOne();
         check(find.text('言語設定')).findsOne();
         check(find.text('プレビュー: こんにちは！')).findsOne();
       });
+
+      testWidgets(
+        '文字サイズのSegmentedButtonを変更した時、TextScaleNotifier.setScaleが呼ばれること',
+        (tester) async {
+          setMobileView(tester);
+          await tester.pumpWidget(createTestWidget());
+          await tester.pumpAndSettle();
+
+          final largeButton = find.text('大');
+          await tester.dragUntilVisible(
+            largeButton,
+            find.byType(ListView),
+            const Offset(0, -300),
+          );
+
+          // 大を選択
+          await tester.tap(largeButton);
+          await tester.pumpAndSettle();
+
+          check(
+            fakeTextScaleNotifier.calledSetScale,
+          ).equals(AppTextScale.large);
+        },
+      );
 
       testWidgets(
         'テーマカラーのChoiceChipを変更した時、ThemeSchemeNotifier.setSchemeが呼ばれること',

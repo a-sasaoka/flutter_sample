@@ -24,6 +24,7 @@ final class AppConfigProvider
               ThemeData lightTheme,
               Locale? locale,
               GoRouter router,
+              TextScaler textScaler,
               ThemeMode themeMode,
             })
           >,
@@ -32,6 +33,7 @@ final class AppConfigProvider
             ThemeData lightTheme,
             Locale? locale,
             GoRouter router,
+            TextScaler textScaler,
             ThemeMode themeMode,
           }),
           FutureOr<
@@ -40,6 +42,7 @@ final class AppConfigProvider
               ThemeData lightTheme,
               Locale? locale,
               GoRouter router,
+              TextScaler textScaler,
               ThemeMode themeMode,
             })
           >
@@ -51,6 +54,7 @@ final class AppConfigProvider
             ThemeData lightTheme,
             Locale? locale,
             GoRouter router,
+            TextScaler textScaler,
             ThemeMode themeMode,
           })
         >,
@@ -60,6 +64,7 @@ final class AppConfigProvider
             ThemeData lightTheme,
             Locale? locale,
             GoRouter router,
+            TextScaler textScaler,
             ThemeMode themeMode,
           })
         > {
@@ -86,6 +91,7 @@ final class AppConfigProvider
       ThemeData lightTheme,
       Locale? locale,
       GoRouter router,
+      TextScaler textScaler,
       ThemeMode themeMode,
     })
   >
@@ -98,6 +104,7 @@ final class AppConfigProvider
       ThemeData lightTheme,
       Locale? locale,
       GoRouter router,
+      TextScaler textScaler,
       ThemeMode themeMode,
     })
   >
@@ -106,4 +113,4 @@ final class AppConfigProvider
   }
 }
 
-String _$appConfigHash() => r'0f3a3f98a2c4480b964563844e60e7a96f9f9829';
+String _$appConfigHash() => r'92bee40975adcb68718c708f5ff3cf69b1c96835';

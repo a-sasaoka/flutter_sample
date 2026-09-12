@@ -36,4 +36,7 @@ abstract final class SharedPrefKeys {
 
   /// テーマカラー設定 (FlexSchemeのname)
   static const themeScheme = 'theme_scheme';
+
+  /// 文字サイズ倍率設定 (small / normal / large)
+  static const textScale = 'text_scale';
 }

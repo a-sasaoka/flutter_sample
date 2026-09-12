@@ -158,6 +158,7 @@ class MyApp extends ConsumerWidget {
           :final lightTheme,
           :final darkTheme,
           :final router,
+          :final textScaler,
         ),
       ) =>
         MaterialApp.router(
@@ -171,8 +172,11 @@ class MyApp extends ConsumerWidget {
           themeMode: themeMode,
           routerConfig: router,
           debugShowCheckedModeBanner: false,
-          builder: (context, child) => AppLockWrapper(
-            child: _AppTitleWrapper(child: child),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+            child: AppLockWrapper(
+              child: _AppTitleWrapper(child: child),
+            ),
           ),
         ),
       AsyncError(:final error) => Directionality(

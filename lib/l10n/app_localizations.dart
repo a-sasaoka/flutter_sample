@@ -554,6 +554,36 @@ abstract class AppLocalizations {
   /// **'Pink'**
   String get settingsColorPink;
 
+  /// No description provided for @settingsTextScaleSection.
+  ///
+  /// In en, this message translates to:
+  /// **'🔤 Text Scale Settings'**
+  String get settingsTextScaleSection;
+
+  /// No description provided for @settingsTextScaleSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'Small'**
+  String get settingsTextScaleSmall;
+
+  /// No description provided for @settingsTextScaleNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal'**
+  String get settingsTextScaleNormal;
+
+  /// No description provided for @settingsTextScaleLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Large'**
+  String get settingsTextScaleLarge;
+
+  /// No description provided for @settingsTextScalePreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview text for font scaling'**
+  String get settingsTextScalePreview;
+
   /// No description provided for @settingsLocaleSection.
   ///
   /// In en, this message translates to:
