@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
-import 'package:flutter_sample/src/core/config/app_config_provider.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
@@ -23,11 +22,14 @@ class MockAuthService extends Mock implements AuthService {}
 class MockAppLocalizations extends Mock implements AppLocalizations {}
 
 class FakeThemeModeNotifier extends ThemeModeNotifier {
+  FakeThemeModeNotifier([this._initialMode = ThemeMode.system]);
+  final ThemeMode _initialMode;
+
   ThemeMode? calledSetMode;
   bool calledToggle = false;
 
   @override
-  Future<ThemeMode> build() async => ThemeMode.system;
+  Future<ThemeMode> build() async => _initialMode;
 
   @override
   Future<void> set(ThemeMode mode) async {
@@ -40,16 +42,29 @@ class FakeThemeModeNotifier extends ThemeModeNotifier {
   }
 }
 
+class LoadingThemeModeNotifier extends ThemeModeNotifier {
+  @override
+  Future<ThemeMode> build() => Completer<ThemeMode>().future;
+}
+
 class FakeLocaleNotifier extends LocaleNotifier {
+  FakeLocaleNotifier([this._initialLocale]);
+  final Locale? _initialLocale;
+
   String? calledSetLocale;
 
   @override
-  Future<Locale?> build() async => null;
+  Future<Locale?> build() async => _initialLocale;
 
   @override
   Future<void> setLocale(String? locale) async {
     calledSetLocale = locale;
   }
+}
+
+class LoadingLocaleNotifier extends LocaleNotifier {
+  @override
+  Future<Locale?> build() => Completer<Locale?>().future;
 }
 
 class MockLocalizationsDelegate
@@ -64,9 +79,6 @@ class MockLocalizationsDelegate
   bool shouldReload(covariant LocalizationsDelegate<AppLocalizations> old) =>
       false;
 }
-
-// 状態を制御するためのEnum
-enum ConfigState { loading, error, data }
 
 void main() {
   late MockAuthService mockAuthService;
@@ -107,9 +119,10 @@ void main() {
   });
 
   Widget createTestWidget({
-    ConfigState configState = ConfigState.data,
     bool useAuth = true,
     bool isAuthed = true,
+    ThemeModeNotifier Function()? themeModeOverride,
+    LocaleNotifier Function()? localeOverride,
   }) {
     final router = GoRouter(
       initialLocation: '/settings',
@@ -126,22 +139,6 @@ void main() {
 
     return ProviderScope(
       overrides: [
-        appConfigProvider.overrideWith((ref) async {
-          if (configState == ConfigState.loading) {
-            return Completer<
-                  ({Locale? locale, GoRouter router, ThemeMode theme})
-                >()
-                .future;
-          } else if (configState == ConfigState.error) {
-            throw Exception('Config Load Error');
-          } else {
-            return (
-              locale: const Locale('ja'),
-              router: router,
-              theme: ThemeMode.light,
-            );
-          }
-        }),
         envConfigProvider.overrideWithValue(
           EnvConfigState(
             baseUrl: 'https://test.example.com',
@@ -156,8 +153,12 @@ void main() {
         ),
         isAuthenticatedProvider.overrideWithValue(isAuthed),
         authServiceProvider.overrideWithValue(mockAuthService),
-        themeModeProvider.overrideWith(() => fakeThemeModeNotifier),
-        localeProvider.overrideWith(() => fakeLocaleNotifier),
+        themeModeProvider.overrideWith(
+          themeModeOverride ?? () => fakeThemeModeNotifier,
+        ),
+        localeProvider.overrideWith(
+          localeOverride ?? () => fakeLocaleNotifier,
+        ),
       ],
       child: MaterialApp.router(
         routerConfig: router,
@@ -172,31 +173,26 @@ void main() {
   }
 
   group('SettingsScreen', () {
-    testWidgets('ローディング状態の時、CircularProgressIndicator が表示されること', (
+    testWidgets('テーマ設定が読み込み中の場合でも、デフォルト値（システム）で安全にフォールバック表示されること', (
       tester,
     ) async {
       await tester.pumpWidget(
-        createTestWidget(configState: ConfigState.loading),
+        createTestWidget(themeModeOverride: LoadingThemeModeNotifier.new),
       );
       await tester.pump();
-      await tester.pump();
 
-      check(
-        find.byWidgetPredicate(
-          (w) =>
-              w is CircularProgressIndicator ||
-              w.runtimeType.toString() == 'CupertinoActivityIndicator',
-        ),
-      ).findsOne();
+      check(find.text('システム')).findsOne();
     });
 
-    testWidgets('エラー状態の時、エラーメッセージが表示されること', (tester) async {
+    testWidgets('言語設定が読み込み中の場合でも、デフォルト値（システム依存）で安全にフォールバック表示されること', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        createTestWidget(configState: ConfigState.error),
+        createTestWidget(localeOverride: LoadingLocaleNotifier.new),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
 
-      check(find.text('不明なエラー')).findsOne();
+      check(find.text('システム依存')).findsOne();
     });
 
     group('データ取得完了後 (Data状態)', () {

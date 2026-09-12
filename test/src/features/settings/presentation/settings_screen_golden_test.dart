@@ -1,7 +1,6 @@
 import 'package:alchemist/alchemist.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_sample/src/core/config/app_config_provider.dart';
 import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
@@ -57,18 +56,11 @@ void main() {
       // 💡 同一インスタンスが複数のProviderScopeで再利用されて
       // マウント例外 (Already mounted) が発生するのを防ぐため、
       // 呼び出しごとに新しく notifier をインスタンス化します。
-      final fakeThemeNotifier = FakeThemeModeNotifier();
-      final fakeLocale = FakeLocaleNotifier();
+      final fakeThemeNotifier = FakeThemeModeNotifier(themeMode);
+      final fakeLocale = FakeLocaleNotifier(const Locale('ja'));
 
       return ProviderScope(
         overrides: [
-          appConfigProvider.overrideWith((ref) async {
-            return (
-              locale: const Locale('ja'),
-              router: router,
-              theme: themeMode,
-            );
-          }),
           envConfigProvider.overrideWithValue(
             const EnvConfigState(
               baseUrl: 'https://test.example.com',

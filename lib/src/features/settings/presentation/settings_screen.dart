@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
-import 'package:flutter_sample/src/core/config/app_config_provider.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
@@ -15,57 +14,47 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final configAsync = ref.watch(appConfigProvider);
     final l10n = context.l10n;
     final isAuthed = ref.watch(isAuthenticatedProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),
-      body: switch (configAsync) {
-        AsyncData(value: final config) => () {
-          final (:theme, :locale, :router) = config;
-          return ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            children: [
-              // プロフィール設定セクション
-              _SectionHeader(title: '👤 ${l10n.profileTitle}'),
-              const SizedBox(height: 8),
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.person_outline),
-                  title: Text(l10n.profileTitle),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    const ProfileEditRoute().go(context);
-                  },
-                ),
-              ),
-              const SizedBox(height: 32),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        children: [
+          // プロフィール設定セクション
+          _SectionHeader(title: '👤 ${l10n.profileTitle}'),
+          const SizedBox(height: 8),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: Text(l10n.profileTitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                const ProfileEditRoute().go(context);
+              },
+            ),
+          ),
+          const SizedBox(height: 32),
 
-              // テーマ設定セクション
-              _SectionHeader(title: l10n.settingsThemeSection),
-              const SizedBox(height: 8),
-              _ThemeCard(currentMode: theme),
-              const SizedBox(height: 32),
+          // テーマ設定セクション
+          _SectionHeader(title: l10n.settingsThemeSection),
+          const SizedBox(height: 8),
+          const _ThemeCard(),
+          const SizedBox(height: 32),
 
-              // 言語設定セクション
-              _SectionHeader(title: l10n.settingsLocaleSection),
-              const SizedBox(height: 8),
-              _LocaleCard(currentLocale: locale),
+          // 言語設定セクション
+          _SectionHeader(title: l10n.settingsLocaleSection),
+          const SizedBox(height: 8),
+          const _LocaleCard(),
 
-              if (isAuthed) ...[
-                const SizedBox(height: 48),
-                // ログアウトボタン
-                const _LogoutButton(),
-              ],
-            ],
-          );
-        }(),
-        AsyncError(:final error) => Center(
-          child: Text(ErrorHandler.message(context, error)),
-        ),
-        _ => const Center(child: CircularProgressIndicator.adaptive()),
-      },
+          if (isAuthed) ...[
+            const SizedBox(height: 48),
+            // ログアウトボタン
+            const _LogoutButton(),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -91,12 +80,12 @@ class _SectionHeader extends StatelessWidget {
 
 /// テーマ設定カード
 class _ThemeCard extends ConsumerWidget {
-  const _ThemeCard({required this.currentMode});
-
-  final ThemeMode currentMode;
+  const _ThemeCard();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final themeAsync = ref.watch(themeModeProvider);
+    final currentMode = themeAsync.value ?? ThemeMode.system;
     final l10n = context.l10n;
 
     return Card(
@@ -149,12 +138,12 @@ class _ThemeCard extends ConsumerWidget {
 
 /// 言語（ロケール）設定カード
 class _LocaleCard extends ConsumerWidget {
-  const _LocaleCard({required this.currentLocale});
-
-  final Locale? currentLocale;
+  const _LocaleCard();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final localeAsync = ref.watch(localeProvider);
+    final currentLocale = localeAsync.value;
     final l10n = context.l10n;
 
     return Card(
