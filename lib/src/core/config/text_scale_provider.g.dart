@@ -36,7 +36,7 @@ final class TextScaleNotifierProvider
   TextScaleNotifier create() => TextScaleNotifier();
 }
 
-String _$textScaleNotifierHash() => r'c50a080d2c13f27c9fda4d4cae47202f5a6fbec9';
+String _$textScaleNotifierHash() => r'd61951ee9822fadbf05311ddab45142c0e62a543';
 
 /// 🔍 アプリ全体の文字サイズ倍率を管理・永続化するプロバイダー
 

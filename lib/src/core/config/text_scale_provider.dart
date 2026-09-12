@@ -41,10 +41,21 @@ class TextScaleNotifier extends _$TextScaleNotifier {
     );
   }
 
+  Future<void> _lastOperation = Future.value();
+
   /// 文字サイズを変更してローカルストレージに永続化
-  Future<void> setScale(AppTextScale scale) async {
-    final prefs = ref.read(sharedPreferencesProvider);
-    await prefs.setString(SharedPrefKeys.textScale, scale.name);
-    state = AsyncData(scale);
+  Future<void> setScale(AppTextScale scale) {
+    final operation = () async {
+      try {
+        await _lastOperation;
+      } on Object catch (_) {
+        // 直前の保存が失敗した場合でも後続の保存を継続
+      }
+      final prefs = ref.read(sharedPreferencesProvider);
+      await prefs.setString(SharedPrefKeys.textScale, scale.name);
+      state = AsyncData(scale);
+    }();
+    _lastOperation = operation;
+    return operation;
   }
 }

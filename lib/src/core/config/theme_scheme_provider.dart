@@ -27,10 +27,21 @@ class ThemeSchemeNotifier extends _$ThemeSchemeNotifier {
     );
   }
 
+  Future<void> _lastOperation = Future.value();
+
   /// カラースキームを変更して保存
-  Future<void> setScheme(FlexScheme scheme) async {
-    final prefs = ref.read(sharedPreferencesProvider);
-    await prefs.setString(SharedPrefKeys.themeScheme, scheme.name);
-    state = AsyncData(scheme);
+  Future<void> setScheme(FlexScheme scheme) {
+    final operation = () async {
+      try {
+        await _lastOperation;
+      } on Object catch (_) {
+        // 直前の保存が失敗した場合でも後続の保存を継続
+      }
+      final prefs = ref.read(sharedPreferencesProvider);
+      await prefs.setString(SharedPrefKeys.themeScheme, scheme.name);
+      state = AsyncData(scheme);
+    }();
+    _lastOperation = operation;
+    return operation;
   }
 }
