@@ -33,4 +33,10 @@ abstract final class SharedPrefKeys {
 
   /// オンボーディング表示完了フラグ
   static const onboardingCompleted = 'onboarding_completed';
+
+  /// テーマカラー設定 (FlexSchemeのname)
+  static const themeScheme = 'theme_scheme';
+
+  /// 文字サイズ倍率設定 (small / normal / large)
+  static const textScale = 'text_scale';
 }

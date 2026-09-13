@@ -41,18 +41,18 @@ abstract final class AppTheme {
   }
 
   /// ライトテーマ
-  static ThemeData light() {
+  static ThemeData light([FlexScheme scheme = _scheme]) {
     return FlexThemeData.light(
-      scheme: _scheme,
+      scheme: scheme,
       subThemesData: _subThemesData,
       visualDensity: VisualDensity.standard,
     );
   }
 
   /// ダークテーマ
-  static ThemeData dark() {
+  static ThemeData dark([FlexScheme scheme = _scheme]) {
     return FlexThemeData.dark(
-      scheme: _scheme,
+      scheme: scheme,
       subThemesData: _subThemesData,
       visualDensity: VisualDensity.standard,
     );

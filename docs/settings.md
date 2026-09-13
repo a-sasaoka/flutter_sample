@@ -16,14 +16,31 @@
 - **ダークモードトグル**: 簡易的にライト／ダークを反転させるスイッチを備えています。
 - **永続化**: 変更されたテーマ設定は `SharedPreferencesAsync` を通じて即座に保存され、次回のアプリ起動時に自動で適用されます。
 
-### 2. 言語設定 (Locale Settings)
+### 2. テーマカラー設定 (Theme Color Settings)
+
+アプリ全体のアクセントとなる基本カラーを切り替えることができます。
+
+- **ChoiceChip**: 4 つのカラー（インディゴ、ティール、オレンジ、ピンク）から直感的に選択できます。
+- **FlexColorScheme との連動**: 選択したカラースキーム（`FlexScheme`）に合わせて、アプリ全体のUIカラーが一括で切り替わります。
+- **永続化**: 変更されたカラー設定は `SharedPreferencesAsync` を通じて即座に保存され、次回のアプリ起動時に自動で適用されます。
+
+### 3. 文字サイズ設定 (Text Scale Settings)
+
+アプリ全体のテキスト表示サイズを切り替えることができます。
+
+- **SegmentedButton**: 3 つのサイズ（小: 0.85倍、標準: 1.0倍、大: 1.15倍）から選択できます。
+- **プレビュー**: 変更内容が即座にカード内のプレビュー用テキストに反映され、実際の文字の大きさを確認できます。
+- **アプリ全体への一括反映**: `main.dart`（`MyApp`）の `MediaQuery` を通じて、アプリ内の全画面の文字サイズへ一貫して反映されます。
+- **永続化**: 変更された文字サイズ設定は `SharedPreferencesAsync` を通じて即座に保存され、次回のアプリ起動時に自動で適用されます。
+
+### 4. 言語設定 (Locale Settings)
 
 アプリの表示言語を切り替えることができます。
 
 - **対応言語**: 日本語、英語、およびシステム標準の設定を選択可能です。
 - **プレビュー**: 変更内容が即座に画面上の「こんにちは」などのテキストに反映され、確認が可能です。
 
-### 3. アカウント操作
+### 5. アカウント操作
 
 利用している認証方式（Firebase Auth または 自前サーバー／トークン認証）を問わず、安全にログアウトを行うことができます。
 
@@ -36,8 +53,10 @@
 
 ```plaintext
 lib/src/core/config/
- ├── theme_mode_provider.dart  # テーマ状態の管理
- └── locale_provider.dart      # 言語状態の管理
+ ├── theme_mode_provider.dart   # テーマモード（明暗）状態の管理
+ ├── theme_scheme_provider.dart # テーマカラー（FlexScheme）状態の管理
+ ├── text_scale_provider.dart   # 文字サイズ倍率状態の管理
+ └── locale_provider.dart       # 言語状態の管理
 
 lib/src/features/settings/
  └── presentation/
@@ -50,7 +69,8 @@ lib/src/features/settings/
 
 - **ColorScheme の活用**: `SegmentedButton` や `Card` の配色、ログアウトボタンの警告色など、すべて `Theme.of(context).colorScheme` に連動しており、テーマ変更時に一貫したデザインを維持します。
 - **堅牢な非同期処理**: ログアウト処理等の非同期操作において `context.mounted` チェックを徹底し、画面遷移後の予期せぬクラッシュを防止しています。
-- **統合設定プロバイダー**: `appConfigProvider` により、テーマと言語の状態をまとめて監視し、UI のリビルドを効率化しています。
+- **パーツごとの自立化（疎結合設計）**: 設定画面（`SettingsScreen`）は各設定カードごとに必要なプロバイダー（`themeModeProvider`, `themeSchemeProvider`, `textScaleProvider`, `localeProvider`）を直接監視しています。これにより、1つの設定（例: 文字サイズ）を変えたときに画面全体が無駄に再描画（リビルド）されるのを防いでいます。
+- **ルートでの一括適用 (`appConfigProvider`)**: 一方でアプリの最上位（`main.dart`）では、`appConfigProvider` を介してこれら個別の設定をまとめて受け取り、`MaterialApp.router` のテーマ、ロケール、文字サイズ倍率（`textScaler`）へ一括で反映しています。
 
 ---
 
