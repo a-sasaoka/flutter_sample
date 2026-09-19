@@ -82,14 +82,14 @@ lib/src/app/router/
  ├── app_router.dart                    # GoRouterのメイン定義（part構文でRoutesを結合）
  ├── routes/                            # 各機能・タブごとに分割された定義ファイル
  │    ├── auth_routes.dart             # ログイン・サインアップ系
- │    ├── chat_tab_routes.dart         # AIチャットタブのルート定義
- │    ├── chart_tab_routes.dart        # グラフタブのルート定義
- │    ├── home_tab_routes.dart         # ホームタブのルート定義
- │    ├── memos_tab_routes.dart        # メモタブのルート定義
+ │    ├── chat_tab_routes.dart         # AIチャットタブのルート定義（ブランチ定数含む）
+ │    ├── chart_tab_routes.dart        # グラフタブのルート定義（ブランチ定数含む）
+ │    ├── home_tab_routes.dart         # ホームタブのルート定義（ブランチ定数含む）
+ │    ├── memos_tab_routes.dart        # メモタブのルート定義（ブランチ定数含む）
  │    ├── onboarding_routes.dart       # オンボーディング画面のルート定義
- │    ├── shell_routes.dart            # ナビゲーションシェル（ボトムメニュー）の定義
+ │    ├── shell_routes.dart            # ナビゲーションシェル（各タブのブランチ定数を束ねる定義）
  │    ├── splash_routes.dart           # スプラッシュ画面の定義
- │    ├── user_tab_routes.dart         # ユーザー一覧タブのルート定義
+ │    ├── user_tab_routes.dart         # ユーザー一覧タブのルート定義（ブランチ定数含む）
  │    └── dev_tools_routes.dart        # 開発者ツール画面のルート定義
  ├── base_auth_guard.dart               # 共通リダイレクト判定処理（checkBaseRedirect）と共通ヘルパー
  ├── auth_guard.dart                    # Bearerトークンベースの認証ガード
@@ -98,13 +98,14 @@ lib/src/app/router/
 
 ---
 
-### 💡 コードの分割管理（part / part of 構文）
+### 💡 コードの分割管理（part / part of 構文とシェルルート定数化）
 
-本プロジェクトでは、`go_router_builder` による型安全性を維持しつつ、巨大なルート定義ファイルを避けるために Dart の **`part` / `part of` 構文** を採用しています。
+本プロジェクトでは、`go_router_builder` による型安全性を維持しつつ、巨大なルート定義ファイルを避けるために Dart の **`part` / `part of` 構文** および **各タブごとのシェルブランチ定数化** を採用しています。
 
 - **メリット**:
   - `auth_routes.dart` 等の各ファイルは、親である `app_router.dart` の一部として扱われるため、インポート文を重複させる必要がありません。
   - 生成される `app_router.g.dart` は1つのままであるため、外部からは分割を意識せずに `HomeRoute().go(context)` といった型安全な遷移コードを利用できます。
+  - **シェルルート（`shell_routes.dart`）の肥大化防止**: ボトムナビゲーション各タブ配下のルートツリー（`TypedStatefulShellBranch`）を `homeShellBranch` などの `const` 定数として各タブファイルに切り出し、`shell_routes.dart` ではそれらを束ねるだけにすることで、アノテーションの肥大化や深いネストを防止し、タブ単位の独立したルート追加を容易にしています。
   - 機能追加時に編集すべきファイルが明確になり、コンフリクトのリスクを低減します。
 
 ---

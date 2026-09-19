@@ -10,3 +10,16 @@ class ChatRoute extends GoRouteData with $ChatRoute {
     return const ChatScreen();
   }
 }
+
+/// 🤖 チャットタブのブランチデータ
+class ChatBranch extends StatefulShellBranchData {
+  /// コンストラクタ
+  const ChatBranch();
+}
+
+/// 🤖 チャットタブのシェルブランチ定義
+const chatShellBranch = TypedStatefulShellBranch<ChatBranch>(
+  routes: <TypedRoute<RouteData>>[
+    TypedGoRoute<ChatRoute>(path: '/chat'),
+  ],
+);

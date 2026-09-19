@@ -3,53 +3,11 @@ part of '../app_router.dart';
 /// 📱 アプリ全体を囲むボトムナビゲーション用のシェルルート
 @TypedStatefulShellRoute<AppShellRouteData>(
   branches: <TypedStatefulShellBranch<StatefulShellBranchData>>[
-    // 1. ホームタブのブランチ
-    TypedStatefulShellBranch<HomeBranch>(
-      routes: <TypedRoute<RouteData>>[
-        TypedGoRoute<HomeRoute>(
-          path: '/',
-          routes: [
-            TypedGoRoute<MapRoute>(path: 'map'),
-            TypedGoRoute<SettingsRoute>(
-              path: 'settings',
-              routes: [
-                TypedGoRoute<ProfileEditRoute>(path: 'profile'),
-              ],
-            ),
-            TypedGoRoute<ResetPasswordRoute>(path: 'reset-password'),
-          ],
-        ),
-      ],
-    ),
-    // 2. チャットタブのブランチ
-    TypedStatefulShellBranch<ChatBranch>(
-      routes: <TypedRoute<RouteData>>[
-        TypedGoRoute<ChatRoute>(path: '/chat'),
-      ],
-    ),
-    // 3. メモタブのブランチ
-    TypedStatefulShellBranch<MemosBranch>(
-      routes: <TypedRoute<RouteData>>[
-        TypedGoRoute<MemosRoute>(path: '/memos'),
-      ],
-    ),
-    // 4. グラフタブのブランチ
-    TypedStatefulShellBranch<ChartBranch>(
-      routes: <TypedRoute<RouteData>>[
-        TypedGoRoute<ChartInputRoute>(
-          path: '/chart-input',
-          routes: [
-            TypedGoRoute<ChartDisplayRoute>(path: 'display'),
-          ],
-        ),
-      ],
-    ),
-    // 5. ユーザー一覧タブのブランチ
-    TypedStatefulShellBranch<UserBranch>(
-      routes: <TypedRoute<RouteData>>[
-        TypedGoRoute<UserListRoute>(path: '/users'),
-      ],
-    ),
+    homeShellBranch,
+    chatShellBranch,
+    memosShellBranch,
+    chartShellBranch,
+    userShellBranch,
   ],
 )
 class AppShellRouteData extends StatefulShellRouteData {
@@ -64,34 +22,4 @@ class AppShellRouteData extends StatefulShellRouteData {
   ) {
     return MainShellScreen(navigationShell: navigationShell);
   }
-}
-
-/// 🏠 ホームタブのブランチデータ
-class HomeBranch extends StatefulShellBranchData {
-  /// コンストラクタ
-  const HomeBranch();
-}
-
-/// 🤖 チャットタブのブランチデータ
-class ChatBranch extends StatefulShellBranchData {
-  /// コンストラクタ
-  const ChatBranch();
-}
-
-/// 📝 メモタブのブランチデータ
-class MemosBranch extends StatefulShellBranchData {
-  /// コンストラクタ
-  const MemosBranch();
-}
-
-/// 📊 グラフタブのブランチデータ
-class ChartBranch extends StatefulShellBranchData {
-  /// コンストラクタ
-  const ChartBranch();
-}
-
-/// 👥 ユーザー一覧タブのブランチデータ
-class UserBranch extends StatefulShellBranchData {
-  /// コンストラクタ
-  const UserBranch();
 }

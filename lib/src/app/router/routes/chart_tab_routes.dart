@@ -21,3 +21,21 @@ class ChartDisplayRoute extends GoRouteData with $ChartDisplayRoute {
     return const ChartDisplayScreen();
   }
 }
+
+/// 📊 グラフタブのブランチデータ
+class ChartBranch extends StatefulShellBranchData {
+  /// コンストラクタ
+  const ChartBranch();
+}
+
+/// 📊 グラフタブのシェルブランチ定義
+const chartShellBranch = TypedStatefulShellBranch<ChartBranch>(
+  routes: <TypedRoute<RouteData>>[
+    TypedGoRoute<ChartInputRoute>(
+      path: '/chart-input',
+      routes: [
+        TypedGoRoute<ChartDisplayRoute>(path: 'display'),
+      ],
+    ),
+  ],
+);

@@ -895,6 +895,14 @@ void main() {
     test('UserBranch: インスタンス化できること', () {
       check(UserBranch()).isNotNull();
     });
+
+    test('各タブのシェルブランチ定数が正しく初期化されていること', () {
+      check(homeShellBranch).isA<TypedStatefulShellBranch<HomeBranch>>();
+      check(chatShellBranch).isA<TypedStatefulShellBranch<ChatBranch>>();
+      check(memosShellBranch).isA<TypedStatefulShellBranch<MemosBranch>>();
+      check(chartShellBranch).isA<TypedStatefulShellBranch<ChartBranch>>();
+      check(userShellBranch).isA<TypedStatefulShellBranch<UserBranch>>();
+    });
   });
 
   group('TypedRouteAnalyticsObserver テスト', () {
