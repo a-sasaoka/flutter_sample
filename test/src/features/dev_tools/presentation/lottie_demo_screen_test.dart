@@ -13,10 +13,7 @@ class MockLottieComposition extends Mock implements LottieComposition {}
 
 void main() {
   group('LottieDemoScreen', () {
-    Future<void> pumpScreen(
-      WidgetTester tester, {
-      bool animate = false,
-    }) async {
+    Future<void> pumpScreen(WidgetTester tester, {bool animate = false}) async {
       await tester.pumpWidget(
         MaterialApp(
           localizationsDelegates: const [

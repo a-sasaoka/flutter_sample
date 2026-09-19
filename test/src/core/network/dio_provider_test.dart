@@ -101,88 +101,73 @@ void main() {
       check(interceptorTypes).contains(TalkerDioLogger);
     });
 
-    test(
-      'local または dev フレーバーで本番 Functions URL '
-      '(.cloudfunctions.net) が設定された場合 StateError がスローされること',
-      () {
-        const config = EnvConfigState(
-          baseUrl: 'https://us-central1-sample.cloudfunctions.net',
-          imageBaseUrl: defaultImageBaseUrl,
-          aiModel: 'test-model',
-          connectTimeout: 5,
-          receiveTimeout: 10,
-          sendTimeout: 5,
-          useFirebaseAuth: true,
-          useAgentPlatform: true,
-        );
+    test('local または dev フレーバーで本番 Functions URL '
+        '(.cloudfunctions.net) が設定された場合 StateError がスローされること', () {
+      const config = EnvConfigState(
+        baseUrl: 'https://us-central1-sample.cloudfunctions.net',
+        imageBaseUrl: defaultImageBaseUrl,
+        aiModel: 'test-model',
+        connectTimeout: 5,
+        receiveTimeout: 10,
+        sendTimeout: 5,
+        useFirebaseAuth: true,
+        useAgentPlatform: true,
+      );
 
-        // local フレーバーでの検証
-        final containerLocal = createContainer(
-          config: config,
-          flavor: Flavor.local,
-        );
-        check(() => containerLocal.read(dioProvider))
-            .throws<Object>()
-            .has((e) => e.toString(), 'toString()')
-            .contains('【誤接続防止エラー】');
+      // local フレーバーでの検証
+      final containerLocal = createContainer(
+        config: config,
+        flavor: Flavor.local,
+      );
+      check(() => containerLocal.read(dioProvider))
+          .throws<Object>()
+          .has((e) => e.toString(), 'toString()')
+          .contains('【誤接続防止エラー】');
 
-        // dev フレーバーでの検証
-        final containerDev = createContainer(
-          config: config,
-        );
-        check(() => containerDev.read(dioProvider))
-            .throws<Object>()
-            .has((e) => e.toString(), 'toString()')
-            .contains('【誤接続防止エラー】');
+      // dev フレーバーでの検証
+      final containerDev = createContainer(config: config);
+      check(() => containerDev.read(dioProvider))
+          .throws<Object>()
+          .has((e) => e.toString(), 'toString()')
+          .contains('【誤接続防止エラー】');
 
-        // 大文字ホスト名 (CLOUDFUNCTIONS.NET) での検証
-        const uppercaseConfig = EnvConfigState(
-          baseUrl: 'HTTPS://US-CENTRAL1-SAMPLE.CLOUDFUNCTIONS.NET',
-          imageBaseUrl: defaultImageBaseUrl,
-          aiModel: 'test-model',
-          connectTimeout: 5,
-          receiveTimeout: 10,
-          sendTimeout: 5,
-          useFirebaseAuth: true,
-          useAgentPlatform: true,
-        );
-        final containerUppercase = createContainer(
-          config: uppercaseConfig,
-        );
-        check(() => containerUppercase.read(dioProvider))
-            .throws<Object>()
-            .has((e) => e.toString(), 'toString()')
-            .contains('【誤接続防止エラー】');
-      },
-    );
+      // 大文字ホスト名 (CLOUDFUNCTIONS.NET) での検証
+      const uppercaseConfig = EnvConfigState(
+        baseUrl: 'HTTPS://US-CENTRAL1-SAMPLE.CLOUDFUNCTIONS.NET',
+        imageBaseUrl: defaultImageBaseUrl,
+        aiModel: 'test-model',
+        connectTimeout: 5,
+        receiveTimeout: 10,
+        sendTimeout: 5,
+        useFirebaseAuth: true,
+        useAgentPlatform: true,
+      );
+      final containerUppercase = createContainer(config: uppercaseConfig);
+      check(() => containerUppercase.read(dioProvider))
+          .throws<Object>()
+          .has((e) => e.toString(), 'toString()')
+          .contains('【誤接続防止エラー】');
+    });
 
-    test(
-      'stg フレーバーで本番 Functions URL '
-      '(.cloudfunctions.net) が設定された場合 警告ログが出力され正常生成されること',
-      () {
-        const config = EnvConfigState(
-          baseUrl: 'https://us-central1-sample.cloudfunctions.net',
-          imageBaseUrl: defaultImageBaseUrl,
-          aiModel: 'test-model',
-          connectTimeout: 5,
-          receiveTimeout: 10,
-          sendTimeout: 5,
-          useFirebaseAuth: true,
-          useAgentPlatform: true,
-        );
+    test('stg フレーバーで本番 Functions URL '
+        '(.cloudfunctions.net) が設定された場合 警告ログが出力され正常生成されること', () {
+      const config = EnvConfigState(
+        baseUrl: 'https://us-central1-sample.cloudfunctions.net',
+        imageBaseUrl: defaultImageBaseUrl,
+        aiModel: 'test-model',
+        connectTimeout: 5,
+        receiveTimeout: 10,
+        sendTimeout: 5,
+        useFirebaseAuth: true,
+        useAgentPlatform: true,
+      );
 
-        final containerStg = createContainer(
-          config: config,
-          flavor: Flavor.stg,
-        );
-        final dio = containerStg.read(dioProvider);
+      final containerStg = createContainer(config: config, flavor: Flavor.stg);
+      final dio = containerStg.read(dioProvider);
 
-        check(dio.options.baseUrl).equals(config.baseUrl);
-        check(
-          mockTalker.lastWarningMessage,
-        ).isNotNull().contains('⚠️【STG環境警告】');
-      },
-    );
+      check(dio.options.baseUrl).equals(config.baseUrl);
+      check(mockTalker.lastWarningMessage).isNotNull().contains('⚠️【STG環境警告】');
+    });
   });
 
   group('baseDioProvider', () {

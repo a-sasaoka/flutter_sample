@@ -46,11 +46,7 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
   /// 複数のメモを一括で挿入または更新する
   Future<void> upsertMemos(List<MemosCompanion> companions) async {
     await batch((batch) {
-      batch.insertAll(
-        memos,
-        companions,
-        mode: InsertMode.insertOrReplace,
-      );
+      batch.insertAll(memos, companions, mode: InsertMode.insertOrReplace);
     });
   }
 }

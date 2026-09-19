@@ -70,9 +70,7 @@ void main() {
       // Update
       await database
           .update(database.memos)
-          .replace(
-            memos.first.copyWith(title: '更新されたタイトル'),
-          );
+          .replace(memos.first.copyWith(title: '更新されたタイトル'));
       memos = await database.select(database.memos).get();
       check(memos.first.title).equals('更新されたタイトル');
 

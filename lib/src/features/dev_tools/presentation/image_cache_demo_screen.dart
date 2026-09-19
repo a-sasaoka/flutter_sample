@@ -22,9 +22,7 @@ class ImageCacheDemoScreen extends ConsumerWidget {
     final baseUrl = envConfig.imageBaseUrl;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.devImageCacheTitle),
-      ),
+      appBar: AppBar(title: Text(l10n.devImageCacheTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -51,11 +49,7 @@ class ImageCacheDemoScreen extends ConsumerWidget {
                       } on Exception catch (e, st) {
                         ref
                             .read(loggerProvider)
-                            .handle(
-                              e,
-                              st,
-                              'Failed to clear image cache',
-                            );
+                            .handle(e, st, 'Failed to clear image cache');
                         if (context.mounted) {
                           context.showSnackBar(
                             l10n.devImageCacheClearError(e.toString()),
@@ -156,10 +150,7 @@ class ImageCacheDemoScreen extends ConsumerWidget {
 
 /// 各デモセクション用の共通カードウィジェット
 class _DemoCard extends StatelessWidget {
-  const _DemoCard({
-    required this.title,
-    required this.child,
-  });
+  const _DemoCard({required this.title, required this.child});
 
   final String title;
   final Widget child;

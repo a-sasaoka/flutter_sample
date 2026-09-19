@@ -84,9 +84,7 @@ void main() {
     check(snackBar.backgroundColor).equals(theme.colorScheme.primaryContainer);
   });
 
-  testWidgets('showErrorSnackBar displays an error SnackBar', (
-    tester,
-  ) async {
+  testWidgets('showErrorSnackBar displays an error SnackBar', (tester) async {
     const testMessage = 'Test Error Message';
 
     await tester.pumpWidget(
@@ -160,9 +158,7 @@ void main() {
     },
   );
 
-  testWidgets('showSnackBar uses custom action when provided', (
-    tester,
-  ) async {
+  testWidgets('showSnackBar uses custom action when provided', (tester) async {
     const testMessage = 'Test Action Message';
     var actionPressed = false;
 

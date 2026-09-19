@@ -96,12 +96,10 @@ class _ChatListView extends HookConsumerWidget {
         if (scrollController.hasClients) {
           // メッセージの「数」が変わった（新規発言やローディング開始）時はアニメーション
           if (previous?.length != next.length) {
-            unawaited(
-              scrollController.animateTo(
-                scrollController.position.maxScrollExtent,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOut,
-              ),
+            scrollController.animateTo(
+              scrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
             );
           } else {
             // メッセージの「中身」が更新されている（AIがストリーミング中）時は、
@@ -120,11 +118,7 @@ class _ChatListView extends HookConsumerWidget {
         final msg = messages[index];
         // 各メッセージを専用のクラスとして描画します。
         // Flutterが「描き直す必要がない場所」を賢く判断できるようになり、パフォーマンスが向上します。
-        return _ChatBubble(
-          key: ValueKey(msg.id),
-          message: msg,
-          l10n: l10n,
-        );
+        return _ChatBubble(key: ValueKey(msg.id), message: msg, l10n: l10n);
       },
     );
   }
@@ -133,11 +127,7 @@ class _ChatListView extends HookConsumerWidget {
 /// 1つのメッセージ吹き出しを表示するウィジェット
 class _ChatBubble extends StatelessWidget {
   /// コンストラクタ
-  const _ChatBubble({
-    required this.message,
-    required this.l10n,
-    super.key,
-  });
+  const _ChatBubble({required this.message, required this.l10n, super.key});
 
   /// 表示するメッセージ
   final ChatMessage message;
@@ -213,10 +203,9 @@ class _BubbleLayout extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 4),
       child: Text(
         timeString,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          fontSize: 10,
-          color: Colors.grey[600],
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(fontSize: 10, color: Colors.grey[600]),
       ),
     );
 
@@ -278,10 +267,7 @@ class _BubbleContainer extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: isUser
-          ? Text(
-              text,
-              style: TextStyle(color: textColor),
-            )
+          ? Text(text, style: TextStyle(color: textColor))
           : MarkdownBody(
               data: text,
               selectable: true,
@@ -327,9 +313,7 @@ class _ChatInputArea extends HookConsumerWidget {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                 ),
                 onSubmitted: (text) =>
                     _onSend(ref, textController, isGenerating, isOnline),

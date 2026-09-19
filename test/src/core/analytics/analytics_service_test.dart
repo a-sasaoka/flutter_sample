@@ -44,52 +44,49 @@ void main() {
   });
 
   group('AnalyticsService テスト', () {
-    test(
-      'logEvent が正しいイベント名とパラメータ(null除外, 固定のtimestamp付与)で呼び出されること',
-      () async {
-        // Arrange
-        when(
-          () => mockAnalytics.logEvent(
-            name: any(named: 'name'),
-            parameters: any(named: 'parameters'),
-          ),
-        ).thenAnswer((_) async {});
+    test('logEvent が正しいイベント名とパラメータ(null除外, 固定のtimestamp付与)で呼び出されること', () async {
+      // Arrange
+      when(
+        () => mockAnalytics.logEvent(
+          name: any(named: 'name'),
+          parameters: any(named: 'parameters'),
+        ),
+      ).thenAnswer((_) async {});
 
-        final service = container.read(analyticsServiceProvider);
+      final service = container.read(analyticsServiceProvider);
 
-        // Act
-        await service.logEvent(
-          event: AnalyticsEvent.loginSuccess,
-          parameters: {
-            'user_id': 123,
-            'user_type': 'premium',
-            'null_value': null, // 除外対象
-          },
-        );
+      // Act
+      await service.logEvent(
+        event: AnalyticsEvent.loginSuccess,
+        parameters: {
+          'user_id': 123,
+          'user_type': 'premium',
+          'null_value': null, // 除外対象
+        },
+      );
 
-        // Assert
-        final captured = verify(
-          () => mockAnalytics.logEvent(
-            name: captureAny(named: 'name'),
-            parameters: captureAny(named: 'parameters'),
-          ),
-        ).captured;
+      // Assert
+      final captured = verify(
+        () => mockAnalytics.logEvent(
+          name: captureAny(named: 'name'),
+          parameters: captureAny(named: 'parameters'),
+        ),
+      ).captured;
 
-        check(captured[0]).equals('login_success');
+      check(captured[0]).equals('login_success');
 
-        final params = captured[1] as Map<String, Object>;
+      final params = captured[1] as Map<String, Object>;
 
-        // ① 正常な値が渡されているか
-        check(params['user_id']).equals(123);
-        check(params['user_type']).equals('premium');
+      // ① 正常な値が渡されているか
+      check(params['user_id']).equals(123);
+      check(params['user_type']).equals('premium');
 
-        // ② null の値が正しく除外されているか
-        check(params.containsKey('null_value')).equals(false);
+      // ② null の値が正しく除外されているか
+      check(params.containsKey('null_value')).equals(false);
 
-        // ③ 【進化ポイント】timestamp がモックで固定した日時と「完全に一致」しているか！
-        check(params['timestamp']).equals(mockDateTime.millisecondsSinceEpoch);
-      },
-    );
+      // ③ 【進化ポイント】timestamp がモックで固定した日時と「完全に一致」しているか！
+      check(params['timestamp']).equals(mockDateTime.millisecondsSinceEpoch);
+    });
 
     test('logEvent 実行時に例外が発生した場合、クラッシュせずに処理が完了すること', () async {
       // Arrange
@@ -152,9 +149,8 @@ void main() {
       // Act & Assert
       await check(service.setUserId('user_123')).completes();
       verify(
-        () => mockTalker.warning(
-          any<String>(that: contains('SetUserId Error')),
-        ),
+        () =>
+            mockTalker.warning(any<String>(that: contains('SetUserId Error'))),
       ).called(1);
     });
 

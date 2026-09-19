@@ -28,9 +28,7 @@ void main() {
     });
 
     // テスト用のウィジェットを構築するヘルパー関数
-    Widget createTestWidget(
-      void Function(BuildContext) showDialogCallback,
-    ) {
+    Widget createTestWidget(void Function(BuildContext) showDialogCallback) {
       final router = GoRouter(
         routes: [
           GoRoute(

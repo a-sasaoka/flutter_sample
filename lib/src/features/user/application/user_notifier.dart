@@ -10,7 +10,7 @@ class UserNotifier extends _$UserNotifier {
   @override
   Future<(List<UserModel>, DateTime?)> build() async {
     // 初回表示時は通常通り（キャッシュがあればキャッシュを使う）
-    return ref.watch(userRepositoryProvider).fetchUsers();
+    return await ref.watch(userRepositoryProvider).fetchUsers();
   }
 
   /// 引っ張って更新などで強制的にAPIから再取得する
@@ -20,7 +20,9 @@ class UserNotifier extends _$UserNotifier {
 
     // 非同期で状態を上書きする（forceRefresh: true）
     state = await AsyncValue.guard(() async {
-      return ref.read(userRepositoryProvider).fetchUsers(forceRefresh: true);
+      return await ref
+          .read(userRepositoryProvider)
+          .fetchUsers(forceRefresh: true);
     });
   }
 }

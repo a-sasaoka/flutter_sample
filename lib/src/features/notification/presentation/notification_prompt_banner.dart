@@ -50,9 +50,7 @@ class NotificationPromptBanner extends HookConsumerWidget {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: colorScheme.primary.withValues(alpha: 0.2),
-          ),
+          side: BorderSide(color: colorScheme.primary.withValues(alpha: 0.2)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),

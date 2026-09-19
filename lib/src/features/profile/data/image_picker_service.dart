@@ -108,9 +108,7 @@ class ImagePickerService {
       }
       if (!result.isGranted && !result.isLimited) {
         talker.warning('Permission denied: $permission');
-        throw AvatarPermissionDeniedException(
-          permission: permission,
-        );
+        throw AvatarPermissionDeniedException(permission: permission);
       }
     }
   }
@@ -118,7 +116,7 @@ class ImagePickerService {
   /// スマホの「設定」アプリを開く
   Future<bool> openSettings() async {
     talker.debug('Opening app settings...');
-    return openAppSettings();
+    return await openAppSettings();
   }
 
   /// 画像を選択し、円形に切り抜いたファイルパスを返す
@@ -129,14 +127,14 @@ class ImagePickerService {
   }) async {
     final lockService = appLockService;
     if (lockService != null) {
-      return lockService.runWithLockSuppression(
+      return await lockService.runWithLockSuppression(
         () => _pickAndCropAvatarInternal(
           source: source,
           cropperTitle: cropperTitle,
         ),
       );
     }
-    return _pickAndCropAvatarInternal(
+    return await _pickAndCropAvatarInternal(
       source: source,
       cropperTitle: cropperTitle,
     );
@@ -176,18 +174,14 @@ class ImagePickerService {
           initAspectRatio: CropAspectRatioPreset.square,
           lockAspectRatio: true,
           cropStyle: CropStyle.circle,
-          aspectRatioPresets: [
-            CropAspectRatioPreset.square,
-          ],
+          aspectRatioPresets: [CropAspectRatioPreset.square],
         ),
         IOSUiSettings(
           title: cropperTitle,
           aspectRatioLockEnabled: true,
           resetAspectRatioEnabled: false,
           cropStyle: CropStyle.circle,
-          aspectRatioPresets: [
-            CropAspectRatioPreset.square,
-          ],
+          aspectRatioPresets: [CropAspectRatioPreset.square],
         ),
       ],
     );

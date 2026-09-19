@@ -45,10 +45,7 @@ void main() {
       });
 
       await tester.pumpWidget(
-        buildTestWidget(
-          controller: controller,
-          focusNode: focusNode,
-        ),
+        buildTestWidget(controller: controller, focusNode: focusNode),
       );
       await tester.pump();
 

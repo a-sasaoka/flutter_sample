@@ -38,11 +38,8 @@ void main() {
     when(() => mockTrace.setMetric(any(), any())).thenReturn(null);
     when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
     when(
-      () => mockTalker.handle(
-        any<Object>(),
-        any<StackTrace?>(),
-        any<dynamic>(),
-      ),
+      () =>
+          mockTalker.handle(any<Object>(), any<StackTrace?>(), any<dynamic>()),
     ).thenReturn(null);
 
     service = PerformanceService(
@@ -121,29 +118,26 @@ void main() {
       },
     );
 
-    test(
-      'traceExecution 異常系: '
-      'trace.start() 時に例外が発生しても action は実行され、stop() は呼ばれないこと',
-      () async {
-        final startException = Exception('Failed to start trace');
-        when(() => mockTrace.start()).thenThrow(startException);
+    test('traceExecution 異常系: '
+        'trace.start() 時に例外が発生しても action は実行され、stop() は呼ばれないこと', () async {
+      final startException = Exception('Failed to start trace');
+      when(() => mockTrace.start()).thenThrow(startException);
 
-        final result = await service.traceExecution<String>(
-          traceName: 'start_failing_trace',
-          action: () async => 'action_completed',
-        );
+      final result = await service.traceExecution<String>(
+        traceName: 'start_failing_trace',
+        action: () async => 'action_completed',
+      );
 
-        check(result).equals('action_completed');
-        verify(
-          () => mockTalker.handle(
-            startException,
-            any<StackTrace?>(),
-            'Failed to start performance trace: start_failing_trace',
-          ),
-        ).called(1);
-        verifyNever(() => mockTrace.stop());
-      },
-    );
+      check(result).equals('action_completed');
+      verify(
+        () => mockTalker.handle(
+          startException,
+          any<StackTrace?>(),
+          'Failed to start performance trace: start_failing_trace',
+        ),
+      ).called(1);
+      verifyNever(() => mockTrace.stop());
+    });
 
     test(
       'traceExecution 異常系: trace.stop() 時に例外が発生した場合でも talker.handle が呼ばれること',

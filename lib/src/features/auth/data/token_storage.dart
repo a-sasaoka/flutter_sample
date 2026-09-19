@@ -37,12 +37,12 @@ class TokenStorage {
 
   /// アクセストークンを取得する
   Future<String?> getAccessToken() async {
-    return _secureStorage.read(key: SecureStorageKeys.accessToken);
+    return await _secureStorage.read(key: SecureStorageKeys.accessToken);
   }
 
   /// リフレッシュトークンを取得する
   Future<String?> getRefreshToken() async {
-    return _secureStorage.read(key: SecureStorageKeys.refreshToken);
+    return await _secureStorage.read(key: SecureStorageKeys.refreshToken);
   }
 
   /// トークンを削除する

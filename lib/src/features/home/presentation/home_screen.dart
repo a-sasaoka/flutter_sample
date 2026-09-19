@@ -251,10 +251,7 @@ class _SectionHeader extends StatelessWidget {
             color: Theme.of(context).colorScheme.primary,
           ),
         ),
-        if (trailing case final Widget widget) ...[
-          const Spacer(),
-          widget,
-        ],
+        if (trailing case final Widget widget) ...[const Spacer(), widget],
       ],
     );
   }
@@ -301,9 +298,9 @@ class _InfoRow extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           value,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            fontFamily: 'monospace',
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyLarge?.copyWith(fontFamily: 'monospace'),
         ),
       ],
     );

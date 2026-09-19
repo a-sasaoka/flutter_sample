@@ -50,17 +50,11 @@ void main() {
       when(
         () => mockDio.post<Map<String, dynamic>>(
           testUrl,
-          data: {
-            'textQuery': '東京',
-            'languageCode': 'ja',
-            'maxResultCount': 10,
-          },
+          data: {'textQuery': '東京', 'languageCode': 'ja', 'maxResultCount': 10},
         ),
       ).thenAnswer(
-        (_) async => Response(
-          requestOptions: RequestOptions(),
-          data: mockApiResponse,
-        ),
+        (_) async =>
+            Response(requestOptions: RequestOptions(), data: mockApiResponse),
       );
 
       final results = await repository.searchPlaces('東京');
@@ -106,15 +100,9 @@ void main() {
           testUrl,
           data: any(named: 'data'),
         ),
-      ).thenAnswer(
-        (_) async => Response(
-          requestOptions: RequestOptions(),
-        ),
-      );
+      ).thenAnswer((_) async => Response(requestOptions: RequestOptions()));
 
-      await check(
-        repository.searchPlaces('東京'),
-      ).throws<PlacesApiException>();
+      await check(repository.searchPlaces('東京')).throws<PlacesApiException>();
     });
 
     test('places リストが空の場合は空のリストを返すこと', () async {
@@ -166,10 +154,8 @@ void main() {
           data: any(named: 'data'),
         ),
       ).thenAnswer(
-        (_) async => Response(
-          requestOptions: RequestOptions(),
-          data: mockApiResponse,
-        ),
+        (_) async =>
+            Response(requestOptions: RequestOptions(), data: mockApiResponse),
       );
 
       final results = await repository.searchPlaces('テスト');
@@ -199,9 +185,7 @@ void main() {
         ),
       );
 
-      await check(
-        repository.searchPlaces('東京'),
-      ).throws<PlacesApiException>();
+      await check(repository.searchPlaces('東京')).throws<PlacesApiException>();
     });
 
     test('429 レート制限エラー時は適切な PlacesApiException をスローすること', () async {
@@ -226,9 +210,7 @@ void main() {
         ),
       );
 
-      await check(
-        repository.searchPlaces('東京'),
-      ).throws<PlacesApiException>();
+      await check(repository.searchPlaces('東京')).throws<PlacesApiException>();
     });
 
     test('その他の DioException 時も PlacesApiException に変換してスローすること', () async {
@@ -249,9 +231,7 @@ void main() {
         ),
       );
 
-      await check(
-        repository.searchPlaces('東京'),
-      ).throws<PlacesApiException>();
+      await check(repository.searchPlaces('東京')).throws<PlacesApiException>();
     });
 
     test('一般の例外も PlacesApiException にラップしてスローすること', () async {
@@ -267,9 +247,7 @@ void main() {
         ),
       ).thenThrow(Exception('Unexpected error'));
 
-      await check(
-        repository.searchPlaces('東京'),
-      ).throws<PlacesApiException>();
+      await check(repository.searchPlaces('東京')).throws<PlacesApiException>();
     });
 
     test('PlacesApiException の toString が message を返すこと', () {
@@ -290,11 +268,7 @@ void main() {
 
       test('カスタムモック候補地を指定した場合にそれを返すこと', () async {
         final customCandidates = [
-          const LocationCandidate(
-            latitude: 34,
-            longitude: 135,
-            name: '大阪城',
-          ),
+          const LocationCandidate(latitude: 34, longitude: 135, name: '大阪城'),
         ];
         final mockRepo = MockPlacesRepositoryImpl(
           mockCandidates: customCandidates,
@@ -319,9 +293,7 @@ void main() {
 
       test('shouldThrow が true の場合に例外をスローすること', () async {
         const mockRepo = MockPlacesRepositoryImpl(shouldThrow: true);
-        await check(
-          mockRepo.searchPlaces('テスト'),
-        ).throws<PlacesApiException>();
+        await check(mockRepo.searchPlaces('テスト')).throws<PlacesApiException>();
       });
     });
 

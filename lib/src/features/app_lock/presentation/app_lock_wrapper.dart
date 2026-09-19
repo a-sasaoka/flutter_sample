@@ -10,10 +10,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 /// 🔐 アプリ全体を包み込み、最前面にロックオーバーレイを描画＆ライフサイクル監視を行うラッパー
 class AppLockWrapper extends HookConsumerWidget {
   /// コンストラクタ
-  const AppLockWrapper({
-    required this.child,
-    super.key,
-  });
+  const AppLockWrapper({required this.child, super.key});
 
   /// ラップする子ウィジェット
   final Widget child;

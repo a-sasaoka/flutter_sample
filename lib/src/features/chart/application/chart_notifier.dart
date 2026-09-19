@@ -28,10 +28,7 @@ class ChartNotifier extends _$ChartNotifier {
       itemCounter: nextCounter,
       items: [
         ...state.items,
-        ChartItem(
-          id: uuid.v4(),
-          label: 'Item$nextCounter',
-        ),
+        ChartItem(id: uuid.v4(), label: 'Item$nextCounter'),
       ],
     );
   }

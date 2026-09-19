@@ -38,9 +38,7 @@ class RouteNavigationCard extends StatelessWidget {
 
     return Card(
       elevation: 6,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: AnimatedSize(
         duration: const Duration(milliseconds: 250),
@@ -229,11 +227,7 @@ class RouteNavigationCard extends StatelessWidget {
             // 所要時間
             Row(
               children: [
-                const Icon(
-                  Icons.timer_outlined,
-                  size: 20,
-                  color: Colors.grey,
-                ),
+                const Icon(Icons.timer_outlined, size: 20, color: Colors.grey),
                 const SizedBox(width: 6),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -257,20 +251,12 @@ class RouteNavigationCard extends StatelessWidget {
             ),
 
             // 区切り線
-            Container(
-              width: 1,
-              height: 32,
-              color: theme.dividerColor,
-            ),
+            Container(width: 1, height: 32, color: theme.dividerColor),
 
             // 移動距離
             Row(
               children: [
-                const Icon(
-                  Icons.straighten,
-                  size: 20,
-                  color: Colors.grey,
-                ),
+                const Icon(Icons.straighten, size: 20, color: Colors.grey),
                 const SizedBox(width: 6),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,10 +286,7 @@ class RouteNavigationCard extends StatelessWidget {
           Container(
             key: const Key('routeNavigationWarningBanner'),
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 6,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               color: Colors.amber.shade50,
               borderRadius: BorderRadius.circular(8),

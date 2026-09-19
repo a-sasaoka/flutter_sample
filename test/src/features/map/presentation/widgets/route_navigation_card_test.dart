@@ -87,10 +87,7 @@ void main() {
             GlobalCupertinoLocalizations.delegate,
           ],
           home: Scaffold(
-            body: RouteNavigationCard(
-              route: sampleRoute,
-              onClose: () {},
-            ),
+            body: RouteNavigationCard(route: sampleRoute, onClose: () {}),
           ),
         ),
       );
@@ -176,21 +173,14 @@ void main() {
             GlobalCupertinoLocalizations.delegate,
           ],
           home: Scaffold(
-            body: RouteNavigationCard(
-              route: walkingRoute,
-              onClose: () {},
-            ),
+            body: RouteNavigationCard(route: walkingRoute, onClose: () {}),
           ),
         ),
       );
       await tester.pump();
 
       check(find.byKey(const Key('routeNavigationWarningBanner'))).findsOne();
-      check(
-        find.text(
-          '徒歩ルートには歩道がない区間が含まれる場合があります。周囲の交通にご注意ください。',
-        ),
-      ).findsOne();
+      check(find.text('徒歩ルートには歩道がない区間が含まれる場合があります。周囲の交通にご注意ください。')).findsOne();
     });
 
     testWidgets('自転車ルート時に自転車用の警告バナーが表示されること', (tester) async {
@@ -218,10 +208,7 @@ void main() {
             GlobalCupertinoLocalizations.delegate,
           ],
           home: Scaffold(
-            body: RouteNavigationCard(
-              route: bikingRoute,
-              onClose: () {},
-            ),
+            body: RouteNavigationCard(route: bikingRoute, onClose: () {}),
           ),
         ),
       );
@@ -229,9 +216,7 @@ void main() {
 
       check(find.byKey(const Key('routeNavigationWarningBanner'))).findsOne();
       check(
-        find.text(
-          '自転車ルートには専用道がない区間が含まれる場合があります。交通ルールに従って走行してください。',
-        ),
+        find.text('自転車ルートには専用道がない区間が含まれる場合があります。交通ルールに従って走行してください。'),
       ).findsOne();
     });
 
@@ -297,10 +282,7 @@ void main() {
             GlobalCupertinoLocalizations.delegate,
           ],
           home: Scaffold(
-            body: RouteNavigationCard(
-              route: drivingRoute,
-              onClose: () {},
-            ),
+            body: RouteNavigationCard(route: drivingRoute, onClose: () {}),
           ),
         ),
       );
@@ -434,9 +416,7 @@ void main() {
       check(closePressed).isTrue();
     });
 
-    testWidgets('コンパクト表示時に各移動手段（徒歩・自転車・公共交通）のアイコンが正しく表示されること', (
-      tester,
-    ) async {
+    testWidgets('コンパクト表示時に各移動手段（徒歩・自転車・公共交通）のアイコンが正しく表示されること', (tester) async {
       for (final mode in [
         (TravelMode.walking, Icons.directions_walk),
         (TravelMode.bicycling, Icons.directions_bike),

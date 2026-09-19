@@ -9,10 +9,7 @@ part 'performance_service.g.dart';
 /// アプリのパフォーマンス計測（カスタムトレース）を提供するサービス
 class PerformanceService {
   /// コンストラクタ
-  const PerformanceService({
-    required this.performance,
-    required this.talker,
-  });
+  const PerformanceService({required this.performance, required this.talker});
 
   /// Firebase Performance インスタンス（null の場合は計測を安全にスキップ）
   final FirebasePerformance? performance;
@@ -34,7 +31,7 @@ class PerformanceService {
   }) async {
     final perf = performance;
     if (perf == null) {
-      return action();
+      return await action();
     }
 
     Trace? trace;

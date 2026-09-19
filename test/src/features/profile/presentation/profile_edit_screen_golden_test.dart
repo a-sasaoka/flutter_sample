@@ -81,9 +81,7 @@ void main() {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          supportedLocales: const [
-            Locale('ja'),
-          ],
+          supportedLocales: const [Locale('ja')],
           locale: const Locale('ja'),
           home: const ProfileEditScreen(),
           debugShowCheckedModeBanner: false,
@@ -130,7 +128,7 @@ void main() {
       'ProfileEditScreen の描画 (ローディング状態)',
       fileName: 'profile_edit_screen_loading',
       // 💡 未完了のCompleterによるタイムアウトを防ぐため、pumpAndSettleではなく1回のpumpのみにします
-      pumpBeforeTest: (tester) async => tester.pump(),
+      pumpBeforeTest: (tester) async => await tester.pump(),
       builder: () => GoldenTestGroup(
         children: [
           GoldenTestScenario(

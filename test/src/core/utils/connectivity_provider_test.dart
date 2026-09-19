@@ -7,9 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 void main() {
-  ProviderContainer createContainer({
-    List<Override> overrides = const [],
-  }) {
+  ProviderContainer createContainer({List<Override> overrides = const []}) {
     final container = ProviderContainer(overrides: overrides);
     addTearDown(container.dispose);
     return container;

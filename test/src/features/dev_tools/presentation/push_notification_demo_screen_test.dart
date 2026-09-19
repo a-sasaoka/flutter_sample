@@ -12,13 +12,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 void main() {
-  Widget buildTestWidget({
-    required NotificationNotifier notifier,
-  }) {
+  Widget buildTestWidget({required NotificationNotifier notifier}) {
     return ProviderScope(
-      overrides: [
-        notificationProvider.overrideWith(() => notifier),
-      ],
+      overrides: [notificationProvider.overrideWith(() => notifier)],
       child: const MaterialApp(
         localizationsDelegates: [
           AppLocalizations.delegate,
@@ -65,9 +61,7 @@ void main() {
 
       await tester.pumpWidget(buildTestWidget(notifier: spyNotifier));
 
-      check(
-        find.text('トークン未取得（実機またはシミュレータ環境）').evaluate().length,
-      ).equals(1);
+      check(find.text('トークン未取得（実機またはシミュレータ環境）').evaluate().length).equals(1);
 
       check(find.textContaining('未設定').evaluate().length).equals(1);
     });
@@ -86,12 +80,11 @@ void main() {
       check(find.textContaining('許可').evaluate().length).equals(1);
 
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(
-            SystemChannels.platform,
-            (methodCall) async {
-              return null;
-            },
-          );
+          .setMockMethodCallHandler(SystemChannels.platform, (
+            methodCall,
+          ) async {
+            return null;
+          });
 
       // コピーボタンをタップ
       await tester.tap(find.byIcon(Icons.copy_rounded));
@@ -186,9 +179,7 @@ void main() {
       );
 
       final spyNotifier = _SpyNotificationNotifier(
-        const NotificationState.data(
-          lastReceivedPayload: payload,
-        ),
+        const NotificationState.data(lastReceivedPayload: payload),
       );
 
       await tester.pumpWidget(buildTestWidget(notifier: spyNotifier));

@@ -87,10 +87,7 @@ class MapScreen extends HookConsumerWidget {
         unawaited(
           controller.animateCamera(
             CameraUpdate.newCameraPosition(
-              CameraPosition(
-                target: latLng,
-                zoom: 16,
-              ),
+              CameraPosition(target: latLng, zoom: 16),
             ),
           ),
         );
@@ -133,13 +130,8 @@ class MapScreen extends HookConsumerWidget {
         return Marker(
           markerId: MarkerId('spot_${spot.id}'),
           position: latLng,
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            spot.category.markerHue,
-          ),
-          infoWindow: InfoWindow(
-            title: spot.name,
-            snippet: spot.address,
-          ),
+          icon: BitmapDescriptor.defaultMarkerWithHue(spot.category.markerHue),
+          infoWindow: InfoWindow(title: spot.name, snippet: spot.address),
           onTap: () => showSpotDetail(spot),
         );
       }).toSet(),
@@ -176,10 +168,7 @@ class MapScreen extends HookConsumerWidget {
               unawaited(
                 controller.animateCamera(
                   CameraUpdate.newCameraPosition(
-                    CameraPosition(
-                      target: latLng,
-                      zoom: 16,
-                    ),
+                    CameraPosition(target: latLng, zoom: 16),
                   ),
                 ),
               );
@@ -195,9 +184,7 @@ class MapScreen extends HookConsumerWidget {
               action: SnackBarAction(
                 label: l10n.mapOpenSettings,
                 onPressed: () {
-                  unawaited(
-                    ref.read(mapProvider.notifier).openAppSettings(),
-                  );
+                  unawaited(ref.read(mapProvider.notifier).openAppSettings());
                 },
               ),
             );
@@ -249,10 +236,7 @@ class MapScreen extends HookConsumerWidget {
                 unawaited(
                   controller.animateCamera(
                     CameraUpdate.newCameraPosition(
-                      CameraPosition(
-                        target: latLng,
-                        zoom: 16,
-                      ),
+                      CameraPosition(target: latLng, zoom: 16),
                     ),
                   ),
                 );
@@ -407,15 +391,11 @@ class MapScreen extends HookConsumerWidget {
     void executeSearch(String query) {
       searchFocusNode.unfocus();
       ref.read(mapRouteProvider.notifier).clearRoute();
-      unawaited(
-        ref.read(mapSearchProvider.notifier).searchLocation(query),
-      );
+      unawaited(ref.read(mapSearchProvider.notifier).searchLocation(query));
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.mapTitle),
-      ),
+      appBar: AppBar(title: Text(l10n.mapTitle)),
       body: Column(
         children: [
           // 上部 検索バー UI
@@ -438,10 +418,7 @@ class MapScreen extends HookConsumerWidget {
                 GoogleMap(
                   initialCameraPosition: switch (locationState) {
                     LocationStateSuccess(:final position) => CameraPosition(
-                      target: LatLng(
-                        position.latitude,
-                        position.longitude,
-                      ),
+                      target: LatLng(position.latitude, position.longitude),
                       zoom: 16,
                     ),
                     _ => _initialCameraPosition,
@@ -458,10 +435,7 @@ class MapScreen extends HookConsumerWidget {
                       unawaited(
                         controller.animateCamera(
                           CameraUpdate.newCameraPosition(
-                            CameraPosition(
-                              target: pendingLatLng,
-                              zoom: 16,
-                            ),
+                            CameraPosition(target: pendingLatLng, zoom: 16),
                           ),
                         ),
                       );
@@ -484,9 +458,7 @@ class MapScreen extends HookConsumerWidget {
                   const Positioned.fill(
                     child: ColoredBox(
                       color: Colors.black26,
-                      child: Center(
-                        child: CircularProgressIndicator(),
-                      ),
+                      child: Center(child: CircularProgressIndicator()),
                     ),
                   ),
 
@@ -495,9 +467,7 @@ class MapScreen extends HookConsumerWidget {
                   const Positioned.fill(
                     child: ColoredBox(
                       color: Colors.black26,
-                      child: Center(
-                        child: CircularProgressIndicator(),
-                      ),
+                      child: Center(child: CircularProgressIndicator()),
                     ),
                   ),
 

@@ -59,9 +59,7 @@ void main() {
 
     ProviderContainer createContainer() {
       final container = ProviderContainer(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(mockPrefs),
-        ],
+        overrides: [sharedPreferencesProvider.overrideWithValue(mockPrefs)],
       );
       addTearDown(container.dispose);
       return container;
@@ -71,10 +69,7 @@ void main() {
       final container = createContainer();
 
       // AutoDispose なので listen して破棄を防ぐ
-      container.listen(
-        sharedPreferencesItemsProvider,
-        (previous, next) {},
-      );
+      container.listen(sharedPreferencesItemsProvider, (previous, next) {});
 
       final state = await container.read(sharedPreferencesItemsProvider.future);
 
@@ -88,10 +83,7 @@ void main() {
     test('set updates value and fetches map', () async {
       final container = createContainer();
 
-      container.listen(
-        sharedPreferencesItemsProvider,
-        (previous, next) {},
-      );
+      container.listen(sharedPreferencesItemsProvider, (previous, next) {});
 
       final notifier = container.read(sharedPreferencesItemsProvider.notifier);
 
@@ -117,10 +109,7 @@ void main() {
     test('remove deletes value', () async {
       final container = createContainer();
 
-      container.listen(
-        sharedPreferencesItemsProvider,
-        (previous, next) {},
-      );
+      container.listen(sharedPreferencesItemsProvider, (previous, next) {});
 
       final notifier = container.read(sharedPreferencesItemsProvider.notifier);
 
@@ -132,10 +121,7 @@ void main() {
     test('clear removes all keys', () async {
       final container = createContainer();
 
-      container.listen(
-        sharedPreferencesItemsProvider,
-        (previous, next) {},
-      );
+      container.listen(sharedPreferencesItemsProvider, (previous, next) {});
 
       final notifier = container.read(sharedPreferencesItemsProvider.notifier);
 

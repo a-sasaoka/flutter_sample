@@ -21,9 +21,7 @@ void main() {
   // テスト用のコンテナを作成する
   ProviderContainer createContainer() {
     final container = ProviderContainer(
-      overrides: [
-        userRepositoryProvider.overrideWithValue(mockRepository),
-      ],
+      overrides: [userRepositoryProvider.overrideWithValue(mockRepository)],
     );
     addTearDown(container.dispose);
     return container;

@@ -93,9 +93,8 @@ void main() {
           builder: (context, state) => const FirebaseEmailVerificationScreen(),
         ),
       ],
-      errorBuilder: (context, state) => Scaffold(
-        body: Text('Navigated to ${state.uri}'),
-      ),
+      errorBuilder: (context, state) =>
+          Scaffold(body: Text('Navigated to ${state.uri}')),
     );
 
     return UncontrolledProviderScope(
@@ -136,7 +135,7 @@ void main() {
       // ローディング中の状態（CircularProgressIndicator）をテストするために、
       // 処理が完了するまでに意図的に少しだけ遅延させる
       when(() => mockAuthRepo.reloadCurrentUser()).thenAnswer(
-        (_) async => Future.delayed(const Duration(milliseconds: 100)),
+        (_) async => await Future.delayed(const Duration(milliseconds: 100)),
       );
 
       final container = ProviderContainer(
@@ -253,9 +252,9 @@ void main() {
         when(() => mockUser.emailVerified).thenReturn(false);
 
         // 非同期処理で例外を投げるように設定
-        when(() => mockAuthRepo.reloadCurrentUser()).thenAnswer(
-          (_) => Future.error(Exception('Lifecycle Reload Error')),
-        );
+        when(
+          () => mockAuthRepo.reloadCurrentUser(),
+        ).thenAnswer((_) => Future.error(Exception('Lifecycle Reload Error')));
 
         final container = ProviderContainer(
           overrides: [

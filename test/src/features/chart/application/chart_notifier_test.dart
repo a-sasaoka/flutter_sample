@@ -18,9 +18,7 @@ void main() {
 
   ProviderContainer makeProviderContainer() {
     final container = ProviderContainer(
-      overrides: [
-        uuidProvider.overrideWithValue(mockUuid),
-      ],
+      overrides: [uuidProvider.overrideWithValue(mockUuid)],
     );
     addTearDown(container.dispose);
     return container;

@@ -40,9 +40,7 @@ class Profile extends _$Profile {
 
       final oldProfile = previousState.value;
       if (oldProfile == null) {
-        talker.warning(
-          'Cannot update profile: Current profile is not loaded.',
-        );
+        talker.warning('Cannot update profile: Current profile is not loaded.');
         throw const AppException.unknown(
           message: 'Cannot update profile: Current profile is not loaded.',
         );

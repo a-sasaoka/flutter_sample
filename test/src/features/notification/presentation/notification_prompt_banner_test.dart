@@ -43,9 +43,7 @@ void main() {
   }) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          notificationProvider.overrideWith(() => notifier),
-        ],
+        overrides: [notificationProvider.overrideWith(() => notifier)],
         child: const MaterialApp(
           localizationsDelegates: [
             AppLocalizations.delegate,
@@ -55,9 +53,7 @@ void main() {
           ],
           supportedLocales: AppLocalizations.supportedLocales,
           locale: Locale('ja'),
-          home: Scaffold(
-            body: NotificationPromptBanner(),
-          ),
+          home: Scaffold(body: NotificationPromptBanner()),
         ),
       ),
     );

@@ -9,10 +9,7 @@ part 'image_cache_service.g.dart';
 /// 画像キャッシュ管理サービス
 class ImageCacheService {
   /// コンストラクタ
-  const ImageCacheService({
-    required this.talker,
-    this.cacheManager,
-  });
+  const ImageCacheService({required this.talker, this.cacheManager});
 
   /// ロガー
   final Talker talker;

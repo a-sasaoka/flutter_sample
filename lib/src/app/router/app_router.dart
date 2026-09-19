@@ -111,23 +111,20 @@ GoRouter router(Ref ref) {
   );
 
   // 🔔 通知状態の更新（初期通知ディープリンク再評価および通知タップ時の画面遷移）を監視
-  ref.listen(
-    notificationProvider,
-    (previous, next) {
-      routerListenable.value = !routerListenable.value;
+  ref.listen(notificationProvider, (previous, next) {
+    routerListenable.value = !routerListenable.value;
 
-      if (next case final NotificationStateData nextData) {
-        final latestPayload = nextData.latestPayload;
-        if (latestPayload != null && latestPayload.isNavigable) {
-          final path = latestPayload.path;
-          if (path != null) {
-            ref.read(notificationProvider.notifier).consumeLatestPayload();
-            router.go(path);
-          }
+    if (next case final NotificationStateData nextData) {
+      final latestPayload = nextData.latestPayload;
+      if (latestPayload != null && latestPayload.isNavigable) {
+        final path = latestPayload.path;
+        if (path != null) {
+          ref.read(notificationProvider.notifier).consumeLatestPayload();
+          router.go(path);
         }
       }
-    },
-  );
+    }
+  });
 
   return router;
 }

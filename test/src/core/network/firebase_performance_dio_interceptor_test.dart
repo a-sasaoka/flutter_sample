@@ -33,12 +33,8 @@ void main() {
     registerFallbackValue(StackTrace.current);
     registerFallbackValue(HttpMethod.Get);
     registerFallbackValue(RequestOptions());
-    registerFallbackValue(
-      Response<dynamic>(requestOptions: RequestOptions()),
-    );
-    registerFallbackValue(
-      DioException(requestOptions: RequestOptions()),
-    );
+    registerFallbackValue(Response<dynamic>(requestOptions: RequestOptions()));
+    registerFallbackValue(DioException(requestOptions: RequestOptions()));
   });
 
   late MockFirebasePerformance mockPerformance;
@@ -58,11 +54,8 @@ void main() {
     when(() => mockMetric.stop()).thenAnswer((_) async {});
     when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
     when(
-      () => mockTalker.handle(
-        any<Object>(),
-        any<StackTrace?>(),
-        any<dynamic>(),
-      ),
+      () =>
+          mockTalker.handle(any<Object>(), any<StackTrace?>(), any<dynamic>()),
     ).thenReturn(null);
 
     interceptor = FirebasePerformanceDioInterceptor(
@@ -92,38 +85,35 @@ void main() {
       verify(() => handler.next(options)).called(1);
     });
 
-    test(
-      'onRequest: 各種HTTPメソッドが正しく変換されること',
-      () async {
-        final methods = {
-          'POST': HttpMethod.Post,
-          'PUT': HttpMethod.Put,
-          'DELETE': HttpMethod.Delete,
-          'PATCH': HttpMethod.Patch,
-          'HEAD': HttpMethod.Head,
-          'OPTIONS': HttpMethod.Options,
-          'TRACE': HttpMethod.Trace,
-          'CONNECT': HttpMethod.Connect,
-        };
+    test('onRequest: 各種HTTPメソッドが正しく変換されること', () async {
+      final methods = {
+        'POST': HttpMethod.Post,
+        'PUT': HttpMethod.Put,
+        'DELETE': HttpMethod.Delete,
+        'PATCH': HttpMethod.Patch,
+        'HEAD': HttpMethod.Head,
+        'OPTIONS': HttpMethod.Options,
+        'TRACE': HttpMethod.Trace,
+        'CONNECT': HttpMethod.Connect,
+      };
 
-        for (final entry in methods.entries) {
-          final options = RequestOptions(
-            path: 'https://api.example.com/test',
-            method: entry.key,
-          );
-          final handler = MockRequestInterceptorHandler();
+      for (final entry in methods.entries) {
+        final options = RequestOptions(
+          path: 'https://api.example.com/test',
+          method: entry.key,
+        );
+        final handler = MockRequestInterceptorHandler();
 
-          await interceptor.onRequest(options, handler);
+        await interceptor.onRequest(options, handler);
 
-          verify(
-            () => mockPerformance.newHttpMetric(
-              'https://api.example.com/test',
-              entry.value,
-            ),
-          ).called(1);
-        }
-      },
-    );
+        verify(
+          () => mockPerformance.newHttpMetric(
+            'https://api.example.com/test',
+            entry.value,
+          ),
+        ).called(1);
+      }
+    });
 
     test(
       'onRequest: performance が null の場合は HttpMetric を作成せずにスキップすること',
@@ -222,10 +212,7 @@ void main() {
     });
 
     test('onRequest: FormData の場合にバイト数が設定されること', () async {
-      final formData = FormData.fromMap({
-        'name': 'taro',
-        'age': 25,
-      });
+      final formData = FormData.fromMap({'name': 'taro', 'age': 25});
       final formOptions = RequestOptions(
         path: 'https://api.example.com/form',
         method: 'POST',
@@ -534,10 +521,7 @@ void main() {
           ..extra['_firebase_performance_metric'] = mockMetric;
         final err = DioException(
           requestOptions: options,
-          response: Response(
-            requestOptions: options,
-            statusCode: 500,
-          ),
+          response: Response(requestOptions: options, statusCode: 500),
         );
         final handler = MockErrorInterceptorHandler();
 
@@ -559,9 +543,7 @@ void main() {
       final options = RequestOptions(
         path: 'https://api.example.com/network-fail',
       )..extra['_firebase_performance_metric'] = mockMetric;
-      final err = DioException(
-        requestOptions: options,
-      );
+      final err = DioException(requestOptions: options);
       final handler = MockErrorInterceptorHandler();
 
       await interceptor.onError(err, handler);

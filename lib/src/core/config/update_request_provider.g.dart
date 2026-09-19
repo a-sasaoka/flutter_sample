@@ -136,7 +136,7 @@ final class UpdateRequestControllerProvider
 }
 
 String _$updateRequestControllerHash() =>
-    r'022b6c7e8ba2a9140eb07afeae92c30643d86915';
+    r'32badcf78d1dea8f87899dce49e5849b63ff2b36';
 
 /// RemoteConfigからアップデート情報を取得するコントローラ
 

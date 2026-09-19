@@ -21,9 +21,7 @@ void main() {
   /// テスト用のProviderContainerを作成するヘルパー
   ProviderContainer createContainer() {
     final container = ProviderContainer(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(mockPrefs),
-      ],
+      overrides: [sharedPreferencesProvider.overrideWithValue(mockPrefs)],
     );
     addTearDown(container.dispose);
     return container;
@@ -64,23 +62,20 @@ void main() {
       },
     );
 
-    test(
-      '初期化時(build): 無効な文字列が保存されていた場合は ThemeMode.system を返すこと',
-      () async {
-        // Arrange
-        when(
-          () => mockPrefs.getString('theme_mode'),
-        ).thenAnswer((_) async => 'invalid_theme');
+    test('初期化時(build): 無効な文字列が保存されていた場合は ThemeMode.system を返すこと', () async {
+      // Arrange
+      when(
+        () => mockPrefs.getString('theme_mode'),
+      ).thenAnswer((_) async => 'invalid_theme');
 
-        final container = createContainer();
+      final container = createContainer();
 
-        // Act
-        final theme = await container.read(themeModeProvider.future);
+      // Act
+      final theme = await container.read(themeModeProvider.future);
 
-        // Assert
-        check(theme).equals(ThemeMode.system);
-      },
-    );
+      // Assert
+      check(theme).equals(ThemeMode.system);
+    });
 
     test('set(): 任意のテーマを渡すと状態が更新され、ストレージに保存されること（拡張メソッドのテスト兼ねる）', () async {
       // Arrange

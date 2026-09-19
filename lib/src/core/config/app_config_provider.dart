@@ -22,9 +22,7 @@ Future<
     TextScaler textScaler,
   })
 >
-appConfig(
-  Ref ref,
-) async {
+appConfig(Ref ref) async {
   // 同期プロバイダ → 即取得
   final router = ref.watch(routerProvider);
 

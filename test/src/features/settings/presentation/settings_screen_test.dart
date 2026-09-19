@@ -193,9 +193,8 @@ void main() {
           builder: (context, state) => const SettingsScreen(),
         ),
       ],
-      errorBuilder: (context, state) => Scaffold(
-        body: Text('Navigated to ${state.uri}'),
-      ),
+      errorBuilder: (context, state) =>
+          Scaffold(body: Text('Navigated to ${state.uri}')),
     );
 
     return ProviderScope(
@@ -223,9 +222,7 @@ void main() {
         themeModeProvider.overrideWith(
           themeModeOverride ?? () => fakeThemeModeNotifier,
         ),
-        localeProvider.overrideWith(
-          localeOverride ?? () => fakeLocaleNotifier,
-        ),
+        localeProvider.overrideWith(localeOverride ?? () => fakeLocaleNotifier),
       ],
       child: MaterialApp.router(
         routerConfig: router,
@@ -356,9 +353,7 @@ void main() {
 
       testWidgets(
         'テーマカラーのChoiceChipを変更した時、ThemeSchemeNotifier.setSchemeが呼ばれること',
-        (
-          tester,
-        ) async {
+        (tester) async {
           await tester.pumpWidget(createTestWidget());
           await tester.pumpAndSettle();
 
@@ -418,9 +413,7 @@ void main() {
 
       group('ログアウトボタン', () {
         testWidgets('isAuthed == false の場合、ログアウトボタンは表示されないこと', (tester) async {
-          await tester.pumpWidget(
-            createTestWidget(isAuthed: false),
-          );
+          await tester.pumpWidget(createTestWidget(isAuthed: false));
           await tester.pumpAndSettle();
 
           check(find.byKey(const Key('logout_button'))).findsNothing();
@@ -447,29 +440,26 @@ void main() {
           verify(() => mockAuthService.signOut()).called(1);
         });
 
-        testWidgets(
-          'useAuth: false（自前認証）でもログアウトボタンが表示され signOut が呼ばれること',
-          (tester) async {
-            setMobileView(tester);
+        testWidgets('useAuth: false（自前認証）でもログアウトボタンが表示され signOut が呼ばれること', (
+          tester,
+        ) async {
+          setMobileView(tester);
 
-            await tester.pumpWidget(
-              createTestWidget(useAuth: false),
-            );
-            await tester.pumpAndSettle();
+          await tester.pumpWidget(createTestWidget(useAuth: false));
+          await tester.pumpAndSettle();
 
-            final logoutButton = find.byKey(const Key('logout_button'));
-            await tester.dragUntilVisible(
-              logoutButton,
-              find.byType(ListView),
-              const Offset(0, -300),
-            );
+          final logoutButton = find.byKey(const Key('logout_button'));
+          await tester.dragUntilVisible(
+            logoutButton,
+            find.byType(ListView),
+            const Offset(0, -300),
+          );
 
-            await tester.tap(logoutButton);
-            await tester.pumpAndSettle();
+          await tester.tap(logoutButton);
+          await tester.pumpAndSettle();
 
-            verify(() => mockAuthService.signOut()).called(1);
-          },
-        );
+          verify(() => mockAuthService.signOut()).called(1);
+        });
 
         testWidgets('ログアウト時に例外が発生した場合、SnackBarでエラーが表示されること', (tester) async {
           setMobileView(tester);

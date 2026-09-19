@@ -281,9 +281,9 @@ void main() {
       when(
         () => mockMemoRepository.watchAllMemos(),
       ).thenAnswer((_) => Stream.value([]));
-      when(
-        () => mockMemoRepository.fetchAndMergeRemoteMemos(),
-      ).thenAnswer((_) async {
+      when(() => mockMemoRepository.fetchAndMergeRemoteMemos()).thenAnswer((
+        _,
+      ) async {
         if (callCount++ == 0) {
           // build時の自動同期は成功
           return;

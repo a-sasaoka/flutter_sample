@@ -187,11 +187,7 @@ class MemoRepository {
         syncedIds.add(memo.id);
         _talker.debug('Synced unsent memo to server. id: ${memo.id}');
       } on Exception catch (e, st) {
-        _talker.handle(
-          e,
-          st,
-          'Failed to sync memo (id: ${memo.id}) to server',
-        );
+        _talker.handle(e, st, 'Failed to sync memo (id: ${memo.id}) to server');
       }
     }
 

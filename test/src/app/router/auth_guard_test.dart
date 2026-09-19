@@ -147,9 +147,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         // 💡 修正ポイント: 引数なしの overrideWith
-        authStateProvider.overrideWith(
-          () => _FakeAuthStateNotifier(authState),
-        ),
+        authStateProvider.overrideWith(() => _FakeAuthStateNotifier(authState)),
         splashStateProvider.overrideWith(
           () => FakeSplashState(initialValue: isSplashFinished),
         ),
@@ -205,10 +203,7 @@ void main() {
     });
 
     test('ログイン済みでスプラッシュ画面に初期通知（initialPayload）が存在する場合、通知パスへリダイレクトすること', () {
-      const payload = NotificationPayload(
-        path: '/chat',
-        title: 'Initial Chat',
-      );
+      const payload = NotificationPayload(path: '/chat', title: 'Initial Chat');
       final result = executeGuard(
         const AsyncData<bool>(true),
         location: const SplashRoute().location,
@@ -220,9 +215,7 @@ void main() {
     test(
       'ログイン済みでスプラッシュ画面の初期通知が無効（pathなし/isNavigable false）の場合、ホーム画面へリダイレクトすること',
       () {
-        const payload = NotificationPayload(
-          title: 'No Path',
-        );
+        const payload = NotificationPayload(title: 'No Path');
         final result = executeGuard(
           const AsyncData<bool>(true),
           location: const SplashRoute().location,

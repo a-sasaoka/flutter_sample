@@ -19,10 +19,7 @@ ProfileRepository profileRepository(Ref ref) {
 /// プロフィールに関する通信を管理するリポジトリ
 class ProfileRepository {
   /// コンストラクタ
-  const ProfileRepository({
-    required this.api,
-    required this.talker,
-  });
+  const ProfileRepository({required this.api, required this.talker});
 
   /// APIクライアント
   final ApiClient api;

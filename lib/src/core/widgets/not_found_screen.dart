@@ -7,11 +7,7 @@ import 'package:go_router/go_router.dart';
 /// NotFoundScreen ウィジェット
 class NotFoundScreen extends StatelessWidget {
   /// コンストラクタ
-  const NotFoundScreen({
-    super.key,
-    this.unknownPath,
-    this.animate,
-  });
+  const NotFoundScreen({super.key, this.unknownPath, this.animate});
 
   /// 不明なパス（URL）
   final String? unknownPath;
@@ -66,9 +62,9 @@ class NotFoundScreen extends StatelessWidget {
                   ),
                   child: Text(
                     'path: $unknownPath',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontFamily: 'monospace',
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(fontFamily: 'monospace'),
                   ),
                 ),
               ],

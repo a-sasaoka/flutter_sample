@@ -34,9 +34,7 @@ void main() {
     mockRouter = MockGoRouter();
     tokenRefreshController = StreamController<String>.broadcast();
 
-    when(
-      () => mockService.initialize(),
-    ).thenAnswer((_) async {});
+    when(() => mockService.initialize()).thenAnswer((_) async {});
     when(
       () => mockService.getToken(),
     ).thenAnswer((_) async => 'initial_test_token');
@@ -185,34 +183,31 @@ void main() {
       check(dataState.fcmToken).equals('updated_token_123');
     });
 
-    test(
-      '初期化中（getToken等の処理中）に onTokenRefresh が発生した場合、 '
-      '更新されたトークンが反映されること',
-      () async {
-        final tokenCompleter = Completer<String?>();
-        when(
-          () => mockService.getToken(),
-        ).thenAnswer((_) => tokenCompleter.future);
+    test('初期化中（getToken等の処理中）に onTokenRefresh が発生した場合、 '
+        '更新されたトークンが反映されること', () async {
+      final tokenCompleter = Completer<String?>();
+      when(
+        () => mockService.getToken(),
+      ).thenAnswer((_) => tokenCompleter.future);
 
-        final container = createContainer();
+      final container = createContainer();
 
-        // 初期化が開始され getToken 待ち状態になるまで少し待機
-        await Future<void>.delayed(const Duration(milliseconds: 10));
+      // 初期化が開始され getToken 待ち状態になるまで少し待機
+      await Future<void>.delayed(const Duration(milliseconds: 10));
 
-        // getToken 完了前に onTokenRefresh で新しいトークンを発行
-        tokenRefreshController.add('refreshed_during_init_token');
+      // getToken 完了前に onTokenRefresh で新しいトークンを発行
+      tokenRefreshController.add('refreshed_during_init_token');
 
-        // getToken を完了させる（古いトークンを返す）
-        tokenCompleter.complete('old_token');
-        await Future<void>.delayed(const Duration(milliseconds: 50));
+      // getToken を完了させる（古いトークンを返す）
+      tokenCompleter.complete('old_token');
+      await Future<void>.delayed(const Duration(milliseconds: 50));
 
-        final state = container.read(notificationProvider);
-        check(state).isA<NotificationStateData>();
-        final dataState = state as NotificationStateData;
-        // refreshedToken が優先されていること
-        check(dataState.fcmToken).equals('refreshed_during_init_token');
-      },
-    );
+      final state = container.read(notificationProvider);
+      check(state).isA<NotificationStateData>();
+      final dataState = state as NotificationStateData;
+      // refreshedToken が優先されていること
+      check(dataState.fcmToken).equals('refreshed_during_init_token');
+    });
 
     test('container が dispose された後の onTokenRefresh は無視されること', () async {
       var notificationCount = 0;
@@ -294,80 +289,71 @@ void main() {
       verify(() => mockService.showLocalNotification(payload)).called(1);
     });
 
-    test(
-      'handleNotificationTap で latestPayload と lastReceivedPayload が更新され '
-      'consumeLatestPayload で latestPayload が消費されても '
-      'lastReceivedPayload は維持されること',
-      () async {
-        final container = createContainer();
-        await Future<void>.delayed(const Duration(milliseconds: 50));
+    test('handleNotificationTap で latestPayload と lastReceivedPayload が更新され '
+        'consumeLatestPayload で latestPayload が消費されても '
+        'lastReceivedPayload は維持されること', () async {
+      final container = createContainer();
+      await Future<void>.delayed(const Duration(milliseconds: 50));
 
-        const payload = NotificationPayload(
-          path: '/memos',
-          title: 'Memo',
-        );
+      const payload = NotificationPayload(path: '/memos', title: 'Memo');
 
-        final notifier = container.read(notificationProvider.notifier)
-          ..handleNotificationTap(payload);
+      final notifier = container.read(notificationProvider.notifier)
+        ..handleNotificationTap(payload);
 
-        final state = container.read(notificationProvider);
-        check(state).isA<NotificationStateData>();
-        final dataState = state as NotificationStateData;
-        check(dataState.latestPayload).equals(payload);
-        check(dataState.lastReceivedPayload).equals(payload);
+      final state = container.read(notificationProvider);
+      check(state).isA<NotificationStateData>();
+      final dataState = state as NotificationStateData;
+      check(dataState.latestPayload).equals(payload);
+      check(dataState.lastReceivedPayload).equals(payload);
 
-        // consumeLatestPayload で latestPayload が取り出され、null に更新されるが
-        // lastReceivedPayload は維持されること
-        final consumed = notifier.consumeLatestPayload();
-        check(consumed).equals(payload);
+      // consumeLatestPayload で latestPayload が取り出され、null に更新されるが
+      // lastReceivedPayload は維持されること
+      final consumed = notifier.consumeLatestPayload();
+      check(consumed).equals(payload);
 
-        final afterState = container.read(notificationProvider);
-        check(afterState).isA<NotificationStateData>();
-        final afterDataState = afterState as NotificationStateData;
-        check(afterDataState.latestPayload).isNull();
-        check(afterDataState.lastReceivedPayload).equals(payload);
+      final afterState = container.read(notificationProvider);
+      check(afterState).isA<NotificationStateData>();
+      final afterDataState = afterState as NotificationStateData;
+      check(afterDataState.latestPayload).isNull();
+      check(afterDataState.lastReceivedPayload).equals(payload);
 
-        // 2回目の消費は null
-        check(notifier.consumeLatestPayload()).isNull();
-      },
-    );
+      // 2回目の消費は null
+      check(notifier.consumeLatestPayload()).isNull();
+    });
 
-    test(
-      '初期化処理中（loading中）に handleNotificationTap が呼ばれた場合、 '
-      '初期化完了時に latestPayload および lastReceivedPayload へ反映されること',
-      () async {
-        final initCompleter = Completer<String?>();
-        when(
-          () => mockService.getToken(),
-        ).thenAnswer((_) => initCompleter.future);
+    test('初期化処理中（loading中）に handleNotificationTap が呼ばれた場合、 '
+        '初期化完了時に latestPayload および lastReceivedPayload へ反映されること', () async {
+      final initCompleter = Completer<String?>();
+      when(
+        () => mockService.getToken(),
+      ).thenAnswer((_) => initCompleter.future);
 
-        final container = createContainer();
+      final container = createContainer();
 
-        // 初期化中（loading中）であることを確認
-        check(
-          container.read(notificationProvider),
-        ).isA<NotificationStateLoading>();
+      // 初期化中（loading中）であることを確認
+      check(
+        container.read(notificationProvider),
+      ).isA<NotificationStateLoading>();
 
-        const pendingPayload = NotificationPayload(
-          path: '/chat',
-          title: 'Pending Chat',
-        );
+      const pendingPayload = NotificationPayload(
+        path: '/chat',
+        title: 'Pending Chat',
+      );
 
-        // loading 中にタップハンドラが呼ばれる
-        container
-            .read(notificationProvider.notifier)
-            .handleNotificationTap(pendingPayload);
+      // loading 中にタップハンドラが呼ばれる
+      container
+          .read(notificationProvider.notifier)
+          .handleNotificationTap(pendingPayload);
 
-        // 初期化処理を完了させる
-        initCompleter.complete('fcm_token_123');
-        await Future<void>.delayed(const Duration(milliseconds: 50));
+      // 初期化処理を完了させる
+      initCompleter.complete('fcm_token_123');
+      await Future<void>.delayed(const Duration(milliseconds: 50));
 
-        final state = container.read(notificationProvider);
-        check(state).isA<NotificationStateData>();
-        final dataState = state as NotificationStateData;
-        check(dataState.latestPayload).equals(pendingPayload);
-        check(dataState.lastReceivedPayload).equals(pendingPayload);
-      },
-    );
+      final state = container.read(notificationProvider);
+      check(state).isA<NotificationStateData>();
+      final dataState = state as NotificationStateData;
+      check(dataState.latestPayload).equals(pendingPayload);
+      check(dataState.lastReceivedPayload).equals(pendingPayload);
+    });
   });
 }

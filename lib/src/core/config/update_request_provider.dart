@@ -61,7 +61,7 @@ class UpdateRequestController extends _$UpdateRequestController {
       state = const AsyncValue.loading();
       // 変更した状態をstateに設定
       state = await AsyncValue.guard(() async {
-        return service.getUpdateRequestType();
+        return await service.getUpdateRequestType();
       });
     });
 
@@ -70,7 +70,7 @@ class UpdateRequestController extends _$UpdateRequestController {
     // アクティベート
     await remoteConfig.fetchAndActivate();
 
-    return service.getUpdateRequestType();
+    return await service.getUpdateRequestType();
   }
 }
 

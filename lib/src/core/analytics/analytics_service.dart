@@ -52,10 +52,7 @@ class AnalyticsService {
     };
 
     try {
-      await _firebaseAnalytics.logEvent(
-        name: event.name,
-        parameters: data,
-      );
+      await _firebaseAnalytics.logEvent(name: event.name, parameters: data);
     } on Exception catch (e) {
       // 分析イベントの送信失敗でアプリのクラッシュや機能停止を防ぐ
       _talker.warning('Analytics Error: $e');

@@ -111,10 +111,7 @@ class ChartInputScreen extends HookConsumerWidget {
                       itemCount: itemIds.length,
                       itemBuilder: (context, index) {
                         final id = itemIds[index];
-                        return _ChartItemInput(
-                          key: ValueKey(id),
-                          id: id,
-                        );
+                        return _ChartItemInput(key: ValueKey(id), id: id);
                       },
                     ),
             ),
@@ -143,10 +140,7 @@ class ChartInputScreen extends HookConsumerWidget {
 
 /// 個別の項目入力用ウィジェット（再描画最適化のため分割）
 class _ChartItemInput extends ConsumerWidget {
-  const _ChartItemInput({
-    required this.id,
-    super.key,
-  });
+  const _ChartItemInput({required this.id, super.key});
 
   final String id;
 
@@ -154,9 +148,7 @@ class _ChartItemInput extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // この項目に関連するデータのみをwatchする
     final item = ref.watch(
-      chartProvider.select(
-        (s) => s.items.where((i) => i.id == id).firstOrNull,
-      ),
+      chartProvider.select((s) => s.items.where((i) => i.id == id).firstOrNull),
     );
 
     // 削除直後などはitemがnullになる可能性があるため、その場合は空のウィジェットを返す

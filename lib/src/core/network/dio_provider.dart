@@ -41,10 +41,7 @@ Dio baseDio(Ref ref) {
 }
 
 /// Dioのインスタンス作成と共通設定を一括で行うヘルパー
-Dio _createDio(
-  Ref ref, {
-  List<Interceptor> additionalInterceptors = const [],
-}) {
+Dio _createDio(Ref ref, {List<Interceptor> additionalInterceptors = const []}) {
   final config = ref.watch(envConfigProvider);
   final flavor = ref.watch(flavorProvider);
 
@@ -75,9 +72,7 @@ Dio _createDio(
       connectTimeout: Duration(seconds: config.connectTimeout),
       receiveTimeout: Duration(seconds: config.receiveTimeout),
       sendTimeout: Duration(seconds: config.sendTimeout),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: {'Content-Type': 'application/json'},
     ),
   );
 

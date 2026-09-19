@@ -39,9 +39,7 @@ void main() {
           home: Scaffold(
             backgroundColor: Colors.black54, // ダイアログ表示時の薄暗い背景オーバーレイを模倣
             body: Center(
-              child: VersionUpDialogContent(
-                isCancelable: isCancelable,
-              ),
+              child: VersionUpDialogContent(isCancelable: isCancelable),
             ),
           ),
         ),

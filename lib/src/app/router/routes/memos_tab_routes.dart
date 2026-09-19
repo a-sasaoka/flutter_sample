@@ -19,7 +19,5 @@ class MemosBranch extends StatefulShellBranchData {
 
 /// 📝 メモタブのシェルブランチ定義
 const memosShellBranch = TypedStatefulShellBranch<MemosBranch>(
-  routes: <TypedRoute<RouteData>>[
-    TypedGoRoute<MemosRoute>(path: '/memos'),
-  ],
+  routes: <TypedRoute<RouteData>>[TypedGoRoute<MemosRoute>(path: '/memos')],
 );

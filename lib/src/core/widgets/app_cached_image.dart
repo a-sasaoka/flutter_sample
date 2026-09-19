@@ -108,11 +108,7 @@ class AppCachedImage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final effectiveFallback =
         fallbackWidget ??
-        _DefaultFallback(
-          width: width,
-          height: height,
-          shape: shape,
-        );
+        _DefaultFallback(width: width, height: height, shape: shape);
 
     // URLが未指定または空文字の場合は、通信を行わず即座にフォールバックを表示
     final url = imageUrl?.trim();
@@ -138,11 +134,8 @@ class AppCachedImage extends ConsumerWidget {
       cacheManager: cacheManager ?? ref.watch(imageCacheManagerProvider),
       memCacheWidth: calculatedMemWidth,
       memCacheHeight: calculatedMemHeight,
-      placeholder: (context, url) => _ShimmerPlaceholder(
-        width: width,
-        height: height,
-        shape: shape,
-      ),
+      placeholder: (context, url) =>
+          _ShimmerPlaceholder(width: width, height: height, shape: shape),
       errorWidget: (context, url, error) {
         // 画像読み込み失敗時のエラーを Talker 経由で安全に記録（クエリパラメータはサニタイズ）
         final sanitizedUrl = _sanitizeUrl(url);
@@ -179,19 +172,11 @@ class AppCachedImage extends ConsumerWidget {
   Widget _applyShape(Widget child) {
     return switch (shape) {
       AppImageShape.circle => ClipOval(
-        child: SizedBox(
-          width: width,
-          height: height,
-          child: child,
-        ),
+        child: SizedBox(width: width, height: height, child: child),
       ),
       AppImageShape.rounded => ClipRRect(
         borderRadius: borderRadius ?? BorderRadius.circular(8),
-        child: SizedBox(
-          width: width,
-          height: height,
-          child: child,
-        ),
+        child: SizedBox(width: width, height: height, child: child),
       ),
       AppImageShape.rectangle => SizedBox(
         width: width,

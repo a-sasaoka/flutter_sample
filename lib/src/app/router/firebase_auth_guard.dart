@@ -48,17 +48,11 @@ String? firebaseAuthGuard(Ref ref, GoRouterState state) {
   return AuthGuardHelper(
     loginLocation: const LoginRoute().location,
     defaultLocation: const HomeRoute().location,
-    guestOnlyPaths: {
-      const LoginRoute().location,
-      const SignUpRoute().location,
-    },
+    guestOnlyPaths: {const LoginRoute().location, const SignUpRoute().location},
     alwaysPublicPaths: {
       const SplashRoute().location,
       const OnboardingRoute().location,
       const ResetPasswordRoute().location,
     },
-  ).redirect(
-    isLoggedIn: isLoggedIn,
-    state: state,
-  );
+  ).redirect(isLoggedIn: isLoggedIn, state: state);
 }

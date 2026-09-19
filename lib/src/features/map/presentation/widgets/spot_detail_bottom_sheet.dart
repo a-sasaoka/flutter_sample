@@ -34,10 +34,7 @@ class SpotDetailBottomSheet extends StatelessWidget {
               children: [
                 CircleAvatar(
                   backgroundColor: spot.category.color.withValues(alpha: 0.2),
-                  child: Icon(
-                    spot.category.icon,
-                    color: spot.category.color,
-                  ),
+                  child: Icon(spot.category.icon, color: spot.category.color),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -73,11 +70,7 @@ class SpotDetailBottomSheet extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.star,
-                          size: 16,
-                          color: Colors.amber,
-                        ),
+                        const Icon(Icons.star, size: 16, color: Colors.amber),
                         const SizedBox(width: 4),
                         Text(
                           spot.rating!.toStringAsFixed(1),
@@ -117,10 +110,7 @@ class SpotDetailBottomSheet extends StatelessWidget {
 
             // 詳細説明
             if (spot.description != null) ...[
-              Text(
-                spot.description!,
-                style: theme.textTheme.bodyMedium,
-              ),
+              Text(spot.description!, style: theme.textTheme.bodyMedium),
               const SizedBox(height: 16),
             ],
 

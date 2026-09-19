@@ -28,11 +28,8 @@ void main() {
 
     when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
     when(
-      () => mockTalker.handle(
-        any<Object>(),
-        any<StackTrace?>(),
-        any<dynamic>(),
-      ),
+      () =>
+          mockTalker.handle(any<Object>(), any<StackTrace?>(), any<dynamic>()),
     ).thenReturn(null);
 
     service = ImageCacheService(
@@ -72,9 +69,7 @@ void main() {
   group('imageCacheServiceProvider', () {
     test('ImageCacheService のインスタンスを提供すること', () {
       final container = ProviderContainer(
-        overrides: [
-          loggerProvider.overrideWithValue(mockTalker),
-        ],
+        overrides: [loggerProvider.overrideWithValue(mockTalker)],
       );
       addTearDown(container.dispose);
 

@@ -49,11 +49,7 @@ class ChatNotifier extends _$ChatNotifier {
       // IDを指定してAIのメッセージに差し替え（競合対策）
       _updateMessageById(
         targetAiId,
-        ChatMessage.ai(
-          id: targetAiId,
-          text: responseText,
-          createdAt: now,
-        ),
+        ChatMessage.ai(id: targetAiId, text: responseText, createdAt: now),
       );
     } on Exception catch (e, st) {
       talker.handle(e, st);
@@ -62,11 +58,7 @@ class ChatNotifier extends _$ChatNotifier {
       final now = ref.read(clockProvider)();
       _updateMessageById(
         targetAiId,
-        ChatMessage.error(
-          id: targetAiId,
-          error: e,
-          createdAt: now,
-        ),
+        ChatMessage.error(id: targetAiId, error: e, createdAt: now),
       );
     } finally {
       if (ref.mounted) {
@@ -132,11 +124,7 @@ class ChatNotifier extends _$ChatNotifier {
       final now = ref.read(clockProvider)();
       _updateMessageById(
         targetAiId,
-        ChatMessage.error(
-          id: targetAiId,
-          error: e,
-          createdAt: now,
-        ),
+        ChatMessage.error(id: targetAiId, error: e, createdAt: now),
       );
     } finally {
       if (ref.mounted) {
@@ -157,10 +145,7 @@ class ChatNotifier extends _$ChatNotifier {
           text: text,
           createdAt: now,
         ),
-        ChatMessage.loading(
-          id: targetAiId,
-          createdAt: now,
-        ),
+        ChatMessage.loading(id: targetAiId, createdAt: now),
       ],
     );
   }

@@ -50,19 +50,13 @@ void main() {
 
     test('savePasscode: パスコードを安全に保存する', () async {
       when(
-        () => mockSecureStorage.write(
-          key: 'app_lock_passcode',
-          value: '5678',
-        ),
+        () => mockSecureStorage.write(key: 'app_lock_passcode', value: '5678'),
       ).thenAnswer((_) async {});
 
       await repository.savePasscode('5678');
 
       verify(
-        () => mockSecureStorage.write(
-          key: 'app_lock_passcode',
-          value: '5678',
-        ),
+        () => mockSecureStorage.write(key: 'app_lock_passcode', value: '5678'),
       ).called(1);
     });
 

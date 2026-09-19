@@ -25,9 +25,7 @@ void main() {
   }) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(mockPrefs),
-        ],
+        overrides: [sharedPreferencesProvider.overrideWithValue(mockPrefs)],
         child: MaterialApp(
           localizationsDelegates: [
             MockLocalizationsDelegate(mockL10n),
@@ -102,9 +100,7 @@ void main() {
       verify(() => mockPrefs.setBool('onboarding_completed', true)).called(1);
     });
 
-    testWidgets('「Skip」ボタンをタップすると即座に完了処理が呼ばれること', (
-      tester,
-    ) async {
+    testWidgets('「Skip」ボタンをタップすると即座に完了処理が呼ばれること', (tester) async {
       await pumpOnboardingScreen(tester);
 
       // 「Skip」をタップ
@@ -114,9 +110,7 @@ void main() {
       verify(() => mockPrefs.setBool('onboarding_completed', true)).called(1);
     });
 
-    testWidgets('完了処理（Skip）でエラーが発生した場合、エラー用スナックバーが表示されること', (
-      tester,
-    ) async {
+    testWidgets('完了処理（Skip）でエラーが発生した場合、エラー用スナックバーが表示されること', (tester) async {
       when(
         () => mockPrefs.setBool('onboarding_completed', true),
       ).thenThrow(Exception('Failed to save'));
@@ -131,9 +125,7 @@ void main() {
       check(find.text(mockL10n.chatError)).findsOne();
     });
 
-    testWidgets('完了処理（はじめる）でエラーが発生した場合、エラー用スナックバーが表示されること', (
-      tester,
-    ) async {
+    testWidgets('完了処理（はじめる）でエラーが発生した場合、エラー用スナックバーが表示されること', (tester) async {
       when(
         () => mockPrefs.setBool('onboarding_completed', true),
       ).thenThrow(Exception('Failed to save'));

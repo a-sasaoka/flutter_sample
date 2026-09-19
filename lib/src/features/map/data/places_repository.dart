@@ -7,7 +7,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'places_repository.g.dart';
 
 /// 🗺️ Google Places API 検索リポジトリのインターフェース
-// ignore: one_member_abstracts, リポジトリ層の単一責務インターフェースのため
 abstract interface class PlacesRepository {
   /// キーワード文字列から複数施設・スポットの候補地リストを検索する
   Future<List<LocationCandidate>> searchPlaces(
@@ -20,11 +19,9 @@ abstract interface class PlacesRepository {
 /// Google Places API (Text Search) プロキシサーバーと通信する実装クラス
 class PlacesRepositoryImpl implements PlacesRepository {
   /// コンストラクタ
-  const PlacesRepositoryImpl({
-    required Dio dio,
-    required String placesApiUrl,
-  }) : _dio = dio,
-       _placesApiUrl = placesApiUrl;
+  const PlacesRepositoryImpl({required Dio dio, required String placesApiUrl})
+    : _dio = dio,
+      _placesApiUrl = placesApiUrl;
 
   final Dio _dio;
   final String _placesApiUrl;

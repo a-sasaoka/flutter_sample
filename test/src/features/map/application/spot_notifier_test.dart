@@ -17,9 +17,7 @@ void main() {
 
   ProviderContainer createContainer() {
     final container = ProviderContainer(
-      overrides: [
-        spotRepositoryProvider.overrideWithValue(mockRepository),
-      ],
+      overrides: [spotRepositoryProvider.overrideWithValue(mockRepository)],
     );
     addTearDown(container.dispose);
     return container;

@@ -182,9 +182,7 @@ Future<void> main() async {
         FakeUpdateRequestController.new,
       ),
       // 5. 生体認証を「利用不可」に固定してテストを安定化
-      localAuthenticationProvider.overrideWithValue(
-        FakeLocalAuthentication(),
-      ),
+      localAuthenticationProvider.overrideWithValue(FakeLocalAuthentication()),
     ],
   );
 }

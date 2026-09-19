@@ -21,11 +21,7 @@ void main() {
     });
 
     test('fromJsonで正しくインスタンスが生成されること', () {
-      final json = {
-        'id': 'test-id',
-        'label': 'Item 1',
-        'value': 10.5,
-      };
+      final json = {'id': 'test-id', 'label': 'Item 1', 'value': 10.5};
 
       final item = ChartItem.fromJson(json);
 
@@ -38,11 +34,9 @@ void main() {
       const item = ChartItem(id: 'test-id', label: 'Item 1', value: 10.5);
       final json = item.toJson();
 
-      check(json).deepEquals({
-        'id': 'test-id',
-        'label': 'Item 1',
-        'value': 10.5,
-      });
+      check(
+        json,
+      ).deepEquals({'id': 'test-id', 'label': 'Item 1', 'value': 10.5});
     });
   });
 }

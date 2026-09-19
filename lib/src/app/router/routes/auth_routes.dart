@@ -3,9 +3,7 @@ part of '../app_router.dart';
 /// 🔐 ログイン画面ルート
 @TypedGoRoute<LoginRoute>(
   path: '/login',
-  routes: [
-    TypedGoRoute<SignUpRoute>(path: 'signup'),
-  ],
+  routes: [TypedGoRoute<SignUpRoute>(path: 'signup')],
 )
 class LoginRoute extends GoRouteData with $LoginRoute {
   /// コンストラクタ

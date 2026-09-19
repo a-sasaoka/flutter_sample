@@ -24,9 +24,7 @@ void main() {
     when(
       () => mockRepository.saveFailedAttempts(any()),
     ).thenAnswer((_) async {});
-    when(
-      () => mockRepository.saveLockoutUntil(any()),
-    ).thenAnswer((_) async {});
+    when(() => mockRepository.saveLockoutUntil(any())).thenAnswer((_) async {});
     when(() => mockRepository.resetLockout()).thenAnswer((_) async {});
   });
 
@@ -67,9 +65,7 @@ void main() {
 
     testWidgets('初期表示で「パスコードを入力」とキーパッドが表示される', (tester) async {
       await tester.pumpWidget(
-        createTestWidget(
-          const PasscodeLockScreen(isBiometricEnabled: true),
-        ),
+        createTestWidget(const PasscodeLockScreen(isBiometricEnabled: true)),
       );
       await tester.pumpAndSettle();
 
@@ -80,9 +76,7 @@ void main() {
 
     testWidgets('生体認証が無効な場合は指紋アイコンが表示されない', (tester) async {
       await tester.pumpWidget(
-        createTestWidget(
-          const PasscodeLockScreen(isBiometricEnabled: false),
-        ),
+        createTestWidget(const PasscodeLockScreen(isBiometricEnabled: false)),
       );
       await tester.pumpAndSettle();
 
@@ -153,16 +147,12 @@ void main() {
       }
       await tester.pumpAndSettle();
 
-      check(
-        find.textContaining('ロックアウトされています。あと'),
-      ).findsOne();
+      check(find.textContaining('ロックアウトされています。あと')).findsOne();
     });
 
     testWidgets('入力中に Backspace を押すと一文字削除される', (tester) async {
       await tester.pumpWidget(
-        createTestWidget(
-          const PasscodeLockScreen(isBiometricEnabled: false),
-        ),
+        createTestWidget(const PasscodeLockScreen(isBiometricEnabled: false)),
       );
       await tester.pumpAndSettle();
 

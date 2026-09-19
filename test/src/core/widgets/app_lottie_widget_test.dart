@@ -272,9 +272,7 @@ void main() {
 
     testWidgets(
       'AppLottieWidget.asset の errorBuilder が呼ばれた場合にフォールバックアイコンが表示されること',
-      (
-        tester,
-      ) async {
+      (tester) async {
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(

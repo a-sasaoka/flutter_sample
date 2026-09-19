@@ -59,9 +59,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          userRepositoryProvider.overrideWithValue(mockRepository),
-        ],
+        overrides: [userRepositoryProvider.overrideWithValue(mockRepository)],
         child: MaterialApp(
           localizationsDelegates: [
             MockLocalizationsDelegate(mockL10n),

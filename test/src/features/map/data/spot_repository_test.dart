@@ -27,9 +27,7 @@ void main() {
     test('spotRepositoryProvider から SpotRepository インスタンスを取得できること', () {
       final repositoryImpl = SpotRepositoryImpl();
       final container = ProviderContainer(
-        overrides: [
-          spotRepositoryProvider.overrideWithValue(repositoryImpl),
-        ],
+        overrides: [spotRepositoryProvider.overrideWithValue(repositoryImpl)],
       );
       addTearDown(container.dispose);
 

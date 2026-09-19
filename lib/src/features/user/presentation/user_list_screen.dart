@@ -74,9 +74,7 @@ class UserListScreen extends HookConsumerWidget {
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
                 SizedBox(height: MediaQuery.sizeOf(context).height * 0.15),
-                EmptyStateWidget(
-                  title: l10n.userListEmpty,
-                ),
+                EmptyStateWidget(title: l10n.userListEmpty),
               ],
             ),
           ),
@@ -175,20 +173,14 @@ class _UserCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 8),
-            _IconText(
-              icon: Icons.email_outlined,
-              text: user.email,
-            ),
+            _IconText(icon: Icons.email_outlined, text: user.email),
             const SizedBox(height: 4),
             _IconText(
               icon: Icons.location_on_outlined,
               text: user.address.city,
             ),
             const SizedBox(height: 4),
-            _IconText(
-              icon: Icons.public_outlined,
-              text: user.website,
-            ),
+            _IconText(icon: Icons.public_outlined, text: user.website),
           ],
         ),
         onTap: () {

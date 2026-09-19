@@ -29,9 +29,7 @@ abstract final class VersionUpDialog {
       // キャンセル可能ならダイアログの外をタップしても閉じるようにする
       barrierDismissible: isCancelable,
       builder: (dialogContext) {
-        return VersionUpDialogContent(
-          isCancelable: isCancelable,
-        );
+        return VersionUpDialogContent(isCancelable: isCancelable);
       },
     );
 
@@ -50,10 +48,7 @@ abstract final class VersionUpDialog {
 /// ゴールデンテストで直接描画できるように公開クラスとして定義します。
 class VersionUpDialogContent extends StatelessWidget {
   /// バージョンアップダイアログの表示内容を構築します。
-  const VersionUpDialogContent({
-    required this.isCancelable,
-    super.key,
-  });
+  const VersionUpDialogContent({required this.isCancelable, super.key});
 
   /// キャンセル可能かどうか（キャンセルボタンを表示し、ダイアログ外タップで閉じることを許可するか）
   final bool isCancelable;

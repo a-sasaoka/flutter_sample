@@ -12,7 +12,7 @@ class SecureStorageItems extends _$SecureStorageItems {
   @override
   FutureOr<Map<String, String>> build() async {
     _storage = ref.watch(secureStorageProvider);
-    return _storage.readAll();
+    return await _storage.readAll();
   }
 
   /// 値を設定または更新する
@@ -20,7 +20,7 @@ class SecureStorageItems extends _$SecureStorageItems {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       await _storage.write(key: key, value: value);
-      return _storage.readAll();
+      return await _storage.readAll();
     });
   }
 
@@ -29,7 +29,7 @@ class SecureStorageItems extends _$SecureStorageItems {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       await _storage.delete(key: key);
-      return _storage.readAll();
+      return await _storage.readAll();
     });
   }
 

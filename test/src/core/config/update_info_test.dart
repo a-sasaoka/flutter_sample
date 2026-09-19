@@ -28,10 +28,7 @@ void main() {
 
     test('fromJson() で canCancel が省略された場合、デフォルトで false になること', () {
       // Arrange: canCancel を含まないJSONデータ
-      final json = {
-        'requiredVersion': '1.0.0',
-        'enabledAt': mockDateIso,
-      };
+      final json = {'requiredVersion': '1.0.0', 'enabledAt': mockDateIso};
 
       // Act
       final updateInfo = UpdateInfo.fromJson(json);

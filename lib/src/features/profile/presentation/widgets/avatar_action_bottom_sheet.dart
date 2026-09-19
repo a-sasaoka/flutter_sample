@@ -16,10 +16,7 @@ enum AvatarActionType {
 /// アイコン写真の変更・削除を選択するボトムシートウィジェット
 class AvatarActionBottomSheet extends StatelessWidget {
   /// コンストラクタ
-  const AvatarActionBottomSheet({
-    required this.hasAvatar,
-    super.key,
-  });
+  const AvatarActionBottomSheet({required this.hasAvatar, super.key});
 
   /// 現在写真が設定されているかどうか
   final bool hasAvatar;
@@ -50,9 +47,9 @@ class AvatarActionBottomSheet extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
               l10n.profileAvatarSelectTitle,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
           const Divider(),
@@ -71,10 +68,7 @@ class AvatarActionBottomSheet extends StatelessWidget {
           // 写真削除（既に設定されている場合のみ表示）
           if (hasAvatar)
             ListTile(
-              leading: Icon(
-                Icons.delete_outline,
-                color: colorScheme.error,
-              ),
+              leading: Icon(Icons.delete_outline, color: colorScheme.error),
               title: Text(
                 l10n.profileAvatarDelete,
                 style: TextStyle(color: colorScheme.error),

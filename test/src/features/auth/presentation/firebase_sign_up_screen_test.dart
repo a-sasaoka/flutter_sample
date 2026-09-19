@@ -49,9 +49,8 @@ void main() {
         ),
       ],
       // 成功時に EmailVerificationRoute などへ遷移したことをキャッチする
-      errorBuilder: (context, state) => Scaffold(
-        body: Text('Navigated to ${state.uri}'),
-      ),
+      errorBuilder: (context, state) =>
+          Scaffold(body: Text('Navigated to ${state.uri}')),
     );
 
     return ProviderScope(
@@ -94,18 +93,13 @@ void main() {
       when(
         () => mockAuthRepo.signUp('test@example.com', 'password123'),
       ).thenAnswer((_) async {});
-      when(
-        () => mockAuthRepo.sendEmailVerification(),
-      ).thenAnswer((_) async {});
+      when(() => mockAuthRepo.sendEmailVerification()).thenAnswer((_) async {});
 
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
       // TextFieldに入力する
-      await tester.enterText(
-        find.byType(TextField).at(0),
-        'test@example.com',
-      );
+      await tester.enterText(find.byType(TextField).at(0), 'test@example.com');
       await tester.enterText(find.byType(TextField).at(1), 'password123');
 
       // 登録ボタンをタップ
@@ -121,10 +115,8 @@ void main() {
 
     testWidgets('サインアップ処理中、ローディング表示になり入力がロックされること', (tester) async {
       // 処理完了までに時間をかけることでローディング中を検証
-      when(
-        () => mockAuthRepo.signUp(any(), any()),
-      ).thenAnswer(
-        (_) async => Future.delayed(const Duration(milliseconds: 100)),
+      when(() => mockAuthRepo.signUp(any(), any())).thenAnswer(
+        (_) async => await Future.delayed(const Duration(milliseconds: 100)),
       );
       // sendEmailVerification のモックも念のため設定
       when(() => mockAuthRepo.sendEmailVerification()).thenAnswer((_) async {});

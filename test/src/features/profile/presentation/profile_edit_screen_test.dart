@@ -19,11 +19,7 @@ import 'package:permission_handler/permission_handler.dart';
 class MockImagePickerService extends Mock implements ImagePickerService {}
 
 class FakeProfileNotifier extends Profile {
-  FakeProfileNotifier(
-    this._state, {
-    this.onUpdate,
-    this.onUpdateWithAvatar,
-  });
+  FakeProfileNotifier(this._state, {this.onUpdate, this.onUpdateWithAvatar});
 
   final AsyncValue<UserProfile> _state;
   final Future<void> Function(UserProfile)? onUpdate;
@@ -170,9 +166,7 @@ void main() {
     phone: '09012345678',
   );
 
-  Widget createTestWidget({
-    required ProviderContainer container,
-  }) {
+  Widget createTestWidget({required ProviderContainer container}) {
     return UncontrolledProviderScope(
       container: container,
       child: const MaterialApp(
@@ -182,9 +176,7 @@ void main() {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        supportedLocales: [
-          Locale('ja'),
-        ],
+        supportedLocales: [Locale('ja')],
         locale: Locale('ja'),
         home: ProfileEditScreen(),
       ),
@@ -762,9 +754,7 @@ void main() {
           cropperTitle: any(named: 'cropperTitle'),
         ),
       ).thenThrow(
-        const AvatarPermissionDeniedException(
-          permission: Permission.photos,
-        ),
+        const AvatarPermissionDeniedException(permission: Permission.photos),
       );
 
       final container = ProviderContainer(
@@ -803,9 +793,7 @@ void main() {
           cropperTitle: any(named: 'cropperTitle'),
         ),
       ).thenThrow(
-        const AvatarPermissionDeniedException(
-          permission: Permission.camera,
-        ),
+        const AvatarPermissionDeniedException(permission: Permission.camera),
       );
 
       final container = ProviderContainer(
@@ -875,9 +863,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           profileProvider.overrideWith(
-            () => FakeProfileNotifier(
-              AsyncValue.data(profileWithLocalAvatar),
-            ),
+            () => FakeProfileNotifier(AsyncValue.data(profileWithLocalAvatar)),
           ),
         ],
       );
@@ -909,9 +895,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           profileProvider.overrideWith(
-            () => FakeProfileNotifier(
-              AsyncValue.data(profileWithFileScheme),
-            ),
+            () => FakeProfileNotifier(AsyncValue.data(profileWithFileScheme)),
           ),
         ],
       );
@@ -962,51 +946,50 @@ void main() {
       },
     );
 
-    testWidgets(
-      'アバター操作：選択した一時画像のエラー時に errorBuilder でフォールバックアイコンが生成されること',
-      (tester) async {
-        final mockPicker = MockImagePickerService();
-        final tempDir = Directory.systemTemp.createTempSync();
-        final localFile = File('${tempDir.path}/temp_avatar.jpg')
-          ..writeAsBytesSync(transparentImageBytes);
-        addTearDown(() => tempDir.deleteSync(recursive: true));
+    testWidgets('アバター操作：選択した一時画像のエラー時に errorBuilder でフォールバックアイコンが生成されること', (
+      tester,
+    ) async {
+      final mockPicker = MockImagePickerService();
+      final tempDir = Directory.systemTemp.createTempSync();
+      final localFile = File('${tempDir.path}/temp_avatar.jpg')
+        ..writeAsBytesSync(transparentImageBytes);
+      addTearDown(() => tempDir.deleteSync(recursive: true));
 
-        when(
-          () => mockPicker.pickAndCropAvatar(
-            source: AvatarPickSource.gallery,
-            cropperTitle: any(named: 'cropperTitle'),
+      when(
+        () => mockPicker.pickAndCropAvatar(
+          source: AvatarPickSource.gallery,
+          cropperTitle: any(named: 'cropperTitle'),
+        ),
+      ).thenAnswer((_) async => localFile.path);
+
+      final container = ProviderContainer(
+        overrides: [
+          profileProvider.overrideWith(
+            () => FakeProfileNotifier(const AsyncValue.data(testProfile)),
           ),
-        ).thenAnswer((_) async => localFile.path);
+          imagePickerServiceProvider.overrideWithValue(mockPicker),
+        ],
+      );
+      addTearDown(container.dispose);
 
-        final container = ProviderContainer(
-          overrides: [
-            profileProvider.overrideWith(
-              () => FakeProfileNotifier(const AsyncValue.data(testProfile)),
-            ),
-            imagePickerServiceProvider.overrideWithValue(mockPicker),
-          ],
-        );
-        addTearDown(container.dispose);
+      await tester.pumpWidget(createTestWidget(container: container));
+      await tester.pumpAndSettle();
 
-        await tester.pumpWidget(createTestWidget(container: container));
-        await tester.pumpAndSettle();
+      // アバター枠をタップしてアルバムから選択
+      await tester.tap(find.byType(InkWell).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('アルバムから選択'));
+      await tester.pumpAndSettle();
 
-        // アバター枠をタップしてアルバムから選択
-        await tester.tap(find.byType(InkWell).first);
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('アルバムから選択'));
-        await tester.pumpAndSettle();
-
-        final imageFinder = find.byType(Image);
-        check(imageFinder).findsOne();
-        final imageWidget = tester.widget<Image>(imageFinder);
-        final errorWidget = imageWidget.errorBuilder!(
-          tester.element(imageFinder),
-          Exception('Load failed'),
-          StackTrace.current,
-        );
-        check(errorWidget).isA<Widget>();
-      },
-    );
+      final imageFinder = find.byType(Image);
+      check(imageFinder).findsOne();
+      final imageWidget = tester.widget<Image>(imageFinder);
+      final errorWidget = imageWidget.errorBuilder!(
+        tester.element(imageFinder),
+        Exception('Load failed'),
+        StackTrace.current,
+      );
+      check(errorWidget).isA<Widget>();
+    });
   });
 }

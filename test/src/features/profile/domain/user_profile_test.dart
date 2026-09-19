@@ -23,10 +23,7 @@ void main() {
     });
 
     test('fromJson: デフォルト値の確認 (displayName, phone, avatarUrlがない場合)', () {
-      final json = {
-        'name': 'テスト太郎',
-        'email': 'test@example.com',
-      };
+      final json = {'name': 'テスト太郎', 'email': 'test@example.com'};
 
       final profile = UserProfile.fromJson(json);
 

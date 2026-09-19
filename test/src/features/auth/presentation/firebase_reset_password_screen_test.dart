@@ -97,10 +97,8 @@ void main() {
 
     testWidgets('送信処理中、ローディング表示になり入力がロックされること', (tester) async {
       // 💡 処理完了までに時間をかけることでローディング中を検証
-      when(
-        () => mockAuthRepo.sendPasswordResetEmail(any()),
-      ).thenAnswer(
-        (_) async => Future.delayed(const Duration(milliseconds: 100)),
+      when(() => mockAuthRepo.sendPasswordResetEmail(any())).thenAnswer(
+        (_) async => await Future.delayed(const Duration(milliseconds: 100)),
       );
 
       await navigateToResetScreen(tester);

@@ -54,43 +54,38 @@ void main() {
 
     test('fetchMemos: データがnullの場合、空のリストを返すこと', () async {
       when(() => mockApiClient.get<List<dynamic>>('/memos')).thenAnswer(
-        (_) async => Response(
-          requestOptions: RequestOptions(path: '/memos'),
-        ),
+        (_) async => Response(requestOptions: RequestOptions(path: '/memos')),
       );
 
       final result = await service.fetchMemos();
       check(result).isEmpty();
     });
 
-    test(
-      'fetchMemos: 日付が不正な形式の場合はパースをスキップし、元の文字列を保持すること',
-      () async {
-        final mockData = [
-          {
-            'id': 'memo1',
-            'title': 'テストタイトル',
-            'content': 'テストコンテンツ',
-            'createdAt': 'invalid-date-string',
-            'updatedAt': 'invalid-date-string',
-            'isDeleted': false,
-          },
-        ];
+    test('fetchMemos: 日付が不正な形式の場合はパースをスキップし、元の文字列を保持すること', () async {
+      final mockData = [
+        {
+          'id': 'memo1',
+          'title': 'テストタイトル',
+          'content': 'テストコンテンツ',
+          'createdAt': 'invalid-date-string',
+          'updatedAt': 'invalid-date-string',
+          'isDeleted': false,
+        },
+      ];
 
-        when(() => mockApiClient.get<List<dynamic>>('/memos')).thenAnswer(
-          (_) async => Response(
-            data: mockData,
-            requestOptions: RequestOptions(path: '/memos'),
-          ),
-        );
+      when(() => mockApiClient.get<List<dynamic>>('/memos')).thenAnswer(
+        (_) async => Response(
+          data: mockData,
+          requestOptions: RequestOptions(path: '/memos'),
+        ),
+      );
 
-        final result = await service.fetchMemos();
+      final result = await service.fetchMemos();
 
-        check(result.length).equals(1);
-        check(result.first['createdAt']).equals('invalid-date-string');
-        check(result.first['updatedAt']).equals('invalid-date-string');
-      },
-    );
+      check(result.length).equals(1);
+      check(result.first['createdAt']).equals('invalid-date-string');
+      check(result.first['updatedAt']).equals('invalid-date-string');
+    });
 
     test('uploadMemo: PUTが成功した場合、POSTは呼ばれないこと', () async {
       final now = DateTime(2026, 5, 2);
@@ -106,9 +101,8 @@ void main() {
       when(
         () => mockApiClient.put<void>('/memos/memo1', data: memoData),
       ).thenAnswer(
-        (_) async => Response(
-          requestOptions: RequestOptions(path: '/memos/memo1'),
-        ),
+        (_) async =>
+            Response(requestOptions: RequestOptions(path: '/memos/memo1')),
       );
 
       await service.uploadMemo(
@@ -153,9 +147,7 @@ void main() {
       );
 
       when(() => mockApiClient.post<void>('/memos', data: memoData)).thenAnswer(
-        (_) async => Response(
-          requestOptions: RequestOptions(path: '/memos'),
-        ),
+        (_) async => Response(requestOptions: RequestOptions(path: '/memos')),
       );
 
       await service.uploadMemo(
@@ -175,56 +167,49 @@ void main() {
       ).called(1);
     });
 
-    test(
-      'uploadMemo: PUTが404エラー（responseがnullでe.errorがAppExceptionの場合） '
-      'でも、POSTが呼ばれること',
-      () async {
-        final now = DateTime(2026, 5, 2);
-        final memoData = {
-          'id': 'memo1',
-          'title': 'タイトル',
-          'content': 'コンテンツ',
-          'createdAt': now.toIso8601String(),
-          'updatedAt': now.toIso8601String(),
-          'isDeleted': false,
-        };
+    test('uploadMemo: PUTが404エラー（responseがnullでe.errorがAppExceptionの場合） '
+        'でも、POSTが呼ばれること', () async {
+      final now = DateTime(2026, 5, 2);
+      final memoData = {
+        'id': 'memo1',
+        'title': 'タイトル',
+        'content': 'コンテンツ',
+        'createdAt': now.toIso8601String(),
+        'updatedAt': now.toIso8601String(),
+        'isDeleted': false,
+      };
 
-        // responseがnullで、errorにAppException.badRequest(statusCode: 404)が
-        // 入った状態をシミュレートします
-        when(
-          () => mockApiClient.put<void>('/memos/memo1', data: memoData),
-        ).thenThrow(
-          DioException(
-            requestOptions: RequestOptions(path: '/memos/memo1'),
-            error: const AppException.badRequest(statusCode: 404),
-          ),
-        );
+      // responseがnullで、errorにAppException.badRequest(statusCode: 404)が
+      // 入った状態をシミュレートします
+      when(
+        () => mockApiClient.put<void>('/memos/memo1', data: memoData),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/memos/memo1'),
+          error: const AppException.badRequest(statusCode: 404),
+        ),
+      );
 
-        when(
-          () => mockApiClient.post<void>('/memos', data: memoData),
-        ).thenAnswer(
-          (_) async => Response(
-            requestOptions: RequestOptions(path: '/memos'),
-          ),
-        );
+      when(() => mockApiClient.post<void>('/memos', data: memoData)).thenAnswer(
+        (_) async => Response(requestOptions: RequestOptions(path: '/memos')),
+      );
 
-        await service.uploadMemo(
-          id: 'memo1',
-          title: 'タイトル',
-          content: 'コンテンツ',
-          createdAt: now,
-          updatedAt: now,
-          isDeleted: false,
-        );
+      await service.uploadMemo(
+        id: 'memo1',
+        title: 'タイトル',
+        content: 'コンテンツ',
+        createdAt: now,
+        updatedAt: now,
+        isDeleted: false,
+      );
 
-        verify(
-          () => mockApiClient.put<void>('/memos/memo1', data: memoData),
-        ).called(1);
-        verify(
-          () => mockApiClient.post<void>(any(), data: any(named: 'data')),
-        ).called(1);
-      },
-    );
+      verify(
+        () => mockApiClient.put<void>('/memos/memo1', data: memoData),
+      ).called(1);
+      verify(
+        () => mockApiClient.post<void>(any(), data: any(named: 'data')),
+      ).called(1);
+    });
 
     test('uploadMemo: PUTが404以外のエラーの場合、例外がそのままスローされること', () async {
       final now = DateTime(2026, 5, 2);
@@ -268,50 +253,44 @@ void main() {
       );
     });
 
-    test(
-      'uploadMemo: IDに特殊文字が含まれる場合、URLエンコードされたパスでPUTされること',
-      () async {
-        final now = DateTime(2026, 5, 2);
-        final memoData = {
-          'id': 'memo 1',
-          'title': 'タイトル',
-          'content': 'コンテンツ',
-          'createdAt': now.toIso8601String(),
-          'updatedAt': now.toIso8601String(),
-          'isDeleted': false,
-        };
+    test('uploadMemo: IDに特殊文字が含まれる場合、URLエンコードされたパスでPUTされること', () async {
+      final now = DateTime(2026, 5, 2);
+      final memoData = {
+        'id': 'memo 1',
+        'title': 'タイトル',
+        'content': 'コンテンツ',
+        'createdAt': now.toIso8601String(),
+        'updatedAt': now.toIso8601String(),
+        'isDeleted': false,
+      };
 
-        when(
-          () => mockApiClient.put<void>('/memos/memo%201', data: memoData),
-        ).thenAnswer(
-          (_) async => Response(
-            requestOptions: RequestOptions(path: '/memos/memo%201'),
-          ),
-        );
+      when(
+        () => mockApiClient.put<void>('/memos/memo%201', data: memoData),
+      ).thenAnswer(
+        (_) async =>
+            Response(requestOptions: RequestOptions(path: '/memos/memo%201')),
+      );
 
-        await service.uploadMemo(
-          id: 'memo 1',
-          title: 'タイトル',
-          content: 'コンテンツ',
-          createdAt: now,
-          updatedAt: now,
-          isDeleted: false,
-        );
+      await service.uploadMemo(
+        id: 'memo 1',
+        title: 'タイトル',
+        content: 'コンテンツ',
+        createdAt: now,
+        updatedAt: now,
+        isDeleted: false,
+      );
 
-        verify(
-          () => mockApiClient.put<void>('/memos/memo%201', data: memoData),
-        ).called(1);
-      },
-    );
+      verify(
+        () => mockApiClient.put<void>('/memos/memo%201', data: memoData),
+      ).called(1);
+    });
   });
 
   group('memoRemoteServiceProvider', () {
     test('Provider経由でMemoRemoteServiceのインスタンスを取得できること', () {
       final mockApiClient = MockApiClient();
       final container = ProviderContainer(
-        overrides: [
-          apiClientProvider.overrideWithValue(mockApiClient),
-        ],
+        overrides: [apiClientProvider.overrideWithValue(mockApiClient)],
       );
       addTearDown(container.dispose);
 

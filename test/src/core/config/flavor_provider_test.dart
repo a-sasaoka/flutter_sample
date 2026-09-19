@@ -21,9 +21,7 @@ void main() {
     test('overrideWithValue で上書きすると、その Flavor を返すこと', () {
       // Arrange: stg 環境としてコンテナを作成
       final container = ProviderContainer(
-        overrides: [
-          flavorProvider.overrideWithValue(Flavor.stg),
-        ],
+        overrides: [flavorProvider.overrideWithValue(Flavor.stg)],
       );
       addTearDown(container.dispose);
 

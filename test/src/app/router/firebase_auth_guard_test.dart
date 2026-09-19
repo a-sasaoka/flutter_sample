@@ -213,10 +213,7 @@ void main() {
     test('スプラッシュ未完了の場合、SplashRoute にリダイレクトすること', () {
       final mockUser = MockUser();
       when(() => mockUser.emailVerified).thenReturn(true);
-      final result = executeGuard(
-        AsyncData(mockUser),
-        isSplashFinished: false,
-      );
+      final result = executeGuard(AsyncData(mockUser), isSplashFinished: false);
       check(result).equals(const SplashRoute().location);
     });
 
@@ -244,10 +241,7 @@ void main() {
     test('ログイン済みでスプラッシュ画面に初期通知（initialPayload）が存在する場合、通知パスへリダイレクトすること', () {
       final mockUser = MockUser();
       when(() => mockUser.emailVerified).thenReturn(true);
-      const payload = NotificationPayload(
-        path: '/chat',
-        title: 'Initial Chat',
-      );
+      const payload = NotificationPayload(path: '/chat', title: 'Initial Chat');
       final result = executeGuard(
         AsyncData(mockUser),
         location: const SplashRoute().location,
@@ -261,9 +255,7 @@ void main() {
       () {
         final mockUser = MockUser();
         when(() => mockUser.emailVerified).thenReturn(true);
-        const payload = NotificationPayload(
-          title: 'No Path',
-        );
+        const payload = NotificationPayload(title: 'No Path');
         final result = executeGuard(
           AsyncData(mockUser),
           location: const SplashRoute().location,

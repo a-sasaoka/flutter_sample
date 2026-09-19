@@ -79,18 +79,12 @@ const defaultUseAgentPlatform = true;
 @Riverpod(keepAlive: true)
 EnvConfigState envConfig(Ref ref) {
   return const EnvConfigState(
-    baseUrl: String.fromEnvironment(
-      'BASE_URL',
-      defaultValue: defaultBaseUrl,
-    ),
+    baseUrl: String.fromEnvironment('BASE_URL', defaultValue: defaultBaseUrl),
     imageBaseUrl: String.fromEnvironment(
       'IMAGE_BASE_URL',
       defaultValue: defaultImageBaseUrl,
     ),
-    aiModel: String.fromEnvironment(
-      'AI_MODEL',
-      defaultValue: defaultAiModel,
-    ),
+    aiModel: String.fromEnvironment('AI_MODEL', defaultValue: defaultAiModel),
     connectTimeout: int.fromEnvironment(
       'CONNECT_TIMEOUT',
       defaultValue: defaultConnectTimeout,

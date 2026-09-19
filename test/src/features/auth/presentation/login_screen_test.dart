@@ -80,10 +80,7 @@ void main() {
     final router = GoRouter(
       initialLocation: '/login',
       routes: [
-        GoRoute(
-          path: '/login',
-          builder: (context, state) => LoginScreen(),
-        ),
+        GoRoute(path: '/login', builder: (context, state) => LoginScreen()),
       ],
     );
 
@@ -131,9 +128,7 @@ void main() {
       verifyZeroInteractions(mockAnalyticsService);
     });
 
-    testWidgets('空白文字のみを入力してボタンを押した場合は何も起きないこと(バリデーション)', (
-      tester,
-    ) async {
+    testWidgets('空白文字のみを入力してボタンを押した場合は何も起きないこと(バリデーション)', (tester) async {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
@@ -150,7 +145,7 @@ void main() {
     testWidgets('ログイン処理中、ローディング表示になり入力がロックされること', (tester) async {
       // 遅延を発生させてローディング中を検証
       mockLoginAction = (a, b) async =>
-          Future.delayed(const Duration(milliseconds: 100));
+          await Future.delayed(const Duration(milliseconds: 100));
 
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();

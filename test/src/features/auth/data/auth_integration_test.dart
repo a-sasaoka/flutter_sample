@@ -36,168 +36,159 @@ void main() {
   });
 
   group('Auth Integration Tests (main.dart 相当のオーバーライド)', () {
-    test(
-      '【useFirebaseAuth: true】 の際、IDトークンが正しくヘッダーにセットされ、'
-      ' リフレッシュ時にIDトークンが強制更新されること',
-      () async {
-        final mockFirebaseAuth = MockFirebaseAuth();
-        final mockUser = MockUser();
+    test('【useFirebaseAuth: true】 の際、IDトークンが正しくヘッダーにセットされ、'
+        ' リフレッシュ時にIDトークンが強制更新されること', () async {
+      final mockFirebaseAuth = MockFirebaseAuth();
+      final mockUser = MockUser();
 
-        when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
-        when(mockUser.getIdToken).thenAnswer((_) async => 'mock_id_token');
-        when(
-          () => mockUser.getIdToken(true),
-        ).thenAnswer((_) async => 'new_mock_id_token');
+      when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+      when(mockUser.getIdToken).thenAnswer((_) async => 'mock_id_token');
+      when(
+        () => mockUser.getIdToken(true),
+      ).thenAnswer((_) async => 'new_mock_id_token');
 
-        // main.dart 相当の上書き設定を持ったコンテナを作成
-        final container = ProviderContainer(
-          overrides: [
-            flavorProvider.overrideWithValue(Flavor.dev),
-            // 1. 環境フラグを true に設定
-            envConfigProvider.overrideWithValue(
-              const EnvConfigState(
-                baseUrl: 'https://example.com',
-                imageBaseUrl: defaultImageBaseUrl,
-                aiModel: 'gemini-3.5-flash-lite',
-                connectTimeout: 10,
-                receiveTimeout: 15,
-                sendTimeout: 10,
-                useFirebaseAuth: true,
-                useAgentPlatform: true,
-              ),
+      // main.dart 相当の上書き設定を持ったコンテナを作成
+      final container = ProviderContainer(
+        overrides: [
+          flavorProvider.overrideWithValue(Flavor.dev),
+          // 1. 環境フラグを true に設定
+          envConfigProvider.overrideWithValue(
+            const EnvConfigState(
+              baseUrl: 'https://example.com',
+              imageBaseUrl: defaultImageBaseUrl,
+              aiModel: 'gemini-3.5-flash-lite',
+              connectTimeout: 10,
+              receiveTimeout: 15,
+              sendTimeout: 10,
+              useFirebaseAuth: true,
+              useAgentPlatform: true,
             ),
-            // 2. 共通の認証オーバーライドを適用
-            ...getAuthOverrides().cast(),
-            firebaseAuthProvider.overrideWithValue(mockFirebaseAuth),
-            loggerProvider.overrideWithValue(talker),
-          ],
-        );
+          ),
+          // 2. 共通の認証オーバーライドを適用
+          ...getAuthOverrides().cast(),
+          firebaseAuthProvider.overrideWithValue(mockFirebaseAuth),
+          loggerProvider.overrideWithValue(talker),
+        ],
+      );
 
-        // --- authInterceptors の検証 ---
-        final authInterceptors = container.read(authInterceptorsProvider);
-        check(authInterceptors.length).equals(1);
-        check(
-          authInterceptors.first,
-        ).equals(container.read(tokenInterceptorProvider));
+      // --- authInterceptors の検証 ---
+      final authInterceptors = container.read(authInterceptorsProvider);
+      check(authInterceptors.length).equals(1);
+      check(
+        authInterceptors.first,
+      ).equals(container.read(tokenInterceptorProvider));
 
-        // --- 認証ヘッダー付与の検証 ---
-        final interceptor = container.read(tokenInterceptorProvider);
-        final options = RequestOptions(path: '/test');
-        final handler = RequestInterceptorHandler();
+      // --- 認証ヘッダー付与の検証 ---
+      final interceptor = container.read(tokenInterceptorProvider);
+      final options = RequestOptions(path: '/test');
+      final handler = RequestInterceptorHandler();
 
-        await (interceptor as dynamic).onRequest(options, handler);
+      await (interceptor as dynamic).onRequest(options, handler);
 
-        // トークンが正しくセットされていること
-        check(options.headers['Authorization']).equals('Bearer mock_id_token');
+      // トークンが正しくセットされていること
+      check(options.headers['Authorization']).equals('Bearer mock_id_token');
 
-        // --- リフレッシュ処理の検証 ---
-        final refreshCallback = container.read(tokenRefreshCallbackProvider);
-        final refreshResult = await refreshCallback();
+      // --- リフレッシュ処理の検証 ---
+      final refreshCallback = container.read(tokenRefreshCallbackProvider);
+      final refreshResult = await refreshCallback();
 
-        // 強制更新が成功し、FirebaseのAPIが正しく叩かれていること
-        check(refreshResult).isTrue();
-        verify(() => mockUser.getIdToken(true)).called(1);
-      },
-    );
+      // 強制更新が成功し、FirebaseのAPIが正しく叩かれていること
+      check(refreshResult).isTrue();
+      verify(() => mockUser.getIdToken(true)).called(1);
+    });
 
-    test(
-      '【useFirebaseAuth: false】 の際、SecureStorageからアクセストークンが取得され、'
-      ' リフレッシュ時に自前サーバーAPIが呼ばれること',
-      () async {
-        final mockSecureStorage = MockFlutterSecureStorage();
-        final mockAuthRepository = MockAuthRepository();
+    test('【useFirebaseAuth: false】 の際、SecureStorageからアクセストークンが取得され、'
+        ' リフレッシュ時に自前サーバーAPIが呼ばれること', () async {
+      final mockSecureStorage = MockFlutterSecureStorage();
+      final mockAuthRepository = MockAuthRepository();
 
-        when(
-          () => mockSecureStorage.read(key: SecureStorageKeys.accessToken),
-        ).thenAnswer((_) async => 'mock_access_token');
-        when(mockAuthRepository.refreshToken).thenAnswer((_) async => true);
+      when(
+        () => mockSecureStorage.read(key: SecureStorageKeys.accessToken),
+      ).thenAnswer((_) async => 'mock_access_token');
+      when(mockAuthRepository.refreshToken).thenAnswer((_) async => true);
 
-        // main.dart 相当の上書き設定を持ったコンテナを作成
-        final container = ProviderContainer(
-          overrides: [
-            flavorProvider.overrideWithValue(Flavor.dev),
-            // 1. 環境フラグを false に設定
-            envConfigProvider.overrideWithValue(
-              const EnvConfigState(
-                baseUrl: 'https://example.com',
-                imageBaseUrl: defaultImageBaseUrl,
-                aiModel: 'gemini-3.5-flash-lite',
-                connectTimeout: 10,
-                receiveTimeout: 15,
-                sendTimeout: 10,
-                useFirebaseAuth: false,
-                useAgentPlatform: true,
-              ),
+      // main.dart 相当の上書き設定を持ったコンテナを作成
+      final container = ProviderContainer(
+        overrides: [
+          flavorProvider.overrideWithValue(Flavor.dev),
+          // 1. 環境フラグを false に設定
+          envConfigProvider.overrideWithValue(
+            const EnvConfigState(
+              baseUrl: 'https://example.com',
+              imageBaseUrl: defaultImageBaseUrl,
+              aiModel: 'gemini-3.5-flash-lite',
+              connectTimeout: 10,
+              receiveTimeout: 15,
+              sendTimeout: 10,
+              useFirebaseAuth: false,
+              useAgentPlatform: true,
             ),
-            // 2. 共通の認証オーバーライドを適用
-            ...getAuthOverrides().cast(),
-            // 3. SecureStorageはテスト用のモックで上書き
-            secureStorageProvider.overrideWithValue(mockSecureStorage),
-            authRepositoryProvider.overrideWithValue(mockAuthRepository),
-            loggerProvider.overrideWithValue(talker),
-          ],
-        );
+          ),
+          // 2. 共通の認証オーバーライドを適用
+          ...getAuthOverrides().cast(),
+          // 3. SecureStorageはテスト用のモックで上書き
+          secureStorageProvider.overrideWithValue(mockSecureStorage),
+          authRepositoryProvider.overrideWithValue(mockAuthRepository),
+          loggerProvider.overrideWithValue(talker),
+        ],
+      );
 
-        // --- 認証ヘッダー付与の検証 ---
-        final interceptor = container.read(tokenInterceptorProvider);
-        final options = RequestOptions(path: '/test');
-        final handler = RequestInterceptorHandler();
+      // --- 認証ヘッダー付与の検証 ---
+      final interceptor = container.read(tokenInterceptorProvider);
+      final options = RequestOptions(path: '/test');
+      final handler = RequestInterceptorHandler();
 
-        await (interceptor as dynamic).onRequest(options, handler);
+      await (interceptor as dynamic).onRequest(options, handler);
 
-        // SecureStorageから取得したアクセストークンがセットされていること
-        check(
-          options.headers['Authorization'],
-        ).equals('Bearer mock_access_token');
+      // SecureStorageから取得したアクセストークンがセットされていること
+      check(
+        options.headers['Authorization'],
+      ).equals('Bearer mock_access_token');
 
-        // --- リフレッシュ処理の検証 ---
-        final refreshCallback = container.read(tokenRefreshCallbackProvider);
-        final refreshResult = await refreshCallback();
+      // --- リフレッシュ処理の検証 ---
+      final refreshCallback = container.read(tokenRefreshCallbackProvider);
+      final refreshResult = await refreshCallback();
 
-        // 自前のリフレッシュAPIが正しく叩かれていること
-        check(refreshResult).isTrue();
-        verify(mockAuthRepository.refreshToken).called(1);
-      },
-    );
+      // 自前のリフレッシュAPIが正しく叩かれていること
+      check(refreshResult).isTrue();
+      verify(mockAuthRepository.refreshToken).called(1);
+    });
 
-    test(
-      '【useFirebaseAuth: true】 の際、IDトークン更新時に例外が発生した場合に、'
-      ' リフレッシュコールバックが false を返すこと',
-      () async {
-        final mockFirebaseAuth = MockFirebaseAuth();
-        final mockUser = MockUser();
+    test('【useFirebaseAuth: true】 の際、IDトークン更新時に例外が発生した場合に、'
+        ' リフレッシュコールバックが false を返すこと', () async {
+      final mockFirebaseAuth = MockFirebaseAuth();
+      final mockUser = MockUser();
 
-        when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
-        when(
-          () => mockUser.getIdToken(true),
-        ).thenThrow(FirebaseAuthException(code: 'test-error'));
+      when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+      when(
+        () => mockUser.getIdToken(true),
+      ).thenThrow(FirebaseAuthException(code: 'test-error'));
 
-        final container = ProviderContainer(
-          overrides: [
-            flavorProvider.overrideWithValue(Flavor.dev),
-            envConfigProvider.overrideWithValue(
-              const EnvConfigState(
-                baseUrl: 'https://example.com',
-                imageBaseUrl: defaultImageBaseUrl,
-                aiModel: 'gemini-3.5-flash-lite',
-                connectTimeout: 10,
-                receiveTimeout: 15,
-                sendTimeout: 10,
-                useFirebaseAuth: true,
-                useAgentPlatform: true,
-              ),
+      final container = ProviderContainer(
+        overrides: [
+          flavorProvider.overrideWithValue(Flavor.dev),
+          envConfigProvider.overrideWithValue(
+            const EnvConfigState(
+              baseUrl: 'https://example.com',
+              imageBaseUrl: defaultImageBaseUrl,
+              aiModel: 'gemini-3.5-flash-lite',
+              connectTimeout: 10,
+              receiveTimeout: 15,
+              sendTimeout: 10,
+              useFirebaseAuth: true,
+              useAgentPlatform: true,
             ),
-            ...getAuthOverrides().cast(),
-            firebaseAuthProvider.overrideWithValue(mockFirebaseAuth),
-            loggerProvider.overrideWithValue(talker),
-          ],
-        );
+          ),
+          ...getAuthOverrides().cast(),
+          firebaseAuthProvider.overrideWithValue(mockFirebaseAuth),
+          loggerProvider.overrideWithValue(talker),
+        ],
+      );
 
-        final refreshCallback = container.read(tokenRefreshCallbackProvider);
-        final refreshResult = await refreshCallback();
+      final refreshCallback = container.read(tokenRefreshCallbackProvider);
+      final refreshResult = await refreshCallback();
 
-        check(refreshResult).isFalse();
-      },
-    );
+      check(refreshResult).isFalse();
+    });
   });
 }

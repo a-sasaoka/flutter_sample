@@ -31,9 +31,7 @@ void main() {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          home: Scaffold(
-            body: SpotDetailBottomSheet(spot: spot),
-          ),
+          home: Scaffold(body: SpotDetailBottomSheet(spot: spot)),
         ),
       );
       await tester.pump();
