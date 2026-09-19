@@ -10,3 +10,16 @@ class MemosRoute extends GoRouteData with $MemosRoute {
     return const MemoScreen();
   }
 }
+
+/// 📝 メモタブのブランチデータ
+class MemosBranch extends StatefulShellBranchData {
+  /// コンストラクタ
+  const MemosBranch();
+}
+
+/// 📝 メモタブのシェルブランチ定義
+const memosShellBranch = TypedStatefulShellBranch<MemosBranch>(
+  routes: <TypedRoute<RouteData>>[
+    TypedGoRoute<MemosRoute>(path: '/memos'),
+  ],
+);

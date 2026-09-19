@@ -10,3 +10,16 @@ class UserListRoute extends GoRouteData with $UserListRoute {
     return const UserListScreen();
   }
 }
+
+/// 👥 ユーザー一覧タブのブランチデータ
+class UserBranch extends StatefulShellBranchData {
+  /// コンストラクタ
+  const UserBranch();
+}
+
+/// 👥 ユーザー一覧タブのシェルブランチ定義
+const userShellBranch = TypedStatefulShellBranch<UserBranch>(
+  routes: <TypedRoute<RouteData>>[
+    TypedGoRoute<UserListRoute>(path: '/users'),
+  ],
+);

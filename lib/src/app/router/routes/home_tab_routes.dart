@@ -54,3 +54,28 @@ class MapRoute extends GoRouteData with $MapRoute {
     return const MapScreen();
   }
 }
+
+/// 🏠 ホームタブのブランチデータ
+class HomeBranch extends StatefulShellBranchData {
+  /// コンストラクタ
+  const HomeBranch();
+}
+
+/// 🏠 ホームタブのシェルブランチ定義
+const homeShellBranch = TypedStatefulShellBranch<HomeBranch>(
+  routes: <TypedRoute<RouteData>>[
+    TypedGoRoute<HomeRoute>(
+      path: '/',
+      routes: [
+        TypedGoRoute<MapRoute>(path: 'map'),
+        TypedGoRoute<SettingsRoute>(
+          path: 'settings',
+          routes: [
+            TypedGoRoute<ProfileEditRoute>(path: 'profile'),
+          ],
+        ),
+        TypedGoRoute<ResetPasswordRoute>(path: 'reset-password'),
+      ],
+    ),
+  ],
+);
