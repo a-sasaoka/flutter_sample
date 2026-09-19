@@ -83,10 +83,8 @@ class AppLottieWidget extends StatelessWidget {
         height: height,
         fit: fit,
         onLoaded: onLoaded,
-        errorBuilder: (context, error, stackTrace) => _FallbackIcon(
-          width: width,
-          height: height,
-        ),
+        errorBuilder: (context, error, stackTrace) =>
+            _FallbackIcon(width: width, height: height),
       );
     }
 
@@ -100,10 +98,8 @@ class AppLottieWidget extends StatelessWidget {
       height: height,
       fit: fit,
       onLoaded: onLoaded,
-      errorBuilder: (context, error, stackTrace) => _FallbackIcon(
-        width: width,
-        height: height,
-      ),
+      errorBuilder: (context, error, stackTrace) =>
+          _FallbackIcon(width: width, height: height),
     );
   }
 }

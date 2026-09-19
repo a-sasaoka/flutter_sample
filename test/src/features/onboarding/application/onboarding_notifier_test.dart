@@ -11,9 +11,7 @@ void main() {
 
   ProviderContainer createContainer() {
     final container = ProviderContainer(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(mockPrefs),
-      ],
+      overrides: [sharedPreferencesProvider.overrideWithValue(mockPrefs)],
     );
     addTearDown(container.dispose);
     return container;

@@ -287,23 +287,23 @@ void main() {
     when(() => mockL10n.memoSynced).thenReturn('Synced');
     when(() => mockL10n.memoUnsynced).thenReturn('Unsynced');
     when(() => mockL10n.userListTitle).thenReturn('User List');
-    when(() => mockL10n.userListLastFetched(any())).thenAnswer(
-      (inv) => 'Last Fetched: ${inv.positionalArguments[0]}',
-    );
+    when(
+      () => mockL10n.userListLastFetched(any()),
+    ).thenAnswer((inv) => 'Last Fetched: ${inv.positionalArguments[0]}');
     when(() => mockL10n.userListEmpty).thenReturn('No Users');
     when(() => mockL10n.userListFetchError).thenReturn('Fetch Error');
     when(() => mockL10n.chartLine).thenReturn('Line Chart');
     when(() => mockL10n.chartBar).thenReturn('Bar Chart');
     when(() => mockL10n.chartPie).thenReturn('Pie Chart');
-    when(() => mockL10n.chartDisplayTitle(any())).thenAnswer(
-      (inv) => 'Display: ${inv.positionalArguments[0]}',
-    );
+    when(
+      () => mockL10n.chartDisplayTitle(any()),
+    ).thenAnswer((inv) => 'Display: ${inv.positionalArguments[0]}');
     when(() => mockL10n.chartNoData).thenReturn('No Chart Data');
     when(() => mockL10n.chartDataList).thenReturn('Chart Data List');
     when(() => mockL10n.notFoundTitle).thenReturn('Page Not Found');
-    when(() => mockL10n.notFoundMessage).thenReturn(
-      'The page could not be found.',
-    );
+    when(
+      () => mockL10n.notFoundMessage,
+    ).thenReturn('The page could not be found.');
     when(() => mockL10n.notFoundBackToHome).thenReturn('Back to Home');
     when(() => mockL10n.appTitle).thenReturn('Flutter Sample');
     when(() => mockL10n.memoAdd).thenReturn('Add Memo');
@@ -346,9 +346,7 @@ void main() {
         authStateProvider.overrideWith(
           () => _FakeAuthStateNotifier(isLoggedIn: isLoggedIn),
         ),
-        firebaseAuthStateProvider.overrideWith(
-          () => fakeNotifier,
-        ),
+        firebaseAuthStateProvider.overrideWith(() => fakeNotifier),
         splashStateProvider.overrideWith(
           () => FakeSplashState(initialValue: isSplashFinished),
         ),
@@ -356,9 +354,7 @@ void main() {
           () => _FakeOnboardingNotifier(completed: isOnboardingCompleted),
         ),
         if (fakeNotificationNotifier != null)
-          notificationProvider.overrideWith(
-            () => fakeNotificationNotifier,
-          ),
+          notificationProvider.overrideWith(() => fakeNotificationNotifier),
       ],
     )..listen(routerProvider, (_, _) {});
     return container;
@@ -531,43 +527,40 @@ void main() {
       await teardownWidget(tester, container);
     });
 
-    testWidgets(
-      'スプラッシュ完了後も通知状態が loading の間は SplashScreen を維持し、 '
-      'data 完了時に HomeScreen へ遷移すること',
-      (tester) async {
-        final fakeNotifier = _FakeNotificationNotifier(
-          initialState: const NotificationState.loading(),
-        );
-        final container = createContainer(
-          isLoggedIn: true,
-          useFirebase: false,
-          isSplashFinished: false,
-          fakeNotificationNotifier: fakeNotifier,
-        );
+    testWidgets('スプラッシュ完了後も通知状態が loading の間は SplashScreen を維持し、 '
+        'data 完了時に HomeScreen へ遷移すること', (tester) async {
+      final fakeNotifier = _FakeNotificationNotifier(
+        initialState: const NotificationState.loading(),
+      );
+      final container = createContainer(
+        isLoggedIn: true,
+        useFirebase: false,
+        isSplashFinished: false,
+        fakeNotificationNotifier: fakeNotifier,
+      );
 
-        await tester.pumpWidget(createTestWidget(tester, container));
-        await tester.pump();
+      await tester.pumpWidget(createTestWidget(tester, container));
+      await tester.pump();
 
-        // 最初は SplashScreen が表示されていること
-        check(find.byType(SplashScreen)).findsOne();
+      // 最初は SplashScreen が表示されていること
+      check(find.byType(SplashScreen)).findsOne();
 
-        // スプラッシュ完了状態にするが、通知状態は依然 loading
-        container.read(splashStateProvider.notifier).finishSplash();
-        await tester.pumpAndSettle();
+      // スプラッシュ完了状態にするが、通知状態は依然 loading
+      container.read(splashStateProvider.notifier).finishSplash();
+      await tester.pumpAndSettle();
 
-        // 通知が loading 中のため、依然として SplashScreen を維持していること
-        check(find.byType(SplashScreen)).findsOne();
+      // 通知が loading 中のため、依然として SplashScreen を維持していること
+      check(find.byType(SplashScreen)).findsOne();
 
-        // 通知状態が通常の data（通知なし）で完了
-        fakeNotifier.notificationState = const NotificationState.data();
-        await tester.pumpAndSettle();
+      // 通知状態が通常の data（通知なし）で完了
+      fakeNotifier.notificationState = const NotificationState.data();
+      await tester.pumpAndSettle();
 
-        // HomeScreen へ遷移することを確認
-        check(find.byType(HomeScreen)).findsOne();
+      // HomeScreen へ遷移することを確認
+      check(find.byType(HomeScreen)).findsOne();
 
-        await teardownWidget(tester, container);
-      },
-    );
+      await teardownWidget(tester, container);
+    });
 
     testWidgets('アプリ表示中に通知タップ（latestPayload）が発生した際、指定された画面へ遷移すること', (
       tester,
@@ -588,10 +581,7 @@ void main() {
 
       // 通知タップが発生して latestPayload が更新された状態に変更
       fakeNotifier.notificationState = const NotificationState.data(
-        latestPayload: NotificationPayload(
-          path: '/memos',
-          title: 'Memo Tap',
-        ),
+        latestPayload: NotificationPayload(path: '/memos', title: 'Memo Tap'),
       );
 
       // 画面遷移を処理
@@ -605,9 +595,7 @@ void main() {
 
     testWidgets(
       'ログイン中かつメール未認証の時、FirebaseEmailVerificationScreen にリダイレクトされること',
-      (
-        tester,
-      ) async {
+      (tester) async {
         when(() => mockUser.emailVerified).thenReturn(false);
 
         final container = createContainer(isLoggedIn: true, useFirebase: true);
@@ -1010,9 +998,7 @@ void main() {
   });
 
   group('MainShellScreen Widgetテスト', () {
-    testWidgets('ボトムナビゲーションバーが正しく描画され、タブをタップすると各画面に遷移すること', (
-      tester,
-    ) async {
+    testWidgets('ボトムナビゲーションバーが正しく描画され、タブをタップすると各画面に遷移すること', (tester) async {
       final container = createContainer(isLoggedIn: true, useFirebase: true);
 
       await tester.pumpWidget(createTestWidget(tester, container));

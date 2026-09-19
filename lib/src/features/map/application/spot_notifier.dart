@@ -10,7 +10,7 @@ class SpotNotifier extends _$SpotNotifier {
   @override
   Future<List<MapSpot>> build() async {
     final repository = ref.read(spotRepositoryProvider);
-    return repository.getSpots();
+    return await repository.getSpots();
   }
 
   /// スポット一覧の手動再取得
@@ -18,7 +18,7 @@ class SpotNotifier extends _$SpotNotifier {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final repository = ref.read(spotRepositoryProvider);
-      return repository.getSpots();
+      return await repository.getSpots();
     });
   }
 }

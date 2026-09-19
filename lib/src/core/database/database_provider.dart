@@ -16,9 +16,9 @@ QueryExecutor databaseExecutor(Ref ref) {
   final talker = ref.watch(loggerProvider);
 
   // Talkerによるログ出力（実行時間計測・エラー詳細）を有効にした接続を作成
-  return driftDatabase(name: 'my_app_db').interceptWith(
-    DriftTalkerInterceptor(talker),
-  );
+  return driftDatabase(
+    name: 'my_app_db',
+  ).interceptWith(DriftTalkerInterceptor(talker));
 }
 
 /// アプリ全体で共有するデータベース（AppDatabase）を提供するプロバイダー

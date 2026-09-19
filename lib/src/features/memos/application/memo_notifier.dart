@@ -78,9 +78,7 @@ class MemoNotifier extends _$MemoNotifier {
         MemoSortOrder.updatedAtAsc =>
           (MemoModel a, MemoModel b) => a.updatedAt.compareTo(b.updatedAt),
         MemoSortOrder.titleAsc =>
-          (MemoModel a, MemoModel b) => a.title.compareTo(
-            b.title,
-          ),
+          (MemoModel a, MemoModel b) => a.title.compareTo(b.title),
         MemoSortOrder.titleDesc =>
           (MemoModel a, MemoModel b) => b.title.compareTo(a.title),
       };
@@ -95,13 +93,7 @@ class MemoNotifier extends _$MemoNotifier {
     try {
       await repository.fetchAndMergeRemoteMemos();
     } on Exception catch (e, st) {
-      ref
-          .read(loggerProvider)
-          .handle(
-            e,
-            st,
-            'バックグラウンド同期中にエラーが発生しました',
-          );
+      ref.read(loggerProvider).handle(e, st, 'バックグラウンド同期中にエラーが発生しました');
     }
   }
 

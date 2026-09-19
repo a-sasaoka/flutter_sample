@@ -31,10 +31,7 @@ extension SnackBarExtension on BuildContext {
       SnackBar(
         content: Row(
           children: [
-            Icon(
-              _getIcon(type),
-              color: _getOnBackgroundColor(type),
-            ),
+            Icon(_getIcon(type), color: _getOnBackgroundColor(type)),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -49,9 +46,7 @@ extension SnackBarExtension on BuildContext {
         backgroundColor: _getBackgroundColor(type),
         duration: duration,
         behavior: SnackBarBehavior.floating, // 画面下部から少し浮かす
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         action:
             action ??
             SnackBarAction(

@@ -38,9 +38,7 @@ void main() {
     test('save: データを正しい形式（JSON）で保存すること', () async {
       // Arrange
       final manager = container.read(cacheManagerProvider);
-      when(
-        () => mockPrefs.setString(any(), any()),
-      ).thenAnswer((_) async => {});
+      when(() => mockPrefs.setString(any(), any())).thenAnswer((_) async => {});
 
       // Act
       await manager.save(testKey, testValue);
@@ -57,10 +55,7 @@ void main() {
     test('getWithTimestamp: 有効期限内のキャッシュを正しく取得できること', () async {
       // Arrange
       final tsMs = DateTime(2026, 5, 17, 9, 55).millisecondsSinceEpoch;
-      final cacheData = jsonEncode({
-        'timestamp': tsMs,
-        'data': testValue,
-      });
+      final cacheData = jsonEncode({'timestamp': tsMs, 'data': testValue});
       when(
         () => mockPrefs.getString(testKey),
       ).thenAnswer((_) async => cacheData);
@@ -77,10 +72,7 @@ void main() {
     test('get: ショートカットメソッドでデータのみ取得できること', () async {
       // Arrange
       final tsMs = DateTime(2026, 5, 17, 9, 55).millisecondsSinceEpoch;
-      final cacheData = jsonEncode({
-        'timestamp': tsMs,
-        'data': testValue,
-      });
+      final cacheData = jsonEncode({'timestamp': tsMs, 'data': testValue});
       when(
         () => mockPrefs.getString(testKey),
       ).thenAnswer((_) async => cacheData);
@@ -97,10 +89,7 @@ void main() {
       // Arrange
       // 10分以上前（現在 10:00 に対して 9:40）
       final tsMs = DateTime(2026, 5, 17, 9, 40).millisecondsSinceEpoch;
-      final cacheData = jsonEncode({
-        'timestamp': tsMs,
-        'data': testValue,
-      });
+      final cacheData = jsonEncode({'timestamp': tsMs, 'data': testValue});
       when(
         () => mockPrefs.getString(testKey),
       ).thenAnswer((_) async => cacheData);

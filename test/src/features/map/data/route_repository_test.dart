@@ -26,16 +26,12 @@ void main() {
         'http://localhost:5001/flutter-sample-local/us-central1/computeRoutesProxy';
 
     test('Google Routes API 成功時に正常な MapRoute を生成して返すこと', () async {
-      final repository = RouteRepositoryImpl(
-        dio: mockDio,
-      );
+      final repository = RouteRepositoryImpl(dio: mockDio);
 
       final mockApiResponse = {
         'routes': [
           {
-            'polyline': {
-              'encodedPolyline': '_p~iF~ps|U_ulLnnqC_mqNvxq`@',
-            },
+            'polyline': {'encodedPolyline': '_p~iF~ps|U_ulLnnqC_mqNvxq`@'},
             'distanceMeters': 4200,
             'duration': '480s',
           },
@@ -67,10 +63,8 @@ void main() {
           options: any(named: 'options'),
         ),
       ).thenAnswer(
-        (_) async => Response(
-          requestOptions: RequestOptions(),
-          data: mockApiResponse,
-        ),
+        (_) async =>
+            Response(requestOptions: RequestOptions(), data: mockApiResponse),
       );
 
       final route = await repository.calculateRoute(
@@ -88,75 +82,11 @@ void main() {
       check(route.travelMode).equals(TravelMode.driving);
     });
 
-    test(
-      'polyline や duration が空の場合でもフォールバックして MapRoute を生成すること',
-      () async {
-        final repository = RouteRepositoryImpl(
-          dio: mockDio,
-        );
-
-        final mockApiResponse = {
-          'routes': [
-            <String, dynamic>{},
-          ],
-        };
-
-        when(
-          () => mockDio.post<Map<String, dynamic>>(
-            expectedUrl,
-            data: any(named: 'data'),
-            options: any(named: 'options'),
-          ),
-        ).thenAnswer(
-          (_) async => Response(
-            requestOptions: RequestOptions(),
-            data: mockApiResponse,
-          ),
-        );
-
-        final route = await repository.calculateRoute(
-          origin: origin,
-          destination: destination,
-        );
-
-        check(route.distanceMeters).equals(0);
-        check(route.durationSeconds).equals(0);
-        check(route.points).deepEquals([origin, destination]);
-      },
-    );
-
-    test('レスポンスデータが null の場合は RouteApiException をスローすること', () async {
-      final repository = RouteRepositoryImpl(
-        dio: mockDio,
-      );
-
-      when(
-        () => mockDio.post<Map<String, dynamic>>(
-          expectedUrl,
-          data: any(named: 'data'),
-          options: any(named: 'options'),
-        ),
-      ).thenAnswer(
-        (_) async => Response(
-          requestOptions: RequestOptions(),
-        ),
-      );
-
-      await check(
-        repository.calculateRoute(
-          origin: origin,
-          destination: destination,
-        ),
-      ).throws<RouteApiException>();
-    });
-
-    test('routes 配列が空の場合は RouteApiException をスローすること', () async {
-      final repository = RouteRepositoryImpl(
-        dio: mockDio,
-      );
+    test('polyline や duration が空の場合でもフォールバックして MapRoute を生成すること', () async {
+      final repository = RouteRepositoryImpl(dio: mockDio);
 
       final mockApiResponse = {
-        'routes': <dynamic>[],
+        'routes': [<String, dynamic>{}],
       };
 
       when(
@@ -166,24 +96,59 @@ void main() {
           options: any(named: 'options'),
         ),
       ).thenAnswer(
-        (_) async => Response(
-          requestOptions: RequestOptions(),
-          data: mockApiResponse,
+        (_) async =>
+            Response(requestOptions: RequestOptions(), data: mockApiResponse),
+      );
+
+      final route = await repository.calculateRoute(
+        origin: origin,
+        destination: destination,
+      );
+
+      check(route.distanceMeters).equals(0);
+      check(route.durationSeconds).equals(0);
+      check(route.points).deepEquals([origin, destination]);
+    });
+
+    test('レスポンスデータが null の場合は RouteApiException をスローすること', () async {
+      final repository = RouteRepositoryImpl(dio: mockDio);
+
+      when(
+        () => mockDio.post<Map<String, dynamic>>(
+          expectedUrl,
+          data: any(named: 'data'),
+          options: any(named: 'options'),
         ),
+      ).thenAnswer((_) async => Response(requestOptions: RequestOptions()));
+
+      await check(
+        repository.calculateRoute(origin: origin, destination: destination),
+      ).throws<RouteApiException>();
+    });
+
+    test('routes 配列が空の場合は RouteApiException をスローすること', () async {
+      final repository = RouteRepositoryImpl(dio: mockDio);
+
+      final mockApiResponse = {'routes': <dynamic>[]};
+
+      when(
+        () => mockDio.post<Map<String, dynamic>>(
+          expectedUrl,
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      ).thenAnswer(
+        (_) async =>
+            Response(requestOptions: RequestOptions(), data: mockApiResponse),
       );
 
       await check(
-        repository.calculateRoute(
-          origin: origin,
-          destination: destination,
-        ),
+        repository.calculateRoute(origin: origin, destination: destination),
       ).throws<RouteApiException>();
     });
 
     test('DioException 発生時に API エラーメッセージを抽出してスローすること', () async {
-      final repository = RouteRepositoryImpl(
-        dio: mockDio,
-      );
+      final repository = RouteRepositoryImpl(dio: mockDio);
 
       final dioException = DioException(
         requestOptions: RequestOptions(),
@@ -208,25 +173,18 @@ void main() {
       ).thenThrow(dioException);
 
       await check(
-        repository.calculateRoute(
-          origin: origin,
-          destination: destination,
-        ),
+        repository.calculateRoute(origin: origin, destination: destination),
       ).throws<RouteApiException>();
     });
 
     test('DioException 発生時に error が文字列の場合そのメッセージをスローすること', () async {
-      final repository = RouteRepositoryImpl(
-        dio: mockDio,
-      );
+      final repository = RouteRepositoryImpl(dio: mockDio);
 
       final dioException = DioException(
         requestOptions: RequestOptions(),
         response: Response(
           requestOptions: RequestOptions(),
-          data: {
-            'error': 'Unauthorized: ログインが必要です。',
-          },
+          data: {'error': 'Unauthorized: ログインが必要です。'},
         ),
       );
 
@@ -255,9 +213,7 @@ void main() {
     });
 
     test('DioException 発生時にレスポンスがない場合 DioException.message をスローすること', () async {
-      final repository = RouteRepositoryImpl(
-        dio: mockDio,
-      );
+      final repository = RouteRepositoryImpl(dio: mockDio);
 
       final dioException = DioException(
         requestOptions: RequestOptions(),
@@ -273,17 +229,12 @@ void main() {
       ).thenThrow(dioException);
 
       await check(
-        repository.calculateRoute(
-          origin: origin,
-          destination: destination,
-        ),
+        repository.calculateRoute(origin: origin, destination: destination),
       ).throws<RouteApiException>();
     });
 
     test('travelMode に walking を指定した場合に travelMode に WALK が渡されること', () async {
-      final repository = RouteRepositoryImpl(
-        dio: mockDio,
-      );
+      final repository = RouteRepositoryImpl(dio: mockDio);
 
       final mockApiResponse = {
         'routes': [
@@ -320,10 +271,8 @@ void main() {
           options: any(named: 'options'),
         ),
       ).thenAnswer(
-        (_) async => Response(
-          requestOptions: RequestOptions(),
-          data: mockApiResponse,
-        ),
+        (_) async =>
+            Response(requestOptions: RequestOptions(), data: mockApiResponse),
       );
 
       final route = await repository.calculateRoute(
@@ -338,9 +287,7 @@ void main() {
     });
 
     test('duration が数値または末尾sなし文字列の場合でも正しくパースされること', () async {
-      final repository = RouteRepositoryImpl(
-        dio: mockDio,
-      );
+      final repository = RouteRepositoryImpl(dio: mockDio);
 
       final mockApiResponse = {
         'routes': [
@@ -359,10 +306,8 @@ void main() {
           options: any(named: 'options'),
         ),
       ).thenAnswer(
-        (_) async => Response(
-          requestOptions: RequestOptions(),
-          data: mockApiResponse,
-        ),
+        (_) async =>
+            Response(requestOptions: RequestOptions(), data: mockApiResponse),
       );
 
       final route = await repository.calculateRoute(
@@ -396,10 +341,8 @@ void main() {
           options: any(named: 'options'),
         ),
       ).thenAnswer(
-        (_) async => Response(
-          requestOptions: RequestOptions(),
-          data: mockApiResponse,
-        ),
+        (_) async =>
+            Response(requestOptions: RequestOptions(), data: mockApiResponse),
       );
 
       final route = await repository.calculateRoute(
@@ -412,9 +355,7 @@ void main() {
     });
 
     test('routes レスポンスに warnings が含まれている場合に MapRoute に格納されること', () async {
-      final repository = RouteRepositoryImpl(
-        dio: mockDio,
-      );
+      final repository = RouteRepositoryImpl(dio: mockDio);
 
       final mockApiResponse = {
         'routes': [
@@ -434,10 +375,8 @@ void main() {
           options: any(named: 'options'),
         ),
       ).thenAnswer(
-        (_) async => Response(
-          requestOptions: RequestOptions(),
-          data: mockApiResponse,
-        ),
+        (_) async =>
+            Response(requestOptions: RequestOptions(), data: mockApiResponse),
       );
 
       final route = await repository.calculateRoute(
@@ -518,9 +457,7 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
-      check(
-        container.read(routeRepositoryProvider),
-      ).isA<RouteRepositoryImpl>();
+      check(container.read(routeRepositoryProvider)).isA<RouteRepositoryImpl>();
     });
   });
 }

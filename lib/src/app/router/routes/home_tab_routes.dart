@@ -70,9 +70,7 @@ const homeShellBranch = TypedStatefulShellBranch<HomeBranch>(
         TypedGoRoute<MapRoute>(path: 'map'),
         TypedGoRoute<SettingsRoute>(
           path: 'settings',
-          routes: [
-            TypedGoRoute<ProfileEditRoute>(path: 'profile'),
-          ],
+          routes: [TypedGoRoute<ProfileEditRoute>(path: 'profile')],
         ),
         TypedGoRoute<ResetPasswordRoute>(path: 'reset-password'),
       ],

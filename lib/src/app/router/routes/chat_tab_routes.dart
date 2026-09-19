@@ -19,7 +19,5 @@ class ChatBranch extends StatefulShellBranchData {
 
 /// 🤖 チャットタブのシェルブランチ定義
 const chatShellBranch = TypedStatefulShellBranch<ChatBranch>(
-  routes: <TypedRoute<RouteData>>[
-    TypedGoRoute<ChatRoute>(path: '/chat'),
-  ],
+  routes: <TypedRoute<RouteData>>[TypedGoRoute<ChatRoute>(path: '/chat')],
 );

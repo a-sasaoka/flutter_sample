@@ -73,10 +73,7 @@ class FakeUuid extends Fake implements Uuid {
 }
 
 class HandleCall {
-  const HandleCall({
-    required this.exception,
-    this.stackTrace,
-  });
+  const HandleCall({required this.exception, this.stackTrace});
 
   final Object exception;
   final StackTrace? stackTrace;
@@ -88,17 +85,8 @@ class SpyTalker extends Talker {
   final List<HandleCall> handleCalls = [];
 
   @override
-  void handle(
-    Object exception, [
-    StackTrace? stackTrace,
-    dynamic msg,
-  ]) {
-    handleCalls.add(
-      HandleCall(
-        exception: exception,
-        stackTrace: stackTrace,
-      ),
-    );
+  void handle(Object exception, [StackTrace? stackTrace, dynamic msg]) {
+    handleCalls.add(HandleCall(exception: exception, stackTrace: stackTrace));
     super.handle(exception, stackTrace, msg);
   }
 }

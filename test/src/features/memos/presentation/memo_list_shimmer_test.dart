@@ -21,11 +21,7 @@ void main() {
 
       // 2. 仮想の画面に MemoListShimmer を表示します
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: MemoListShimmer(),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: MemoListShimmer())),
       );
 
       // 3. 画面の高さ（600px）÷ カードの高さ（100px）＝ 6 枚 のカードが表示されているはずです
@@ -40,9 +36,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: ThemeData.dark(),
-          home: const Scaffold(
-            body: MemoListShimmer(),
-          ),
+          home: const Scaffold(body: MemoListShimmer()),
         ),
       );
 

@@ -22,16 +22,12 @@ class PushNotificationDemoScreen extends HookConsumerWidget {
     final notificationState = ref.watch(notificationProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.devNotificationTitle),
-      ),
+      appBar: AppBar(title: Text(l10n.devNotificationTitle)),
       body: switch (notificationState) {
         NotificationStateLoading() => const Center(
           child: CircularProgressIndicator(),
         ),
-        NotificationStateError(:final message) => Center(
-          child: Text(message),
-        ),
+        NotificationStateError(:final message) => Center(child: Text(message)),
         NotificationStateData(
           :final fcmToken,
           :final authorizationStatus,

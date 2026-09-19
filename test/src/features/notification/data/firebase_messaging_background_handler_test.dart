@@ -10,9 +10,7 @@ void main() {
         messageId: 'bg_msg_123',
         data: {'key': 'value'},
       );
-      await check(
-        firebaseMessagingBackgroundHandler(message),
-      ).completes();
+      await check(firebaseMessagingBackgroundHandler(message)).completes();
     });
   });
 }

@@ -159,9 +159,7 @@ void main() {
         verify(
           () => mockAuthRepository.login('test@example.com', 'password123'),
         ).called(1);
-        check(
-          container.read(authStateProvider).value,
-        ).equals(true);
+        check(container.read(authStateProvider).value).equals(true);
       },
     );
 
@@ -195,9 +193,7 @@ void main() {
         verify(
           () => mockAuthRepository.login('test@example.com', 'password123'),
         ).called(1);
-        check(
-          container.read(authStateProvider).hasError,
-        ).equals(true);
+        check(container.read(authStateProvider).hasError).equals(true);
       },
     );
 

@@ -19,9 +19,7 @@ void main() {
 
     ProviderContainer createContainer() {
       final container = ProviderContainer(
-        overrides: [
-          secureStorageProvider.overrideWithValue(mockStorage),
-        ],
+        overrides: [secureStorageProvider.overrideWithValue(mockStorage)],
       );
       addTearDown(container.dispose);
       return container;

@@ -19,9 +19,7 @@ void main() {
         const LoginRoute().location,
         const SignUpRoute().location,
       },
-      alwaysPublicPaths: {
-        const SplashRoute().location,
-      },
+      alwaysPublicPaths: {const SplashRoute().location},
     );
     mockState = MockGoRouterState();
   });

@@ -62,9 +62,8 @@ void main() {
           builder: (context, state) => FirebaseLoginScreen(),
         ),
       ],
-      errorBuilder: (context, state) => Scaffold(
-        body: Text('Navigated to ${state.uri}'),
-      ),
+      errorBuilder: (context, state) =>
+          Scaffold(body: Text('Navigated to ${state.uri}')),
     );
 
     return ProviderScope(
@@ -98,9 +97,7 @@ void main() {
     });
 
     group('メール・パスワードログイン', () {
-      testWidgets('入力値が Repository に渡されること', (
-        tester,
-      ) async {
+      testWidgets('入力値が Repository に渡されること', (tester) async {
         when(
           () => mockAuthRepo.signIn('test@example.com', 'password123'),
         ).thenAnswer((_) async {});
@@ -127,10 +124,8 @@ void main() {
 
       testWidgets('ログイン処理中、ローディング表示になり入力がロックされること', (tester) async {
         // 処理完了までに時間をかけることでローディング中を検証
-        when(
-          () => mockAuthRepo.signIn(any(), any()),
-        ).thenAnswer(
-          (_) async => Future.delayed(const Duration(milliseconds: 100)),
+        when(() => mockAuthRepo.signIn(any(), any())).thenAnswer(
+          (_) async => await Future.delayed(const Duration(milliseconds: 100)),
         );
 
         await tester.pumpWidget(createTestWidget());
@@ -225,11 +220,11 @@ void main() {
       });
 
       testWidgets('ログイン処理中、ローディングインジケーターが表示されること', (tester) async {
-        when(
-          () => mockAuthRepo.signInWithGoogle(),
-        ).thenAnswer(
-          (_) async =>
-              Future.delayed(const Duration(milliseconds: 100), () => true),
+        when(() => mockAuthRepo.signInWithGoogle()).thenAnswer(
+          (_) async => await Future.delayed(
+            const Duration(milliseconds: 100),
+            () => true,
+          ),
         );
 
         await tester.pumpWidget(createTestWidget());

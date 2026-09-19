@@ -29,7 +29,6 @@ sealed class NotificationState with _$NotificationState {
   }) = NotificationStateData;
 
   /// エラー発生状態
-  const factory NotificationState.error({
-    required String message,
-  }) = NotificationStateError;
+  const factory NotificationState.error({required String message}) =
+      NotificationStateError;
 }

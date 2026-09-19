@@ -1,4 +1,4 @@
-// ignore_for_file: one_member_abstracts, document_ignores
+// ignore_for_file: document_ignores
 
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
@@ -236,9 +236,7 @@ void main() {
       requestOptions: options,
       error: 'Retry failed',
     );
-    when(
-      () => mockBaseDio.fetch<dynamic>(any()),
-    ).thenThrow(retryError);
+    when(() => mockBaseDio.fetch<dynamic>(any())).thenThrow(retryError);
 
     await (interceptor as dynamic).onError(error401, handler);
 

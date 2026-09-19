@@ -92,9 +92,7 @@ void main() {
       when(
         () => mockMemoRepository.watchAllMemos(),
       ).thenAnswer((_) => controller.stream);
-      when(
-        () => mockMemoRepository.deleteMemo(any()),
-      ).thenAnswer((_) async {});
+      when(() => mockMemoRepository.deleteMemo(any())).thenAnswer((_) async {});
 
       final subscription = container.listen(memoProvider, (_, _) {});
 
@@ -139,44 +137,41 @@ void main() {
         },
       );
 
-      test(
-        'build はオンライン時かつ同期処理でエラーが発生した場合にログを出力し、状態は正常に完了すること',
-        () async {
-          final controller = StreamController<List<MemoModel>>();
-          addTearDown(controller.close);
+      test('build はオンライン時かつ同期処理でエラーが発生した場合にログを出力し、状態は正常に完了すること', () async {
+        final controller = StreamController<List<MemoModel>>();
+        addTearDown(controller.close);
 
-          final talker = Talker();
+        final talker = Talker();
 
-          final onlineContainer = ProviderContainer(
-            overrides: [
-              memoRepositoryProvider.overrideWithValue(mockMemoRepository),
-              isOnlineProvider.overrideWithValue(true),
-              loggerProvider.overrideWithValue(talker),
-            ],
-          );
-          addTearDown(onlineContainer.dispose);
+        final onlineContainer = ProviderContainer(
+          overrides: [
+            memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(talker),
+          ],
+        );
+        addTearDown(onlineContainer.dispose);
 
-          final exception = Exception('Sync error');
+        final exception = Exception('Sync error');
 
-          when(
-            () => mockMemoRepository.watchAllMemos(),
-          ).thenAnswer((_) => controller.stream);
-          when(
-            () => mockMemoRepository.fetchAndMergeRemoteMemos(),
-          ).thenThrow(exception);
+        when(
+          () => mockMemoRepository.watchAllMemos(),
+        ).thenAnswer((_) => controller.stream);
+        when(
+          () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+        ).thenThrow(exception);
 
-          final subscription = onlineContainer.listen(memoProvider, (_, _) {});
-          controller.add([]);
-          await onlineContainer.read(memoProvider.future);
+        final subscription = onlineContainer.listen(memoProvider, (_, _) {});
+        controller.add([]);
+        await onlineContainer.read(memoProvider.future);
 
-          final errorLogs = talker.history.where(
-            (log) => log.message == 'バックグラウンド同期中にエラーが発生しました',
-          );
-          check(errorLogs.length).equals(1);
+        final errorLogs = talker.history.where(
+          (log) => log.message == 'バックグラウンド同期中にエラーが発生しました',
+        );
+        check(errorLogs.length).equals(1);
 
-          subscription.close();
-        },
-      );
+        subscription.close();
+      });
 
       test(
         'build はオフライン時は repository.fetchAndMergeRemoteMemos() を呼び出さないこと',
@@ -383,10 +378,7 @@ void main() {
       });
 
       test('ソート順を指定して並び替えができること', () async {
-        final sortSub = container.listen(
-          memoSortOrderStateProvider,
-          (_, _) {},
-        );
+        final sortSub = container.listen(memoSortOrderStateProvider, (_, _) {});
         final memoSub = container.listen(memoProvider, (_, _) {});
 
         container

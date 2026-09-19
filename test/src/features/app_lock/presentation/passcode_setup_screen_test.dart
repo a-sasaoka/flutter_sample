@@ -19,9 +19,7 @@ void main() {
       overrides: [
         appLockServiceProvider.overrideWith(
           serviceBuilder ??
-              () => _TestAppLockService(
-                const AppLockState.setupRequired(),
-              ),
+              () => _TestAppLockService(const AppLockState.setupRequired()),
         ),
       ],
       child: MaterialApp(
@@ -223,10 +221,7 @@ void main() {
 }
 
 class _TestAppLockService extends AppLockService {
-  _TestAppLockService(
-    this._initialState, {
-    this.canCheckBiometrics = true,
-  });
+  _TestAppLockService(this._initialState, {this.canCheckBiometrics = true});
 
   final AppLockState _initialState;
   final bool canCheckBiometrics;

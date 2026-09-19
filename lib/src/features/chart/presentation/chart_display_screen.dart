@@ -26,9 +26,7 @@ class ChartDisplayScreen extends ConsumerWidget {
         ),
       ),
       body: state.items.isEmpty
-          ? EmptyStateWidget(
-              title: l10n.chartNoData,
-            )
+          ? EmptyStateWidget(title: l10n.chartNoData)
           : CustomScrollView(
               slivers: [
                 SliverPadding(
@@ -50,9 +48,7 @@ class ChartDisplayScreen extends ConsumerWidget {
                             Text(
                               l10n.chartDataList,
                               style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -63,40 +59,33 @@ class ChartDisplayScreen extends ConsumerWidget {
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final item = state.items[index];
-                        final color = palette[index % palette.length];
-                        return Card(
-                          key: ValueKey(item.id),
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          child: ListTile(
-                            leading: Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                color: color,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            title: Text(
-                              item.label,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            trailing: Text(
-                              item.value.toString(),
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    fontFamily: 'monospace',
-                                  ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final item = state.items[index];
+                      final color = palette[index % palette.length];
+                      return Card(
+                        key: ValueKey(item.id),
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        child: ListTile(
+                          leading: Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
                             ),
                           ),
-                        );
-                      },
-                      childCount: state.items.length,
-                    ),
+                          title: Text(
+                            item.label,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          trailing: Text(
+                            item.value.toString(),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontFamily: 'monospace'),
+                          ),
+                        ),
+                      );
+                    }, childCount: state.items.length),
                   ),
                 ),
               ],

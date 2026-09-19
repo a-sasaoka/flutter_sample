@@ -88,10 +88,7 @@ void main() {
       );
 
       when(
-        () => mockDio.post<dynamic>(
-          any(),
-          data: any(named: 'data'),
-        ),
+        () => mockDio.post<dynamic>(any(), data: any(named: 'data')),
       ).thenAnswer((_) async => mockResponse);
 
       final client = container.read(apiClientProvider);
@@ -100,12 +97,7 @@ void main() {
       await client.post<dynamic>(path, data: postData);
 
       // Assert
-      verify(
-        () => mockDio.post<dynamic>(
-          path,
-          data: postData,
-        ),
-      ).called(1);
+      verify(() => mockDio.post<dynamic>(path, data: postData)).called(1);
     });
 
     test('put() が正しく呼び出されること', () async {

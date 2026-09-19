@@ -24,10 +24,7 @@ AuthRepository authRepository(Ref ref) {
 /// 認証リポジトリの実装クラス
 class AuthRepository {
   /// コンストラクタ
-  AuthRepository({
-    required this.api,
-    required this.tokenStorage,
-  });
+  AuthRepository({required this.api, required this.tokenStorage});
 
   /// APIクライアント
   final ApiClient api;
@@ -39,20 +36,14 @@ class AuthRepository {
   Future<void> login(String email, String password) async {
     final response = await api.post<Map<String, dynamic>>(
       '/auth/login',
-      data: {
-        'email': email,
-        'password': password,
-      },
+      data: {'email': email, 'password': password},
     );
 
     if (response.data case {
       'access_token': final String access,
       'refresh_token': final String refresh,
     }) {
-      await tokenStorage.saveTokens(
-        accessToken: access,
-        refreshToken: refresh,
-      );
+      await tokenStorage.saveTokens(accessToken: access, refreshToken: refresh);
     } else {
       throw const AppException.dataParse();
     }
@@ -71,10 +62,7 @@ class AuthRepository {
     final access = response.data?['access_token'] as String?;
     if (access == null) return false;
 
-    await tokenStorage.saveTokens(
-      accessToken: access,
-      refreshToken: refresh,
-    );
+    await tokenStorage.saveTokens(accessToken: access, refreshToken: refresh);
     return true;
   }
 }

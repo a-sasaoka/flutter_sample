@@ -46,14 +46,11 @@ class OnboardingScreen extends HookConsumerWidget {
     ];
 
     // オンボーディング完了失敗時のエラーメッセージ通知
-    ref.listen<AsyncValue<bool>>(
-      onboardingProvider,
-      (previous, next) {
-        if (next is AsyncError) {
-          context.showErrorSnackBar(l10n.chatError);
-        }
-      },
-    );
+    ref.listen<AsyncValue<bool>>(onboardingProvider, (previous, next) {
+      if (next is AsyncError) {
+        context.showErrorSnackBar(l10n.chatError);
+      }
+    });
 
     Future<void> completeOnboarding() async {
       await ref.read(onboardingProvider.notifier).complete();
@@ -87,10 +84,7 @@ class OnboardingScreen extends HookConsumerWidget {
                 itemCount: pages.length,
                 onPageChanged: (index) => currentPage.value = index,
                 itemBuilder: (context, index) {
-                  return _OnboardingPage(
-                    data: pages[index],
-                    animate: animate,
-                  );
+                  return _OnboardingPage(data: pages[index], animate: animate);
                 },
               ),
             ),
@@ -124,11 +118,9 @@ class OnboardingScreen extends HookConsumerWidget {
                       if (currentPage.value == pages.length - 1) {
                         unawaited(completeOnboarding());
                       } else {
-                        unawaited(
-                          pageController.nextPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          ),
+                        pageController.nextPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
                         );
                       }
                     },
@@ -175,10 +167,7 @@ class _OnboardingPageData {
 
 /// 各スライドのUIを表示するウィジェット
 class _OnboardingPage extends StatelessWidget {
-  const _OnboardingPage({
-    required this.data,
-    this.animate,
-  });
+  const _OnboardingPage({required this.data, this.animate});
 
   final _OnboardingPageData data;
   final bool? animate;
@@ -210,10 +199,7 @@ class _OnboardingPage extends StatelessWidget {
               ],
             ),
             padding: const EdgeInsets.all(24),
-            child: AppLottieWidget.asset(
-              lottie: data.lottie,
-              animate: animate,
-            ),
+            child: AppLottieWidget.asset(lottie: data.lottie, animate: animate),
           ),
           const SizedBox(height: 48),
           // タイトル

@@ -121,18 +121,14 @@ void main() {
     });
 
     test('useFirebaseAuth: true かつ Firebase User が null の場合、false を返すこと', () {
-      final container = createContainer(
-        useFirebaseAuth: true,
-      );
+      final container = createContainer(useFirebaseAuth: true);
 
       final isAuthed = container.read(isAuthenticatedProvider);
       check(isAuthed).equals(false);
     });
 
     test('useFirebaseAuth: false かつ authState が true の場合、true を返すこと', () async {
-      final container = createContainer(
-        useFirebaseAuth: false,
-      );
+      final container = createContainer(useFirebaseAuth: false);
 
       // 非同期Notifierの初期化完了を待機
       await container.read(authStateProvider.future);

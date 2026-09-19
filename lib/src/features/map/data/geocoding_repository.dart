@@ -10,10 +10,7 @@ class GeocodingRepository {
   /// コンストラクタ（テスト時に Geocoding インスタンスやテスト用ハンドラを注入可能）
   GeocodingRepository({
     Geocoding? geocoding,
-    Future<List<LocationCandidate>> Function(
-      String address, {
-      Locale? locale,
-    })?
+    Future<List<LocationCandidate>> Function(String address, {Locale? locale})?
     candidatesHandler,
   }) : _geocoding = geocoding,
        _candidatesHandler = candidatesHandler;
@@ -31,7 +28,7 @@ class GeocodingRepository {
     Locale? locale,
   }) async {
     if (_candidatesHandler != null) {
-      return _candidatesHandler(address, locale: locale);
+      return await _candidatesHandler(address, locale: locale);
     }
 
     final geocoding = _geocoding ?? Geocoding();

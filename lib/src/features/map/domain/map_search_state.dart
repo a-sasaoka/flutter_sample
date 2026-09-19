@@ -19,9 +19,8 @@ sealed class MapSearchState with _$MapSearchState {
   }) = MapSearchStateSuccess;
 
   /// 該当なし
-  const factory MapSearchState.empty({
-    required String query,
-  }) = MapSearchStateEmpty;
+  const factory MapSearchState.empty({required String query}) =
+      MapSearchStateEmpty;
 
   /// 検索エラー
   const factory MapSearchState.error(String message) = MapSearchStateError;

@@ -221,9 +221,7 @@ void main() {
           check(
             ErrorHandler.message(
               context,
-              FirebaseAuthException(
-                code: 'some-unknown-code',
-              ),
+              FirebaseAuthException(code: 'some-unknown-code'),
             ),
           ).equals('errorUnknown');
         },

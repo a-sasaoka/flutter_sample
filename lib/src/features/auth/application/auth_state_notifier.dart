@@ -18,10 +18,7 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     try {
       await ref
           .read(tokenStorageProvider)
-          .saveTokens(
-            accessToken: accessToken,
-            refreshToken: refreshToken,
-          );
+          .saveTokens(accessToken: accessToken, refreshToken: refreshToken);
       state = const AsyncData(true);
     } catch (e, st) {
       state = AsyncError(e, st);

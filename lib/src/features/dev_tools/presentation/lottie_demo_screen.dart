@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/gen/assets.gen.dart';
@@ -13,10 +11,7 @@ import 'package:flutter_sample/src/core/widgets/app_lottie_widget.dart';
 /// Lottie アニメーションの多彩な制御方法を実践的に学べるデモ画面です。
 class LottieDemoScreen extends HookWidget {
   /// コンストラクタ
-  const LottieDemoScreen({
-    super.key,
-    this.animate = true,
-  });
+  const LottieDemoScreen({super.key, this.animate = true});
 
   /// アニメーションを自動再生するかどうか（テスト時は false にしてタイムアウトを防止）
   final bool animate;
@@ -49,10 +44,7 @@ class LottieDemoScreen extends HookWidget {
         name: l10n.devLottieAssetOnboardingChat,
         lottie: Assets.animations.onboardingChat,
       ),
-      (
-        name: l10n.devLottieAssetEmptyBox,
-        lottie: Assets.animations.emptyBox,
-      ),
+      (name: l10n.devLottieAssetEmptyBox, lottie: Assets.animations.emptyBox),
       (
         name: l10n.devLottieAssetNotFound,
         lottie: Assets.animations.notFound404,
@@ -64,55 +56,47 @@ class LottieDemoScreen extends HookWidget {
     ];
 
     // 4. 初回マウント時の自動再生制御
-    useEffect(
-      () {
-        if (animate) {
-          unawaited(controller.forward());
-        }
-        return null;
-      },
-      [controller, animate],
-    );
+    useEffect(() {
+      if (animate) {
+        controller.forward();
+      }
+      return null;
+    }, [controller, animate]);
 
     // 5. アニメーションの進捗・完了を監視するリスナー
-    useEffect(
-      () {
-        void listener() {
-          progress.value = controller.value;
-        }
+    useEffect(() {
+      void listener() {
+        progress.value = controller.value;
+      }
 
-        void statusListener(AnimationStatus status) {
-          if (status == AnimationStatus.completed) {
-            if (isLoop.value) {
-              unawaited(controller.forward(from: 0));
-            } else {
-              context.showSnackBar(
-                l10n.devLottieCompleted,
-                duration: const Duration(seconds: 1),
-              );
-            }
+      void statusListener(AnimationStatus status) {
+        if (status == AnimationStatus.completed) {
+          if (isLoop.value) {
+            controller.forward(from: 0);
+          } else {
+            context.showSnackBar(
+              l10n.devLottieCompleted,
+              duration: const Duration(seconds: 1),
+            );
           }
         }
+      }
 
+      controller
+        ..addListener(listener)
+        ..addStatusListener(statusListener);
+
+      return () {
         controller
-          ..addListener(listener)
-          ..addStatusListener(statusListener);
-
-        return () {
-          controller
-            ..removeListener(listener)
-            ..removeStatusListener(statusListener);
-        };
-      },
-      [controller, isLoop.value],
-    );
+          ..removeListener(listener)
+          ..removeStatusListener(statusListener);
+      };
+    }, [controller, isLoop.value]);
 
     final selectedAsset = assetList[selectedIndex.value];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.devLottieTitle),
-      ),
+      appBar: AppBar(title: Text(l10n.devLottieTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -166,7 +150,7 @@ class LottieDemoScreen extends HookWidget {
                     children: [
                       // 再生ボタン
                       IconButton.filledTonal(
-                        onPressed: () => unawaited(controller.forward()),
+                        onPressed: controller.forward,
                         icon: const Icon(Icons.play_arrow),
                         tooltip: l10n.devLottieControlPlay,
                       ),
@@ -178,7 +162,7 @@ class LottieDemoScreen extends HookWidget {
                       ),
                       // 逆再生ボタン
                       IconButton.filledTonal(
-                        onPressed: () => unawaited(controller.reverse()),
+                        onPressed: controller.reverse,
                         icon: const Icon(Icons.replay),
                         tooltip: l10n.devLottieControlReverse,
                       ),
@@ -199,7 +183,7 @@ class LottieDemoScreen extends HookWidget {
                     onChanged: (value) {
                       isLoop.value = value;
                       if (value && !controller.isAnimating) {
-                        unawaited(controller.forward(from: controller.value));
+                        controller.forward(from: controller.value);
                       }
                     },
                     contentPadding: EdgeInsets.zero,
@@ -236,8 +220,9 @@ class LottieDemoScreen extends HookWidget {
                         onSelected: (selected) {
                           if (selected) {
                             selectedIndex.value = index;
-                            controller.reset();
-                            unawaited(controller.forward());
+                            controller
+                              ..reset()
+                              ..forward();
                           }
                         },
                       );
@@ -267,9 +252,7 @@ class LottieDemoScreen extends HookWidget {
                       Text(
                         l10n.devLottieNetworkSection,
                         style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),

@@ -12,12 +12,10 @@ sealed class AppLockState with _$AppLockState {
   const factory AppLockState.setupRequired() = AppLockStateSetupRequired;
 
   /// ロック中（最前面シールド＋生体認証/PIN入力待機中）
-  const factory AppLockState.locked({
-    required bool isBiometricEnabled,
-  }) = AppLockStateLocked;
+  const factory AppLockState.locked({required bool isBiometricEnabled}) =
+      AppLockStateLocked;
 
   /// ロック解除済み（通常のアプリ利用可能状態）
-  const factory AppLockState.unlocked({
-    required bool isBiometricEnabled,
-  }) = AppLockStateUnlocked;
+  const factory AppLockState.unlocked({required bool isBiometricEnabled}) =
+      AppLockStateUnlocked;
 }

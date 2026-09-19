@@ -7,10 +7,6 @@
 include: package:very_good_analysis/analysis_options.yaml
 
 analyzer:
-  # custom_lint をプラグインとして有効化
-  plugins:
-    - custom_lint
-
   # 自動生成されたファイルは解析対象から除外
   exclude:
     - "**/*.g.dart"
@@ -18,12 +14,19 @@ analyzer:
     - "**/*.gen.dart"
     - "**/generated/**"
     - "**/build/**"
+    - build/**
+    - android/**
+    - ios/**
 
   # 解析オプション
   language:
     strict-casts: true        # 型キャストの安全性を厳しくチェック
     strict-inference: true    # 型推論を厳しくチェック
     strict-raw-types: true    # ジェネリクス使用時の型安全性を強化
+
+# custom_lint をプラグインとして有効化（Dart 3.13+ 最新仕様）
+plugins:
+  custom_lint: any
 
 # custom_lint 関連設定
 custom_lint:

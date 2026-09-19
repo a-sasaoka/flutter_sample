@@ -12,9 +12,7 @@ Widget buildGoldenTestApp({
   return MaterialApp(
     // 日本語フォントを適用したテーマを設定します
     theme: AppTheme.light().copyWith(
-      textTheme: AppTheme.light().textTheme.apply(
-        fontFamily: 'NotoSansJP',
-      ),
+      textTheme: AppTheme.light().textTheme.apply(fontFamily: 'NotoSansJP'),
       primaryTextTheme: AppTheme.light().primaryTextTheme.apply(
         fontFamily: 'NotoSansJP',
       ),
@@ -32,9 +30,7 @@ Widget buildGoldenTestApp({
       ),
     ),
     darkTheme: AppTheme.dark().copyWith(
-      textTheme: AppTheme.dark().textTheme.apply(
-        fontFamily: 'NotoSansJP',
-      ),
+      textTheme: AppTheme.dark().textTheme.apply(fontFamily: 'NotoSansJP'),
       primaryTextTheme: AppTheme.dark().primaryTextTheme.apply(
         fontFamily: 'NotoSansJP',
       ),
@@ -53,7 +49,7 @@ Widget buildGoldenTestApp({
     ),
     themeMode: themeMode,
     localizationsDelegates: [
-      if (additionalDelegates != null) ...additionalDelegates,
+      ...?additionalDelegates,
       AppLocalizations.delegate,
       GlobalMaterialLocalizations.delegate,
       GlobalWidgetsLocalizations.delegate,

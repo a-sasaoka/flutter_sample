@@ -164,9 +164,7 @@ void main() {
 
     testWidgets(
       'UI状態: 生成中(isGenerating=true)の時、入力フォームが非活性になり、インジケーターが表示されること',
-      (
-        tester,
-      ) async {
+      (tester) async {
         final notifier = FakeChatNotifier(const ChatState(isGenerating: true));
         await setupWidget(tester, notifier: notifier);
 

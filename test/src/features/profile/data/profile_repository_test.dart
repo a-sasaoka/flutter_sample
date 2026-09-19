@@ -29,11 +29,8 @@ void main() {
     mockTalker = MockTalker();
     when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
     when(
-      () => mockTalker.handle(
-        any<Object>(),
-        any<StackTrace?>(),
-        any<dynamic>(),
-      ),
+      () =>
+          mockTalker.handle(any<Object>(), any<StackTrace?>(), any<dynamic>()),
     ).thenReturn(null);
     repository = ProfileRepository(api: mockApi, talker: mockTalker);
   });

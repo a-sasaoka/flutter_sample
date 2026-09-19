@@ -36,7 +36,7 @@ final class SpotNotifierProvider
   SpotNotifier create() => SpotNotifier();
 }
 
-String _$spotNotifierHash() => r'4cdac6027951a8761076828997fdbbc67765f0ce';
+String _$spotNotifierHash() => r'27a191d818ca9e25fe104e72a7be2b778a7eb58d';
 
 /// 🗺️ スポット一覧を管理・更新する Notifier
 

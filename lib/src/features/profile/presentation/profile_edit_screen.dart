@@ -73,17 +73,13 @@ class ProfileEditScreen extends ConsumerWidget {
           ),
         ),
         _ => const Center(
-          child: ExcludeSemantics(
-            child: CircularProgressIndicator.adaptive(),
-          ),
+          child: ExcludeSemantics(child: CircularProgressIndicator.adaptive()),
         ),
       };
     }();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.profileTitle),
-      ),
+      appBar: AppBar(title: Text(l10n.profileTitle)),
       body: body,
     );
   }
@@ -221,10 +217,7 @@ class _ProfileEditForm extends HookConsumerWidget {
           );
         }
         // ネットワークURLの場合
-        return AppCachedImage.circle(
-          imageUrl: profile.avatarUrl,
-          size: 100,
-        );
+        return AppCachedImage.circle(imageUrl: profile.avatarUrl, size: 100);
       }
       // 3. デフォルトのアバターアイコン
       return buildDefaultAvatarIcon();
@@ -431,9 +424,7 @@ class _ProfileEditForm extends HookConsumerWidget {
                 border: const OutlineInputBorder(),
               ),
               keyboardType: TextInputType.phone,
-              inputFormatters: const [
-                StrictDigitsTextInputFormatter(),
-              ],
+              inputFormatters: const [StrictDigitsTextInputFormatter()],
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return null; // 任意入力のため空は許可

@@ -12,7 +12,7 @@ class SharedPreferencesItems extends _$SharedPreferencesItems {
   @override
   FutureOr<Map<String, Object?>> build() async {
     _prefs = ref.watch(sharedPreferencesProvider);
-    return _fetchCurrentMap();
+    return await _fetchCurrentMap();
   }
 
   /// 値を設定または更新する
@@ -31,7 +31,7 @@ class SharedPreferencesItems extends _$SharedPreferencesItems {
         default:
           throw ArgumentError('Unsupported value type: ${value.runtimeType}');
       }
-      return _fetchCurrentMap();
+      return await _fetchCurrentMap();
     });
   }
 
@@ -40,7 +40,7 @@ class SharedPreferencesItems extends _$SharedPreferencesItems {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       await _prefs.remove(key);
-      return _fetchCurrentMap();
+      return await _fetchCurrentMap();
     });
   }
 
@@ -55,6 +55,6 @@ class SharedPreferencesItems extends _$SharedPreferencesItems {
 
   /// 現在のSharedPreferencesのマップを取得する
   Future<Map<String, Object?>> _fetchCurrentMap() async {
-    return _prefs.getAll();
+    return await _prefs.getAll();
   }
 }

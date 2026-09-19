@@ -26,9 +26,7 @@ void main() {
       );
 
       final container = ProviderContainer(
-        overrides: [
-          packageInfoProvider.overrideWithValue(mockPackageInfo),
-        ],
+        overrides: [packageInfoProvider.overrideWithValue(mockPackageInfo)],
       );
       addTearDown(container.dispose);
 

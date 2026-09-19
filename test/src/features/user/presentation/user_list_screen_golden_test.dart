@@ -66,9 +66,7 @@ void main() {
       ).thenAnswer((_) async => (dummyUsers, dummyTimestamp));
 
       return ProviderScope(
-        overrides: [
-          userRepositoryProvider.overrideWithValue(repository),
-        ],
+        overrides: [userRepositoryProvider.overrideWithValue(repository)],
         child: buildGoldenTestApp(
           themeMode: themeMode,
           additionalDelegates: [MockLocalizationsDelegate(mockL10n)],

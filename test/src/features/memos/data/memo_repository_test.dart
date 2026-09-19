@@ -17,11 +17,7 @@ import 'package:talker_flutter/talker_flutter.dart';
 class MockMemoRemoteService extends Mock implements MemoRemoteService {}
 
 class HandleCall {
-  const HandleCall({
-    required this.exception,
-    this.stackTrace,
-    this.message,
-  });
+  const HandleCall({required this.exception, this.stackTrace, this.message});
 
   final Object exception;
   final StackTrace? stackTrace;
@@ -34,17 +30,9 @@ class SpyTalker extends Talker {
   final List<HandleCall> handleCalls = [];
 
   @override
-  void handle(
-    Object exception, [
-    StackTrace? stackTrace,
-    dynamic msg,
-  ]) {
+  void handle(Object exception, [StackTrace? stackTrace, dynamic msg]) {
     handleCalls.add(
-      HandleCall(
-        exception: exception,
-        stackTrace: stackTrace,
-        message: msg,
-      ),
+      HandleCall(exception: exception, stackTrace: stackTrace, message: msg),
     );
     super.handle(exception, stackTrace, msg);
   }
@@ -641,9 +629,7 @@ void main() {
       final container = createContainer();
       final repository = container.read(memoRepositoryProvider);
       final fetchError = Exception('fetch error');
-      when(
-        () => mockRemoteService.fetchMemos(),
-      ).thenThrow(fetchError);
+      when(() => mockRemoteService.fetchMemos()).thenThrow(fetchError);
 
       final memos = await repository.getAllMemos();
 

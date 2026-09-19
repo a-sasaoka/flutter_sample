@@ -235,9 +235,7 @@ void main() {
     test('baseDioProvider を使用した ApiClient を提供すること', () {
       final mockDio = MockDio();
       final container = ProviderContainer(
-        overrides: [
-          baseDioProvider.overrideWithValue(mockDio),
-        ],
+        overrides: [baseDioProvider.overrideWithValue(mockDio)],
       );
       addTearDown(container.dispose);
 

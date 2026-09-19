@@ -282,14 +282,8 @@ class _LocaleCard extends ConsumerWidget {
                   value: null,
                   label: Text(l10n.settingsLocaleSystem),
                 ),
-                ButtonSegment(
-                  value: 'ja',
-                  label: Text(l10n.settingsLocaleJa),
-                ),
-                ButtonSegment(
-                  value: 'en',
-                  label: Text(l10n.settingsLocaleEn),
-                ),
+                ButtonSegment(value: 'ja', label: Text(l10n.settingsLocaleJa)),
+                ButtonSegment(value: 'en', label: Text(l10n.settingsLocaleEn)),
               ],
               selected: {currentLocale?.languageCode},
               onSelectionChanged: (selection) async {

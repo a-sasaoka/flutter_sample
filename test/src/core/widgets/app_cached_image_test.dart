@@ -30,26 +30,15 @@ void main() {
     when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
     when(() => mockTalker.warning(any<dynamic>())).thenReturn(null);
     when(
-      () => mockTalker.handle(
-        any<Object>(),
-        any<StackTrace?>(),
-        any<dynamic>(),
-      ),
+      () =>
+          mockTalker.handle(any<Object>(), any<StackTrace?>(), any<dynamic>()),
     ).thenReturn(null);
   });
 
-  Widget createWidget({
-    required Widget child,
-  }) {
+  Widget createWidget({required Widget child}) {
     return ProviderScope(
-      overrides: [
-        loggerProvider.overrideWithValue(mockTalker),
-      ],
-      child: MaterialApp(
-        home: Scaffold(
-          body: child,
-        ),
-      ),
+      overrides: [loggerProvider.overrideWithValue(mockTalker)],
+      child: MaterialApp(home: Scaffold(body: child)),
     );
   }
 
@@ -57,11 +46,7 @@ void main() {
     testWidgets('URLがnullの場合、即座にフォールバック（デフォルト）が表示されること', (tester) async {
       await tester.pumpWidget(
         createWidget(
-          child: const AppCachedImage(
-            imageUrl: null,
-            width: 100,
-            height: 100,
-          ),
+          child: const AppCachedImage(imageUrl: null, width: 100, height: 100),
         ),
       );
 
@@ -71,11 +56,7 @@ void main() {
     testWidgets('URLが空文字または空白の場合、フォールバックが表示されること', (tester) async {
       await tester.pumpWidget(
         createWidget(
-          child: const AppCachedImage(
-            imageUrl: '   ',
-            width: 100,
-            height: 100,
-          ),
+          child: const AppCachedImage(imageUrl: '   ', width: 100, height: 100),
         ),
       );
 
@@ -98,10 +79,7 @@ void main() {
     testWidgets('AppCachedImage.circle で ClipOval が適用されること', (tester) async {
       await tester.pumpWidget(
         createWidget(
-          child: const AppCachedImage.circle(
-            imageUrl: null,
-            size: 50,
-          ),
+          child: const AppCachedImage.circle(imageUrl: null, size: 50),
         ),
       );
 
@@ -283,39 +261,38 @@ void main() {
       ).called(1);
     });
 
-    testWidgets(
-      'errorWidget で userInfo や fragment が含まれる場合もサニタイズされてログ出力されること',
-      (tester) async {
-        await tester.pumpWidget(
-          createWidget(
-            child: AppCachedImage(
-              imageUrl: 'https://admin:secret@example.com/image.png#section',
-              cacheManager: mockCacheManager,
-            ),
+    testWidgets('errorWidget で userInfo や fragment が含まれる場合もサニタイズされてログ出力されること', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createWidget(
+          child: AppCachedImage(
+            imageUrl: 'https://admin:secret@example.com/image.png#section',
+            cacheManager: mockCacheManager,
           ),
-        );
+        ),
+      );
 
-        final cachedImage = tester.widget<CachedNetworkImage>(
-          find.byType(CachedNetworkImage),
-        );
+      final cachedImage = tester.widget<CachedNetworkImage>(
+        find.byType(CachedNetworkImage),
+      );
 
-        final element = tester.element(find.byType(AppCachedImage));
-        final errorResult = cachedImage.errorWidget!(
-          element,
-          'https://admin:secret@example.com/image.png#section',
-          Exception('Load error'),
-        );
+      final element = tester.element(find.byType(AppCachedImage));
+      final errorResult = cachedImage.errorWidget!(
+        element,
+        'https://admin:secret@example.com/image.png#section',
+        Exception('Load error'),
+      );
 
-        check(errorResult).isNotNull();
-        verify(
-          () => mockTalker.handle(
-            any<Object>(),
-            any<StackTrace>(),
-            'Failed to load cached image (https://example.com/image.png)',
-          ),
-        ).called(1);
-      },
-    );
+      check(errorResult).isNotNull();
+      verify(
+        () => mockTalker.handle(
+          any<Object>(),
+          any<StackTrace>(),
+          'Failed to load cached image (https://example.com/image.png)',
+        ),
+      ).called(1);
+    });
 
     testWidgets('errorWidget で不正なURL形式の場合、[invalid-url] としてサニタイズされること', (
       tester,

@@ -95,18 +95,11 @@ class UserRepository {
         'email': email,
         'phone': '000-0000-0000',
         'website': 'example.com',
-        'address': {
-          'city': '未設定',
-          'street': '未設定',
-          'suite': '未設定',
-        },
+        'address': {'city': '未設定', 'street': '未設定', 'suite': '未設定'},
       },
     );
 
-    final user = _parseUser(
-      response.data,
-      'Failed to parse created user data',
-    );
+    final user = _parseUser(response.data, 'Failed to parse created user data');
 
     // キャッシュをクリア
     await cache.clear(cacheKey);
@@ -122,10 +115,7 @@ class UserRepository {
       data: {'name': newName},
     );
 
-    final user = _parseUser(
-      response.data,
-      'Failed to parse updated user data',
-    );
+    final user = _parseUser(response.data, 'Failed to parse updated user data');
 
     // キャッシュをクリア
     await cache.clear(cacheKey);

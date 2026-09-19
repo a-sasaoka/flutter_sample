@@ -44,10 +44,7 @@ class AuthGuardHelper {
   /// 3. ログイン済みの場合：
   ///    - ゲスト専用画面 ([guestOnlyPaths]) なら、[defaultLocation]（または from）へリダイレクト
   ///    - それ以外の画面なら、そのまま遷移
-  String? redirect({
-    required bool isLoggedIn,
-    required GoRouterState state,
-  }) {
+  String? redirect({required bool isLoggedIn, required GoRouterState state}) {
     // クエリパラメータの影響を受けないようにパスのみを取得する
     final path = state.uri.path;
 
@@ -68,9 +65,7 @@ class AuthGuardHelper {
       // 元々行こうとしていた場所を from パラメータに持たせてログイン画面へ
       return Uri(
         path: loginLocation,
-        queryParameters: {
-          'from': state.uri.toString(),
-        },
+        queryParameters: {'from': state.uri.toString()},
       ).toString();
     }
 

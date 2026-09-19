@@ -35,13 +35,7 @@ class MemoScreen extends ConsumerWidget {
                 try {
                   await ref.read(memoProvider.notifier).sync();
                 } on Exception catch (e, st) {
-                  ref
-                      .read(loggerProvider)
-                      .handle(
-                        e,
-                        st,
-                        '手動同期中にエラーが発生しました',
-                      );
+                  ref.read(loggerProvider).handle(e, st, '手動同期中にエラーが発生しました');
                   if (context.mounted) {
                     ErrorHandler.showSnackBar(context, e);
                   }
@@ -78,7 +72,7 @@ class MemoScreen extends ConsumerWidget {
   }
 
   Future<void> _showAddMemoDialog(BuildContext context, WidgetRef ref) async {
-    return showModalBottomSheet(
+    return await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (context) => HookBuilder(
@@ -287,9 +281,7 @@ class _MemoListView extends ConsumerWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           SizedBox(height: MediaQuery.sizeOf(context).height * 0.15),
-          EmptyStateWidget(
-            title: l10n.memoEmpty,
-          ),
+          EmptyStateWidget(title: l10n.memoEmpty),
         ],
       ),
       AsyncData(value: final memos) => ListView.builder(
@@ -360,9 +352,9 @@ class _MemoCard extends ConsumerWidget {
                 const Spacer(),
                 Text(
                   '${memo.createdAt.month}/${memo.createdAt.day} ${memo.createdAt.hour.toString().padLeft(2, '0')}:${memo.createdAt.minute.toString().padLeft(2, '0')}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontSize: 10,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(fontSize: 10),
                 ),
               ],
             ),

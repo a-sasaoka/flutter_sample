@@ -24,9 +24,7 @@ void main() {
       final isDark = themeMode == ThemeMode.dark;
 
       return ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(mockPrefs),
-        ],
+        overrides: [sharedPreferencesProvider.overrideWithValue(mockPrefs)],
         child: MaterialApp(
           theme: isDark
               ? AppTheme.dark().copyWith(

@@ -91,9 +91,9 @@ void main() {
     };
     setupMockSharedPreferences();
 
-    when(() => mockSecureStorage.readAll()).thenAnswer(
-      (_) async => {'sec_key_1': 'sec_val_1'},
-    );
+    when(
+      () => mockSecureStorage.readAll(),
+    ).thenAnswer((_) async => {'sec_key_1': 'sec_val_1'});
     when(
       () => mockSecureStorage.write(
         key: any(named: 'key'),
@@ -110,9 +110,9 @@ void main() {
     when(() => mockL10n.devStorageClearAll).thenReturn('Clear All');
     when(() => mockL10n.devStoragePrefsTab).thenReturn('SharedPreferences');
     when(() => mockL10n.devStorageSecureTab).thenReturn('SecureStorage');
-    when(() => mockL10n.devStorageError(any())).thenAnswer(
-      (inv) => 'Error: ${inv.positionalArguments[0]}',
-    );
+    when(
+      () => mockL10n.devStorageError(any()),
+    ).thenAnswer((inv) => 'Error: ${inv.positionalArguments[0]}');
     when(() => mockL10n.devStorageNoPrefsData).thenReturn('No Prefs Data');
     when(() => mockL10n.devStorageNoSecureData).thenReturn('No Secure Data');
     when(() => mockL10n.devStorageConfirmClear).thenReturn('Confirm Clear');
@@ -131,9 +131,7 @@ void main() {
     when(() => mockL10n.notFoundBackToHome).thenReturn('Back to Home');
   });
 
-  Widget buildTestWidget({
-    required Flavor flavor,
-  }) {
+  Widget buildTestWidget({required Flavor flavor}) {
     return ProviderScope(
       overrides: [
         flavorProvider.overrideWithValue(flavor),
@@ -336,10 +334,7 @@ void main() {
     );
 
     when(() => mockSecureStorage.readAll()).thenAnswer(
-      (_) async => {
-        'sec_key_1': 'sec_val_1',
-        'new_sec_key': 'new_sec_val',
-      },
+      (_) async => {'sec_key_1': 'sec_val_1', 'new_sec_key': 'new_sec_val'},
     );
 
     await tester.tap(find.text('OK'));
@@ -369,11 +364,9 @@ void main() {
     check(find.text('updated_sec_val')).findsOne();
 
     // 3. 削除
-    when(() => mockSecureStorage.readAll()).thenAnswer(
-      (_) async => {
-        'new_sec_key': 'new_sec_val',
-      },
-    );
+    when(
+      () => mockSecureStorage.readAll(),
+    ).thenAnswer((_) async => {'new_sec_key': 'new_sec_val'});
 
     final deleteButtons = find.byIcon(Icons.delete_outline);
     await tester.tap(deleteButtons.first);

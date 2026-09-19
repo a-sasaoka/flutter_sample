@@ -14,10 +14,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 /// 🔐 アプリ起動時・復帰時に表示されるパスコード入力・生体認証ロック画面
 class PasscodeLockScreen extends HookConsumerWidget {
   /// コンストラクタ
-  const PasscodeLockScreen({
-    required this.isBiometricEnabled,
-    super.key,
-  });
+  const PasscodeLockScreen({required this.isBiometricEnabled, super.key});
 
   /// 生体認証が有効かどうか
   final bool isBiometricEnabled;
@@ -33,32 +30,29 @@ class PasscodeLockScreen extends HookConsumerWidget {
     final isAuthenticating = useState<bool>(false);
 
     // 生体認証ダイアログの自動起動
-    useEffect(
-      () {
-        if (!isBiometricEnabled) {
-          return null;
-        }
+    useEffect(() {
+      if (!isBiometricEnabled) {
+        return null;
+      }
 
-        Future<void> triggerBiometric() async {
-          isAuthenticating.value = true;
-          try {
-            await ref
-                .read(appLockServiceProvider.notifier)
-                .unlockWithBiometrics(
-                  localizedReason: l10n.appLockBiometricAuthReason,
-                );
-          } finally {
-            if (context.mounted) {
-              isAuthenticating.value = false;
-            }
+      Future<void> triggerBiometric() async {
+        isAuthenticating.value = true;
+        try {
+          await ref
+              .read(appLockServiceProvider.notifier)
+              .unlockWithBiometrics(
+                localizedReason: l10n.appLockBiometricAuthReason,
+              );
+        } finally {
+          if (context.mounted) {
+            isAuthenticating.value = false;
           }
         }
+      }
 
-        unawaited(triggerBiometric());
-        return null;
-      },
-      const [],
-    );
+      unawaited(triggerBiometric());
+      return null;
+    }, const []);
 
     /// ユーザーがキーパッド左下の生体認証ボタンをタップした時に呼び出す
     Future<void> handleBiometricPressed() async {
@@ -127,9 +121,7 @@ class PasscodeLockScreen extends HookConsumerWidget {
             builder: (context, constraints) {
               return SingleChildScrollView(
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight,
-                  ),
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
                   child: IntrinsicHeight(
                     child: Column(
                       children: [

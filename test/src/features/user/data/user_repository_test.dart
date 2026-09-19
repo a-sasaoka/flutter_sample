@@ -44,11 +44,8 @@ void main() {
     when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
     when(() => mockTalker.error(any<dynamic>())).thenReturn(null);
     when(
-      () => mockTalker.handle(
-        any<Object>(),
-        any<StackTrace?>(),
-        any<dynamic>(),
-      ),
+      () =>
+          mockTalker.handle(any<Object>(), any<StackTrace?>(), any<dynamic>()),
     ).thenReturn(null);
 
     repository = UserRepository(
@@ -71,10 +68,7 @@ void main() {
       'suite': 'Suite 1',
       'city': 'Tokyo',
       'zipcode': '100-0000',
-      'geo': {
-        'lat': '35.6895',
-        'lng': '139.6917',
-      },
+      'geo': {'lat': '35.6895', 'lng': '139.6917'},
     },
   };
 
@@ -235,9 +229,7 @@ void main() {
 
     test('キャッシュ内のデータが不正な場合、AppException.dataParse をスローしログを出力すること', () async {
       // Arrange
-      when(
-        () => mockCache.getWithTimestamp('users'),
-      ).thenAnswer(
+      when(() => mockCache.getWithTimestamp('users')).thenAnswer(
         (_) async => (
           [
             {'id': 'invalid-id'},
@@ -480,35 +472,32 @@ void main() {
   });
 
   group('userRepositoryProvider', () {
-    test(
-      '依存関係（APIクライアントとキャッシュマネージャー）が正しく注入された '
-      'UserRepository のインスタンスを提供すること',
-      () {
-        // 1. Arrange (準備)
-        final mockApi = MockApiClient();
-        final mockCache = MockCacheManager();
+    test('依存関係（APIクライアントとキャッシュマネージャー）が正しく注入された '
+        'UserRepository のインスタンスを提供すること', () {
+      // 1. Arrange (準備)
+      final mockApi = MockApiClient();
+      final mockCache = MockCacheManager();
 
-        // 依存する根元のプロバイダーをモックにすり替えたコンテナを作成
-        final container = ProviderContainer(
-          overrides: [
-            apiClientProvider.overrideWithValue(mockApi),
-            cacheManagerProvider.overrideWithValue(mockCache),
-            loggerProvider.overrideWithValue(mockTalker),
-            clockProvider.overrideWithValue(DateTime.now),
-          ],
-        );
-        addTearDown(container.dispose);
+      // 依存する根元のプロバイダーをモックにすり替えたコンテナを作成
+      final container = ProviderContainer(
+        overrides: [
+          apiClientProvider.overrideWithValue(mockApi),
+          cacheManagerProvider.overrideWithValue(mockCache),
+          loggerProvider.overrideWithValue(mockTalker),
+          clockProvider.overrideWithValue(DateTime.now),
+        ],
+      );
+      addTearDown(container.dispose);
 
-        // 2. Act (実行)
-        // テスト対象のプロバイダーを読み込む
-        final repository = container.read(userRepositoryProvider);
+      // 2. Act (実行)
+      // テスト対象のプロバイダーを読み込む
+      final repository = container.read(userRepositoryProvider);
 
-        // 3. Assert (検証)
-        check(repository).isA<UserRepository>();
+      // 3. Assert (検証)
+      check(repository).isA<UserRepository>();
 
-        check(repository.api).equals(mockApi);
-        check(repository.cache).equals(mockCache);
-      },
-    );
+      check(repository.api).equals(mockApi);
+      check(repository.cache).equals(mockCache);
+    });
   });
 }

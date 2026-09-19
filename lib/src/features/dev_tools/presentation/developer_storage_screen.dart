@@ -13,10 +13,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 /// 開発者向けストレージ確認・編集画面
 class DeveloperStorageScreen extends HookConsumerWidget {
   /// コンストラクタ
-  const DeveloperStorageScreen({
-    this.initialTabIndex = 0,
-    super.key,
-  });
+  const DeveloperStorageScreen({this.initialTabIndex = 0, super.key});
 
   /// 初期表示するタブのインデックス
   final int initialTabIndex;
@@ -152,9 +149,7 @@ class _SharedPreferencesTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     if (data.isEmpty) {
-      return Center(
-        child: Text(l10n.devStorageNoPrefsData),
-      );
+      return Center(child: Text(l10n.devStorageNoPrefsData));
     }
 
     final sortedKeys = data.keys.toList()..sort();
@@ -168,10 +163,7 @@ class _SharedPreferencesTab extends ConsumerWidget {
         final type = value.runtimeType.toString();
 
         return ListTile(
-          title: Text(
-            key,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
+          title: Text(key, style: const TextStyle(fontWeight: FontWeight.bold)),
           subtitle: Text(
             value.toString(),
             maxLines: 2,
@@ -208,10 +200,8 @@ class _SharedPreferencesTab extends ConsumerWidget {
             unawaited(
               showDialog<void>(
                 context: context,
-                builder: (context) => _EditPrefsDialog(
-                  storageKey: key,
-                  currentValue: value,
-                ),
+                builder: (context) =>
+                    _EditPrefsDialog(storageKey: key, currentValue: value),
               ),
             );
           },
@@ -231,9 +221,7 @@ class _SecureStorageTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     if (data.isEmpty) {
-      return Center(
-        child: Text(l10n.devStorageNoSecureData),
-      );
+      return Center(child: Text(l10n.devStorageNoSecureData));
     }
 
     final sortedKeys = data.keys.toList()..sort();
@@ -246,10 +234,7 @@ class _SecureStorageTab extends ConsumerWidget {
         final value = data[key];
 
         return ListTile(
-          title: Text(
-            key,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
+          title: Text(key, style: const TextStyle(fontWeight: FontWeight.bold)),
           subtitle: Text(
             value ?? '',
             maxLines: 2,
@@ -309,23 +294,14 @@ class _AddPrefsDialog extends HookConsumerWidget {
           children: [
             TextField(
               controller: keyController,
-              decoration: InputDecoration(
-                labelText: l10n.devStorageKey,
-              ),
+              decoration: InputDecoration(labelText: l10n.devStorageKey),
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<_StorageType>(
               initialValue: selectedType.value,
-              decoration: InputDecoration(
-                labelText: l10n.devStorageType,
-              ),
+              decoration: InputDecoration(labelText: l10n.devStorageType),
               items: _StorageType.values
-                  .map(
-                    (t) => DropdownMenuItem(
-                      value: t,
-                      child: Text(t.label),
-                    ),
-                  )
+                  .map((t) => DropdownMenuItem(value: t, child: Text(t.label)))
                   .toList(),
               onChanged: (val) {
                 if (val != null) {
@@ -345,9 +321,7 @@ class _AddPrefsDialog extends HookConsumerWidget {
             else
               TextField(
                 controller: valController,
-                decoration: InputDecoration(
-                  labelText: l10n.devStorageValue,
-                ),
+                decoration: InputDecoration(labelText: l10n.devStorageValue),
                 keyboardType:
                     selectedType.value == _StorageType.intType ||
                         selectedType.value == _StorageType.doubleType
@@ -436,9 +410,7 @@ class _EditPrefsDialog extends HookConsumerWidget {
             else
               TextField(
                 controller: valController,
-                decoration: InputDecoration(
-                  labelText: l10n.devStorageValue,
-                ),
+                decoration: InputDecoration(labelText: l10n.devStorageValue),
                 keyboardType: currentValue is num
                     ? TextInputType.number
                     : TextInputType.text,
@@ -498,16 +470,12 @@ class _AddSecureDialog extends HookConsumerWidget {
           children: [
             TextField(
               controller: keyController,
-              decoration: InputDecoration(
-                labelText: l10n.devStorageKey,
-              ),
+              decoration: InputDecoration(labelText: l10n.devStorageKey),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: valController,
-              decoration: InputDecoration(
-                labelText: l10n.devStorageValue,
-              ),
+              decoration: InputDecoration(labelText: l10n.devStorageValue),
             ),
           ],
         ),
@@ -566,9 +534,7 @@ class _EditSecureDialog extends HookConsumerWidget {
             const SizedBox(height: 16),
             TextField(
               controller: valController,
-              decoration: InputDecoration(
-                labelText: l10n.devStorageValue,
-              ),
+              decoration: InputDecoration(labelText: l10n.devStorageValue),
             ),
           ],
         ),

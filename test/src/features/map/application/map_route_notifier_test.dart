@@ -16,10 +16,7 @@ import 'package:talker_flutter/talker_flutter.dart';
 class MockRouteRepository extends Mock implements RouteRepository {}
 
 class HandleCall {
-  const HandleCall({
-    required this.exception,
-    this.stackTrace,
-  });
+  const HandleCall({required this.exception, this.stackTrace});
 
   final Object exception;
   final StackTrace? stackTrace;
@@ -31,17 +28,8 @@ class SpyTalker extends Talker {
   final List<HandleCall> handleCalls = [];
 
   @override
-  void handle(
-    Object exception, [
-    StackTrace? stackTrace,
-    dynamic msg,
-  ]) {
-    handleCalls.add(
-      HandleCall(
-        exception: exception,
-        stackTrace: stackTrace,
-      ),
-    );
+  void handle(Object exception, [StackTrace? stackTrace, dynamic msg]) {
+    handleCalls.add(HandleCall(exception: exception, stackTrace: stackTrace));
     super.handle(exception, stackTrace, msg);
   }
 }
@@ -176,10 +164,7 @@ void main() {
       final container = createContainer()..listen(mapRouteProvider, (_, _) {});
       final notifier = container.read(mapRouteProvider.notifier);
 
-      await notifier.searchRoute(
-        origin: origin,
-        destination: destination,
-      );
+      await notifier.searchRoute(origin: origin, destination: destination);
 
       final state = container.read(mapRouteProvider);
       check(state).isA<MapRouteStateError>();
@@ -212,10 +197,7 @@ void main() {
       final container = createContainer()..listen(mapRouteProvider, (_, _) {});
       final notifier = container.read(mapRouteProvider.notifier);
 
-      await notifier.searchRoute(
-        origin: origin,
-        destination: destination,
-      );
+      await notifier.searchRoute(origin: origin, destination: destination);
 
       check(container.read(mapRouteProvider)).isA<MapRouteStateSuccess>();
 

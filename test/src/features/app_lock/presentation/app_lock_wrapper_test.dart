@@ -81,9 +81,7 @@ void main() {
     testWidgets('AppLockStateDisabled 時は通常コンテンツのみ表示される', (tester) async {
       await tester.pumpWidget(
         createTestWidget(
-          const AppLockWrapper(
-            child: Text('Main Screen Content'),
-          ),
+          const AppLockWrapper(child: Text('Main Screen Content')),
         ),
       );
       await tester.pumpAndSettle();
@@ -96,9 +94,7 @@ void main() {
     testWidgets('AppLockStateUnlocked 時は通常コンテンツのみ表示される', (tester) async {
       await tester.pumpWidget(
         createTestWidget(
-          const AppLockWrapper(
-            child: Text('Main Screen Content'),
-          ),
+          const AppLockWrapper(child: Text('Main Screen Content')),
           serviceBuilder: () => _TestAppLockService(
             const AppLockState.unlocked(isBiometricEnabled: true),
           ),
@@ -116,12 +112,9 @@ void main() {
       (tester) async {
         await tester.pumpWidget(
           createTestWidget(
-            const AppLockWrapper(
-              child: Text('Main Screen Content'),
-            ),
-            serviceBuilder: () => _TestAppLockService(
-              const AppLockState.setupRequired(),
-            ),
+            const AppLockWrapper(child: Text('Main Screen Content')),
+            serviceBuilder: () =>
+                _TestAppLockService(const AppLockState.setupRequired()),
           ),
         );
         await tester.pumpAndSettle();
@@ -137,9 +130,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         createTestWidget(
-          const AppLockWrapper(
-            child: Text('Main Screen Content'),
-          ),
+          const AppLockWrapper(child: Text('Main Screen Content')),
           serviceBuilder: () => _TestAppLockService(
             const AppLockState.locked(isBiometricEnabled: true),
           ),
@@ -152,35 +143,32 @@ void main() {
       check(find.byType(PasscodeLockScreen)).findsOne();
     });
 
-    testWidgets(
-      '一時非活性 (inactive) のみから復帰 (resumed) した場合は lockApp が呼び出されないこと',
-      (tester) async {
-        final mockService = _TestAppLockService(
-          const AppLockState.unlocked(isBiometricEnabled: true),
-        );
-        final mockLifecycle = _TestAppLifecycle();
+    testWidgets('一時非活性 (inactive) のみから復帰 (resumed) した場合は lockApp が呼び出されないこと', (
+      tester,
+    ) async {
+      final mockService = _TestAppLockService(
+        const AppLockState.unlocked(isBiometricEnabled: true),
+      );
+      final mockLifecycle = _TestAppLifecycle();
 
-        await tester.pumpWidget(
-          createTestWidget(
-            const AppLockWrapper(
-              child: Text('Main Screen Content'),
-            ),
-            serviceBuilder: () => mockService,
-            lifecycleBuilder: () => mockLifecycle,
-          ),
-        );
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        createTestWidget(
+          const AppLockWrapper(child: Text('Main Screen Content')),
+          serviceBuilder: () => mockService,
+          lifecycleBuilder: () => mockLifecycle,
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        // キーボード閉じや通信等に伴う resumed -> inactive -> resumed 遷移
-        mockLifecycle.updateLifecycleState(AppLifecycleState.inactive);
-        await tester.pump();
+      // キーボード閉じや通信等に伴う resumed -> inactive -> resumed 遷移
+      mockLifecycle.updateLifecycleState(AppLifecycleState.inactive);
+      await tester.pump();
 
-        mockLifecycle.updateLifecycleState(AppLifecycleState.resumed);
-        await tester.pump();
+      mockLifecycle.updateLifecycleState(AppLifecycleState.resumed);
+      await tester.pump();
 
-        check(mockService.lockAppCalledCount).equals(0);
-      },
-    );
+      check(mockService.lockAppCalledCount).equals(0);
+    });
 
     testWidgets(
       'バックグラウンド (paused -> inactive -> resumed) の復帰シーケンスで lockApp が呼び出されること',
@@ -192,9 +180,7 @@ void main() {
 
         await tester.pumpWidget(
           createTestWidget(
-            const AppLockWrapper(
-              child: Text('Main Screen Content'),
-            ),
+            const AppLockWrapper(child: Text('Main Screen Content')),
             serviceBuilder: () => mockService,
             lifecycleBuilder: () => mockLifecycle,
           ),
@@ -225,9 +211,7 @@ void main() {
 
         await tester.pumpWidget(
           createTestWidget(
-            const AppLockWrapper(
-              child: Text('Main Screen Content'),
-            ),
+            const AppLockWrapper(child: Text('Main Screen Content')),
             serviceBuilder: () => mockService,
             lifecycleBuilder: () => mockLifecycle,
           ),
@@ -248,57 +232,48 @@ void main() {
       },
     );
 
-    testWidgets(
-      '複合バックグラウンド (paused -> hidden -> inactive -> resumed) '
-      'の復帰シーケンスで lockApp が呼び出されること',
-      (tester) async {
-        final mockService = _TestAppLockService(
-          const AppLockState.unlocked(isBiometricEnabled: true),
-        );
-        final mockLifecycle = _TestAppLifecycle();
+    testWidgets('複合バックグラウンド (paused -> hidden -> inactive -> resumed) '
+        'の復帰シーケンスで lockApp が呼び出されること', (tester) async {
+      final mockService = _TestAppLockService(
+        const AppLockState.unlocked(isBiometricEnabled: true),
+      );
+      final mockLifecycle = _TestAppLifecycle();
 
-        await tester.pumpWidget(
-          createTestWidget(
-            const AppLockWrapper(
-              child: Text('Main Screen Content'),
-            ),
-            serviceBuilder: () => mockService,
-            lifecycleBuilder: () => mockLifecycle,
-          ),
-        );
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        createTestWidget(
+          const AppLockWrapper(child: Text('Main Screen Content')),
+          serviceBuilder: () => mockService,
+          lifecycleBuilder: () => mockLifecycle,
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        // 複合遷移 paused -> hidden -> inactive -> resumed
-        mockLifecycle.updateLifecycleState(AppLifecycleState.paused);
-        await tester.pump();
+      // 複合遷移 paused -> hidden -> inactive -> resumed
+      mockLifecycle.updateLifecycleState(AppLifecycleState.paused);
+      await tester.pump();
 
-        mockLifecycle.updateLifecycleState(AppLifecycleState.hidden);
-        await tester.pump();
+      mockLifecycle.updateLifecycleState(AppLifecycleState.hidden);
+      await tester.pump();
 
-        mockLifecycle.updateLifecycleState(AppLifecycleState.inactive);
-        await tester.pump();
+      mockLifecycle.updateLifecycleState(AppLifecycleState.inactive);
+      await tester.pump();
 
-        mockLifecycle.updateLifecycleState(AppLifecycleState.resumed);
-        await tester.pump();
+      mockLifecycle.updateLifecycleState(AppLifecycleState.resumed);
+      await tester.pump();
 
-        check(mockService.lockAppCalledCount).equals(1);
-      },
-    );
+      check(mockService.lockAppCalledCount).equals(1);
+    });
 
     testWidgets('loading 状態の時は保護シールド(ColoredBox)が描画される', (tester) async {
       await tester.pumpWidget(
         createTestWidget(
-          const AppLockWrapper(
-            child: Text('Main Screen Content'),
-          ),
+          const AppLockWrapper(child: Text('Main Screen Content')),
           serviceBuilder: _LoadingAppLockService.new,
         ),
       );
       await tester.pump();
 
-      check(
-        find.byKey(const Key('app_lock_loading_shield')),
-      ).findsOne();
+      check(find.byKey(const Key('app_lock_loading_shield'))).findsOne();
       check(find.byType(PasscodeSetupScreen)).findsNothing();
       check(find.byType(PasscodeLockScreen)).findsNothing();
     });
@@ -306,17 +281,13 @@ void main() {
     testWidgets('error 状態の時は PasscodeLockScreen にフォールバック描画される', (tester) async {
       await tester.pumpWidget(
         createTestWidget(
-          const AppLockWrapper(
-            child: Text('Main Screen Content'),
-          ),
+          const AppLockWrapper(child: Text('Main Screen Content')),
           serviceBuilder: _ErrorAppLockService.new,
         ),
       );
       await tester.pump();
 
-      check(
-        find.byKey(const Key('app_lock_error_fallback')),
-      ).findsOne();
+      check(find.byKey(const Key('app_lock_error_fallback'))).findsOne();
     });
   });
 }

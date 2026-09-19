@@ -70,10 +70,7 @@ class FirebaseLoginScreen extends HookConsumerWidget {
                         try {
                           await ref
                               .read(firebaseAuthRepositoryProvider)
-                              .signIn(
-                                emailCtrl.text,
-                                passwordCtrl.text,
-                              );
+                              .signIn(emailCtrl.text, passwordCtrl.text);
                         } on Exception catch (e) {
                           if (context.mounted) {
                             ErrorHandler.showSnackBar(context, e);

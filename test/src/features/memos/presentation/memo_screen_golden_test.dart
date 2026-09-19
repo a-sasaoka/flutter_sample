@@ -104,10 +104,7 @@ void main() {
             child: SizedBox(
               width: 390,
               height: 844,
-              child: buildMemoForGolden(
-                memos: [],
-                themeMode: ThemeMode.light,
-              ),
+              child: buildMemoForGolden(memos: [], themeMode: ThemeMode.light),
             ),
           ),
           GoldenTestScenario(
@@ -115,10 +112,7 @@ void main() {
             child: SizedBox(
               width: 390,
               height: 844,
-              child: buildMemoForGolden(
-                memos: [],
-                themeMode: ThemeMode.dark,
-              ),
+              child: buildMemoForGolden(memos: [], themeMode: ThemeMode.dark),
             ),
           ),
           GoldenTestScenario(

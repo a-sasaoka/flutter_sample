@@ -10,11 +10,7 @@ void main() {
     testWidgets('ライトモードで骨組み（Shimmer）と吹き出しボックスが正しく描画されること', (tester) async {
       // 1. テスト用の画面にウィジェットを表示します
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: ChatBubbleShimmer(),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: ChatBubbleShimmer())),
       );
 
       // 2. キラキラ効果（Shimmer）が吹き出し部分と時間表示部分の2箇所に表示されていることを確認します
@@ -30,9 +26,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: ThemeData.dark(),
-          home: const Scaffold(
-            body: ChatBubbleShimmer(),
-          ),
+          home: const Scaffold(body: ChatBubbleShimmer()),
         ),
       );
 

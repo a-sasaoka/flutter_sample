@@ -38,7 +38,7 @@ final class SharedPreferencesItemsProvider
 }
 
 String _$sharedPreferencesItemsHash() =>
-    r'9f49e069f25ea4bdaf2c76984e51b56ad59d767e';
+    r'174afc7642476c9a0fefb931856f04e377312243';
 
 /// SharedPreferencesのデータを非同期で監視・操作するNotifier
 

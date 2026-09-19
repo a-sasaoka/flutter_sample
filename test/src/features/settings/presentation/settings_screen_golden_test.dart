@@ -77,9 +77,7 @@ void main() {
 
       final baseTheme = isDark ? AppTheme.dark() : AppTheme.light();
       final goldenTheme = baseTheme.copyWith(
-        textTheme: baseTheme.textTheme.apply(
-          fontFamily: 'NotoSansJP',
-        ),
+        textTheme: baseTheme.textTheme.apply(fontFamily: 'NotoSansJP'),
         primaryTextTheme: baseTheme.primaryTextTheme.apply(
           fontFamily: 'NotoSansJP',
         ),

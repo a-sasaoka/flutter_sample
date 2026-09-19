@@ -9,11 +9,7 @@ void main() {
     test('MapRoute の各ゲッターが期待値を返すこと', () {
       const origin = LatLng(35.681236, 139.767125);
       const destination = LatLng(35.6585805, 139.7454329);
-      final points = [
-        origin,
-        const LatLng(35.670, 139.755),
-        destination,
-      ];
+      final points = [origin, const LatLng(35.670, 139.755), destination];
 
       final route = MapRoute(
         id: 'test_route_1',

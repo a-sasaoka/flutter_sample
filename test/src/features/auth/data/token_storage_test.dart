@@ -17,9 +17,7 @@ void main() {
   setUp(() {
     mockStorage = MockFlutterSecureStorage();
     container = ProviderContainer(
-      overrides: [
-        secureStorageProvider.overrideWithValue(mockStorage),
-      ],
+      overrides: [secureStorageProvider.overrideWithValue(mockStorage)],
     );
   });
 

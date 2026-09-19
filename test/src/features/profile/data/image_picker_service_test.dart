@@ -11,7 +11,6 @@ import 'package:mocktail/mocktail.dart';
 
 /// Mocking PermissionHandlerPlatform requires direct import of the platform
 /// interface.
-// ignore: depend_on_referenced_packages
 import 'package:permission_handler_platform_interface/permission_handler_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:talker_flutter/talker_flutter.dart';
@@ -130,24 +129,21 @@ void main() {
       ).called(1);
     });
 
-    test(
-      'checkAndRequestPermission: '
-      'リクエスト後に永久拒否された場合は isPermanentlyDenied: true で例外を投げること',
-      () async {
-        when(
-          () => mockPlatform.checkPermissionStatus(Permission.camera),
-        ).thenAnswer((_) async => PermissionStatus.denied);
-        when(
-          () => mockPlatform.requestPermissions([Permission.camera]),
-        ).thenAnswer(
-          (_) async => {Permission.camera: PermissionStatus.permanentlyDenied},
-        );
+    test('checkAndRequestPermission: '
+        'リクエスト後に永久拒否された場合は isPermanentlyDenied: true で例外を投げること', () async {
+      when(
+        () => mockPlatform.checkPermissionStatus(Permission.camera),
+      ).thenAnswer((_) async => PermissionStatus.denied);
+      when(
+        () => mockPlatform.requestPermissions([Permission.camera]),
+      ).thenAnswer(
+        (_) async => {Permission.camera: PermissionStatus.permanentlyDenied},
+      );
 
-        await check(
-          service.checkAndRequestPermission(AvatarPickSource.camera),
-        ).throws<AvatarPermissionDeniedException>();
-      },
-    );
+      await check(
+        service.checkAndRequestPermission(AvatarPickSource.camera),
+      ).throws<AvatarPermissionDeniedException>();
+    });
 
     test('checkAndRequestPermission: リクエスト後に拒否された場合は例外を投げること', () async {
       when(
@@ -278,59 +274,56 @@ void main() {
       check(result).isNull();
     });
 
-    test(
-      'pickAndCropAvatar: appLockService が設定されている場合は '
-      'runWithLockSuppression を通して実行されること',
-      () async {
-        final mockAppLockService = MockAppLockService();
-        final serviceWithLock = ImagePickerService(
-          picker: mockPicker,
-          cropper: mockCropper,
-          talker: mockTalker,
-          appLockService: mockAppLockService,
-        );
+    test('pickAndCropAvatar: appLockService が設定されている場合は '
+        'runWithLockSuppression を通して実行されること', () async {
+      final mockAppLockService = MockAppLockService();
+      final serviceWithLock = ImagePickerService(
+        picker: mockPicker,
+        cropper: mockCropper,
+        talker: mockTalker,
+        appLockService: mockAppLockService,
+      );
 
-        when(
-          () => mockPlatform.checkPermissionStatus(Permission.photos),
-        ).thenAnswer((_) async => PermissionStatus.granted);
-        when(
-          () => mockPicker.pickImage(
-            source: ImageSource.gallery,
-            maxWidth: 1024,
-            maxHeight: 1024,
-            imageQuality: 85,
-          ),
-        ).thenAnswer((_) async => XFile('/path/to/picked.jpg'));
+      when(
+        () => mockPlatform.checkPermissionStatus(Permission.photos),
+      ).thenAnswer((_) async => PermissionStatus.granted);
+      when(
+        () => mockPicker.pickImage(
+          source: ImageSource.gallery,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 85,
+        ),
+      ).thenAnswer((_) async => XFile('/path/to/picked.jpg'));
 
-        final mockCropped = MockCroppedFile();
-        when(() => mockCropped.path).thenReturn('/path/to/cropped.jpg');
-        when(
-          () => mockCropper.cropImage(
-            sourcePath: '/path/to/picked.jpg',
-            compressQuality: 85,
-            uiSettings: any(named: 'uiSettings'),
-          ),
-        ).thenAnswer((_) async => mockCropped);
+      final mockCropped = MockCroppedFile();
+      when(() => mockCropped.path).thenReturn('/path/to/cropped.jpg');
+      when(
+        () => mockCropper.cropImage(
+          sourcePath: '/path/to/picked.jpg',
+          compressQuality: 85,
+          uiSettings: any(named: 'uiSettings'),
+        ),
+      ).thenAnswer((_) async => mockCropped);
 
-        when(
-          () => mockAppLockService.runWithLockSuppression<String?>(any()),
-        ).thenAnswer((invocation) async {
-          final action =
-              invocation.positionalArguments[0] as Future<String?> Function();
-          return action();
-        });
+      when(
+        () => mockAppLockService.runWithLockSuppression<String?>(any()),
+      ).thenAnswer((invocation) async {
+        final action =
+            invocation.positionalArguments[0] as Future<String?> Function();
+        return await action();
+      });
 
-        final result = await serviceWithLock.pickAndCropAvatar(
-          source: AvatarPickSource.gallery,
-          cropperTitle: cropperTitle,
-        );
+      final result = await serviceWithLock.pickAndCropAvatar(
+        source: AvatarPickSource.gallery,
+        cropperTitle: cropperTitle,
+      );
 
-        check(result).equals('/path/to/cropped.jpg');
-        verify(
-          () => mockAppLockService.runWithLockSuppression<String?>(any()),
-        ).called(1);
-      },
-    );
+      check(result).equals('/path/to/cropped.jpg');
+      verify(
+        () => mockAppLockService.runWithLockSuppression<String?>(any()),
+      ).called(1);
+    });
   });
 
   group('AvatarPermissionDeniedException Tests', () {

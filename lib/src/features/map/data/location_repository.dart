@@ -13,40 +13,38 @@ class LocationRepository {
 
   /// GPS位置情報サービスが端末で有効かどうかを確認
   Future<bool> isLocationServiceEnabled() async {
-    return _geolocator.isLocationServiceEnabled();
+    return await _geolocator.isLocationServiceEnabled();
   }
 
   /// 位置情報パーミッション状態を確認
   Future<LocationPermission> checkPermission() async {
-    return _geolocator.checkPermission();
+    return await _geolocator.checkPermission();
   }
 
   /// 位置情報パーミッションを要求
   Future<LocationPermission> requestPermission() async {
-    return _geolocator.requestPermission();
+    return await _geolocator.requestPermission();
   }
 
   /// 現在地 (Position) を取得
   Future<Position> getCurrentPosition({
     LocationSettings? locationSettings,
   }) async {
-    return _geolocator.getCurrentPosition(
+    return await _geolocator.getCurrentPosition(
       locationSettings:
           locationSettings ??
-          const LocationSettings(
-            accuracy: LocationAccuracy.high,
-          ),
+          const LocationSettings(accuracy: LocationAccuracy.high),
     );
   }
 
   /// 端末の設定画面を開く
   Future<bool> openAppSettings() async {
-    return _geolocator.openAppSettings();
+    return await _geolocator.openAppSettings();
   }
 
   /// 端末の位置情報設定画面を開く
   Future<bool> openLocationSettings() async {
-    return _geolocator.openLocationSettings();
+    return await _geolocator.openLocationSettings();
   }
 }
 

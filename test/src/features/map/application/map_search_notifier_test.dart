@@ -17,11 +17,7 @@ class MockPlacesRepository extends Mock implements PlacesRepository {}
 class MockGeocodingRepository extends Mock implements GeocodingRepository {}
 
 class HandleCall {
-  const HandleCall({
-    required this.exception,
-    this.stackTrace,
-    this.msg,
-  });
+  const HandleCall({required this.exception, this.stackTrace, this.msg});
 
   final Object exception;
   final StackTrace? stackTrace;
@@ -35,11 +31,7 @@ class SpyTalker extends Talker {
   final List<String> infoLogs = [];
 
   @override
-  void handle(
-    Object exception, [
-    StackTrace? stackTrace,
-    dynamic msg,
-  ]) {
+  void handle(Object exception, [StackTrace? stackTrace, dynamic msg]) {
     handleCalls.add(
       HandleCall(
         exception: exception,
@@ -127,90 +119,75 @@ void main() {
       );
     });
 
-    test(
-      'Places API がエラーの時、GeocodingRepository に自動フォールバックして成功すること',
-      () async {
-        const placesError = PlacesApiException(
-          'Network Error',
-          statusCode: 500,
-        );
-        when(
-          () => mockPlacesRepository.searchPlaces('東京タワー'),
-        ).thenThrow(placesError);
+    test('Places API がエラーの時、GeocodingRepository に自動フォールバックして成功すること', () async {
+      const placesError = PlacesApiException('Network Error', statusCode: 500);
+      when(
+        () => mockPlacesRepository.searchPlaces('東京タワー'),
+      ).thenThrow(placesError);
 
-        final fallbackCandidates = [
-          const LocationCandidate(
-            latitude: 35.6585805,
-            longitude: 139.7454329,
-            name: '東京タワー',
-          ),
-        ];
-        when(
-          () => mockGeocodingRepository.locationCandidatesFromAddress('東京タワー'),
-        ).thenAnswer((_) async => fallbackCandidates);
+      final fallbackCandidates = [
+        const LocationCandidate(
+          latitude: 35.6585805,
+          longitude: 139.7454329,
+          name: '東京タワー',
+        ),
+      ];
+      when(
+        () => mockGeocodingRepository.locationCandidatesFromAddress('東京タワー'),
+      ).thenAnswer((_) async => fallbackCandidates);
 
-        final container = createContainer()
-          ..listen(mapSearchProvider, (_, _) {});
+      final container = createContainer()..listen(mapSearchProvider, (_, _) {});
 
-        final notifier = container.read(mapSearchProvider.notifier);
-        await notifier.searchLocation('東京タワー');
+      final notifier = container.read(mapSearchProvider.notifier);
+      await notifier.searchLocation('東京タワー');
 
-        final state = container.read(mapSearchProvider);
-        check(state).isA<MapSearchStateSuccess>();
-        final successState = state as MapSearchStateSuccess;
-        check(successState.locations).length.equals(1);
-        check(successState.locations.first.name).equals('東京タワー');
+      final state = container.read(mapSearchProvider);
+      check(state).isA<MapSearchStateSuccess>();
+      final successState = state as MapSearchStateSuccess;
+      check(successState.locations).length.equals(1);
+      check(successState.locations.first.name).equals('東京タワー');
 
-        // Places API のエラーが Talker に記録されていること
-        check(spyTalker.handleCalls).length.equals(1);
-        check(spyTalker.handleCalls.first.exception).equals(placesError);
-        check(spyTalker.handleCalls.first.stackTrace).isNotNull();
-        check(
-          spyTalker.handleCalls.first.msg,
-        ).isNotNull().contains(
-          'Places API 検索でエラーが発生したため、 Geocoding にフォールバックします',
-        );
-      },
-    );
+      // Places API のエラーが Talker に記録されていること
+      check(spyTalker.handleCalls).length.equals(1);
+      check(spyTalker.handleCalls.first.exception).equals(placesError);
+      check(spyTalker.handleCalls.first.stackTrace).isNotNull();
+      check(
+        spyTalker.handleCalls.first.msg,
+      ).isNotNull().contains('Places API 検索でエラーが発生したため、 Geocoding にフォールバックします');
+    });
 
-    test(
-      'Places API が空の時、GeocodingRepository にフォールバックして成功すること',
-      () async {
-        when(
-          () => mockPlacesRepository.searchPlaces('東京タワー'),
-        ).thenAnswer((_) async => <LocationCandidate>[]);
+    test('Places API が空の時、GeocodingRepository にフォールバックして成功すること', () async {
+      when(
+        () => mockPlacesRepository.searchPlaces('東京タワー'),
+      ).thenAnswer((_) async => <LocationCandidate>[]);
 
-        final fallbackCandidates = [
-          const LocationCandidate(
-            latitude: 35.6585805,
-            longitude: 139.7454329,
-            name: '東京タワー',
-          ),
-        ];
-        when(
-          () => mockGeocodingRepository.locationCandidatesFromAddress('東京タワー'),
-        ).thenAnswer((_) async => fallbackCandidates);
+      final fallbackCandidates = [
+        const LocationCandidate(
+          latitude: 35.6585805,
+          longitude: 139.7454329,
+          name: '東京タワー',
+        ),
+      ];
+      when(
+        () => mockGeocodingRepository.locationCandidatesFromAddress('東京タワー'),
+      ).thenAnswer((_) async => fallbackCandidates);
 
-        final container = createContainer()
-          ..listen(mapSearchProvider, (_, _) {});
+      final container = createContainer()..listen(mapSearchProvider, (_, _) {});
 
-        final notifier = container.read(mapSearchProvider.notifier);
-        await notifier.searchLocation('東京タワー');
+      final notifier = container.read(mapSearchProvider.notifier);
+      await notifier.searchLocation('東京タワー');
 
-        final state = container.read(mapSearchProvider);
-        check(state).isA<MapSearchStateSuccess>();
-        final successState = state as MapSearchStateSuccess;
-        check(successState.locations).length.equals(1);
+      final state = container.read(mapSearchProvider);
+      check(state).isA<MapSearchStateSuccess>();
+      final successState = state as MapSearchStateSuccess;
+      check(successState.locations).length.equals(1);
 
-        // Places API 0件時の info ログが出力されていること
-        check(
-          spyTalker.infoLogs,
-        ).any(
-          (log) =>
-              log.contains('Places API の検索結果が 0 件だったため、 Geocoding にフォールバックします'),
-        );
-      },
-    );
+      // Places API 0件時の info ログが出力されていること
+      check(spyTalker.infoLogs).any(
+        (log) =>
+            log.contains('Places API の検索結果が 0 件だったため、 Geocoding にフォールバックします'),
+      );
+    });
 
     test('Places と Geocoding の両方で該当件数なしの場合、empty 状態に遷移すること', () async {
       when(

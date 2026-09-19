@@ -5,10 +5,7 @@ import 'package:go_router/go_router.dart';
 /// 📱 アプリ全体の下部ナビゲーション（ボトムメニュー）を提供するシェル画面
 class MainShellScreen extends StatelessWidget {
   /// コンストラクタ
-  const MainShellScreen({
-    required this.navigationShell,
-    super.key,
-  });
+  const MainShellScreen({required this.navigationShell, super.key});
 
   /// GoRouterが提供するナビゲーションシェル
   final StatefulNavigationShell navigationShell;

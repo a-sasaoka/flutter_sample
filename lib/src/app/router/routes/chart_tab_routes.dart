@@ -33,9 +33,7 @@ const chartShellBranch = TypedStatefulShellBranch<ChartBranch>(
   routes: <TypedRoute<RouteData>>[
     TypedGoRoute<ChartInputRoute>(
       path: '/chart-input',
-      routes: [
-        TypedGoRoute<ChartDisplayRoute>(path: 'display'),
-      ],
+      routes: [TypedGoRoute<ChartDisplayRoute>(path: 'display')],
     ),
   ],
 );

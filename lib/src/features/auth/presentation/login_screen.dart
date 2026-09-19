@@ -38,18 +38,13 @@ class LoginScreen extends HookConsumerWidget {
         // 認証リポジトリ経由でログイン処理を実行
         await ref
             .read(authStateProvider.notifier)
-            .loginWithCredentials(
-              email: email,
-              password: password,
-            );
+            .loginWithCredentials(email: email, password: password);
 
         if (context.mounted) {
           context.showSuccessSnackBar(l10n.loginSuccess);
 
           final analytics = ref.read(analyticsServiceProvider);
-          await analytics.logEvent(
-            event: AnalyticsEvent.loginSuccess,
-          );
+          await analytics.logEvent(event: AnalyticsEvent.loginSuccess);
         }
       } on Exception catch (e) {
         if (context.mounted) {

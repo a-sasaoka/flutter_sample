@@ -42,17 +42,17 @@ void main() {
     when(
       () => mockRepository.getFailedAttempts(),
     ).thenAnswer((_) async => failedAttempts);
-    when(
-      () => mockRepository.saveFailedAttempts(any()),
-    ).thenAnswer((invocation) async {
+    when(() => mockRepository.saveFailedAttempts(any())).thenAnswer((
+      invocation,
+    ) async {
       failedAttempts = invocation.positionalArguments[0] as int;
     });
     when(
       () => mockRepository.getLockoutUntil(),
     ).thenAnswer((_) async => lockoutUntil);
-    when(
-      () => mockRepository.saveLockoutUntil(any()),
-    ).thenAnswer((invocation) async {
+    when(() => mockRepository.saveLockoutUntil(any())).thenAnswer((
+      invocation,
+    ) async {
       lockoutUntil = invocation.positionalArguments[0] as DateTime?;
     });
     when(() => mockRepository.resetLockout()).thenAnswer((_) async {
@@ -161,9 +161,7 @@ void main() {
 
       final state = await container.read(appLockServiceProvider.future);
 
-      check(state).equals(
-        const AppLockState.locked(isBiometricEnabled: true),
-      );
+      check(state).equals(const AppLockState.locked(isBiometricEnabled: true));
     });
   });
 
@@ -201,9 +199,9 @@ void main() {
       container.read(appLockServiceProvider.notifier).skipBiometric();
 
       final state = container.read(appLockServiceProvider).value;
-      check(state).equals(
-        const AppLockState.unlocked(isBiometricEnabled: false),
-      );
+      check(
+        state,
+      ).equals(const AppLockState.unlocked(isBiometricEnabled: false));
     });
 
     test('enableBiometric: 生体認証成功時は有効化して unlocked 状態に移行する', () async {
@@ -229,9 +227,9 @@ void main() {
 
       check(result).equals(true);
       final state = container.read(appLockServiceProvider).value;
-      check(state).equals(
-        const AppLockState.unlocked(isBiometricEnabled: true),
-      );
+      check(
+        state,
+      ).equals(const AppLockState.unlocked(isBiometricEnabled: true));
       verify(() => mockRepository.setBiometricEnabled(enabled: true)).called(1);
     });
 
@@ -258,9 +256,9 @@ void main() {
 
       check(result).equals(false);
       final state = container.read(appLockServiceProvider).value;
-      check(state).equals(
-        const AppLockState.unlocked(isBiometricEnabled: false),
-      );
+      check(
+        state,
+      ).equals(const AppLockState.unlocked(isBiometricEnabled: false));
       verify(
         () => mockRepository.setBiometricEnabled(enabled: false),
       ).called(1);
@@ -284,9 +282,9 @@ void main() {
 
       check(result).isA<UnlockResultSuccess>();
       final state = container.read(appLockServiceProvider).value;
-      check(state).equals(
-        const AppLockState.unlocked(isBiometricEnabled: false),
-      );
+      check(
+        state,
+      ).equals(const AppLockState.unlocked(isBiometricEnabled: false));
     });
 
     test('unlockWithPasscode: 誤ったパスコードの場合はロック維持される', () async {
@@ -307,95 +305,90 @@ void main() {
 
       check(result).isA<UnlockResultInvalidPasscode>();
       final state = container.read(appLockServiceProvider).value;
-      check(state).equals(
-        const AppLockState.locked(isBiometricEnabled: false),
-      );
+      check(state).equals(const AppLockState.locked(isBiometricEnabled: false));
     });
 
-    test(
-      'unlockWithPasscode: 3回連続失敗で30秒ロックアウトが発動し、 '
-      'さらに失敗すると指数関数的(60秒)にロックアウトが延長される',
-      () async {
-        var currentTime = DateTime(2026, 8, 1, 12);
-        final container = createContainer(
-          isAuthenticated: true,
-          hasPasscode: true,
-          isBiometricEnabled: false,
-          clock: () => currentTime,
-        );
-        await container.read(appLockServiceProvider.future);
+    test('unlockWithPasscode: 3回連続失敗で30秒ロックアウトが発動し、 '
+        'さらに失敗すると指数関数的(60秒)にロックアウトが延長される', () async {
+      var currentTime = DateTime(2026, 8, 1, 12);
+      final container = createContainer(
+        isAuthenticated: true,
+        hasPasscode: true,
+        isBiometricEnabled: false,
+        clock: () => currentTime,
+      );
+      await container.read(appLockServiceProvider.future);
 
-        when(
-          () => mockRepository.verifyPasscode('9999'),
-        ).thenAnswer((_) async => false);
+      when(
+        () => mockRepository.verifyPasscode('9999'),
+      ).thenAnswer((_) async => false);
 
-        // 1回目、2回目失敗
-        check(
-          await container
-              .read(appLockServiceProvider.notifier)
-              .unlockWithPasscode('9999'),
-        ).isA<UnlockResultInvalidPasscode>();
-        check(
-          await container
-              .read(appLockServiceProvider.notifier)
-              .unlockWithPasscode('9999'),
-        ).isA<UnlockResultInvalidPasscode>();
+      // 1回目、2回目失敗
+      check(
+        await container
+            .read(appLockServiceProvider.notifier)
+            .unlockWithPasscode('9999'),
+      ).isA<UnlockResultInvalidPasscode>();
+      check(
+        await container
+            .read(appLockServiceProvider.notifier)
+            .unlockWithPasscode('9999'),
+      ).isA<UnlockResultInvalidPasscode>();
 
-        verify(() => mockRepository.verifyPasscode('9999')).called(2);
+      verify(() => mockRepository.verifyPasscode('9999')).called(2);
 
-        // 3回目失敗 (初回ロックアウト発動: 30秒)
-        check(
-          await container
-              .read(appLockServiceProvider.notifier)
-              .unlockWithPasscode('9999'),
-        ).isA<UnlockResultLockedOut>();
-        verify(() => mockRepository.verifyPasscode('9999')).called(1);
+      // 3回目失敗 (初回ロックアウト発動: 30秒)
+      check(
+        await container
+            .read(appLockServiceProvider.notifier)
+            .unlockWithPasscode('9999'),
+      ).isA<UnlockResultLockedOut>();
+      verify(() => mockRepository.verifyPasscode('9999')).called(1);
 
-        // ロックアウト期間中 (10秒後) は verifyPasscode を呼ぶことなく即座に拒否される
-        currentTime = currentTime.add(const Duration(seconds: 10));
-        check(
-          await container
-              .read(appLockServiceProvider.notifier)
-              .unlockWithPasscode('1234'),
-        ).isA<UnlockResultLockedOut>();
+      // ロックアウト期間中 (10秒後) は verifyPasscode を呼ぶことなく即座に拒否される
+      currentTime = currentTime.add(const Duration(seconds: 10));
+      check(
+        await container
+            .read(appLockServiceProvider.notifier)
+            .unlockWithPasscode('1234'),
+      ).isA<UnlockResultLockedOut>();
 
-        // 追加の verifyPasscode は呼ばれていないことを検証
-        verifyNever(() => mockRepository.verifyPasscode('1234'));
+      // 追加の verifyPasscode は呼ばれていないことを検証
+      verifyNever(() => mockRepository.verifyPasscode('1234'));
 
-        // 31秒経過後はロックアウトが一度解除されるが、さらに失敗(4回目失敗)すると指数バックオフで60秒間ロックアウト
-        currentTime = currentTime.add(const Duration(seconds: 21));
-        check(
-          await container
-              .read(appLockServiceProvider.notifier)
-              .unlockWithPasscode('9999'),
-        ).isA<UnlockResultLockedOut>();
+      // 31秒経過後はロックアウトが一度解除されるが、さらに失敗(4回目失敗)すると指数バックオフで60秒間ロックアウト
+      currentTime = currentTime.add(const Duration(seconds: 21));
+      check(
+        await container
+            .read(appLockServiceProvider.notifier)
+            .unlockWithPasscode('9999'),
+      ).isA<UnlockResultLockedOut>();
 
-        // 60秒のロックアウト期間中 (30秒経過時) は拒否される
-        currentTime = currentTime.add(const Duration(seconds: 30));
-        check(
-          await container
-              .read(appLockServiceProvider.notifier)
-              .unlockWithPasscode('1234'),
-        ).isA<UnlockResultLockedOut>();
+      // 60秒のロックアウト期間中 (30秒経過時) は拒否される
+      currentTime = currentTime.add(const Duration(seconds: 30));
+      check(
+        await container
+            .read(appLockServiceProvider.notifier)
+            .unlockWithPasscode('1234'),
+      ).isA<UnlockResultLockedOut>();
 
-        // 61秒経過後は解除され、正しいパスコードで成功・カウンターがリセットされる
-        currentTime = currentTime.add(const Duration(seconds: 31));
-        when(
-          () => mockRepository.verifyPasscode('1234'),
-        ).thenAnswer((_) async => true);
+      // 61秒経過後は解除され、正しいパスコードで成功・カウンターがリセットされる
+      currentTime = currentTime.add(const Duration(seconds: 31));
+      when(
+        () => mockRepository.verifyPasscode('1234'),
+      ).thenAnswer((_) async => true);
 
-        check(
-          await container
-              .read(appLockServiceProvider.notifier)
-              .unlockWithPasscode('1234'),
-        ).isA<UnlockResultSuccess>();
+      check(
+        await container
+            .read(appLockServiceProvider.notifier)
+            .unlockWithPasscode('1234'),
+      ).isA<UnlockResultSuccess>();
 
-        final state = container.read(appLockServiceProvider).value;
-        check(state).equals(
-          const AppLockState.unlocked(isBiometricEnabled: false),
-        );
-      },
-    );
+      final state = container.read(appLockServiceProvider).value;
+      check(
+        state,
+      ).equals(const AppLockState.unlocked(isBiometricEnabled: false));
+    });
 
     test('unlockWithBiometrics: 生体認証成功でロック解除される', () async {
       final container = createContainer(
@@ -417,9 +410,9 @@ void main() {
 
       check(result).equals(true);
       final state = container.read(appLockServiceProvider).value;
-      check(state).equals(
-        const AppLockState.unlocked(isBiometricEnabled: true),
-      );
+      check(
+        state,
+      ).equals(const AppLockState.unlocked(isBiometricEnabled: true));
     });
 
     test(
@@ -459,9 +452,9 @@ void main() {
 
         // lockApp() で1回目から即座にロックされること（スキップフラグが残っていない証明）
         container.read(appLockServiceProvider.notifier).lockApp();
-        check(container.read(appLockServiceProvider).value).equals(
-          const AppLockState.locked(isBiometricEnabled: true),
-        );
+        check(
+          container.read(appLockServiceProvider).value,
+        ).equals(const AppLockState.locked(isBiometricEnabled: true));
       },
     );
 
@@ -480,9 +473,7 @@ void main() {
       container.read(appLockServiceProvider.notifier).lockApp();
 
       final state = container.read(appLockServiceProvider).value;
-      check(state).equals(
-        const AppLockState.locked(isBiometricEnabled: false),
-      );
+      check(state).equals(const AppLockState.locked(isBiometricEnabled: false));
     });
 
     test('lockApp: 生体認証プロンプト閉じに伴う1回目の復帰イベントはスキップされる', () async {
@@ -508,95 +499,89 @@ void main() {
       container.read(appLockServiceProvider.notifier).lockApp();
 
       final state = container.read(appLockServiceProvider).value;
-      check(state).equals(
-        const AppLockState.unlocked(isBiometricEnabled: true),
-      );
+      check(
+        state,
+      ).equals(const AppLockState.unlocked(isBiometricEnabled: true));
     });
 
-    test(
-      'lockApp: 生体認証成功直後のプロンプト復帰(1回目)はスキップされ、 '
-      'その後のバックグラウンド・復帰(2回目)では正常に再ロックされる',
-      () async {
-        final container = createContainer(
-          isAuthenticated: true,
-          hasPasscode: true,
-          isBiometricEnabled: true,
-        );
-        await container.read(appLockServiceProvider.future);
+    test('lockApp: 生体認証成功直後のプロンプト復帰(1回目)はスキップされ、 '
+        'その後のバックグラウンド・復帰(2回目)では正常に再ロックされる', () async {
+      final container = createContainer(
+        isAuthenticated: true,
+        hasPasscode: true,
+        isBiometricEnabled: true,
+      );
+      await container.read(appLockServiceProvider.future);
 
-        when(
-          () => mockRepository.authenticateWithBiometrics(
-            localizedReason: 'Reason',
-          ),
-        ).thenAnswer((_) async => true);
+      when(
+        () => mockRepository.authenticateWithBiometrics(
+          localizedReason: 'Reason',
+        ),
+      ).thenAnswer((_) async => true);
 
-        // 生体認証成功で解除
-        await container
-            .read(appLockServiceProvider.notifier)
-            .unlockWithBiometrics(localizedReason: 'Reason');
+      // 生体認証成功で解除
+      await container
+          .read(appLockServiceProvider.notifier)
+          .unlockWithBiometrics(localizedReason: 'Reason');
 
-        // 1回目の lockApp() (生体認証プロンプト閉じ起因): スキップされる
-        container.read(appLockServiceProvider.notifier).lockApp();
+      // 1回目の lockApp() (生体認証プロンプト閉じ起因): スキップされる
+      container.read(appLockServiceProvider.notifier).lockApp();
 
-        final unlockedState = container.read(appLockServiceProvider).value;
-        check(unlockedState).equals(
-          const AppLockState.unlocked(isBiometricEnabled: true),
-        );
+      final unlockedState = container.read(appLockServiceProvider).value;
+      check(
+        unlockedState,
+      ).equals(const AppLockState.unlocked(isBiometricEnabled: true));
 
-        // 2回目の lockApp() (ユーザーによる手動バックグラウンド・復帰): 正常にロックされる
-        container.read(appLockServiceProvider.notifier).lockApp();
+      // 2回目の lockApp() (ユーザーによる手動バックグラウンド・復帰): 正常にロックされる
+      container.read(appLockServiceProvider.notifier).lockApp();
 
-        final lockedState = container.read(appLockServiceProvider).value;
-        check(lockedState).equals(
-          const AppLockState.locked(isBiometricEnabled: true),
-        );
-      },
-    );
+      final lockedState = container.read(appLockServiceProvider).value;
+      check(
+        lockedState,
+      ).equals(const AppLockState.locked(isBiometricEnabled: true));
+    });
 
-    test(
-      'runWithLockSuppression: 実行中は誤ロックがスキップされ、 '
-      '完了直後の1回もスキップされ、2回目で再ロックされること',
-      () async {
-        final container = createContainer(
-          isAuthenticated: true,
-          hasPasscode: true,
-          isBiometricEnabled: false,
-        );
-        await container.read(appLockServiceProvider.future);
+    test('runWithLockSuppression: 実行中は誤ロックがスキップされ、 '
+        '完了直後の1回もスキップされ、2回目で再ロックされること', () async {
+      final container = createContainer(
+        isAuthenticated: true,
+        hasPasscode: true,
+        isBiometricEnabled: false,
+      );
+      await container.read(appLockServiceProvider.future);
 
-        final notifier = container.read(appLockServiceProvider.notifier)
-          ..skipBiometric(); // unlocked 状態にする
+      final notifier = container.read(appLockServiceProvider.notifier)
+        ..skipBiometric(); // unlocked 状態にする
 
-        var executed = false;
-        await notifier.runWithLockSuppression(() async {
-          executed = true;
-          // 実行中は isLockSuppressed が true
-          check(notifier.isLockSuppressed).equals(true);
+      var executed = false;
+      await notifier.runWithLockSuppression(() async {
+        executed = true;
+        // 実行中は isLockSuppressed が true
+        check(notifier.isLockSuppressed).equals(true);
 
-          // 実行中の lockApp() はスキップされる
-          notifier.lockApp();
-          check(container.read(appLockServiceProvider).value).equals(
-            const AppLockState.unlocked(isBiometricEnabled: false),
-          );
-        });
-
-        check(executed).equals(true);
-        // 完了後は isLockSuppressed が false に戻る
-        check(notifier.isLockSuppressed).equals(false);
-
-        // 復帰直後の1回目の lockApp() はスキップされる
+        // 実行中の lockApp() はスキップされる
         notifier.lockApp();
-        check(container.read(appLockServiceProvider).value).equals(
-          const AppLockState.unlocked(isBiometricEnabled: false),
-        );
+        check(
+          container.read(appLockServiceProvider).value,
+        ).equals(const AppLockState.unlocked(isBiometricEnabled: false));
+      });
 
-        // その後の2回目の lockApp() は正常にロックされる
-        notifier.lockApp();
-        check(container.read(appLockServiceProvider).value).equals(
-          const AppLockState.locked(isBiometricEnabled: false),
-        );
-      },
-    );
+      check(executed).equals(true);
+      // 完了後は isLockSuppressed が false に戻る
+      check(notifier.isLockSuppressed).equals(false);
+
+      // 復帰直後の1回目の lockApp() はスキップされる
+      notifier.lockApp();
+      check(
+        container.read(appLockServiceProvider).value,
+      ).equals(const AppLockState.unlocked(isBiometricEnabled: false));
+
+      // その後の2回目の lockApp() は正常にロックされる
+      notifier.lockApp();
+      check(
+        container.read(appLockServiceProvider).value,
+      ).equals(const AppLockState.locked(isBiometricEnabled: false));
+    });
 
     test(
       'runWithLockSuppression: 例外発生時はカウントが戻り、スキップフラグは設定されずに即座にロック可能であること',
@@ -621,49 +606,46 @@ void main() {
 
         // 例外発生時はスキップフラグが設定されないため、直後の lockApp() で即座にロックされる
         notifier.lockApp();
-        check(container.read(appLockServiceProvider).value).equals(
-          const AppLockState.locked(isBiometricEnabled: false),
-        );
+        check(
+          container.read(appLockServiceProvider).value,
+        ).equals(const AppLockState.locked(isBiometricEnabled: false));
       },
     );
 
-    test(
-      'runWithLockSuppression: ネスト呼び出し時は最外層が完了するまでスキップフラグは立たないこと',
-      () async {
-        final container = createContainer(
-          isAuthenticated: true,
-          hasPasscode: true,
-          isBiometricEnabled: false,
-        );
-        await container.read(appLockServiceProvider.future);
+    test('runWithLockSuppression: ネスト呼び出し時は最外層が完了するまでスキップフラグは立たないこと', () async {
+      final container = createContainer(
+        isAuthenticated: true,
+        hasPasscode: true,
+        isBiometricEnabled: false,
+      );
+      await container.read(appLockServiceProvider.future);
 
-        final notifier = container.read(appLockServiceProvider.notifier)
-          ..skipBiometric(); // unlocked 状態にする
+      final notifier = container.read(appLockServiceProvider.notifier)
+        ..skipBiometric(); // unlocked 状態にする
 
-        await notifier.runWithLockSuppression<void>(() async {
-          // 内側を呼び出し
-          await notifier.runWithLockSuppression<void>(() async {});
+      await notifier.runWithLockSuppression<void>(() async {
+        // 内側を呼び出し
+        await notifier.runWithLockSuppression<void>(() async {});
 
-          // 内側完了時点ではまだ外側実行中（_suppressionCount > 0）
-          check(notifier.isLockSuppressed).equals(true);
-        });
+        // 内側完了時点ではまだ外側実行中（_suppressionCount > 0）
+        check(notifier.isLockSuppressed).equals(true);
+      });
 
-        // 最外層完了後は suppress解除
-        check(notifier.isLockSuppressed).equals(false);
+      // 最外層完了後は suppress解除
+      check(notifier.isLockSuppressed).equals(false);
 
-        // 最外層完了直後の1回はスキップ
-        notifier.lockApp();
-        check(container.read(appLockServiceProvider).value).equals(
-          const AppLockState.unlocked(isBiometricEnabled: false),
-        );
+      // 最外層完了直後の1回はスキップ
+      notifier.lockApp();
+      check(
+        container.read(appLockServiceProvider).value,
+      ).equals(const AppLockState.unlocked(isBiometricEnabled: false));
 
-        // 2回目で再ロック
-        notifier.lockApp();
-        check(container.read(appLockServiceProvider).value).equals(
-          const AppLockState.locked(isBiometricEnabled: false),
-        );
-      },
-    );
+      // 2回目で再ロック
+      notifier.lockApp();
+      check(
+        container.read(appLockServiceProvider).value,
+      ).equals(const AppLockState.locked(isBiometricEnabled: false));
+    });
 
     test('clearAppLock: ロック情報をすべて削除し disabled 状態へ遷移する', () async {
       final container = createContainer(

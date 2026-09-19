@@ -9,7 +9,6 @@ import 'package:talker_flutter/talker_flutter.dart';
 class MockTalker extends Mock implements Talker {}
 
 // recordError の呼び出しを検証するための Callable クラスとそのモック
-// ignore: one_member_abstracts
 abstract class RecordErrorCallable {
   Future<void> call(
     dynamic error,
@@ -44,9 +43,7 @@ void main() {
     test('overrideWithValue で上書きすると、その Talker インスタンスを返すこと', () {
       final mockTalker = MockTalker();
       final container = ProviderContainer(
-        overrides: [
-          loggerProvider.overrideWithValue(mockTalker),
-        ],
+        overrides: [loggerProvider.overrideWithValue(mockTalker)],
       );
       addTearDown(container.dispose);
 
@@ -90,55 +87,49 @@ void main() {
       ).called(1);
     });
 
-    test(
-      'enableCrashlytics = false の場合、onError で recordError が呼ばれないこと',
-      () {
-        final observer = CustomTalkerObserver(
-          enableCrashlytics: false,
-          recordError: mockRecordError.call,
-        );
+    test('enableCrashlytics = false の場合、onError で recordError が呼ばれないこと', () {
+      final observer = CustomTalkerObserver(
+        enableCrashlytics: false,
+        recordError: mockRecordError.call,
+      );
 
-        final mockTalkerError = MockTalkerError();
-        final error = ArgumentError('test error');
-        const stackTrace = StackTrace.empty;
+      final mockTalkerError = MockTalkerError();
+      final error = ArgumentError('test error');
+      const stackTrace = StackTrace.empty;
 
-        when(() => mockTalkerError.error).thenReturn(error);
-        when(() => mockTalkerError.stackTrace).thenReturn(stackTrace);
+      when(() => mockTalkerError.error).thenReturn(error);
+      when(() => mockTalkerError.stackTrace).thenReturn(stackTrace);
 
-        observer.onError(mockTalkerError);
+      observer.onError(mockTalkerError);
 
-        verifyNever(
-          () => mockRecordError.call(
-            any<dynamic>(),
-            any<StackTrace?>(),
-            fatal: any(named: 'fatal'),
-          ),
-        );
-      },
-    );
+      verifyNever(
+        () => mockRecordError.call(
+          any<dynamic>(),
+          any<StackTrace?>(),
+          fatal: any(named: 'fatal'),
+        ),
+      );
+    });
 
-    test(
-      'enableCrashlytics = true の場合、onException で recordError が呼ばれること',
-      () {
-        final observer = CustomTalkerObserver(
-          enableCrashlytics: true,
-          recordError: mockRecordError.call,
-        );
+    test('enableCrashlytics = true の場合、onException で recordError が呼ばれること', () {
+      final observer = CustomTalkerObserver(
+        enableCrashlytics: true,
+        recordError: mockRecordError.call,
+      );
 
-        final mockTalkerException = MockTalkerException();
-        final exception = Exception('test exception');
-        const stackTrace = StackTrace.empty;
+      final mockTalkerException = MockTalkerException();
+      final exception = Exception('test exception');
+      const stackTrace = StackTrace.empty;
 
-        when(() => mockTalkerException.exception).thenReturn(exception);
-        when(() => mockTalkerException.stackTrace).thenReturn(stackTrace);
+      when(() => mockTalkerException.exception).thenReturn(exception);
+      when(() => mockTalkerException.stackTrace).thenReturn(stackTrace);
 
-        observer.onException(mockTalkerException);
+      observer.onException(mockTalkerException);
 
-        verify(
-          () => mockRecordError.call(exception, stackTrace, fatal: false),
-        ).called(1);
-      },
-    );
+      verify(
+        () => mockRecordError.call(exception, stackTrace, fatal: false),
+      ).called(1);
+    });
 
     test(
       'enableCrashlytics = false の場合、onException で recordError が呼ばれないこと',

@@ -10,7 +10,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'route_repository.g.dart';
 
 /// ルート計算リポジトリのインターフェース
-// ignore: one_member_abstracts, リポジトリ層の単一責務インターフェースのため
 abstract interface class RouteRepository {
   /// 出発地と目的地から経路を計算する
   Future<MapRoute> calculateRoute({

@@ -65,21 +65,18 @@ class SplashScreen extends HookConsumerWidget {
     );
 
     // 4. 初回描画時にアニメーション開始とタイマーを起動
-    useEffect(
-      () {
-        // アニメーションを開始
-        unawaited(animationController.forward());
+    useEffect(() {
+      // アニメーションを開始
+      animationController.forward();
 
-        // 最低2秒待ってから、スプラッシュ終了フラグを立てる
-        final timer = Timer(SplashConfig.displayDuration, () {
-          ref.read(splashStateProvider.notifier).finishSplash();
-        });
+      // 最低2秒待ってから、スプラッシュ終了フラグを立てる
+      final timer = Timer(SplashConfig.displayDuration, () {
+        ref.read(splashStateProvider.notifier).finishSplash();
+      });
 
-        // クリーンアップ処理（アンマウント時にタイマーをキャンセル）
-        return timer.cancel;
-      },
-      const [],
-    );
+      // クリーンアップ処理（アンマウント時にタイマーをキャンセル）
+      return timer.cancel;
+    }, const []);
 
     return Scaffold(
       body: Container(

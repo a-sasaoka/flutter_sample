@@ -159,10 +159,7 @@ void main() {
               height: 240,
               child: buildGoldenTestApp(
                 home: Scaffold(
-                  body: RouteNavigationCard(
-                    route: sampleRoute,
-                    onClose: () {},
-                  ),
+                  body: RouteNavigationCard(route: sampleRoute, onClose: () {}),
                 ),
                 themeMode: ThemeMode.light,
               ),
@@ -175,10 +172,7 @@ void main() {
               height: 240,
               child: buildGoldenTestApp(
                 home: Scaffold(
-                  body: RouteNavigationCard(
-                    route: sampleRoute,
-                    onClose: () {},
-                  ),
+                  body: RouteNavigationCard(route: sampleRoute, onClose: () {}),
                 ),
                 themeMode: ThemeMode.dark,
               ),

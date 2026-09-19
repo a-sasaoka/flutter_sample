@@ -59,10 +59,7 @@ Future<void> mainCommon(
 
   // 6. コンテナ生成の前に Talker を初期化
   final talker = TalkerFlutter.init(
-    settings: TalkerSettings(
-      useConsoleLogs: !isProd,
-      useHistory: !isProd,
-    ),
+    settings: TalkerSettings(useConsoleLogs: !isProd, useHistory: !isProd),
     observer: CustomTalkerObserver(
       enableCrashlytics: flavor == Flavor.prod || flavor == Flavor.stg,
       recordError: (error, stack, {required fatal}) async {
@@ -132,12 +129,7 @@ Future<void> mainCommon(
   container.read(notificationProvider);
 
   // 13. コンテナは破棄 (dispose) せず、そのままアプリに渡して起動
-  runApp(
-    UncontrolledProviderScope(
-      container: container,
-      child: const MyApp(),
-    ),
-  );
+  runApp(UncontrolledProviderScope(container: container, child: const MyApp()));
 }
 
 /// アプリ本体のウィジェット
@@ -174,9 +166,7 @@ class MyApp extends ConsumerWidget {
           debugShowCheckedModeBanner: false,
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(context).copyWith(textScaler: textScaler),
-            child: AppLockWrapper(
-              child: _AppTitleWrapper(child: child),
-            ),
+            child: AppLockWrapper(child: _AppTitleWrapper(child: child)),
           ),
         ),
       AsyncError(:final error) => Directionality(

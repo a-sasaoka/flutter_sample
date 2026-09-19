@@ -65,11 +65,8 @@ void main() {
 
     when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
     when(
-      () => mockTalker.handle(
-        any<Object>(),
-        any<StackTrace?>(),
-        any<dynamic>(),
-      ),
+      () =>
+          mockTalker.handle(any<Object>(), any<StackTrace?>(), any<dynamic>()),
     ).thenReturn(null);
 
     when(() => mockStorage.ref()).thenReturn(mockRootRef);
@@ -98,10 +95,7 @@ void main() {
         () => mockFileRef.getDownloadURL(),
       ).thenAnswer((_) async => downloadUrl);
 
-      final result = await service.uploadAvatar(
-        userId: userId,
-        file: mockFile,
-      );
+      final result = await service.uploadAvatar(userId: userId, file: mockFile);
 
       check(result).equals(downloadUrl);
       verify(
@@ -169,9 +163,7 @@ void main() {
     test('deleteAvatarByUrl: 正常系 - URL指定でファイル削除が成功すること', () async {
       when(() => mockFileRef.delete()).thenAnswer((_) async {});
 
-      await check(
-        service.deleteAvatarByUrl(avatarUrl: avatarUrl),
-      ).completes();
+      await check(service.deleteAvatarByUrl(avatarUrl: avatarUrl)).completes();
 
       verify(() => mockStorage.refFromURL(avatarUrl)).called(1);
       verify(() => mockFileRef.delete()).called(1);

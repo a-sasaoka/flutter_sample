@@ -46,9 +46,7 @@ void main() {
           chatProvider.overrideWith(() => notifier),
         ],
         child: MediaQuery(
-          data: const MediaQueryData(
-            size: Size(390, 844),
-          ),
+          data: const MediaQueryData(size: Size(390, 844)),
           child: MaterialApp(
             theme: AppTheme.light().copyWith(
               textTheme: AppTheme.light().textTheme.apply(

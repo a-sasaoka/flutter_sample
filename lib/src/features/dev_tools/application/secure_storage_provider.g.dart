@@ -37,7 +37,7 @@ final class SecureStorageItemsProvider
 }
 
 String _$secureStorageItemsHash() =>
-    r'8cfaa0602affd4084bb2dedb1e680937f480a5dd';
+    r'6173255f9e850aff57705f991b4175644257d784';
 
 /// SecureStorageのデータを非同期で監視・操作するNotifier
 

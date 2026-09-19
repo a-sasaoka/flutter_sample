@@ -27,7 +27,7 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   final isRunningInCi = Platform.environment.containsKey('CI');
 
   // Alchemistの設定を適用してテストを実行する
-  return AlchemistConfig.runWithConfig(
+  return await AlchemistConfig.runWithConfig(
     config: AlchemistConfig(
       platformGoldensConfig: PlatformGoldensConfig(
         enabled: !isRunningInCi,

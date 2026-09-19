@@ -11,11 +11,7 @@ void main() {
     testWidgets('タイトルとデフォルトのLottieアニメーションが描画されること', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            body: EmptyStateWidget(
-              title: 'データがありません',
-            ),
-          ),
+          home: Scaffold(body: EmptyStateWidget(title: 'データがありません')),
         ),
       );
       await tester.pumpAndSettle();

@@ -41,9 +41,7 @@ void main() {
   setUp(() {
     mockTalker = MockTalker();
     container = ProviderContainer(
-      overrides: [
-        loggerProvider.overrideWithValue(mockTalker),
-      ],
+      overrides: [loggerProvider.overrideWithValue(mockTalker)],
     );
   });
   tearDown(() {
@@ -81,10 +79,7 @@ void main() {
         final dioException = DioException(
           requestOptions: RequestOptions(),
           type: DioExceptionType.badResponse,
-          response: Response(
-            requestOptions: RequestOptions(),
-            statusCode: 404,
-          ),
+          response: Response(requestOptions: RequestOptions(), statusCode: 404),
         );
 
         // Act
@@ -107,10 +102,7 @@ void main() {
       final dioException = DioException(
         requestOptions: RequestOptions(),
         type: DioExceptionType.badResponse,
-        response: Response(
-          requestOptions: RequestOptions(),
-          statusCode: 401,
-        ),
+        response: Response(requestOptions: RequestOptions(), statusCode: 401),
       );
 
       // Act
@@ -130,10 +122,7 @@ void main() {
       final dioException = DioException(
         requestOptions: RequestOptions(),
         type: DioExceptionType.badResponse,
-        response: Response(
-          requestOptions: RequestOptions(),
-          statusCode: 500,
-        ),
+        response: Response(requestOptions: RequestOptions(), statusCode: 500),
       );
 
       // Act
@@ -154,9 +143,7 @@ void main() {
       final dioException = DioException(
         requestOptions: RequestOptions(),
         type: DioExceptionType.badResponse,
-        response: Response(
-          requestOptions: RequestOptions(),
-        ),
+        response: Response(requestOptions: RequestOptions()),
       );
 
       // Act

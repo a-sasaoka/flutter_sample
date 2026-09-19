@@ -102,10 +102,7 @@ class NumericKeyboard extends StatelessWidget {
     return SizedBox(
       width: 72,
       height: 72,
-      child: IconButton(
-        onPressed: onPressed,
-        icon: Icon(icon, size: 28),
-      ),
+      child: IconButton(onPressed: onPressed, icon: Icon(icon, size: 28)),
     );
   }
 }

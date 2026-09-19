@@ -41,17 +41,12 @@ void main() {
 
     when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
     when(
-      () => mockTalker.handle(
-        any<Object>(),
-        any<StackTrace?>(),
-        any<dynamic>(),
-      ),
+      () =>
+          mockTalker.handle(any<Object>(), any<StackTrace?>(), any<dynamic>()),
     ).thenReturn(null);
   });
 
-  Widget createWidget({
-    String imageBaseUrl = 'https://picsum.photos',
-  }) {
+  Widget createWidget({String imageBaseUrl = 'https://picsum.photos'}) {
     return ProviderScope(
       overrides: [
         loggerProvider.overrideWithValue(mockTalker),
@@ -140,9 +135,7 @@ void main() {
       check(find.text('画像キャッシュをクリアしました').evaluate()).isNotEmpty();
     });
 
-    testWidgets('キャッシュクリア失敗時にエラーログが出力されエラースナックバーが表示されること', (
-      tester,
-    ) async {
+    testWidgets('キャッシュクリア失敗時にエラーログが出力されエラースナックバーが表示されること', (tester) async {
       when(
         () => mockImageCacheService.clearCache(),
       ).thenThrow(Exception('Disk IO error'));
@@ -167,9 +160,7 @@ void main() {
       ).isNotEmpty();
     });
 
-    testWidgets('imageBaseUrl が空文字（未設定環境）の場合でも例外なく正常に描画されること', (
-      tester,
-    ) async {
+    testWidgets('imageBaseUrl が空文字（未設定環境）の場合でも例外なく正常に描画されること', (tester) async {
       await tester.pumpWidget(createWidget(imageBaseUrl: ''));
       await tester.pumpAndSettle();
 

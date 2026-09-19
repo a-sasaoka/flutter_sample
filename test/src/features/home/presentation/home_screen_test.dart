@@ -74,7 +74,7 @@ class FakeUpdateRequestController extends UpdateRequestController {
   @override
   Future<UpdateRequestType> build() async {
     if (_startLoading) {
-      return _completer.future;
+      return await _completer.future;
     }
     return UpdateRequestType.not;
   }
@@ -181,10 +181,7 @@ void main() {
     final router = GoRouter(
       initialLocation: '/',
       routes: [
-        GoRoute(
-          path: '/',
-          builder: (context, state) => const HomeScreen(),
-        ),
+        GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
         ...additionalRoutes,
       ],
       errorBuilder: (context, state) {
@@ -293,9 +290,7 @@ void main() {
       check(find.byType(AlertDialog)).findsNothing();
     });
 
-    testWidgets('エラー表示: アップデート情報の取得に失敗した場合でもアプリ情報取得が動作すること', (
-      tester,
-    ) async {
+    testWidgets('エラー表示: アップデート情報の取得に失敗した場合でもアプリ情報取得が動作すること', (tester) async {
       final controller = FakeUpdateRequestController();
       await setupWidget(tester, controller: controller);
       await tester.pumpAndSettle();
@@ -541,9 +536,7 @@ void main() {
       check(find.text('LottieDemo Destination')).findsOne();
     });
 
-    testWidgets('Push通知デモメニューをタップすると該当ルートへ遷移すること', (
-      tester,
-    ) async {
+    testWidgets('Push通知デモメニューをタップすると該当ルートへ遷移すること', (tester) async {
       await setupWidget(
         tester,
         additionalRoutes: [
@@ -568,9 +561,7 @@ void main() {
       check(find.text('NotificationDemo Destination')).findsOne();
     });
 
-    testWidgets('画像キャッシュデモメニューをタップすると該当ルートへ遷移すること', (
-      tester,
-    ) async {
+    testWidgets('画像キャッシュデモメニューをタップすると該当ルートへ遷移すること', (tester) async {
       await setupWidget(
         tester,
         additionalRoutes: [

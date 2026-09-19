@@ -102,7 +102,7 @@ class _TokenInterceptor extends Interceptor {
   Future<bool> _refreshTokens() async {
     // すでに他のリクエストがリフレッシュ中なら、その完了を待つ
     if (_refreshFuture case final Future<bool> future) {
-      return future;
+      return await future;
     }
 
     try {

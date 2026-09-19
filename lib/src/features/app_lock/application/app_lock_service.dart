@@ -44,12 +44,8 @@ class AppLockService extends _$AppLockService {
     // select を使って「ログイン中かどうか (bool)」の変更のみを監視し、
     // トークン更新等による不要な build() の再実行・誤ロックを防止する
     final isAuthenticated = useFirebase
-        ? ref.watch(
-            firebaseAuthStateProvider.select((s) => s.value != null),
-          )
-        : ref.watch(
-            authStateProvider.select((s) => s.value == true),
-          );
+        ? ref.watch(firebaseAuthStateProvider.select((s) => s.value != null))
+        : ref.watch(authStateProvider.select((s) => s.value == true));
 
     talker.debug('[AppLockService] build (isAuthenticated: $isAuthenticated)');
 
@@ -83,7 +79,7 @@ class AppLockService extends _$AppLockService {
     await repository.savePasscode(passcode);
     ref.read(loggerProvider).info('[AppLockService] Passcode saved');
 
-    return repository.canCheckBiometrics();
+    return await repository.canCheckBiometrics();
   }
 
   /// 生体認証を使わずに初期設定を完了する（スキップ時）
@@ -98,7 +94,7 @@ class AppLockService extends _$AppLockService {
   Future<bool> enableBiometric({required String localizedReason}) async {
     final repository = ref.read(appLockRepositoryProvider);
 
-    return runWithLockSuppression(() async {
+    return await runWithLockSuppression(() async {
       final authenticated = await repository.authenticateWithBiometrics(
         localizedReason: localizedReason,
       );
@@ -266,9 +262,7 @@ class AppLockService extends _$AppLockService {
     if (state.value case AppLockStateUnlocked(:final isBiometricEnabled)) {
       ref.read(loggerProvider).info('[AppLockService] App locked');
       state = AsyncValue.data(
-        AppLockState.locked(
-          isBiometricEnabled: isBiometricEnabled,
-        ),
+        AppLockState.locked(isBiometricEnabled: isBiometricEnabled),
       );
     }
   }
