@@ -45,7 +45,7 @@ final class QrScannerControllerProvider
 }
 
 String _$qrScannerControllerHash() =>
-    r'cbea4ac8caa5639f41bd53c2bd1c22df24c03577';
+    r'7e85b950c4efe19fcba37633fca4daf7ad652cc9';
 
 /// QRコードリーダーのロジックと状態を管理するコントローラー
 

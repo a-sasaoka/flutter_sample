@@ -41,6 +41,8 @@ import 'package:flutter_sample/src/features/notification/domain/notification_pay
 import 'package:flutter_sample/src/features/onboarding/application/onboarding_notifier.dart';
 import 'package:flutter_sample/src/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:flutter_sample/src/features/profile/presentation/profile_edit_screen.dart';
+import 'package:flutter_sample/src/features/qr_scanner/presentation/qr_scanner_history_screen.dart';
+import 'package:flutter_sample/src/features/qr_scanner/presentation/qr_scanner_screen.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_state_provider.dart';
@@ -751,6 +753,22 @@ void main() {
         MockGoRouterState(),
       );
       check(widget).isA<MapScreen>();
+    });
+
+    test('QrScannerRoute.build: QrScannerScreen を返すこと', () {
+      final widget = const QrScannerRoute().build(
+        MockBuildContext(),
+        MockGoRouterState(),
+      );
+      check(widget).isA<QrScannerScreen>();
+    });
+
+    test('QrScannerHistoryRoute.build: QrScannerHistoryScreen を返すこと', () {
+      final widget = const QrScannerHistoryRoute().build(
+        MockBuildContext(),
+        MockGoRouterState(),
+      );
+      check(widget).isA<QrScannerHistoryScreen>();
     });
 
     test('UserListRoute.build: UserListScreen を返すこと', () {
