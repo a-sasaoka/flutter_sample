@@ -234,6 +234,7 @@ void main() {
     when(() => mockL10n.homeToMemos).thenReturn('Memos');
     when(() => mockL10n.homeToGraph).thenReturn('Graph');
     when(() => mockL10n.homeToNotFound).thenReturn('404');
+    when(() => mockL10n.homeQrScannerTitle).thenReturn('QR Scanner');
     when(() => mockL10n.homeGetAppInfo).thenReturn('App Info');
     when(() => mockL10n.homeAppName).thenReturn('App Name');
     when(() => mockL10n.homeBundleId).thenReturn('Bundle ID');

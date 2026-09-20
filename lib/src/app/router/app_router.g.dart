@@ -120,6 +120,18 @@ RouteBase get $appShellRouteData => StatefulShellRouteData.$route(
               factory: $MapRoute._fromState,
             ),
             GoRouteData.$route(
+              path: 'qr-scanner',
+              hasOverriddenOnExit: false,
+              factory: $QrScannerRoute._fromState,
+              routes: [
+                GoRouteData.$route(
+                  path: 'history',
+                  hasOverriddenOnExit: false,
+                  factory: $QrScannerHistoryRoute._fromState,
+                ),
+              ],
+            ),
+            GoRouteData.$route(
               path: 'settings',
               hasOverriddenOnExit: false,
               factory: $SettingsRoute._fromState,
@@ -216,6 +228,48 @@ mixin $MapRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/map');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $QrScannerRoute on GoRouteData {
+  static QrScannerRoute _fromState(GoRouterState state) =>
+      const QrScannerRoute();
+
+  @override
+  String get location => GoRouteData.$location('/qr-scanner');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $QrScannerHistoryRoute on GoRouteData {
+  static QrScannerHistoryRoute _fromState(GoRouterState state) =>
+      const QrScannerHistoryRoute();
+
+  @override
+  String get location => GoRouteData.$location('/qr-scanner/history');
 
   @override
   void go(BuildContext context) => context.go(location);

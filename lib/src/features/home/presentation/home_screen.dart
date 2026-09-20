@@ -133,6 +133,12 @@ class _HomeBody extends ConsumerWidget {
                 ),
                 const Divider(height: 1, indent: 56),
                 _MenuTile(
+                  icon: Icons.qr_code_scanner_outlined,
+                  title: l10n.homeQrScannerTitle,
+                  onTap: () => const QrScannerRoute().push<void>(context),
+                ),
+                const Divider(height: 1, indent: 56),
+                _MenuTile(
                   icon: Icons.storage_outlined,
                   title: l10n.devStorageTitle,
                   onTap: () =>

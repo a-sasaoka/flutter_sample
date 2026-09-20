@@ -5,6 +5,7 @@
   "appTitle": "フラッターサンプル",
   "hello": "こんにちは",
   "ok": "OK",
+  "cancel": "キャンセル",
   "loading": "読み込み中",
   "send": "送信",
   "close": "閉じる",
@@ -414,6 +415,35 @@
         "type": "String"
       }
     }
-  }
+  },
+
+  "@_QR_SCANNER": {},
+  "homeQrScannerTitle": "QRコードリーダー",
+  "qrScannerTitle": "QRコードリーダー",
+  "qrScannerHistoryTitle": "スキャン履歴",
+  "qrScannerScanPrompt": "枠内にQRコードを合わせてください",
+  "qrScannerTorchOn": "ライト点灯",
+  "qrScannerTorchOff": "ライト消灯",
+  "qrScannerSwitchCamera": "カメラ切り替え",
+  "qrScannerPickImage": "画像から読み取り",
+  "qrScannerPermissionDeniedTitle": "カメラの権限が必要です",
+  "qrScannerPermissionDeniedMessage": "QRコードをスキャンするには、カメラへのアクセスを許可してください。",
+  "qrScannerOpenSettings": "設定を開く",
+  "qrScannerUnsupportedTitle": "カメラを利用できません",
+  "qrScannerUnsupportedMessage": "この端末にはカメラが搭載されていないか、シミュレーター環境のためカメラを利用できません。アルバムの写真からQRコードを読み取ってください。",
+  "qrScannerResultTitle": "スキャン結果",
+  "qrScannerOpenUrl": "URLを開く",
+  "qrScannerCopy": "コピー",
+  "qrScannerCopied": "クリップボードにコピーしました",
+  "qrScannerRescan": "もう一度スキャン",
+  "qrScannerInvalidImage": "選択した画像からQRコードを検出できませんでした",
+  "qrScannerUnsupportedSimulator": "iOSシミュレーター環境では、OSの制約により画像からのQRコード解析がサポートされていません。実機にてお試しください。",
+  "qrScannerHistoryEmpty": "スキャン履歴はありません",
+  "qrScannerDeleteSingleConfirm": "この履歴を削除しますか？",
+  "qrScannerDeleteAll": "全件削除",
+  "qrScannerDeleteAllConfirm": "すべてのスキャン履歴を削除しますか？",
+  "qrScannerDeleteSuccess": "削除しました",
+  "qrScannerDeleteAllSuccess": "すべての履歴を削除しました",
+  "qrScannerFailedToOpenUrl": "URLを開けませんでした"
 }
 

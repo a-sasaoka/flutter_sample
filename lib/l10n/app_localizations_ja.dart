@@ -18,6 +18,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get ok => 'OK';
 
   @override
+  String get cancel => 'キャンセル';
+
+  @override
   String get loading => '読み込み中';
 
   @override
@@ -913,4 +916,88 @@ class AppLocalizationsJa extends AppLocalizations {
   String devImageCacheClearError(String error) {
     return 'キャッシュのクリアに失敗しました: $error';
   }
+
+  @override
+  String get homeQrScannerTitle => 'QRコードリーダー';
+
+  @override
+  String get qrScannerTitle => 'QRコードリーダー';
+
+  @override
+  String get qrScannerHistoryTitle => 'スキャン履歴';
+
+  @override
+  String get qrScannerScanPrompt => '枠内にQRコードを合わせてください';
+
+  @override
+  String get qrScannerTorchOn => 'ライト点灯';
+
+  @override
+  String get qrScannerTorchOff => 'ライト消灯';
+
+  @override
+  String get qrScannerSwitchCamera => 'カメラ切り替え';
+
+  @override
+  String get qrScannerPickImage => '画像から読み取り';
+
+  @override
+  String get qrScannerPermissionDeniedTitle => 'カメラの権限が必要です';
+
+  @override
+  String get qrScannerPermissionDeniedMessage =>
+      'QRコードをスキャンするには、カメラへのアクセスを許可してください。';
+
+  @override
+  String get qrScannerOpenSettings => '設定を開く';
+
+  @override
+  String get qrScannerUnsupportedTitle => 'カメラを利用できません';
+
+  @override
+  String get qrScannerUnsupportedMessage =>
+      'この端末にはカメラが搭載されていないか、シミュレーター環境のためカメラを利用できません。アルバムの写真からQRコードを読み取ってください。';
+
+  @override
+  String get qrScannerResultTitle => 'スキャン結果';
+
+  @override
+  String get qrScannerOpenUrl => 'URLを開く';
+
+  @override
+  String get qrScannerCopy => 'コピー';
+
+  @override
+  String get qrScannerCopied => 'クリップボードにコピーしました';
+
+  @override
+  String get qrScannerRescan => 'もう一度スキャン';
+
+  @override
+  String get qrScannerInvalidImage => '選択した画像からQRコードを検出できませんでした';
+
+  @override
+  String get qrScannerUnsupportedSimulator =>
+      'iOSシミュレーター環境では、OSの制約により画像からのQRコード解析がサポートされていません。実機にてお試しください。';
+
+  @override
+  String get qrScannerHistoryEmpty => 'スキャン履歴はありません';
+
+  @override
+  String get qrScannerDeleteSingleConfirm => 'この履歴を削除しますか？';
+
+  @override
+  String get qrScannerDeleteAll => '全件削除';
+
+  @override
+  String get qrScannerDeleteAllConfirm => 'すべてのスキャン履歴を削除しますか？';
+
+  @override
+  String get qrScannerDeleteSuccess => '削除しました';
+
+  @override
+  String get qrScannerDeleteAllSuccess => 'すべての履歴を削除しました';
+
+  @override
+  String get qrScannerFailedToOpenUrl => 'URLを開けませんでした';
 }

@@ -53,6 +53,7 @@ Flutter開発のサンプルプロジェクトです。\
 - [リッチアニメーションとアセット管理 (Lottie & flutter_gen)](docs/animation.md)
 - [Push通知 & ディープリンク連携 (FCM / flutter_local_notifications)](docs/notification.md)
 - [パフォーマンス最適化と監視 (画像キャッシュ / Firebase Performance / サイズ軽量化)](docs/performance.md)
+- [QRコードリーダー機能 (QR Scanner)](docs/qr_scanner.md)
 
 ### E. 開発運用
 

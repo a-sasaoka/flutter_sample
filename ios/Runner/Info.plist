@@ -101,8 +101,8 @@
     <key>GoogleMapsApiKey</key>
     <string>$(MAPS_IOS_API_KEY)</string>
     <key>NSCameraUsageDescription</key>
-    <string>プロフィール写真を撮影するためにカメラを利用します。</string>
+    <string>QRコードの読み取りやプロフィール写真撮影のためにカメラを利用します。</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>プロフィール写真を選択するために写真ライブラリを利用します。</string>
+    <string>QRコード画像の読み込みやプロフィール写真選択のために写真ライブラリを利用します。</string>
   </dict>
 </plist>

@@ -84,6 +84,7 @@ flutter_sample
             ├── notification                                    # Push通知・ローカル通知・ディープリンク機能
             ├── onboarding                                      # オンボーディング機能
             ├── profile                                         # プロフィール登録・変更機能
+            ├── qr_scanner                                      # QRコードリーダー機能（カメラ・画像解析・スキャン履歴）
             ├── settings                                        # 設定画面
             ├── splash                                          # スプラッシュ画面
             └── user                                            # ユーザー管理機能

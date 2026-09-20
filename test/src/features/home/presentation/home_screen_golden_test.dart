@@ -49,6 +49,7 @@ void main() {
       when(() => mockL10n.devNotificationTitle).thenReturn('Push通知・ディープリンク検証');
       when(() => mockL10n.devImageCacheTitle).thenReturn('画像キャッシュデモ');
       when(() => mockL10n.mapTitle).thenReturn('地図');
+      when(() => mockL10n.homeQrScannerTitle).thenReturn('QRコードリーダー');
       when(
         () => mockL10n.notificationBannerTitle,
       ).thenReturn('通知をオンにして最新情報を受け取ろう');
@@ -130,7 +131,7 @@ void main() {
             name: 'Light Mode',
             child: SizedBox(
               width: 390,
-              height: 844,
+              height: 1050,
               child: buildHomeForGolden(themeMode: ThemeMode.light),
             ),
           ),
@@ -138,7 +139,7 @@ void main() {
             name: 'Dark Mode',
             child: SizedBox(
               width: 390,
-              height: 844,
+              height: 1050,
               child: buildHomeForGolden(themeMode: ThemeMode.dark),
             ),
           ),

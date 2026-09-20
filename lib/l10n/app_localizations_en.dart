@@ -18,6 +18,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ok => 'OK';
 
   @override
+  String get cancel => 'Cancel';
+
+  @override
   String get loading => 'Loading...';
 
   @override
@@ -939,4 +942,89 @@ class AppLocalizationsEn extends AppLocalizations {
   String devImageCacheClearError(String error) {
     return 'Failed to clear cache: $error';
   }
+
+  @override
+  String get homeQrScannerTitle => 'QR Scanner';
+
+  @override
+  String get qrScannerTitle => 'QR Scanner';
+
+  @override
+  String get qrScannerHistoryTitle => 'Scan History';
+
+  @override
+  String get qrScannerScanPrompt => 'Align QR code within the frame';
+
+  @override
+  String get qrScannerTorchOn => 'Turn on light';
+
+  @override
+  String get qrScannerTorchOff => 'Turn off light';
+
+  @override
+  String get qrScannerSwitchCamera => 'Switch camera';
+
+  @override
+  String get qrScannerPickImage => 'Scan from Image';
+
+  @override
+  String get qrScannerPermissionDeniedTitle => 'Camera Permission Required';
+
+  @override
+  String get qrScannerPermissionDeniedMessage =>
+      'Please allow camera access to scan QR codes.';
+
+  @override
+  String get qrScannerOpenSettings => 'Open Settings';
+
+  @override
+  String get qrScannerUnsupportedTitle => 'Camera Unavailable';
+
+  @override
+  String get qrScannerUnsupportedMessage =>
+      'Camera is not available on this device or in the simulator. Please pick an image from your album to scan.';
+
+  @override
+  String get qrScannerResultTitle => 'Scan Result';
+
+  @override
+  String get qrScannerOpenUrl => 'Open URL';
+
+  @override
+  String get qrScannerCopy => 'Copy';
+
+  @override
+  String get qrScannerCopied => 'Copied to clipboard';
+
+  @override
+  String get qrScannerRescan => 'Scan Again';
+
+  @override
+  String get qrScannerInvalidImage => 'No QR code found in the selected image';
+
+  @override
+  String get qrScannerUnsupportedSimulator =>
+      'Analyzing QR codes from images is not supported on the iOS Simulator due to OS limitations. Please test on a real device.';
+
+  @override
+  String get qrScannerHistoryEmpty => 'No scan history yet';
+
+  @override
+  String get qrScannerDeleteSingleConfirm => 'Delete this history?';
+
+  @override
+  String get qrScannerDeleteAll => 'Delete All';
+
+  @override
+  String get qrScannerDeleteAllConfirm =>
+      'Are you sure you want to delete all scan history?';
+
+  @override
+  String get qrScannerDeleteSuccess => 'Deleted';
+
+  @override
+  String get qrScannerDeleteAllSuccess => 'All history deleted';
+
+  @override
+  String get qrScannerFailedToOpenUrl => 'Failed to open URL';
 }
