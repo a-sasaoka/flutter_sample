@@ -1925,7 +1925,7 @@ abstract class AppLocalizations {
   /// No description provided for @qrScannerUnsupportedMessage.
   ///
   /// In en, this message translates to:
-  /// **'Camera is not available on this device or in the simulator. Please pick an image from your album to scan.'**
+  /// **'Camera is not available on this device or in the simulator. Please test on a real device.'**
   String get qrScannerUnsupportedMessage;
 
   /// No description provided for @qrScannerResultTitle.

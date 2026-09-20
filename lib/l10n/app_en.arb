@@ -430,7 +430,7 @@
   "qrScannerPermissionDeniedMessage": "Please allow camera access to scan QR codes.",
   "qrScannerOpenSettings": "Open Settings",
   "qrScannerUnsupportedTitle": "Camera Unavailable",
-  "qrScannerUnsupportedMessage": "Camera is not available on this device or in the simulator. Please pick an image from your album to scan.",
+  "qrScannerUnsupportedMessage": "Camera is not available on this device or in the simulator. Please test on a real device.",
   "qrScannerResultTitle": "Scan Result",
   "qrScannerOpenUrl": "Open URL",
   "qrScannerCopy": "Copy",

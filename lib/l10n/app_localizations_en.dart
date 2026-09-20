@@ -982,7 +982,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get qrScannerUnsupportedMessage =>
-      'Camera is not available on this device or in the simulator. Please pick an image from your album to scan.';
+      'Camera is not available on this device or in the simulator. Please test on a real device.';
 
   @override
   String get qrScannerResultTitle => 'Scan Result';

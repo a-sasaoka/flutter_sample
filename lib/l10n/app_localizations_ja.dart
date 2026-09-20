@@ -956,7 +956,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get qrScannerUnsupportedMessage =>
-      'この端末にはカメラが搭載されていないか、シミュレーター環境のためカメラを利用できません。アルバムの写真からQRコードを読み取ってください。';
+      'この端末にはカメラが搭載されていないか、シミュレーター環境のためカメラを利用できません。実機にてお試しください。';
 
   @override
   String get qrScannerResultTitle => 'スキャン結果';

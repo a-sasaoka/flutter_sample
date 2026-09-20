@@ -430,7 +430,7 @@
   "qrScannerPermissionDeniedMessage": "QRコードをスキャンするには、カメラへのアクセスを許可してください。",
   "qrScannerOpenSettings": "設定を開く",
   "qrScannerUnsupportedTitle": "カメラを利用できません",
-  "qrScannerUnsupportedMessage": "この端末にはカメラが搭載されていないか、シミュレーター環境のためカメラを利用できません。アルバムの写真からQRコードを読み取ってください。",
+  "qrScannerUnsupportedMessage": "この端末にはカメラが搭載されていないか、シミュレーター環境のためカメラを利用できません。実機にてお試しください。",
   "qrScannerResultTitle": "スキャン結果",
   "qrScannerOpenUrl": "URLを開く",
   "qrScannerCopy": "コピー",
