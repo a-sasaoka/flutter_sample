@@ -52,6 +52,7 @@ class QrScannerScreen extends HookConsumerWidget {
         switch (result) {
           case QrImagePickSuccess(:final rawValue):
             await QrScanResultSheet.show(context, rawValue);
+            controllerNotifier.resumeScanning();
           case QrImagePickNotFound():
             ScaffoldMessenger.of(
               context,
@@ -118,6 +119,7 @@ class QrScannerScreen extends HookConsumerWidget {
                 );
                 if (result != null && context.mounted) {
                   await QrScanResultSheet.show(context, result);
+                  controllerNotifier.resumeScanning();
                 }
               }
             },

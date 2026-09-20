@@ -399,6 +399,13 @@ void main() {
       // 結果シートが表示されていること
       check(find.byType(QrScanResultSheet)).findsOne();
       check(find.text('https://scan-test.com')).findsOne();
+
+      // 結果シートの「もう一度スキャン」をタップして閉じる
+      await tester.tap(find.text('もう一度スキャン'));
+      await tester.pumpAndSettle();
+
+      check(find.byType(QrScanResultSheet)).findsNothing();
+      check(controller.resumeScanningCalled).isTrue();
     });
 
     testWidgets('画像解析中（QrScannerProcessingImage）のとき、ローディングインジケータが表示されること', (
@@ -519,6 +526,13 @@ void main() {
       check(controller.pickAndScanImageCalled).isTrue();
       check(find.byType(QrScanResultSheet)).findsOne();
       check(find.text('https://picked-qr.com')).findsOne();
+
+      // 結果シートの「もう一度スキャン」をタップして閉じる
+      await tester.tap(find.text('もう一度スキャン'));
+      await tester.pumpAndSettle();
+
+      check(find.byType(QrScanResultSheet)).findsNothing();
+      check(controller.resumeScanningCalled).isTrue();
     });
 
     testWidgets('画像選択で QrScannerUnsupportedPlatformException が発生した場合、 '
