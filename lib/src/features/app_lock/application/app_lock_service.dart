@@ -193,13 +193,16 @@ class AppLockService extends _$AppLockService {
     var isSuccess = false;
     try {
       final result = await action();
-      isSuccess = true;
+      // result が bool 型で false の場合は「失敗」とみなし、次回復帰ロックスキップを有効化しない
+      if (result is! bool || result) {
+        isSuccess = true;
+      }
       return result;
     } finally {
       if (_suppressionCount > 0) {
         _suppressionCount--;
       }
-      // 最外層のガードかつ例外なく正常完了した場合のみ次回復帰ロックのスキップを有効化
+      // 最外層のガードかつ成功結果（bool 以外の成功、または true）の場合のみ次回復帰ロックのスキップを有効化
       if (_suppressionCount == 0 && isSuccess) {
         _shouldSkipNextLock = true;
       }

@@ -612,6 +612,32 @@ void main() {
       },
     );
 
+    test('runWithLockSuppression: 実行結果が bool の false の場合は失敗とみなし、 '
+        'スキップフラグは設定されずに即座にロック可能であること', () async {
+      final container = createContainer(
+        isAuthenticated: true,
+        hasPasscode: true,
+        isBiometricEnabled: false,
+      );
+      await container.read(appLockServiceProvider.future);
+
+      final notifier = container.read(appLockServiceProvider.notifier)
+        ..skipBiometric(); // unlocked 状態にする
+
+      final result = await notifier.runWithLockSuppression<bool>(() async {
+        return false;
+      });
+
+      check(result).equals(false);
+      check(notifier.isLockSuppressed).equals(false);
+
+      // false 返却時はスキップフラグが設定されないため、直後の lockApp() で即座にロックされる
+      notifier.lockApp();
+      check(
+        container.read(appLockServiceProvider).value,
+      ).equals(const AppLockState.locked(isBiometricEnabled: false));
+    });
+
     test('runWithLockSuppression: ネスト呼び出し時は最外層が完了するまでスキップフラグは立たないこと', () async {
       final container = createContainer(
         isAuthenticated: true,
