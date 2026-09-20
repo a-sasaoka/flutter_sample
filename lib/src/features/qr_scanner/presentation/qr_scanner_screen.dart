@@ -67,7 +67,7 @@ class QrScannerScreen extends HookConsumerWidget {
             SnackBar(content: Text(l10n.qrScannerUnsupportedSimulator)),
           );
         }
-      } on Exception catch (e, st) {
+      } on Object catch (e, st) {
         ref.read(loggerProvider).handle(e, st, 'Failed to pick and scan image');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
