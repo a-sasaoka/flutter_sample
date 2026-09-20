@@ -137,6 +137,7 @@ class FakeQrScannerController extends QrScannerController {
     this.mockScanResult,
     this.mockPickResult = const QrImagePickResult.notFound(),
     this.throwUnsupportedOnPick = false,
+    this.throwExceptionOnPick = false,
     this.pickCompleter,
   }) : _initialState = initialState;
 
@@ -144,6 +145,7 @@ class FakeQrScannerController extends QrScannerController {
   final String? mockScanResult;
   final QrImagePickResult mockPickResult;
   final bool throwUnsupportedOnPick;
+  final bool throwExceptionOnPick;
   final Completer<QrImagePickResult>? pickCompleter;
 
   bool toggleTorchCalled = false;
@@ -190,6 +192,9 @@ class FakeQrScannerController extends QrScannerController {
     pickAndScanImageCallCount++;
     if (throwUnsupportedOnPick) {
       throw const QrScannerUnsupportedPlatformException();
+    }
+    if (throwExceptionOnPick) {
+      throw Exception('Failed to pick image');
     }
     if (pickCompleter != null) {
       return await pickCompleter!.future;
@@ -533,6 +538,22 @@ void main() {
           'iOSシミュレーター環境では、OSの制約により画像からのQRコード解析がサポートされていません。実機にてお試しください。',
         ),
       ).findsOne();
+    });
+
+    testWidgets('画像選択で一般的な例外が発生した場合、エラーログが記録され SnackBar が表示されること', (
+      tester,
+    ) async {
+      final controller = FakeQrScannerController(throwExceptionOnPick: true);
+
+      await tester.pumpWidget(createWidget(controller: controller));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.photo_library));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      check(controller.pickAndScanImageCalled).isTrue();
+      check(find.text('画像の読み取りに失敗しました')).findsOne();
     });
 
     testWidgets('画像選択処理の実行中に再度タップされても、多重実行されないこと', (tester) async {

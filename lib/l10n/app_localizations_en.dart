@@ -1027,4 +1027,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get qrScannerFailedToOpenUrl => 'Failed to open URL';
+
+  @override
+  String get qrScannerFailedToProcessImage => 'Failed to scan image';
 }

@@ -444,6 +444,7 @@
   "qrScannerDeleteAllConfirm": "すべてのスキャン履歴を削除しますか？",
   "qrScannerDeleteSuccess": "削除しました",
   "qrScannerDeleteAllSuccess": "すべての履歴を削除しました",
-  "qrScannerFailedToOpenUrl": "URLを開けませんでした"
+  "qrScannerFailedToOpenUrl": "URLを開けませんでした",
+  "qrScannerFailedToProcessImage": "画像の読み取りに失敗しました"
 }
 

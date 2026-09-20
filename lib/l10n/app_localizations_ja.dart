@@ -1000,4 +1000,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get qrScannerFailedToOpenUrl => 'URLを開けませんでした';
+
+  @override
+  String get qrScannerFailedToProcessImage => '画像の読み取りに失敗しました';
 }

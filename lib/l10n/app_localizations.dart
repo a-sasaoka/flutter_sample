@@ -2011,6 +2011,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to open URL'**
   String get qrScannerFailedToOpenUrl;
+
+  /// No description provided for @qrScannerFailedToProcessImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to scan image'**
+  String get qrScannerFailedToProcessImage;
 }
 
 class _AppLocalizationsDelegate
