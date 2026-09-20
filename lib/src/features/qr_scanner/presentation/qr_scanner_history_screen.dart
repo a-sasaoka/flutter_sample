@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/qr_scanner/application/qr_scanner_history_controller.dart';
 import 'package:flutter_sample/src/features/qr_scanner/application/url_launcher_service.dart';
 import 'package:flutter_sample/src/features/qr_scanner/domain/qr_scan_history_model.dart';
@@ -102,8 +103,18 @@ class QrScannerHistoryScreen extends ConsumerWidget {
                       isUrl: urlService.isWebUrl(item.rawValue),
                       onTap: () =>
                           QrScanResultSheet.show(context, item.rawValue),
-                      onDismissed: () async {
-                        await historyNotifier.deleteHistory(item.id);
+                      onConfirmDismiss: () async {
+                        try {
+                          await historyNotifier.deleteHistory(item.id);
+                          return true;
+                        } on Exception catch (e, st) {
+                          ref
+                              .read(loggerProvider)
+                              .error('Failed to delete history item: $e\n$st');
+                          return false;
+                        }
+                      },
+                      onDismissed: () {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -127,12 +138,14 @@ class _HistoryListTile extends StatelessWidget {
     required this.item,
     required this.isUrl,
     required this.onTap,
+    required this.onConfirmDismiss,
     required this.onDismissed,
   });
 
   final QrScanHistoryModel item;
   final bool isUrl;
   final VoidCallback onTap;
+  final Future<bool> Function() onConfirmDismiss;
   final VoidCallback onDismissed;
 
   @override
@@ -148,6 +161,7 @@ class _HistoryListTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: const Icon(Icons.delete, color: Colors.white),
       ),
+      confirmDismiss: (_) => onConfirmDismiss(),
       onDismissed: (_) => onDismissed(),
       child: ListTile(
         leading: Icon(
