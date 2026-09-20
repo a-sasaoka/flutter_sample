@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
@@ -109,6 +111,8 @@ void main() {
 
       check(fakeController.lastDeletedId).equals(10);
       check(find.text('削除しました')).findsOne();
+      check(find.text('https://flutter.dev')).findsNothing();
+      check(find.text('スキャン履歴はありません')).findsOne();
     });
 
     testWidgets('スワイプ削除で例外が発生した場合、アイテムが復元されスナックバーが表示されないこと', (tester) async {
@@ -246,14 +250,24 @@ void main() {
 }
 
 class _FakeHistoryController extends QrScannerHistoryController {
-  _FakeHistoryController(this.initialList, {this.throwOnDelete = false});
-  final List<QrScanHistoryModel> initialList;
+  _FakeHistoryController(
+    List<QrScanHistoryModel> initialList, {
+    this.throwOnDelete = false,
+  }) : _currentList = List.of(initialList);
+
+  final List<QrScanHistoryModel> _currentList;
   final bool throwOnDelete;
   bool didCallDeleteAll = false;
   int? lastDeletedId;
+  final StreamController<List<QrScanHistoryModel>> _streamController =
+      StreamController<List<QrScanHistoryModel>>.broadcast();
 
   @override
-  Stream<List<QrScanHistoryModel>> build() => Stream.value(initialList);
+  Stream<List<QrScanHistoryModel>> build() async* {
+    ref.onDispose(_streamController.close);
+    yield List.unmodifiable(_currentList);
+    yield* _streamController.stream;
+  }
 
   @override
   Future<void> deleteHistory(int id) async {
@@ -261,10 +275,18 @@ class _FakeHistoryController extends QrScannerHistoryController {
     if (throwOnDelete) {
       throw Exception('Failed to delete history');
     }
+    _currentList.removeWhere((item) => item.id == id);
+    if (!_streamController.isClosed) {
+      _streamController.add(List.unmodifiable(_currentList));
+    }
   }
 
   @override
   Future<void> deleteAllHistories() async {
     didCallDeleteAll = true;
+    _currentList.clear();
+    if (!_streamController.isClosed) {
+      _streamController.add(List.unmodifiable(_currentList));
+    }
   }
 }

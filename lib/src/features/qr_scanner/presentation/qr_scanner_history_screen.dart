@@ -106,21 +106,19 @@ class QrScannerHistoryScreen extends ConsumerWidget {
                       onConfirmDismiss: () async {
                         try {
                           await historyNotifier.deleteHistory(item.id);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(l10n.qrScannerDeleteSuccess),
+                              ),
+                            );
+                          }
                           return true;
                         } on Exception catch (e, st) {
                           ref
                               .read(loggerProvider)
                               .handle(e, st, 'Failed to delete history item');
                           return false;
-                        }
-                      },
-                      onDismissed: () {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(l10n.qrScannerDeleteSuccess),
-                            ),
-                          );
                         }
                       },
                     );
@@ -139,14 +137,12 @@ class _HistoryListTile extends StatelessWidget {
     required this.isUrl,
     required this.onTap,
     required this.onConfirmDismiss,
-    required this.onDismissed,
   });
 
   final QrScanHistoryModel item;
   final bool isUrl;
   final VoidCallback onTap;
   final Future<bool> Function() onConfirmDismiss;
-  final VoidCallback onDismissed;
 
   @override
   Widget build(BuildContext context) {
@@ -162,7 +158,6 @@ class _HistoryListTile extends StatelessWidget {
         child: const Icon(Icons.delete, color: Colors.white),
       ),
       confirmDismiss: (_) => onConfirmDismiss(),
-      onDismissed: (_) => onDismissed(),
       child: ListTile(
         leading: Icon(
           isUrl ? Icons.link : Icons.qr_code,
