@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/qr_scanner/application/url_launcher_service.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -86,7 +87,14 @@ class QrScanResultSheet extends ConsumerWidget {
             if (isUrl) ...[
               FilledButton.icon(
                 onPressed: () async {
-                  final success = await urlService.openUrl(rawValue);
+                  var success = false;
+                  try {
+                    success = await urlService.openUrl(rawValue);
+                  } on Exception catch (e, st) {
+                    ref
+                        .read(loggerProvider)
+                        .error('Failed to open URL: $e\n$st');
+                  }
                   if (!context.mounted) return;
                   if (!success) {
                     ScaffoldMessenger.of(context).showSnackBar(

@@ -4,11 +4,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/qr_scanner/application/url_launcher_service.dart';
 import 'package:flutter_sample/src/features/qr_scanner/presentation/widgets/qr_scan_result_sheet.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 class MockUrlLauncherService extends Mock implements UrlLauncherService {}
 
@@ -97,6 +99,36 @@ void main() {
 
       await tester.pumpWidget(
         createWidget(rawValue: 'https://fail.test', container: container),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('URLを開く'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      check(find.text('URLを開けませんでした')).findsOne();
+    });
+
+    testWidgets('URLを開く処理で例外が発生した場合、ログが記録され SnackBar が表示されること', (tester) async {
+      when(
+        () => mockUrlService.isWebUrl('https://error.test'),
+      ).thenReturn(true);
+      when(
+        () => mockUrlService.openUrl('https://error.test'),
+      ).thenThrow(PlatformException(code: 'ACTIVITY_NOT_FOUND'));
+
+      final container = ProviderContainer(
+        overrides: [
+          urlLauncherServiceProvider.overrideWithValue(mockUrlService),
+          loggerProvider.overrideWithValue(
+            Talker(settings: TalkerSettings(useConsoleLogs: false)),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        createWidget(rawValue: 'https://error.test', container: container),
       );
       await tester.pumpAndSettle();
 
