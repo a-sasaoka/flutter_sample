@@ -110,7 +110,7 @@ class QrScannerHistoryScreen extends ConsumerWidget {
                         } on Exception catch (e, st) {
                           ref
                               .read(loggerProvider)
-                              .error('Failed to delete history item: $e\n$st');
+                              .handle(e, st, 'Failed to delete history item');
                           return false;
                         }
                       },

@@ -93,7 +93,7 @@ class QrScanResultSheet extends ConsumerWidget {
                   } on Exception catch (e, st) {
                     ref
                         .read(loggerProvider)
-                        .error('Failed to open URL: $e\n$st');
+                        .handle(e, st, 'Failed to open URL');
                   }
                   if (!context.mounted) return;
                   if (!success) {

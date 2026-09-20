@@ -68,9 +68,7 @@ class QrScannerScreen extends HookConsumerWidget {
           );
         }
       } on Exception catch (e, st) {
-        ref
-            .read(loggerProvider)
-            .error('Failed to pick and scan image: $e\n$st');
+        ref.read(loggerProvider).handle(e, st, 'Failed to pick and scan image');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(l10n.qrScannerFailedToProcessImage)),
@@ -154,7 +152,7 @@ class QrScannerScreen extends HookConsumerWidget {
                     } on Exception catch (e, st) {
                       ref
                           .read(loggerProvider)
-                          .error('Failed to toggle torch: $e\n$st');
+                          .handle(e, st, 'Failed to toggle torch');
                     }
                   },
                   onSwitchCamera: () async {
@@ -163,7 +161,7 @@ class QrScannerScreen extends HookConsumerWidget {
                     } on Exception catch (e, st) {
                       ref
                           .read(loggerProvider)
-                          .error('Failed to switch camera: $e\n$st');
+                          .handle(e, st, 'Failed to switch camera');
                     }
                   },
                   onPickImage: handlePickImage,

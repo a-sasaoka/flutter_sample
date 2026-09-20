@@ -77,7 +77,7 @@ class QrScannerController extends _$QrScannerController {
     try {
       await ref.read(qrScanHistoriesDaoProvider).upsertHistory(rawValue);
     } on Exception catch (e, st) {
-      ref.read(loggerProvider).error('Failed to save scan history: $e\n$st');
+      ref.read(loggerProvider).handle(e, st, 'Failed to save scan history');
     }
 
     return rawValue;
@@ -128,9 +128,7 @@ class QrScannerController extends _$QrScannerController {
         try {
           await ref.read(qrScanHistoriesDaoProvider).upsertHistory(rawValue);
         } on Exception catch (e, st) {
-          ref
-              .read(loggerProvider)
-              .error('Failed to save scan history: $e\n$st');
+          ref.read(loggerProvider).handle(e, st, 'Failed to save scan history');
         }
         pauseScanning();
         return QrImagePickResult.success(rawValue);
