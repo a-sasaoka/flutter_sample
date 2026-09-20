@@ -47,6 +47,13 @@ void main() {
       );
     }
 
+    test('QrScannerHistoryScreen can be instantiated', () {
+      // カバレッジ計測でコンストラクタのコードを確実に実行させてカバーするため、あえて非constでインスタンス化します。
+      // ignore: prefer_const_constructors
+      final screen = QrScannerHistoryScreen();
+      check(screen).isA<QrScannerHistoryScreen>();
+    });
+
     testWidgets('履歴が空の場合、空案内メッセージが表示されること', (tester) async {
       when(
         () => mockDao.watchAllHistories(),

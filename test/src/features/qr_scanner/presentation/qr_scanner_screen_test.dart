@@ -137,18 +137,21 @@ class FakeQrScannerController extends QrScannerController {
     this.mockScanResult,
     this.mockPickResult = const QrImagePickResult.notFound(),
     this.throwUnsupportedOnPick = false,
+    this.pickCompleter,
   }) : _initialState = initialState;
 
   final QrScannerState _initialState;
   final String? mockScanResult;
   final QrImagePickResult mockPickResult;
   final bool throwUnsupportedOnPick;
+  final Completer<QrImagePickResult>? pickCompleter;
 
   bool toggleTorchCalled = false;
   bool pauseScanningCalled = false;
   bool resumeScanningCalled = false;
   String? lastScannedValue;
   bool pickAndScanImageCalled = false;
+  int pickAndScanImageCallCount = 0;
 
   @override
   QrScannerState build() => _initialState;
@@ -184,8 +187,12 @@ class FakeQrScannerController extends QrScannerController {
     AppLockService? appLockService,
   }) async {
     pickAndScanImageCalled = true;
+    pickAndScanImageCallCount++;
     if (throwUnsupportedOnPick) {
       throw const QrScannerUnsupportedPlatformException();
+    }
+    if (pickCompleter != null) {
+      return await pickCompleter!.future;
     }
     return mockPickResult;
   }
@@ -526,6 +533,36 @@ void main() {
           'iOSシミュレーター環境では、OSの制約により画像からのQRコード解析がサポートされていません。実機にてお試しください。',
         ),
       ).findsOne();
+    });
+
+    testWidgets('画像選択処理の実行中に再度タップされても、多重実行されないこと', (tester) async {
+      final completer = Completer<QrImagePickResult>();
+      final controller = FakeQrScannerController(pickCompleter: completer);
+
+      await tester.pumpWidget(createWidget(controller: controller));
+      await tester.pumpAndSettle();
+
+      // 1回目のタップ（処理開始）
+      await tester.tap(find.byIcon(Icons.photo_library));
+      await tester.pump();
+
+      check(controller.pickAndScanImageCallCount).equals(1);
+
+      // 処理が完了していない状態で2回目のタップ（無視されること）
+      await tester.tap(find.byIcon(Icons.photo_library));
+      await tester.pump();
+
+      check(controller.pickAndScanImageCallCount).equals(1);
+
+      // 処理を完了させる
+      completer.complete(const QrImagePickResult.notFound());
+      await tester.pumpAndSettle();
+
+      // 完了後はフラグが解除され、再度タップで実行できること
+      await tester.tap(find.byIcon(Icons.photo_library));
+      await tester.pumpAndSettle();
+
+      check(controller.pickAndScanImageCallCount).equals(2);
     });
 
     testWidgets('履歴ボタンタップで pauseScanning が呼ばれ、履歴画面へ遷移すること', (tester) async {

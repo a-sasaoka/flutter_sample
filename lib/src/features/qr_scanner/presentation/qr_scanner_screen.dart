@@ -34,8 +34,13 @@ class QrScannerScreen extends HookConsumerWidget {
       ),
     );
     useEffect(() => scannerController.dispose, [scannerController]);
+    final isPickingImage = useRef(false);
 
     Future<void> handlePickImage() async {
+      if (isPickingImage.value) {
+        return;
+      }
+      isPickingImage.value = true;
       try {
         final result = await controllerNotifier.pickAndScanImage(
           scannerController: scannerController,
@@ -61,6 +66,8 @@ class QrScannerScreen extends HookConsumerWidget {
             SnackBar(content: Text(l10n.qrScannerUnsupportedSimulator)),
           );
         }
+      } finally {
+        isPickingImage.value = false;
       }
     }
 
