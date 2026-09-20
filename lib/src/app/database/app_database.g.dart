@@ -479,16 +479,279 @@ class MemosCompanion extends UpdateCompanion<Memo> {
   }
 }
 
+class $QrScanHistoriesTable extends QrScanHistories
+    with TableInfo<$QrScanHistoriesTable, QrScanHistory> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $QrScanHistoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _rawValueMeta = const VerificationMeta(
+    'rawValue',
+  );
+  @override
+  late final GeneratedColumn<String> rawValue = GeneratedColumn<String>(
+    'raw_value',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _scannedAtMeta = const VerificationMeta(
+    'scannedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> scannedAt = GeneratedColumn<DateTime>(
+    'scanned_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, rawValue, scannedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'qr_scan_histories';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<QrScanHistory> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('raw_value')) {
+      context.handle(
+        _rawValueMeta,
+        rawValue.isAcceptableOrUnknown(data['raw_value']!, _rawValueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rawValueMeta);
+    }
+    if (data.containsKey('scanned_at')) {
+      context.handle(
+        _scannedAtMeta,
+        scannedAt.isAcceptableOrUnknown(data['scanned_at']!, _scannedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scannedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  QrScanHistory map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return QrScanHistory(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      rawValue: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}raw_value'],
+      )!,
+      scannedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}scanned_at'],
+      )!,
+    );
+  }
+
+  @override
+  $QrScanHistoriesTable createAlias(String alias) {
+    return $QrScanHistoriesTable(attachedDatabase, alias);
+  }
+}
+
+class QrScanHistory extends DataClass implements Insertable<QrScanHistory> {
+  /// 主キーID（自動連番）
+  final int id;
+
+  /// 読み取ったQRコードの内容（文字列）
+  final String rawValue;
+
+  /// スキャンした日時
+  final DateTime scannedAt;
+  const QrScanHistory({
+    required this.id,
+    required this.rawValue,
+    required this.scannedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['raw_value'] = Variable<String>(rawValue);
+    map['scanned_at'] = Variable<DateTime>(scannedAt);
+    return map;
+  }
+
+  QrScanHistoriesCompanion toCompanion(bool nullToAbsent) {
+    return QrScanHistoriesCompanion(
+      id: Value(id),
+      rawValue: Value(rawValue),
+      scannedAt: Value(scannedAt),
+    );
+  }
+
+  factory QrScanHistory.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return QrScanHistory(
+      id: serializer.fromJson<int>(json['id']),
+      rawValue: serializer.fromJson<String>(json['rawValue']),
+      scannedAt: serializer.fromJson<DateTime>(json['scannedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'rawValue': serializer.toJson<String>(rawValue),
+      'scannedAt': serializer.toJson<DateTime>(scannedAt),
+    };
+  }
+
+  QrScanHistory copyWith({int? id, String? rawValue, DateTime? scannedAt}) =>
+      QrScanHistory(
+        id: id ?? this.id,
+        rawValue: rawValue ?? this.rawValue,
+        scannedAt: scannedAt ?? this.scannedAt,
+      );
+  QrScanHistory copyWithCompanion(QrScanHistoriesCompanion data) {
+    return QrScanHistory(
+      id: data.id.present ? data.id.value : this.id,
+      rawValue: data.rawValue.present ? data.rawValue.value : this.rawValue,
+      scannedAt: data.scannedAt.present ? data.scannedAt.value : this.scannedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('QrScanHistory(')
+          ..write('id: $id, ')
+          ..write('rawValue: $rawValue, ')
+          ..write('scannedAt: $scannedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, rawValue, scannedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is QrScanHistory &&
+          other.id == this.id &&
+          other.rawValue == this.rawValue &&
+          other.scannedAt == this.scannedAt);
+}
+
+class QrScanHistoriesCompanion extends UpdateCompanion<QrScanHistory> {
+  final Value<int> id;
+  final Value<String> rawValue;
+  final Value<DateTime> scannedAt;
+  const QrScanHistoriesCompanion({
+    this.id = const Value.absent(),
+    this.rawValue = const Value.absent(),
+    this.scannedAt = const Value.absent(),
+  });
+  QrScanHistoriesCompanion.insert({
+    this.id = const Value.absent(),
+    required String rawValue,
+    required DateTime scannedAt,
+  }) : rawValue = Value(rawValue),
+       scannedAt = Value(scannedAt);
+  static Insertable<QrScanHistory> custom({
+    Expression<int>? id,
+    Expression<String>? rawValue,
+    Expression<DateTime>? scannedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (rawValue != null) 'raw_value': rawValue,
+      if (scannedAt != null) 'scanned_at': scannedAt,
+    });
+  }
+
+  QrScanHistoriesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? rawValue,
+    Value<DateTime>? scannedAt,
+  }) {
+    return QrScanHistoriesCompanion(
+      id: id ?? this.id,
+      rawValue: rawValue ?? this.rawValue,
+      scannedAt: scannedAt ?? this.scannedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (rawValue.present) {
+      map['raw_value'] = Variable<String>(rawValue.value);
+    }
+    if (scannedAt.present) {
+      map['scanned_at'] = Variable<DateTime>(scannedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('QrScanHistoriesCompanion(')
+          ..write('id: $id, ')
+          ..write('rawValue: $rawValue, ')
+          ..write('scannedAt: $scannedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $MemosTable memos = $MemosTable(this);
+  late final $QrScanHistoriesTable qrScanHistories = $QrScanHistoriesTable(
+    this,
+  );
   late final MemosDao memosDao = MemosDao(this as AppDatabase);
+  late final QrScanHistoriesDao qrScanHistoriesDao = QrScanHistoriesDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [memos];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [memos, qrScanHistories];
 }
 
 typedef $$MemosTableCreateCompanionBuilder =
@@ -722,10 +985,170 @@ typedef $$MemosTableProcessedTableManager =
       Memo,
       PrefetchHooks Function()
     >;
+typedef $$QrScanHistoriesTableCreateCompanionBuilder =
+    QrScanHistoriesCompanion Function({
+      Value<int> id,
+      required String rawValue,
+      required DateTime scannedAt,
+    });
+typedef $$QrScanHistoriesTableUpdateCompanionBuilder =
+    QrScanHistoriesCompanion Function({
+      Value<int> id,
+      Value<String> rawValue,
+      Value<DateTime> scannedAt,
+    });
+
+class $$QrScanHistoriesTableFilterComposer
+    extends Composer<_$AppDatabase, $QrScanHistoriesTable> {
+  $$QrScanHistoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rawValue => $composableBuilder(
+    column: $table.rawValue,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get scannedAt => $composableBuilder(
+    column: $table.scannedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$QrScanHistoriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $QrScanHistoriesTable> {
+  $$QrScanHistoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rawValue => $composableBuilder(
+    column: $table.rawValue,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get scannedAt => $composableBuilder(
+    column: $table.scannedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$QrScanHistoriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $QrScanHistoriesTable> {
+  $$QrScanHistoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get rawValue =>
+      $composableBuilder(column: $table.rawValue, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get scannedAt =>
+      $composableBuilder(column: $table.scannedAt, builder: (column) => column);
+}
+
+class $$QrScanHistoriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $QrScanHistoriesTable,
+          QrScanHistory,
+          $$QrScanHistoriesTableFilterComposer,
+          $$QrScanHistoriesTableOrderingComposer,
+          $$QrScanHistoriesTableAnnotationComposer,
+          $$QrScanHistoriesTableCreateCompanionBuilder,
+          $$QrScanHistoriesTableUpdateCompanionBuilder,
+          (
+            QrScanHistory,
+            BaseReferences<_$AppDatabase, $QrScanHistoriesTable, QrScanHistory>,
+          ),
+          QrScanHistory,
+          PrefetchHooks Function()
+        > {
+  $$QrScanHistoriesTableTableManager(
+    _$AppDatabase db,
+    $QrScanHistoriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$QrScanHistoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$QrScanHistoriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$QrScanHistoriesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> rawValue = const Value.absent(),
+                Value<DateTime> scannedAt = const Value.absent(),
+              }) => QrScanHistoriesCompanion(
+                id: id,
+                rawValue: rawValue,
+                scannedAt: scannedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String rawValue,
+                required DateTime scannedAt,
+              }) => QrScanHistoriesCompanion.insert(
+                id: id,
+                rawValue: rawValue,
+                scannedAt: scannedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$QrScanHistoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $QrScanHistoriesTable,
+      QrScanHistory,
+      $$QrScanHistoriesTableFilterComposer,
+      $$QrScanHistoriesTableOrderingComposer,
+      $$QrScanHistoriesTableAnnotationComposer,
+      $$QrScanHistoriesTableCreateCompanionBuilder,
+      $$QrScanHistoriesTableUpdateCompanionBuilder,
+      (
+        QrScanHistory,
+        BaseReferences<_$AppDatabase, $QrScanHistoriesTable, QrScanHistory>,
+      ),
+      QrScanHistory,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
   $$MemosTableTableManager get memos =>
       $$MemosTableTableManager(_db, _db.memos);
+  $$QrScanHistoriesTableTableManager get qrScanHistories =>
+      $$QrScanHistoriesTableTableManager(_db, _db.qrScanHistories);
 }

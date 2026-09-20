@@ -18,6 +18,7 @@
 具体的なルート定義の実装は [home_tab_routes.dart](../lib/src/app/router/routes/home_tab_routes.dart)（`HomeRoute`）などを参照してください。
 
 - **画面遷移の呼び出し**: `const HomeRoute().go(context);` のように型安全に実行できます。
+- **サブ画面の遷移例**: QRコードリーダーは `const QrScannerRoute().go(context);`（`/qr-scanner`）、スキャン履歴は `const QrScannerHistoryRoute().go(context);`（`/qr-scanner/history`）のように呼び出します。
 - **メリット**: 文字列ベース（パス直書き）のルーティングを避け、IDE補完によるタイプミス防止やリファクタリング耐性を向上させます。
 
 ---
@@ -84,7 +85,7 @@ lib/src/app/router/
  │    ├── auth_routes.dart             # ログイン・サインアップ系
  │    ├── chat_tab_routes.dart         # AIチャットタブのルート定義（ブランチ定数含む）
  │    ├── chart_tab_routes.dart        # グラフタブのルート定義（ブランチ定数含む）
- │    ├── home_tab_routes.dart         # ホームタブのルート定義（ブランチ定数含む）
+ │    ├── home_tab_routes.dart         # ホームタブのルート定義（ブランチ定数、QRコードリーダー系含む）
  │    ├── memos_tab_routes.dart        # メモタブのルート定義（ブランチ定数含む）
  │    ├── onboarding_routes.dart       # オンボーディング画面のルート定義
  │    ├── shell_routes.dart            # ナビゲーションシェル（各タブのブランチ定数を束ねる定義）

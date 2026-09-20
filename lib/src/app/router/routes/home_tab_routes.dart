@@ -55,6 +55,28 @@ class MapRoute extends GoRouteData with $MapRoute {
   }
 }
 
+/// 📷 QRコードリーダー画面ルート
+class QrScannerRoute extends GoRouteData with $QrScannerRoute {
+  /// コンストラクタ
+  const QrScannerRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const QrScannerScreen();
+  }
+}
+
+/// 📜 QRコードスキャン履歴画面ルート
+class QrScannerHistoryRoute extends GoRouteData with $QrScannerHistoryRoute {
+  /// コンストラクタ
+  const QrScannerHistoryRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const QrScannerHistoryScreen();
+  }
+}
+
 /// 🏠 ホームタブのブランチデータ
 class HomeBranch extends StatefulShellBranchData {
   /// コンストラクタ
@@ -68,6 +90,10 @@ const homeShellBranch = TypedStatefulShellBranch<HomeBranch>(
       path: '/',
       routes: [
         TypedGoRoute<MapRoute>(path: 'map'),
+        TypedGoRoute<QrScannerRoute>(
+          path: 'qr-scanner',
+          routes: [TypedGoRoute<QrScannerHistoryRoute>(path: 'history')],
+        ),
         TypedGoRoute<SettingsRoute>(
           path: 'settings',
           routes: [TypedGoRoute<ProfileEditRoute>(path: 'profile')],

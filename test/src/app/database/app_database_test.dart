@@ -22,8 +22,8 @@ void main() {
       await database.close();
     });
 
-    test('schemaVersion returns 1', () {
-      check(database.schemaVersion).equals(1);
+    test('schemaVersion returns 2', () {
+      check(database.schemaVersion).equals(2);
     });
 
     test('onUpgrade migration strategy executes without error', () async {

@@ -143,6 +143,7 @@ void main() {
     when(() => mockL10n.devNotificationTitle).thenReturn('Push通知・ディープリンク検証');
     when(() => mockL10n.devImageCacheTitle).thenReturn('画像キャッシュデモ');
     when(() => mockL10n.mapTitle).thenReturn('地図');
+    when(() => mockL10n.homeQrScannerTitle).thenReturn('QRコードリーダー');
     when(
       () => mockL10n.notificationBannerTitle,
     ).thenReturn('通知をオンにして最新情報を受け取ろう');
@@ -509,6 +510,31 @@ void main() {
       await tester.pumpAndSettle();
 
       check(find.text('MapScreen Destination')).findsOne();
+    });
+
+    testWidgets('QRコードリーダーメニューをタップすると該当ルートへ遷移すること', (tester) async {
+      await setupWidget(
+        tester,
+        additionalRoutes: [
+          GoRoute(
+            path: '/qr-scanner',
+            builder: (context, state) =>
+                const Scaffold(body: Text('QrScanner Destination')),
+          ),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      final finder = find.widgetWithText(ListTile, 'QRコードリーダー');
+      await tester.dragUntilVisible(
+        finder,
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+
+      check(find.text('QrScanner Destination')).findsOne();
     });
 
     testWidgets('Lottieデモメニューをタップすると該当ルートへ遷移すること', (tester) async {

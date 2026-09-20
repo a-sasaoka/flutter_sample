@@ -200,8 +200,9 @@ FCM トークンの確認・コピー、権限リクエスト、テスト通知�
 
 - **テスト対象**: ライトモード、ダークモードの計2状態
 - **チェックポイント**:
-  - 開発用ツール（画像キャッシュデモ、Lottieデモ、データ管理、Push通知デモ）やデバッグ用のメニュー、およびアプリ情報が正しく並んでいるか。
+  - 開発用ツール（画像キャッシュデモ、Lottieデモ、データ管理、Push通知デモ、QRコードリーダー）やデバッグ用のメニュー、およびアプリ情報が正しく並んでいるか。
   - 画面下部にアプリ情報（アプリ名、バージョン、Bundle ID、現在の環境）が正しく配置されているか。
+  - メニュー項目の追加に伴い、最下部のアプリ情報カードまで途切れずに確認できるよう、縦幅（1050px）が十分に確保されているか。
 - **画像リンク**: [📷 画像を表示する (home_screen.png)](../test/src/features/home/presentation/goldens/macos/home_screen.png)
 
 #### メモ帳画面 (MemoScreen)
@@ -332,3 +333,43 @@ Google Maps による地図描画および現在地取得アクションボタ�
   - 生体認証有効時（`isBiometricEnabled: true`）に、左下に生体認証アイコンボタン（指紋・顔認証）が表示されているか。
   - 生体認証無効時（`isBiometricEnabled: false`）に、左下の生体認証ボタンが非表示になっているか。
 - **画像リンク**: [📷 画像を表示する (passcode_lock_screen.png)](../test/src/features/app_lock/presentation/goldens/macos/passcode_lock_screen.png)
+
+---
+
+### 9. QRコードリーダー機能 (QR Scanner Features)
+
+#### 9.1 QRコードスキャナー画面 (QrScannerScreen)
+
+カメラファインダーによるQRコード読み取り画面です。
+
+- **テスト対象**:
+  - **通常スキャン中**: [📷 画像を表示 (qr_scanner_screen_scanning.png)](../test/src/features/qr_scanner/presentation/goldens/macos/qr_scanner_screen_scanning.png)（ライト/ダークモード）
+  - **カメラ権限エラー**: [📷 画像を表示 (qr_scanner_screen_error.png)](../test/src/features/qr_scanner/presentation/goldens/macos/qr_scanner_screen_error.png)（ライト/ダークモード）
+  - **カメラ非対応（シミュレーター等）**: [📷 画像を表示 (qr_scanner_screen_unsupported.png)](../test/src/features/qr_scanner/presentation/goldens/macos/qr_scanner_screen_unsupported.png)（ライト/ダークモード）
+- **チェックポイント**:
+  - 通常スキャン時、スキャンガイド枠（四隅のアクセントコーナー）およびアニメーションスキャンラインが表示され、下部にフラッシュ切替・カメラ反転・アルバム選択・履歴画面へのアイコンボタンが配置されているか。
+  - カメラ権限拒否時、`Icons.videocam_off`、権限エラーメッセージ（「カメラの権限が必要です」）、および「設定を開く」ボタンが中央に表示されているか。
+  - シミュレーター等のカメラ非対応端末時、`Icons.no_photography`、非対応メッセージ（「カメラを利用できません」）、および「画像から読み取り」ボタンが中央に表示されているか。
+
+#### 9.2 スキャン結果ボトムシート (QrScanResultSheet)
+
+QRコード検出時、またはアルバム画像からQRコードを読み取った際に表示される結果モーダルです。
+
+- **テスト対象**: URLスキャン結果（ライトモード）、通常テキストスキャン結果（ダークモード）の計2状態
+- **チェックポイント**:
+  - タイトル「スキャン結果」およびスキャンした文字列・URLがプレビュー表示されているか。
+  - URLの場合、「開く」（外部ブラウザ起動）ボタンが表示されているか。
+  - テキスト・URL共通で「コピー」ボタンと「再スキャン」ボタンが使いやすく配置されているか。
+- **画像リンク**: [📷 画像を表示する (qr_scan_result_sheet.png)](../test/src/features/qr_scanner/presentation/goldens/macos/qr_scan_result_sheet.png)
+
+#### 9.3 QRスキャン履歴画面 (QrScannerHistoryScreen)
+
+スキャンしたQRコードの履歴（Drift SQLiteに保存）を一覧表示する画面です。
+
+- **テスト対象**:
+  - **履歴データあり**: [📷 画像を表示 (qr_scanner_history_screen_data.png)](../test/src/features/qr_scanner/presentation/goldens/macos/qr_scanner_history_screen_data.png)（ライト/ダークモード）
+  - **履歴データなし（空）状態**: [📷 画像を表示 (qr_scanner_history_screen_empty.png)](../test/src/features/qr_scanner/presentation/goldens/macos/qr_scanner_history_screen_empty.png)（ライトモード）
+- **チェックポイント**:
+  - 履歴データがあるとき、QRコードアイコンまたは外部リンクアイコン、スキャン内容、日時が表示されているか。
+  - アプリバー右上に「全削除」アイコンボタンが配置されているか。
+  - 履歴が空のとき、中央に空状態の案内メッセージ（「スキャン履歴はありません」）が表示されているか。

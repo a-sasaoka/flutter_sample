@@ -116,6 +116,12 @@ abstract class AppLocalizations {
   /// **'OK'**
   String get ok;
 
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
   /// No description provided for @loading.
   ///
   /// In en, this message translates to:
@@ -1843,6 +1849,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to clear cache: {error}'**
   String devImageCacheClearError(String error);
+
+  /// No description provided for @homeQrScannerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'QR Scanner'**
+  String get homeQrScannerTitle;
+
+  /// No description provided for @qrScannerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'QR Scanner'**
+  String get qrScannerTitle;
+
+  /// No description provided for @qrScannerHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan History'**
+  String get qrScannerHistoryTitle;
+
+  /// No description provided for @qrScannerScanPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Align QR code within the frame'**
+  String get qrScannerScanPrompt;
+
+  /// No description provided for @qrScannerTorchOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on light'**
+  String get qrScannerTorchOn;
+
+  /// No description provided for @qrScannerTorchOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off light'**
+  String get qrScannerTorchOff;
+
+  /// No description provided for @qrScannerSwitchCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch camera'**
+  String get qrScannerSwitchCamera;
+
+  /// No description provided for @qrScannerPickImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan from Image'**
+  String get qrScannerPickImage;
+
+  /// No description provided for @qrScannerPermissionDeniedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera Permission Required'**
+  String get qrScannerPermissionDeniedTitle;
+
+  /// No description provided for @qrScannerPermissionDeniedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Please allow camera access to scan QR codes.'**
+  String get qrScannerPermissionDeniedMessage;
+
+  /// No description provided for @qrScannerOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get qrScannerOpenSettings;
+
+  /// No description provided for @qrScannerUnsupportedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera Unavailable'**
+  String get qrScannerUnsupportedTitle;
+
+  /// No description provided for @qrScannerUnsupportedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera is not available on this device or in the simulator. Please test on a real device.'**
+  String get qrScannerUnsupportedMessage;
+
+  /// No description provided for @qrScannerResultTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan Result'**
+  String get qrScannerResultTitle;
+
+  /// No description provided for @qrScannerOpenUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Open URL'**
+  String get qrScannerOpenUrl;
+
+  /// No description provided for @qrScannerCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get qrScannerCopy;
+
+  /// No description provided for @qrScannerCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied to clipboard'**
+  String get qrScannerCopied;
+
+  /// No description provided for @qrScannerRescan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan Again'**
+  String get qrScannerRescan;
+
+  /// No description provided for @qrScannerInvalidImage.
+  ///
+  /// In en, this message translates to:
+  /// **'No QR code found in the selected image'**
+  String get qrScannerInvalidImage;
+
+  /// No description provided for @qrScannerUnsupportedSimulator.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyzing QR codes from images is not supported on the iOS Simulator due to OS limitations. Please test on a real device.'**
+  String get qrScannerUnsupportedSimulator;
+
+  /// No description provided for @qrScannerHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No scan history yet'**
+  String get qrScannerHistoryEmpty;
+
+  /// No description provided for @qrScannerDeleteSingleConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this history?'**
+  String get qrScannerDeleteSingleConfirm;
+
+  /// No description provided for @qrScannerDeleteAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete All'**
+  String get qrScannerDeleteAll;
+
+  /// No description provided for @qrScannerDeleteAllConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete all scan history?'**
+  String get qrScannerDeleteAllConfirm;
+
+  /// No description provided for @qrScannerDeleteSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted'**
+  String get qrScannerDeleteSuccess;
+
+  /// No description provided for @qrScannerDeleteAllSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'All history deleted'**
+  String get qrScannerDeleteAllSuccess;
+
+  /// No description provided for @qrScannerFailedToOpenUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to open URL'**
+  String get qrScannerFailedToOpenUrl;
+
+  /// No description provided for @qrScannerFailedToProcessImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to scan image'**
+  String get qrScannerFailedToProcessImage;
 }
 
 class _AppLocalizationsDelegate

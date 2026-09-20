@@ -24,6 +24,9 @@ lib/src/core/storage/
 lib/src/features/auth/data/
  └── token_storage.dart                # 認証トークンの管理（SecureStorage利用）
 
+lib/src/features/qr_scanner/data/
+ └── qr_scan_histories_dao.dart        # QRスキャン履歴のデータアクセス（Drift DAO）
+
 lib/src/app/database/
  └── app_database.dart                 # Driftデータベース本体（テーブルの統合管理）
 
@@ -78,7 +81,7 @@ DBの値が変更されると、それを監視しているUIが自動的に更�
 
 ### 5. オフラインファースト設計の実装例
 
-具体的な実装パターン（同期ロジック等）については、[メモ機能の実装詳細](./memos.md) を参照してください。
+具体的な実装パターン（同期ロジック等）については、[メモ機能の実装詳細](./memos.md) や [QRコードリーダーの実装詳細](./qr_scanner.md) を参照してください。
 
 ---
 

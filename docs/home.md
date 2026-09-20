@@ -13,13 +13,14 @@
 
 ### 1. メイン機能へのアクセス
 
-AI チャット、グラフ、メモ帳、ユーザー一覧などの主要な機能モジュールには画面下部のボトムナビゲーションからアクセスし、地図機能へはホーム画面内の「地図」リストタイルのタップでアクセスします。  
+AI チャット、グラフ、メモ帳、ユーザー一覧などの主要な機能モジュールには画面下部のボトムナビゲーションからアクセスし、地図機能やQRコードリーダー機能へはホーム画面内の各リストタイルのタップでアクセスします。  
 ホーム画面自体には、開発・デバッグに必要なツールやアプリ情報の確認機能が集約されています。
 
 ### 2. 開発・デバッグツール (Developer Tools)
 
 アプリの品質管理やデバッグを補助する機能です。
 
+- **QRコードリーダー (QrScannerScreen)**: カメラによるリアルタイムスキャン、アルバム画像からのQR解析、およびDriftによるスキャン履歴の閲覧・削除を行えます。
 - **統合ログ (TalkerScreen)**: 通信履歴やエラーログをアプリ上で確認できます（`prod` 環境以外で表示）。
 - **ローカルストレージ管理 (DeveloperStorageScreen)**: `SharedPreferences` や `FlutterSecureStorage` に保存されたキーと値の確認・編集・削除が行えます。
 - **画像キャッシュデモ (ImageCacheDemoScreen)**: 画像キャッシュ（CachedNetworkImage）の通常・角丸・アバター形状、Shimmer、エラー/未設定フォールバック、キャッシュの一括クリアを検証できます。
@@ -83,3 +84,5 @@ AI チャット、グラフ、メモ帳、ユーザー一覧などの主要な�
 - `lib/src/features/map/presentation/map_screen.dart`
 - `docs/map.md`
 - `docs/animation.md`
+- `lib/src/features/qr_scanner/presentation/qr_scanner_screen.dart`
+- `docs/qr_scanner.md`

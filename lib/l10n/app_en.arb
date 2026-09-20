@@ -5,6 +5,7 @@
   "appTitle": "Flutter Sample",
   "hello": "Hello",
   "ok": "OK",
+  "cancel": "Cancel",
   "loading": "Loading...",
   "send": "Send",
   "close": "Close",
@@ -414,6 +415,36 @@
         "type": "String"
       }
     }
-  }
+  },
+
+  "@_QR_SCANNER": {},
+  "homeQrScannerTitle": "QR Scanner",
+  "qrScannerTitle": "QR Scanner",
+  "qrScannerHistoryTitle": "Scan History",
+  "qrScannerScanPrompt": "Align QR code within the frame",
+  "qrScannerTorchOn": "Turn on light",
+  "qrScannerTorchOff": "Turn off light",
+  "qrScannerSwitchCamera": "Switch camera",
+  "qrScannerPickImage": "Scan from Image",
+  "qrScannerPermissionDeniedTitle": "Camera Permission Required",
+  "qrScannerPermissionDeniedMessage": "Please allow camera access to scan QR codes.",
+  "qrScannerOpenSettings": "Open Settings",
+  "qrScannerUnsupportedTitle": "Camera Unavailable",
+  "qrScannerUnsupportedMessage": "Camera is not available on this device or in the simulator. Please test on a real device.",
+  "qrScannerResultTitle": "Scan Result",
+  "qrScannerOpenUrl": "Open URL",
+  "qrScannerCopy": "Copy",
+  "qrScannerCopied": "Copied to clipboard",
+  "qrScannerRescan": "Scan Again",
+  "qrScannerInvalidImage": "No QR code found in the selected image",
+  "qrScannerUnsupportedSimulator": "Analyzing QR codes from images is not supported on the iOS Simulator due to OS limitations. Please test on a real device.",
+  "qrScannerHistoryEmpty": "No scan history yet",
+  "qrScannerDeleteSingleConfirm": "Delete this history?",
+  "qrScannerDeleteAll": "Delete All",
+  "qrScannerDeleteAllConfirm": "Are you sure you want to delete all scan history?",
+  "qrScannerDeleteSuccess": "Deleted",
+  "qrScannerDeleteAllSuccess": "All history deleted",
+  "qrScannerFailedToOpenUrl": "Failed to open URL",
+  "qrScannerFailedToProcessImage": "Failed to scan image"
 }
 

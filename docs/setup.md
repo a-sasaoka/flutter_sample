@@ -50,16 +50,17 @@ cd ..
 - **Android (`android/app/src/main/kotlin/.../MainActivity.kt`)**:
   - 生体認証ダイアログの正常描画とコールバックのため、`FlutterActivity` ではなく `FlutterFragmentActivity` を継承するように設定されています。
 
-### 💡 カメラ・写真（アバター画像設定）の OS ネイティブ設定
+### 💡 カメラ・写真（アバター画像設定・QRコードリーダー）の OS ネイティブ設定
 
-プロフィール写真の撮影・選択・切り抜き (`image_picker`, `image_cropper`) を使用するため、各プラットフォームで以下のネイティブ設定が行われています。
+プロフィール写真の撮影・選択・切り抜き (`image_picker`, `image_cropper`) および QRコードリーダー (`mobile_scanner`) によるカメラ・アルバム読み取りを使用するため、各プラットフォームで以下のネイティブ設定が行われています。
 
 - **iOS (`ios/Runner/Info.plist`)**:
-  - `NSCameraUsageDescription`: 「プロフィール写真を撮影するためにカメラを利用します。」
-  - `NSPhotoLibraryUsageDescription`: 「プロフィール写真を選択するために写真ライブラリを利用します。」
+  - `NSCameraUsageDescription`: 「プロフィール写真を撮影するためにカメラを利用します。」（QRコードスキャン時にも共通して使用）
+  - `NSPhotoLibraryUsageDescription`: 「プロフィール写真を選択するために写真ライブラリを利用します。」（QRコード画像スキャン時にも共通して使用）
 - **Android (`android/app/src/main/AndroidManifest.xml`)**:
   - カメラ撮影用パーミッション: `<uses-permission android:name="android.permission.CAMERA" />`
   - 画像切り抜き画面: `UCropActivity`（`com.yalantis.ucrop.UCropActivity`）の登録
+  - 外部ブラウザ起動用クエリ設定 (`url_launcher`): スキャン結果のURLを安全に開くため、`<queries>` タグに `https` / `http` の `intent` を定義
 
 ## 4️⃣ 環境設定ファイルの準備
 
