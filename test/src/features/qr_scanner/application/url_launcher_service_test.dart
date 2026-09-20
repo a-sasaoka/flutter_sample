@@ -20,8 +20,15 @@ class FakeAppLockService extends AppLockService {
 }
 
 void main() {
+  late UrlLauncherPlatform originalPlatform;
+
   setUpAll(() {
+    originalPlatform = UrlLauncherPlatform.instance;
     registerFallbackValue(const LaunchOptions());
+  });
+
+  tearDownAll(() {
+    UrlLauncherPlatform.instance = originalPlatform;
   });
 
   group('UrlLauncherService', () {
@@ -44,9 +51,21 @@ void main() {
       check(service.isWebUrl('')).equals(false);
     });
 
-    test('無効な URL の場合 openUrl は false を返すこと', () async {
-      final result = await service.openUrl('not a valid url ::: //');
-      check(result).equals(false);
+    test('ホスト名やオーソリティが存在しない不完全なURL (https:, https:/path) を拒否すること', () {
+      check(service.isWebUrl('https:')).equals(false);
+      check(service.isWebUrl('https:/path')).equals(false);
+      check(service.isWebUrl('http:')).equals(false);
+      check(service.isWebUrl('http:/path')).equals(false);
+    });
+
+    test('無効な URL の場合 openUrl は false を返し launchUrl を呼ばないこと', () async {
+      final mockPlatform = MockUrlLauncherPlatform();
+      UrlLauncherPlatform.instance = mockPlatform;
+
+      check(await service.openUrl('not a valid url ::: //')).equals(false);
+      check(await service.openUrl('https:')).equals(false);
+      check(await service.openUrl('https:/path')).equals(false);
+      verifyNever(() => mockPlatform.launchUrl(any(), any()));
     });
 
     test('有効な URL の場合 launchUrl を呼び出して結果を返すこと', () async {
