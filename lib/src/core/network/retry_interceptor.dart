@@ -113,10 +113,16 @@ class RetryInterceptor extends Interceptor {
 
     // 4. 元のリクエストを引き継いで再送信
     try {
-      final response = await _retryDio.fetch<dynamic>(err.requestOptions);
+      final requestOptions = err.requestOptions;
+      // FormData は一度読み取られると消費されるため、再送前にクローンを作成する
+      if (requestOptions.data case final FormData formData) {
+        requestOptions.data = formData.clone();
+      }
+
+      final response = await _retryDio.fetch<dynamic>(requestOptions);
       _talker.info(
         '✅ [RetryInterceptor] 再送に成功しました ($nextRetry/$maxRetries回目): '
-        '[${err.requestOptions.method}] ${err.requestOptions.uri}',
+        '[${requestOptions.method}] ${requestOptions.uri}',
       );
       return handler.resolve(response);
     } on DioException catch (retryError) {
@@ -133,6 +139,11 @@ class RetryInterceptor extends Interceptor {
   bool _shouldRetry(DioException err) {
     // ユーザーキャンセルはリトライしない
     if (err.type == DioExceptionType.cancel) {
+      return false;
+    }
+
+    // Stream などの再読み込み不可能なリクエストボディはリトライ不可
+    if (err.requestOptions.data is Stream) {
       return false;
     }
 

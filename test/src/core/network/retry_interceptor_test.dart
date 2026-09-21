@@ -432,5 +432,59 @@ void main() {
       verify(() => handler.next(error)).called(1);
       verifyNever(() => handler.resolve(any()));
     });
+
+    test('Stream リクエストボディの場合はリトライせず即時次へ流すこと', () async {
+      final options = RequestOptions(
+        path: '/upload',
+        method: 'POST',
+        data: const Stream<List<int>>.empty(),
+      );
+      final streamError = DioException(
+        requestOptions: options,
+        type: DioExceptionType.connectionError,
+      );
+
+      await interceptor.onError(streamError, handler);
+
+      verifyNever(() => mockRetryDio.fetch<dynamic>(any()));
+      verify(() => handler.next(streamError)).called(1);
+    });
+
+    test('FormData リクエストボディの場合、FormData.clone() で複製されて再送されること', () async {
+      final formData = FormData.fromMap({'key': 'value'});
+      final options = RequestOptions(
+        path: '/upload',
+        method: 'POST',
+        data: formData,
+      );
+      final error = DioException(
+        requestOptions: options,
+        type: DioExceptionType.connectionTimeout,
+      );
+      final successResponse = Response<dynamic>(
+        requestOptions: options,
+        statusCode: 200,
+        data: {'status': 'uploaded'},
+      );
+
+      when(
+        () => mockRetryDio.fetch<dynamic>(any()),
+      ).thenAnswer((_) async => successResponse);
+
+      await interceptor.onError(error, handler);
+
+      final captured =
+          verify(
+                () => mockRetryDio.fetch<dynamic>(captureAny()),
+              ).captured.single
+              as RequestOptions;
+
+      check(captured.data).isA<FormData>();
+      // 元のインスタンスとは別インスタンスにクローンされていること
+      check(identical(captured.data, formData)).isFalse();
+      final clonedFormData = captured.data! as FormData;
+      check(clonedFormData.fields.first.value).equals('value');
+      verify(() => handler.resolve(successResponse)).called(1);
+    });
   });
 }
