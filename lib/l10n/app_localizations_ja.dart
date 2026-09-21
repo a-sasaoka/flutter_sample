@@ -1003,4 +1003,19 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get qrScannerFailedToProcessImage => '画像の読み取りに失敗しました';
+
+  @override
+  String get settingsLegalSection => '📜 法的情報';
+
+  @override
+  String get termsOfServiceTitle => '利用規約';
+
+  @override
+  String get privacyPolicyTitle => 'プライバシーポリシー';
+
+  @override
+  String get legalLoadError => 'ドキュメントの読み込みに失敗しました';
+
+  @override
+  String get legalOpenUrlFailed => 'リンクを開けませんでした';
 }

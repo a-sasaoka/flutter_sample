@@ -31,6 +31,8 @@ import 'package:flutter_sample/src/features/dev_tools/presentation/developer_sto
 import 'package:flutter_sample/src/features/dev_tools/presentation/lottie_demo_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/push_notification_demo_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
+import 'package:flutter_sample/src/features/legal/domain/legal_document_type.dart';
+import 'package:flutter_sample/src/features/legal/presentation/legal_document_screen.dart';
 import 'package:flutter_sample/src/features/map/presentation/map_screen.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
@@ -818,6 +820,31 @@ void main() {
       );
       check(widget).isA<SplashScreen>();
     });
+
+    test('TermsRoute.build: LegalDocumentScreen (termsOfService) を返すこと', () {
+      final widget = const TermsRoute().build(
+        MockBuildContext(),
+        MockGoRouterState(),
+      );
+      check(widget).isA<LegalDocumentScreen>();
+      check(
+        (widget as LegalDocumentScreen).type,
+      ).equals(LegalDocumentType.termsOfService);
+    });
+
+    test(
+      'PrivacyPolicyRoute.build: LegalDocumentScreen (privacyPolicy) を返すこと',
+      () {
+        final widget = const PrivacyPolicyRoute().build(
+          MockBuildContext(),
+          MockGoRouterState(),
+        );
+        check(widget).isA<LegalDocumentScreen>();
+        check(
+          (widget as LegalDocumentScreen).type,
+        ).equals(LegalDocumentType.privacyPolicy);
+      },
+    );
 
     test('DeveloperStorageRoute.build: DeveloperStorageScreen を返すこと', () {
       final widget = const DeveloperStorageRoute().build(

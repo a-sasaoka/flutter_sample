@@ -10,7 +10,8 @@ flutter_sample
 ├── .github/                                                    # GitHub ActionsによるCI/CDワークフロー設定
 ├── assets/                                                     # アプリで使用する画像やアプリアイコンなどのアセット
 │   ├── animations/                                             # Lottie アニメーションJSONファイル
-│   └── icons/                                                 # 各環境（Flavor）用の元アプリアイコン画像
+│   ├── icons/                                                 # 各環境（Flavor）用の元アプリアイコン画像
+│   └── markdown/                                              # 利用規約・プライバシーポリシーのMarkdown文書
 ├── android/
 │   └── app/src/
 │       └── {flavor}/                                           # Android用の環境別Firebase設定等を格納
@@ -79,6 +80,7 @@ flutter_sample
             ├── chat                                            # AIチャット機能
             ├── dev_tools                                       # 開発者ツール機能（ストレージ確認・編集等）
             ├── home                                            # ホーム画面
+            ├── legal                                           # 法的情報・Markdown閲覧機能（利用規約・プライバシーポリシー）
             ├── map                                             # 地図・現在地表示・住所ランドマーク検索・2点間ルート案内機能
             ├── memos                                           # メモ一覧・オフライン操作機能
             ├── notification                                    # Push通知・ローカル通知・ディープリンク機能

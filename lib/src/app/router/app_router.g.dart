@@ -9,6 +9,8 @@ part of 'app_router.dart';
 List<RouteBase> get $appRoutes => [
   $loginRoute,
   $emailVerificationRoute,
+  $termsRoute,
+  $privacyPolicyRoute,
   $appShellRouteData,
   $onboardingRoute,
   $splashRoute,
@@ -89,6 +91,59 @@ mixin $EmailVerificationRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/email-verification');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $termsRoute => GoRouteData.$route(
+  path: '/terms',
+  hasOverriddenOnExit: false,
+  factory: $TermsRoute._fromState,
+);
+
+mixin $TermsRoute on GoRouteData {
+  static TermsRoute _fromState(GoRouterState state) => const TermsRoute();
+
+  @override
+  String get location => GoRouteData.$location('/terms');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $privacyPolicyRoute => GoRouteData.$route(
+  path: '/privacy',
+  hasOverriddenOnExit: false,
+  factory: $PrivacyPolicyRoute._fromState,
+);
+
+mixin $PrivacyPolicyRoute on GoRouteData {
+  static PrivacyPolicyRoute _fromState(GoRouterState state) =>
+      const PrivacyPolicyRoute();
+
+  @override
+  String get location => GoRouteData.$location('/privacy');
 
   @override
   void go(BuildContext context) => context.go(location);

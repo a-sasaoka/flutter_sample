@@ -2017,6 +2017,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to scan image'**
   String get qrScannerFailedToProcessImage;
+
+  /// No description provided for @settingsLegalSection.
+  ///
+  /// In en, this message translates to:
+  /// **'📜 Legal'**
+  String get settingsLegalSection;
+
+  /// No description provided for @termsOfServiceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get termsOfServiceTitle;
+
+  /// No description provided for @privacyPolicyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get privacyPolicyTitle;
+
+  /// No description provided for @legalLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load document'**
+  String get legalLoadError;
+
+  /// No description provided for @legalOpenUrlFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to open link'**
+  String get legalOpenUrlFailed;
 }
 
 class _AppLocalizationsDelegate

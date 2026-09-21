@@ -167,6 +167,9 @@ void main() {
     when(() => mockL10n.hello).thenReturn('こんにちは！');
     when(() => mockL10n.logout).thenReturn('ログアウト');
     when(() => mockL10n.close).thenReturn('閉じる');
+    when(() => mockL10n.settingsLegalSection).thenReturn('📜 法的情報');
+    when(() => mockL10n.termsOfServiceTitle).thenReturn('利用規約');
+    when(() => mockL10n.privacyPolicyTitle).thenReturn('プライバシーポリシー');
 
     // エラーハンドラー経由で表示される翻訳キー
     when(() => mockL10n.errorUnknown).thenReturn('不明なエラー');
@@ -497,6 +500,42 @@ void main() {
 
         // 遷移処理が行われたことをGoRouterのerrorBuilderのダミーテキストで確認
         check(find.textContaining('Navigated to /settings/profile')).findsOne();
+      });
+
+      testWidgets('利用規約をタップした際、TermsRouteへ遷移すること', (tester) async {
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
+
+        final tileFinder = find.byKey(const Key('terms_of_service_tile'));
+        await tester.dragUntilVisible(
+          tileFinder,
+          find.byType(ListView),
+          const Offset(0, -300),
+        );
+
+        await tester.tap(tileFinder);
+        await tester.pumpAndSettle();
+
+        check(find.textContaining('Navigated to /terms')).findsOne();
+      });
+
+      testWidgets('プライバシーポリシーをタップした際、PrivacyPolicyRouteへ遷移すること', (
+        tester,
+      ) async {
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
+
+        final tileFinder = find.byKey(const Key('privacy_policy_tile'));
+        await tester.dragUntilVisible(
+          tileFinder,
+          find.byType(ListView),
+          const Offset(0, -300),
+        );
+
+        await tester.tap(tileFinder);
+        await tester.pumpAndSettle();
+
+        check(find.textContaining('Navigated to /privacy')).findsOne();
       });
     });
   });

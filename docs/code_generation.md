@@ -12,7 +12,7 @@
 - **GoRouter Builder**: `@TypedGoRoute` による型安全なルーティング定義
 - **Envied**: `.env` ファイルからの秘匿情報（デバッグトークン等）の生成
 - **Drift (drift_dev)**: データベースのテーブル定義とクエリコードの生成
-- **flutter_gen_runner**: 画像やLottieアニメーションなどの型安全なアセット参照クラス（`Assets.*`）の生成
+- **flutter_gen_runner**: 画像、Lottieアニメーション、Markdownファイルなどの型安全なアセット参照クラス（`Assets.*`）の生成
 - **flutter_launcher_icons**: 各Flavorごとのアプリアイコン生成
 
 ---
@@ -68,7 +68,7 @@ fvm dart run build_runner build --define "envied_generator:envied=path=.env.dev"
 
 ## 🖼️ アセットコードの生成 (flutter_gen)
 
-`assets/` ディレクトリに新しい画像や Lottie アニメーション JSON を追加した場合は、以下のコマンドで型安全な参照クラス（`Assets.*`）を生成します（`flutter_gen_runner` は `build_runner` のビルダーとして動作します）。
+`assets/` ディレクトリに新しい画像、Lottie アニメーション JSON、Markdown ファイルを追加した場合は、以下のコマンドで型安全な参照クラス（`Assets.*`）を生成します（`flutter_gen_runner` は `build_runner` のビルダーとして動作します）。
 
 ```bash
 # アセットコードを含む全コードの一括生成

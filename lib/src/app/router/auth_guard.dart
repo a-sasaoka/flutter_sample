@@ -47,6 +47,8 @@ String? authGuard(Ref ref, GoRouterState state) {
     alwaysPublicPaths: {
       const SplashRoute().location,
       const OnboardingRoute().location,
+      const TermsRoute().location,
+      const PrivacyPolicyRoute().location,
     },
   ).redirect(isLoggedIn: isLoggedIn, state: state);
 }

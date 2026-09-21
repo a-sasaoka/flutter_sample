@@ -53,6 +53,8 @@ String? firebaseAuthGuard(Ref ref, GoRouterState state) {
       const SplashRoute().location,
       const OnboardingRoute().location,
       const ResetPasswordRoute().location,
+      const TermsRoute().location,
+      const PrivacyPolicyRoute().location,
     },
   ).redirect(isLoggedIn: isLoggedIn, state: state);
 }
