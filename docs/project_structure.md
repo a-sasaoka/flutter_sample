@@ -66,7 +66,7 @@ flutter_sample
         │   ├── config                                          # 環境設定（EnvConfig, AppEnv）、テーマ等
         │   ├── database                                        # データベースインスタンスの提供、Talker連携
         │   ├── exceptions                                      # 共通の例外クラス定義
-        │   ├── network                                         # APIクライアント、Interceptor（パフォーマンス自動計測含む）
+        │   ├── network                                         # APIクライアント、Interceptor（自動リトライ・べき等性・パフォーマンス自動計測含む）
         │   ├── performance                                     # パフォーマンス計測基盤（Firebase Performance）
         │   ├── storage                                         # 永続化・キャッシュ（SharedPreferences・SecureStorage・画像キャッシュ）
         │   ├── ui                                              # 共通UI関連（エラーハンドリングなど）

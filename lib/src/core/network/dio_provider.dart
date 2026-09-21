@@ -4,6 +4,7 @@ import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
 import 'package:flutter_sample/src/core/network/firebase_performance_dio_interceptor.dart';
+import 'package:flutter_sample/src/core/network/retry_interceptor.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:talker_dio_logger/talker_dio_logger.dart';
@@ -28,6 +29,7 @@ Dio dio(Ref ref) {
   return _createDio(
     ref,
     additionalInterceptors: ref.watch(authInterceptorsProvider),
+    includeRetry: true,
   );
 }
 
@@ -41,7 +43,11 @@ Dio baseDio(Ref ref) {
 }
 
 /// Dioのインスタンス作成と共通設定を一括で行うヘルパー
-Dio _createDio(Ref ref, {List<Interceptor> additionalInterceptors = const []}) {
+Dio _createDio(
+  Ref ref, {
+  List<Interceptor> additionalInterceptors = const [],
+  bool includeRetry = false,
+}) {
   final config = ref.watch(envConfigProvider);
   final flavor = ref.watch(flavorProvider);
 
@@ -81,7 +87,12 @@ Dio _createDio(Ref ref, {List<Interceptor> additionalInterceptors = const []}) {
     dio.interceptors.addAll(additionalInterceptors);
   }
 
-  // 2. 共通のエラー変換・簡易ログインターセプターを追加
+  // 2. 自動リトライ＆べき等性インターセプターを追加（メインDioのみ）
+  if (includeRetry) {
+    dio.interceptors.add(ref.watch(retryInterceptorProvider));
+  }
+
+  // 3. 共通のエラー変換・簡易ログインターセプターを追加
   dio.interceptors.add(ref.watch(dioInterceptorProvider));
 
   // 3. パフォーマンス計測インターセプターを追加

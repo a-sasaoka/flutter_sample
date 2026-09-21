@@ -42,9 +42,12 @@ lib/src/features/auth/
 [dio_provider.dart](../lib/src/core/network/dio_provider.dart) において、Interceptor の登録順序は以下のように意図して制御されています。
 
 1. **① tokenInterceptor (`additionalInterceptors`)**: リクエスト前に認証ヘッダーを追加し、401検知時にトークンをリフレッシュ（追加のインターセプターとして先頭に挿入）。
-2. **② dioInterceptor**: 通信全体のログ出力・例外変換を担当（最終層で処理）。
+2. **② retryInterceptor**: 一時的な電波瞬断・タイムアウト・502/503/504検知時の指数バックオフ自動再送、およびPOST/PUT/PATCHへの `Idempotency-Key` 付与。
+3. **③ dioInterceptor**: 共通の通信例外変換および簡易ログ出力。
+4. **④ firebasePerformanceDioInterceptor**: Firebase Performance による通信時間・データサイズの自動計測。
+5. **⑤ talkerDioLogger** (デバッグ時のみ): Talkerによる詳細な通信ログ出力。
 
-> ⚠️ 順番を逆にすると、ログに出力されるリクエストにトークンが含まれなかったり、401エラー時の自動リフレッシュ（再リクエスト）が正常にログに記録されない・動作しないことがあります。
+> ⚠️ 順番を意図通りに保つことで、認証ヘッダーの付与、リトライ処理、ログ出力、パフォーマンス計測が正しい順序で透過的に実行されます。
 
 ---
 
