@@ -79,20 +79,16 @@ class RetryInterceptor extends Interceptor {
     // 2. 最大リトライ回数に達した場合は諦めてエラーを返却
     if (currentRetry >= maxRetries) {
       final statusCode = err.response?.statusCode;
-      // 502, 503, 504 などのサーバー障害でリトライしきれなかった場合は Crashlytics に送信
-      if (statusCode == 502 || statusCode == 503 || statusCode == 504) {
-        _talker.handle(
-          err,
-          err.stackTrace,
-          '💥 [RetryInterceptor] サーバー障害（HTTP $statusCode）が解消せず、最大リトライ回数に達しました: '
-          '[${err.requestOptions.method}] ${err.requestOptions.uri}',
-        );
-      } else {
-        _talker.warning(
-          '⚠️ [RetryInterceptor] 最大リトライ回数（$maxRetries回）に達したため再送を終了します: '
-          '[${err.requestOptions.method}] ${err.requestOptions.uri}',
-        );
-      }
+      final statusInfo = statusCode != null
+          ? ' (HTTP $statusCode)'
+          : ' (${err.type.name})';
+      _talker.handle(
+        err,
+        err.stackTrace,
+        '💥 [RetryInterceptor] 通信エラー$statusInfoが解消せず、 '
+        '最大リトライ回数（$maxRetries回）に達しました: '
+        '[${err.requestOptions.method}] ${err.requestOptions.uri}',
+      );
       return handler.next(err);
     }
 

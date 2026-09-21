@@ -371,14 +371,11 @@ void main() {
       verify(() => mockRetryDio.fetch<dynamic>(any())).called(3);
       verify(() => handler.next(error)).called(1);
       verifyNever(() => handler.resolve(any()));
-      // 接続タイムアウト時は warning が呼ばれる（handle は呼ばれない）
+      // 接続タイムアウト時：3回のリトライ試行時は warning、最後は handle が呼ばれること
+      verify(() => mockTalker.warning(any<String>())).called(3); // 3回リトライ試行
       verify(
-        () => mockTalker.warning(any<String>()),
-      ).called(4); // 3回リトライ試行 + 1回諦め
-      verifyNever(
-        () =>
-            mockTalker.handle(any<Object>(), any<StackTrace>(), any<String>()),
-      );
+        () => mockTalker.handle(error, any<StackTrace>(), any<String>()),
+      ).called(1);
     });
 
     test(
