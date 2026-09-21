@@ -36,6 +36,11 @@ void main() {
       () => mockL10n.errorEmailAlreadyInUse,
     ).thenReturn('このメールアドレスは既に登録されています');
     when(() => mockL10n.close).thenReturn('閉じる');
+    when(() => mockL10n.termsOfServiceTitle).thenReturn('利用規約');
+    when(() => mockL10n.privacyPolicyTitle).thenReturn('プライバシーポリシー');
+    when(() => mockL10n.signUpAgreementPrefix).thenReturn('登録することで、');
+    when(() => mockL10n.signUpAgreementAnd).thenReturn('および');
+    when(() => mockL10n.signUpAgreementSuffix).thenReturn('に同意したものとみなされます。');
   });
 
   /// テスト用のWidgetを構築するヘルパー
@@ -46,6 +51,14 @@ void main() {
         GoRoute(
           path: '/signup',
           builder: (context, state) => FirebaseSignUpScreen(),
+        ),
+        GoRoute(
+          path: '/terms',
+          builder: (context, state) => Scaffold(body: Text('Terms Screen')),
+        ),
+        GoRoute(
+          path: '/privacy',
+          builder: (context, state) => Scaffold(body: Text('Privacy Screen')),
         ),
       ],
       // 成功時に EmailVerificationRoute などへ遷移したことをキャッチする
@@ -74,6 +87,10 @@ void main() {
       check(find.text('パスワード')).findsOne();
       check(find.text('登録する')).findsOne();
       check(find.text('ログインへ戻る')).findsOne();
+      check(find.text('登録することで、')).findsOne();
+      check(find.text('利用規約')).findsOne();
+      check(find.text('プライバシーポリシー')).findsOne();
+      check(find.text('に同意したものとみなされます。')).findsOne();
     });
 
     testWidgets('未入力でボタンを押した場合は何も起きないこと(バリデーション)', (tester) async {
@@ -186,6 +203,28 @@ void main() {
       await tester.pumpAndSettle();
 
       check(FocusScope.of(context).focusedChild).isNull();
+    });
+
+    testWidgets('同意文言の「利用規約」をタップすると利用規約画面（/terms）へ遷移すること', (tester) async {
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('利用規約'));
+      await tester.pumpAndSettle();
+
+      check(find.text('Terms Screen')).findsOne();
+    });
+
+    testWidgets('同意文言の「プライバシーポリシー」をタップするとプライバシーポリシー画面（/privacy）へ遷移すること', (
+      tester,
+    ) async {
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('プライバシーポリシー'));
+      await tester.pumpAndSettle();
+
+      check(find.text('Privacy Screen')).findsOne();
     });
   });
 }

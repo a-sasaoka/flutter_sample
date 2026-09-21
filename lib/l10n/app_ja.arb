@@ -452,6 +452,9 @@
   "termsOfServiceTitle": "利用規約",
   "privacyPolicyTitle": "プライバシーポリシー",
   "legalLoadError": "ドキュメントの読み込みに失敗しました",
-  "legalOpenUrlFailed": "リンクを開けませんでした"
+  "legalOpenUrlFailed": "リンクを開けませんでした",
+  "signUpAgreementPrefix": "登録することで、",
+  "signUpAgreementAnd": "および",
+  "signUpAgreementSuffix": "に同意したものとみなされます。"
 }
 

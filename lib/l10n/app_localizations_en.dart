@@ -1045,4 +1045,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get legalOpenUrlFailed => 'Failed to open link';
+
+  @override
+  String get signUpAgreementPrefix => 'By signing up, you agree to our ';
+
+  @override
+  String get signUpAgreementAnd => ' and ';
+
+  @override
+  String get signUpAgreementSuffix => '.';
 }

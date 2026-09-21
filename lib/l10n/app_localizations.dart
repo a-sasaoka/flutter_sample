@@ -2047,6 +2047,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to open link'**
   String get legalOpenUrlFailed;
+
+  /// No description provided for @signUpAgreementPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'By signing up, you agree to our '**
+  String get signUpAgreementPrefix;
+
+  /// No description provided for @signUpAgreementAnd.
+  ///
+  /// In en, this message translates to:
+  /// **' and '**
+  String get signUpAgreementAnd;
+
+  /// No description provided for @signUpAgreementSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'.'**
+  String get signUpAgreementSuffix;
 }
 
 class _AppLocalizationsDelegate

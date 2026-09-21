@@ -1018,4 +1018,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get legalOpenUrlFailed => 'リンクを開けませんでした';
+
+  @override
+  String get signUpAgreementPrefix => '登録することで、';
+
+  @override
+  String get signUpAgreementAnd => 'および';
+
+  @override
+  String get signUpAgreementSuffix => 'に同意したものとみなされます。';
 }

@@ -452,6 +452,9 @@
   "termsOfServiceTitle": "Terms of Service",
   "privacyPolicyTitle": "Privacy Policy",
   "legalLoadError": "Failed to load document",
-  "legalOpenUrlFailed": "Failed to open link"
+  "legalOpenUrlFailed": "Failed to open link",
+  "signUpAgreementPrefix": "By signing up, you agree to our ",
+  "signUpAgreementAnd": " and ",
+  "signUpAgreementSuffix": "."
 }
 
