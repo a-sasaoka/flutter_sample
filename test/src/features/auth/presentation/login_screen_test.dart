@@ -73,6 +73,21 @@ void main() {
     when(() => mockL10n.semanticsEmailInput).thenReturn('メールアドレス入力欄');
     when(() => mockL10n.semanticsPasswordInput).thenReturn('パスワード入力欄');
     when(() => mockL10n.semanticsLoginButton).thenReturn('ログイン実行ボタン');
+
+    // バリデーションメッセージのスタブ設定
+    when(() => mockL10n.validationEmailRequired).thenReturn('メールアドレスを入力してください');
+    when(
+      () => mockL10n.validationNotOnlyWhitespace,
+    ).thenReturn('空白のみの入力はできません');
+    when(
+      () => mockL10n.validationEmailInvalid,
+    ).thenReturn('正しいメールアドレス形式で入力してください');
+    when(
+      () => mockL10n.validationPasswordRequired,
+    ).thenReturn('パスワードを入力してください');
+    when(() => mockL10n.validationPasswordMinLength(any())).thenAnswer(
+      (invocation) => 'パスワードは${invocation.positionalArguments[0]}文字以上で入力してください',
+    );
   });
 
   Widget createTestWidget() {
@@ -116,28 +131,63 @@ void main() {
       check(find.text('ログインする')).findsOne();
     });
 
-    testWidgets('未入力でボタンを押した場合は何も起きないこと(バリデーション)', (tester) async {
+    testWidgets('未入力でボタンを押した場合は何も起きず、必須エラーが表示されること', (tester) async {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('ログインする'));
       await tester.pumpAndSettle();
+
+      // エラーメッセージが表示されていること
+      check(find.text('メールアドレスを入力してください')).findsOne();
+      check(find.text('パスワードを入力してください')).findsOne();
 
       // Fakeのメソッドが呼ばれていないことと、Analyticsが呼ばれていないことを確認
       check(loginCallCount).equals(0);
       verifyZeroInteractions(mockAnalyticsService);
     });
 
-    testWidgets('空白文字のみを入力してボタンを押した場合は何も起きないこと(バリデーション)', (tester) async {
+    testWidgets('空白文字のみを入力してボタンを押した場合は何も起きず、空白エラーが表示されること', (tester) async {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField).at(0), '   ');
+      await tester.enterText(find.byType(TextField).at(1), '   ');
+
+      await tester.tap(find.text('ログインする'));
+      await tester.pumpAndSettle();
+
+      check(find.text('空白のみの入力はできません')).findsExactly(2);
+      check(loginCallCount).equals(0);
+      verifyZeroInteractions(mockAnalyticsService);
+    });
+
+    testWidgets('不正なメール形式を入力した場合は何も起きず、メール形式エラーが表示されること', (tester) async {
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).at(0), 'invalid-email');
       await tester.enterText(find.byType(TextField).at(1), 'password123');
 
       await tester.tap(find.text('ログインする'));
       await tester.pumpAndSettle();
 
+      check(find.text('正しいメールアドレス形式で入力してください')).findsOne();
+      check(loginCallCount).equals(0);
+      verifyZeroInteractions(mockAnalyticsService);
+    });
+
+    testWidgets('6文字未満のパスワードを入力した場合は何も起きず、文字数エラーが表示されること', (tester) async {
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).at(0), 'test@example.com');
+      await tester.enterText(find.byType(TextField).at(1), '12345');
+
+      await tester.tap(find.text('ログインする'));
+      await tester.pumpAndSettle();
+
+      check(find.text('パスワードは6文字以上で入力してください')).findsOne();
       check(loginCallCount).equals(0);
       verifyZeroInteractions(mockAnalyticsService);
     });

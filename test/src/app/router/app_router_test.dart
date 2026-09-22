@@ -221,6 +221,19 @@ void main() {
     when(() => mockL10n.loginPasswordLabel).thenReturn('Password');
     when(() => mockL10n.login).thenReturn('Login Button');
     when(() => mockL10n.loginButton).thenReturn('Login Button');
+    // バリデーションメッセージのスタブ設定
+    when(
+      () => mockL10n.validationNotOnlyWhitespace,
+    ).thenReturn('Whitespace error');
+    when(() => mockL10n.validationEmailRequired).thenReturn('Email required');
+    when(() => mockL10n.validationEmailInvalid).thenReturn('Invalid email');
+    when(
+      () => mockL10n.validationPasswordRequired,
+    ).thenReturn('Password required');
+    when(() => mockL10n.validationPasswordMinLength(any())).thenAnswer(
+      (invocation) =>
+          'Password min length ${invocation.positionalArguments[0]}',
+    );
     when(() => mockL10n.signUp).thenReturn('Sign Up');
     when(() => mockL10n.googleSignUp).thenReturn('Google Sign Up');
     when(() => mockL10n.resetPassword).thenReturn('Forgot Password?');

@@ -2077,6 +2077,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Connection restored'**
   String get offlineBannerOnline;
+
+  /// No description provided for @validationNotOnlyWhitespace.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot be only whitespace'**
+  String get validationNotOnlyWhitespace;
+
+  /// No description provided for @validationEmailRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your email'**
+  String get validationEmailRequired;
+
+  /// No description provided for @validationEmailInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid email address'**
+  String get validationEmailInvalid;
+
+  /// No description provided for @validationPasswordRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your password'**
+  String get validationPasswordRequired;
+
+  /// No description provided for @validationPasswordMinLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Must be at least {minLength} characters'**
+  String validationPasswordMinLength(int minLength);
 }
 
 class _AppLocalizationsDelegate

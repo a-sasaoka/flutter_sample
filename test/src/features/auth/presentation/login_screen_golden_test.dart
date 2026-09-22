@@ -34,6 +34,24 @@ void main() {
       when(() => mockL10n.semanticsEmailInput).thenReturn('メールアドレス入力欄');
       when(() => mockL10n.semanticsPasswordInput).thenReturn('パスワード入力欄');
       when(() => mockL10n.semanticsLoginButton).thenReturn('ログイン実行ボタン');
+
+      // バリデーションメッセージのスタブ設定
+      when(
+        () => mockL10n.validationEmailRequired,
+      ).thenReturn('メールアドレスを入力してください');
+      when(
+        () => mockL10n.validationNotOnlyWhitespace,
+      ).thenReturn('空白のみの入力はできません');
+      when(
+        () => mockL10n.validationEmailInvalid,
+      ).thenReturn('正しいメールアドレス形式で入力してください');
+      when(
+        () => mockL10n.validationPasswordRequired,
+      ).thenReturn('パスワードを入力してください');
+      when(() => mockL10n.validationPasswordMinLength(any())).thenAnswer(
+        (invocation) =>
+            'パスワードは${invocation.positionalArguments[0]}文字以上で入力してください',
+      );
     });
 
     // ゴールデンテスト用にモックされた環境で画面を組み立てる関数

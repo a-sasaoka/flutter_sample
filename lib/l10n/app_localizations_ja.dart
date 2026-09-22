@@ -1033,4 +1033,21 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get offlineBannerOnline => 'インターネットに接続されました';
+
+  @override
+  String get validationNotOnlyWhitespace => '空白のみの入力はできません';
+
+  @override
+  String get validationEmailRequired => 'メールアドレスを入力してください';
+
+  @override
+  String get validationEmailInvalid => '正しいメールアドレスの形式で入力してください';
+
+  @override
+  String get validationPasswordRequired => 'パスワードを入力してください';
+
+  @override
+  String validationPasswordMinLength(int minLength) {
+    return '$minLength文字以上で入力してください';
+  }
 }

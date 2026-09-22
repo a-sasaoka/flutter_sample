@@ -31,7 +31,7 @@
 | 📷 QRコードリーダー | mobile_scanner によるリアルタイムQR読み取り・アルバム画像解析、Drift によるスキャン履歴のローカル永続化とスワイプ削除、URL判定・ブラウザ起動                                                         |
 | 📜 法的情報         | flutter_markdown_plus + flutter_gen による利用規約・プライバシーポリシーの型安全な読み込みと表示、公開ルーティング設定                                                                               |
 | 🧰 コード生成       | build_runnerによる自動生成と、JSON/Enviedを組み合わせた高度な環境切替対応                                                                                                                            |
-| 🎨 UI/UX            | FlexColorSchemeによるテーマ設定、共通エラーハンドリングUI、Haptic Feedback（触覚）の実装                                                                                                             |
+| 🎨 UI/UX            | FlexColorSchemeによるテーマ設定、共通エラーハンドリングUI、共通カスタムバリデータによる堅牢なフォーム検証、Haptic Feedback（触覚）の実装                                                             |
 | 🧪 テスト           | package:checks / mocktail を用いた実践的なユニット・ウィジェットテスト、Alchemist によるゴールデンテスト、および Maestro による E2E テストの手法                                                     |
 | 🧩 Lint・CI/CD      | custom_lint 等の実用設定と、GitHub Actions による自動化（CI/CD）基盤                                                                                                                                 |
 | 🚀 開発効率         | FVM + VSCode設定 + Git Hooks で統一開発環境を構築                                                                                                                                                    |
