@@ -1054,4 +1054,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signUpAgreementSuffix => '.';
+
+  @override
+  String get offlineBannerOffline => 'No internet connection';
+
+  @override
+  String get offlineBannerOnline => 'Connection restored';
 }

@@ -455,6 +455,10 @@
   "legalOpenUrlFailed": "Failed to open link",
   "signUpAgreementPrefix": "By signing up, you agree to our ",
   "signUpAgreementAnd": " and ",
-  "signUpAgreementSuffix": "."
+  "signUpAgreementSuffix": ".",
+
+  "@_CONNECTIVITY": {},
+  "offlineBannerOffline": "No internet connection",
+  "offlineBannerOnline": "Connection restored"
 }
 

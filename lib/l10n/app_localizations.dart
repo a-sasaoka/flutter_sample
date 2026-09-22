@@ -2065,6 +2065,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'.'**
   String get signUpAgreementSuffix;
+
+  /// No description provided for @offlineBannerOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection'**
+  String get offlineBannerOffline;
+
+  /// No description provided for @offlineBannerOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection restored'**
+  String get offlineBannerOnline;
 }
 
 class _AppLocalizationsDelegate

@@ -455,6 +455,10 @@
   "legalOpenUrlFailed": "リンクを開けませんでした",
   "signUpAgreementPrefix": "登録することで、",
   "signUpAgreementAnd": "および",
-  "signUpAgreementSuffix": "に同意したものとみなされます。"
+  "signUpAgreementSuffix": "に同意したものとみなされます。",
+
+  "@_CONNECTIVITY": {},
+  "offlineBannerOffline": "ネットワークに接続していません",
+  "offlineBannerOnline": "インターネットに接続されました"
 }
 
