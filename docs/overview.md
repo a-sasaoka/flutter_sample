@@ -19,8 +19,8 @@
 | 🗺️ 地図/位置情報    | google_maps_flutter + geolocator + Google Places API による現在地取得・表示、場所・キーワード検索（評価・住所候補表示）、カメラアニメーション移動、パーミッション制御、2点間ルート検索・Polyline描画 |
 | 📝 ロギング         | Talkerを用いた統合ログ管理（通信・状態・Crashlytics連携）とアプリ内開発者用画面                                                                                                                      |
 | 🌍 多言語対応       | flutter_localizations + gen-l10n による標準的な多言語化                                                                                                                                              |
-| 🔥 Firebase         | Auth / Analytics / Crashlytics / Remote Config / App Check を組み合わせた基盤構築                                                                                                                    |
-| 🏠 ホーム           | 主要機能へのナビゲーションハブ、環境情報の判別、デバッグツールの集約                                                                                                                                 |
+| 🔥 Firebase         | Auth / Analytics / Crashlytics / Remote Config（強制アップデート・フィーチャーフラグ・動的バナー） / App Check を組み合わせた基盤構築                                                                |
+| 🏠 ホーム           | 主要機能へのナビゲーションハブ、動的お知らせバナー、環境情報の判別、デバッグツールの集約                                                                                                             |
 | 📈 グラフ           | fl_chart を用いた動的なグラフ（折れ線・棒・円）の表示とデータ入力                                                                                                                                    |
 | ⚙️ 設定             | SegmentedButton によるテーマ・言語切り替え、永続化連携、安全なログアウト処理                                                                                                                         |
 | 🔐 アプリロック     | 4桁PINパスコード＋生体認証（iOS: Face ID / Touch ID, Android: 指紋認証 / 顔認証）による最前面保護・自動復帰ロック                                                                                    |

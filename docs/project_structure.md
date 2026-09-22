@@ -64,7 +64,7 @@ flutter_sample
         │       └── routes/                                     # 各機能・タブごとに分割されたルート定義（part of）
         ├── core                                                # アプリ全体で共通的に利用される基盤コード
         │   ├── analytics                                       # イベント計測関連、カスタムObserver
-        │   ├── config                                          # 環境設定（EnvConfig, AppEnv）、テーマ等
+        │   ├── config                                          # 環境設定（EnvConfig, AppEnv）、テーマ、リモート設定・フィーチャーフラグ等
         │   ├── database                                        # データベースインスタンスの提供、Talker連携
         │   ├── exceptions                                      # 共通の例外クラス定義
         │   ├── network                                         # APIクライアント、Interceptor（自動リトライ・べき等性・パフォーマンス自動計測含む）
@@ -79,7 +79,7 @@ flutter_sample
             ├── chart                                           # グラフ表示機能（fl_chart）
             ├── chat                                            # AIチャット機能
             ├── dev_tools                                       # 開発者ツール機能（ストレージ確認・編集等）
-            ├── home                                            # ホーム画面
+            ├── home                                            # ホーム画面（動的お知らせバナー、ハブナビゲーション）
             ├── legal                                           # 法的情報・Markdown閲覧機能（利用規約・プライバシーポリシー）
             ├── map                                             # 地図・現在地表示・住所ランドマーク検索・2点間ルート案内機能
             ├── memos                                           # メモ一覧・オフライン操作機能

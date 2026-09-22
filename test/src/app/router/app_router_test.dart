@@ -12,6 +12,8 @@ import 'package:flutter_sample/src/app/router/main_shell_screen.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/analytics/typed_route_analytics_observer.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
+import 'package:flutter_sample/src/core/config/feature_flags.dart';
+import 'package:flutter_sample/src/core/config/feature_flags_provider.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
@@ -382,6 +384,7 @@ void main() {
         legalDocumentProvider(
           LegalDocumentType.privacyPolicy,
         ).overrideWith((ref) async => '# プライバシーポリシー'),
+        featureFlagsProvider.overrideWithValue(const FeatureFlags()),
       ],
     )..listen(routerProvider, (_, _) {});
     return container;
