@@ -146,6 +146,7 @@ class _ProfileEditForm extends HookConsumerWidget {
       if (action == null || !context.mounted) return;
 
       Future<void> pickAndSetAvatar(AvatarPickSource source) async {
+        final logger = ref.read(loggerProvider);
         try {
           final path = await ref
               .read(imagePickerServiceProvider)
@@ -162,9 +163,7 @@ class _ProfileEditForm extends HookConsumerWidget {
             await showPermissionDeniedDialog();
           }
         } on Object catch (e, st) {
-          ref
-              .read(loggerProvider)
-              .handle(e, st, 'Failed to pick and crop avatar');
+          logger.handle(e, st, 'Failed to pick and crop avatar');
           if (context.mounted) {
             ErrorHandler.showSnackBar(context, e);
           }

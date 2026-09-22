@@ -517,6 +517,7 @@ void main() {
             ),
           ),
           imagePickerServiceProvider.overrideWithValue(mockPicker),
+          loggerProvider.overrideWithValue(MockTalker()),
         ],
       );
       addTearDown(container.dispose);
@@ -583,6 +584,7 @@ void main() {
             ),
           ),
           imagePickerServiceProvider.overrideWithValue(mockPicker),
+          loggerProvider.overrideWithValue(MockTalker()),
         ],
       );
       addTearDown(container.dispose);
@@ -630,6 +632,7 @@ void main() {
             () => FakeProfileNotifier(const AsyncValue.data(testProfile)),
           ),
           imagePickerServiceProvider.overrideWithValue(mockPicker),
+          loggerProvider.overrideWithValue(MockTalker()),
         ],
       );
       addTearDown(container.dispose);
@@ -724,6 +727,7 @@ void main() {
             () => FakeProfileNotifier(const AsyncValue.data(testProfile)),
           ),
           imagePickerServiceProvider.overrideWithValue(mockPicker),
+          loggerProvider.overrideWithValue(MockTalker()),
         ],
       );
       addTearDown(container.dispose);
@@ -767,6 +771,7 @@ void main() {
             () => FakeProfileNotifier(const AsyncValue.data(testProfile)),
           ),
           imagePickerServiceProvider.overrideWithValue(mockPicker),
+          loggerProvider.overrideWithValue(MockTalker()),
         ],
       );
       addTearDown(container.dispose);
@@ -806,6 +811,7 @@ void main() {
             () => FakeProfileNotifier(const AsyncValue.data(testProfile)),
           ),
           imagePickerServiceProvider.overrideWithValue(mockPicker),
+          loggerProvider.overrideWithValue(MockTalker()),
         ],
       );
       addTearDown(container.dispose);
@@ -1027,6 +1033,7 @@ void main() {
             () => FakeProfileNotifier(const AsyncValue.data(testProfile)),
           ),
           imagePickerServiceProvider.overrideWithValue(mockPicker),
+          loggerProvider.overrideWithValue(MockTalker()),
         ],
       );
       addTearDown(container.dispose);
