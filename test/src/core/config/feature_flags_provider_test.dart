@@ -75,6 +75,26 @@ void main() {
       ).called(1);
     });
 
+    test('setDefaultsで例外が発生した際、talker.handleが呼ばれ初期フラグを維持すること', () async {
+      final exception = Exception('Set defaults failed');
+      when(() => mockRemoteConfig.setDefaults(any())).thenThrow(exception);
+
+      final container = createContainer();
+      check(
+        container.read(featureFlagsProvider).isQrScannerEnabled,
+      ).equals(true);
+
+      await pumpEventQueue();
+
+      verify(
+        () => mockTalker.handle(
+          exception,
+          any(),
+          'Failed to set remote config defaults',
+        ),
+      ).called(1);
+    });
+
     test('fetchAndActivateで更新があった場合、新しい設定値に状態が更新されること', () async {
       when(
         () => mockRemoteConfig.fetchAndActivate(),
