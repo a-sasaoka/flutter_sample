@@ -3,6 +3,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
+import 'package:flutter_sample/src/core/config/feature_flags_provider.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 import 'package:flutter_sample/src/core/network/firebase_crashlytics_provider.dart';
@@ -10,6 +11,7 @@ import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:flutter_sample/src/core/widgets/version_up_dialog.dart';
+import 'package:flutter_sample/src/features/home/presentation/widgets/announcement_banner.dart';
 import 'package:flutter_sample/src/features/notification/presentation/notification_prompt_banner.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -100,10 +102,12 @@ class _HomeBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final colorScheme = Theme.of(context).colorScheme;
+    final flags = ref.watch(featureFlagsProvider);
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       children: [
+        AnnouncementBanner(message: flags.announcementMessage),
         const NotificationPromptBanner(),
         // 環境情報ヘッダー
         _SectionHeader(
@@ -131,12 +135,14 @@ class _HomeBody extends ConsumerWidget {
                   title: l10n.mapTitle,
                   onTap: () => const MapRoute().push<void>(context),
                 ),
-                const Divider(height: 1, indent: 56),
-                _MenuTile(
-                  icon: Icons.qr_code_scanner_outlined,
-                  title: l10n.homeQrScannerTitle,
-                  onTap: () => const QrScannerRoute().push<void>(context),
-                ),
+                if (flags.isQrScannerEnabled) ...[
+                  const Divider(height: 1, indent: 56),
+                  _MenuTile(
+                    icon: Icons.qr_code_scanner_outlined,
+                    title: l10n.homeQrScannerTitle,
+                    onTap: () => const QrScannerRoute().push<void>(context),
+                  ),
+                ],
                 const Divider(height: 1, indent: 56),
                 _MenuTile(
                   icon: Icons.storage_outlined,

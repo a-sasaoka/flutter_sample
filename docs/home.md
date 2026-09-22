@@ -20,7 +20,7 @@ AI チャット、グラフ、メモ帳、ユーザー一覧などの主要な�
 
 アプリの品質管理やデバッグを補助する機能です。
 
-- **QRコードリーダー (QrScannerScreen)**: カメラによるリアルタイムスキャン、アルバム画像からのQR解析、およびDriftによるスキャン履歴の閲覧・削除を行えます。
+- **QRコードリーダー (QrScannerScreen)**: カメラによるリアルタイムスキャン、アルバム画像からのQR解析、およびDriftによるスキャン履歴の閲覧・削除を行えます（Firebase Remote Config の `enable_qr_scanner` フラグにより遠隔で表示/非表示を動的制御）。
 - **統合ログ (TalkerScreen)**: 通信履歴やエラーログをアプリ上で確認できます（`prod` 環境以外で表示）。
 - **ローカルストレージ管理 (DeveloperStorageScreen)**: `SharedPreferences` や `FlutterSecureStorage` に保存されたキーと値の確認・編集・削除が行えます。
 - **画像キャッシュデモ (ImageCacheDemoScreen)**: 画像キャッシュ（CachedNetworkImage）の通常・角丸・アバター形状、Shimmer、エラー/未設定フォールバック、キャッシュの一括クリアを検証できます。
@@ -45,9 +45,20 @@ AI チャット、グラフ、メモ帳、ユーザー一覧などの主要な�
 - **閉じる（✕）操作**: ユーザーの意思で一時的に非表示にすることが可能。
 - **許可済み時**: 自動的に非表示となり、不要なUI要素を出さない設計。
 
+### 5. 動的お知らせバナー (AnnouncementBanner)
+
+Firebase Remote Config の `announcement_banner_text` に設定されたメッセージを、ホーム画面の最上部に目立つカード形式で動的表示します。
+
+- **空文字時**: `SizedBox.shrink()` となり、既存レイアウトに余計な余白を与えません。
+- **リアルタイム反映**: Firebase Console で文言を変更・公開すると、起動中のアプリへ即座に反映されます。
+
 ---
 
 ## 状態管理とロジック
+
+### フィーチャーフラグ・動的バナーの統合
+
+`featureFlagsProvider` を監視し、`isQrScannerEnabled` フラグによるメニューの表示/非表示や、`announcementMessage` によるバナー表示を制御します。In-App Defaults が設定されているため、オフライン時や起動時も画面のちらつきなく即座に初期表示されます。
 
 ### バージョンアップ通知の統合
 

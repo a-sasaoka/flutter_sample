@@ -60,6 +60,16 @@
   - ライトモードとダークモードの両方で、文字やアイコンの視認性が保たれているか。
 - **画像リンク**: [📷 画像を表示する (offline_banner.png)](../test/src/core/widgets/goldens/macos/offline_banner.png)
 
+#### 動的お知らせバナー (AnnouncementBanner)
+
+Firebase Remote Config から配信されたお知らせメッセージをホーム画面上部に表示するバナーです。
+
+- **テスト対象**: ライトモード（メッセージあり）、ダークモード（メッセージあり）の計2状態
+- **チェックポイント**:
+  - `campaign_outlined` アイコンとお知らせメッセージテキストが表示されているか。
+  - `primaryContainer` の背景色と文字色のコントラストが、ライトモード・ダークモードの双方で正しく視認できるか。
+- **画像リンク**: [📷 画像を表示する (announcement_banner.png)](../test/src/features/home/presentation/widgets/goldens/macos/announcement_banner.png)
+
 ---
 
 ### 2. 認証機能 (Auth Features)

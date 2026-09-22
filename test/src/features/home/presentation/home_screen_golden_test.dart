@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
+import 'package:flutter_sample/src/core/config/feature_flags.dart';
+import 'package:flutter_sample/src/core/config/feature_flags_provider.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
@@ -96,6 +98,7 @@ void main() {
           loggerProvider.overrideWithValue(mockTalker),
           packageInfoProvider.overrideWithValue(dummyPackageInfo),
           notificationProvider.overrideWith(MockNotificationNotifier.new),
+          featureFlagsProvider.overrideWithValue(const FeatureFlags()),
         ],
         child: MaterialApp(
           theme: AppTheme.light().copyWith(

@@ -10,6 +10,8 @@ import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
+import 'package:flutter_sample/src/core/config/feature_flags.dart';
+import 'package:flutter_sample/src/core/config/feature_flags_provider.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/update_request_provider.dart';
 import 'package:flutter_sample/src/core/network/firebase_crashlytics_provider.dart';
@@ -161,6 +163,7 @@ void main() {
     Flavor flavor = Flavor.local,
     bool cancelAlreadyPressed = false,
     List<RouteBase> additionalRoutes = const [],
+    FeatureFlags featureFlags = const FeatureFlags(),
   }) async {
     attemptedPath = null;
 
@@ -218,6 +221,7 @@ void main() {
           analyticsServiceProvider.overrideWithValue(mockAnalyticsService),
           packageInfoProvider.overrideWithValue(dummyPackageInfo),
           notificationProvider.overrideWith(MockNotificationNotifier.new),
+          featureFlagsProvider.overrideWithValue(featureFlags),
         ],
         child: MaterialApp.router(
           routerConfig: router,
@@ -656,6 +660,7 @@ void main() {
                 ),
               ),
             ),
+            featureFlagsProvider.overrideWithValue(const FeatureFlags()),
           ],
           child: MaterialApp(
             localizationsDelegates: [
@@ -673,5 +678,34 @@ void main() {
       check(find.text('通知をオンにして最新情報を受け取ろう')).findsOne();
       check(find.text('通知をオンにする')).findsOne();
     });
+
+    testWidgets(
+      'フィーチャーフラグ: isQrScannerEnabled が false の場合、QRコードリーダーのメニュータイルが表示されないこと',
+      (tester) async {
+        await setupWidget(
+          tester,
+          featureFlags: const FeatureFlags(isQrScannerEnabled: false),
+        );
+        await tester.pumpAndSettle();
+
+        // 地図タイルは表示されるが、QRコードリーダータイルは表示されないこと
+        check(find.text('地図')).findsOne();
+        check(find.text('QRコードリーダー')).findsNothing();
+      },
+    );
+
+    testWidgets(
+      '動的バナー: announcementMessage が設定されている場合、AnnouncementBannerが表示されること',
+      (tester) async {
+        const testMessage = '緊急メンテナンスのお知らせ';
+        await setupWidget(
+          tester,
+          featureFlags: const FeatureFlags(announcementMessage: testMessage),
+        );
+        await tester.pumpAndSettle();
+
+        check(find.text(testMessage)).findsOne();
+      },
+    );
   });
 }
