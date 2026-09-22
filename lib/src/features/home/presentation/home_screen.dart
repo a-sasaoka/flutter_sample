@@ -207,7 +207,7 @@ class _HomeBody extends ConsumerWidget {
                       );
                       logger.debug('🎯 logEvent sent via AnalyticsService');
                     } on Exception catch (e, st) {
-                      logger.error('❌ AnalyticsService error: $e\n$st');
+                      logger.handle(e, st, '❌ AnalyticsService error');
                     }
                   },
                 ),

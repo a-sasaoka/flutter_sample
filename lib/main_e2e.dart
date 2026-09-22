@@ -14,6 +14,7 @@ import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 /// E2Eテスト用に一時ファイル上で安全に Key-Value を保存・復元する SecureStorage フェイク
 class FakeSecureStorage extends FlutterSecureStorage {
@@ -109,6 +110,9 @@ class MockAuthRepository implements AuthRepository {
 
   @override
   final TokenStorage tokenStorage;
+
+  @override
+  Talker get talker => throw UnimplementedError('E2E mock auth has no Talker');
 
   @override
   Future<void> login(String email, String password) async {

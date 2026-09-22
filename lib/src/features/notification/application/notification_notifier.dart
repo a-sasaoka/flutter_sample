@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/notification/application/notification_state.dart';
 import 'package:flutter_sample/src/features/notification/data/push_notification_service_provider.dart';
 import 'package:flutter_sample/src/features/notification/domain/notification_payload.dart';
@@ -19,6 +20,7 @@ class NotificationNotifier extends _$NotificationNotifier {
   }
 
   Future<void> _init() async {
+    final talker = ref.read(loggerProvider);
     try {
       final service = ref.read(pushNotificationServiceProvider);
 
@@ -50,8 +52,9 @@ class NotificationNotifier extends _$NotificationNotifier {
         latestPayload: pending,
         lastReceivedPayload: pending ?? initialPayload,
       );
-    } on Object catch (e) {
+    } on Object catch (e, st) {
       if (!ref.mounted) return;
+      talker.handle(e, st, '通知の初期化処理中にエラーが発生しました');
       state = NotificationState.error(message: e.toString());
     }
   }

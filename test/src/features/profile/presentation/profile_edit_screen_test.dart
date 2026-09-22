@@ -7,6 +7,7 @@ import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/profile/application/profile_notifier.dart';
 import 'package:flutter_sample/src/features/profile/data/image_picker_service.dart';
 import 'package:flutter_sample/src/features/profile/domain/user_profile.dart';
@@ -15,8 +16,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 class MockImagePickerService extends Mock implements ImagePickerService {}
+
+class MockTalker extends Mock implements Talker {}
 
 class FakeProfileNotifier extends Profile {
   FakeProfileNotifier(this._state, {this.onUpdate, this.onUpdateWithAvatar});
@@ -513,6 +517,7 @@ void main() {
             ),
           ),
           imagePickerServiceProvider.overrideWithValue(mockPicker),
+          loggerProvider.overrideWithValue(MockTalker()),
         ],
       );
       addTearDown(container.dispose);
@@ -579,6 +584,7 @@ void main() {
             ),
           ),
           imagePickerServiceProvider.overrideWithValue(mockPicker),
+          loggerProvider.overrideWithValue(MockTalker()),
         ],
       );
       addTearDown(container.dispose);
@@ -626,6 +632,7 @@ void main() {
             () => FakeProfileNotifier(const AsyncValue.data(testProfile)),
           ),
           imagePickerServiceProvider.overrideWithValue(mockPicker),
+          loggerProvider.overrideWithValue(MockTalker()),
         ],
       );
       addTearDown(container.dispose);
@@ -720,6 +727,7 @@ void main() {
             () => FakeProfileNotifier(const AsyncValue.data(testProfile)),
           ),
           imagePickerServiceProvider.overrideWithValue(mockPicker),
+          loggerProvider.overrideWithValue(MockTalker()),
         ],
       );
       addTearDown(container.dispose);
@@ -763,6 +771,7 @@ void main() {
             () => FakeProfileNotifier(const AsyncValue.data(testProfile)),
           ),
           imagePickerServiceProvider.overrideWithValue(mockPicker),
+          loggerProvider.overrideWithValue(MockTalker()),
         ],
       );
       addTearDown(container.dispose);
@@ -802,6 +811,7 @@ void main() {
             () => FakeProfileNotifier(const AsyncValue.data(testProfile)),
           ),
           imagePickerServiceProvider.overrideWithValue(mockPicker),
+          loggerProvider.overrideWithValue(MockTalker()),
         ],
       );
       addTearDown(container.dispose);
@@ -843,6 +853,61 @@ void main() {
       // ボトムシートが消えていること
       check(find.text('カメラで撮影')).findsNothing();
     });
+
+    testWidgets(
+      'アバター操作：画像選択・トリミング時に予期せぬ例外が発生した場合、talker.handleが呼ばれてSnackBarが表示されること',
+      (tester) async {
+        final mockPicker = MockImagePickerService();
+        final mockTalker = MockTalker();
+        when(
+          () => mockTalker.handle(
+            any<Object>(),
+            any<StackTrace?>(),
+            any<dynamic>(),
+          ),
+        ).thenReturn(null);
+        when(
+          () => mockPicker.pickAndCropAvatar(
+            source: AvatarPickSource.camera,
+            cropperTitle: any(named: 'cropperTitle'),
+          ),
+        ).thenThrow(Exception('カメラの起動に失敗しました'));
+
+        final container = ProviderContainer(
+          overrides: [
+            profileProvider.overrideWith(
+              () => FakeProfileNotifier(const AsyncValue.data(testProfile)),
+            ),
+            imagePickerServiceProvider.overrideWithValue(mockPicker),
+            loggerProvider.overrideWithValue(mockTalker),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await tester.pumpWidget(createTestWidget(container: container));
+        await tester.pumpAndSettle();
+
+        // アバター枠をタップしてボトムシートを表示
+        await tester.tap(find.byType(InkWell).first);
+        await tester.pumpAndSettle();
+
+        // 「カメラで撮影」をタップ
+        await tester.tap(find.text('カメラで撮影'));
+        await tester.pumpAndSettle();
+
+        // talker.handle が呼ばれたことを確認
+        verify(
+          () => mockTalker.handle(
+            any<Object>(),
+            any<StackTrace?>(),
+            'Failed to pick and crop avatar',
+          ),
+        ).called(1);
+
+        // エラーのSnackBarが表示されていること
+        check(find.byType(SnackBar)).findsOne();
+      },
+    );
 
     testWidgets('初期表示：avatarUrl がローカルパスの場合に Image.file で表示されること', (
       tester,
@@ -968,6 +1033,7 @@ void main() {
             () => FakeProfileNotifier(const AsyncValue.data(testProfile)),
           ),
           imagePickerServiceProvider.overrideWithValue(mockPicker),
+          loggerProvider.overrideWithValue(MockTalker()),
         ],
       );
       addTearDown(container.dispose);

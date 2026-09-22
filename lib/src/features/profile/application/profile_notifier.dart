@@ -128,8 +128,10 @@ class Profile extends _$Profile {
                     : null,
               );
           talker.debug('Successfully synced to Firebase Auth.');
-        } on Object catch (_) {
-          talker.error(
+        } on Object catch (e, st) {
+          talker.handle(
+            e,
+            st,
             'Failed to sync to Firebase Auth. Rolling back server update...',
           );
           var serverRollbackSucceeded = false;

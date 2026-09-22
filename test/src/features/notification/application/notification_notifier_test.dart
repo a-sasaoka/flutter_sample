@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:checks/checks.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/notification/application/notification_notifier.dart';
 import 'package:flutter_sample/src/features/notification/application/notification_state.dart';
 import 'package:flutter_sample/src/features/notification/data/push_notification_service.dart';
@@ -12,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 class MockPushNotificationService extends Mock
     implements PushNotificationService {}
@@ -20,20 +22,29 @@ class MockGoRouter extends Mock implements GoRouter {}
 
 class MockNotificationSettings extends Mock implements NotificationSettings {}
 
+class MockTalker extends Mock implements Talker {}
+
 void main() {
   late MockPushNotificationService mockService;
   late MockGoRouter mockRouter;
+  late MockTalker mockTalker;
   late StreamController<String> tokenRefreshController;
 
   setUpAll(() {
     registerFallbackValue(const NotificationPayload());
+    registerFallbackValue(StackTrace.current);
   });
 
   setUp(() {
     mockService = MockPushNotificationService();
     mockRouter = MockGoRouter();
+    mockTalker = MockTalker();
     tokenRefreshController = StreamController<String>.broadcast();
 
+    when(
+      () =>
+          mockTalker.handle(any<Object>(), any<StackTrace?>(), any<dynamic>()),
+    ).thenReturn(null);
     when(() => mockService.initialize()).thenAnswer((_) async {});
     when(
       () => mockService.getToken(),
@@ -58,6 +69,7 @@ void main() {
       overrides: [
         pushNotificationServiceProvider.overrideWithValue(mockService),
         routerProvider.overrideWithValue(mockRouter),
+        loggerProvider.overrideWithValue(mockTalker),
       ],
     )..listen(notificationProvider, (previous, next) {});
     addTearDown(container.dispose);
@@ -116,6 +128,14 @@ void main() {
       if (state case final NotificationStateError errorState) {
         check(errorState.message).contains('Init failed');
       }
+
+      verify(
+        () => mockTalker.handle(
+          any<Object>(),
+          any<StackTrace>(),
+          '通知の初期化処理中にエラーが発生しました',
+        ),
+      ).called(1);
     });
 
     test('初期化中にコンテナが破棄された場合、状態更新が行われないこと', () async {
@@ -126,6 +146,7 @@ void main() {
           overrides: [
             pushNotificationServiceProvider.overrideWithValue(mockService),
             routerProvider.overrideWithValue(mockRouter),
+            loggerProvider.overrideWithValue(mockTalker),
           ],
         )
         ..listen(notificationProvider, (_, _) {})
@@ -216,6 +237,7 @@ void main() {
             overrides: [
               pushNotificationServiceProvider.overrideWithValue(mockService),
               routerProvider.overrideWithValue(mockRouter),
+              loggerProvider.overrideWithValue(mockTalker),
             ],
           )..listen(notificationProvider, (previous, next) {
             notificationCount++;
