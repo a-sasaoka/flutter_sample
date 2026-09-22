@@ -7,6 +7,7 @@ import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:flutter_sample/src/core/utils/form_validators.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/app_cached_image.dart';
 import 'package:flutter_sample/src/features/profile/application/profile_notifier.dart';
 import 'package:flutter_sample/src/features/profile/data/image_picker_service.dart';
@@ -159,6 +160,13 @@ class _ProfileEditForm extends HookConsumerWidget {
         } on AvatarPermissionDeniedException {
           if (context.mounted) {
             await showPermissionDeniedDialog();
+          }
+        } on Object catch (e, st) {
+          ref
+              .read(loggerProvider)
+              .handle(e, st, 'Failed to pick and crop avatar');
+          if (context.mounted) {
+            ErrorHandler.showSnackBar(context, e);
           }
         }
       }

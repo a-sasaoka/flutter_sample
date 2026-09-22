@@ -3,11 +3,13 @@ import 'package:dio/dio.dart'; // Responseクラス用
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 // --- モックとFakeクラスの定義 ---
 
@@ -19,6 +21,9 @@ class MockDio extends Mock implements Dio {}
 
 // DioのResponseのモック
 class MockResponse extends Mock implements Response<Map<String, dynamic>> {}
+
+// Talkerのモック
+class MockTalker extends Mock implements Talker {}
 
 // TokenStorageのモック
 class FakeTokenStorage extends Mock implements TokenStorage {
@@ -45,9 +50,20 @@ class FakeTokenStorage extends Mock implements TokenStorage {
 
 void main() {
   late MockApiClient mockApi;
+  late MockTalker mockTalker;
+
+  setUpAll(() {
+    registerFallbackValue(const AppException.unknown());
+    registerFallbackValue(StackTrace.current);
+  });
 
   setUp(() {
     mockApi = MockApiClient();
+    mockTalker = MockTalker();
+    when(
+      () =>
+          mockTalker.handle(any<Object>(), any<StackTrace?>(), any<dynamic>()),
+    ).thenReturn(null);
   });
 
   /// 依存関係を注入した ProviderContainer を作成するヘルパー
@@ -57,6 +73,7 @@ void main() {
         authApiClientProvider.overrideWithValue(mockApi),
         // 💡 修正: tokenStorageProvider は Notifier ではないので (ref) => の形でオーバーライドする
         tokenStorageProvider.overrideWith((ref) => fakeStorage),
+        loggerProvider.overrideWithValue(mockTalker),
       ],
     );
     addTearDown(container.dispose);
@@ -136,6 +153,15 @@ void main() {
 
       // 例外が発生し、TokenStorageに保存処理が行われていないことを確認
       check(fakeStorage.savedAccessToken).isNull();
+
+      // talker.handle が呼ばれてCrashlyticsに送信されることを確認
+      verify(
+        () => mockTalker.handle(
+          any<AppException>(),
+          any<StackTrace>(),
+          'Failed to parse login response: Missing or invalid tokens',
+        ),
+      ).called(1);
     });
 
     group('refreshToken', () {

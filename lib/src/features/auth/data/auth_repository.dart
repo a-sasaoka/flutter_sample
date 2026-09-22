@@ -1,8 +1,10 @@
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 part 'auth_repository.g.dart';
 
@@ -18,19 +20,27 @@ AuthRepository authRepository(Ref ref) {
   return AuthRepository(
     api: ref.watch(authApiClientProvider),
     tokenStorage: ref.watch(tokenStorageProvider),
+    talker: ref.watch(loggerProvider),
   );
 }
 
 /// 認証リポジトリの実装クラス
 class AuthRepository {
   /// コンストラクタ
-  AuthRepository({required this.api, required this.tokenStorage});
+  AuthRepository({
+    required this.api,
+    required this.tokenStorage,
+    required this.talker,
+  });
 
   /// APIクライアント
   final ApiClient api;
 
   /// トークンストレージ
   final TokenStorage tokenStorage;
+
+  /// ロガー
+  final Talker talker;
 
   /// ログインAPIを呼び出し、トークンを保存する
   Future<void> login(String email, String password) async {
@@ -45,6 +55,11 @@ class AuthRepository {
     }) {
       await tokenStorage.saveTokens(accessToken: access, refreshToken: refresh);
     } else {
+      talker.handle(
+        const AppException.dataParse(),
+        StackTrace.current,
+        'Failed to parse login response: Missing or invalid tokens',
+      );
       throw const AppException.dataParse();
     }
   }

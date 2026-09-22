@@ -423,7 +423,13 @@ void main() {
             event: any<AnalyticsEvent>(named: 'event'),
           ),
         ).thenThrow(Exception('Analytics error'));
-        when(() => mockTalker.error(any<dynamic>())).thenReturn(null);
+        when(
+          () => mockTalker.handle(
+            any<Object>(),
+            any<StackTrace?>(),
+            any<dynamic>(),
+          ),
+        ).thenReturn(null);
 
         await setupWidget(tester);
         await tester.pumpAndSettle();
@@ -438,7 +444,13 @@ void main() {
         await tester.tap(button);
         await tester.pump();
 
-        verify(() => mockTalker.error(any<dynamic>())).called(1);
+        verify(
+          () => mockTalker.handle(
+            any<Object>(),
+            any<StackTrace?>(),
+            '❌ AnalyticsService error',
+          ),
+        ).called(1);
       });
     });
 
