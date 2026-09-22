@@ -1027,4 +1027,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get signUpAgreementSuffix => 'に同意したものとみなされます。';
+
+  @override
+  String get offlineBannerOffline => 'ネットワークに接続していません';
+
+  @override
+  String get offlineBannerOnline => 'インターネットに接続されました';
 }

@@ -49,6 +49,16 @@
   - 強制アップデート（`isCancelable: false`）のとき、「後で」ボタンが表示されず、「更新」ボタンだけになっているか。
 - **画像リンク**: [📷 画像を表示する (version_up_dialog.png)](../test/src/core/widgets/goldens/macos/version_up_dialog.png)
 
+#### オフラインバナー (OfflineBanner)
+
+ネットワークの切断・復旧を全画面上部に通知するグローバルバナーです。
+
+- **テスト対象**: オフライン状態（赤・日本語/英語/ダークモード）、復旧状態（緑・日本語）、非表示状態の計5状態
+- **チェックポイント**:
+  - オフライン時: 赤色背景、`wifi_off` アイコン、「ネットワークに接続していません」（または英語「No internet connection」）のテキストが表示されているか。
+  - 復旧時: 緑色背景、`wifi` アイコン、「インターネットに接続されました」のテキストが表示されているか。
+- **画像リンク**: [📷 画像を表示する (offline_banner.png)](../test/src/core/widgets/goldens/macos/offline_banner.png)
+
 ---
 
 ### 2. 認証機能 (Auth Features)

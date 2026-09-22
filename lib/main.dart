@@ -17,6 +17,7 @@ import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:flutter_sample/src/core/utils/scaffold_messenger_key.dart';
+import 'package:flutter_sample/src/core/widgets/offline_banner.dart';
 import 'package:flutter_sample/src/features/app_lock/presentation/app_lock_wrapper.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_overrides.dart';
 import 'package:flutter_sample/src/features/notification/application/notification_notifier.dart';
@@ -166,7 +167,21 @@ class MyApp extends ConsumerWidget {
           debugShowCheckedModeBanner: false,
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(context).copyWith(textScaler: textScaler),
-            child: AppLockWrapper(child: _AppTitleWrapper(child: child)),
+            child: AppLockWrapper(
+              child: _AppTitleWrapper(
+                child: Stack(
+                  children: [
+                    ?child,
+                    const Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: OfflineBanner(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       AsyncError(:final error) => Directionality(
