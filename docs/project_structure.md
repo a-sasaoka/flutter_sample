@@ -71,7 +71,7 @@ flutter_sample
         │   ├── performance                                     # パフォーマンス計測基盤（Firebase Performance）
         │   ├── storage                                         # 永続化・キャッシュ（SharedPreferences・SecureStorage・画像キャッシュ）
         │   ├── ui                                              # 共通UI関連（エラーハンドリングなど）
-        │   ├── utils                                           # 共通ユーティリティ（ロギング・通信状態・ライフサイクル監視等）
+        │   ├── utils                                           # 共通ユーティリティ（ロギング・通信状態・ライフサイクル・フォーム検証等）
         │   └── widgets                                         # 汎用UI部品（ダイアログや画像キャッシュウィジェット、共通画面）
         └── features                                            # 各機能ごとのモジュール（Layered Architecture）
             ├── app_lock                                        # アプリロック機能（PINパスコード / 生体認証）

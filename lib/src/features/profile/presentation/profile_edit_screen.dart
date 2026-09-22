@@ -6,6 +6,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
+import 'package:flutter_sample/src/core/utils/form_validators.dart';
 import 'package:flutter_sample/src/core/widgets/app_cached_image.dart';
 import 'package:flutter_sample/src/features/profile/application/profile_notifier.dart';
 import 'package:flutter_sample/src/features/profile/data/image_picker_service.dart';
@@ -317,14 +318,9 @@ class _ProfileEditForm extends HookConsumerWidget {
                 border: const OutlineInputBorder(),
               ),
               validator: FormBuilderValidators.compose([
-                (value) {
-                  if (value != null &&
-                      value.isNotEmpty &&
-                      value.trim().isEmpty) {
-                    return l10n.profileNameEmpty;
-                  }
-                  return null;
-                },
+                FormValidators.notOnlyWhitespace(
+                  errorText: l10n.profileNameEmpty,
+                ),
                 FormBuilderValidators.required(
                   errorText: l10n.profileNameRequired,
                 ),

@@ -459,6 +459,20 @@
 
   "@_CONNECTIVITY": {},
   "offlineBannerOffline": "No internet connection",
-  "offlineBannerOnline": "Connection restored"
+  "offlineBannerOnline": "Connection restored",
+
+  "@_VALIDATION": {},
+  "validationNotOnlyWhitespace": "Cannot be only whitespace",
+  "validationEmailRequired": "Please enter your email",
+  "validationEmailInvalid": "Please enter a valid email address",
+  "validationPasswordRequired": "Please enter your password",
+  "validationPasswordMinLength": "Must be at least {minLength} characters",
+  "@validationPasswordMinLength": {
+    "placeholders": {
+      "minLength": {
+        "type": "int"
+      }
+    }
+  }
 }
 

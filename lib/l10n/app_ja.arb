@@ -459,6 +459,20 @@
 
   "@_CONNECTIVITY": {},
   "offlineBannerOffline": "ネットワークに接続していません",
-  "offlineBannerOnline": "インターネットに接続されました"
+  "offlineBannerOnline": "インターネットに接続されました",
+
+  "@_VALIDATION": {},
+  "validationNotOnlyWhitespace": "空白のみの入力はできません",
+  "validationEmailRequired": "メールアドレスを入力してください",
+  "validationEmailInvalid": "正しいメールアドレスの形式で入力してください",
+  "validationPasswordRequired": "パスワードを入力してください",
+  "validationPasswordMinLength": "{minLength}文字以上で入力してください",
+  "@validationPasswordMinLength": {
+    "placeholders": {
+      "minLength": {
+        "type": "int"
+      }
+    }
+  }
 }
 

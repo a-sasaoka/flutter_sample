@@ -5,7 +5,9 @@ import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
+import 'package:flutter_sample/src/core/utils/form_validators.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
+import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// ログイン画面
@@ -15,6 +17,8 @@ class LoginScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final formKey = useMemoized(GlobalKey<FormState>.new);
+
     // useTextEditingController() を使うことで、画面が再描画されても
     // コントローラーが作り直されず、中のデータが保たれます
     final emailController = useTextEditingController();
@@ -26,12 +30,13 @@ class LoginScreen extends HookConsumerWidget {
     final l10n = context.l10n;
 
     Future<void> onLogin() async {
-      // 簡易バリデーション（空なら弾く）
-      final email = emailController.text.trim();
-      final password = passwordController.text;
-      if (email.isEmpty || password.isEmpty) {
+      // フォーム全体のバリデーションを実行
+      if (!(formKey.currentState?.validate() ?? false)) {
         return;
       }
+
+      final email = emailController.text.trim();
+      final password = passwordController.text;
 
       isLoading.value = true;
       try {
@@ -64,72 +69,98 @@ class LoginScreen extends HookConsumerWidget {
         appBar: AppBar(title: Text(l10n.loginTitle)),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 32),
-              Icon(
-                Icons.login_outlined,
-                size: 80,
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.5),
-              ),
-              const SizedBox(height: 32),
-              Text(
-                l10n.loginTitle,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+          child: Form(
+            key: formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 32),
+                Icon(
+                  Icons.login_outlined,
+                  size: 80,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.5),
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              Semantics(
-                label: l10n.semanticsEmailInput,
-                child: TextField(
-                  controller: emailController,
-                  decoration: InputDecoration(
-                    labelText: l10n.loginEmailLabel,
-                    prefixIcon: const Icon(Icons.email_outlined),
+                const SizedBox(height: 32),
+                Text(
+                  l10n.loginTitle,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
-                  keyboardType: TextInputType.emailAddress,
-                  enabled: !isLoading.value,
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 16),
-              Semantics(
-                label: l10n.semanticsPasswordInput,
-                child: TextField(
-                  controller: passwordController,
-                  decoration: InputDecoration(
-                    labelText: l10n.loginPasswordLabel,
-                    prefixIcon: const Icon(Icons.password_outlined),
+                const SizedBox(height: 24),
+                Semantics(
+                  label: l10n.semanticsEmailInput,
+                  child: TextFormField(
+                    controller: emailController,
+                    decoration: InputDecoration(
+                      labelText: l10n.loginEmailLabel,
+                      prefixIcon: const Icon(Icons.email_outlined),
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                    enabled: !isLoading.value,
+                    validator: FormBuilderValidators.compose([
+                      FormValidators.notOnlyWhitespace(
+                        errorText: l10n.validationNotOnlyWhitespace,
+                      ),
+                      FormBuilderValidators.required(
+                        errorText: l10n.validationEmailRequired,
+                      ),
+                      FormBuilderValidators.email(
+                        errorText: l10n.validationEmailInvalid,
+                      ),
+                    ]),
                   ),
-                  obscureText: true,
-                  enabled: !isLoading.value,
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 16),
+                Semantics(
+                  label: l10n.semanticsPasswordInput,
+                  child: TextFormField(
+                    controller: passwordController,
+                    decoration: InputDecoration(
+                      labelText: l10n.loginPasswordLabel,
+                      prefixIcon: const Icon(Icons.password_outlined),
+                    ),
+                    obscureText: true,
+                    enabled: !isLoading.value,
+                    validator: FormBuilderValidators.compose([
+                      FormValidators.notOnlyWhitespace(
+                        errorText: l10n.validationNotOnlyWhitespace,
+                      ),
+                      FormBuilderValidators.required(
+                        errorText: l10n.validationPasswordRequired,
+                      ),
+                      FormValidators.password(
+                        minLength: 6,
+                        errorText: l10n.validationPasswordMinLength(6),
+                      ),
+                    ]),
+                  ),
+                ),
+                const SizedBox(height: 24),
 
-              // ログインボタン
-              Semantics(
-                label: l10n.semanticsLoginButton,
-                child: FilledButton.icon(
-                  onPressed: isLoading.value ? null : onLogin,
-                  icon: isLoading.value
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white70,
-                          ),
-                        )
-                      : const Icon(Icons.login),
-                  label: Text(l10n.loginButton),
+                // ログインボタン
+                Semantics(
+                  label: l10n.semanticsLoginButton,
+                  child: FilledButton.icon(
+                    onPressed: isLoading.value ? null : onLogin,
+                    icon: isLoading.value
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white70,
+                            ),
+                          )
+                        : const Icon(Icons.login),
+                    label: Text(l10n.loginButton),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

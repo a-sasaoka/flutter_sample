@@ -159,3 +159,44 @@ AI プロンプト等で、端末 OS から自動取得したタイムゾーン�
 - **自動検知とスライドイン表示**: `isOnlineProvider` を監視し、通信が切断されると赤色の「ネットワークに接続していません」バナーがアニメーションとともに上部からスライドインして常駐します。
 - **復旧通知と自動非表示**: 電波が復帰すると緑色の「インターネットに接続されました」バナーに切り替わり、2秒経過後に自動的にスライドアップして非表示になります。
 - **アプリ最上位への配置**: `MaterialApp.router` の `builder` 内で `Stack` を用いて最上位にオーバーレイ配置されているため、どの画面を開いていても画面遷移を邪魔することなく状態が維持・表示されます。
+
+---
+
+## 📋 8. 共通フォームバリデータ（FormValidators）
+
+フォーム入力における汎用的な検証処理を `lib/src/core/utils/form_validators.dart` に集約しています。  
+`form_builder_validators` パッケージの `FormBuilderValidators.compose` と組み合わせて使用することで、宣言的かつ簡潔に厳格な入力チェックを実現できます。
+
+### 📁 関連ファイル
+
+- `lib/src/core/utils/form_validators.dart`
+- `test/src/core/utils/form_validators_test.dart`
+
+### 主なバリデータと特徴
+
+1. **`FormValidators.notOnlyWhitespace({String? errorText})`**
+   - スペースキー、タブ、改行などの「空白文字のみ」が入力された場合にエラーを返します。
+   - 完全な空欄（`""` や `null`）の場合はエラーにせず後続の `FormBuilderValidators.required` に判定を委譲するため、`compose` のリストでは **`required` の直前に配置** することで、「未入力（必須エラー）」と「空白のみ入力（空白禁止エラー）」を適切に区別してユーザーに案内できます。
+2. **`FormValidators.password({int minLength = 8, String? errorText})`**
+   - パスワードの最小文字数（デフォルト8文字）を検証します。
+   - `null` や空文字の場合は後続または先行の `required` に判定を委譲します。
+
+### 使用例（LoginScreen）
+
+```dart
+TextFormField(
+  controller: emailController,
+  decoration: InputDecoration(labelText: l10n.loginEmailLabel),
+  validator: FormBuilderValidators.compose([
+    FormValidators.notOnlyWhitespace(
+      errorText: l10n.validationNotOnlyWhitespace,
+    ),
+    FormBuilderValidators.required(
+      errorText: l10n.validationEmailRequired,
+    ),
+    FormBuilderValidators.email(
+      errorText: l10n.validationEmailInvalid,
+    ),
+  ]),
+)
+```

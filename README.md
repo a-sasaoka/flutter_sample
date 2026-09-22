@@ -30,7 +30,7 @@ Flutter開発のサンプルプロジェクトです。\
 - [API通信とエラーハンドリング（Dio）](docs/api_and_error_handling.md)
 - [データ永続化・ローカルDB（SharedPreferences / Drift / Secure Storage）](docs/persistence.md)
 - [テーマ設定（FlexColorScheme）](docs/theme.md)
-- [共通ユーティリティ（ログ・通信状態・ライフサイクル）](docs/core_utilities.md)
+- [共通ユーティリティ（ログ・通信状態・ライフサイクル・フォーム検証）](docs/core_utilities.md)
 
 ### D. 機能別実装
 

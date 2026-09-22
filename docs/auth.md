@@ -121,3 +121,22 @@ lib/src/features/auth/
 - **認証方式の隠蔽**: `EnvConfig.useFirebaseAuth` の値に応じて、Firebase のサインアウトまたはローカルトークンの破棄を適切に実行します。
 - **アプリロック連携の自動化**: ログアウト処理の中で `AppLockService.clearAppLock()` を呼び出し、暗号化保存されたパスコード・生体認証設定を自動的にクリアします。
 - **統一されたログイン判定**: `isAuthenticatedProvider` により、UI 側は1行で「何らかの方式でログイン中か」を監視・判定できます。
+
+---
+
+## 🖥️ ログイン画面と入力バリデーション
+
+ログイン画面（[`LoginScreen`](../lib/src/features/auth/presentation/login_screen.dart)）では、誤入力や不正なリクエストを未然に防止するため、`Form` ＋ `TextFormField` による厳格な入力バリデーションを実装しています。
+
+### 検証ルール
+
+- **メールアドレス (`email`)**:
+  - **空白のみ禁止**: `FormValidators.notOnlyWhitespace` により、空白文字のみの入力を防止。
+  - **必須入力**: `FormBuilderValidators.required` により、未入力を防止。
+  - **メール形式チェック**: `FormBuilderValidators.email` により、一般的なメールアドレス書式を検証。
+- **パスワード (`password`)**:
+  - **空白のみ禁止**: `FormValidators.notOnlyWhitespace` により、空白文字のみの入力を防止。
+  - **必須入力**: `FormBuilderValidators.required` により、未入力を防止。
+  - **最小文字数チェック**: `FormValidators.password(minLength: 6)` により、6文字以上の入力を要求。
+
+共通バリデータの詳細仕様については、[共通ユーティリティ（FormValidators）](core_utilities.md#-8-共通フォームバリデータformvalidators) を参照してください。

@@ -1060,4 +1060,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get offlineBannerOnline => 'Connection restored';
+
+  @override
+  String get validationNotOnlyWhitespace => 'Cannot be only whitespace';
+
+  @override
+  String get validationEmailRequired => 'Please enter your email';
+
+  @override
+  String get validationEmailInvalid => 'Please enter a valid email address';
+
+  @override
+  String get validationPasswordRequired => 'Please enter your password';
+
+  @override
+  String validationPasswordMinLength(int minLength) {
+    return 'Must be at least $minLength characters';
+  }
 }
