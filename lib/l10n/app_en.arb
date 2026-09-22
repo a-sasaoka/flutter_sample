@@ -445,6 +445,16 @@
   "qrScannerDeleteSuccess": "Deleted",
   "qrScannerDeleteAllSuccess": "All history deleted",
   "qrScannerFailedToOpenUrl": "Failed to open URL",
-  "qrScannerFailedToProcessImage": "Failed to scan image"
+  "qrScannerFailedToProcessImage": "Failed to scan image",
+
+  "@_LEGAL": {},
+  "settingsLegalSection": "📜 Legal",
+  "termsOfServiceTitle": "Terms of Service",
+  "privacyPolicyTitle": "Privacy Policy",
+  "legalLoadError": "Failed to load document",
+  "legalOpenUrlFailed": "Failed to open link",
+  "signUpAgreementPrefix": "By signing up, you agree to our ",
+  "signUpAgreementAnd": " and ",
+  "signUpAgreementSuffix": "."
 }
 

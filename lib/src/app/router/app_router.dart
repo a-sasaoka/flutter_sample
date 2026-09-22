@@ -26,6 +26,8 @@ import 'package:flutter_sample/src/features/dev_tools/presentation/image_cache_d
 import 'package:flutter_sample/src/features/dev_tools/presentation/lottie_demo_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/push_notification_demo_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
+import 'package:flutter_sample/src/features/legal/domain/legal_document_type.dart';
+import 'package:flutter_sample/src/features/legal/presentation/legal_document_screen.dart';
 import 'package:flutter_sample/src/features/map/presentation/map_screen.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
 import 'package:flutter_sample/src/features/notification/application/notification_notifier.dart';
@@ -48,6 +50,7 @@ part 'routes/auth_routes.dart';
 part 'routes/chat_tab_routes.dart';
 part 'routes/chart_tab_routes.dart';
 part 'routes/home_tab_routes.dart';
+part 'routes/legal_routes.dart';
 part 'routes/memos_tab_routes.dart';
 part 'routes/shell_routes.dart';
 part 'routes/onboarding_routes.dart';

@@ -1030,4 +1030,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get qrScannerFailedToProcessImage => 'Failed to scan image';
+
+  @override
+  String get settingsLegalSection => '📜 Legal';
+
+  @override
+  String get termsOfServiceTitle => 'Terms of Service';
+
+  @override
+  String get privacyPolicyTitle => 'Privacy Policy';
+
+  @override
+  String get legalLoadError => 'Failed to load document';
+
+  @override
+  String get legalOpenUrlFailed => 'Failed to open link';
+
+  @override
+  String get signUpAgreementPrefix => 'By signing up, you agree to our ';
+
+  @override
+  String get signUpAgreementAnd => ' and ';
+
+  @override
+  String get signUpAgreementSuffix => '.';
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
@@ -60,6 +61,51 @@ class FirebaseSignUpScreen extends HookConsumerWidget {
                 enabled: !isLoading.value,
               ),
               const SizedBox(height: 24),
+
+              // 利用規約・プライバシーポリシーへの同意文言
+              Center(
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      l10n.signUpAgreementPrefix,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    InkWell(
+                      onTap: () => const TermsRoute().push<void>(context),
+                      child: Text(
+                        l10n.termsOfServiceTitle,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      l10n.signUpAgreementAnd,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    InkWell(
+                      onTap: () =>
+                          const PrivacyPolicyRoute().push<void>(context),
+                      child: Text(
+                        l10n.privacyPolicyTitle,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      l10n.signUpAgreementSuffix,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
 
               FilledButton.icon(
                 onPressed: isLoading.value

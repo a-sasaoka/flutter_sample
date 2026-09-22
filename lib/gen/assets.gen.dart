@@ -50,8 +50,22 @@ class $AssetsAnimationsGen {
   ];
 }
 
+class $AssetsMarkdownGen {
+  const $AssetsMarkdownGen();
+
+  /// File path: assets/markdown/privacy_policy.md
+  String get privacyPolicy => 'assets/markdown/privacy_policy.md';
+
+  /// File path: assets/markdown/terms_of_service.md
+  String get termsOfService => 'assets/markdown/terms_of_service.md';
+
+  /// List of all assets
+  List<String> get values => [privacyPolicy, termsOfService];
+}
+
 abstract final class Assets {
   static const $AssetsAnimationsGen animations = $AssetsAnimationsGen();
+  static const $AssetsMarkdownGen markdown = $AssetsMarkdownGen();
 }
 
 class LottieGenImage {

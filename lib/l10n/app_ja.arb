@@ -445,6 +445,16 @@
   "qrScannerDeleteSuccess": "削除しました",
   "qrScannerDeleteAllSuccess": "すべての履歴を削除しました",
   "qrScannerFailedToOpenUrl": "URLを開けませんでした",
-  "qrScannerFailedToProcessImage": "画像の読み取りに失敗しました"
+  "qrScannerFailedToProcessImage": "画像の読み取りに失敗しました",
+
+  "@_LEGAL": {},
+  "settingsLegalSection": "📜 法的情報",
+  "termsOfServiceTitle": "利用規約",
+  "privacyPolicyTitle": "プライバシーポリシー",
+  "legalLoadError": "ドキュメントの読み込みに失敗しました",
+  "legalOpenUrlFailed": "リンクを開けませんでした",
+  "signUpAgreementPrefix": "登録することで、",
+  "signUpAgreementAnd": "および",
+  "signUpAgreementSuffix": "に同意したものとみなされます。"
 }
 

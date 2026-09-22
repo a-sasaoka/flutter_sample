@@ -169,6 +169,7 @@ flutter:
   # --- 画像やフォントを登録する場合は以下を使用 ---
   assets:
     - assets/animations/
+    - assets/markdown/
   #
   # fonts:
   #   - family: NotoSansJP

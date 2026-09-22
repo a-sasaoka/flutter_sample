@@ -31,6 +31,9 @@ import 'package:flutter_sample/src/features/dev_tools/presentation/developer_sto
 import 'package:flutter_sample/src/features/dev_tools/presentation/lottie_demo_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/push_notification_demo_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
+import 'package:flutter_sample/src/features/legal/application/legal_document_provider.dart';
+import 'package:flutter_sample/src/features/legal/domain/legal_document_type.dart';
+import 'package:flutter_sample/src/features/legal/presentation/legal_document_screen.dart';
 import 'package:flutter_sample/src/features/map/presentation/map_screen.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
@@ -313,6 +316,8 @@ void main() {
     when(() => mockL10n.semanticsEmailInput).thenReturn('メールアドレス入力欄');
     when(() => mockL10n.semanticsPasswordInput).thenReturn('パスワード入力欄');
     when(() => mockL10n.semanticsLoginButton).thenReturn('ログイン実行ボタン');
+    when(() => mockL10n.termsOfServiceTitle).thenReturn('利用規約');
+    when(() => mockL10n.privacyPolicyTitle).thenReturn('プライバシーポリシー');
   });
 
   ProviderContainer createContainer({
@@ -358,6 +363,12 @@ void main() {
         ),
         if (fakeNotificationNotifier != null)
           notificationProvider.overrideWith(() => fakeNotificationNotifier),
+        legalDocumentProvider(
+          LegalDocumentType.termsOfService,
+        ).overrideWith((ref) async => '# 利用規約'),
+        legalDocumentProvider(
+          LegalDocumentType.privacyPolicy,
+        ).overrideWith((ref) async => '# プライバシーポリシー'),
       ],
     )..listen(routerProvider, (_, _) {});
     return container;
@@ -612,6 +623,46 @@ void main() {
       },
     );
 
+    testWidgets('ログイン中かつメール未認証の時でも、利用規約画面（/terms）へアクセスできること', (tester) async {
+      when(() => mockUser.emailVerified).thenReturn(false);
+
+      final container = createContainer(isLoggedIn: true, useFirebase: true);
+
+      await tester.pumpWidget(createTestWidget(tester, container));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      check(find.byType(FirebaseEmailVerificationScreen)).findsOne();
+
+      container.read(routerProvider).go('/terms');
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      check(find.byType(LegalDocumentScreen)).findsOne();
+      await teardownWidget(tester, container);
+    });
+
+    testWidgets('ログイン中かつメール未認証の時でも、プライバシーポリシー画面（/privacy）へアクセスできること', (
+      tester,
+    ) async {
+      when(() => mockUser.emailVerified).thenReturn(false);
+
+      final container = createContainer(isLoggedIn: true, useFirebase: true);
+
+      await tester.pumpWidget(createTestWidget(tester, container));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      check(find.byType(FirebaseEmailVerificationScreen)).findsOne();
+
+      container.read(routerProvider).go('/privacy');
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      check(find.byType(LegalDocumentScreen)).findsOne();
+      await teardownWidget(tester, container);
+    });
+
     testWidgets('メール未認証画面からメール認証完了になった時、自動で HomeScreen に遷移すること', (
       tester,
     ) async {
@@ -818,6 +869,31 @@ void main() {
       );
       check(widget).isA<SplashScreen>();
     });
+
+    test('TermsRoute.build: LegalDocumentScreen (termsOfService) を返すこと', () {
+      final widget = const TermsRoute().build(
+        MockBuildContext(),
+        MockGoRouterState(),
+      );
+      check(widget).isA<LegalDocumentScreen>();
+      check(
+        (widget as LegalDocumentScreen).type,
+      ).equals(LegalDocumentType.termsOfService);
+    });
+
+    test(
+      'PrivacyPolicyRoute.build: LegalDocumentScreen (privacyPolicy) を返すこと',
+      () {
+        final widget = const PrivacyPolicyRoute().build(
+          MockBuildContext(),
+          MockGoRouterState(),
+        );
+        check(widget).isA<LegalDocumentScreen>();
+        check(
+          (widget as LegalDocumentScreen).type,
+        ).equals(LegalDocumentType.privacyPolicy);
+      },
+    );
 
     test('DeveloperStorageRoute.build: DeveloperStorageScreen を返すこと', () {
       final widget = const DeveloperStorageRoute().build(

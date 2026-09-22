@@ -62,6 +62,32 @@ class SettingsScreen extends ConsumerWidget {
           _SectionHeader(title: l10n.settingsLocaleSection),
           const SizedBox(height: 8),
           const _LocaleCard(),
+          const SizedBox(height: 32),
+
+          // 法的情報セクション
+          _SectionHeader(title: l10n.settingsLegalSection),
+          const SizedBox(height: 8),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  key: const Key('terms_of_service_tile'),
+                  leading: const Icon(Icons.description_outlined),
+                  title: Text(l10n.termsOfServiceTitle),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => const TermsRoute().push<void>(context),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  key: const Key('privacy_policy_tile'),
+                  leading: const Icon(Icons.privacy_tip_outlined),
+                  title: Text(l10n.privacyPolicyTitle),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => const PrivacyPolicyRoute().push<void>(context),
+                ),
+              ],
+            ),
+          ),
 
           if (isAuthed) ...[
             const SizedBox(height: 48),

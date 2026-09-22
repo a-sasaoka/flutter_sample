@@ -30,13 +30,22 @@ String? firebaseAuthGuard(Ref ref, GoRouterState state) {
   }
 
   // メール未認証の場合は、常にメール認証待ち画面へ誘導する
+  // ただし、利用規約やプライバシーポリシーなどの法的文書は未認証でも閲覧可能とする
   final isEmailVerified = authState?.emailVerified ?? false;
   final emailVerificationPath = const EmailVerificationRoute().location;
+  final legalPaths = {
+    const TermsRoute().location,
+    const PrivacyPolicyRoute().location,
+  };
 
   // クエリパラメータの影響を受けないようにパスのみを取得する
   final goingToEmailVerification = state.uri.path == emailVerificationPath;
+  final isGoingToLegalPath = legalPaths.contains(state.uri.path);
 
-  if (isLoggedIn && !isEmailVerified && !goingToEmailVerification) {
+  if (isLoggedIn &&
+      !isEmailVerified &&
+      !goingToEmailVerification &&
+      !isGoingToLegalPath) {
     return emailVerificationPath;
   }
 
@@ -53,6 +62,8 @@ String? firebaseAuthGuard(Ref ref, GoRouterState state) {
       const SplashRoute().location,
       const OnboardingRoute().location,
       const ResetPasswordRoute().location,
+      const TermsRoute().location,
+      const PrivacyPolicyRoute().location,
     },
   ).redirect(isLoggedIn: isLoggedIn, state: state);
 }

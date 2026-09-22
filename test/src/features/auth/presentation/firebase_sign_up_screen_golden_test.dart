@@ -32,6 +32,11 @@ void main() {
         () => mockL10n.errorEmailAlreadyInUse,
       ).thenReturn('このメールアドレスは既に登録されています');
       when(() => mockL10n.close).thenReturn('閉じる');
+      when(() => mockL10n.termsOfServiceTitle).thenReturn('利用規約');
+      when(() => mockL10n.privacyPolicyTitle).thenReturn('プライバシーポリシー');
+      when(() => mockL10n.signUpAgreementPrefix).thenReturn('登録することで、');
+      when(() => mockL10n.signUpAgreementAnd).thenReturn('および');
+      when(() => mockL10n.signUpAgreementSuffix).thenReturn('に同意したものとみなされます。');
     });
 
     // ゴールデンテスト用にモックされた環境で画面を組み立てる関数
