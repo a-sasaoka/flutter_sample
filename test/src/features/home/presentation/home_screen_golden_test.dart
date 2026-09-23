@@ -63,6 +63,7 @@ void main() {
       ).thenReturn('通知をオンにする');
       when(() => mockL10n.notificationBannerSettingsButton).thenReturn('設定を開く');
       when(() => mockL10n.notificationBannerDismiss).thenReturn('閉じる');
+      when(() => mockL10n.devRebuildTitle).thenReturn('再ビルド最適化検証');
     });
 
     Widget buildHomeForGolden({required ThemeMode themeMode}) {
@@ -134,7 +135,7 @@ void main() {
             name: 'Light Mode',
             child: SizedBox(
               width: 390,
-              height: 1050,
+              height: 1120,
               child: buildHomeForGolden(themeMode: ThemeMode.light),
             ),
           ),
@@ -142,7 +143,7 @@ void main() {
             name: 'Dark Mode',
             child: SizedBox(
               width: 390,
-              height: 1050,
+              height: 1120,
               child: buildHomeForGolden(themeMode: ThemeMode.dark),
             ),
           ),

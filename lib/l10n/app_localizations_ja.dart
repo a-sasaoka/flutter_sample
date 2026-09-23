@@ -1050,4 +1050,96 @@ class AppLocalizationsJa extends AppLocalizations {
   String validationPasswordMinLength(int minLength) {
     return '$minLength文字以上で入力してください';
   }
+
+  @override
+  String get devRebuildTitle => '再ビルド最適化検証';
+
+  @override
+  String get devRebuildModeBad => 'Badモード（非効率）';
+
+  @override
+  String get devRebuildModeGood => 'Goodモード（最適化済み）';
+
+  @override
+  String get devRebuildModeBadDesc => '親で全体watch・分割なし・constなし（全画面巻き添え再描画）';
+
+  @override
+  String get devRebuildModeGoodDesc => 'select・Widget小粒度分割・const徹底（局所再描画）';
+
+  @override
+  String get devRebuildSearchHint => 'Widget名・カテゴリ・説明で検索...';
+
+  @override
+  String devRebuildCountBadge(int count) {
+    return 'Rebuild: $count回';
+  }
+
+  @override
+  String get devRebuildResetButton => 'リセット';
+
+  @override
+  String get devRebuildEmpty => '該当するアイテムが見つかりません';
+
+  @override
+  String get devRebuildItemContainerCategory => 'レイアウト';
+
+  @override
+  String get devRebuildItemContainerDesc => 'サイズ・余白・背景色などを装飾する万能ボックスWidget';
+
+  @override
+  String get devRebuildItemListViewCategory => 'スクロール';
+
+  @override
+  String get devRebuildItemListViewDesc => '画面外のアイテムを遅延生成し、メモリを節約するスクロールリスト';
+
+  @override
+  String get devRebuildItemAnimatedContainerCategory => 'アニメーション';
+
+  @override
+  String get devRebuildItemAnimatedContainerDesc =>
+      'プロパティの変更を検知して自動で滑らかにアニメーションするWidget';
+
+  @override
+  String get devRebuildItemTextFieldCategory => '入力';
+
+  @override
+  String get devRebuildItemTextFieldDesc => 'ユーザーがテキストを入力・編集できるフィールドWidget';
+
+  @override
+  String get devRebuildItemElevatedButtonCategory => 'ボタン';
+
+  @override
+  String get devRebuildItemElevatedButtonDesc =>
+      '立体的な影とタップ時の波紋エフェクトを持つマテリアルボタン';
+
+  @override
+  String get devRebuildItemSwitchCategory => '入力';
+
+  @override
+  String get devRebuildItemSwitchDesc => '設定やフラグのON・OFFを直感的に切り替えるトグルスイッチ';
+
+  @override
+  String get devRebuildItemShimmerCategory => 'UI演出';
+
+  @override
+  String get devRebuildItemShimmerDesc => '読み込み中にキラリと光る骨組みを表示し、体感速度を高める演出';
+
+  @override
+  String get devRebuildItemCustomPaintCategory => '描画';
+
+  @override
+  String get devRebuildItemCustomPaintDesc =>
+      'Canvas APIを使って自由自在なグラフィックや図形を描画するWidget';
+
+  @override
+  String get devRebuildItemStackCategory => 'レイアウト';
+
+  @override
+  String get devRebuildItemStackDesc => '複数の子Widgetを前後に重ね合わせて立体的に配置するレイアウト';
+
+  @override
+  String get devRebuildItemHeroCategory => '画面遷移';
+
+  @override
+  String get devRebuildItemHeroDesc => '2つの画面間をまたいで同じ要素が飛行するように移動するアニメーション';
 }

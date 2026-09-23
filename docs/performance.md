@@ -1,6 +1,6 @@
 # ⚡️ パフォーマンス最適化・監視ガイド (Performance Optimization & Monitoring)
 
-このドキュメントでは、本プロジェクトにおける **「① 画像キャッシュ戦略」「② Firebase Performance Monitoring」「③ アプリサイズ軽量化」** の3大パフォーマンス施策について、アーキテクチャや仕組み、実装方法を初心者にもわかりやすく解説します。
+このドキュメントでは、本プロジェクトにおける **「① 画像キャッシュ戦略」「② Firebase Performance Monitoring」「③ アプリサイズ軽量化」「④ ウィジェット再ビルド最適化」** の4大パフォーマンス施策について、アーキテクチャや仕組み、実装方法を初心者にもわかりやすく解説します。
 
 ---
 
@@ -23,6 +23,12 @@ flowchart TD
     subgraph P3["③ 📦 アプリサイズ軽量化 & 分析"]
         J["scripts/analyze_app_size.sh"] --> K["--analyze-size による JSON 生成"]
         K --> L["Flutter DevTools Size Analyzer で視覚的に分析"]
+    end
+
+    subgraph P4["④ 🔄 ウィジェット再ビルド最適化 (Rebuild Demo)"]
+        M["RebuildDemoScreen (Bad vs Good 比較)"] --> N["select による変更スコープの極小化"]
+        M --> O["const コンストラクタによる再生成防止"]
+        N & O --> P["RebuildTrackerBadge による再ビルド可視化"]
     end
 ```
 
@@ -177,6 +183,38 @@ pie title アプリ容量の内訳例 (DevTools で可視化)
 2. **画像の WebP 化・SVG 化**: PNG や JPG を高圧縮率な WebP 形式に変換するか、ベクター画像（SVG）を活用する。
 3. **フォントサブセット化**: 日本語フォントなどの巨大な TTF ファイルは、使用する文字のみに絞り込む（Subsetting）。
 4. **Android App Bundle (`.aab`) の採用**: ユーザーの端末（CPUアーキテクチャ・画面解像度）に最適化された最小限の APK のみを配信する。
+
+---
+
+## 4. 🔄 ウィジェット再ビルドの最適化と特定 (Rebuild Optimization)
+
+### 💡 なぜ不要な再ビルドが問題なのか？
+
+Flutter は高速な描画エンジンを持っていますが、親ウィジェットで広範囲に `ref.watch(provider)` を行うと、関係のない子ウィジェットまで巻き込んで `build()` が再実行されます。
+特にリスト項目や複雑なUIツリー全体が毎フレーム再ビルドされると、**フレームレートの低下（Jank / カクつき）** や **CPU・バッテリーの無駄な消費** を引き起こします。
+
+### 📁 関連ファイル
+
+- [`lib/src/features/dev_tools/presentation/rebuild_demo_screen.dart`](../lib/src/features/dev_tools/presentation/rebuild_demo_screen.dart): 再ビルド最適化の比較デモ画面
+- [`lib/src/features/dev_tools/application/rebuild_demo_notifier.dart`](../lib/src/features/dev_tools/application/rebuild_demo_notifier.dart): デモ用の状態管理 Notifier
+- [`lib/src/features/dev_tools/domain/rebuild_demo_state.dart`](../lib/src/features/dev_tools/domain/rebuild_demo_state.dart): Freezed による状態モデル
+
+### 🚀 主な最適化テクニック（Bad vs Good）
+
+本プロジェクトの開発者ツール「再ビルド最適化検証」画面では、以下の2つのアプローチの違いを実測バッジで比較・体感できます。
+
+| 観点 | ❌ 非効率な実装（Badモード） | ✅ 最適化された実装（Goodモード） |
+| :--- | :--- | :--- |
+| **監視範囲** | 親画面全体で `ref.watch(rebuildDemoProvider)` を行い、文字入力ごとに全カード・全バッジが再描画 | 必要なプロパティだけを個別に監視、または子ウィジェットに監視を局所化 |
+| **Riverpod `select`** | 未使用（状態の一部が変わっただけで全体が再ビルド） | `ref.watch(provider.select((s) => s.xxx))` を使用し、対象の値が変わった時のみ再ビルド |
+| **`const` コンストラクタ** | `const` を付けずに毎回新しいウィジェットインスタンスを生成 | 変更のないヘッダーや静的UIに `const` を付与し、Flutter エンジンによる再ビルドのスキップを保証 |
+| **ウィジェットの分割** | 1つの巨大な `build` メソッドにすべてを記述 | リスト項目やバナーを小さな別ウィジェットに切り出し、再描画のスコープを最小限に限定 |
+
+### 🛠️ 再ビルドの可視化ツール（RebuildTrackerBadge）
+
+アプリ内の [`RebuildTrackerBadge`](../lib/src/features/dev_tools/presentation/rebuild_demo_screen.dart) は、対象のウィジェットが `build()` された回数を表示し、色分け（緑: 1回、橙: 2〜3回、赤: 4回以上）で過剰な再描画を視覚的に警告する純粋なコンポーネントです。
+Badモードでは親画面の再ビルド回数がそのまま各バッジに渡されることで巻き添え再描画が可視化され、Goodモードでは親画面が `const` で保護され、局所監視された検索バーのみが再描画されます。
+Flutter DevTools の **「Performance」タブにある「Rebuild stats」**（Track widget build counts）機能と組み合わせることで、不要な再描画の発生箇所を即座に特定できます。
 
 ---
 

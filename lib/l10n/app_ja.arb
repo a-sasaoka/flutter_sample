@@ -473,6 +473,44 @@
         "type": "int"
       }
     }
-  }
+  },
+
+  "@_REBUILD_OPTIMIZATION": {},
+  "devRebuildTitle": "再ビルド最適化検証",
+  "devRebuildModeBad": "Badモード（非効率）",
+  "devRebuildModeGood": "Goodモード（最適化済み）",
+  "devRebuildModeBadDesc": "親で全体watch・分割なし・constなし（全画面巻き添え再描画）",
+  "devRebuildModeGoodDesc": "select・Widget小粒度分割・const徹底（局所再描画）",
+  "devRebuildSearchHint": "Widget名・カテゴリ・説明で検索...",
+  "devRebuildCountBadge": "Rebuild: {count}回",
+  "@devRebuildCountBadge": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "devRebuildResetButton": "リセット",
+  "devRebuildEmpty": "該当するアイテムが見つかりません",
+  "devRebuildItemContainerCategory": "レイアウト",
+  "devRebuildItemContainerDesc": "サイズ・余白・背景色などを装飾する万能ボックスWidget",
+  "devRebuildItemListViewCategory": "スクロール",
+  "devRebuildItemListViewDesc": "画面外のアイテムを遅延生成し、メモリを節約するスクロールリスト",
+  "devRebuildItemAnimatedContainerCategory": "アニメーション",
+  "devRebuildItemAnimatedContainerDesc": "プロパティの変更を検知して自動で滑らかにアニメーションするWidget",
+  "devRebuildItemTextFieldCategory": "入力",
+  "devRebuildItemTextFieldDesc": "ユーザーがテキストを入力・編集できるフィールドWidget",
+  "devRebuildItemElevatedButtonCategory": "ボタン",
+  "devRebuildItemElevatedButtonDesc": "立体的な影とタップ時の波紋エフェクトを持つマテリアルボタン",
+  "devRebuildItemSwitchCategory": "入力",
+  "devRebuildItemSwitchDesc": "設定やフラグのON・OFFを直感的に切り替えるトグルスイッチ",
+  "devRebuildItemShimmerCategory": "UI演出",
+  "devRebuildItemShimmerDesc": "読み込み中にキラリと光る骨組みを表示し、体感速度を高める演出",
+  "devRebuildItemCustomPaintCategory": "描画",
+  "devRebuildItemCustomPaintDesc": "Canvas APIを使って自由自在なグラフィックや図形を描画するWidget",
+  "devRebuildItemStackCategory": "レイアウト",
+  "devRebuildItemStackDesc": "複数の子Widgetを前後に重ね合わせて立体的に配置するレイアウト",
+  "devRebuildItemHeroCategory": "画面遷移",
+  "devRebuildItemHeroDesc": "2つの画面間をまたいで同じ要素が飛行するように移動するアニメーション"
 }
 

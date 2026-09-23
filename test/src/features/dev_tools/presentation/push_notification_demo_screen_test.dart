@@ -30,6 +30,13 @@ void main() {
   }
 
   group('PushNotificationDemoScreen', () {
+    test('PushNotificationDemoScreen can be instantiated', () {
+      // カバレッジ計測でコンストラクタのコードを確実に実行させてカバーするため、あえて非constでインスタンス化します。
+      // ignore: prefer_const_constructors, testing non-const constructor for coverage
+      final screen = PushNotificationDemoScreen();
+      check(screen).isA<PushNotificationDemoScreen>();
+    });
+
     testWidgets('ローディング状態のときに CircularProgressIndicator が表示されること', (
       tester,
     ) async {
