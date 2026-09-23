@@ -132,8 +132,9 @@ void main() {
       await tester.pumpWidget(createWidget(container: container));
       await tester.pumpAndSettle();
 
-      // 初期状態では Root は 1回
+      // 初期状態では Root は 1回、表示中の Item 1 も 1回
       check(find.text('Root: Rebuild: 1回').evaluate()).length.equals(1);
+      check(find.text('Item 1: Rebuild: 1回').evaluate()).length.equals(1);
 
       final searchField = find.byKey(const Key('rebuild_search_text_field'));
 
@@ -143,6 +144,8 @@ void main() {
 
       // 親画面全体が再描画されたため、Root バッジが 2回 にカウントアップされること
       check(find.text('Root: Rebuild: 2回').evaluate()).length.equals(1);
+      // 親の巻き添えで再描画されたため、Item 1 も 2回 になること
+      check(find.text('Item 1: Rebuild: 2回').evaluate()).length.equals(1);
 
       // Container と AnimatedContainer のみが表示される
       check(find.text('Container').evaluate()).length.equals(1);
@@ -268,6 +271,31 @@ void main() {
 
       check(find.text('ListView.builder').evaluate()).length.equals(1);
       check(find.text('Container').evaluate()).isEmpty();
+    });
+
+    testWidgets('Badモードで親が複数回ビルドされた後に初めて表示されるカードのバッジは親の累積回数ではなく1回であること', (
+      tester,
+    ) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(createWidget(container: container));
+      await tester.pumpAndSettle();
+
+      final searchField = find.byKey(const Key('rebuild_search_text_field'));
+
+      // 1回目の検索更新: 該当なしクエリで親のビルド回数を進める (Root: 2回)
+      await tester.enterText(searchField, 'non_existent_query');
+      await tester.pumpAndSettle();
+      check(find.text('Root: Rebuild: 2回').evaluate()).length.equals(1);
+
+      // 2回目の検索更新: 初めて 'Hero' (Item 10) を表示させる (Root: 3回)
+      await tester.enterText(searchField, 'Hero');
+      await tester.pumpAndSettle();
+      check(find.text('Root: Rebuild: 3回').evaluate()).length.equals(1);
+
+      // 🌟 親Rootは3回だが、Heroカード自身はこの検索で初めてビルドされたため、バッジは1回であること
+      check(find.text('Item 10: Rebuild: 1回').evaluate()).length.equals(1);
     });
 
     testWidgets('RebuildTrackerBadgeが回数に応じて異なる色とテキストを適用すること', (tester) async {

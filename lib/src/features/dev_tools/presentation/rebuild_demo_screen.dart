@@ -158,6 +158,9 @@ class _BadRebuildViewState extends ConsumerState<_BadRebuildView> {
   // 親自身のビルド回数（親が再描画されるたびにインクリメント）
   int _buildCount = 0;
 
+  // カード単位のビルド回数を追跡するマップ
+  final Map<int, int> _itemBuildCounts = {};
+
   @override
   Widget build(BuildContext context) {
     _buildCount++;
@@ -211,7 +214,7 @@ class _BadRebuildViewState extends ConsumerState<_BadRebuildView> {
                     itemBuilder: (context, index) {
                       final item = items[index];
                       // 親がビルドされるたびに全アイテムも巻き添えで再生成される
-                      return _buildBadItemCard(context, item, _buildCount);
+                      return _buildBadItemCard(context, item);
                     },
                   ),
           ),
@@ -221,11 +224,10 @@ class _BadRebuildViewState extends ConsumerState<_BadRebuildView> {
   }
 
   // ⚠️ 関数によるUI分割は Widget の小粒度化（再ビルド境界）にならない
-  Widget _buildBadItemCard(
-    BuildContext context,
-    RebuildItem item,
-    int buildCount,
-  ) {
+  Widget _buildBadItemCard(BuildContext context, RebuildItem item) {
+    final count = (_itemBuildCounts[item.id] ?? 0) + 1;
+    _itemBuildCounts[item.id] = count;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
@@ -245,10 +247,7 @@ class _BadRebuildViewState extends ConsumerState<_BadRebuildView> {
                     ),
                   ),
                 ),
-                RebuildTrackerBadge(
-                  label: 'Item ${item.id}',
-                  count: buildCount,
-                ),
+                RebuildTrackerBadge(label: 'Item ${item.id}', count: count),
               ],
             ),
             const SizedBox(height: 4),
