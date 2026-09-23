@@ -49,3 +49,15 @@ class ImageCacheDemoRoute extends GoRouteData with $ImageCacheDemoRoute {
     return const ImageCacheDemoScreen();
   }
 }
+
+/// 開発者向けパフォーマンス・再ビルド最適化デモ画面のルート
+@TypedGoRoute<RebuildDemoRoute>(path: '/dev-tools/rebuild')
+class RebuildDemoRoute extends GoRouteData with $RebuildDemoRoute {
+  /// コンストラクタ
+  const RebuildDemoRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const RebuildDemoScreen();
+  }
+}

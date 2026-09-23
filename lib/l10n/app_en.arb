@@ -473,6 +473,24 @@
         "type": "int"
       }
     }
-  }
+  },
+
+  "@_REBUILD_OPTIMIZATION": {},
+  "devRebuildTitle": "Rebuild Optimization",
+  "devRebuildModeBad": "Bad Mode (Inefficient)",
+  "devRebuildModeGood": "Good Mode (Optimized)",
+  "devRebuildModeBadDesc": "Root watch, no widget extract, no const (cascade rebuilds)",
+  "devRebuildModeGoodDesc": "select, extracted widgets, const usage (localized rebuilds)",
+  "devRebuildSearchHint": "Search by name, category, description...",
+  "devRebuildCountBadge": "Rebuild: {count}",
+  "@devRebuildCountBadge": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "devRebuildResetButton": "Reset",
+  "devRebuildEmpty": "No matching items found"
 }
 

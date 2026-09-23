@@ -25,6 +25,7 @@ import 'package:flutter_sample/src/features/dev_tools/presentation/developer_sto
 import 'package:flutter_sample/src/features/dev_tools/presentation/image_cache_demo_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/lottie_demo_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/push_notification_demo_screen.dart';
+import 'package:flutter_sample/src/features/dev_tools/presentation/rebuild_demo_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
 import 'package:flutter_sample/src/features/legal/domain/legal_document_type.dart';
 import 'package:flutter_sample/src/features/legal/presentation/legal_document_screen.dart';

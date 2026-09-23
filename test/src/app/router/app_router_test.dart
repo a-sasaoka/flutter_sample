@@ -32,6 +32,7 @@ import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/developer_storage_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/lottie_demo_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/push_notification_demo_screen.dart';
+import 'package:flutter_sample/src/features/dev_tools/presentation/rebuild_demo_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
 import 'package:flutter_sample/src/features/legal/application/legal_document_provider.dart';
 import 'package:flutter_sample/src/features/legal/domain/legal_document_type.dart';
@@ -270,6 +271,7 @@ void main() {
     when(() => mockL10n.devLottieTitle).thenReturn('Lottie Demo');
     when(() => mockL10n.devNotificationTitle).thenReturn('Notification Demo');
     when(() => mockL10n.devImageCacheTitle).thenReturn('Image Cache Demo');
+    when(() => mockL10n.devRebuildTitle).thenReturn('Rebuild Demo');
     when(
       () => mockL10n.notificationBannerTitle,
     ).thenReturn('Notification Banner Title');
@@ -937,6 +939,14 @@ void main() {
         check(widget).isA<PushNotificationDemoScreen>();
       },
     );
+
+    test('RebuildDemoRoute.build: RebuildDemoScreen を返すこと', () {
+      final widget = const RebuildDemoRoute().build(
+        MockBuildContext(),
+        MockGoRouterState(),
+      );
+      check(widget).isA<RebuildDemoScreen>();
+    });
 
     test('SignUpRoute.build: FirebaseSignUpScreen を返すこと', () {
       final widget = const SignUpRoute().build(

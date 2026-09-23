@@ -2107,6 +2107,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Must be at least {minLength} characters'**
   String validationPasswordMinLength(int minLength);
+
+  /// No description provided for @devRebuildTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rebuild Optimization'**
+  String get devRebuildTitle;
+
+  /// No description provided for @devRebuildModeBad.
+  ///
+  /// In en, this message translates to:
+  /// **'Bad Mode (Inefficient)'**
+  String get devRebuildModeBad;
+
+  /// No description provided for @devRebuildModeGood.
+  ///
+  /// In en, this message translates to:
+  /// **'Good Mode (Optimized)'**
+  String get devRebuildModeGood;
+
+  /// No description provided for @devRebuildModeBadDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Root watch, no widget extract, no const (cascade rebuilds)'**
+  String get devRebuildModeBadDesc;
+
+  /// No description provided for @devRebuildModeGoodDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'select, extracted widgets, const usage (localized rebuilds)'**
+  String get devRebuildModeGoodDesc;
+
+  /// No description provided for @devRebuildSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name, category, description...'**
+  String get devRebuildSearchHint;
+
+  /// No description provided for @devRebuildCountBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Rebuild: {count}'**
+  String devRebuildCountBadge(int count);
+
+  /// No description provided for @devRebuildResetButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get devRebuildResetButton;
+
+  /// No description provided for @devRebuildEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching items found'**
+  String get devRebuildEmpty;
 }
 
 class _AppLocalizationsDelegate

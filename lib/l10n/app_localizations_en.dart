@@ -1077,4 +1077,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String validationPasswordMinLength(int minLength) {
     return 'Must be at least $minLength characters';
   }
+
+  @override
+  String get devRebuildTitle => 'Rebuild Optimization';
+
+  @override
+  String get devRebuildModeBad => 'Bad Mode (Inefficient)';
+
+  @override
+  String get devRebuildModeGood => 'Good Mode (Optimized)';
+
+  @override
+  String get devRebuildModeBadDesc =>
+      'Root watch, no widget extract, no const (cascade rebuilds)';
+
+  @override
+  String get devRebuildModeGoodDesc =>
+      'select, extracted widgets, const usage (localized rebuilds)';
+
+  @override
+  String get devRebuildSearchHint => 'Search by name, category, description...';
+
+  @override
+  String devRebuildCountBadge(int count) {
+    return 'Rebuild: $count';
+  }
+
+  @override
+  String get devRebuildResetButton => 'Reset';
+
+  @override
+  String get devRebuildEmpty => 'No matching items found';
 }

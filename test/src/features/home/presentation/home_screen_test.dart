@@ -144,6 +144,7 @@ void main() {
     when(() => mockL10n.devLottieTitle).thenReturn('Lottie アニメーションデモ');
     when(() => mockL10n.devNotificationTitle).thenReturn('Push通知・ディープリンク検証');
     when(() => mockL10n.devImageCacheTitle).thenReturn('画像キャッシュデモ');
+    when(() => mockL10n.devRebuildTitle).thenReturn('再ビルド最適化検証');
     when(() => mockL10n.mapTitle).thenReturn('地図');
     when(() => mockL10n.homeQrScannerTitle).thenReturn('QRコードリーダー');
     when(
@@ -501,6 +502,22 @@ void main() {
       await tester.pumpAndSettle();
 
       check(attemptedPath).isNotNull().contains('dev-tools/storage');
+    });
+
+    testWidgets('再ビルド最適化検証メニューをタップすると該当ルートへ遷移すること', (tester) async {
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      final finder = find.widgetWithText(ListTile, '再ビルド最適化検証');
+      await tester.dragUntilVisible(
+        finder,
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+
+      check(attemptedPath).isNotNull().contains('dev-tools/rebuild');
     });
 
     testWidgets('地図メニューをタップすると該当ルートへ遷移すること', (tester) async {

@@ -473,6 +473,24 @@
         "type": "int"
       }
     }
-  }
+  },
+
+  "@_REBUILD_OPTIMIZATION": {},
+  "devRebuildTitle": "再ビルド最適化検証",
+  "devRebuildModeBad": "Badモード（非効率）",
+  "devRebuildModeGood": "Goodモード（最適化済み）",
+  "devRebuildModeBadDesc": "親で全体watch・分割なし・constなし（全画面巻き添え再描画）",
+  "devRebuildModeGoodDesc": "select・Widget小粒度分割・const徹底（局所再描画）",
+  "devRebuildSearchHint": "Widget名・カテゴリ・説明で検索...",
+  "devRebuildCountBadge": "Rebuild: {count}回",
+  "@devRebuildCountBadge": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "devRebuildResetButton": "リセット",
+  "devRebuildEmpty": "該当するアイテムが見つかりません"
 }
 

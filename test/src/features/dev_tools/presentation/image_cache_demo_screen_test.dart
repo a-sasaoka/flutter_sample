@@ -80,6 +80,13 @@ void main() {
   }
 
   group('ImageCacheDemoScreen Tests', () {
+    test('ImageCacheDemoScreen can be instantiated', () {
+      // カバレッジ計測でコンストラクタのコードを確実に実行させてカバーするため、あえて非constでインスタンス化します。
+      // ignore: prefer_const_constructors, testing non-const constructor for coverage
+      final screen = ImageCacheDemoScreen();
+      check(screen).isA<ImageCacheDemoScreen>();
+    });
+
     testWidgets('初期表示で各セクションとボタンが表示されること', (tester) async {
       await tester.pumpWidget(createWidget());
       await tester.pumpAndSettle();

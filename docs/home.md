@@ -26,6 +26,7 @@ AI チャット、グラフ、メモ帳、ユーザー一覧などの主要な�
 - **画像キャッシュデモ (ImageCacheDemoScreen)**: 画像キャッシュ（CachedNetworkImage）の通常・角丸・アバター形状、Shimmer、エラー/未設定フォールバック、キャッシュの一括クリアを検証できます。
 - **Lottie アニメーションデモ (LottieDemoScreen)**: プロジェクト内の Lottie アセットの再生・一時停止・シーク操作・ループ切り替えや、ネットワークからのアニメーション読み込みを検証できます。
 - **Push通知・ディープリンク検証 (PushNotificationDemoScreen)**: FCM トークンの確認・コピー、通知パーミッション要求、テスト通知発火（`/chat`, `/memos`, `/settings/profile`）によるディープリンク検証を行えます。
+- **再ビルド最適化検証 (RebuildDemoScreen)**: 不要な再描画の撲滅（Badモード vs Goodモード）を比較し、再ビルド回数バッジで視覚的に検証できます。
 - **クラッシュテスト**: Firebase Crashlytics が正しく動作するかを検証するための強制クラッシュ機能。
 - **分析テスト**: Firebase Analytics へのイベント送信をテストします。
 
@@ -97,3 +98,4 @@ Firebase Remote Config の `announcement_banner_text` に設定されたメッ�
 - `docs/animation.md`
 - `lib/src/features/qr_scanner/presentation/qr_scanner_screen.dart`
 - `docs/qr_scanner.md`
+- `lib/src/features/dev_tools/presentation/rebuild_demo_screen.dart`

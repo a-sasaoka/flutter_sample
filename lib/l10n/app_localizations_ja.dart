@@ -1050,4 +1050,33 @@ class AppLocalizationsJa extends AppLocalizations {
   String validationPasswordMinLength(int minLength) {
     return '$minLength文字以上で入力してください';
   }
+
+  @override
+  String get devRebuildTitle => '再ビルド最適化検証';
+
+  @override
+  String get devRebuildModeBad => 'Badモード（非効率）';
+
+  @override
+  String get devRebuildModeGood => 'Goodモード（最適化済み）';
+
+  @override
+  String get devRebuildModeBadDesc => '親で全体watch・分割なし・constなし（全画面巻き添え再描画）';
+
+  @override
+  String get devRebuildModeGoodDesc => 'select・Widget小粒度分割・const徹底（局所再描画）';
+
+  @override
+  String get devRebuildSearchHint => 'Widget名・カテゴリ・説明で検索...';
+
+  @override
+  String devRebuildCountBadge(int count) {
+    return 'Rebuild: $count回';
+  }
+
+  @override
+  String get devRebuildResetButton => 'リセット';
+
+  @override
+  String get devRebuildEmpty => '該当するアイテムが見つかりません';
 }
