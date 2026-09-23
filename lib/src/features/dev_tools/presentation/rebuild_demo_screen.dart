@@ -164,7 +164,10 @@ class _BadRebuildViewState extends ConsumerState<_BadRebuildView> {
     // ⚠️ アンチパターン①：親Widgetで状態全体を watch
     final state = ref.watch(rebuildDemoProvider);
     final l10n = context.l10n;
-    final items = state.filteredItems;
+    final allItems = getLocalizedRebuildItems(l10n);
+    final items = allItems
+        .where((item) => item.matchesQuery(state.searchQuery))
+        .toList();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -356,11 +359,15 @@ class _GoodItemList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 処方箋②：select により filteredItems の参照が変わった時のみ再ビルド
-    final items = ref.watch(
-      rebuildDemoProvider.select((state) => state.filteredItems),
+    // 処方箋②：検索クエリのみを select で監視し、絞り込み結果リストを再構築
+    final searchQuery = ref.watch(
+      rebuildDemoProvider.select((state) => state.searchQuery),
     );
     final l10n = context.l10n;
+    final allItems = getLocalizedRebuildItems(l10n);
+    final items = allItems
+        .where((item) => item.matchesQuery(searchQuery))
+        .toList();
 
     if (items.isEmpty) {
       return Center(child: Text(l10n.devRebuildEmpty));

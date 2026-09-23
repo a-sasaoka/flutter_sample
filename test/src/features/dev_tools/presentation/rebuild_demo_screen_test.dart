@@ -1,6 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/features/dev_tools/domain/rebuild_item.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/rebuild_demo_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -8,14 +9,17 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  Widget createWidget({ProviderContainer? container}) {
+  Widget createWidget({
+    ProviderContainer? container,
+    Locale locale = const Locale('ja'),
+  }) {
     return UncontrolledProviderScope(
       container: container ?? ProviderContainer(),
-      child: const MaterialApp(
+      child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        locale: Locale('ja'),
-        home: RebuildDemoScreen(),
+        locale: locale,
+        home: const RebuildDemoScreen(),
       ),
     );
   }
@@ -34,6 +38,64 @@ void main() {
       final badge = RebuildTrackerBadge(label: 'test_badge', count: 1);
       check(badge.label).equals('test_badge');
       check(badge.count).equals(1);
+    });
+
+    testWidgets('getLocalizedRebuildItemsがロケールに応じてローカライズされたデータを返すこと', (
+      tester,
+    ) async {
+      late AppLocalizations jaL10n;
+      late AppLocalizations enL10n;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('ja'),
+          home: Builder(
+            builder: (context) {
+              jaL10n = AppLocalizations.of(context)!;
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: Builder(
+            builder: (context) {
+              enL10n = AppLocalizations.of(context)!;
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final jaItems = getLocalizedRebuildItems(jaL10n);
+      final enItems = getLocalizedRebuildItems(enL10n);
+
+      check(jaItems).length.equals(10);
+      check(enItems).length.equals(10);
+
+      // 日本語の検証
+      check(jaItems.first.category).equals('レイアウト');
+      check(jaItems.first.description).contains('万能ボックスWidget');
+
+      // 英語の検証
+      check(enItems.first.category).equals('Layout');
+      check(enItems.first.description).contains('versatile box widget');
+
+      // matchesQuery の単体検証
+      check(enItems.first.matchesQuery('layout')).isTrue();
+      check(enItems.first.matchesQuery('container')).isTrue();
+      check(enItems.first.matchesQuery('versatile')).isTrue();
+      check(enItems.first.matchesQuery('xyz_non_existent')).isFalse();
+      check(enItems.first.matchesQuery('   ')).isTrue();
     });
 
     testWidgets('初期状態でBadモード（非効率）の画面が表示されること', (tester) async {
@@ -172,6 +234,36 @@ void main() {
       check(find.text('Badモード（非効率）').evaluate()).length.equals(1);
       check(find.text('Container').evaluate()).length.equals(1);
       check(find.text('ListView.builder').evaluate()).length.equals(1);
+    });
+
+    testWidgets('英語ロケール時に英語のカテゴリや説明文で検索絞り込みができること', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        createWidget(container: container, locale: const Locale('en')),
+      );
+      await tester.pumpAndSettle();
+
+      // 英語のAppBarタイトル
+      check(find.text('Rebuild Optimization').evaluate()).length.equals(1);
+
+      final searchField = find.byKey(const Key('rebuild_search_text_field'));
+
+      // 英語カテゴリ 'Layout' で検索 -> Container, Stack がヒット
+      await tester.enterText(searchField, 'Layout');
+      await tester.pumpAndSettle();
+
+      check(find.text('Container').evaluate()).length.equals(1);
+      check(find.text('Stack').evaluate()).length.equals(1);
+      check(find.text('TextField').evaluate()).isEmpty();
+
+      // 英語説明文のキーワード 'memory' で検索 -> ListView.builder がヒット
+      await tester.enterText(searchField, 'memory');
+      await tester.pumpAndSettle();
+
+      check(find.text('ListView.builder').evaluate()).length.equals(1);
+      check(find.text('Container').evaluate()).isEmpty();
     });
 
     testWidgets('RebuildTrackerBadgeが回数に応じて異なる色とテキストを適用すること', (tester) async {

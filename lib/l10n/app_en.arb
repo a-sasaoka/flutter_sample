@@ -491,6 +491,26 @@
     }
   },
   "devRebuildResetButton": "Reset",
-  "devRebuildEmpty": "No matching items found"
+  "devRebuildEmpty": "No matching items found",
+  "devRebuildItemContainerCategory": "Layout",
+  "devRebuildItemContainerDesc": "A versatile box widget for sizing, padding, and background color.",
+  "devRebuildItemListViewCategory": "Scroll",
+  "devRebuildItemListViewDesc": "A scrollable list that lazily creates offscreen items to save memory.",
+  "devRebuildItemAnimatedContainerCategory": "Animation",
+  "devRebuildItemAnimatedContainerDesc": "A widget that automatically animates smoothly when its properties change.",
+  "devRebuildItemTextFieldCategory": "Input",
+  "devRebuildItemTextFieldDesc": "A field widget allowing users to enter and edit text.",
+  "devRebuildItemElevatedButtonCategory": "Button",
+  "devRebuildItemElevatedButtonDesc": "A Material button with elevation shadow and tap ripple effect.",
+  "devRebuildItemSwitchCategory": "Input",
+  "devRebuildItemSwitchDesc": "A toggle switch to intuitively turn settings or flags ON and OFF.",
+  "devRebuildItemShimmerCategory": "Visual Effect",
+  "devRebuildItemShimmerDesc": "Displays a shimmering skeleton during loading to improve perceived speed.",
+  "devRebuildItemCustomPaintCategory": "Painting",
+  "devRebuildItemCustomPaintDesc": "A widget that provides a canvas on which to draw custom graphics.",
+  "devRebuildItemStackCategory": "Layout",
+  "devRebuildItemStackDesc": "A layout that overlays multiple children on top of each other.",
+  "devRebuildItemHeroCategory": "Navigation",
+  "devRebuildItemHeroDesc": "An animation where an element appears to fly between two screens."
 }
 

@@ -1,3 +1,4 @@
+import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'rebuild_item.freezed.dart';
@@ -12,9 +13,88 @@ sealed class RebuildItem with _$RebuildItem {
     required String category,
     required String description,
   }) = _RebuildItem;
+
+  const RebuildItem._();
+
+  /// 検索クエリと合致するかどうかを判定する
+  bool matchesQuery(String query) {
+    final trimmed = query.trim().toLowerCase();
+    if (trimmed.isEmpty) {
+      return true;
+    }
+    return name.toLowerCase().contains(trimmed) ||
+        category.toLowerCase().contains(trimmed) ||
+        description.toLowerCase().contains(trimmed);
+  }
 }
 
-/// 検証用の初期Widgetアイテムリスト
+/// [AppLocalizations] を用いてローカライズされた検証用アイテム一覧を取得する
+List<RebuildItem> getLocalizedRebuildItems(AppLocalizations l10n) {
+  return [
+    RebuildItem(
+      id: 1,
+      name: 'Container',
+      category: l10n.devRebuildItemContainerCategory,
+      description: l10n.devRebuildItemContainerDesc,
+    ),
+    RebuildItem(
+      id: 2,
+      name: 'ListView.builder',
+      category: l10n.devRebuildItemListViewCategory,
+      description: l10n.devRebuildItemListViewDesc,
+    ),
+    RebuildItem(
+      id: 3,
+      name: 'AnimatedContainer',
+      category: l10n.devRebuildItemAnimatedContainerCategory,
+      description: l10n.devRebuildItemAnimatedContainerDesc,
+    ),
+    RebuildItem(
+      id: 4,
+      name: 'TextField',
+      category: l10n.devRebuildItemTextFieldCategory,
+      description: l10n.devRebuildItemTextFieldDesc,
+    ),
+    RebuildItem(
+      id: 5,
+      name: 'ElevatedButton',
+      category: l10n.devRebuildItemElevatedButtonCategory,
+      description: l10n.devRebuildItemElevatedButtonDesc,
+    ),
+    RebuildItem(
+      id: 6,
+      name: 'Switch',
+      category: l10n.devRebuildItemSwitchCategory,
+      description: l10n.devRebuildItemSwitchDesc,
+    ),
+    RebuildItem(
+      id: 7,
+      name: 'Shimmer',
+      category: l10n.devRebuildItemShimmerCategory,
+      description: l10n.devRebuildItemShimmerDesc,
+    ),
+    RebuildItem(
+      id: 8,
+      name: 'CustomPaint',
+      category: l10n.devRebuildItemCustomPaintCategory,
+      description: l10n.devRebuildItemCustomPaintDesc,
+    ),
+    RebuildItem(
+      id: 9,
+      name: 'Stack',
+      category: l10n.devRebuildItemStackCategory,
+      description: l10n.devRebuildItemStackDesc,
+    ),
+    RebuildItem(
+      id: 10,
+      name: 'Hero',
+      category: l10n.devRebuildItemHeroCategory,
+      description: l10n.devRebuildItemHeroDesc,
+    ),
+  ];
+}
+
+/// 検証用の初期Widgetアイテムリスト（フォールバック用）
 const defaultRebuildItems = <RebuildItem>[
   RebuildItem(
     id: 1,

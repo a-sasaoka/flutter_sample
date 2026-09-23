@@ -202,8 +202,8 @@ return $default(_that.id,_that.name,_that.category,_that.description);case _:
 /// @nodoc
 
 
-class _RebuildItem implements RebuildItem {
-  const _RebuildItem({required this.id, required this.name, required this.category, required this.description});
+class _RebuildItem extends RebuildItem {
+  const _RebuildItem({required this.id, required this.name, required this.category, required this.description}): super._();
   
 
 @override final  int id;

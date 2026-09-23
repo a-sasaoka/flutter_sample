@@ -1108,4 +1108,74 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get devRebuildEmpty => 'No matching items found';
+
+  @override
+  String get devRebuildItemContainerCategory => 'Layout';
+
+  @override
+  String get devRebuildItemContainerDesc =>
+      'A versatile box widget for sizing, padding, and background color.';
+
+  @override
+  String get devRebuildItemListViewCategory => 'Scroll';
+
+  @override
+  String get devRebuildItemListViewDesc =>
+      'A scrollable list that lazily creates offscreen items to save memory.';
+
+  @override
+  String get devRebuildItemAnimatedContainerCategory => 'Animation';
+
+  @override
+  String get devRebuildItemAnimatedContainerDesc =>
+      'A widget that automatically animates smoothly when its properties change.';
+
+  @override
+  String get devRebuildItemTextFieldCategory => 'Input';
+
+  @override
+  String get devRebuildItemTextFieldDesc =>
+      'A field widget allowing users to enter and edit text.';
+
+  @override
+  String get devRebuildItemElevatedButtonCategory => 'Button';
+
+  @override
+  String get devRebuildItemElevatedButtonDesc =>
+      'A Material button with elevation shadow and tap ripple effect.';
+
+  @override
+  String get devRebuildItemSwitchCategory => 'Input';
+
+  @override
+  String get devRebuildItemSwitchDesc =>
+      'A toggle switch to intuitively turn settings or flags ON and OFF.';
+
+  @override
+  String get devRebuildItemShimmerCategory => 'Visual Effect';
+
+  @override
+  String get devRebuildItemShimmerDesc =>
+      'Displays a shimmering skeleton during loading to improve perceived speed.';
+
+  @override
+  String get devRebuildItemCustomPaintCategory => 'Painting';
+
+  @override
+  String get devRebuildItemCustomPaintDesc =>
+      'A widget that provides a canvas on which to draw custom graphics.';
+
+  @override
+  String get devRebuildItemStackCategory => 'Layout';
+
+  @override
+  String get devRebuildItemStackDesc =>
+      'A layout that overlays multiple children on top of each other.';
+
+  @override
+  String get devRebuildItemHeroCategory => 'Navigation';
+
+  @override
+  String get devRebuildItemHeroDesc =>
+      'An animation where an element appears to fly between two screens.';
 }

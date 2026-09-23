@@ -2161,6 +2161,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No matching items found'**
   String get devRebuildEmpty;
+
+  /// No description provided for @devRebuildItemContainerCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Layout'**
+  String get devRebuildItemContainerCategory;
+
+  /// No description provided for @devRebuildItemContainerDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'A versatile box widget for sizing, padding, and background color.'**
+  String get devRebuildItemContainerDesc;
+
+  /// No description provided for @devRebuildItemListViewCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Scroll'**
+  String get devRebuildItemListViewCategory;
+
+  /// No description provided for @devRebuildItemListViewDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'A scrollable list that lazily creates offscreen items to save memory.'**
+  String get devRebuildItemListViewDesc;
+
+  /// No description provided for @devRebuildItemAnimatedContainerCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Animation'**
+  String get devRebuildItemAnimatedContainerCategory;
+
+  /// No description provided for @devRebuildItemAnimatedContainerDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'A widget that automatically animates smoothly when its properties change.'**
+  String get devRebuildItemAnimatedContainerDesc;
+
+  /// No description provided for @devRebuildItemTextFieldCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Input'**
+  String get devRebuildItemTextFieldCategory;
+
+  /// No description provided for @devRebuildItemTextFieldDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'A field widget allowing users to enter and edit text.'**
+  String get devRebuildItemTextFieldDesc;
+
+  /// No description provided for @devRebuildItemElevatedButtonCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Button'**
+  String get devRebuildItemElevatedButtonCategory;
+
+  /// No description provided for @devRebuildItemElevatedButtonDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'A Material button with elevation shadow and tap ripple effect.'**
+  String get devRebuildItemElevatedButtonDesc;
+
+  /// No description provided for @devRebuildItemSwitchCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Input'**
+  String get devRebuildItemSwitchCategory;
+
+  /// No description provided for @devRebuildItemSwitchDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'A toggle switch to intuitively turn settings or flags ON and OFF.'**
+  String get devRebuildItemSwitchDesc;
+
+  /// No description provided for @devRebuildItemShimmerCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Visual Effect'**
+  String get devRebuildItemShimmerCategory;
+
+  /// No description provided for @devRebuildItemShimmerDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Displays a shimmering skeleton during loading to improve perceived speed.'**
+  String get devRebuildItemShimmerDesc;
+
+  /// No description provided for @devRebuildItemCustomPaintCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Painting'**
+  String get devRebuildItemCustomPaintCategory;
+
+  /// No description provided for @devRebuildItemCustomPaintDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'A widget that provides a canvas on which to draw custom graphics.'**
+  String get devRebuildItemCustomPaintDesc;
+
+  /// No description provided for @devRebuildItemStackCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Layout'**
+  String get devRebuildItemStackCategory;
+
+  /// No description provided for @devRebuildItemStackDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'A layout that overlays multiple children on top of each other.'**
+  String get devRebuildItemStackDesc;
+
+  /// No description provided for @devRebuildItemHeroCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Navigation'**
+  String get devRebuildItemHeroCategory;
+
+  /// No description provided for @devRebuildItemHeroDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'An animation where an element appears to fly between two screens.'**
+  String get devRebuildItemHeroDesc;
 }
 
 class _AppLocalizationsDelegate

@@ -24,17 +24,10 @@ sealed class RebuildDemoState with _$RebuildDemoState {
 
   /// 検索クエリで絞り込まれたアイテム一覧
   List<RebuildItem> get filteredItems {
-    final query = searchQuery.trim().toLowerCase();
+    final query = searchQuery.trim();
     if (query.isEmpty) {
       return items;
     }
-    return items
-        .where(
-          (item) =>
-              item.name.toLowerCase().contains(query) ||
-              item.category.toLowerCase().contains(query) ||
-              item.description.toLowerCase().contains(query),
-        )
-        .toList();
+    return items.where((item) => item.matchesQuery(query)).toList();
   }
 }
