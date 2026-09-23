@@ -20,6 +20,9 @@ class RebuildDemoScreen extends ConsumerStatefulWidget {
 class _RebuildDemoScreenState extends ConsumerState<RebuildDemoScreen> {
   late final TextEditingController _searchController;
 
+  // Goodモードのカード再描画回数をアイテムIDごとに保持するマップ
+  final Map<int, int> _goodItemBuildCounts = {};
+
   // リセット時にカウンターと画面ツリーを初期化するためのユニークキー
   int _resetKey = 0;
 
@@ -38,6 +41,7 @@ class _RebuildDemoScreenState extends ConsumerState<RebuildDemoScreen> {
   void _handleReset() {
     ref.read(rebuildDemoProvider.notifier).reset();
     _searchController.clear();
+    _goodItemBuildCounts.clear();
     setState(() {
       _resetKey++;
     });
@@ -100,7 +104,10 @@ class _RebuildDemoScreenState extends ConsumerState<RebuildDemoScreen> {
             // 2. モードに応じた検索・リストコンテンツ
             Expanded(
               child: isOptimized
-                  ? _GoodRebuildView(searchController: _searchController)
+                  ? _GoodRebuildView(
+                      searchController: _searchController,
+                      itemBuildCounts: _goodItemBuildCounts,
+                    )
                   : _BadRebuildView(searchController: _searchController),
             ),
           ],
@@ -295,9 +302,13 @@ class _BadRebuildViewState extends ConsumerState<_BadRebuildView> {
 // =============================================================================
 class _GoodRebuildView extends StatelessWidget {
   // 処方箋③：静的な親コンポーネントは const で宣言
-  const _GoodRebuildView({required this.searchController});
+  const _GoodRebuildView({
+    required this.searchController,
+    required this.itemBuildCounts,
+  });
 
   final TextEditingController searchController;
+  final Map<int, int> itemBuildCounts;
 
   @override
   Widget build(BuildContext context) {
@@ -324,7 +335,7 @@ class _GoodRebuildView extends StatelessWidget {
           const SizedBox(height: 12),
 
           // 処方箋①＆②：リスト部分も独立し、select で購読
-          const Expanded(child: _GoodItemList()),
+          Expanded(child: _GoodItemList(itemBuildCounts: itemBuildCounts)),
         ],
       ),
     );
@@ -377,7 +388,9 @@ class _GoodSearchBarState extends ConsumerState<_GoodSearchBar> {
 
 /// 処方箋①＆②：select により絞り込み結果リストの変化のみを購読するリストWidget
 class _GoodItemList extends ConsumerWidget {
-  const _GoodItemList();
+  const _GoodItemList({required this.itemBuildCounts});
+
+  final Map<int, int> itemBuildCounts;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -400,28 +413,32 @@ class _GoodItemList extends ConsumerWidget {
       itemBuilder: (context, index) {
         final item = items[index];
         // 処方箋①＆③：アイテムカードを独立したクラスに切り出し
-        return _GoodItemCard(key: ValueKey(item.id), item: item);
+        return _GoodItemCard(
+          key: ValueKey(item.id),
+          item: item,
+          itemBuildCounts: itemBuildCounts,
+        );
       },
     );
   }
 }
 
 /// 処方箋①：独立したアイテムカードWidget
-class _GoodItemCard extends StatefulWidget {
-  const _GoodItemCard({required this.item, super.key});
+class _GoodItemCard extends StatelessWidget {
+  const _GoodItemCard({
+    required this.item,
+    required this.itemBuildCounts,
+    super.key,
+  });
 
   final RebuildItem item;
-
-  @override
-  State<_GoodItemCard> createState() => _GoodItemCardState();
-}
-
-class _GoodItemCardState extends State<_GoodItemCard> {
-  int _buildCount = 0;
+  final Map<int, int> itemBuildCounts;
 
   @override
   Widget build(BuildContext context) {
-    _buildCount++;
+    final count = (itemBuildCounts[item.id] ?? 0) + 1;
+    itemBuildCounts[item.id] = count;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
@@ -434,31 +451,25 @@ class _GoodItemCardState extends State<_GoodItemCard> {
               children: [
                 Expanded(
                   child: Text(
-                    widget.item.name,
+                    item.name,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
                   ),
                 ),
-                RebuildTrackerBadge(
-                  label: 'Item ${widget.item.id}',
-                  count: _buildCount,
-                ),
+                RebuildTrackerBadge(label: 'Item ${item.id}', count: count),
               ],
             ),
             const SizedBox(height: 4),
             Chip(
-              label: Text(
-                widget.item.category,
-                style: const TextStyle(fontSize: 10),
-              ),
+              label: Text(item.category, style: const TextStyle(fontSize: 10)),
               padding: EdgeInsets.zero,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             const SizedBox(height: 4),
             Text(
-              widget.item.description,
+              item.description,
               style: TextStyle(
                 fontSize: 12,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,

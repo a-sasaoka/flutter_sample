@@ -368,5 +368,66 @@ void main() {
       await tester.pumpAndSettle();
       check(find.text('TestBadge: Rebuild: 4回').evaluate()).length.equals(1);
     });
+
+    testWidgets('Goodモードで検索絞り込みにより一度非表示になったカードが再表示された際も画面側で累積回数が加算されること', (
+      tester,
+    ) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(createWidget(container: container));
+      await tester.pumpAndSettle();
+
+      // Goodモードへ切り替え
+      await tester.tap(find.byKey(const Key('toggle_rebuild_mode_switch')));
+      await tester.pumpAndSettle();
+
+      // 初期表示で Container (Item 1) は 1回
+      check(find.text('Item 1: Rebuild: 1回').evaluate()).length.equals(1);
+
+      final searchField = find.byKey(const Key('rebuild_search_text_field'));
+
+      // 'TextField' を検索して Container (Item 1) をリストから除外
+      await tester.enterText(searchField, 'TextField');
+      await tester.pumpAndSettle();
+      check(find.text('Container').evaluate()).isEmpty();
+
+      // 検索をクリアして Container (Item 1) を再表示
+      await tester.enterText(searchField, '');
+      await tester.pumpAndSettle();
+
+      // 🌟 再生成されたカードでも画面側のマップが保持されているため、1回に戻らず2回になること
+      check(find.text('Item 1: Rebuild: 2回').evaluate()).length.equals(1);
+    });
+
+    testWidgets('Goodモードでリセットボタンをタップするとカードの累積回数マップも初期化されること', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(createWidget(container: container));
+      await tester.pumpAndSettle();
+
+      // Goodモードへ切り替え
+      await tester.tap(find.byKey(const Key('toggle_rebuild_mode_switch')));
+      await tester.pumpAndSettle();
+
+      final searchField = find.byKey(const Key('rebuild_search_text_field'));
+
+      // 'container' を検索して Item 1 を再ビルド (2回)
+      await tester.enterText(searchField, 'container');
+      await tester.pumpAndSettle();
+      check(find.text('Item 1: Rebuild: 2回').evaluate()).length.equals(1);
+
+      // リセットボタンをタップ
+      await tester.tap(find.byKey(const Key('reset_rebuild_demo_button')));
+      await tester.pumpAndSettle();
+
+      // リセット後はBadモードに戻るため、再度Goodモードへ切り替え
+      await tester.tap(find.byKey(const Key('toggle_rebuild_mode_switch')));
+      await tester.pumpAndSettle();
+
+      // 🌟 リセットによって画面側のマップが初期化されたため、Item 1 は再び 1回 から開始すること
+      check(find.text('Item 1: Rebuild: 1回').evaluate()).length.equals(1);
+    });
   });
 }
