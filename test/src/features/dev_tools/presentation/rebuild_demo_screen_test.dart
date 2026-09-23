@@ -239,8 +239,46 @@ void main() {
 
       // 初期状態（Badモード・空クエリ）に戻っていること
       check(find.text('Badモード（非効率）').evaluate()).length.equals(1);
+      final resetTextField = tester.widget<TextField>(
+        find.byKey(const Key('rebuild_search_text_field')),
+      );
+      check(resetTextField.controller?.text).equals('');
       check(find.text('Container').evaluate()).length.equals(1);
       check(find.text('ListView.builder').evaluate()).length.equals(1);
+    });
+
+    testWidgets('モードを切り替えても検索入力テキストが保持されること', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(createWidget(container: container));
+      await tester.pumpAndSettle();
+
+      final searchField = find.byKey(const Key('rebuild_search_text_field'));
+      final toggleSwitch = find.byKey(const Key('toggle_rebuild_mode_switch'));
+
+      // Badモードでテキスト入力
+      await tester.enterText(searchField, 'Hero');
+      await tester.pumpAndSettle();
+
+      final badTextField = tester.widget<TextField>(searchField);
+      check(badTextField.controller?.text).equals('Hero');
+
+      // Goodモードへ切り替え
+      await tester.tap(toggleSwitch);
+      await tester.pumpAndSettle();
+
+      // Goodモードになっても入力文字列が維持されていること
+      final goodTextField = tester.widget<TextField>(searchField);
+      check(goodTextField.controller?.text).equals('Hero');
+
+      // 再びBadモードへ切り替え
+      await tester.tap(toggleSwitch);
+      await tester.pumpAndSettle();
+
+      // Badモードに戻っても入力文字列が維持されていること
+      final returnedTextField = tester.widget<TextField>(searchField);
+      check(returnedTextField.controller?.text).equals('Hero');
     });
 
     testWidgets('英語ロケール時に英語のカテゴリや説明文で検索絞り込みができること', (tester) async {

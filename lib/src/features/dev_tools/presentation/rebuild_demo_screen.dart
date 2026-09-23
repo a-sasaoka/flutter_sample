@@ -18,11 +18,26 @@ class RebuildDemoScreen extends ConsumerStatefulWidget {
 }
 
 class _RebuildDemoScreenState extends ConsumerState<RebuildDemoScreen> {
+  late final TextEditingController _searchController;
+
   // リセット時にカウンターと画面ツリーを初期化するためのユニークキー
   int _resetKey = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   void _handleReset() {
     ref.read(rebuildDemoProvider.notifier).reset();
+    _searchController.clear();
     setState(() {
       _resetKey++;
     });
@@ -85,8 +100,8 @@ class _RebuildDemoScreenState extends ConsumerState<RebuildDemoScreen> {
             // 2. モードに応じた検索・リストコンテンツ
             Expanded(
               child: isOptimized
-                  ? const _GoodRebuildView()
-                  : const _BadRebuildView(),
+                  ? _GoodRebuildView(searchController: _searchController)
+                  : _BadRebuildView(searchController: _searchController),
             ),
           ],
         ),
@@ -148,7 +163,9 @@ class RebuildTrackerBadge extends StatelessWidget {
 // 親が全体を watch し、小粒度分割も const もなく全てインラインで再描画される
 // =============================================================================
 class _BadRebuildView extends ConsumerStatefulWidget {
-  const _BadRebuildView();
+  const _BadRebuildView({required this.searchController});
+
+  final TextEditingController searchController;
 
   @override
   ConsumerState<_BadRebuildView> createState() => _BadRebuildViewState();
@@ -193,6 +210,7 @@ class _BadRebuildViewState extends ConsumerState<_BadRebuildView> {
           // ⚠️ アンチパターン③：同一ビルドツリー内にインライン生成された検索バー
           TextField(
             key: const Key('rebuild_search_text_field'),
+            controller: widget.searchController,
             decoration: InputDecoration(
               hintText: l10n.devRebuildSearchHint,
               prefixIcon: const Icon(Icons.search),
@@ -277,16 +295,18 @@ class _BadRebuildViewState extends ConsumerState<_BadRebuildView> {
 // =============================================================================
 class _GoodRebuildView extends StatelessWidget {
   // 処方箋③：静的な親コンポーネントは const で宣言
-  const _GoodRebuildView();
+  const _GoodRebuildView({required this.searchController});
+
+  final TextEditingController searchController;
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
@@ -297,14 +317,14 @@ class _GoodRebuildView extends StatelessWidget {
               RebuildTrackerBadge(label: 'Root', count: 1),
             ],
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
 
           // 処方箋①：検索バーを独立したWidgetとして小粒度分割
-          _GoodSearchBar(),
-          SizedBox(height: 12),
+          _GoodSearchBar(searchController: searchController),
+          const SizedBox(height: 12),
 
           // 処方箋①＆②：リスト部分も独立し、select で購読
-          Expanded(child: _GoodItemList()),
+          const Expanded(child: _GoodItemList()),
         ],
       ),
     );
@@ -313,7 +333,9 @@ class _GoodRebuildView extends StatelessWidget {
 
 /// 処方箋①：独立した検索バーWidget
 class _GoodSearchBar extends ConsumerStatefulWidget {
-  const _GoodSearchBar();
+  const _GoodSearchBar({required this.searchController});
+
+  final TextEditingController searchController;
 
   @override
   ConsumerState<_GoodSearchBar> createState() => _GoodSearchBarState();
@@ -334,6 +356,7 @@ class _GoodSearchBarState extends ConsumerState<_GoodSearchBar> {
       children: [
         TextField(
           key: const Key('rebuild_search_text_field'),
+          controller: widget.searchController,
           decoration: InputDecoration(
             hintText: l10n.devRebuildSearchHint,
             prefixIcon: const Icon(Icons.search),
