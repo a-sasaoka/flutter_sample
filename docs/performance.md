@@ -214,7 +214,7 @@ Flutter は高速な描画エンジンを持っていますが、親ウィジェ
 
 アプリ内の [`RebuildTrackerBadge`](../lib/src/features/dev_tools/presentation/rebuild_demo_screen.dart) は、対象のウィジェットが `build()` された回数を表示し、色分け（緑: 1回、橙: 2〜3回、赤: 4回以上）で過剰な再描画を視覚的に警告する純粋なコンポーネントです。
 Badモードでは親画面の再ビルド回数がそのまま各バッジに渡されることで巻き添え再描画が可視化され、Goodモードでは親画面が `const` で保護され、局所監視された検索バーのみが再描画されます。
-Flutter DevTools の **「Track Widget Rebuilds」** 機能と組み合わせることで、不要な再描画の発生箇所を即座に特定できます。
+Flutter DevTools の **「Performance」タブにある「Rebuild stats」**（Track widget build counts）機能と組み合わせることで、不要な再描画の発生箇所を即座に特定できます。
 
 ---
 
