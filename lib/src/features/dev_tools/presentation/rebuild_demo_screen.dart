@@ -385,13 +385,21 @@ class _GoodItemList extends ConsumerWidget {
 }
 
 /// 処方箋①：独立したアイテムカードWidget
-class _GoodItemCard extends StatelessWidget {
+class _GoodItemCard extends StatefulWidget {
   const _GoodItemCard({required this.item, super.key});
 
   final RebuildItem item;
 
   @override
+  State<_GoodItemCard> createState() => _GoodItemCardState();
+}
+
+class _GoodItemCardState extends State<_GoodItemCard> {
+  int _buildCount = 0;
+
+  @override
   Widget build(BuildContext context) {
+    _buildCount++;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
@@ -404,25 +412,31 @@ class _GoodItemCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    item.name,
+                    widget.item.name,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
                   ),
                 ),
-                RebuildTrackerBadge(label: 'Item ${item.id}', count: 1),
+                RebuildTrackerBadge(
+                  label: 'Item ${widget.item.id}',
+                  count: _buildCount,
+                ),
               ],
             ),
             const SizedBox(height: 4),
             Chip(
-              label: Text(item.category, style: const TextStyle(fontSize: 10)),
+              label: Text(
+                widget.item.category,
+                style: const TextStyle(fontSize: 10),
+              ),
               padding: EdgeInsets.zero,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             const SizedBox(height: 4),
             Text(
-              item.description,
+              widget.item.description,
               style: TextStyle(
                 fontSize: 12,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,

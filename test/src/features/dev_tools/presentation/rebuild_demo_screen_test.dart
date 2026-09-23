@@ -180,19 +180,23 @@ void main() {
       // 切り替え直後は Root も SearchBar も 1回
       check(find.text('Root: Rebuild: 1回').evaluate()).length.equals(1);
       check(find.text('SearchBar: Rebuild: 1回').evaluate()).length.equals(1);
+      check(find.text('Item 1: Rebuild: 1回').evaluate()).length.equals(1);
 
       // Goodモードで検索欄に入力
       final searchField = find.byKey(const Key('rebuild_search_text_field'));
-      await tester.enterText(searchField, 'Button');
+      await tester.enterText(searchField, 'container');
       await tester.pumpAndSettle();
 
       // 🌟 親の Root は 1回 のまま動かない！（const の恩恵）
       check(find.text('Root: Rebuild: 1回').evaluate()).length.equals(1);
       // 🌟 検索バーのみが再描画され、SearchBar バッジが 2回 になること
       check(find.text('SearchBar: Rebuild: 2回').evaluate()).length.equals(1);
+      // 🌟 検索絞り込みによりItemListが再構築され、残ったItem 1カードも2回にカウントアップされること
+      check(find.text('Item 1: Rebuild: 2回').evaluate()).length.equals(1);
 
-      check(find.text('ElevatedButton').evaluate()).length.equals(1);
-      check(find.text('Container').evaluate()).isEmpty();
+      check(find.text('Container').evaluate()).length.equals(1);
+      check(find.text('AnimatedContainer').evaluate()).length.equals(1);
+      check(find.text('TextField').evaluate()).isEmpty();
 
       // 該当なしのキーワード
       await tester.enterText(searchField, 'no_result_xyz');
