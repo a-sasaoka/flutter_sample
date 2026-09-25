@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
+import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
 import 'package:flutter_sample/src/features/share/application/share_service.dart';
 import 'package:flutter_sample/src/features/share/presentation/share_demo_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,6 +16,7 @@ import 'package:image_picker_platform_interface/image_picker_platform_interface.
 import 'package:mocktail/mocktail.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 class MockShareService extends Mock implements ShareService {}
 
@@ -22,10 +26,25 @@ class MockImagePickerPlatform extends Mock
 
 class FakeImagePickerOptions extends Fake implements ImagePickerOptions {}
 
+class FakeAppLockService extends AppLockService {
+  int suppressionCallCount = 0;
+
+  @override
+  Future<AppLockState> build() async => const AppLockState.disabled();
+
+  @override
+  Future<T> runWithLockSuppression<T>(Future<T> Function() action) async {
+    suppressionCallCount++;
+    return await action();
+  }
+}
+
 void main() {
   late MockShareService mockShareService;
   late ImagePickerPlatform originalImagePickerPlatform;
   late MockImagePickerPlatform mockImagePickerPlatform;
+  late FakeAppLockService fakeAppLockService;
+  late Talker talker;
 
   setUpAll(() {
     registerFallbackValue(const Rect.fromLTWH(0, 0, 10, 10));
@@ -40,12 +59,18 @@ void main() {
   setUp(() {
     mockShareService = MockShareService();
     mockImagePickerPlatform = MockImagePickerPlatform();
+    fakeAppLockService = FakeAppLockService();
+    talker = Talker(settings: TalkerSettings(useConsoleLogs: false));
     ImagePickerPlatform.instance = mockImagePickerPlatform;
   });
 
   Widget buildTestWidget() {
     return ProviderScope(
-      overrides: [shareServiceProvider.overrideWithValue(mockShareService)],
+      overrides: [
+        shareServiceProvider.overrideWithValue(mockShareService),
+        appLockServiceProvider.overrideWith(() => fakeAppLockService),
+        loggerProvider.overrideWithValue(talker),
+      ],
       child: const MaterialApp(
         localizationsDelegates: [
           AppLocalizations.delegate,
@@ -353,6 +378,7 @@ void main() {
         ),
       ).called(1);
       check(find.text('共有が完了しました')).findsOne();
+      check(fakeAppLockService.suppressionCallCount).isGreaterThan(0);
     });
 
     testWidgets('画像読み込みエラー時に broken_image アイコンが表示されること', (tester) async {
@@ -457,6 +483,37 @@ void main() {
         find.byKey(const Key('share_selected_image_button')),
       ).findsNothing();
       check(find.byKey(const Key('pick_image_button'))).findsOne();
+      check(fakeAppLockService.suppressionCallCount).isGreaterThan(0);
+    });
+
+    testWidgets('アルバムからの画像選択時に例外が発生した場合、エラーログが出力され画像が選択されないこと', (tester) async {
+      when(
+        () => mockImagePickerPlatform.getImageFromSource(
+          source: ImageSource.gallery,
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(Exception('Picker failure'));
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      final pickBtn = find.byKey(const Key('pick_image_button'));
+      await tester.dragUntilVisible(
+        pickBtn,
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+      await tester.drag(find.byType(ListView), const Offset(0, -150));
+      await tester.pumpAndSettle();
+
+      await tester.tap(pickBtn);
+      await tester.pumpAndSettle();
+
+      check(
+        find.byKey(const Key('share_selected_image_button')),
+      ).findsNothing();
+      check(find.byKey(const Key('pick_image_button'))).findsOne();
+      check(fakeAppLockService.suppressionCallCount).isGreaterThan(0);
     });
 
     testWidgets('Xでポストが失敗した時、失敗SnackBarが表示されること', (tester) async {
