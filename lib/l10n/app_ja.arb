@@ -511,6 +511,50 @@
   "devRebuildItemStackCategory": "レイアウト",
   "devRebuildItemStackDesc": "複数の子Widgetを前後に重ね合わせて立体的に配置するレイアウト",
   "devRebuildItemHeroCategory": "画面遷移",
-  "devRebuildItemHeroDesc": "2つの画面間をまたいで同じ要素が飛行するように移動するアニメーション"
+  "devRebuildItemHeroDesc": "2つの画面間をまたいで同じ要素が飛行するように移動するアニメーション",
+
+  "@_SHARE": {},
+  "homeShareTitle": "SNSシェア機能",
+  "shareTitle": "SNSシェア機能",
+  "shareTextSectionTitle": "テキスト・URL共有（OS標準）",
+  "shareTextLabel": "共有テキスト",
+  "shareUrlLabel": "共有URL（任意）",
+  "shareSubjectLabel": "件名（メール等・任意）",
+  "shareExecuteButton": "シェアシートを開く",
+  "shareImageSectionTitle": "画像共有（OS標準）",
+  "sharePickImageButton": "端末から画像を選択",
+  "shareSampleImageButton": "サンプル画像を即時シェア",
+  "shareSelectedImage": "選択中の画像: {fileName}",
+  "@shareSelectedImage": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "shareClearImage": "選択解除",
+  "shareDirectSnsSectionTitle": "特定のSNSへ直接共有",
+  "shareToXButton": "X (旧Twitter) でポスト",
+  "shareToLineButton": "LINEで送る",
+  "shareSuccess": "共有が完了しました",
+  "shareDismissed": "共有がキャンセルされました",
+  "shareUnavailable": "共有機能を利用できません",
+  "shareDirectSuccess": "{snsName}を開きました",
+  "@shareDirectSuccess": {
+    "placeholders": {
+      "snsName": {
+        "type": "String"
+      }
+    }
+  },
+  "shareDirectFailed": "{snsName}を開けませんでした",
+  "@shareDirectFailed": {
+    "placeholders": {
+      "snsName": {
+        "type": "String"
+      }
+    }
+  },
+  "shareDefaultText": "Flutter Sample App からシェアしています！ #Flutter"
 }
 

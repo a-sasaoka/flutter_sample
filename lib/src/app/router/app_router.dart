@@ -39,6 +39,7 @@ import 'package:flutter_sample/src/features/profile/presentation/profile_edit_sc
 import 'package:flutter_sample/src/features/qr_scanner/presentation/qr_scanner_history_screen.dart';
 import 'package:flutter_sample/src/features/qr_scanner/presentation/qr_scanner_screen.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
+import 'package:flutter_sample/src/features/share/presentation/share_demo_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_state_provider.dart';
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';

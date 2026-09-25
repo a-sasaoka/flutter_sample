@@ -61,3 +61,15 @@ class RebuildDemoRoute extends GoRouteData with $RebuildDemoRoute {
     return const RebuildDemoScreen();
   }
 }
+
+/// SNSシェア機能デモ画面のルート
+@TypedGoRoute<ShareDemoRoute>(path: '/dev-tools/share')
+class ShareDemoRoute extends GoRouteData with $ShareDemoRoute {
+  /// コンストラクタ
+  const ShareDemoRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const ShareDemoScreen();
+  }
+}

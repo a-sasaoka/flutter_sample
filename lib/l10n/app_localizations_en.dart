@@ -1178,4 +1178,73 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get devRebuildItemHeroDesc =>
       'An animation where an element appears to fly between two screens.';
+
+  @override
+  String get homeShareTitle => 'SNS Share';
+
+  @override
+  String get shareTitle => 'SNS Share';
+
+  @override
+  String get shareTextSectionTitle => 'Text & URL Share (OS Standard)';
+
+  @override
+  String get shareTextLabel => 'Share Text';
+
+  @override
+  String get shareUrlLabel => 'Share URL (Optional)';
+
+  @override
+  String get shareSubjectLabel => 'Subject (Optional)';
+
+  @override
+  String get shareExecuteButton => 'Open Share Sheet';
+
+  @override
+  String get shareImageSectionTitle => 'Image Share (OS Standard)';
+
+  @override
+  String get sharePickImageButton => 'Select Image from Gallery';
+
+  @override
+  String get shareSampleImageButton => 'Share Sample Image';
+
+  @override
+  String shareSelectedImage(String fileName) {
+    return 'Selected: $fileName';
+  }
+
+  @override
+  String get shareClearImage => 'Clear';
+
+  @override
+  String get shareDirectSnsSectionTitle => 'Direct Share to SNS';
+
+  @override
+  String get shareToXButton => 'Post on X (Twitter)';
+
+  @override
+  String get shareToLineButton => 'Send via LINE';
+
+  @override
+  String get shareSuccess => 'Sharing completed successfully';
+
+  @override
+  String get shareDismissed => 'Sharing was cancelled';
+
+  @override
+  String get shareUnavailable => 'Share feature is unavailable';
+
+  @override
+  String shareDirectSuccess(String snsName) {
+    return 'Opened $snsName';
+  }
+
+  @override
+  String shareDirectFailed(String snsName) {
+    return 'Could not open $snsName';
+  }
+
+  @override
+  String get shareDefaultText => 'Sharing from Flutter Sample App! #Flutter';
 }

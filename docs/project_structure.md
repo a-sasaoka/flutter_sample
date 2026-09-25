@@ -88,6 +88,7 @@ flutter_sample
             ├── profile                                         # プロフィール登録・変更機能
             ├── qr_scanner                                      # QRコードリーダー機能（カメラ・画像解析・スキャン履歴）
             ├── settings                                        # 設定画面
+            ├── share                                           # SNSシェア機能（OS標準共有・特定SNS連携・画像動的生成）
             ├── splash                                          # スプラッシュ画面
             └── user                                            # ユーザー管理機能
                 ├── application                                 # 状態管理・ビジネスロジック (Notifier)
