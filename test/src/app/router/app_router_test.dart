@@ -50,6 +50,7 @@ import 'package:flutter_sample/src/features/profile/presentation/profile_edit_sc
 import 'package:flutter_sample/src/features/qr_scanner/presentation/qr_scanner_history_screen.dart';
 import 'package:flutter_sample/src/features/qr_scanner/presentation/qr_scanner_screen.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
+import 'package:flutter_sample/src/features/share/presentation/share_demo_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_screen.dart';
 import 'package:flutter_sample/src/features/splash/presentation/splash_state_provider.dart';
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
@@ -272,6 +273,8 @@ void main() {
     when(() => mockL10n.devNotificationTitle).thenReturn('Notification Demo');
     when(() => mockL10n.devImageCacheTitle).thenReturn('Image Cache Demo');
     when(() => mockL10n.devRebuildTitle).thenReturn('Rebuild Demo');
+    when(() => mockL10n.homeShareTitle).thenReturn('SNS Share');
+    when(() => mockL10n.shareTitle).thenReturn('SNS Share');
     when(
       () => mockL10n.notificationBannerTitle,
     ).thenReturn('Notification Banner Title');
@@ -946,6 +949,14 @@ void main() {
         MockGoRouterState(),
       );
       check(widget).isA<RebuildDemoScreen>();
+    });
+
+    test('ShareDemoRoute.build: ShareDemoScreen を返すこと', () {
+      final widget = const ShareDemoRoute().build(
+        MockBuildContext(),
+        MockGoRouterState(),
+      );
+      check(widget).isA<ShareDemoScreen>();
     });
 
     test('SignUpRoute.build: FirebaseSignUpScreen を返すこと', () {

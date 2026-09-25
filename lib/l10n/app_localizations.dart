@@ -2281,6 +2281,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'An animation where an element appears to fly between two screens.'**
   String get devRebuildItemHeroDesc;
+
+  /// No description provided for @homeShareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SNS Share'**
+  String get homeShareTitle;
+
+  /// No description provided for @shareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SNS Share'**
+  String get shareTitle;
+
+  /// No description provided for @shareTextSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Text & URL Share (OS Standard)'**
+  String get shareTextSectionTitle;
+
+  /// No description provided for @shareTextLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Text'**
+  String get shareTextLabel;
+
+  /// No description provided for @shareUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Share URL (Optional)'**
+  String get shareUrlLabel;
+
+  /// No description provided for @shareSubjectLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Subject (Optional)'**
+  String get shareSubjectLabel;
+
+  /// No description provided for @shareExecuteButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Share Sheet'**
+  String get shareExecuteButton;
+
+  /// No description provided for @shareImageSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Image Share (OS Standard)'**
+  String get shareImageSectionTitle;
+
+  /// No description provided for @sharePickImageButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Image from Gallery'**
+  String get sharePickImageButton;
+
+  /// No description provided for @shareSampleImageButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Sample Image'**
+  String get shareSampleImageButton;
+
+  /// No description provided for @shareSelectedImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected: {fileName}'**
+  String shareSelectedImage(String fileName);
+
+  /// No description provided for @shareClearImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get shareClearImage;
+
+  /// No description provided for @shareDirectSnsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct Share to SNS'**
+  String get shareDirectSnsSectionTitle;
+
+  /// No description provided for @shareToXButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Post on X (Twitter)'**
+  String get shareToXButton;
+
+  /// No description provided for @shareToLineButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Send via LINE'**
+  String get shareToLineButton;
+
+  /// No description provided for @shareSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing completed successfully'**
+  String get shareSuccess;
+
+  /// No description provided for @shareDismissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing was cancelled'**
+  String get shareDismissed;
+
+  /// No description provided for @shareUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Share feature is unavailable'**
+  String get shareUnavailable;
+
+  /// No description provided for @shareDirectSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Opened {snsName}'**
+  String shareDirectSuccess(String snsName);
+
+  /// No description provided for @shareDirectFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open {snsName}'**
+  String shareDirectFailed(String snsName);
+
+  /// No description provided for @shareDefaultText.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing from Flutter Sample App! #Flutter'**
+  String get shareDefaultText;
 }
 
 class _AppLocalizationsDelegate

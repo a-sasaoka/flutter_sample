@@ -121,6 +121,8 @@ dependencies:
   # --- 🔗 外部連携（URL起動等） ---
   url_launcher: ^6.3.2
 
+  # --- 📤 シェア機能 ---
+  share_plus: ^13.3.0
 
 # -----------------------------------------------
 # 🛠️ 開発時に使用する依存関係（コード生成・Lintなど）
@@ -133,6 +135,7 @@ dev_dependencies:
   permission_handler_platform_interface: ^4.4.1
   image_picker_platform_interface: ^2.11.1
   url_launcher_platform_interface: ^2.3.2
+  share_plus_platform_interface: ^7.2.0
 
   # --- 🔍 Lint設定（コード品質チェック） ---
   flutter_lints: ^6.0.0

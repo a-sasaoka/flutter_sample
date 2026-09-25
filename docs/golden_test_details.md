@@ -432,3 +432,18 @@ QRコード検出時、またはアルバム画像からQRコードを読み取�
   - Markdownの見出しや箇条書き、本文が正しくレンダリングされているか。
   - ダークモード時に背景色とテキスト色が適切に調和しているか。
 - **画像リンク**: [📷 画像を表示する (privacy_policy_screen.png)](../test/src/features/legal/presentation/goldens/macos/privacy_policy_screen.png)
+
+---
+
+### 11. SNSシェア機能 (Share Features)
+
+#### 11.1 SNSシェアデモ画面 (ShareDemoScreen)
+
+OS標準シェアシートや特定SNSへの直接投稿を検証するデモ画面です。
+
+- **テスト対象**: ライトモード、ダークモードの計2状態
+- **チェックポイント**:
+  - タイトル「SNSシェア機能」および各セクション（テキスト・URL共有、画像共有、特定SNS直接共有）のカードUIが正しく表示されているか。
+  - テキスト・URL・件名入力欄および各操作ボタンが綺麗に配置されているか。
+  - ダークモード時にXのボタンが白背景・黒文字に自動反転し、背景と同化せず良好なコントラストが維持されているか。
+- **画像リンク**: [📷 画像を表示する (share_demo_screen.png)](../test/src/features/share/presentation/goldens/macos/share_demo_screen.png)

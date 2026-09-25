@@ -1142,4 +1142,73 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get devRebuildItemHeroDesc => '2つの画面間をまたいで同じ要素が飛行するように移動するアニメーション';
+
+  @override
+  String get homeShareTitle => 'SNSシェア機能';
+
+  @override
+  String get shareTitle => 'SNSシェア機能';
+
+  @override
+  String get shareTextSectionTitle => 'テキスト・URL共有（OS標準）';
+
+  @override
+  String get shareTextLabel => '共有テキスト';
+
+  @override
+  String get shareUrlLabel => '共有URL（任意）';
+
+  @override
+  String get shareSubjectLabel => '件名（メール等・任意）';
+
+  @override
+  String get shareExecuteButton => 'シェアシートを開く';
+
+  @override
+  String get shareImageSectionTitle => '画像共有（OS標準）';
+
+  @override
+  String get sharePickImageButton => '端末から画像を選択';
+
+  @override
+  String get shareSampleImageButton => 'サンプル画像を即時シェア';
+
+  @override
+  String shareSelectedImage(String fileName) {
+    return '選択中の画像: $fileName';
+  }
+
+  @override
+  String get shareClearImage => '選択解除';
+
+  @override
+  String get shareDirectSnsSectionTitle => '特定のSNSへ直接共有';
+
+  @override
+  String get shareToXButton => 'X (旧Twitter) でポスト';
+
+  @override
+  String get shareToLineButton => 'LINEで送る';
+
+  @override
+  String get shareSuccess => '共有が完了しました';
+
+  @override
+  String get shareDismissed => '共有がキャンセルされました';
+
+  @override
+  String get shareUnavailable => '共有機能を利用できません';
+
+  @override
+  String shareDirectSuccess(String snsName) {
+    return '$snsNameを開きました';
+  }
+
+  @override
+  String shareDirectFailed(String snsName) {
+    return '$snsNameを開けませんでした';
+  }
+
+  @override
+  String get shareDefaultText => 'Flutter Sample App からシェアしています！ #Flutter';
 }

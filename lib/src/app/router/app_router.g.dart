@@ -19,6 +19,7 @@ List<RouteBase> get $appRoutes => [
   $pushNotificationDemoRoute,
   $imageCacheDemoRoute,
   $rebuildDemoRoute,
+  $shareDemoRoute,
 ];
 
 RouteBase get $loginRoute => GoRouteData.$route(
@@ -678,6 +679,33 @@ mixin $RebuildDemoRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/dev-tools/rebuild');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $shareDemoRoute => GoRouteData.$route(
+  path: '/dev-tools/share',
+  hasOverriddenOnExit: false,
+  factory: $ShareDemoRoute._fromState,
+);
+
+mixin $ShareDemoRoute on GoRouteData {
+  static ShareDemoRoute _fromState(GoRouterState state) =>
+      const ShareDemoRoute();
+
+  @override
+  String get location => GoRouteData.$location('/dev-tools/share');
 
   @override
   void go(BuildContext context) => context.go(location);

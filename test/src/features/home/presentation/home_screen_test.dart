@@ -147,6 +147,7 @@ void main() {
     when(() => mockL10n.devRebuildTitle).thenReturn('再ビルド最適化検証');
     when(() => mockL10n.mapTitle).thenReturn('地図');
     when(() => mockL10n.homeQrScannerTitle).thenReturn('QRコードリーダー');
+    when(() => mockL10n.homeShareTitle).thenReturn('SNSシェアデモ');
     when(
       () => mockL10n.notificationBannerTitle,
     ).thenReturn('通知をオンにして最新情報を受け取ろう');
@@ -643,6 +644,31 @@ void main() {
       await tester.pumpAndSettle();
 
       check(find.text('ImageCacheDemo Destination')).findsOne();
+    });
+
+    testWidgets('SNSシェアデモメニューをタップすると該当ルートへ遷移すること', (tester) async {
+      await setupWidget(
+        tester,
+        additionalRoutes: [
+          GoRoute(
+            path: '/dev-tools/share',
+            builder: (context, state) =>
+                const Scaffold(body: Text('ShareDemo Destination')),
+          ),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      final finder = find.widgetWithText(ListTile, 'SNSシェアデモ');
+      await tester.dragUntilVisible(
+        finder,
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+
+      check(find.text('ShareDemo Destination')).findsOne();
     });
 
     testWidgets('通知権限が未設定(notDetermined)の場合、HomeScreen上部に通知プロンプトバナーが表示されること', (

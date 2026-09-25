@@ -511,6 +511,50 @@
   "devRebuildItemStackCategory": "Layout",
   "devRebuildItemStackDesc": "A layout that overlays multiple children on top of each other.",
   "devRebuildItemHeroCategory": "Navigation",
-  "devRebuildItemHeroDesc": "An animation where an element appears to fly between two screens."
+  "devRebuildItemHeroDesc": "An animation where an element appears to fly between two screens.",
+
+  "@_SHARE": {},
+  "homeShareTitle": "SNS Share",
+  "shareTitle": "SNS Share",
+  "shareTextSectionTitle": "Text & URL Share (OS Standard)",
+  "shareTextLabel": "Share Text",
+  "shareUrlLabel": "Share URL (Optional)",
+  "shareSubjectLabel": "Subject (Optional)",
+  "shareExecuteButton": "Open Share Sheet",
+  "shareImageSectionTitle": "Image Share (OS Standard)",
+  "sharePickImageButton": "Select Image from Gallery",
+  "shareSampleImageButton": "Share Sample Image",
+  "shareSelectedImage": "Selected: {fileName}",
+  "@shareSelectedImage": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "shareClearImage": "Clear",
+  "shareDirectSnsSectionTitle": "Direct Share to SNS",
+  "shareToXButton": "Post on X (Twitter)",
+  "shareToLineButton": "Send via LINE",
+  "shareSuccess": "Sharing completed successfully",
+  "shareDismissed": "Sharing was cancelled",
+  "shareUnavailable": "Share feature is unavailable",
+  "shareDirectSuccess": "Opened {snsName}",
+  "@shareDirectSuccess": {
+    "placeholders": {
+      "snsName": {
+        "type": "String"
+      }
+    }
+  },
+  "shareDirectFailed": "Could not open {snsName}",
+  "@shareDirectFailed": {
+    "placeholders": {
+      "snsName": {
+        "type": "String"
+      }
+    }
+  },
+  "shareDefaultText": "Sharing from Flutter Sample App! #Flutter"
 }
 

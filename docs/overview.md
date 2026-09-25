@@ -30,6 +30,7 @@
 | ⚡️ パフォーマンス   | cached_network_image による画像キャッシュ・メモリ最適化、Firebase Performance による通信・処理時間の自動監視、DevTools を用いたアプリサイズ分析、ウィジェット不要再ビルドの特定と撲滅検証            |
 | 📷 QRコードリーダー | mobile_scanner によるリアルタイムQR読み取り・アルバム画像解析、Drift によるスキャン履歴のローカル永続化とスワイプ削除、URL判定・ブラウザ起動                                                         |
 | 📜 法的情報         | flutter_markdown_plus + flutter_gen による利用規約・プライバシーポリシーの型安全な読み込みと表示、公開ルーティング設定                                                                               |
+| 📢 SNSシェア        | share_plus によるOS標準共有（テキスト・URL・画像）とiPadポップオーバー対応、特定SNS（X/LINE）直接投稿連携、アプリロック誤作動抑止                                                                    |
 | 🧰 コード生成       | build_runnerによる自動生成と、JSON/Enviedを組み合わせた高度な環境切替対応                                                                                                                            |
 | 🎨 UI/UX            | FlexColorSchemeによるテーマ設定、共通エラーハンドリングUI、共通カスタムバリデータによる堅牢なフォーム検証、Haptic Feedback（触覚）の実装                                                             |
 | 🧪 テスト           | package:checks / mocktail を用いた実践的なユニット・ウィジェットテスト、Alchemist によるゴールデンテスト、および Maestro による E2E テストの手法                                                     |

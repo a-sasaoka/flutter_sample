@@ -177,6 +177,12 @@ class _HomeBody extends ConsumerWidget {
                 ),
                 const Divider(height: 1, indent: 56),
                 _MenuTile(
+                  icon: Icons.share_outlined,
+                  title: l10n.homeShareTitle,
+                  onTap: () => const ShareDemoRoute().push<void>(context),
+                ),
+                const Divider(height: 1, indent: 56),
+                _MenuTile(
                   icon: Icons.terminal_outlined,
                   title: l10n.developerLogTitle,
                   onTap: () => Navigator.of(context).push(

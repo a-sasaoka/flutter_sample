@@ -64,6 +64,7 @@ void main() {
       when(() => mockL10n.notificationBannerSettingsButton).thenReturn('設定を開く');
       when(() => mockL10n.notificationBannerDismiss).thenReturn('閉じる');
       when(() => mockL10n.devRebuildTitle).thenReturn('再ビルド最適化検証');
+      when(() => mockL10n.homeShareTitle).thenReturn('SNSシェアデモ');
     });
 
     Widget buildHomeForGolden({required ThemeMode themeMode}) {

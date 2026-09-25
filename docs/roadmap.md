@@ -10,6 +10,7 @@
 | 👤 プロフィール | アバター写真の設定・円形切り抜き（`image_cropper`）・Firebase Storage へのアップロードと端末内自動キャッシュ (`AppCachedImage.circle`) (✅ 完了) |
 | 🗺️ 位置情報・地図 | Google Maps (`google_maps_flutter`)、Geolocator、Geocoding、および Google Directions API による現在地表示・住所ランドマーク検索・2点間ルート検索・Polyline経路描画 (✅ 完了) |
 | 📷 カメラ・QRコード | `mobile_scanner` によるリアルタイムQRスキャン、アルバム画像からのQR解析、および Drift (SQLite) によるスキャン履歴保存・管理 (✅ 完了) |
+| 📢 SNSシェア | `share_plus` によるOS標準共有（テキスト・URL・画像）とiPadポップオーバー対応、特定SNS（X/LINE）直接投稿連携、アプリロック誤作動抑止 (✅ 完了) |
 | 🤖 AI機能の拡張 | Gemini API のマルチモーダル対応（画像解析）、Function Calling による外部API連携 |
 | 🔔 通知・連携 | Firebase Cloud Messaging (FCM) の導入、ローカル通知 (`flutter_local_notifications`)、通知タップ時のディープリンク連携 (✅ 完了。※iOS Universal Links は今後対応) |
 | 🧠 高度なテスト | Maestro による E2E テストの導入（iOS 達成）。今後はテストケースの拡充および CI (GitHub Actions) での自動実行の整備 |
