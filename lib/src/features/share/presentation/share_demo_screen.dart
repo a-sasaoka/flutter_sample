@@ -232,12 +232,9 @@ class ShareDemoScreen extends HookConsumerWidget {
                                 return await picker.pickImage(
                                   source: ImageSource.gallery,
                                 );
-                              } on Object catch (e, stack) {
+                              } on Object {
                                 logger.warning(
-                                  '⚠️ [ShareDemoScreen] Failed to pick image: '
-                                  '$e',
-                                  e,
-                                  stack,
+                                  '⚠️ [ShareDemoScreen] Failed to pick image',
                                 );
                                 return null;
                               }

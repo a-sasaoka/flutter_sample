@@ -159,12 +159,8 @@ class ShareService {
       result = await appLockService.runWithLockSuppression<ShareResult>(
         () => _sharePlus.share(params),
       );
-    } on Object catch (e, stack) {
-      logger.error(
-        '❌ [ShareService] $actionName failed with exception',
-        e,
-        stack,
-      );
+    } on Object {
+      logger.error('❌ [ShareService] $actionName failed with exception');
       result = const ShareResult('', ShareResultStatus.unavailable);
     }
 
