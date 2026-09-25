@@ -37,7 +37,11 @@ class ShareService {
   }) async {
     final origin =
         sharePositionOrigin ?? ShareConfig.defaultSharePositionOrigin;
-    logger.info('📤 [ShareService] shareText: "$text", subject: "$subject"');
+    final hasSubject = subject != null && subject.isNotEmpty;
+    logger.info(
+      '📤 [ShareService] shareText: length=${text.length}, '
+      'hasSubject=$hasSubject',
+    );
 
     final result = await appLockService.runWithLockSuppression<ShareResult>(
       () => _sharePlus.share(
@@ -58,8 +62,10 @@ class ShareService {
   }) async {
     final origin =
         sharePositionOrigin ?? ShareConfig.defaultSharePositionOrigin;
+    final textLen = text?.length ?? 0;
     logger.info(
-      '📤 [ShareService] shareXFiles: ${files.length} files, text: "$text"',
+      '📤 [ShareService] shareXFiles: ${files.length} files, '
+      'textLength=$textLen',
     );
 
     final result = await appLockService.runWithLockSuppression<ShareResult>(
@@ -95,14 +101,20 @@ class ShareService {
       ShareConfig.xIntentPath,
       queryParameters,
     );
-    logger.info('📤 [ShareService] shareToX: $uri');
+    final hasUrl = url != null && url.isNotEmpty;
+    logger.info(
+      '📤 [ShareService] shareToX: host=${uri.host}, '
+      'textLength=${text.length}, hasUrl=$hasUrl',
+    );
 
     final launched = await appLockService.runWithLockSuppression<bool>(
       () => launchUrl(uri, mode: LaunchMode.externalApplication),
     );
 
     if (!launched) {
-      logger.warning('⚠️ [ShareService] Could not launch X intent: $uri');
+      logger.warning(
+        '⚠️ [ShareService] Could not launch X intent: host=${uri.host}',
+      );
     }
     return launched;
   }
@@ -111,14 +123,19 @@ class ShareService {
   Future<bool> shareToLine({required String text}) async {
     final encoded = Uri.encodeComponent(text);
     final uri = Uri.parse('${ShareConfig.lineMessageBaseUrl}$encoded');
-    logger.info('📤 [ShareService] shareToLine: $uri');
+    logger.info(
+      '📤 [ShareService] shareToLine: host=${uri.host}, '
+      'textLength=${text.length}',
+    );
 
     final launched = await appLockService.runWithLockSuppression<bool>(
       () => launchUrl(uri, mode: LaunchMode.externalApplication),
     );
 
     if (!launched) {
-      logger.warning('⚠️ [ShareService] Could not launch LINE intent: $uri');
+      logger.warning(
+        '⚠️ [ShareService] Could not launch LINE intent: host=${uri.host}',
+      );
     }
     return launched;
   }
