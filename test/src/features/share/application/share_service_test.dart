@@ -262,6 +262,17 @@ void main() {
       check(launched).isFalse();
       check(fakeAppLockService.suppressionCallCount).equals(1);
     });
+
+    test('X (Twitter) 起動時に例外が発生した場合に false を返すこと', () async {
+      when(
+        () => mockUrlLauncherPlatform.launchUrl(any(), any()),
+      ).thenThrow(Exception('Launch failed'));
+
+      final launched = await service.shareToX(text: '例外テスト');
+
+      check(launched).isFalse();
+      check(fakeAppLockService.suppressionCallCount).equals(1);
+    });
   });
 
   group('ShareService - shareToLine', () {
@@ -290,6 +301,17 @@ void main() {
       ).thenAnswer((_) async => false);
 
       final launched = await service.shareToLine(text: 'LINE失敗テスト');
+
+      check(launched).isFalse();
+      check(fakeAppLockService.suppressionCallCount).equals(1);
+    });
+
+    test('LINE 起動時に例外が発生した場合に false を返すこと', () async {
+      when(
+        () => mockUrlLauncherPlatform.launchUrl(any(), any()),
+      ).thenThrow(Exception('Launch failed'));
+
+      final launched = await service.shareToLine(text: 'LINE例外テスト');
 
       check(launched).isFalse();
       check(fakeAppLockService.suppressionCallCount).equals(1);

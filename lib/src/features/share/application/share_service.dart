@@ -99,16 +99,7 @@ class ShareService {
       'textLength=${text.length}, hasUrl=$hasUrl',
     );
 
-    final launched = await appLockService.runWithLockSuppression<bool>(
-      () => launchUrl(uri, mode: LaunchMode.externalApplication),
-    );
-
-    if (!launched) {
-      logger.warning(
-        '⚠️ [ShareService] Could not launch X intent: host=${uri.host}',
-      );
-    }
-    return launched;
+    return await _safeLaunchUrl('X', uri);
   }
 
   /// LINE のメッセージ送信画面を直接開く
@@ -120,16 +111,7 @@ class ShareService {
       'textLength=${text.length}',
     );
 
-    final launched = await appLockService.runWithLockSuppression<bool>(
-      () => launchUrl(uri, mode: LaunchMode.externalApplication),
-    );
-
-    if (!launched) {
-      logger.warning(
-        '⚠️ [ShareService] Could not launch LINE intent: host=${uri.host}',
-      );
-    }
-    return launched;
+    return await _safeLaunchUrl('LINE', uri);
   }
 
   /// サンプルPNG画像をメモリ上に生成して返す
@@ -203,6 +185,31 @@ class ShareService {
         logger.warning(
           '⚠️ [ShareService] $actionName is unavailable on this platform',
         );
+    }
+  }
+
+  /// URL起動を安全に実行し、起動失敗または例外発生時は false を返す
+  Future<bool> _safeLaunchUrl(String serviceName, Uri uri) async {
+    try {
+      final launched = await appLockService.runWithLockSuppression<bool>(
+        () => launchUrl(uri, mode: LaunchMode.externalApplication),
+      );
+
+      if (!launched) {
+        logger.warning(
+          '⚠️ [ShareService] Could not launch $serviceName intent: '
+          'host=${uri.host}',
+        );
+      }
+      return launched;
+    } on Object catch (e, stack) {
+      logger.warning(
+        '⚠️ [ShareService] Failed to launch $serviceName intent with '
+        'exception: host=${uri.host}',
+        e,
+        stack,
+      );
+      return false;
     }
   }
 }
