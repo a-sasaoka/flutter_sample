@@ -202,12 +202,10 @@ class ShareService {
         );
       }
       return launched;
-    } on Object catch (e, stack) {
+    } on Object {
       logger.warning(
-        '⚠️ [ShareService] Failed to launch $serviceName intent with '
-        'exception: host=${uri.host}',
-        e,
-        stack,
+        '⚠️ [ShareService] Failed to launch $serviceName intent: '
+        'host=${uri.host}',
       );
       return false;
     }
