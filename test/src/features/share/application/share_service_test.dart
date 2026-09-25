@@ -132,6 +132,17 @@ void main() {
       check(fakeAppLockService.suppressionCallCount).equals(1);
     });
 
+    test('プラットフォーム例外が発生した場合、ShareResult.unavailable を返すこと', () async {
+      when(
+        () => mockSharePlatform.share(any()),
+      ).thenThrow(Exception('Platform share failed'));
+
+      final result = await service.shareText(text: '例外テスト');
+
+      check(result.status).equals(ShareResultStatus.unavailable);
+      check(fakeAppLockService.suppressionCallCount).equals(1);
+    });
+
     test(
       'sharePositionOrigin が未指定（null）の場合、ShareConfig のデフォルト座標が補完されること',
       () async {

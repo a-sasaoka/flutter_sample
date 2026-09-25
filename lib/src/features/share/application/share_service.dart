@@ -43,14 +43,10 @@ class ShareService {
       'hasSubject=$hasSubject',
     );
 
-    final result = await appLockService.runWithLockSuppression<ShareResult>(
-      () => _sharePlus.share(
-        ShareParams(text: text, subject: subject, sharePositionOrigin: origin),
-      ),
+    return await _safeShare(
+      'shareText',
+      ShareParams(text: text, subject: subject, sharePositionOrigin: origin),
     );
-
-    _logShareResult('shareText', result);
-    return result;
   }
 
   /// OS標準シェアシートで画像・ファイルを共有する
@@ -68,19 +64,15 @@ class ShareService {
       'textLength=$textLen',
     );
 
-    final result = await appLockService.runWithLockSuppression<ShareResult>(
-      () => _sharePlus.share(
-        ShareParams(
-          files: files,
-          text: text,
-          subject: subject,
-          sharePositionOrigin: origin,
-        ),
+    return await _safeShare(
+      'shareXFiles',
+      ShareParams(
+        files: files,
+        text: text,
+        subject: subject,
+        sharePositionOrigin: origin,
       ),
     );
-
-    _logShareResult('shareXFiles', result);
-    return result;
   }
 
   /// X (旧Twitter) の投稿画面をWeb Intent経由で直接開く
@@ -176,6 +168,26 @@ class ShareService {
       mimeType: 'image/png',
       name: 'flutter_sample_share.png',
     );
+  }
+
+  /// OS標準シェア処理を安全に実行し、例外発生時は [ShareResultStatus.unavailable] を返す
+  Future<ShareResult> _safeShare(String actionName, ShareParams params) async {
+    ShareResult result;
+    try {
+      result = await appLockService.runWithLockSuppression<ShareResult>(
+        () => _sharePlus.share(params),
+      );
+    } on Object catch (e, stack) {
+      logger.error(
+        '❌ [ShareService] $actionName failed with exception',
+        e,
+        stack,
+      );
+      result = const ShareResult('', ShareResultStatus.unavailable);
+    }
+
+    _logShareResult(actionName, result);
+    return result;
   }
 
   /// [ShareResult] の結果に応じた適切なログを出力する
