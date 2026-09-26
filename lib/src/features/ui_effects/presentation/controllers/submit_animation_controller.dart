@@ -46,6 +46,11 @@ class SubmitAnimationController extends _$SubmitAnimationController {
         await Future<void>.delayed(duration);
       }
 
+      // 非同期処理待機中にプロバイダーが破棄された場合は状態更新をスキップ
+      if (!ref.mounted) {
+        return;
+      }
+
       if (!isSuccess) {
         state = SubmitStatus.error;
         return;
@@ -54,7 +59,9 @@ class SubmitAnimationController extends _$SubmitAnimationController {
       // 成功状態へ遷移
       state = SubmitStatus.success;
     } on Exception {
-      state = SubmitStatus.error;
+      if (ref.mounted) {
+        state = SubmitStatus.error;
+      }
     }
   }
 

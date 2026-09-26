@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/features/ui_effects/presentation/controllers/submit_animation_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -191,6 +193,53 @@ void main() {
         SubmitStatus.loading,
         SubmitStatus.success,
       ]);
+    });
+
+    test('非同期処理待機中にプロバイダーが破棄された場合、状態更新をスキップして安全に終了すること', () async {
+      final container = ProviderContainer();
+      final notifier = container.read(
+        submitAnimationControllerProvider.notifier,
+      );
+
+      final completer = Completer<void>();
+      final future = notifier.submit(
+        task: () async {
+          await completer.future;
+        },
+      );
+
+      // 処理待機中にプロバイダー（コンテナ）を破棄
+      container.dispose();
+
+      // 非同期処理を完了させる
+      completer.complete();
+      await future;
+
+      // Bad stateエラー等の例外が発生せず正常終了すること
+    });
+
+    test('例外発生時、プロバイダーが破棄済みであればエラー状態更新をスキップすること', () async {
+      final container = ProviderContainer();
+      final notifier = container.read(
+        submitAnimationControllerProvider.notifier,
+      );
+
+      final completer = Completer<void>();
+      final future = notifier.submit(
+        task: () async {
+          await completer.future;
+          throw Exception('Delayed error');
+        },
+      );
+
+      // 処理待機中にプロバイダー（コンテナ）を破棄
+      container.dispose();
+
+      // 非同期処理で例外を発生させる
+      completer.complete();
+      await future;
+
+      // Bad stateエラー等の例外が発生せず正常終了すること
     });
   });
 }
