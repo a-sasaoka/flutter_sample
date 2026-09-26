@@ -69,7 +69,7 @@ lib/src/core/config/
 
 ### 1. シード色から独自のカラースキームを生成する
 
-当プロジェクトでは `FlexScheme.indigoM3` プリセットを採用していますが、ブランドカラーなどの単一色（シード色）から動的にパレットを生成する場合は `SeedColorScheme.fromSeeds` プロパティを利用します。詳しい設定手順は [FlexColorScheme 公式ドキュメント (Seed-Generated Color Schemes)](https://docs.flexcolorscheme.com/)、および現在のテーマ定義は [app_theme.dart](../lib/src/core/config/app_theme.dart) の `AppTheme` クラスを参照してください。
+当プロジェクトでは `FlexScheme.indigoM3` プリセットを採用していますが、ブランドカラーなどの単一色（シード色）から動的にパレットを生成する場合は `SeedColorScheme.fromSeeds` 静的メソッドを利用します。詳しい設定手順は [FlexColorScheme 公式ドキュメント (Seed-Generated Color Schemes)](https://docs.flexcolorscheme.com/)、および現在のテーマ定義は [app_theme.dart](../lib/src/core/config/app_theme.dart) の `AppTheme` クラスを参照してください。
 
 ### 2. タイポグラフィ（文字のスタイル）を調整する
 
