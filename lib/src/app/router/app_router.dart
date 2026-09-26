@@ -20,6 +20,7 @@ import 'package:flutter_sample/src/features/auth/presentation/firebase_sign_up_s
 import 'package:flutter_sample/src/features/auth/presentation/login_screen.dart';
 import 'package:flutter_sample/src/features/chart/presentation/chart_display_screen.dart';
 import 'package:flutter_sample/src/features/chart/presentation/chart_input_screen.dart';
+import 'package:flutter_sample/src/features/chart/presentation/sales_chart_screen.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/developer_storage_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/image_cache_demo_screen.dart';

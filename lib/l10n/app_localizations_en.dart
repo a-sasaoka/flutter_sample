@@ -373,6 +373,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chartClearConfirm => 'Are you sure you want to clear all data?';
 
   @override
+  String get chartViewSales => 'View Sales Trend Chart';
+
+  @override
+  String get salesChartTitle => 'Sales Trends';
+
+  @override
+  String get salesChartPeriod7Days => '7 Days';
+
+  @override
+  String get salesChartPeriod14Days => '14 Days';
+
+  @override
+  String get salesChartTotalSales => 'Total Sales';
+
+  @override
+  String get salesChartDailyAverage => 'Daily Average';
+
+  @override
   String get userListTitle => 'User List';
 
   @override

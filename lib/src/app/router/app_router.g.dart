@@ -239,6 +239,11 @@ RouteBase get $appShellRouteData => StatefulShellRouteData.$route(
               hasOverriddenOnExit: false,
               factory: $ChartDisplayRoute._fromState,
             ),
+            GoRouteData.$route(
+              path: 'sales',
+              hasOverriddenOnExit: false,
+              factory: $SalesChartRoute._fromState,
+            ),
           ],
         ),
       ],
@@ -471,6 +476,27 @@ mixin $ChartDisplayRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/chart-input/display');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $SalesChartRoute on GoRouteData {
+  static SalesChartRoute _fromState(GoRouterState state) =>
+      const SalesChartRoute();
+
+  @override
+  String get location => GoRouteData.$location('/chart-input/sales');
 
   @override
   void go(BuildContext context) => context.go(location);

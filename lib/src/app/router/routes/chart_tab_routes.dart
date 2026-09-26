@@ -22,6 +22,17 @@ class ChartDisplayRoute extends GoRouteData with $ChartDisplayRoute {
   }
 }
 
+/// 📉 売上推移チャート画面ルート
+class SalesChartRoute extends GoRouteData with $SalesChartRoute {
+  /// コンストラクタ
+  const SalesChartRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const SalesChartScreen();
+  }
+}
+
 /// 📊 グラフタブのブランチデータ
 class ChartBranch extends StatefulShellBranchData {
   /// コンストラクタ
@@ -33,7 +44,10 @@ const chartShellBranch = TypedStatefulShellBranch<ChartBranch>(
   routes: <TypedRoute<RouteData>>[
     TypedGoRoute<ChartInputRoute>(
       path: '/chart-input',
-      routes: [TypedGoRoute<ChartDisplayRoute>(path: 'display')],
+      routes: [
+        TypedGoRoute<ChartDisplayRoute>(path: 'display'),
+        TypedGoRoute<SalesChartRoute>(path: 'sales'),
+      ],
     ),
   ],
 );

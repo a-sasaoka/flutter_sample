@@ -140,6 +140,12 @@
   "chartDataList": "データ一覧",
   "chartClearAll": "すべて削除",
   "chartClearConfirm": "全てのデータを削除しますか？",
+  "chartViewSales": "売上推移グラフを表示",
+  "salesChartTitle": "売上推移チャート",
+  "salesChartPeriod7Days": "7日間",
+  "salesChartPeriod14Days": "14日間",
+  "salesChartTotalSales": "合計売上",
+  "salesChartDailyAverage": "日別平均",
 
   "@_USER_LIST": {},
   "userListTitle": "ユーザー一覧",

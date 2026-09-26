@@ -40,6 +40,11 @@ void main() {
                 builder: (context, state) =>
                     const Scaffold(body: Text('Display')),
               ),
+              GoRoute(
+                path: 'sales',
+                builder: (context, state) =>
+                    const Scaffold(body: Text('Sales')),
+              ),
             ],
           ),
         ],
@@ -176,6 +181,18 @@ void main() {
       await tester.pumpAndSettle();
 
       check(find.text('Display')).findsOne();
+    });
+
+    testWidgets('売上推移グラフボタンをタップした際に売上グラフ画面へ遷移すること', (tester) async {
+      await tester.pumpWidget(createWidgetUnderTest(container, router));
+      await tester.pumpAndSettle();
+
+      final salesBtn = find.byIcon(Icons.trending_up).last;
+
+      await tester.tap(salesBtn);
+      await tester.pumpAndSettle();
+
+      check(find.text('Sales')).findsOne();
     });
 
     testWidgets('画面外タップでキーボードが閉じること', (tester) async {
