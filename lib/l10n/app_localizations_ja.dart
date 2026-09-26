@@ -362,6 +362,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chartClearConfirm => '全てのデータを削除しますか？';
 
   @override
+  String get chartViewSales => '売上推移グラフを表示';
+
+  @override
+  String get salesChartTitle => '売上推移チャート';
+
+  @override
+  String get salesChartPeriod7Days => '7日間';
+
+  @override
+  String get salesChartPeriod14Days => '14日間';
+
+  @override
+  String get salesChartTotalSales => '合計売上';
+
+  @override
+  String get salesChartDailyAverage => '日別平均';
+
+  @override
   String get userListTitle => 'ユーザー一覧';
 
   @override

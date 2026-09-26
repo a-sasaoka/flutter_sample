@@ -140,6 +140,12 @@
   "chartDataList": "Data List",
   "chartClearAll": "Clear All",
   "chartClearConfirm": "Are you sure you want to clear all data?",
+  "chartViewSales": "View Sales Trend Chart",
+  "salesChartTitle": "Sales Trends",
+  "salesChartPeriod7Days": "7 Days",
+  "salesChartPeriod14Days": "14 Days",
+  "salesChartTotalSales": "Total Sales",
+  "salesChartDailyAverage": "Daily Average",
 
   "@_USER_LIST": {},
   "userListTitle": "User List",

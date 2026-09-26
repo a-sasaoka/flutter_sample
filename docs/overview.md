@@ -21,7 +21,7 @@
 | 🌍 多言語対応       | flutter_localizations + gen-l10n による標準的な多言語化                                                                                                                                              |
 | 🔥 Firebase         | Auth / Analytics / Crashlytics / Remote Config（強制アップデート・フィーチャーフラグ・動的バナー） / App Check を組み合わせた基盤構築                                                                |
 | 🏠 ホーム           | 主要機能へのナビゲーションハブ、動的お知らせバナー、環境情報の判別、デバッグツールの集約                                                                                                             |
-| 📈 グラフ           | fl_chart を用いた動的なグラフ（折れ線・棒・円）の表示とデータ入力                                                                                                                                    |
+| 📈 グラフ           | fl_chart を用いた動的なグラフ（折れ線・棒・円）の表示とデータ入力、期間切り替え付き売上推移折れ線グラフ                                                                                              |
 | ⚙️ 設定             | SegmentedButton によるテーマ・言語切り替え、永続化連携、安全なログアウト処理                                                                                                                         |
 | 🔐 アプリロック     | 4桁PINパスコード＋生体認証（iOS: Face ID / Touch ID, Android: 指紋認証 / 顔認証）による最前面保護・自動復帰ロック                                                                                    |
 | 🤖 生成AI           | Firebase AI Logic（firebase_ai）を用いたストリーミング応答と履歴保持チャット                                                                                                                         |

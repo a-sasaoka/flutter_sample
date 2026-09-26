@@ -68,6 +68,14 @@ class ChartInputScreen extends HookConsumerWidget {
               },
               tooltip: l10n.chartViewGraph,
             ),
+            // 売上推移グラフ画面への遷移ボタン
+            IconButton(
+              icon: const Icon(Icons.trending_up),
+              onPressed: () {
+                const SalesChartRoute().go(context);
+              },
+              tooltip: l10n.chartViewSales,
+            ),
           ],
         ),
         body: Column(

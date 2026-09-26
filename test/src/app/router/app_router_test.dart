@@ -26,6 +26,7 @@ import 'package:flutter_sample/src/features/auth/presentation/firebase_sign_up_s
 import 'package:flutter_sample/src/features/auth/presentation/login_screen.dart';
 import 'package:flutter_sample/src/features/chart/presentation/chart_display_screen.dart';
 import 'package:flutter_sample/src/features/chart/presentation/chart_input_screen.dart';
+import 'package:flutter_sample/src/features/chart/presentation/sales_chart_screen.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
@@ -873,6 +874,14 @@ void main() {
         MockGoRouterState(),
       );
       check(widget).isA<ChartDisplayScreen>();
+    });
+
+    test('SalesChartRoute.build: SalesChartScreen を返すこと', () {
+      final widget = const SalesChartRoute().build(
+        MockBuildContext(),
+        MockGoRouterState(),
+      );
+      check(widget).isA<SalesChartScreen>();
     });
 
     test('MemosRoute.build: MemoScreen を返すこと', () {

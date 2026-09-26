@@ -800,6 +800,42 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to clear all data?'**
   String get chartClearConfirm;
 
+  /// No description provided for @chartViewSales.
+  ///
+  /// In en, this message translates to:
+  /// **'View Sales Trend Chart'**
+  String get chartViewSales;
+
+  /// No description provided for @salesChartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sales Trends'**
+  String get salesChartTitle;
+
+  /// No description provided for @salesChartPeriod7Days.
+  ///
+  /// In en, this message translates to:
+  /// **'7 Days'**
+  String get salesChartPeriod7Days;
+
+  /// No description provided for @salesChartPeriod14Days.
+  ///
+  /// In en, this message translates to:
+  /// **'14 Days'**
+  String get salesChartPeriod14Days;
+
+  /// No description provided for @salesChartTotalSales.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Sales'**
+  String get salesChartTotalSales;
+
+  /// No description provided for @salesChartDailyAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Average'**
+  String get salesChartDailyAverage;
+
   /// No description provided for @userListTitle.
   ///
   /// In en, this message translates to:
