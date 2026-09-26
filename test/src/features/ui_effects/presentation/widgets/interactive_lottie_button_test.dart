@@ -148,6 +148,19 @@ void main() {
 
       check(find.text('再試行する')).findsOne();
       check(find.byIcon(Icons.refresh_rounded)).findsOne();
+
+      // エラー状態でもボタンは有効（onPressed != null）であること
+      final button = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
+      check(button.onPressed).isNotNull();
+
+      // 再試行ボタンをタップすると再度ローディングになること
+      await tester.tap(find.byType(ElevatedButton));
+      await tester.pump();
+      check(find.byKey(const ValueKey('lottie_content'))).findsOne();
+
+      // タイマーを消化して完了させる
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('animate: true の場合、成功アニメーションが完了してonCompleteが呼ばれること', (

@@ -156,5 +156,41 @@ void main() {
         SubmitStatus.error,
       ]);
     });
+
+    test('SubmitStatus.error の状態から再度 submit() を呼び出して再試行できること', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final states = <SubmitStatus>[];
+      container.listen(
+        submitAnimationControllerProvider,
+        (previous, next) => states.add(next),
+        fireImmediately: true,
+      );
+
+      final notifier = container.read(
+        submitAnimationControllerProvider.notifier,
+      );
+
+      // 1回目：エラーで終了
+      await notifier.submit(
+        duration: const Duration(milliseconds: 30),
+        isSuccess: false,
+      );
+      check(
+        container.read(submitAnimationControllerProvider),
+      ).equals(SubmitStatus.error);
+
+      // 2回目：エラー状態から再試行して成功
+      await notifier.submit(duration: const Duration(milliseconds: 30));
+
+      check(states).deepEquals([
+        SubmitStatus.idle,
+        SubmitStatus.loading,
+        SubmitStatus.error,
+        SubmitStatus.loading,
+        SubmitStatus.success,
+      ]);
+    });
   });
 }

@@ -85,7 +85,9 @@ class InteractiveLottieButton extends HookConsumerWidget {
           ),
           padding: EdgeInsets.zero,
         ),
-        onPressed: currentStatus == SubmitStatus.idle
+        onPressed:
+            currentStatus == SubmitStatus.idle ||
+                currentStatus == SubmitStatus.error
             ? () => unawaited(
                 ref.read(submitAnimationControllerProvider.notifier).submit(),
               )

@@ -31,8 +31,8 @@ class SubmitAnimationController extends _$SubmitAnimationController {
     bool isSuccess = true,
     Future<void> Function()? task,
   }) async {
-    // 待機中以外は多重タップをガード
-    if (state != SubmitStatus.idle) {
+    // 待機中(idle)およびエラー(error)以外（loadingやsuccess実行中）は多重タップをガード
+    if (state != SubmitStatus.idle && state != SubmitStatus.error) {
       return;
     }
 
