@@ -79,6 +79,7 @@ void main() {
       storage: mockStorage,
       talker: mockTalker,
       uuid: mockUuid,
+      getCurrentDateTime: () => DateTime.utc(2026, 5, 15, 12),
     );
   });
 

@@ -403,6 +403,7 @@ void main() {
       () async {
         final serviceWithoutMessaging = PushNotificationService(
           localNotifications: fakeLocalNotifications,
+          messaging: null,
           talker: mockTalker,
           channelName: 'Test Channel',
           channelDescription: 'Test Description',
@@ -431,6 +432,7 @@ void main() {
 
       final serviceWithoutMessaging = PushNotificationService(
         localNotifications: fakeLocalNotifications,
+        messaging: null,
         talker: mockTalker,
         channelName: 'Test Channel',
         channelDescription: 'Test Description',
@@ -456,6 +458,7 @@ void main() {
 
       final serviceWithoutMessaging = PushNotificationService(
         localNotifications: fakeLocalNotifications,
+        messaging: null,
         talker: mockTalker,
         channelName: 'Test Channel',
         channelDescription: 'Test Description',
@@ -477,6 +480,7 @@ void main() {
 
       final serviceWithoutMessaging = PushNotificationService(
         localNotifications: fakeLocalNotifications,
+        messaging: null,
         talker: mockTalker,
         channelName: 'Test Channel',
         channelDescription: 'Test Description',
@@ -533,6 +537,8 @@ void main() {
 
     test('messaging が null の場合 getNotificationSettings は null を返すこと', () async {
       final serviceWithoutMessaging = PushNotificationService(
+        messaging: null,
+        localNotifications: fakeLocalNotifications,
         talker: mockTalker,
         channelName: 'Test Channel',
         channelDescription: 'Test Description',
@@ -565,6 +571,8 @@ void main() {
 
     test('messaging が null の場合 getToken は null を返すこと', () async {
       final serviceWithoutMessaging = PushNotificationService(
+        messaging: null,
+        localNotifications: fakeLocalNotifications,
         talker: mockTalker,
         channelName: 'Test Channel',
         channelDescription: 'Test Description',
@@ -595,6 +603,8 @@ void main() {
 
     test('messaging が null の場合 onTokenRefresh は空ストリームを返すこと', () {
       final serviceWithoutMessaging = PushNotificationService(
+        messaging: null,
+        localNotifications: fakeLocalNotifications,
         talker: mockTalker,
         channelName: 'Test Channel',
         channelDescription: 'Test Description',

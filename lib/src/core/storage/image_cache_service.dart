@@ -9,13 +9,13 @@ part 'image_cache_service.g.dart';
 /// 画像キャッシュ管理サービス
 class ImageCacheService {
   /// コンストラクタ
-  const ImageCacheService({required this.talker, this.cacheManager});
+  const ImageCacheService({required this.talker, required this.cacheManager});
 
   /// ロガー
   final Talker talker;
 
-  /// キャッシュマネージャー（テスト等のモック注入用）
-  final BaseCacheManager? cacheManager;
+  /// キャッシュマネージャー
+  final BaseCacheManager cacheManager;
 
   /// メモリおよびディスク上の画像キャッシュを一括クリア
   Future<void> clearCache() async {
@@ -23,8 +23,7 @@ class ImageCacheService {
       PaintingBinding.instance.imageCache.clear();
       PaintingBinding.instance.imageCache.clearLiveImages();
 
-      final manager = cacheManager ?? DefaultCacheManager();
-      await manager.emptyCache();
+      await cacheManager.emptyCache();
 
       talker.debug('🖼️ Image cache cleared successfully.');
     } on Object catch (e, st) {
@@ -34,11 +33,13 @@ class ImageCacheService {
   }
 }
 
-/// 画像キャッシュマネージャーを提供するプロバイダー（null の場合は DefaultCacheManager が使用されます）
+// coverage:ignore-start
+/// 画像キャッシュマネージャーを提供するプロバイダー
 @Riverpod(keepAlive: true)
-BaseCacheManager? imageCacheManager(Ref ref) {
-  return null;
+BaseCacheManager imageCacheManager(Ref ref) {
+  return DefaultCacheManager();
 }
+// coverage:ignore-end
 
 /// ImageCacheService を提供するプロバイダー
 @Riverpod(keepAlive: true)
