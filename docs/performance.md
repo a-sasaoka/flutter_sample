@@ -59,13 +59,7 @@ Flutter アプリでネットワーク画像を毎回そのままダウンロー
 表示領域（`width` / `height`）と端末の `devicePixelRatio`（ピクセル密度）から、**実際に必要なピクセル数だけをメモリにデコード**（`memCacheWidth` / `memCacheHeight`）します。
 4Kなどの巨大な画像（非最適化時のメモリ展開 約33MB）が指定されても、メモリ消費を最小限（150×150px のアイコンなら約90KB程度 = 150×150×4バイト）に抑えられます。
 
-```dart
-// 例: 幅50px、高さ50px、画面密度 3.0 の場合 -> 150px × 150px でメモリ展開
-AppCachedImage.circle(
-  imageUrl: user.avatarUrl,
-  size: 48,
-)
-```
+表示領域と画面密度に応じた自動リサイズ（`memCacheWidth` / `memCacheHeight`）の実装は [app_cached_image.dart](../lib/src/core/widgets/app_cached_image.dart) の `AppCachedImage` クラス、円形アバターとしての呼び出し例は [user_list_screen.dart](../lib/src/features/user/presentation/user_list_screen.dart) の `UserListScreen` や [image_cache_demo_screen.dart](../lib/src/features/dev_tools/presentation/image_cache_demo_screen.dart) を参照してください。
 
 #### ② 形状のバリエーション（Dart 3 パターン対応）
 
@@ -83,10 +77,7 @@ AppCachedImage.circle(
 
 ユーザーがログアウトした際や開発中の動作確認で、メモリ上のキャッシュと端末ストレージ（ディスク）上の画像キャッシュを一括削除できます。
 
-```dart
-// キャッシュ一括クリアの実行
-await ref.read(imageCacheServiceProvider).clearCache();
-```
+キャッシュ一括クリア処理の詳細は [image_cache_service.dart](../lib/src/core/storage/image_cache_service.dart) の `ImageCacheService.clearCache` メソッド、デモ画面での呼び出し例は [image_cache_demo_screen.dart](../lib/src/features/dev_tools/presentation/image_cache_demo_screen.dart) を参照してください。
 
 ---
 
@@ -122,19 +113,7 @@ await ref.read(imageCacheServiceProvider).clearCache();
 
 重いデータ処理や初期化処理などの実行時間を計測したい場合、`PerformanceService.traceExecution` で囲むだけで簡単に計測できます。
 
-```dart
-final performanceService = ref.read(performanceServiceProvider);
-
-final result = await performanceService.traceExecution(
-  traceName: 'heavy_data_processing',
-  attributes: {'category': 'financial'},
-  metrics: {'item_count': 100},
-  action: () async {
-    // 計測したい非同期処理
-    return await processHeavyData();
-  },
-);
-```
+カスタムトレースによる非同期処理の計測実装は [performance_service.dart](../lib/src/core/performance/performance_service.dart) の `PerformanceService.traceExecution` メソッド、および具体的な引数指定や例外テストの呼び出し例は [performance_service_test.dart](../test/src/core/performance/performance_service_test.dart) を参照してください。
 
 ---
 

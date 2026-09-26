@@ -183,20 +183,4 @@ AI プロンプト等で、端末 OS から自動取得したタイムゾーン�
 
 ### 使用例（LoginScreen）
 
-```dart
-TextFormField(
-  controller: emailController,
-  decoration: InputDecoration(labelText: l10n.loginEmailLabel),
-  validator: FormBuilderValidators.compose([
-    FormValidators.notOnlyWhitespace(
-      errorText: l10n.validationNotOnlyWhitespace,
-    ),
-    FormBuilderValidators.required(
-      errorText: l10n.validationEmailRequired,
-    ),
-    FormBuilderValidators.email(
-      errorText: l10n.validationEmailInvalid,
-    ),
-  ]),
-)
-```
+実際の入力フォームにおけるバリデーション（空白文字のみの禁止・必須入力・メールアドレス形式）の組み合わせ実装は、[login_screen.dart](../lib/src/features/auth/presentation/login_screen.dart) の `LoginScreen`（メールアドレスおよびパスワードの `TextFormField` 内 `validator` 設定）を参照してください。バリデータ自体の実装は [form_validators.dart](../lib/src/core/utils/form_validators.dart) の `FormValidators` クラスに集約されています。
