@@ -45,7 +45,7 @@ final class SubmitAnimationControllerProvider
 }
 
 String _$submitAnimationControllerHash() =>
-    r'940ed7c113c9df6373bc4d208c5b32b5b35443a8';
+    r'd004f60f7a3a9592d5c7413ea234e9fea69dae3c';
 
 /// 送信ボタンのアニメーション状態を管理するNotifier
 

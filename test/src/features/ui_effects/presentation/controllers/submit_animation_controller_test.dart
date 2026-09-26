@@ -241,5 +241,86 @@ void main() {
 
       // Bad stateエラー等の例外が発生せず正常終了すること
     });
+
+    test('非同期処理待機中に reset() が呼ばれた場合、完了しても状態が上書きされず idle が維持されること', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final states = <SubmitStatus>[];
+      container.listen(
+        submitAnimationControllerProvider,
+        (previous, next) => states.add(next),
+        fireImmediately: true,
+      );
+
+      final notifier = container.read(
+        submitAnimationControllerProvider.notifier,
+      );
+
+      final completer = Completer<void>();
+      final future = notifier.submit(
+        task: () async {
+          await completer.future;
+        },
+      );
+
+      // 送信処理待機中に reset() を呼び出して初期状態に戻す
+      notifier.reset();
+
+      // 遅れて非同期処理が完了
+      completer.complete();
+      await future;
+
+      // 状態が success で上書きされず、reset() の idle のまま維持されること
+      check(states).deepEquals([
+        SubmitStatus.idle,
+        SubmitStatus.loading,
+        SubmitStatus.idle,
+      ]);
+      check(
+        container.read(submitAnimationControllerProvider),
+      ).equals(SubmitStatus.idle);
+    });
+
+    test('非同期処理待機中に reset() が呼ばれ、その後に例外が発生しても error に上書きされないこと', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final states = <SubmitStatus>[];
+      container.listen(
+        submitAnimationControllerProvider,
+        (previous, next) => states.add(next),
+        fireImmediately: true,
+      );
+
+      final notifier = container.read(
+        submitAnimationControllerProvider.notifier,
+      );
+
+      final completer = Completer<void>();
+      final future = notifier.submit(
+        task: () async {
+          await completer.future;
+          throw Exception('Cancelled request error');
+        },
+      );
+
+      // 送信処理待機中に reset() を呼び出す
+      notifier.reset();
+
+      // 遅れて非同期処理で例外が発生
+      completer.complete();
+      await future;
+
+      // 状態が error で上書きされず、reset() の idle のまま維持されること
+      check(states).deepEquals([
+        SubmitStatus.idle,
+        SubmitStatus.loading,
+        SubmitStatus.idle,
+      ]);
+      check(
+        container.read(submitAnimationControllerProvider),
+      ).equals(SubmitStatus.idle);
+    });
   });
 }

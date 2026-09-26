@@ -20,8 +20,11 @@ enum SubmitStatus {
 /// 送信ボタンのアニメーション状態を管理するNotifier
 @riverpod
 class SubmitAnimationController extends _$SubmitAnimationController {
+  int _generation = 0;
+
   @override
   SubmitStatus build() {
+    _generation = 0;
     return SubmitStatus.idle;
   }
 
@@ -36,6 +39,7 @@ class SubmitAnimationController extends _$SubmitAnimationController {
       return;
     }
 
+    final currentGeneration = ++_generation;
     state = SubmitStatus.loading;
 
     try {
@@ -46,8 +50,8 @@ class SubmitAnimationController extends _$SubmitAnimationController {
         await Future<void>.delayed(duration);
       }
 
-      // 非同期処理待機中にプロバイダーが破棄された場合は状態更新をスキップ
-      if (!ref.mounted) {
+      // 非同期処理待機中にプロバイダーが破棄またはリセットされた場合は状態更新をスキップ
+      if (!ref.mounted || currentGeneration != _generation) {
         return;
       }
 
@@ -59,7 +63,7 @@ class SubmitAnimationController extends _$SubmitAnimationController {
       // 成功状態へ遷移
       state = SubmitStatus.success;
     } on Exception {
-      if (ref.mounted) {
+      if (ref.mounted && currentGeneration == _generation) {
         state = SubmitStatus.error;
       }
     }
@@ -67,6 +71,7 @@ class SubmitAnimationController extends _$SubmitAnimationController {
 
   /// 状態を初期状態へリセットする
   void reset() {
+    _generation++;
     state = SubmitStatus.idle;
   }
 }
