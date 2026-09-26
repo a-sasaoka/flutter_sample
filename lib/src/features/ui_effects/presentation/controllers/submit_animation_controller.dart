@@ -33,6 +33,7 @@ class SubmitAnimationController extends _$SubmitAnimationController {
     Duration duration = const Duration(seconds: 2),
     bool isSuccess = true,
     Future<void> Function()? task,
+    void Function()? onAccepted,
   }) async {
     // 待機中(idle)およびエラー(error)以外（loadingやsuccess実行中）は多重タップをガード
     if (state != SubmitStatus.idle && state != SubmitStatus.error) {
@@ -41,6 +42,8 @@ class SubmitAnimationController extends _$SubmitAnimationController {
 
     final currentGeneration = ++_generation;
     state = SubmitStatus.loading;
+    // 送信が正式に受け付けられたことを呼び出し元に通知
+    onAccepted?.call();
 
     try {
       if (task != null) {

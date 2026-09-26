@@ -265,5 +265,47 @@ void main() {
       check(completedA).isTrue();
       check(completedB).isFalse();
     });
+
+    testWidgets('複数のボタンが存在する場合、画面再描画前に連続タップしても送信を受け付けたボタンのみonCompleteが呼ばれること', (
+      tester,
+    ) async {
+      var completedA = false;
+      var completedB = false;
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          child: Column(
+            children: [
+              InteractiveLottieButton(
+                assetPath: Assets.animations.successCheck.path,
+                buttonText: 'ボタンA',
+                onComplete: () => completedA = true,
+                animate: false,
+              ),
+              InteractiveLottieButton(
+                assetPath: Assets.animations.successCheck.path,
+                buttonText: 'ボタンB',
+                onComplete: () => completedB = true,
+                animate: false,
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 画面が再描画される前（pumpを挟まず）にボタンAとボタンBを連続タップ
+      await tester.tap(find.text('ボタンA'));
+      await tester.tap(find.text('ボタンB'));
+
+      // 送信処理を進める
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
+
+      // 送信を受け付けたボタンAのみ発火し、拒否されたボタンBは発火しないこと
+      check(completedA).isTrue();
+      check(completedB).isFalse();
+    });
   });
 }

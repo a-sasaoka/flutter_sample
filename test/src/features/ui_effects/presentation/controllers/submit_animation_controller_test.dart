@@ -322,5 +322,34 @@ void main() {
         container.read(submitAnimationControllerProvider),
       ).equals(SubmitStatus.idle);
     });
+
+    test(
+      'submit() で送信が受け付けられた場合に onAccepted コールバックが呼ばれ、拒否された場合は呼ばれないこと',
+      () async {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+
+        var accepted1 = false;
+        var accepted2 = false;
+
+        final notifier = container.read(
+          submitAnimationControllerProvider.notifier,
+        );
+
+        final future1 = notifier.submit(
+          duration: const Duration(milliseconds: 50),
+          onAccepted: () => accepted1 = true,
+        );
+        final future2 = notifier.submit(
+          duration: const Duration(milliseconds: 50),
+          onAccepted: () => accepted2 = true,
+        );
+
+        await Future.wait([future1, future2]);
+
+        check(accepted1).isTrue();
+        check(accepted2).isFalse();
+      },
+    );
   });
 }
