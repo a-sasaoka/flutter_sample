@@ -92,24 +92,33 @@ lib/
   3. `success`: 処理成功。`Assets.animations.successCheck` のLottieチェックマークがアニメーション再生され、完了コールバック（`onComplete`）を呼び出します。
   4. `error`: 処理失敗。再試行アイコンと「やり直す」テキストを表示。
 - **事前キャッシュ機構 (`LottieCacheService`)**:
-  - 初回タップ時の描画の引っかかり（ジャンク）を防ぐため、アプリ起動時や画面初期化時に `lottieCacheServiceProvider` を通じてバックグラウンドでJSONを事前パースし、メモリへキャッシュします。実装詳細は [lottie_cache_service.dart](../lib/src/features/ui_effects/application/lottie_cache_service.dart) を参照してください。
+  - 初回タップ時の描画の引っかかり（ジャンク）を防ぐため、アプリ起動時や画面初期化時に `LottieCacheService.preloadLottie(Assets.animations.successCheck.path)` を呼び出すことで、バックグラウンドでJSONを事前パースし、メモリへキャッシュします。実装詳細は [lottie_cache_service.dart](../lib/src/features/ui_effects/application/lottie_cache_service.dart) を参照してください。
 
 #### 実装例
 
 ```dart
+// 1. 事前キャッシュ（画面初期化時などにバックグラウンドで実行）
+await LottieCacheService.preloadLottie(Assets.animations.successCheck.path);
+
+// 2. ボタンWidgetの配置
 InteractiveLottieButton(
-  buttonText: l10n.lottieSubmitButton,
-  onSubmit: () async {
-    // 任意の非同期処理（API通信やDB保存など）を実行
-    await ref.read(myApiProvider).submitData();
-  },
+  assetPath: Assets.animations.successCheck.path,
+  buttonText: l10n.uiEffectsSubmitButton, // 省略時もデフォルトで適用
   onComplete: () {
     // 成功アニメーション完了後の処理（画面遷移やSnackBar表示など）
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.lottieSubmitSuccessMessage)),
+      SnackBar(content: Text(l10n.uiEffectsSubmitSuccess)),
     );
   },
 )
+
+// 3. 任意の非同期処理を渡して実行する場合（コントローラー経由）
+await ref.read(submitAnimationControllerProvider.notifier).submit(
+  task: () async {
+    // API通信やデータ保存などの非同期処理
+    await ref.read(myApiProvider).submitData();
+  },
+);
 ```
 
 ---
