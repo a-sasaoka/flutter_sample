@@ -555,6 +555,14 @@
       }
     }
   },
-  "shareDefaultText": "Flutter Sample App からシェアしています！ #Flutter"
+  "shareDefaultText": "Flutter Sample App からシェアしています！ #Flutter",
+
+  "@_UI_EFFECTS": {},
+  "uiEffectsSectionTitle": "状態連動Lottieボタン（実践）",
+  "uiEffectsSectionDesc": "ボタンタップでローディングが回り、完了時にチェックマークアニメーションが弾けます。",
+  "uiEffectsSubmitButton": "データを送信する",
+  "uiEffectsRetryButton": "再試行する",
+  "uiEffectsResetButton": "状態をリセット",
+  "uiEffectsSubmitSuccess": "データの送信が完了しました！"
 }
 

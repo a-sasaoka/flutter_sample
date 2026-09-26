@@ -48,8 +48,16 @@ lib/
     └── features/
         ├── onboarding/presentation/
         │   └── onboarding_screen.dart           # オンボーディング画面（Lottieアニメーション適用）
-        └── dev_tools/presentation/
-            └── lottie_demo_screen.dart          # Lottie再生・制御の開発者向けデモ画面
+        ├── dev_tools/presentation/
+        │   └── lottie_demo_screen.dart          # Lottie再生・制御の開発者向けデモ画面
+        └── ui_effects/                          # UI演出・状態連動アニメーション機能
+            ├── application/
+            │   └── lottie_cache_service.dart    # アニメーション事前読み込みキャッシュ
+            └── presentation/
+                ├── controllers/
+                │   └── submit_animation_controller.dart # 状態遷移（idle/loading/success/error）管理
+                └── widgets/
+                    └── interactive_lottie_button.dart   # 状態連動アニメーションボタン
 ```
 
 ---
@@ -74,6 +82,38 @@ lib/
 
 ---
 
+### 3. `InteractiveLottieButton` (状態連動Lottieボタン)
+
+ボタン押下時の非同期処理（データ送信やAPI通信）と連動し、アニメーション（ローディングぐるぐる・成功チェックマーク・エラー再試行）がボタン上でシームレスに切り替わるUIコンポーネントです。実装詳細は [interactive_lottie_button.dart](../lib/src/features/ui_effects/presentation/widgets/interactive_lottie_button.dart) を参照してください。
+
+- **4つの状態遷移 (`SubmitStatus`)**:
+  1. `idle`: 通常の待機状態。送信アイコンとテキストを表示。
+  2. `loading`: 通信中。ボタンが無効化され、進行度を示すプログレスインジケーター（またはLottie）が表示。
+  3. `success`: 処理成功。`Assets.animations.successCheck` のLottieチェックマークがアニメーション再生され、完了コールバック（`onComplete`）を呼び出します。
+  4. `error`: 処理失敗。再試行アイコンと「やり直す」テキストを表示。
+- **事前キャッシュ機構 (`LottieCacheService`)**:
+  - 初回タップ時の描画の引っかかり（ジャンク）を防ぐため、アプリ起動時や画面初期化時に `lottieCacheServiceProvider` を通じてバックグラウンドでJSONを事前パースし、メモリへキャッシュします。実装詳細は [lottie_cache_service.dart](../lib/src/features/ui_effects/application/lottie_cache_service.dart) を参照してください。
+
+#### 実装例
+
+```dart
+InteractiveLottieButton(
+  buttonText: l10n.lottieSubmitButton,
+  onSubmit: () async {
+    // 任意の非同期処理（API通信やDB保存など）を実行
+    await ref.read(myApiProvider).submitData();
+  },
+  onComplete: () {
+    // 成功アニメーション完了後の処理（画面遷移やSnackBar表示など）
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.lottieSubmitSuccessMessage)),
+    );
+  },
+)
+```
+
+---
+
 ## 🎮 開発者デモ画面 (LottieDemoScreen)
 
 開発者がアニメーションの動作や制御を実際に手元で確認できるよう、デモ画面を用意しています。
@@ -85,6 +125,7 @@ lib/
   - **ループ切り替え**: 単発再生とループ再生のスイッチ切り替え（単発再生完了時はSnackBarでお知らせ）
   - **アセット切り替え**: プロジェクト内の全 Lottie アセットを Chip 選択で即座にプレビュー
   - **ネットワーク読み込み**: Web上の Lottie JSON URL からの非同期読み込みデモ
+  - **状態連動Lottieボタン**: `InteractiveLottieButton` のタップからローディング、成功アニメーション再生、スナックバー通知、リセットまでの実機挙動デモ
 
 ---
 

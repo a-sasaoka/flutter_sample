@@ -25,7 +25,7 @@
 | ⚙️ 設定             | SegmentedButton によるテーマ・言語切り替え、永続化連携、安全なログアウト処理                                                                                                                         |
 | 🔐 アプリロック     | 4桁PINパスコード＋生体認証（iOS: Face ID / Touch ID, Android: 指紋認証 / 顔認証）による最前面保護・自動復帰ロック                                                                                    |
 | 🤖 生成AI           | Firebase AI Logic（firebase_ai）を用いたストリーミング応答と履歴保持チャット                                                                                                                         |
-| 🎬 アニメーション   | Lottie + flutter_gen によるベクターアニメーションの型安全な導入と制御（再生・一時停止・シークバー・ループ切替）                                                                                      |
+| 🎬 アニメーション   | Lottie + flutter_gen によるベクターアニメーションの型安全な導入と制御（再生・一時停止・シークバー・ループ切替）、事前キャッシュ機構、および非同期処理連動アニメーションボタンの実装                  |
 | 🔔 Push通知         | FCM + flutter_local_notifications による通知受信・バナー表示、通知タップ時の GoRouter 自動ディープリンク遷移                                                                                         |
 | ⚡️ パフォーマンス   | cached_network_image による画像キャッシュ・メモリ最適化、Firebase Performance による通信・処理時間の自動監視、DevTools を用いたアプリサイズ分析、ウィジェット不要再ビルドの特定と撲滅検証            |
 | 📷 QRコードリーダー | mobile_scanner によるリアルタイムQR読み取り・アルバム画像解析、Drift によるスキャン履歴のローカル永続化とスワイプ削除、URL判定・ブラウザ起動                                                         |
