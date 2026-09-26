@@ -69,13 +69,17 @@ void main() {
   group('imageCacheServiceProvider', () {
     test('ImageCacheService のインスタンスを提供すること', () {
       final container = ProviderContainer(
-        overrides: [loggerProvider.overrideWithValue(mockTalker)],
+        overrides: [
+          loggerProvider.overrideWithValue(mockTalker),
+          imageCacheManagerProvider.overrideWithValue(mockCacheManager),
+        ],
       );
       addTearDown(container.dispose);
 
       final instance = container.read(imageCacheServiceProvider);
       check(instance).isA<ImageCacheService>();
       check(instance.talker).equals(mockTalker);
+      check(instance.cacheManager).equals(mockCacheManager);
     });
   });
 }

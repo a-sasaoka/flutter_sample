@@ -85,7 +85,7 @@ lib/src/features/profile/
 - **差分更新による最適化**:
   `FirebaseAuthRepository.updateAuthProfile` 内では、変更が検知された項目（現在の値と異なる場合）のみ Firebase Auth の `updateDisplayName` や `verifyBeforeUpdateEmail`、`updatePhotoURL` を呼び出すようにし、不要な通信負荷を低減させています。
 - **外部依存の分離とテスタビリティ**:
-  ネイティブ機能であるカメラ・アルバム（`image_picker`）、切り抜き（`image_cropper`）、権限（`permission_handler`）は `ImagePickerService`、Firebase Storage 操作は `StorageService` としてカプセル化されています。これにより、UI や Notifier の単体テスト時にモック（`mocktail`）へ容易に差し替え可能となり、テストカバレッジ 100% を達成しています。
+  ネイティブ機能であるカメラ・アルバム（`image_picker`）、切り抜き（`image_cropper`）、権限（`permission_handler`）、誤ロック抑止（`AppLockService`）は [image_picker_service.dart](../lib/src/features/profile/data/image_picker_service.dart)、Firebase Storage 操作や UUID・時計機能（`getCurrentDateTime`）は [storage_service.dart](../lib/src/features/profile/data/storage_service.dart) としてすべてコンストラクタで必須注入（DI）されています。これにより、保存ファイル名の日時制御を含め、単体テスト時にモック（`mocktail`）へ容易に差し替え可能となり、テストカバレッジ 100% を達成しています。
 - **同期処理と非同期処理の切り分け（FakeAsync対策）**:
   ウィジェットテスト環境下での FakeAsync デッドロックを回避するため、画像の一時ファイル生成には同期API（`Directory.systemTemp.createTempSync()`）を採用しています。
 - **アプリロック（AppLock）とのシームレスな連携**:

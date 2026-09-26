@@ -12,6 +12,14 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'push_notification_service_provider.g.dart';
 
+// coverage:ignore-start
+/// [FlutterLocalNotificationsPlugin] を提供するプロバイダー
+@Riverpod(keepAlive: true)
+FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin(Ref ref) {
+  return FlutterLocalNotificationsPlugin();
+}
+// coverage:ignore-end
+
 /// 🔔 [PushNotificationService] を提供するプロバイダー
 @Riverpod(keepAlive: true)
 PushNotificationService pushNotificationService(Ref ref) {
@@ -37,7 +45,7 @@ PushNotificationService pushNotificationService(Ref ref) {
   return PushNotificationService(
     talker: talker,
     messaging: messaging,
-    localNotifications: FlutterLocalNotificationsPlugin(),
+    localNotifications: ref.watch(flutterLocalNotificationsPluginProvider),
     channelName: l10n.notificationChannelHighImportanceName,
     channelDescription: l10n.notificationChannelHighImportanceDescription,
     defaultTitle: l10n.notificationDefaultTitle,

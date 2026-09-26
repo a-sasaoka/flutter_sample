@@ -15,7 +15,7 @@ lib/src/features/share/
  │    └── share_config.dart                  # SNS共有URLスキーマや定数（ハッシュタグ・デフォルト座標）
  ├── application/
  │    ├── share_position_origin_extension.dart # iPad向け吹き出し座標（Rect）算出拡張
- │    └── share_service.dart                 # シェア実行、アプリロック抑止、画像生成、Talkerロギング
+ │    └── share_service.dart                 # シェア実行、アプリロック抑止、画像生成、Talkerロギング、sharePlusProvider
  └── presentation/
       └── share_demo_screen.dart             # SNSシェアデモ画面（テキスト・画像・特定SNS共有）
 ```
@@ -59,7 +59,7 @@ Xのブランドカラーであるブラックは、ダークテーマ時のカ�
 
 ## 🧪 テスト方針
 
-- **依存のモック化**: `SharePlatform` および `ImagePickerPlatform` を `mocktail` でモック化し、実機・OS依存のない環境で動作検証を実施。
+- **依存のモック化**: `SharePlus` インスタンスを `sharePlusProvider` から注入する DI 設計を採用し、プラットフォーム依存部（`SharePlatform` や `ImagePickerPlatform`）を `mocktail` でモック化して実機・OS依存のない環境で安全に動作検証を実施。
 - **GPUハング回避**: `Picture.toImage` を行う画像生成ロジックを `ShareService` に分離し、UIテストでは瞬時にダミー `XFile` を返却させることで、テスト実行の高速化（1秒未満）とハングアップ防止を実現。
 - **網羅的なテストカバレッジ**:
   - `share_position_origin_extension_test.dart`: 座標算出ロジックの検証

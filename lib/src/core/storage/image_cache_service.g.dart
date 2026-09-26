@@ -8,22 +8,22 @@ part of 'image_cache_service.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// 画像キャッシュマネージャーを提供するプロバイダー（null の場合は DefaultCacheManager が使用されます）
+/// 画像キャッシュマネージャーを提供するプロバイダー
 
 @ProviderFor(imageCacheManager)
 final imageCacheManagerProvider = ImageCacheManagerProvider._();
 
-/// 画像キャッシュマネージャーを提供するプロバイダー（null の場合は DefaultCacheManager が使用されます）
+/// 画像キャッシュマネージャーを提供するプロバイダー
 
 final class ImageCacheManagerProvider
     extends
         $FunctionalProvider<
-          BaseCacheManager?,
-          BaseCacheManager?,
-          BaseCacheManager?
+          BaseCacheManager,
+          BaseCacheManager,
+          BaseCacheManager
         >
-    with $Provider<BaseCacheManager?> {
-  /// 画像キャッシュマネージャーを提供するプロバイダー（null の場合は DefaultCacheManager が使用されます）
+    with $Provider<BaseCacheManager> {
+  /// 画像キャッシュマネージャーを提供するプロバイダー
   ImageCacheManagerProvider._()
     : super(
         from: null,
@@ -40,25 +40,24 @@ final class ImageCacheManagerProvider
 
   @$internal
   @override
-  $ProviderElement<BaseCacheManager?> $createElement(
-    $ProviderPointer pointer,
-  ) => $ProviderElement(pointer);
+  $ProviderElement<BaseCacheManager> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
 
   @override
-  BaseCacheManager? create(Ref ref) {
+  BaseCacheManager create(Ref ref) {
     return imageCacheManager(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(BaseCacheManager? value) {
+  Override overrideWithValue(BaseCacheManager value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<BaseCacheManager?>(value),
+      providerOverride: $SyncValueProvider<BaseCacheManager>(value),
     );
   }
 }
 
-String _$imageCacheManagerHash() => r'90ab78e2eb3bfced8b6d648c58055348cbdbd6af';
+String _$imageCacheManagerHash() => r'6e9895d7209a8452e0e2902134d312f4cc03deb8';
 
 /// ImageCacheService を提供するプロバイダー
 

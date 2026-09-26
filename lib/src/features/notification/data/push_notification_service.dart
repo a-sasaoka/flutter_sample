@@ -14,12 +14,11 @@ class PushNotificationService {
     required this.channelName,
     required this.channelDescription,
     required this.defaultTitle,
-    FirebaseMessaging? messaging,
-    FlutterLocalNotificationsPlugin? localNotifications,
+    required FirebaseMessaging? messaging,
+    required FlutterLocalNotificationsPlugin localNotifications,
     this.onNotificationTap,
   }) : _messaging = messaging,
-       _localNotifications =
-           localNotifications ?? FlutterLocalNotificationsPlugin(),
+       _localNotifications = localNotifications,
        _talker = talker;
 
   final FirebaseMessaging? _messaging;

@@ -17,8 +17,8 @@ class ShareService {
   ShareService({
     required this.appLockService,
     required this.logger,
-    SharePlus? sharePlus,
-  }) : _sharePlus = sharePlus ?? SharePlus.instance;
+    required SharePlus sharePlus,
+  }) : _sharePlus = sharePlus;
 
   /// アプリロック誤作動防止用のサービス
   final AppLockService appLockService;
@@ -208,11 +208,18 @@ class ShareService {
   }
 }
 
+// coverage:ignore-start
+/// [SharePlus] インスタンスを提供するプロバイダー
+@riverpod
+SharePlus sharePlus(Ref ref) => SharePlus.instance;
+// coverage:ignore-end
+
 /// [ShareService] を提供するプロバイダー
 @riverpod
 ShareService shareService(Ref ref) {
   return ShareService(
     appLockService: ref.watch(appLockServiceProvider.notifier),
     logger: ref.watch(loggerProvider),
+    sharePlus: ref.watch(sharePlusProvider),
   );
 }
