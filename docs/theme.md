@@ -69,27 +69,8 @@ lib/src/core/config/
 
 ### 1. シード色から独自のカラースキームを生成する
 
-プリセット（`FlexScheme`）ではなく、ブランドカラーなどの単一色（シード色）から自動計算したい場合は、`colorScheme` に `SeedColorScheme.fromSeeds` を指定します。
-
-```dart
-static const _seed = Color(0xFF4F46E5); // ブランドカラー
-
-static ThemeData light() {
-  return FlexThemeData.light(
-    colorScheme: SeedColorScheme.fromSeeds(
-      primaryKey: _seed,
-      brightness: Brightness.light,
-    ),
-    subThemesData: _subThemesData,
-    visualDensity: VisualDensity.standard,
-  );
-}
-```
+当プロジェクトでは `FlexScheme.indigoM3` プリセットを採用していますが、ブランドカラーなどの単一色（シード色）から動的にパレットを生成する場合は `SeedColorScheme.fromSeeds` プロパティを利用します。詳しい設定手順は [FlexColorScheme 公式ドキュメント (Seed-Generated Color Schemes)](https://docs.flexcolorscheme.com/)、および現在のテーマ定義は [app_theme.dart](../lib/src/core/config/app_theme.dart) の `AppTheme` クラスを参照してください。
 
 ### 2. タイポグラフィ（文字のスタイル）を調整する
 
-アプリ全体の文字スタイルを細かく指定したい場合は、`typography` プロパティを利用します。
-
-```dart
-typography: Typography.material2021(),
-```
+アプリ全体のフォントスタイルや字幅をカスタマイズする場合は、`FlexThemeData` の `typography` プロパティ（例: `Typography.material2021()`）を設定します。詳細は [FlexColorScheme 公式ドキュメント (Theming Text)](https://docs.flexcolorscheme.com/) を参照してください。

@@ -33,21 +33,7 @@ lib/src/features/legal/
 
 ### 1. ドメイン層 (`legal_document_type.dart`)
 
-`LegalDocumentType` は `enum` で定義され、各ドキュメント種別に対応するアセットパスを保持します。
-
-```dart
-enum LegalDocumentType {
-  termsOfService,
-  privacyPolicy;
-
-  String get assetPath {
-    return switch (this) {
-      LegalDocumentType.termsOfService => Assets.markdown.termsOfService,
-      LegalDocumentType.privacyPolicy => Assets.markdown.privacyPolicy,
-    };
-  }
-}
-```
+`LegalDocumentType` は `enum` で定義され、各ドキュメント種別に対応するアセットパスを保持します。定義およびアセットパスの紐付け実装の詳細は、[legal_document_type.dart](../lib/src/features/legal/domain/legal_document_type.dart) の `LegalDocumentType` 列挙型を参照してください。
 
 ### 2. アプリケーション層 (`legal_document_provider.dart`)
 
