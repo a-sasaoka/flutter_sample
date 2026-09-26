@@ -96,23 +96,41 @@ lib/
 
 #### 実装例
 
+実装の詳細は [interactive_lottie_button.dart](../lib/src/features/ui_effects/presentation/widgets/interactive_lottie_button.dart) および [submit_animation_controller.dart](../lib/src/features/ui_effects/presentation/controllers/submit_animation_controller.dart) を参照してください。
+
 ```dart
 // 1. 事前キャッシュ（画面初期化時などにバックグラウンドで実行）
 await LottieCacheService.preloadLottie(Assets.animations.successCheck.path);
 
-// 2. ボタンWidgetの配置
+// 2. ボタンWidgetの配置（通常のボタン押下フロー）
+// ボタンタップ時は、送信受付（onAccepted）を経て成功アニメーション後に onComplete が呼ばれます。
 InteractiveLottieButton(
   assetPath: Assets.animations.successCheck.path,
   buttonText: l10n.uiEffectsSubmitButton, // 省略時もデフォルトで適用
   onComplete: () {
-    // 成功アニメーション完了後の処理（画面遷移やSnackBar表示など）
+    // ボタン起点の成功アニメーション完了後の処理（画面遷移やSnackBar表示など）
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(l10n.uiEffectsSubmitSuccess)),
     );
   },
 )
 
-// 3. 任意の非同期処理を渡して実行する場合（コントローラー経由）
+// 3. コントローラーを直接呼び出す場合（外部トリガーなど）
+// ※注意: コントローラーを直接呼ぶ場合はボタンの onAccepted を経由しないため、
+//   ボタン側の onComplete は実行されません。
+//   完了処理を行う場合は、呼び出し側で ref.listen により success を監視するか、
+//   submit の await 後に状態を確認して実行してください。
+
+// 例: 呼び出し側の build メソッド内で状態を監視
+ref.listen<SubmitStatus>(submitAnimationControllerProvider, (previous, next) {
+  if (next == SubmitStatus.success) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.uiEffectsSubmitSuccess)),
+    );
+  }
+});
+
+// コントローラー経由で任意の非同期処理を実行
 await ref.read(submitAnimationControllerProvider.notifier).submit(
   task: () async {
     // API通信やデータ保存などの非同期処理
