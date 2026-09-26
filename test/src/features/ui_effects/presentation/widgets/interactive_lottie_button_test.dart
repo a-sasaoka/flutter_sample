@@ -228,5 +228,42 @@ void main() {
 
       check(find.text('データを送信する')).findsOne();
     });
+
+    testWidgets('複数のボタンが存在する場合、タップした送信元ボタンのみonCompleteが呼ばれること', (tester) async {
+      var completedA = false;
+      var completedB = false;
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          child: Column(
+            children: [
+              InteractiveLottieButton(
+                assetPath: Assets.animations.successCheck.path,
+                buttonText: 'ボタンA',
+                onComplete: () => completedA = true,
+                animate: false,
+              ),
+              InteractiveLottieButton(
+                assetPath: Assets.animations.successCheck.path,
+                buttonText: 'ボタンB',
+                onComplete: () => completedB = true,
+                animate: false,
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // ボタンAのみをタップ
+      await tester.tap(find.text('ボタンA'));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
+
+      // ボタンAのコールバックのみ発火し、ボタンBは発火しないこと
+      check(completedA).isTrue();
+      check(completedB).isFalse();
+    });
   });
 }

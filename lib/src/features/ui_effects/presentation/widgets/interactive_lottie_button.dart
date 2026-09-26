@@ -37,6 +37,9 @@ class InteractiveLottieButton extends HookConsumerWidget {
     // フックを使ってAnimationControllerを安全に生成＆自動dispose
     final animationController = useAnimationController();
 
+    // このボタン自身が送信処理を開始したかを追跡するボタン単位のローカル状態
+    final isSubmitting = useState(false);
+
     // 状態の変化（副作用）を検知してアニメーションを制御する
     ref.listen<SubmitStatus>(submitAnimationControllerProvider, (
       previous,
@@ -51,25 +54,32 @@ class InteractiveLottieButton extends HookConsumerWidget {
           );
         }
       } else if (next == SubmitStatus.success) {
-        if (animate) {
-          // 成功区間（0.5〜1.0）へ再生してチェックマークを弾けさせる
-          animationController.stop();
-          unawaited(
-            animationController
-                .animateTo(
-                  1,
-                  duration: const Duration(milliseconds: 800),
-                  curve: Curves.easeOutBack,
-                )
-                .then((_) {
-                  onComplete();
-                }),
-          );
-        } else {
-          onComplete();
+        // このボタン自身が送信元である場合のみ onComplete を呼び出す
+        if (isSubmitting.value) {
+          isSubmitting.value = false;
+          if (animate) {
+            // 成功区間（0.5〜1.0）へ再生してチェックマークを弾けさせる
+            animationController.stop();
+            unawaited(
+              animationController
+                  .animateTo(
+                    1,
+                    duration: const Duration(milliseconds: 800),
+                    curve: Curves.easeOutBack,
+                  )
+                  .then((_) {
+                    onComplete();
+                  }),
+            );
+          } else {
+            onComplete();
+          }
         }
       } else if (next == SubmitStatus.idle) {
+        isSubmitting.value = false;
         animationController.reset();
+      } else if (next == SubmitStatus.error) {
+        isSubmitting.value = false;
       }
     });
 
@@ -88,9 +98,12 @@ class InteractiveLottieButton extends HookConsumerWidget {
         onPressed:
             currentStatus == SubmitStatus.idle ||
                 currentStatus == SubmitStatus.error
-            ? () => unawaited(
-                ref.read(submitAnimationControllerProvider.notifier).submit(),
-              )
+            ? () {
+                isSubmitting.value = true;
+                unawaited(
+                  ref.read(submitAnimationControllerProvider.notifier).submit(),
+                );
+              }
             : null,
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 250),
