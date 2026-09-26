@@ -2407,6 +2407,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sharing from Flutter Sample App! #Flutter'**
   String get shareDefaultText;
+
+  /// No description provided for @uiEffectsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Interactive Lottie Button (Practice)'**
+  String get uiEffectsSectionTitle;
+
+  /// No description provided for @uiEffectsSectionDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Tapping the button spins loading and pops a checkmark animation upon completion.'**
+  String get uiEffectsSectionDesc;
+
+  /// No description provided for @uiEffectsSubmitButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit Data'**
+  String get uiEffectsSubmitButton;
+
+  /// No description provided for @uiEffectsRetryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get uiEffectsRetryButton;
+
+  /// No description provided for @uiEffectsResetButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Status'**
+  String get uiEffectsResetButton;
+
+  /// No description provided for @uiEffectsSubmitSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Data submission completed!'**
+  String get uiEffectsSubmitSuccess;
 }
 
 class _AppLocalizationsDelegate

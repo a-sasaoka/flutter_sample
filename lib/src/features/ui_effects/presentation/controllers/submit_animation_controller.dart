@@ -1,0 +1,80 @@
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'submit_animation_controller.g.dart';
+
+/// 送信処理のフェーズを表す列挙型
+enum SubmitStatus {
+  /// 待機中（通常のボタン表示）
+  idle,
+
+  /// 送信中（くるくるローディング）
+  loading,
+
+  /// 成功（チェックマークアニメーション）
+  success,
+
+  /// 失敗
+  error,
+}
+
+/// 送信ボタンのアニメーション状態を管理するNotifier
+@riverpod
+class SubmitAnimationController extends _$SubmitAnimationController {
+  int _generation = 0;
+
+  @override
+  SubmitStatus build() {
+    _generation = 0;
+    return SubmitStatus.idle;
+  }
+
+  /// 送信処理を実行する
+  Future<void> submit({
+    Duration duration = const Duration(seconds: 2),
+    bool isSuccess = true,
+    Future<void> Function()? task,
+    void Function()? onAccepted,
+  }) async {
+    // 待機中(idle)およびエラー(error)以外（loadingやsuccess実行中）は多重タップをガード
+    if (state != SubmitStatus.idle && state != SubmitStatus.error) {
+      return;
+    }
+
+    final currentGeneration = ++_generation;
+    state = SubmitStatus.loading;
+    // 送信が正式に受け付けられたことを呼び出し元に通知
+    onAccepted?.call();
+
+    try {
+      if (task != null) {
+        await task();
+      } else {
+        // 擬似的な通信遅延（実際はAPI通信など）
+        await Future<void>.delayed(duration);
+      }
+
+      // 非同期処理待機中にプロバイダーが破棄またはリセットされた場合は状態更新をスキップ
+      if (!ref.mounted || currentGeneration != _generation) {
+        return;
+      }
+
+      if (!isSuccess) {
+        state = SubmitStatus.error;
+        return;
+      }
+
+      // 成功状態へ遷移
+      state = SubmitStatus.success;
+    } on Exception {
+      if (ref.mounted && currentGeneration == _generation) {
+        state = SubmitStatus.error;
+      }
+    }
+  }
+
+  /// 状態を初期状態へリセットする
+  void reset() {
+    _generation++;
+    state = SubmitStatus.idle;
+  }
+}

@@ -1211,4 +1211,23 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get shareDefaultText => 'Flutter Sample App からシェアしています！ #Flutter';
+
+  @override
+  String get uiEffectsSectionTitle => '状態連動Lottieボタン（実践）';
+
+  @override
+  String get uiEffectsSectionDesc =>
+      'ボタンタップでローディングが回り、完了時にチェックマークアニメーションが弾けます。';
+
+  @override
+  String get uiEffectsSubmitButton => 'データを送信する';
+
+  @override
+  String get uiEffectsRetryButton => '再試行する';
+
+  @override
+  String get uiEffectsResetButton => '状態をリセット';
+
+  @override
+  String get uiEffectsSubmitSuccess => 'データの送信が完了しました！';
 }

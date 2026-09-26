@@ -555,6 +555,14 @@
       }
     }
   },
-  "shareDefaultText": "Sharing from Flutter Sample App! #Flutter"
+  "shareDefaultText": "Sharing from Flutter Sample App! #Flutter",
+
+  "@_UI_EFFECTS": {},
+  "uiEffectsSectionTitle": "Interactive Lottie Button (Practice)",
+  "uiEffectsSectionDesc": "Tapping the button spins loading and pops a checkmark animation upon completion.",
+  "uiEffectsSubmitButton": "Submit Data",
+  "uiEffectsRetryButton": "Retry",
+  "uiEffectsResetButton": "Reset Status",
+  "uiEffectsSubmitSuccess": "Data submission completed!"
 }
 

@@ -185,7 +185,18 @@ Vertex AI（Gemini API）等とやりとりするチャット画面です。
   - シークバースライダー、再生/一時停止/逆再生/停止ボタン、ループ再生スイッチがレイアウト崩れなく配置されているか。
   - アセット切り替えチップ群（「オンボーディング1 (Memo)」「空データ表示 (Empty Box)」など）が文字化け（□）せずに日本語（Noto Sans JP）で綺麗に表示されているか。
   - ネットワーク読み込み例カードの見出しとアイコンが正しく配置されているか。
+  - 状態連動Lottieボタン（`InteractiveLottieButton`）カードが表示され、送信ボタンと説明テキストが綺麗に配置されているか。
 - **画像リンク**: [📷 画像を表示する (lottie_demo_screen.png)](../test/src/features/dev_tools/presentation/goldens/macos/lottie_demo_screen.png)
+
+#### 状態連動Lottieボタン (InteractiveLottieButton)
+
+ボタン押下時の非同期処理（送信など）と連動し、ローディングや成功アニメーションをシームレスに切り替える共通ボタンWidgetです。
+
+- **テスト対象**: 待機（idle）状態のライトモード・ダークモード（計2状態）
+- **チェックポイント**:
+  - アイコン（`send`）とボタンラベル（「データを送信する」）が正しく配置されているか。
+  - テーマカラー（Primary / OnPrimary）がライトモード・ダークモードの双方で適切に適用されているか。
+- **画像リンク**: [📷 画像を表示する (interactive_lottie_button.png)](../test/src/features/ui_effects/presentation/widgets/goldens/macos/interactive_lottie_button.png)
 
 #### Push通知・ディープリンク検証画面 (PushNotificationDemoScreen)
 

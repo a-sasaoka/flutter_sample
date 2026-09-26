@@ -90,6 +90,7 @@ flutter_sample
             ├── settings                                        # 設定画面
             ├── share                                           # SNSシェア機能（OS標準共有・特定SNS連携・画像動的生成）
             ├── splash                                          # スプラッシュ画面
+            ├── ui_effects                                      # UI演出・アニメーション機能（Lottie事前キャッシュ、状態連動Lottieボタン等）
             └── user                                            # ユーザー管理機能
                 ├── application                                 # 状態管理・ビジネスロジック (Notifier)
                 ├── data                                        # データ取得処理 (Repository / API)

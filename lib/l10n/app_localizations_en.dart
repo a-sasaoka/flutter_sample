@@ -1247,4 +1247,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareDefaultText => 'Sharing from Flutter Sample App! #Flutter';
+
+  @override
+  String get uiEffectsSectionTitle => 'Interactive Lottie Button (Practice)';
+
+  @override
+  String get uiEffectsSectionDesc =>
+      'Tapping the button spins loading and pops a checkmark animation upon completion.';
+
+  @override
+  String get uiEffectsSubmitButton => 'Submit Data';
+
+  @override
+  String get uiEffectsRetryButton => 'Retry';
+
+  @override
+  String get uiEffectsResetButton => 'Reset Status';
+
+  @override
+  String get uiEffectsSubmitSuccess => 'Data submission completed!';
 }

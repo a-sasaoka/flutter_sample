@@ -4,6 +4,9 @@ import 'package:flutter_sample/gen/assets.gen.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:flutter_sample/src/core/widgets/app_lottie_widget.dart';
+import 'package:flutter_sample/src/features/ui_effects/presentation/controllers/submit_animation_controller.dart';
+import 'package:flutter_sample/src/features/ui_effects/presentation/widgets/interactive_lottie_button.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// 🎨 Lottie アニメーションの操作・デモ画面
 ///
@@ -273,6 +276,74 @@ class LottieDemoScreen extends HookWidget {
                       height: 100,
                       animate: animate,
                     ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // 状態連動Lottieボタン実践カード
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.touch_app_outlined,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        l10n.uiEffectsSectionTitle,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.uiEffectsSectionDesc,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Center(
+                    child: InteractiveLottieButton(
+                      assetPath: Assets.animations.successCheck.path,
+                      animate: animate,
+                      onComplete: () {
+                        context.showSnackBar(
+                          l10n.uiEffectsSubmitSuccess,
+                          duration: const Duration(seconds: 2),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final status = ref.watch(
+                        submitAnimationControllerProvider,
+                      );
+                      if (status == SubmitStatus.idle) {
+                        return const SizedBox.shrink();
+                      }
+                      return Center(
+                        child: TextButton.icon(
+                          onPressed: () => ref
+                              .read(submitAnimationControllerProvider.notifier)
+                              .reset(),
+                          icon: const Icon(Icons.refresh_rounded, size: 18),
+                          label: Text(l10n.uiEffectsResetButton),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

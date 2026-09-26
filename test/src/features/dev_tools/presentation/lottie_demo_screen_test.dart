@@ -5,7 +5,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/widgets/app_lottie_widget.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/lottie_demo_screen.dart';
+import 'package:flutter_sample/src/features/ui_effects/presentation/widgets/interactive_lottie_button.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:lottie/lottie.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -15,16 +17,18 @@ void main() {
   group('LottieDemoScreen', () {
     Future<void> pumpScreen(WidgetTester tester, {bool animate = false}) async {
       await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('ja'),
-          home: LottieDemoScreen(animate: animate),
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('ja'),
+            home: LottieDemoScreen(animate: animate),
+          ),
         ),
       );
       await tester.pump();
@@ -192,6 +196,55 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       check(find.byType(SnackBar)).findsNothing();
+    });
+
+    testWidgets('状態連動Lottieボタンをタップして成功した際、スナックバーが表示されリセットできること', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+
+      final buttonFinder = find.byType(InteractiveLottieButton);
+      // ルール通り、画面外のウィジェットを dragUntilVisible でスクロールして表示
+      await tester.dragUntilVisible(
+        buttonFinder,
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+      await tester.pumpAndSettle();
+
+      // ボタンをタップして完了まで進める
+      await tester.tap(buttonFinder);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
+
+      // スナックバーが表示されていること
+      check(find.text('データの送信が完了しました！')).findsOne();
+
+      // スナックバーを閉じてボタンとの重なりを解消
+      ScaffoldMessenger.of(
+        tester.element(find.byType(Scaffold)),
+      ).hideCurrentSnackBar();
+      await tester.pumpAndSettle();
+
+      final resetButtonFinder = find.widgetWithText(TextButton, '状態をリセット');
+
+      // ルールに従い、出現したリセットボタンを dragUntilVisible で画面内へスクロール
+      await tester.dragUntilVisible(
+        resetButtonFinder,
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+      await tester.pumpAndSettle();
+
+      check(resetButtonFinder).findsOne();
+
+      // リセットボタンをタップして初期状態に戻す
+      await tester.tap(resetButtonFinder);
+      await tester.pumpAndSettle();
+
+      // リセットボタンが消えていること
+      check(resetButtonFinder).findsNothing();
     });
   });
 }

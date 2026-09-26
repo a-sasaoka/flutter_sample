@@ -2,6 +2,7 @@ import 'package:alchemist/alchemist.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/lottie_demo_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../golden_test_helper.dart';
 
@@ -18,9 +19,11 @@ void main() {
             name: 'Light Mode',
             child: SizedBox(
               width: 390,
-              height: 1000,
+              height: 1550,
               child: buildGoldenTestApp(
-                home: const LottieDemoScreen(animate: false),
+                home: const ProviderScope(
+                  child: LottieDemoScreen(animate: false),
+                ),
                 themeMode: ThemeMode.light,
               ),
             ),
@@ -29,9 +32,11 @@ void main() {
             name: 'Dark Mode',
             child: SizedBox(
               width: 390,
-              height: 1000,
+              height: 1550,
               child: buildGoldenTestApp(
-                home: const LottieDemoScreen(animate: false),
+                home: const ProviderScope(
+                  child: LottieDemoScreen(animate: false),
+                ),
                 themeMode: ThemeMode.dark,
               ),
             ),
