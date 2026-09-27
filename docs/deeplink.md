@@ -201,3 +201,16 @@ Push通知のデータペイロード（`data`）に含まれる `path`（例: `
 2. **状態更新とルーティング実行**: `NotificationNotifier.handleNotificationTap(payload)` が `latestPayload` を更新し、`routerProvider`（`app_router.dart`）のリスナーが検知して `router.go(path)` で目的の画面へ自動遷移（単方向データフロー設計により循環依存を防止）
 3. **iOSシミュレーターでの検証**: `.apns` ファイルや送信スクリプトを用いたシミュレーター上でのディープリンク検証手順は [tool/apns/README.md](../tool/apns/README.md) を参照してください。
 4. **詳細仕様**: 詳細は [Push通知仕様書 (docs/notification.md)](notification.md) を参照してください。
+
+---
+
+## 📱 ホーム画面ウィジェットからのディープリンク連携
+
+ホーム画面ウィジェット（iOS WidgetKit / Android AppWidget）をタップした際も、ディープリンクとして GoRouter とシームレスに連携し、目的の画面（`/memos`）へ直接遷移します。
+
+1. **コールドスタート（完全終了状態からの起動）**:
+   アプリ起動時に `HomeWidgetService.getInitiallyLaunchedUri()` を非同期で取得し、ディープリンクURI（`sampleapp://memos` 等）を検出した場合、初期化直後にルーター経由で `/memos` へ自動遷移します。
+2. **バックグラウンド復帰時のタップ**:
+   `HomeWidgetService.widgetClicked` ストリームを購読し、ウィジェットタップによるURI通知を受け取った瞬間に `router.go('/memos')` を実行します。
+3. **詳細仕様**:
+   詳細は [ホーム画面ウィジェット連携 (docs/home_widget.md)](home_widget.md) を参照してください。実装詳細は [app_router.dart](../lib/src/app/router/app_router.dart) を参照してください。
