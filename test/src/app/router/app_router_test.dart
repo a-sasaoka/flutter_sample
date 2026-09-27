@@ -17,6 +17,8 @@ import 'package:flutter_sample/src/core/config/feature_flags_provider.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
+import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
+import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_email_verification_screen.dart';
@@ -35,6 +37,7 @@ import 'package:flutter_sample/src/features/dev_tools/presentation/lottie_demo_s
 import 'package:flutter_sample/src/features/dev_tools/presentation/push_notification_demo_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/rebuild_demo_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
+import 'package:flutter_sample/src/features/home_widget/application/home_widget_service.dart';
 import 'package:flutter_sample/src/features/legal/application/legal_document_provider.dart';
 import 'package:flutter_sample/src/features/legal/domain/legal_document_type.dart';
 import 'package:flutter_sample/src/features/legal/presentation/legal_document_screen.dart';
@@ -83,6 +86,8 @@ class MockStatefulNavigationShell extends Mock
 class MockChatRepository extends Mock implements ChatRepository {}
 
 class MockMemoRepository extends Mock implements MemoRepository {}
+
+class MockHomeWidgetService extends Mock implements HomeWidgetService {}
 
 // --- SplashStateのフェイク定義 ---
 class FakeSplashState extends SplashState {
@@ -160,12 +165,22 @@ class _FakeNotificationNotifier extends NotificationNotifier {
   }
 }
 
+class _FakeAppLockService extends AppLockService {
+  _FakeAppLockService([this._initialState = const AppLockState.disabled()]);
+  final AppLockState _initialState;
+
+  @override
+  Future<AppLockState> build() async => _initialState;
+}
+
 void main() {
   late MockFirebaseAnalytics mockAnalytics;
   late MockTalker mockTalker;
   late MockUser mockUser;
   late MockChatRepository mockChatRepository;
   late MockMemoRepository mockMemoRepository;
+  late MockHomeWidgetService mockHomeWidgetService;
+  late StreamController<Uri?> widgetClickedController;
   late MockAppLocalizations mockL10n;
   late List<LocalizationsDelegate<dynamic>> testLocalizations;
 
@@ -175,6 +190,15 @@ void main() {
     mockUser = MockUser();
     mockChatRepository = MockChatRepository();
     mockMemoRepository = MockMemoRepository();
+    mockHomeWidgetService = MockHomeWidgetService();
+    widgetClickedController = StreamController<Uri?>.broadcast();
+    when(
+      () => mockHomeWidgetService.getInitiallyLaunchedUri(),
+    ).thenAnswer((_) async => null);
+    when(
+      () => mockHomeWidgetService.widgetClicked,
+    ).thenAnswer((_) => widgetClickedController.stream);
+    addTearDown(widgetClickedController.close);
     mockL10n = MockAppLocalizations();
 
     testLocalizations = [
@@ -334,6 +358,9 @@ void main() {
     when(() => mockL10n.notFoundBackToHome).thenReturn('Back to Home');
     when(() => mockL10n.appTitle).thenReturn('Flutter Sample');
     when(() => mockL10n.memoAdd).thenReturn('Add Memo');
+    when(() => mockL10n.memoInputTitleHint).thenReturn('Title');
+    when(() => mockL10n.memoInputContentHint).thenReturn('Content');
+    when(() => mockL10n.memoSave).thenReturn('Save');
     when(() => mockL10n.semanticsEmailInput).thenReturn('メールアドレス入力欄');
     when(() => mockL10n.semanticsPasswordInput).thenReturn('パスワード入力欄');
     when(() => mockL10n.semanticsLoginButton).thenReturn('ログイン実行ボタン');
@@ -346,7 +373,10 @@ void main() {
     required bool useFirebase,
     bool isSplashFinished = true,
     bool isOnboardingCompleted = true,
+    bool disableAppLock = false,
+    AppLockState? appLockState,
     _FakeNotificationNotifier? fakeNotificationNotifier,
+    HomeWidgetService? customHomeWidgetService,
   }) {
     final fakeNotifier = _FakeFirebaseAuthStateNotifier(
       isLoggedIn: isLoggedIn,
@@ -359,6 +389,9 @@ void main() {
         memoRepositoryProvider.overrideWithValue(mockMemoRepository),
         firebaseAnalyticsProvider.overrideWithValue(mockAnalytics),
         loggerProvider.overrideWithValue(mockTalker),
+        homeWidgetServiceProvider.overrideWithValue(
+          customHomeWidgetService ?? mockHomeWidgetService,
+        ),
         flavorProvider.overrideWithValue(Flavor.dev),
         envConfigProvider.overrideWithValue(
           EnvConfigState(
@@ -384,6 +417,12 @@ void main() {
         ),
         if (fakeNotificationNotifier != null)
           notificationProvider.overrideWith(() => fakeNotificationNotifier),
+        if (disableAppLock || appLockState != null)
+          appLockServiceProvider.overrideWith(
+            () => _FakeAppLockService(
+              appLockState ?? const AppLockState.disabled(),
+            ),
+          ),
         legalDocumentProvider(
           LegalDocumentType.termsOfService,
         ).overrideWith((ref) async => '# 利用規約'),
@@ -628,6 +667,159 @@ void main() {
 
       await teardownWidget(tester, container);
     });
+
+    testWidgets('アプリ起動時にウィジェットタップ（コールドスタートURI）がある際、MemoScreenへ遷移すること', (
+      tester,
+    ) async {
+      when(
+        () => mockHomeWidgetService.getInitiallyLaunchedUri(),
+      ).thenAnswer((_) async => Uri.parse('sampleapp://memos'));
+
+      final container = createContainer(isLoggedIn: true, useFirebase: false);
+
+      await tester.pumpWidget(createTestWidget(tester, container));
+      await tester.pumpAndSettle();
+
+      // MemoScreen に遷移していることを確認
+      check(find.byType(MemoScreen)).findsOne();
+
+      await teardownWidget(tester, container);
+    });
+
+    testWidgets('アプリ表示中にウィジェットタップ（バックグラウンド復帰）が発生した際、MemoScreenへ遷移すること', (
+      tester,
+    ) async {
+      final container = createContainer(isLoggedIn: true, useFirebase: false);
+
+      await tester.pumpWidget(createTestWidget(tester, container));
+      await tester.pumpAndSettle();
+
+      // 最初は HomeScreen が表示されていること
+      check(find.byType(HomeScreen)).findsOne();
+
+      // ウィジェットタップイベントを流す
+      widgetClickedController.add(Uri.parse('sampleapp://memos'));
+      await tester.pumpAndSettle();
+
+      // MemoScreen に遷移していることを確認
+      check(find.byType(MemoScreen)).findsOne();
+
+      await teardownWidget(tester, container);
+    });
+
+    testWidgets('アプリ起動時にウィジェットタップ（コールドスタートURI：新規作成）がある際、MemoScreenへ遷移すること', (
+      tester,
+    ) async {
+      when(
+        () => mockHomeWidgetService.getInitiallyLaunchedUri(),
+      ).thenAnswer((_) async => Uri.parse('sampleapp://widget/memos/create'));
+
+      final container = createContainer(isLoggedIn: true, useFirebase: false);
+
+      await tester.pumpWidget(createTestWidget(tester, container));
+      await tester.pumpAndSettle();
+
+      // MemoScreen に遷移していることを確認
+      check(find.byType(MemoScreen)).findsOne();
+
+      await teardownWidget(tester, container);
+    });
+
+    testWidgets(
+      'アプリ表示中にウィジェットタップ（新規作成ディープリンク）が発生した際、MemoScreenへ遷移し新規作成シートが開くこと',
+      (tester) async {
+        final container = createContainer(
+          isLoggedIn: true,
+          useFirebase: false,
+          disableAppLock: true,
+        );
+
+        await tester.pumpWidget(createTestWidget(tester, container));
+        await tester.pumpAndSettle();
+
+        // 最初は HomeScreen が表示されていること
+        check(find.byType(HomeScreen)).findsOne();
+
+        // ウィジェット新規追加タップイベントを流す
+        widgetClickedController.add(
+          Uri.parse('sampleapp://widget/memos/create?homeWidget'),
+        );
+        await tester.pumpAndSettle();
+
+        // MemoScreen に遷移していることを確認
+        check(find.byType(MemoScreen)).findsOne();
+
+        // 新規作成ボトムシートの保存アクション（Saveボタン・アイコン）が表示されていることを確認
+        check(find.text('Save')).findsOne();
+        check(find.byIcon(Icons.save)).findsOne();
+
+        await teardownWidget(tester, container);
+      },
+    );
+
+    testWidgets(
+      'アプリ起動時にスプラッシュ未完了かつウィジェットタップURIがある場合、スプラッシュ終了後にMemoScreenへ遷移すること',
+      (tester) async {
+        when(
+          () => mockHomeWidgetService.getInitiallyLaunchedUri(),
+        ).thenAnswer((_) async => Uri.parse('sampleapp://memos'));
+
+        final container = createContainer(
+          isLoggedIn: true,
+          useFirebase: false,
+          isSplashFinished: false,
+        );
+
+        await tester.pumpWidget(createTestWidget(tester, container));
+        await tester.pump();
+
+        // 最初はスプラッシュ未完了なので SplashScreen が表示されていること
+        check(find.byType(SplashScreen)).findsOne();
+
+        // スプラッシュ完了状態にする（保留されていた pendingWidgetUri が発火）
+        container.read(splashStateProvider.notifier).finishSplash();
+        await tester.pumpAndSettle();
+
+        // スプラッシュが完了し、保留されていた MemoScreen に遷移すること
+        check(find.byType(MemoScreen)).findsOne();
+
+        await teardownWidget(tester, container);
+      },
+    );
+
+    testWidgets(
+      'カスタムスキームディープリンク（sampleapp://memos/create）への遷移時、リダイレクトされてMemoScreen（新規作成）が表示されること',
+      (tester) async {
+        final container = createContainer(isLoggedIn: true, useFirebase: false);
+
+        await tester.pumpWidget(createTestWidget(tester, container));
+        await tester.pumpAndSettle();
+
+        container.read(routerProvider).go('sampleapp://memos/create');
+        await tester.pumpAndSettle();
+
+        check(find.byType(MemoScreen)).findsOne();
+
+        await teardownWidget(tester, container);
+      },
+    );
+
+    testWidgets(
+      'カスタムスキームディープリンク（sampleapp://memos）への遷移時、リダイレクトされてMemoScreen（一覧）が表示されること',
+      (tester) async {
+        final container = createContainer(isLoggedIn: true, useFirebase: false);
+
+        await tester.pumpWidget(createTestWidget(tester, container));
+        await tester.pumpAndSettle();
+
+        container.read(routerProvider).go('sampleapp://memos');
+        await tester.pumpAndSettle();
+
+        check(find.byType(MemoScreen)).findsOne();
+
+        await teardownWidget(tester, container);
+      },
+    );
 
     testWidgets(
       'ログイン中かつメール未認証の時、FirebaseEmailVerificationScreen にリダイレクトされること',
@@ -885,10 +1077,9 @@ void main() {
     });
 
     test('MemosRoute.build: MemoScreen を返すこと', () {
-      final widget = const MemosRoute().build(
-        MockBuildContext(),
-        MockGoRouterState(),
-      );
+      final mockState = MockGoRouterState();
+      when(() => mockState.uri).thenReturn(Uri.parse('/memos'));
+      final widget = const MemosRoute().build(MockBuildContext(), mockState);
       check(widget).isA<MemoScreen>();
     });
 

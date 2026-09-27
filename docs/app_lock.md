@@ -51,7 +51,7 @@ stateDiagram-v2
 
     setupRequired --> unlocked: パスコード設定完了
     locked --> unlocked: パスコード一致 OR 生体認証成功
-    unlocked --> locked: バックグラウンド復帰 (paused/hidden -> [inactive] -> resumed)
+    unlocked --> locked: バックグラウンド移行 (paused/hidden)
     unlocked --> disabled: ログアウト (認証状態変更)
     setupRequired --> disabled: clearAppLock (設定全削除)
     locked --> disabled: clearAppLock (設定全削除)
@@ -87,7 +87,7 @@ stateDiagram-v2
 
 ### アプリ内一時非活性・OS別画面（生体認証・カメラ・アルバム）の誤ロック防止設計
 
-- **バックグラウンド履歴追跡**: `AppLockWrapper` は内部フラグ (`hasSeenBackground`) で `paused` または `hidden` 状態の通過を追跡します。OS によって `paused` $\rightarrow$ `inactive` $\rightarrow$ `resumed` の順でイベントが通知される場合でも確実に復帰を検知して `lockApp()` を呼び出します。
+- **バックグラウンド移行時の即時ロック**: `AppLockWrapper` は内部フラグ (`hasSeenBackground`) を用い、アプリが `paused` または `hidden` 状態に入った瞬間に即座に `lockApp()` を呼び出します。これにより、ウィジェットからのディープリンク等でアプリ復帰する際にも最初から確実にロック状態が維持され、レースコンディションによる誤動作を防ぎます。
 - **一時非活性の分離**: チャット送信時やキーボード開閉、Firebase ネットワーク通信等に伴う単なる一時非活性状態（`resumed` $\rightarrow$ `inactive` $\rightarrow$ `resumed`）ではバックグラウンド通過フラグが `false` のため誤ロックが発生しません。
 - **統一された誤ロック抑制ガード (`runWithLockSuppression`)**:
   - 生体認証ダイアログ（Face ID / 指紋認証）の表示中や、カメラ撮影・アルバム写真選択・切り抜き画面（プロフィール機能）、アルバム画像選択・URLブラウザ起動・端末設定画面遷移（QRコード機能）、OS標準シェアシートの表示・共有完了（SNSシェア機能）などの OS 画面を開いている最中は、アプリが一時的に `paused`（バックグラウンド）と判定されます。

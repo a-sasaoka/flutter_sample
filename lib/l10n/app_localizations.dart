@@ -722,6 +722,18 @@ abstract class AppLocalizations {
   /// **'Title: Z-A'**
   String get memoSortTitleDesc;
 
+  /// No description provided for @widgetMemoEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No memos yet'**
+  String get widgetMemoEmptyTitle;
+
+  /// No description provided for @widgetMemoEmptyContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap + to create your first memo!'**
+  String get widgetMemoEmptyContent;
+
   /// No description provided for @chartLine.
   ///
   /// In en, this message translates to:

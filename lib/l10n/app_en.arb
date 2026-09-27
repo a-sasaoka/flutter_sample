@@ -118,6 +118,8 @@
   "memoSortUpdatedAtAsc": "Updated: Oldest",
   "memoSortTitleAsc": "Title: A-Z",
   "memoSortTitleDesc": "Title: Z-A",
+  "widgetMemoEmptyTitle": "No memos yet",
+  "widgetMemoEmptyContent": "Tap + to create your first memo!",
 
   "@_CHART": {},
   "chartLine": "Line Chart",

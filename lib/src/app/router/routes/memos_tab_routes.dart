@@ -7,7 +7,13 @@ class MemosRoute extends GoRouteData with $MemosRoute {
 
   @override
   Widget build(BuildContext context, GoRouterState state) {
-    return const MemoScreen();
+    String? action;
+    try {
+      action = state.uri.queryParameters['action'];
+    } on Object catch (_) {
+      action = null;
+    }
+    return MemoScreen(action: action);
   }
 }
 

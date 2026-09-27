@@ -28,6 +28,7 @@ import 'package:flutter_sample/src/features/dev_tools/presentation/lottie_demo_s
 import 'package:flutter_sample/src/features/dev_tools/presentation/push_notification_demo_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/rebuild_demo_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
+import 'package:flutter_sample/src/features/home_widget/application/home_widget_service.dart';
 import 'package:flutter_sample/src/features/legal/domain/legal_document_type.dart';
 import 'package:flutter_sample/src/features/legal/presentation/legal_document_screen.dart';
 import 'package:flutter_sample/src/features/map/presentation/map_screen.dart';
@@ -100,6 +101,21 @@ GoRouter router(Ref ref) {
     refreshListenable: routerListenable,
     routes: $appRoutes,
     redirect: (context, state) {
+      // 📱 ホーム画面ウィジェットや外部連携からのカスタムスキームURIをアプリ内正規ルートへリダイレクト
+      final uri = state.uri;
+      if (uri.hasScheme &&
+          (uri.scheme == 'sampleapp' || uri.scheme.startsWith('flsample'))) {
+        final host = uri.host;
+        final path = uri.path;
+        if (path.contains('create') ||
+            uri.queryParameters['action'] == 'create') {
+          return '/memos?action=create';
+        }
+        if (host == 'memos' || path.contains('memos')) {
+          return '/memos';
+        }
+      }
+
       // Firebase Authenticationの利用有無で認証ガードを切り替える
       if (useFirebase) {
         return firebaseAuthGuard(ref, state);
@@ -131,6 +147,56 @@ GoRouter router(Ref ref) {
           router.go(path);
         }
       }
+    }
+  });
+
+  // 📱 ホーム画面ウィジェットのタップ起動（コールドスタート＆バックグラウンド復帰）を監視
+  final homeWidget = ref.watch(homeWidgetServiceProvider);
+  final talker = ref.watch(loggerProvider);
+  Uri? pendingWidgetUri;
+
+  void handleWidgetUri(Uri uri) {
+    talker.info('📱 [HomeWidget] Widget clicked with URI: $uri');
+    final path = uri.path;
+    final host = uri.host;
+    if (path.contains('create')) {
+      router.go('/memos?action=create');
+    } else if (host == 'memos' || path.startsWith('/memos')) {
+      router.go('/memos');
+    }
+  }
+
+  // 1. バックグラウンド復帰時のタップを購読
+  final widgetSubscription = homeWidget.widgetClicked.listen((uri) {
+    if (uri != null) {
+      handleWidgetUri(uri);
+    }
+  });
+  ref.onDispose(widgetSubscription.cancel);
+
+  // 2. コールドスタート（完全終了からの起動）時のタップURIを取得
+  unawaited(
+    homeWidget.getInitiallyLaunchedUri().then((uri) {
+      if (uri != null) {
+        final isSplashFinished = ref.read(splashStateProvider);
+        if (isSplashFinished) {
+          handleWidgetUri(uri);
+        } else {
+          // スプラッシュ表示中は保留にしておく
+          pendingWidgetUri = uri;
+        }
+      }
+    }),
+  );
+
+  // 3. スプラッシュ画面の終了を検知して、保留していたメモ画面へ遷移
+  ref.listen(splashStateProvider, (previous, isFinished) {
+    if (isFinished && pendingWidgetUri != null) {
+      final uri = pendingWidgetUri!;
+      pendingWidgetUri = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        handleWidgetUri(uri);
+      });
     }
   });
 

@@ -6,20 +6,50 @@ import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/empty_state_widget.dart';
+import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
+import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_sort_order.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_list_shimmer.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// メモ画面
-class MemoScreen extends ConsumerWidget {
+class MemoScreen extends HookConsumerWidget {
   /// コンストラクタ
-  const MemoScreen({super.key});
+  const MemoScreen({this.action, super.key});
+
+  /// ウィジェット等から渡されるアクション（'create' など）
+  final String? action;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
+
+    // 📱 新規追加アクションが指定されている場合のみ、アプリロック解除を待機して入力シートを開く
+    final isCreateAction = action == 'create';
+    final isUnlocked =
+        isCreateAction &&
+        switch (ref.watch(appLockServiceProvider)) {
+          AsyncData(:final value) => switch (value) {
+            AppLockStateUnlocked() || AppLockStateDisabled() => true,
+            _ => false,
+          },
+          _ => false,
+        };
+
+    useEffect(() {
+      if (isCreateAction && isUnlocked) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) {
+            context.replace('/memos');
+            unawaited(_showAddMemoDialog(context, ref));
+          }
+        });
+      }
+      return null;
+    }, [isCreateAction, isUnlocked]);
 
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
@@ -110,7 +140,6 @@ class MemoScreen extends ConsumerWidget {
                       prefixIcon: const Icon(Icons.title),
                       border: const OutlineInputBorder(),
                     ),
-                    autofocus: true,
                     enabled: !isLoading.value,
                   ),
                   const SizedBox(height: 16),

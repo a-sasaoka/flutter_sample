@@ -56,6 +56,7 @@ Flutter開発のサンプルプロジェクトです。\
 - [QRコードリーダー機能 (QR Scanner)](docs/qr_scanner.md)
 - [利用規約・プライバシーポリシー閲覧機能 (Legal)](docs/legal.md)
 - [SNSシェア機能 (SNS Share)](docs/share.md)
+- [ホーム画面ウィジェット連携 (Home Widget)](docs/home_widget.md)
 
 ### E. 開発運用
 

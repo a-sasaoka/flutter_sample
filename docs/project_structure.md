@@ -14,6 +14,7 @@ flutter_sample
 │   └── markdown/                                              # 利用規約・プライバシーポリシーのMarkdown文書
 ├── android/
 │   └── app/src/
+│       ├── main/res/layout/                                    # Android AppWidget レイアウトXML等
 │       └── {flavor}/                                           # Android用の環境別Firebase設定等を格納
 ├── config/                                                     # 環境毎の公開設定ファイル（JSON形式。Git管理対象）
 │   ├── flavor_local.json
@@ -34,6 +35,7 @@ flutter_sample
 ├── firestore.rules                                             # Firestoreのセキュリティルール設定
 ├── firestore.indexes.json                                      # Firestoreのインデックス設定
 ├── ios/
+│   ├── MemoWidget/                                             # iOS WidgetKit (SwiftUI) ウィジェットターゲット
 │   └── Runner/
 │       └── Firebase/                                           # iOS用の環境別Firebase設定を格納
 ├── maestro/                                                    # Maestro による E2E テストシナリオ（YAML）を格納
@@ -80,6 +82,7 @@ flutter_sample
             ├── chat                                            # AIチャット機能
             ├── dev_tools                                       # 開発者ツール機能（ストレージ確認・編集、再ビルド最適化検証等）
             ├── home                                            # ホーム画面（動的お知らせバナー、ハブナビゲーション）
+            ├── home_widget                                     # ホーム画面ウィジェット連携（WidgetKit/AppWidget・メモ自動同期）
             ├── legal                                           # 法的情報・Markdown閲覧機能（利用規約・プライバシーポリシー）
             ├── map                                             # 地図・現在地表示・住所ランドマーク検索・2点間ルート案内機能
             ├── memos                                           # メモ一覧・オフライン操作機能

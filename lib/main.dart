@@ -20,6 +20,7 @@ import 'package:flutter_sample/src/core/utils/scaffold_messenger_key.dart';
 import 'package:flutter_sample/src/core/widgets/offline_banner.dart';
 import 'package:flutter_sample/src/features/app_lock/presentation/app_lock_wrapper.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_overrides.dart';
+import 'package:flutter_sample/src/features/home_widget/application/home_widget_sync_coordinator.dart';
 import 'package:flutter_sample/src/features/notification/application/notification_notifier.dart';
 import 'package:flutter_sample/src/features/notification/data/firebase_messaging_background_handler.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -126,8 +127,10 @@ Future<void> mainCommon(
     parameters: {'env': flavor.name},
   );
 
-  // 12. Push通知基盤の初期化（バックグラウンドで開始）
-  container.read(notificationProvider);
+  // 12. Push通知基盤およびホーム画面ウィジェット自動同期の初期化（バックグラウンドで開始）
+  container
+    ..read(notificationProvider)
+    ..read(homeWidgetSyncCoordinatorProvider);
 
   // 13. コンテナは破棄 (dispose) せず、そのままアプリに渡して起動
   runApp(UncontrolledProviderScope(container: container, child: const MyApp()));

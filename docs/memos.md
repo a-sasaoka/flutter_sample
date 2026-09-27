@@ -63,6 +63,12 @@ memos/
 - **リアルタイム検索**: 入力されたキーワードと部分一致するメモを瞬時に絞り込み表示（インクリメンタルサーチ）。クリア（×）ボタンで即座にリセット可能。
 - **多様なソート条件**: 作成日時（新旧）、更新日時（新旧）、タイトル（昇順・降順）の6つの並び替え順を、状態管理 (StreamNotifier) 層でリストをコピーしつつ適用し、安全なデータ操作を保証します。
 
+### 6. ホーム画面ウィジェット連携（最新メモの自動同期）
+
+メモ一覧データの変更（追加・更新・削除）は、[home_widget_sync_coordinator.dart](../lib/src/features/home_widget/application/home_widget_sync_coordinator.dart) によって自動的に検知されます。
+最新の有効メモ（削除済みを除く更新日時の最も新しいメモ）およびメモ件数が、OSの共有領域（iOS App Groups / Android SharedPreferences）を介してホーム画面ウィジェットへ即座に反映されます。
+ウィジェットのメモ本体タップ時はメモ一覧（`/memos`）へ直接遷移し、追加ボタン（「＋」）タップ時はディープリンク（`sampleapp://memos/create` 経由の `?action=create`）を検知して新規作成ボトムシートが自動オープンします。詳細は [ホーム画面ウィジェット連携 (home_widget.md)](home_widget.md) を参照してください。
+
 ---
 
 ## テスト
@@ -83,3 +89,4 @@ memos/
 ## 関連ドキュメント
 
 - [データ永続化の詳細（Drift / SharedPreferences）](./persistence.md)
+- [ホーム画面ウィジェット連携 (home_widget.md)](home_widget.md)
