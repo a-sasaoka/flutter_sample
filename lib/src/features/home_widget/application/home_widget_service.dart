@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:flutter_sample/src/features/home_widget/data/home_widget_data_source.dart';
 import 'package:flutter_sample/src/features/home_widget/domain/home_widget_constants.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
@@ -19,21 +20,23 @@ class HomeWidgetService {
     required HomeWidgetDataSource dataSource,
     required Talker logger,
     required AppLocalizations Function() l10nProvider,
+    required String appGroupId,
   }) : _dataSource = dataSource,
        _logger = logger,
-       _l10nProvider = l10nProvider;
+       _l10nProvider = l10nProvider,
+       _appGroupId = appGroupId;
 
   final HomeWidgetDataSource _dataSource;
   final Talker _logger;
   final AppLocalizations Function() _l10nProvider;
+  final String _appGroupId;
 
   /// 初期設定（App Group IDの登録）を行う
   Future<void> initialize() async {
     try {
-      await _dataSource.setAppGroupId(HomeWidgetConstants.appGroupId);
+      await _dataSource.setAppGroupId(_appGroupId);
       _logger.info(
-        '📱 [HomeWidgetService] Initialized with appGroupId: '
-        '${HomeWidgetConstants.appGroupId}',
+        '📱 [HomeWidgetService] Initialized with appGroupId: $_appGroupId',
       );
     } on Exception catch (e, st) {
       _logger.handle(
@@ -163,9 +166,13 @@ HomeWidgetService homeWidgetService(Ref ref) {
     return lookupAppLocalizations(matchedLocale);
   }
 
+  final packageInfo = ref.watch(packageInfoProvider);
+  final appGroupId = HomeWidgetConstants.appGroupIdFor(packageInfo.packageName);
+
   return HomeWidgetService(
     dataSource: dataSource,
     logger: logger,
     l10nProvider: getL10n,
+    appGroupId: appGroupId,
   );
 }

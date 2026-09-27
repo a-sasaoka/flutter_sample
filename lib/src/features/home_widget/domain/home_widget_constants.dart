@@ -1,7 +1,7 @@
 /// ホーム画面ウィジェット連携で使用する定数定義
 abstract final class HomeWidgetConstants {
-  /// iOSのApp Group ID（アプリとウィジェットで共有するデータ領域の識別名）
-  static const appGroupId = 'group.jp.example.sample';
+  /// パッケージ名（Bundle ID）から App Group ID を動的に生成する
+  static String appGroupIdFor(String packageName) => 'group.$packageName';
 
   /// iOS側のウィジェット名（SwiftUIのWidgetBundleで登録する名前）
   static const iOSWidgetName = 'MemoWidget';
