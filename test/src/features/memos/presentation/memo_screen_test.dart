@@ -9,12 +9,15 @@ import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/empty_state_widget.dart';
+import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
+import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_list_shimmer.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:talker_flutter/talker_flutter.dart';
@@ -96,6 +99,9 @@ void main() {
           memoRepositoryProvider.overrideWithValue(mockMemoRepository),
           isOnlineProvider.overrideWithValue(isOnline),
           loggerProvider.overrideWithValue(mockTalker),
+          appLockServiceProvider.overrideWith(
+            () => TestAppLockService(const AppLockState.disabled()),
+          ),
         ],
         child: MaterialApp(
           localizationsDelegates: [
@@ -504,5 +510,97 @@ void main() {
 
       container.dispose();
     });
+
+    testWidgets('action=create かつ ロック解除状態の場合、自動的に新規追加ダイアログが表示されること', (
+      tester,
+    ) async {
+      final router = GoRouter(
+        initialLocation: '/memos?action=create',
+        routes: [
+          GoRoute(
+            path: '/memos',
+            builder: (context, state) =>
+                MemoScreen(action: state.uri.queryParameters['action']),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+            loggerProvider.overrideWithValue(mockTalker),
+            appLockServiceProvider.overrideWith(
+              () => TestAppLockService(
+                const AppLockState.unlocked(isBiometricEnabled: false),
+              ),
+            ),
+          ],
+          child: MaterialApp.router(
+            localizationsDelegates: [
+              MockLocalizationsDelegate(mockL10n),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // ボトムシート内の「保存」ボタンが表示されていることを確認
+      check(find.text('保存')).findsOne();
+    });
+
+    testWidgets('action=create かつ ロック中の場合、新規追加ダイアログは自動表示されないこと', (
+      tester,
+    ) async {
+      final router = GoRouter(
+        initialLocation: '/memos?action=create',
+        routes: [
+          GoRoute(
+            path: '/memos',
+            builder: (context, state) =>
+                MemoScreen(action: state.uri.queryParameters['action']),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+            loggerProvider.overrideWithValue(mockTalker),
+            appLockServiceProvider.overrideWith(
+              () => TestAppLockService(
+                const AppLockState.locked(isBiometricEnabled: false),
+              ),
+            ),
+          ],
+          child: MaterialApp.router(
+            localizationsDelegates: [
+              MockLocalizationsDelegate(mockL10n),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // ボトムシート内の「保存」ボタンは表示されていないことを確認
+      check(find.text('保存')).findsNothing();
+    });
   });
+}
+
+class TestAppLockService extends AppLockService {
+  TestAppLockService(this._initialState);
+  final AppLockState _initialState;
+
+  @override
+  Future<AppLockState> build() async => _initialState;
 }

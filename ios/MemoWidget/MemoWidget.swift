@@ -118,7 +118,7 @@ struct MemoWidgetEntryView: View {
                 Spacer()
 
                 // タップするとアプリのメモ新規作成画面へ直接ジャンプするLinkボタン
-                Link(destination: URL(string: "sampleapp://memos/create")!) {
+                Link(destination: URL(string: "sampleapp://memos/create?homeWidget")!) {
                     HStack(spacing: 3) {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 13))
@@ -135,19 +135,24 @@ struct MemoWidgetEntryView: View {
         }
         .padding(12)
         // ウィジェット全体のタップはメモ一覧画面へジャンプ
-        .widgetURL(URL(string: "sampleapp://memos"))
+        .widgetURL(URL(string: "sampleapp://memos?homeWidget"))
     }
 }
 
 /// ウィジェットの設定エントリポイント
-@main
 struct MemoWidget: Widget {
     let kind: String = "MemoWidget"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: MemoWidgetTimelineProvider()) { entry in
-            MemoWidgetEntryView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+            if #available(iOS 17.0, *) {
+                MemoWidgetEntryView(entry: entry)
+                    .containerBackground(.fill.tertiary, for: .widget)
+            } else {
+                MemoWidgetEntryView(entry: entry)
+                    .padding()
+                    .background()
+            }
         }
         .configurationDisplayName("メモウィジェット")
         .description("最新のメモをホーム画面で素早く確認・新規追加できます。")

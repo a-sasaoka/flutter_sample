@@ -138,12 +138,15 @@ GoRouter router(Ref ref) {
   // 📱 ホーム画面ウィジェットのタップ起動（コールドスタート＆バックグラウンド復帰）を監視
   final homeWidget = ref.watch(homeWidgetServiceProvider);
   final talker = ref.watch(loggerProvider);
+  Uri? pendingWidgetUri;
 
   void handleWidgetUri(Uri uri) {
     talker.info('📱 [HomeWidget] Widget clicked with URI: $uri');
     final path = uri.path;
     final host = uri.host;
-    if (host == 'memos' || path.startsWith('/memos')) {
+    if (path.contains('create')) {
+      router.go('/memos?action=create');
+    } else if (host == 'memos' || path.startsWith('/memos')) {
       router.go('/memos');
     }
   }
@@ -160,10 +163,27 @@ GoRouter router(Ref ref) {
   unawaited(
     homeWidget.getInitiallyLaunchedUri().then((uri) {
       if (uri != null) {
-        handleWidgetUri(uri);
+        final isSplashFinished = ref.read(splashStateProvider);
+        if (isSplashFinished) {
+          handleWidgetUri(uri);
+        } else {
+          // スプラッシュ表示中は保留にしておく
+          pendingWidgetUri = uri;
+        }
       }
     }),
   );
+
+  // 3. スプラッシュ画面の終了を検知して、保留していたメモ画面へ遷移
+  ref.listen(splashStateProvider, (previous, isFinished) {
+    if (isFinished && pendingWidgetUri != null) {
+      final uri = pendingWidgetUri!;
+      pendingWidgetUri = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        handleWidgetUri(uri);
+      });
+    }
+  });
 
   return router;
 }

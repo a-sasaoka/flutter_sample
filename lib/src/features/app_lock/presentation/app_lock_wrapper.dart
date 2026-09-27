@@ -26,12 +26,12 @@ class AppLockWrapper extends HookConsumerWidget {
     ref.listen(appLifecycleProvider, (previous, next) {
       if (next == AppLifecycleState.paused ||
           next == AppLifecycleState.hidden) {
-        hasSeenBackground.value = true;
-      } else if (next == AppLifecycleState.resumed) {
-        if (hasSeenBackground.value) {
-          hasSeenBackground.value = false;
+        if (!hasSeenBackground.value) {
+          hasSeenBackground.value = true;
           ref.read(appLockServiceProvider.notifier).lockApp();
         }
+      } else if (next == AppLifecycleState.resumed) {
+        hasSeenBackground.value = false;
       }
     });
 

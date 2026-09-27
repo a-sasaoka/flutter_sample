@@ -61,13 +61,17 @@ iOSのWidgetKitとFlutter本体の間でデータを共有するには **App Gro
 
 ### 4. ウィジェットタップからのディープリンク画面遷移
 
-ウィジェットをタップした際、アプリの起動状態に応じて以下の2系統でシームレスに画面遷移を処理します。
-処理ロジックは [app_router.dart](../lib/src/app/router/app_router.dart) に集約されています。
+ウィジェットをタップした際、アプリの起動状態およびアクション種別に応じてシームレスに画面遷移を処理します。
+処理ロジックは [app_router.dart](../lib/src/app/router/app_router.dart) および [memo_screen.dart](../lib/src/features/memos/presentation/memo_screen.dart) に集約されています。
 
-- **コールドスタート（完全終了時）**:
-  - `homeWidgetService.getInitiallyLaunchedUri()` を非同期で取得し、ディープリンクURI（`sampleapp://memos` 等）を検出した場合、ルーターを初期化直後に `/memos` へ自動遷移させます。
-- **バックグラウンド復帰時**:
-  - `homeWidgetService.widgetClicked` ストリームを購読し、ウィジェットタップによるURI通知を受け取った瞬間に `router.go('/memos')` を実行します。
+- **アクションの振り分け**:
+  - ウィジェット全体タップ時: メモ一覧画面（`/memos`）へ直接ジャンプします。
+  - 「＋新規追加」ボタンタップ時: メモ一覧画面へクエリパラメータ付きで遷移（`/memos?action=create`）し、メモ追加シートを自動展開します。
+- **コールドスタート（完全終了時）とスプラッシュ待機**:
+  - `homeWidgetService.getInitiallyLaunchedUri()` を取得します。スプラッシュ画面の初期化が完了するまでは遷移を安全に保留（`pendingWidgetUri`）し、スプラッシュ終了通知を受け取った段階で目的の画面へジャンプします。
+- **バックグラウンド復帰時とアプリロック連携**:
+  - `homeWidgetService.widgetClicked` ストリームを購読して即時遷移します。
+  - パスコードロック有効時は、アプリがバックグラウンドに移行した瞬間に [app_lock_wrapper.dart](../lib/src/features/app_lock/presentation/app_lock_wrapper.dart) が即時ロック状態へと移行するため、ロック画面表示中に入力シートやキーボードが手前に誤表示されるのを防ぎ、ユーザーによる認証解除後に安全に入力シートが開くよう調和しています。
 
 ---
 
@@ -85,8 +89,11 @@ iOSのWidgetKitとFlutter本体の間でデータを共有するには **App Gro
   - アプリ起動時の自動初期化
   - メモ一覧更新検知とウィジェット更新呼び出し
 - **ルーティング統合テスト**: [app_router_test.dart](../test/src/app/router/app_router_test.dart)
-  - コールドスタート時のメモ画面遷移
-  - バックグラウンド復帰時のメモ画面遷移
+  - コールドスタート時およびバックグラウンド復帰時のメモ一覧遷移
+  - 新規作成ディープリンクによるメモ画面遷移
+- **画面表示・アクション統合テスト**: [memo_screen_test.dart](../test/src/features/memos/presentation/memo_screen_test.dart)
+  - `action=create` クエリによる新規作成シート自動展開
+  - パスコードロック状態に応じた入力シート表示の抑制と認証後の展開
 
 ---
 

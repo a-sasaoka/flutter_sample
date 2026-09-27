@@ -686,6 +686,77 @@ void main() {
       await teardownWidget(tester, container);
     });
 
+    testWidgets('アプリ起動時にウィジェットタップ（コールドスタートURI：新規作成）がある際、MemoScreenへ遷移すること', (
+      tester,
+    ) async {
+      when(
+        () => mockHomeWidgetService.getInitiallyLaunchedUri(),
+      ).thenAnswer((_) async => Uri.parse('sampleapp://widget/memos/create'));
+
+      final container = createContainer(isLoggedIn: true, useFirebase: false);
+
+      await tester.pumpWidget(createTestWidget(tester, container));
+      await tester.pumpAndSettle();
+
+      // MemoScreen に遷移していることを確認
+      check(find.byType(MemoScreen)).findsOne();
+
+      await teardownWidget(tester, container);
+    });
+
+    testWidgets('アプリ表示中にウィジェットタップ（新規作成ディープリンク）が発生した際、MemoScreenへ遷移すること', (
+      tester,
+    ) async {
+      final container = createContainer(isLoggedIn: true, useFirebase: false);
+
+      await tester.pumpWidget(createTestWidget(tester, container));
+      await tester.pumpAndSettle();
+
+      // 最初は HomeScreen が表示されていること
+      check(find.byType(HomeScreen)).findsOne();
+
+      // ウィジェット新規追加タップイベントを流す
+      widgetClickedController.add(
+        Uri.parse('sampleapp://widget/memos/create?homeWidget'),
+      );
+      await tester.pumpAndSettle();
+
+      // MemoScreen に遷移していることを確認
+      check(find.byType(MemoScreen)).findsOne();
+
+      await teardownWidget(tester, container);
+    });
+
+    testWidgets(
+      'アプリ起動時にスプラッシュ未完了かつウィジェットタップURIがある場合、スプラッシュ終了後にMemoScreenへ遷移すること',
+      (tester) async {
+        when(
+          () => mockHomeWidgetService.getInitiallyLaunchedUri(),
+        ).thenAnswer((_) async => Uri.parse('sampleapp://memos'));
+
+        final container = createContainer(
+          isLoggedIn: true,
+          useFirebase: false,
+          isSplashFinished: false,
+        );
+
+        await tester.pumpWidget(createTestWidget(tester, container));
+        await tester.pump();
+
+        // 最初はスプラッシュ未完了なので SplashScreen が表示されていること
+        check(find.byType(SplashScreen)).findsOne();
+
+        // スプラッシュ完了状態にする（保留されていた pendingWidgetUri が発火）
+        container.read(splashStateProvider.notifier).finishSplash();
+        await tester.pumpAndSettle();
+
+        // スプラッシュが完了し、保留されていた MemoScreen に遷移すること
+        check(find.byType(MemoScreen)).findsOne();
+
+        await teardownWidget(tester, container);
+      },
+    );
+
     testWidgets(
       'ログイン中かつメール未認証の時、FirebaseEmailVerificationScreen にリダイレクトされること',
       (tester) async {
@@ -942,10 +1013,9 @@ void main() {
     });
 
     test('MemosRoute.build: MemoScreen を返すこと', () {
-      final widget = const MemosRoute().build(
-        MockBuildContext(),
-        MockGoRouterState(),
-      );
+      final mockState = MockGoRouterState();
+      when(() => mockState.uri).thenReturn(Uri.parse('/memos'));
+      final widget = const MemosRoute().build(MockBuildContext(), mockState);
       check(widget).isA<MemoScreen>();
     });
 

@@ -6,4 +6,4 @@ BUNDLE_NAME=[Dev] Sample
 BUNDLE_DISPLAY_NAME=[Dev] Sample
 #include "Dart-Defines.xcconfig"
 CUSTOM_URL_SCHEME=flsampledev
-
+PRODUCT_BUNDLE_IDENTIFIER_BASE=jp.example.sample.dev
