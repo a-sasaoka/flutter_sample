@@ -85,7 +85,7 @@ qr_scanner/
 アプリロック機能が有効な場合に誤ってロック画面が表示されてしまうのを防ぐため、以下の操作を `AppLockService.runWithLockSuppression` で保護しています。
 
 - **アルバムからのQR画像選択** (`QrScannerController.pickAndScanImage`)
-- **外部ブラウザでのURL起動** (`UrlLauncherService.openUrl`)
+- **外部ブラウザでのURL起動** (`UrlLauncherService.openUrl` ※ `AppLockService` をコンストラクタで必須注入して誤ロックを防止)
 - **端末の設定画面オープン** (`QrScannerScreen` の「設定を開く」ボタン)
 
 ---
@@ -97,7 +97,7 @@ qr_scanner/
 1. **単体・状態管理テスト**:
    - `QrScannerController`: スキャン、画像選択、一時停止/再開、ライト切替、DB保存失敗時のエラーハンドリング（Talker記録）など全分岐を検証。
    - `QrScanHistoriesDao`: 新規保存、重複時の日時更新、削除、全削除、ストリーム監視をインメモリSQLiteで検証。
-   - `UrlLauncherService`: 有効なURLの起動、無効なURLの拒否、プラットフォーム例外時のエラーハンドリングをモックで検証。
+   - `UrlLauncherService`: `AppLockService` の必須DI化に対応し、有効なURLの起動、無効なURLの拒否、プラットフォーム例外時のエラーハンドリングをモックで検証。
 2. **ウィジェットテスト**:
    - `QrScannerScreen`: AppBar、操作ボタン、スキャン枠、権限エラービュー、シミュレーター非対応ビュー（画像読み取り導線）、画面遷移を検証。
    - `QrScannerHistoryScreen`: 空状態表示、リスト表示、スワイプ個別削除、全削除ダイアログを検証。

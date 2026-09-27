@@ -33,9 +33,18 @@ void main() {
 
   group('UrlLauncherService', () {
     late UrlLauncherService service;
+    late MockAppLockService mockAppLockService;
 
     setUp(() {
-      service = const UrlLauncherService();
+      mockAppLockService = MockAppLockService();
+      when(
+        () => mockAppLockService.runWithLockSuppression<bool>(any()),
+      ).thenAnswer((invocation) async {
+        final action =
+            invocation.positionalArguments[0] as Future<bool> Function();
+        return await action();
+      });
+      service = UrlLauncherService(appLockService: mockAppLockService);
     });
 
     test('http または https の URL を正しく Web URL と判定できること', () {

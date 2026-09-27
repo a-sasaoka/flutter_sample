@@ -7,10 +7,10 @@ part 'url_launcher_service.g.dart';
 /// URL起動を担当するサービスクラス
 class UrlLauncherService {
   /// コンストラクタ
-  const UrlLauncherService({this.appLockService});
+  const UrlLauncherService({required this.appLockService});
 
   /// 誤ロック防止用のアプリロックサービス
-  final AppLockService? appLockService;
+  final AppLockService appLockService;
 
   /// 文字列が有効な Web URL (http/https) かどうかを判定する
   bool isWebUrl(String urlString) {
@@ -28,13 +28,9 @@ class UrlLauncherService {
       return false;
     }
     final uri = Uri.parse(trimmed);
-    final lockService = appLockService;
-    if (lockService != null) {
-      return await lockService.runWithLockSuppression(
-        () => launchUrl(uri, mode: LaunchMode.externalApplication),
-      );
-    }
-    return await launchUrl(uri, mode: LaunchMode.externalApplication);
+    return await appLockService.runWithLockSuppression(
+      () => launchUrl(uri, mode: LaunchMode.externalApplication),
+    );
   }
 }
 

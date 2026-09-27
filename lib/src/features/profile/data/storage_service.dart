@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
+import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -23,6 +24,7 @@ StorageService storageService(Ref ref) {
     storage: ref.watch(firebaseStorageProvider),
     talker: ref.watch(loggerProvider),
     uuid: ref.watch(uuidProvider),
+    getCurrentDateTime: ref.watch(clockProvider),
   );
 }
 
@@ -32,7 +34,8 @@ class StorageService {
   const StorageService({
     required this.storage,
     required this.talker,
-    this.uuid = const Uuid(),
+    required this.uuid,
+    required this.getCurrentDateTime,
   });
 
   /// FirebaseStorage インスタンス
@@ -44,6 +47,9 @@ class StorageService {
   /// UUID生成器
   final Uuid uuid;
 
+  /// 現在日時を取得する関数
+  final DateTime Function() getCurrentDateTime;
+
   /// アバター画像を Firebase Storage にアップロードし、ダウンロードURLを返す
   Future<String> uploadAvatar({
     required String userId,
@@ -51,7 +57,7 @@ class StorageService {
   }) async {
     try {
       talker.debug('Uploading avatar image for user: $userId');
-      final timestamp = DateTime.now().toUtc().millisecondsSinceEpoch;
+      final timestamp = getCurrentDateTime().toUtc().millisecondsSinceEpoch;
       final randomId = uuid.v4();
       final fileName = '${userId}_${timestamp}_$randomId.jpg';
       final ref = storage.ref().child('avatars').child(fileName);

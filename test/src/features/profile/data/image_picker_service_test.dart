@@ -41,6 +41,7 @@ void main() {
   late MockImagePicker mockPicker;
   late MockImageCropper mockCropper;
   late MockTalker mockTalker;
+  late MockAppLockService mockAppLockService;
   late ImagePickerService service;
 
   setUpAll(() {
@@ -56,14 +57,23 @@ void main() {
     mockPicker = MockImagePicker();
     mockCropper = MockImageCropper();
     mockTalker = MockTalker();
+    mockAppLockService = MockAppLockService();
 
     when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
     when(() => mockTalker.warning(any<dynamic>())).thenReturn(null);
+    when(
+      () => mockAppLockService.runWithLockSuppression<String?>(any()),
+    ).thenAnswer((invocation) async {
+      final action =
+          invocation.positionalArguments[0] as Future<String?> Function();
+      return await action();
+    });
 
     service = ImagePickerService(
       picker: mockPicker,
       cropper: mockCropper,
       talker: mockTalker,
+      appLockService: mockAppLockService,
     );
   });
 

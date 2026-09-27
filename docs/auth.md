@@ -118,6 +118,7 @@ lib/src/features/auth/
 
 本プロジェクトでは、画面側（設定画面など）が「現在 Firebase Auth を使っているか、自前のトークン認証を使っているか」を意識せずに安全にログアウトできるよう、`AuthService` を提供しています。
 
+- **完全な依存性注入 (DI)**: `Ref` への直接依存を排除し、必要なロガー・設定・リポジトリ・Notifier をコンストラクタ引数として個別に受け取る設計になっており、単体テスト時のモック差し替えが容易です。実装詳細は [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) を参照してください。
 - **認証方式の隠蔽**: `EnvConfig.useFirebaseAuth` の値に応じて、Firebase のサインアウトまたはローカルトークンの破棄を適切に実行します。
 - **アプリロック連携の自動化**: ログアウト処理の中で `AppLockService.clearAppLock()` を呼び出し、暗号化保存されたパスコード・生体認証設定を自動的にクリアします。
 - **統一されたログイン判定**: `isAuthenticatedProvider` により、UI 側は1行で「何らかの方式でログイン中か」を監視・判定できます。

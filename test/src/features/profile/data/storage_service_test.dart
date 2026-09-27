@@ -47,6 +47,7 @@ void main() {
   late MockFile mockFile;
   late MockUuid mockUuid;
   late StorageService service;
+  late DateTime fixedDateTime;
 
   setUpAll(() {
     registerFallbackValue(SettableMetadata());
@@ -75,10 +76,12 @@ void main() {
     when(() => mockAvatarsRef.child(any())).thenReturn(mockFileRef);
     when(() => mockUuid.v4()).thenReturn('test-uuid-1234');
 
+    fixedDateTime = DateTime.utc(2026, 5, 15, 12);
     service = StorageService(
       storage: mockStorage,
       talker: mockTalker,
       uuid: mockUuid,
+      getCurrentDateTime: () => fixedDateTime,
     );
   });
 
@@ -98,11 +101,9 @@ void main() {
       final result = await service.uploadAvatar(userId: userId, file: mockFile);
 
       check(result).equals(downloadUrl);
-      verify(
-        () => mockAvatarsRef.child(
-          any(that: matches('^${userId}_[0-9]+_test-uuid-1234\\.jpg\$')),
-        ),
-      ).called(1);
+      final timestamp = fixedDateTime.millisecondsSinceEpoch;
+      final expectedFileName = '${userId}_${timestamp}_test-uuid-1234.jpg';
+      verify(() => mockAvatarsRef.child(expectedFileName)).called(1);
       verify(() => mockFileRef.putFile(mockFile, any())).called(1);
     });
 

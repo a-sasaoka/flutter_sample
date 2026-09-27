@@ -67,7 +67,7 @@ lib/src/features/notification/
 
 ### 2. `PushNotificationService` (データ層)
 
-Firebase Messaging と `FlutterLocalNotificationsPlugin` のやり取りをラップします。実装詳細は [push_notification_service.dart](../lib/src/features/notification/data/push_notification_service.dart) を参照してください。
+Firebase Messaging と `FlutterLocalNotificationsPlugin` のやり取りをラップします。`flutterLocalNotificationsPluginProvider` からローカル通知プラグインを受け取り、`FirebaseMessaging` と共にコンストラクタで必須注入（DI）する安全な設計を採用しています。実装詳細は [push_notification_service.dart](../lib/src/features/notification/data/push_notification_service.dart) および [push_notification_service_provider.dart](../lib/src/features/notification/data/push_notification_service_provider.dart) を参照してください。
 
 - **フォアグラウンド受信時**: `FirebaseMessaging.onMessage` を検知し、ローカル通知（高優先度バナー）を即座に表示します。
 - **バックグラウンド・終了時のデータ受信**: `mainCommon` の `Firebase.initializeApp()` 直後に `@pragma('vm:entry-point')` のトップレベルハンドラ `firebaseMessagingBackgroundHandler` が登録され、バックグラウンドでのメッセージ受信時に呼び出されます（※独立した Isolate で動作するため、UI 操作や Riverpod による状態管理は行えません）。

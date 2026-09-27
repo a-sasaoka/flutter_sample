@@ -77,7 +77,7 @@ Flutter アプリでネットワーク画像を毎回そのままダウンロー
 
 ユーザーがログアウトした際や開発中の動作確認で、メモリ上のキャッシュと端末ストレージ（ディスク）上の画像キャッシュを一括削除できます。
 
-キャッシュ一括クリア処理の詳細は [image_cache_service.dart](../lib/src/core/storage/image_cache_service.dart) の `ImageCacheService.clearCache` メソッド、デモ画面での呼び出し例は [image_cache_demo_screen.dart](../lib/src/features/dev_tools/presentation/image_cache_demo_screen.dart) を参照してください。
+キャッシュマネージャー（`imageCacheManagerProvider`）をコンストラクタで必須注入（DI）する設計となっており、キャッシュ一括クリア処理の詳細は [image_cache_service.dart](../lib/src/core/storage/image_cache_service.dart) の `ImageCacheService.clearCache` メソッド、デモ画面での呼び出し例は [image_cache_demo_screen.dart](../lib/src/features/dev_tools/presentation/image_cache_demo_screen.dart) を参照してください。
 
 ---
 

@@ -63,7 +63,7 @@ class ImagePickerService {
     required this.picker,
     required this.cropper,
     required this.talker,
-    this.appLockService,
+    required this.appLockService,
   });
 
   /// 画像選択プラグイン
@@ -76,7 +76,7 @@ class ImagePickerService {
   final Talker talker;
 
   /// アプリロックサービス（外部画面表示時の誤ロック防止用）
-  final AppLockService? appLockService;
+  final AppLockService appLockService;
 
   /// 必要な権限をチェック・リクエストする
   /// 拒否されている場合は [AvatarPermissionDeniedException] をスローする
@@ -125,18 +125,11 @@ class ImagePickerService {
     required AvatarPickSource source,
     required String cropperTitle,
   }) async {
-    final lockService = appLockService;
-    if (lockService != null) {
-      return await lockService.runWithLockSuppression(
-        () => _pickAndCropAvatarInternal(
-          source: source,
-          cropperTitle: cropperTitle,
-        ),
-      );
-    }
-    return await _pickAndCropAvatarInternal(
-      source: source,
-      cropperTitle: cropperTitle,
+    return await appLockService.runWithLockSuppression(
+      () => _pickAndCropAvatarInternal(
+        source: source,
+        cropperTitle: cropperTitle,
+      ),
     );
   }
 

@@ -6,6 +6,7 @@ import 'package:flutter_sample/src/features/auth/application/firebase_auth_state
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 part 'auth_service.g.dart';
 
@@ -24,39 +25,60 @@ bool isAuthenticated(Ref ref) {
 /// 認証関連の高レベルな操作（ログアウト、アプリロック連携など）を提供するサービス
 @Riverpod(keepAlive: true)
 AuthService authService(Ref ref) {
-  return AuthService(ref);
+  return AuthService(
+    talker: ref.watch(loggerProvider),
+    useFirebaseAuth: ref.watch(
+      envConfigProvider.select((c) => c.useFirebaseAuth),
+    ),
+    firebaseAuthRepository: ref.watch(firebaseAuthRepositoryProvider),
+    authStateNotifier: ref.watch(authStateProvider.notifier),
+    appLockService: ref.watch(appLockServiceProvider.notifier),
+  );
 }
 
 /// [AuthService] の実装クラス
 class AuthService {
   /// コンストラクタ
-  const AuthService(this._ref);
+  const AuthService({
+    required Talker talker,
+    required bool useFirebaseAuth,
+    required FirebaseAuthRepository firebaseAuthRepository,
+    required AuthStateNotifier authStateNotifier,
+    required AppLockService appLockService,
+  }) : _talker = talker,
+       _useFirebaseAuth = useFirebaseAuth,
+       _firebaseAuthRepository = firebaseAuthRepository,
+       _authStateNotifier = authStateNotifier,
+       _appLockService = appLockService;
 
-  final Ref _ref;
+  final Talker _talker;
+  final bool _useFirebaseAuth;
+  final FirebaseAuthRepository _firebaseAuthRepository;
+  final AuthStateNotifier _authStateNotifier;
+  final AppLockService _appLockService;
 
   /// アプリ全体のログアウト処理を実行します。
   ///
   /// - Firebase Auth または自前認証のセッションを終了
   /// - アプリロック（パスコード・生体認証設定）をクリア
   Future<void> signOut() async {
-    final talker = _ref.read(loggerProvider);
-    final useFirebase = _ref.read(envConfigProvider).useFirebaseAuth;
+    _talker.info(
+      '[AuthService] signOut started (useFirebase: $_useFirebaseAuth)',
+    );
 
-    talker.info('[AuthService] signOut started (useFirebase: $useFirebase)');
-
-    if (useFirebase) {
-      await _ref.read(firebaseAuthRepositoryProvider).signOut();
+    if (_useFirebaseAuth) {
+      await _firebaseAuthRepository.signOut();
     } else {
-      await _ref.read(authStateProvider.notifier).logout();
+      await _authStateNotifier.logout();
     }
 
     try {
-      await _ref.read(appLockServiceProvider.notifier).clearAppLock();
-      talker.debug('[AuthService] clearAppLock succeeded');
+      await _appLockService.clearAppLock();
+      _talker.debug('[AuthService] clearAppLock succeeded');
     } on Object catch (e, st) {
-      talker.handle(e, st, '[AuthService] Failed to clear app lock');
+      _talker.handle(e, st, '[AuthService] Failed to clear app lock');
     }
 
-    talker.info('[AuthService] signOut completed');
+    _talker.info('[AuthService] signOut completed');
   }
 }
