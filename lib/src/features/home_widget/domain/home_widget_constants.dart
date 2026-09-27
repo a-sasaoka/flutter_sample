@@ -9,6 +9,18 @@ abstract final class HomeWidgetConstants {
   /// Android側のウィジェット名（AppWidgetProviderのクラス名）
   static const androidWidgetName = 'MemoWidgetProvider';
 
+  /// パッケージ名とFlavorから Android側の完全修飾クラス名（qualifiedAndroidName）を動的に生成する
+  static String qualifiedAndroidNameFor({
+    required String packageName,
+    required String flavorName,
+  }) {
+    final suffix = '.$flavorName';
+    final basePackage = packageName.endsWith(suffix)
+        ? packageName.substring(0, packageName.length - suffix.length)
+        : packageName;
+    return '$basePackage.$androidWidgetName';
+  }
+
   /// ウィジェットに保存するキー名: メモの総件数
   static const keyMemoCount = 'widget_memo_count';
 

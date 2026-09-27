@@ -101,6 +101,21 @@ GoRouter router(Ref ref) {
     refreshListenable: routerListenable,
     routes: $appRoutes,
     redirect: (context, state) {
+      // 📱 ホーム画面ウィジェットや外部連携からのカスタムスキームURIをアプリ内正規ルートへリダイレクト
+      final uri = state.uri;
+      if (uri.hasScheme &&
+          (uri.scheme == 'sampleapp' || uri.scheme.startsWith('flsample'))) {
+        final host = uri.host;
+        final path = uri.path;
+        if (path.contains('create') ||
+            uri.queryParameters['action'] == 'create') {
+          return '/memos?action=create';
+        }
+        if (host == 'memos' || path.contains('memos')) {
+          return '/memos';
+        }
+      }
+
       // Firebase Authenticationの利用有無で認証ガードを切り替える
       if (useFirebase) {
         return firebaseAuthGuard(ref, state);

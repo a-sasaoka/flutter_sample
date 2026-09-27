@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
@@ -350,6 +351,7 @@ void main() {
             homeWidgetDataSourceProvider.overrideWithValue(mockDataSource),
             loggerProvider.overrideWithValue(mockLogger),
             packageInfoProvider.overrideWithValue(mockPackageInfo),
+            flavorProvider.overrideWithValue(Flavor.local),
           ],
         );
         addTearDown(container.dispose);
@@ -384,6 +386,7 @@ void main() {
             homeWidgetDataSourceProvider.overrideWithValue(mockDataSource),
             loggerProvider.overrideWithValue(mockLogger),
             packageInfoProvider.overrideWithValue(mockPackageInfo),
+            flavorProvider.overrideWithValue(Flavor.local),
           ],
         );
         addTearDown(container.dispose);
@@ -430,6 +433,7 @@ void main() {
             homeWidgetDataSourceProvider.overrideWithValue(mockDataSource),
             loggerProvider.overrideWithValue(mockLogger),
             packageInfoProvider.overrideWithValue(mockPackageInfo),
+            flavorProvider.overrideWithValue(Flavor.local),
             localeProvider.overrideWith(
               () => _FakeLocaleNotifier(const Locale('ja')),
             ),
@@ -478,6 +482,7 @@ void main() {
               homeWidgetDataSourceProvider.overrideWithValue(mockDataSource),
               loggerProvider.overrideWithValue(mockLogger),
               packageInfoProvider.overrideWithValue(mockPackageInfo),
+              flavorProvider.overrideWithValue(Flavor.local),
               localeProvider.overrideWith(
                 () => _FakeLocaleNotifier(const Locale('fr', 'FR')),
               ),

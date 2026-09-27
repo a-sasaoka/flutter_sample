@@ -28,22 +28,25 @@
   - メインアプリ側エンタイトルメント: [Runner.entitlements](../ios/Runner/Runner.entitlements)
 - **Android (Kotlin / RemoteViews)**:
   - ウィジェット更新レシーバー: [MemoWidgetProvider.kt](../android/app/src/main/kotlin/jp/example/sample/MemoWidgetProvider.kt)
-  - ウィジェットレイアウトXML: [widget_memo.xml](../android/app/src/main/res/layout/widget_memo.xml)
-  - ウィジェットメタデータ定義: [widget_memo_info.xml](../android/app/src/main/res/xml/widget_memo_info.xml)
+  - ウィジェットレイアウトXML: [memo_widget.xml](../android/app/src/main/res/layout/memo_widget.xml)
+  - ウィジェットメタデータ定義: [memo_widget_info.xml](../android/app/src/main/res/xml/memo_widget_info.xml)
 
 ---
 
 ## 💡 実装のポイントとアーキテクチャ
 
-### 1. 動的 App Group ID 解決（Flavor完全非依存設計）
+### 1. 動的 App Group ID & クラス名解決（Flavor完全非依存設計）
 
-iOSのWidgetKitとFlutter本体の間でデータを共有するには **App Groups** を使用しますが、本プロジェクトではマルチ環境（`local`, `dev`, `stg`, `prod`）を採用しているため、ソースコード内に環境ごとの固定ID（ハードコード）を一切書かない設計を徹底しています。
+iOSのWidgetKitおよびAndroidのAppWidgetとFlutter本体の間でデータを共有・更新する際、マルチ環境（`local`, `dev`, `stg`, `prod`）を採用しているため、ソースコード内に環境ごとの固定IDやクラス名（ハードコード）を一切書かない設計を徹底しています。
 
 - **iOSネイティブ層**:
   - `Runner.entitlements` および `MemoWidget.entitlements` に `group.$(PRODUCT_BUNDLE_IDENTIFIER)` を指定し、Xcodeビルド時にビルド変数から動的に解決します。
   - Swiftコード内では `Bundle.main.bundleIdentifier` を取得し、末尾の `.MemoWidget` を除去して `group.` 接頭辞を付与することで、常に実行中の環境に一致する App Group ID を動的に導出します。
-- **Dart層**:
+- **Dart層（App Group ID）**:
   - [package_info_provider.dart](../lib/src/core/utils/package_info_provider.dart) からアプリ自身のパッケージ名（`packageName`）を取得し、[home_widget_constants.dart](../lib/src/features/home_widget/domain/home_widget_constants.dart) の `appGroupIdFor` 経由で動的に `group.${packageInfo.packageName}` を生成して渡します。
+- **Androidネイティブ層 & Dart層（完全修飾クラス名）**:
+  - AndroidのアプリケーションIDはFlavorごとにサフィックス（`.local`, `.dev`, `.stg`）が付与されますが、Kotlinのクラス自体は共通のベースパッケージに配置されています。
+  - `home_widget` でウィジェットを更新する際、Flutter側から [home_widget_constants.dart](../lib/src/features/home_widget/domain/home_widget_constants.dart) の `qualifiedAndroidNameFor` を経由して、現在の `packageInfo.packageName` と `flavor.name` から動的に完全修飾クラス名（`qualifiedAndroidName`）を算出して渡すことで、ソースコード内に固定パッケージ名を一切記述せずにマルチFlavor環境へ完全追従します。
 
 ### 2. メモデータ変更時の自動同期コーディネーター
 
@@ -72,6 +75,8 @@ iOSのWidgetKitとFlutter本体の間でデータを共有するには **App Gro
 - **バックグラウンド復帰時とアプリロック連携**:
   - `homeWidgetService.widgetClicked` ストリームを購読して即時遷移します。
   - パスコードロック有効時は、アプリがバックグラウンドに移行した瞬間に [app_lock_wrapper.dart](../lib/src/features/app_lock/presentation/app_lock_wrapper.dart) が即時ロック状態へと移行するため、ロック画面表示中に入力シートやキーボードが手前に誤表示されるのを防ぎ、ユーザーによる認証解除後に安全に入力シートが開くよう調和しています。
+- **外部スキームの自動翻訳リダイレクト**:
+  - AndroidではOSのIntent経由で外部カスタムスキーム（`sampleapp://memos` や `sampleapp://memos/create`）がFlutterエンジンに直接渡されるため、[app_router.dart](../lib/src/app/router/app_router.dart) の GoRouter `redirect` にて、外部URIを正規の内部ルート（`/memos` や `/memos?action=create`）へ自動翻訳してリダイレクトします。
 
 ---
 
@@ -79,6 +84,10 @@ iOSのWidgetKitとFlutter本体の間でデータを共有するには **App Gro
 
 本プロジェクトの品質基準（カバレッジ100%・All Green）を満たすため、外部プラグインの呼び出しをモック化し、すべての振る舞いを単体・統合テストで検証しています。
 
+- **ドメイン層テスト**: [home_widget_constants_test.dart](../test/src/features/home_widget/domain/home_widget_constants_test.dart)
+  - App Group ID の動的生成検証
+  - 各Flavor環境（local, dev, stg, prod）に応じた完全修飾クラス名の動的解決検証
+  - ウィジェット共有定数値の整合性検証
 - **サービス層テスト**: [home_widget_service_test.dart](../test/src/features/home_widget/application/home_widget_service_test.dart)
   - 初期化処理（正常系・異常系ログ記録）
   - メモ0件時の空状態データ保存
@@ -91,6 +100,7 @@ iOSのWidgetKitとFlutter本体の間でデータを共有するには **App Gro
 - **ルーティング統合テスト**: [app_router_test.dart](../test/src/app/router/app_router_test.dart)
   - コールドスタート時およびバックグラウンド復帰時のメモ一覧遷移
   - 新規作成ディープリンクによるメモ画面遷移
+  - カスタムスキームディープリンク（`sampleapp://`）の自動翻訳リダイレクト
 - **画面表示・アクション統合テスト**: [memo_screen_test.dart](../test/src/features/memos/presentation/memo_screen_test.dart)
   - `action=create` クエリによる新規作成シート自動展開
   - パスコードロック状態に応じた入力シート表示の抑制と認証後の展開

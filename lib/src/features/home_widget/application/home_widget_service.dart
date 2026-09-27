@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
@@ -21,15 +22,18 @@ class HomeWidgetService {
     required Talker logger,
     required AppLocalizations Function() l10nProvider,
     required String appGroupId,
+    String? qualifiedAndroidName,
   }) : _dataSource = dataSource,
        _logger = logger,
        _l10nProvider = l10nProvider,
-       _appGroupId = appGroupId;
+       _appGroupId = appGroupId,
+       _qualifiedAndroidName = qualifiedAndroidName;
 
   final HomeWidgetDataSource _dataSource;
   final Talker _logger;
   final AppLocalizations Function() _l10nProvider;
   final String _appGroupId;
+  final String? _qualifiedAndroidName;
 
   /// 初期設定（App Group IDの登録）を行う
   Future<void> initialize() async {
@@ -118,6 +122,7 @@ class HomeWidgetService {
       await _dataSource.updateWidget(
         name: HomeWidgetConstants.androidWidgetName,
         iOSName: HomeWidgetConstants.iOSWidgetName,
+        qualifiedAndroidName: _qualifiedAndroidName,
       );
 
       _logger.info(
@@ -167,12 +172,18 @@ HomeWidgetService homeWidgetService(Ref ref) {
   }
 
   final packageInfo = ref.watch(packageInfoProvider);
+  final flavor = ref.watch(flavorProvider);
   final appGroupId = HomeWidgetConstants.appGroupIdFor(packageInfo.packageName);
+  final qualifiedAndroidName = HomeWidgetConstants.qualifiedAndroidNameFor(
+    packageName: packageInfo.packageName,
+    flavorName: flavor.name,
+  );
 
   return HomeWidgetService(
     dataSource: dataSource,
     logger: logger,
     l10nProvider: getL10n,
     appGroupId: appGroupId,
+    qualifiedAndroidName: qualifiedAndroidName,
   );
 }

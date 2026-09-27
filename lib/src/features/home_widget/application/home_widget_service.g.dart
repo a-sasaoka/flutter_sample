@@ -58,4 +58,4 @@ final class HomeWidgetServiceProvider
   }
 }
 
-String _$homeWidgetServiceHash() => r'e38f08a6e4f97512cffbd4c6418d1fa7d96f4bde';
+String _$homeWidgetServiceHash() => r'8732f0523751c16dff0d87b6f84b2843ed5d3257';

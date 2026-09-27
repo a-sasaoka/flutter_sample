@@ -42,9 +42,10 @@
 
 ## 開発環境
 
-| 項目        | 内容                           |
-| ----------- | ------------------------------ |
-| IDE         | Visual Studio Code             |
-| Flutter SDK | 管理: FVM / バージョン: 3.47.4 |
-| Dart SDK    | 3.13.3                         |
-| GitHub管理  | Git                            |
+| 項目               | 内容                                                       |
+| ------------------ | ---------------------------------------------------------- |
+| IDE                | Visual Studio Code                                         |
+| Flutter SDK        | 管理: FVM / バージョン: 3.47.4                             |
+| Dart SDK           | 3.13.3                                                     |
+| Android ビルド要件 | Gradle 8.14.5 / AGP 8.11.1 / Kotlin 2.2.20 / compileSdk 37 |
+| GitHub管理         | Git                                                        |

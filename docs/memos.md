@@ -67,7 +67,7 @@ memos/
 
 メモ一覧データの変更（追加・更新・削除）は、[home_widget_sync_coordinator.dart](../lib/src/features/home_widget/application/home_widget_sync_coordinator.dart) によって自動的に検知されます。
 最新の有効メモ（削除済みを除く更新日時の最も新しいメモ）およびメモ件数が、OSの共有領域（iOS App Groups / Android SharedPreferences）を介してホーム画面ウィジェットへ即座に反映されます。
-ウィジェットをタップするとディープリンク経由で本メモ画面（`/memos`）へ直接遷移します。詳細は [ホーム画面ウィジェット連携 (home_widget.md)](home_widget.md) を参照してください。
+ウィジェットのメモ本体タップ時はメモ一覧（`/memos`）へ直接遷移し、追加ボタン（「＋」）タップ時はディープリンク（`sampleapp://memos/create` 経由の `?action=create`）を検知して新規作成ボトムシートが自動オープンします。詳細は [ホーム画面ウィジェット連携 (home_widget.md)](home_widget.md) を参照してください。
 
 ---
 

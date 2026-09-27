@@ -758,6 +758,40 @@ void main() {
     );
 
     testWidgets(
+      'カスタムスキームディープリンク（sampleapp://memos/create）への遷移時、リダイレクトされてMemoScreen（新規作成）が表示されること',
+      (tester) async {
+        final container = createContainer(isLoggedIn: true, useFirebase: false);
+
+        await tester.pumpWidget(createTestWidget(tester, container));
+        await tester.pumpAndSettle();
+
+        container.read(routerProvider).go('sampleapp://memos/create');
+        await tester.pumpAndSettle();
+
+        check(find.byType(MemoScreen)).findsOne();
+
+        await teardownWidget(tester, container);
+      },
+    );
+
+    testWidgets(
+      'カスタムスキームディープリンク（sampleapp://memos）への遷移時、リダイレクトされてMemoScreen（一覧）が表示されること',
+      (tester) async {
+        final container = createContainer(isLoggedIn: true, useFirebase: false);
+
+        await tester.pumpWidget(createTestWidget(tester, container));
+        await tester.pumpAndSettle();
+
+        container.read(routerProvider).go('sampleapp://memos');
+        await tester.pumpAndSettle();
+
+        check(find.byType(MemoScreen)).findsOne();
+
+        await teardownWidget(tester, container);
+      },
+    );
+
+    testWidgets(
       'ログイン中かつメール未認証の時、FirebaseEmailVerificationScreen にリダイレクトされること',
       (tester) async {
         when(() => mockUser.emailVerified).thenReturn(false);

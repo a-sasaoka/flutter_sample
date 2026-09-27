@@ -5,8 +5,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
 import android.widget.RemoteViews
-import es.antonborries.home_widget.HomeWidgetLaunchIntent
-import es.antonborries.home_widget.HomeWidgetProvider
+import es.antonborri.home_widget.HomeWidgetLaunchIntent
+import es.antonborri.home_widget.HomeWidgetProvider
 
 /**
  * ホーム画面ウィジェットの更新およびイベントハンドリングを担当するProviderクラス

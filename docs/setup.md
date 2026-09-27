@@ -62,6 +62,20 @@ cd ..
   - 画像切り抜き画面: `UCropActivity`（`com.yalantis.ucrop.UCropActivity`）の登録
   - 外部ブラウザ起動用クエリ設定 (`url_launcher`): スキャン結果のURLを安全に開くため、`<queries>` タグに `https` / `http` の `intent` を定義
 
+### 💡 ホーム画面ウィジェット（WidgetKit / AppWidget）の OS ネイティブ設定
+
+ホーム画面ウィジェット機能（iOS WidgetKit および Android AppWidget）を使用するため、各プラットフォームで以下のネイティブ設定が行われています。詳細は [ホーム画面ウィジェット仕様書](./home_widget.md) を参照してください。
+
+- **iOS (`ios/Runner.xcworkspace`)**:
+  - ウィジェット拡張ターゲット: `MemoWidget` (`ios/MemoWidget/`)
+  - App Groups によるデータ共有設定: `group.jp.example.sample`（開発チームの App ID prefix と合わせてプロビジョニング設定が必要）
+  - ディープリンク URL Scheme: `sampleapp` (`ios/Runner/Info.plist`)
+- **Android (`android/app/src/main/`)**:
+  - ウィジェットプロバイダー定義: `MemoWidgetProvider.kt`
+  - ウィジェットメタデータ: `res/xml/memo_widget_info.xml`
+  - ウィジェットレイアウト: `res/layout/memo_widget.xml`
+  - ディープリンク Intent-filter: `AndroidManifest.xml`（`sampleapp://memos` 等を捕捉）
+
 ## 4️⃣ 環境設定ファイルの準備
 
 本プロジェクトでは、**「公開設定（JSON）」**と**「秘匿情報（.env）」**を使い分けています。
@@ -158,6 +172,9 @@ fvm flutter run -t lib/main_dev.dart --flavor dev --dart-define-from-file=config
 
 1. ターミナルで `./mock/start.sh` を実行してサーバーを起動する。
 2. Flutterアプリを `local` フレーバーで起動する。
+
+> 💡 **Android エミュレータでのモックサーバー接続**:
+> Android エミュレータから PC 上のモックサーバー（`localhost:3000`）へ直接接続する場合、ターミナルで `adb reverse tcp:3000 tcp:3000` を実行してポートを転送しておくとスムーズに疎通できます。
 
 ### 💡 ローカル自作APIサーバー（Firebase Functions & Firestore エミュレータ）の活用
 

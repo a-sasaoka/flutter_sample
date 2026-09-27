@@ -10,6 +10,7 @@ plugins {
 }
 
 import java.util.Properties
+import java.util.Base64
 import java.io.FileInputStream
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -19,7 +20,7 @@ val dartDefines = mutableMapOf<String, String>()
 if (project.hasProperty("dart-defines")) {
     val dartDefinesString = project.property("dart-defines") as String
     for (piece in dartDefinesString.split(",")) {
-        val bytes = java.util.Base64.getDecoder().decode(piece)
+        val bytes = Base64.getDecoder().decode(piece)
         val entry = String(bytes, StandardCharsets.UTF_8)
         val parts = entry.split("=")
         if (parts.size >= 2) {
@@ -65,10 +66,11 @@ if (isReleaseBuild && mapsApiKey.isBlank()) {
 
 android {
     namespace = "jp.example.sample"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -114,4 +116,8 @@ tasks.register("printAppConfig") {
 // ビルド開始前に実行
 afterEvaluate {
     tasks.findByName("preBuild")?.dependsOn("printAppConfig")
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
