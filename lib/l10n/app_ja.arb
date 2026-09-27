@@ -118,6 +118,8 @@
   "memoSortUpdatedAtAsc": "更新日時：古い順",
   "memoSortTitleAsc": "タイトル：昇順",
   "memoSortTitleDesc": "タイトル：降順",
+  "widgetMemoEmptyTitle": "メモがありません",
+  "widgetMemoEmptyContent": "＋ボタンから最初のメモを作成しましょう！",
 
   "@_CHART": {},
   "chartLine": "折れ線グラフ",

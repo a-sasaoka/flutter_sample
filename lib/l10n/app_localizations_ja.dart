@@ -321,6 +321,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get memoSortTitleDesc => 'タイトル：降順';
 
   @override
+  String get widgetMemoEmptyTitle => 'メモがありません';
+
+  @override
+  String get widgetMemoEmptyContent => '＋ボタンから最初のメモを作成しましょう！';
+
+  @override
   String get chartLine => '折れ線グラフ';
 
   @override

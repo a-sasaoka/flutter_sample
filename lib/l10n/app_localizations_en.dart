@@ -332,6 +332,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memoSortTitleDesc => 'Title: Z-A';
 
   @override
+  String get widgetMemoEmptyTitle => 'No memos yet';
+
+  @override
+  String get widgetMemoEmptyContent => 'Tap + to create your first memo!';
+
+  @override
   String get chartLine => 'Line Chart';
 
   @override
