@@ -1,3 +1,4 @@
+// coverage:ignore-file
 import 'dart:async';
 
 import 'package:home_widget/home_widget.dart';
@@ -75,10 +76,8 @@ class HomeWidgetDataSourceImpl implements HomeWidgetDataSource {
   Stream<Uri?> get widgetClicked => HomeWidget.widgetClicked;
 }
 
-// coverage:ignore-start
 /// [HomeWidgetDataSource] を提供するプロバイダー
 @riverpod
 HomeWidgetDataSource homeWidgetDataSource(Ref ref) {
   return const HomeWidgetDataSourceImpl();
 }
-// coverage:ignore-end

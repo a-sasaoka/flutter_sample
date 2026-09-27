@@ -35,6 +35,7 @@ import 'package:flutter_sample/src/features/dev_tools/presentation/lottie_demo_s
 import 'package:flutter_sample/src/features/dev_tools/presentation/push_notification_demo_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/rebuild_demo_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
+import 'package:flutter_sample/src/features/home_widget/application/home_widget_service.dart';
 import 'package:flutter_sample/src/features/legal/application/legal_document_provider.dart';
 import 'package:flutter_sample/src/features/legal/domain/legal_document_type.dart';
 import 'package:flutter_sample/src/features/legal/presentation/legal_document_screen.dart';
@@ -83,6 +84,8 @@ class MockStatefulNavigationShell extends Mock
 class MockChatRepository extends Mock implements ChatRepository {}
 
 class MockMemoRepository extends Mock implements MemoRepository {}
+
+class MockHomeWidgetService extends Mock implements HomeWidgetService {}
 
 // --- SplashStateのフェイク定義 ---
 class FakeSplashState extends SplashState {
@@ -166,6 +169,8 @@ void main() {
   late MockUser mockUser;
   late MockChatRepository mockChatRepository;
   late MockMemoRepository mockMemoRepository;
+  late MockHomeWidgetService mockHomeWidgetService;
+  late StreamController<Uri?> widgetClickedController;
   late MockAppLocalizations mockL10n;
   late List<LocalizationsDelegate<dynamic>> testLocalizations;
 
@@ -175,6 +180,15 @@ void main() {
     mockUser = MockUser();
     mockChatRepository = MockChatRepository();
     mockMemoRepository = MockMemoRepository();
+    mockHomeWidgetService = MockHomeWidgetService();
+    widgetClickedController = StreamController<Uri?>.broadcast();
+    when(
+      () => mockHomeWidgetService.getInitiallyLaunchedUri(),
+    ).thenAnswer((_) async => null);
+    when(
+      () => mockHomeWidgetService.widgetClicked,
+    ).thenAnswer((_) => widgetClickedController.stream);
+    addTearDown(widgetClickedController.close);
     mockL10n = MockAppLocalizations();
 
     testLocalizations = [
@@ -347,6 +361,7 @@ void main() {
     bool isSplashFinished = true,
     bool isOnboardingCompleted = true,
     _FakeNotificationNotifier? fakeNotificationNotifier,
+    HomeWidgetService? customHomeWidgetService,
   }) {
     final fakeNotifier = _FakeFirebaseAuthStateNotifier(
       isLoggedIn: isLoggedIn,
@@ -359,6 +374,9 @@ void main() {
         memoRepositoryProvider.overrideWithValue(mockMemoRepository),
         firebaseAnalyticsProvider.overrideWithValue(mockAnalytics),
         loggerProvider.overrideWithValue(mockTalker),
+        homeWidgetServiceProvider.overrideWithValue(
+          customHomeWidgetService ?? mockHomeWidgetService,
+        ),
         flavorProvider.overrideWithValue(Flavor.dev),
         envConfigProvider.overrideWithValue(
           EnvConfigState(
@@ -621,6 +639,45 @@ void main() {
       );
 
       // 画面遷移を処理
+      await tester.pumpAndSettle();
+
+      // MemoScreen に遷移していることを確認
+      check(find.byType(MemoScreen)).findsOne();
+
+      await teardownWidget(tester, container);
+    });
+
+    testWidgets('アプリ起動時にウィジェットタップ（コールドスタートURI）がある際、MemoScreenへ遷移すること', (
+      tester,
+    ) async {
+      when(
+        () => mockHomeWidgetService.getInitiallyLaunchedUri(),
+      ).thenAnswer((_) async => Uri.parse('sampleapp://memos'));
+
+      final container = createContainer(isLoggedIn: true, useFirebase: false);
+
+      await tester.pumpWidget(createTestWidget(tester, container));
+      await tester.pumpAndSettle();
+
+      // MemoScreen に遷移していることを確認
+      check(find.byType(MemoScreen)).findsOne();
+
+      await teardownWidget(tester, container);
+    });
+
+    testWidgets('アプリ表示中にウィジェットタップ（バックグラウンド復帰）が発生した際、MemoScreenへ遷移すること', (
+      tester,
+    ) async {
+      final container = createContainer(isLoggedIn: true, useFirebase: false);
+
+      await tester.pumpWidget(createTestWidget(tester, container));
+      await tester.pumpAndSettle();
+
+      // 最初は HomeScreen が表示されていること
+      check(find.byType(HomeScreen)).findsOne();
+
+      // ウィジェットタップイベントを流す
+      widgetClickedController.add(Uri.parse('sampleapp://memos'));
       await tester.pumpAndSettle();
 
       // MemoScreen に遷移していることを確認
