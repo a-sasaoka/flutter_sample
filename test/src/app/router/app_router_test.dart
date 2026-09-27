@@ -17,6 +17,8 @@ import 'package:flutter_sample/src/core/config/feature_flags_provider.dart';
 import 'package:flutter_sample/src/core/config/flavor_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/not_found_screen.dart';
+import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
+import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_email_verification_screen.dart';
@@ -161,6 +163,14 @@ class _FakeNotificationNotifier extends NotificationNotifier {
     }
     return null;
   }
+}
+
+class _FakeAppLockService extends AppLockService {
+  _FakeAppLockService([this._initialState = const AppLockState.disabled()]);
+  final AppLockState _initialState;
+
+  @override
+  Future<AppLockState> build() async => _initialState;
 }
 
 void main() {
@@ -348,6 +358,9 @@ void main() {
     when(() => mockL10n.notFoundBackToHome).thenReturn('Back to Home');
     when(() => mockL10n.appTitle).thenReturn('Flutter Sample');
     when(() => mockL10n.memoAdd).thenReturn('Add Memo');
+    when(() => mockL10n.memoInputTitleHint).thenReturn('Title');
+    when(() => mockL10n.memoInputContentHint).thenReturn('Content');
+    when(() => mockL10n.memoSave).thenReturn('Save');
     when(() => mockL10n.semanticsEmailInput).thenReturn('メールアドレス入力欄');
     when(() => mockL10n.semanticsPasswordInput).thenReturn('パスワード入力欄');
     when(() => mockL10n.semanticsLoginButton).thenReturn('ログイン実行ボタン');
@@ -360,6 +373,8 @@ void main() {
     required bool useFirebase,
     bool isSplashFinished = true,
     bool isOnboardingCompleted = true,
+    bool disableAppLock = false,
+    AppLockState? appLockState,
     _FakeNotificationNotifier? fakeNotificationNotifier,
     HomeWidgetService? customHomeWidgetService,
   }) {
@@ -402,6 +417,12 @@ void main() {
         ),
         if (fakeNotificationNotifier != null)
           notificationProvider.overrideWith(() => fakeNotificationNotifier),
+        if (disableAppLock || appLockState != null)
+          appLockServiceProvider.overrideWith(
+            () => _FakeAppLockService(
+              appLockState ?? const AppLockState.disabled(),
+            ),
+          ),
         legalDocumentProvider(
           LegalDocumentType.termsOfService,
         ).overrideWith((ref) async => '# 利用規約'),
@@ -704,28 +725,37 @@ void main() {
       await teardownWidget(tester, container);
     });
 
-    testWidgets('アプリ表示中にウィジェットタップ（新規作成ディープリンク）が発生した際、MemoScreenへ遷移すること', (
-      tester,
-    ) async {
-      final container = createContainer(isLoggedIn: true, useFirebase: false);
+    testWidgets(
+      'アプリ表示中にウィジェットタップ（新規作成ディープリンク）が発生した際、MemoScreenへ遷移し新規作成シートが開くこと',
+      (tester) async {
+        final container = createContainer(
+          isLoggedIn: true,
+          useFirebase: false,
+          disableAppLock: true,
+        );
 
-      await tester.pumpWidget(createTestWidget(tester, container));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(createTestWidget(tester, container));
+        await tester.pumpAndSettle();
 
-      // 最初は HomeScreen が表示されていること
-      check(find.byType(HomeScreen)).findsOne();
+        // 最初は HomeScreen が表示されていること
+        check(find.byType(HomeScreen)).findsOne();
 
-      // ウィジェット新規追加タップイベントを流す
-      widgetClickedController.add(
-        Uri.parse('sampleapp://widget/memos/create?homeWidget'),
-      );
-      await tester.pumpAndSettle();
+        // ウィジェット新規追加タップイベントを流す
+        widgetClickedController.add(
+          Uri.parse('sampleapp://widget/memos/create?homeWidget'),
+        );
+        await tester.pumpAndSettle();
 
-      // MemoScreen に遷移していることを確認
-      check(find.byType(MemoScreen)).findsOne();
+        // MemoScreen に遷移していることを確認
+        check(find.byType(MemoScreen)).findsOne();
 
-      await teardownWidget(tester, container);
-    });
+        // 新規作成ボトムシートの保存アクション（Saveボタン・アイコン）が表示されていることを確認
+        check(find.text('Save')).findsOne();
+        check(find.byIcon(Icons.save)).findsOne();
+
+        await teardownWidget(tester, container);
+      },
+    );
 
     testWidgets(
       'アプリ起動時にスプラッシュ未完了かつウィジェットタップURIがある場合、スプラッシュ終了後にMemoScreenへ遷移すること',
