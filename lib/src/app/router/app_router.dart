@@ -28,6 +28,7 @@ import 'package:flutter_sample/src/features/dev_tools/presentation/lottie_demo_s
 import 'package:flutter_sample/src/features/dev_tools/presentation/push_notification_demo_screen.dart';
 import 'package:flutter_sample/src/features/dev_tools/presentation/rebuild_demo_screen.dart';
 import 'package:flutter_sample/src/features/home/presentation/home_screen.dart';
+import 'package:flutter_sample/src/features/home_widget/application/home_widget_service.dart';
 import 'package:flutter_sample/src/features/legal/domain/legal_document_type.dart';
 import 'package:flutter_sample/src/features/legal/presentation/legal_document_screen.dart';
 import 'package:flutter_sample/src/features/map/presentation/map_screen.dart';
@@ -133,6 +134,36 @@ GoRouter router(Ref ref) {
       }
     }
   });
+
+  // 📱 ホーム画面ウィジェットのタップ起動（コールドスタート＆バックグラウンド復帰）を監視
+  final homeWidget = ref.watch(homeWidgetServiceProvider);
+  final talker = ref.watch(loggerProvider);
+
+  void handleWidgetUri(Uri uri) {
+    talker.info('📱 [HomeWidget] Widget clicked with URI: $uri');
+    final path = uri.path;
+    final host = uri.host;
+    if (host == 'memos' || path.startsWith('/memos')) {
+      router.go('/memos');
+    }
+  }
+
+  // 1. バックグラウンド復帰時のタップを購読
+  final widgetSubscription = homeWidget.widgetClicked.listen((uri) {
+    if (uri != null) {
+      handleWidgetUri(uri);
+    }
+  });
+  ref.onDispose(widgetSubscription.cancel);
+
+  // 2. コールドスタート（完全終了からの起動）時のタップURIを取得
+  unawaited(
+    homeWidget.getInitiallyLaunchedUri().then((uri) {
+      if (uri != null) {
+        handleWidgetUri(uri);
+      }
+    }),
+  );
 
   return router;
 }
