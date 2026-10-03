@@ -340,6 +340,12 @@
   "mapTravelModeTransit": "Transit",
   "mapRouteWalkingWarning": "Walking directions may lack sidewalks or pedestrian paths. Use caution.",
   "mapRouteBicyclingWarning": "Bicycling directions may lack dedicated bike lanes. Follow traffic rules.",
+  "mapTransitGuideTitle": "Transit Directions",
+  "mapTransitGuideApiNotice": "Due to Google Maps API limitations, transit directions (trains and buses) in Japan cannot be drawn directly within the app.",
+  "mapTransitGuidePrompt": "Would you like to open transit directions in the official Google Maps app for up-to-date schedules and fares?",
+  "mapTransitGuideOpenMaps": "Open Google Maps",
+  "mapTransitGuideCancel": "Cancel",
+  "mapTransitGuideError": "Could not open Google Maps",
 
   "@_DEV_LOTTIE": {},
   "devLottieTitle": "Lottie Animation Demo",

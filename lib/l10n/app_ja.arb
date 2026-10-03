@@ -340,6 +340,12 @@
   "mapTravelModeTransit": "公共交通",
   "mapRouteWalkingWarning": "徒歩ルートには歩道がない区間が含まれる場合があります。周囲の交通にご注意ください。",
   "mapRouteBicyclingWarning": "自転車ルートには専用道がない区間が含まれる場合があります。交通ルールに従って走行してください。",
+  "mapTransitGuideTitle": "公共交通機関のルート案内",
+  "mapTransitGuideApiNotice": "Google Maps APIの仕様により、日本国内の公共交通機関（電車・バス等）のルート検索・描画には対応していません。",
+  "mapTransitGuidePrompt": "公式Googleマップで最新の乗換案内（運行情報・時刻表・運賃）を開きますか？",
+  "mapTransitGuideOpenMaps": "Googleマップで開く",
+  "mapTransitGuideCancel": "キャンセル",
+  "mapTransitGuideError": "Googleマップを開けませんでした",
 
   "@_DEV_LOTTIE": {},
   "devLottieTitle": "Lottie アニメーションデモ",

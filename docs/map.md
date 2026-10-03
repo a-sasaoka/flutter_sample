@@ -11,6 +11,7 @@ lib/src/features/map/
  ├── domain/
  │    ├── location_candidate.dart           # 検索候補地モデル (Freezed)
  │    ├── location_state.dart               # 位置情報および権限状態モデル (Sealed class)
+ │    ├── map_constants.dart                # GoogleマップUniversal URLおよび各種定数定義
  │    ├── map_route.dart                    # 2点間ルートモデル (Freezed)
  │    ├── map_route_state.dart              # ルート案内状態モデル (Sealed class)
  │    ├── map_search_state.dart             # 検索状態モデル (Sealed class)
@@ -27,12 +28,14 @@ lib/src/features/map/
  │    ├── map_notifier.dart                 # 地図のカメラ位置・パーミッション制御 Notifier
  │    ├── map_route_notifier.dart           # ルート検索・案内状態 Notifier (競合世代管理・TravelMode対応)
  │    ├── map_search_notifier.dart          # 住所・ランドマーク検索状態 Notifier (Places API ＋ Geocoding 自動フォールバック)
- │    └── spot_notifier.dart                # カスタムスポット一覧状態 Notifier
+ │    ├── spot_notifier.dart                # カスタムスポット一覧状態 Notifier
+ │    └── transit_launcher_service.dart     # 公共交通機関（TRANSIT）公式Googleマップ乗換案内連携サービス (AppLock誤ロック抑止連携)
  └── presentation/
       ├── map_screen.dart                   # ネイティブ地図描画・現在地取得UI・Floating検索バー・カスタムピン描画・Polyline描画・移動手段切り替え連携 (多言語対応)
       └── widgets/
            ├── route_navigation_card.dart   # 目的地・移動手段切り替え(車/徒歩/自転車/公共交通)・距離・所要時間・案内終了ボタン表示カード (多言語対応)
-           └── spot_detail_bottom_sheet.dart# スポット詳細モーダル表示ウィジェット (多言語対応)
+           ├── spot_detail_bottom_sheet.dart# スポット詳細モーダル表示ウィジェット (多言語対応)
+           └── transit_guide_bottom_sheet.dart# 公共交通機関ルートの国内API非対応回避と公式マップ案内モーダル (多言語対応)
 ```
 
 ---
@@ -93,6 +96,28 @@ lib/src/features/map/
   - **移動手段の即時切り替え**: 移動手段を切り替えると即座に新しい手段でのルート再計算が実行されます。案内終了ボタンを押下するとルート案内状態がクリアされ、Polyline およびカードが地図上から非表示になります。
 - **徒歩・自転車ルートの安全性警告表示**: 徒歩（歩道がない可能性）や自転車（専用レーンがない可能性）のルート案内時には、カード下部に注意バナー（⚠️ アイコンと多言語対応の注意テキスト）を表示し、安全な移動を促します。API から固有の警告メッセージが返された場合はそれを優先表示します。
 
+### 7. 公共交通機関（TRANSIT）ルート検索の国内制限回避と公式Googleマップ連携
+
+Google Maps Platform（Routes API / Directions API）では、日本国内の公共交通機関（電車・バス等）のルート検索・経路描画がAPI仕様およびライセンスの制約により非対応（`ZERO_RESULTS`）となっています。
+
+本機能では、ユーザーが移動手段に「公共交通」を選択した際、生のエラーでユーザーを混乱させることなく、親切な案内モーダルから公式Googleマップアプリの乗換案内へスムーズに引き継ぐセーフティUXを提供しています。
+
+- **案内モーダルシート (`TransitGuideBottomSheet`)**:
+  - `SegmentedButton` で `TravelMode.transit` が選択された際、APIを叩かずに即座に下部モーダルを表示。
+  - 日本国内でのAPI制限仕様を丁寧に説明し、「Googleマップで開く」「キャンセル」のアクションを提供。
+  - キャンセル時は `RouteNavigationCard` の選択状態を直前の移動手段（車・徒歩等）へ自動維持。
+- **公式マップ連携サービス (`TransitLauncherService`)**:
+  - `MapConstants` に集約された定数を参照し、Google公式推奨のUniversal URL（`https://www.google.com/maps/dir/?api=1&origin=LAT,LNG&destination=...&travelmode=transit`）を生成。
+  - アプリ復帰時の誤ロックを防ぐため、`AppLockService.runWithLockSuppression` で保護した上で `LaunchMode.externalApplication` で安全に外部マップ（未インストール時はブラウザ）を起動。
+  - 起動失敗時は `SnackBar` でユーザーへ通知。
+
+参照ソースコード:
+
+- 定数定義: [`lib/src/features/map/domain/map_constants.dart`](../lib/src/features/map/domain/map_constants.dart)
+- 連携サービス: [`lib/src/features/map/application/transit_launcher_service.dart`](../lib/src/features/map/application/transit_launcher_service.dart)
+- 案内モーダル: [`lib/src/features/map/presentation/widgets/transit_guide_bottom_sheet.dart`](../lib/src/features/map/presentation/widgets/transit_guide_bottom_sheet.dart)
+- 画面連動: [`lib/src/features/map/presentation/map_screen.dart`](../lib/src/features/map/presentation/map_screen.dart)
+
 ---
 
 ## 🛡️ パーミッション設定
@@ -112,14 +137,15 @@ lib/src/features/map/
 ## 🧪 テスト仕様
 
 - **単体・ウィジェットテスト (`test/src/features/map/`)**:
-  - ドメインモデル (`location_candidate_test.dart`, `map_spot_test.dart`, `map_search_state_test.dart`, `map_route_test.dart`, `map_route_state_test.dart`, `travel_mode_test.dart`)
+  - ドメインモデル (`location_candidate_test.dart`, `map_constants_test.dart`, `map_spot_test.dart`, `map_search_state_test.dart`, `map_route_test.dart`, `map_route_state_test.dart`, `travel_mode_test.dart`)
   - データ層 (`spot_repository_test.dart`, `location_repository_test.dart`, `geocoding_repository_test.dart`, `route_repository_test.dart`, `polyline_decoder_test.dart`)
-  - アプリケーション層 (`spot_notifier_test.dart`, `map_notifier_test.dart`, `map_search_notifier_test.dart`, `map_route_notifier_test.dart`)
-  - プレゼンテーション層 (`map_screen_test.dart`, `spot_detail_bottom_sheet_test.dart`, `route_navigation_card_test.dart`)
+  - アプリケーション層 (`spot_notifier_test.dart`, `map_notifier_test.dart`, `map_search_notifier_test.dart`, `map_route_notifier_test.dart`, `transit_launcher_service_test.dart`)
+  - プレゼンテーション層 (`map_screen_test.dart`, `spot_detail_bottom_sheet_test.dart`, `route_navigation_card_test.dart`, `transit_guide_bottom_sheet_test.dart`)
 - **ゴールデンテスト (`test/src/features/map/presentation/map_screen_golden_test.dart`)**:
   - `MapScreen` (ライト/ダークモード)
   - `SpotDetailBottomSheet` (ライト/ダークモード)
   - `RouteNavigationCard` (ライト/ダークモード)
+  - `TransitGuideBottomSheet` (ライト/ダークモード)
 
 ---
 

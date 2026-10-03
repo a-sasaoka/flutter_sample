@@ -6,6 +6,7 @@ import 'package:flutter_sample/src/features/map/domain/map_spot.dart';
 import 'package:flutter_sample/src/features/map/presentation/map_screen.dart';
 import 'package:flutter_sample/src/features/map/presentation/widgets/route_navigation_card.dart';
 import 'package:flutter_sample/src/features/map/presentation/widgets/spot_detail_bottom_sheet.dart';
+import 'package:flutter_sample/src/features/map/presentation/widgets/transit_guide_bottom_sheet.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -121,6 +122,56 @@ void main() {
                     child: SpotDetailBottomSheet(
                       spot: sampleSpot,
                       onStartRoutePressed: () {},
+                    ),
+                  ),
+                ),
+                themeMode: ThemeMode.dark,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    // ignore: discarded_futures, testing framework registers tests synchronously
+    goldenTest(
+      'TransitGuideBottomSheet の描画 (ライト/ダークモード)',
+      fileName: 'transit_guide_bottom_sheet',
+      builder: () => GoldenTestGroup(
+        children: [
+          GoldenTestScenario(
+            name: 'Light Mode',
+            child: SizedBox(
+              width: 390,
+              height: 380,
+              child: buildGoldenTestApp(
+                home: Scaffold(
+                  body: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: TransitGuideBottomSheet(
+                      destinationName: '東京タワー',
+                      onOpenGoogleMapsPressed: () {},
+                      onCancelPressed: () {},
+                    ),
+                  ),
+                ),
+                themeMode: ThemeMode.light,
+              ),
+            ),
+          ),
+          GoldenTestScenario(
+            name: 'Dark Mode',
+            child: SizedBox(
+              width: 390,
+              height: 380,
+              child: buildGoldenTestApp(
+                home: Scaffold(
+                  body: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: TransitGuideBottomSheet(
+                      destinationName: '東京タワー',
+                      onOpenGoogleMapsPressed: () {},
+                      onCancelPressed: () {},
                     ),
                   ),
                 ),

@@ -8,6 +8,7 @@ import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/map/application/map_notifier.dart';
 import 'package:flutter_sample/src/features/map/application/map_route_notifier.dart';
 import 'package:flutter_sample/src/features/map/application/map_search_notifier.dart';
+import 'package:flutter_sample/src/features/map/application/transit_launcher_service.dart';
 import 'package:flutter_sample/src/features/map/data/spot_repository.dart';
 import 'package:flutter_sample/src/features/map/domain/location_candidate.dart';
 import 'package:flutter_sample/src/features/map/domain/location_state.dart';
@@ -19,6 +20,7 @@ import 'package:flutter_sample/src/features/map/domain/travel_mode.dart';
 import 'package:flutter_sample/src/features/map/presentation/map_screen.dart';
 import 'package:flutter_sample/src/features/map/presentation/widgets/route_navigation_card.dart';
 import 'package:flutter_sample/src/features/map/presentation/widgets/spot_detail_bottom_sheet.dart';
+import 'package:flutter_sample/src/features/map/presentation/widgets/transit_guide_bottom_sheet.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -98,6 +100,9 @@ class MockGoogleMapsPlatform extends Mock
 
 class MockTalker extends Mock implements Talker {}
 
+class MockTransitLauncherService extends Mock
+    implements TransitLauncherService {}
+
 class FakeSpotRepository implements SpotRepository {
   @override
   Future<List<MapSpot>> getSpots() async => [];
@@ -116,6 +121,10 @@ class FakeSpotRepositoryWithData implements SpotRepository {
 }
 
 void main() {
+  setUpAll(() {
+    registerFallbackValue(const LatLng(0, 0));
+  });
+
   late MockGoogleMapsPlatform mockMapsPlatform;
   late MockTalker mockTalker;
 
@@ -1312,6 +1321,176 @@ void main() {
       await tester.pump();
 
       check(testRouteNotifier.searchTravelMode).isNull();
+    });
+
+    testWidgets('公共交通（TRANSIT）を選択した際、TransitGuideBottomSheet が開きキャンセルで閉じること', (
+      tester,
+    ) async {
+      const origin = LatLng(35.681236, 139.767125);
+      const destination = LatLng(35.6585805, 139.7454329);
+      const initialRoute = MapRoute(
+        id: 'route_transit_bottom_sheet_test',
+        origin: origin,
+        destination: destination,
+        points: [origin, destination],
+        distanceMeters: 3500,
+        durationSeconds: 360,
+        destinationName: '東京タワー',
+      );
+      late _TestMapRouteNotifier testRouteNotifier;
+
+      await tester.pumpWidget(
+        createTestWidget(
+          child: const MapScreen(),
+          overrides: [
+            mapRouteProvider.overrideWith(
+              () => testRouteNotifier = _TestMapRouteNotifier(
+                const MapRouteState.success(initialRoute),
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      final cardFinder = find.byType(RouteNavigationCard);
+      final card = tester.widget<RouteNavigationCard>(cardFinder);
+
+      // 公共交通を選択
+      card.onTravelModeChanged!(TravelMode.transit);
+      await tester.pumpAndSettle();
+
+      // TransitGuideBottomSheet が表示され、API再検索は実行されないこと
+      check(find.byType(TransitGuideBottomSheet)).findsOne();
+      check(testRouteNotifier.searchTravelMode).isNull();
+
+      // キャンセルボタンを押すとシートが閉じること
+      await tester.tap(find.byKey(const Key('transitGuideCancelButton')));
+      await tester.pumpAndSettle();
+
+      check(find.byType(TransitGuideBottomSheet)).findsNothing();
+    });
+
+    testWidgets('公共交通（TRANSIT）の「Googleマップで開く」成功時に正しく連携されシートが閉じること', (
+      tester,
+    ) async {
+      const origin = LatLng(35.681236, 139.767125);
+      const destination = LatLng(35.6585805, 139.7454329);
+      const initialRoute = MapRoute(
+        id: 'route_transit_launch_success_test',
+        origin: origin,
+        destination: destination,
+        points: [origin, destination],
+        distanceMeters: 3500,
+        durationSeconds: 360,
+        destinationName: '東京タワー',
+      );
+      final mockTransitLauncher = MockTransitLauncherService();
+      when(
+        () => mockTransitLauncher.launchTransitRoute(
+          origin: any(named: 'origin'),
+          destination: any(named: 'destination'),
+          destinationName: any(named: 'destinationName'),
+        ),
+      ).thenAnswer((_) async => true);
+
+      await tester.pumpWidget(
+        createTestWidget(
+          child: const MapScreen(),
+          overrides: [
+            transitLauncherServiceProvider.overrideWithValue(
+              mockTransitLauncher,
+            ),
+            mapRouteProvider.overrideWith(
+              () => _TestMapRouteNotifier(
+                const MapRouteState.success(initialRoute),
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      final cardFinder = find.byType(RouteNavigationCard);
+      final card = tester.widget<RouteNavigationCard>(cardFinder);
+
+      // 公共交通を選択
+      card.onTravelModeChanged!(TravelMode.transit);
+      await tester.pumpAndSettle();
+
+      check(find.byType(TransitGuideBottomSheet)).findsOne();
+
+      // 「Googleマップで開く」をタップ
+      await tester.tap(
+        find.byKey(const Key('transitGuideOpenGoogleMapsButton')),
+      );
+      await tester.pumpAndSettle();
+
+      // シートが閉じ、launchTransitRoute が呼ばれたこと
+      check(find.byType(TransitGuideBottomSheet)).findsNothing();
+      verify(
+        () => mockTransitLauncher.launchTransitRoute(
+          origin: origin,
+          destination: destination,
+          destinationName: '東京タワー',
+        ),
+      ).called(1);
+    });
+
+    testWidgets('公共交通（TRANSIT）の「Googleマップで開く」失敗時にエラーSnackBarが表示されること', (
+      tester,
+    ) async {
+      const origin = LatLng(35.681236, 139.767125);
+      const destination = LatLng(35.6585805, 139.7454329);
+      const initialRoute = MapRoute(
+        id: 'route_transit_launch_error_test',
+        origin: origin,
+        destination: destination,
+        points: [origin, destination],
+        distanceMeters: 3500,
+        durationSeconds: 360,
+      );
+      final mockTransitLauncher = MockTransitLauncherService();
+      when(
+        () => mockTransitLauncher.launchTransitRoute(
+          origin: any(named: 'origin'),
+          destination: any(named: 'destination'),
+          destinationName: any(named: 'destinationName'),
+        ),
+      ).thenAnswer((_) async => false);
+
+      await tester.pumpWidget(
+        createTestWidget(
+          child: const MapScreen(),
+          overrides: [
+            transitLauncherServiceProvider.overrideWithValue(
+              mockTransitLauncher,
+            ),
+            mapRouteProvider.overrideWith(
+              () => _TestMapRouteNotifier(
+                const MapRouteState.success(initialRoute),
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      final cardFinder = find.byType(RouteNavigationCard);
+      final card = tester.widget<RouteNavigationCard>(cardFinder);
+
+      card.onTravelModeChanged!(TravelMode.transit);
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const Key('transitGuideOpenGoogleMapsButton')),
+      );
+      await tester.pumpAndSettle();
+
+      check(find.text('Googleマップを開けませんでした')).findsOne();
     });
 
     testWidgets('RouteNavigationCard の折りたたみボタン・展開ボタンをタップして展開状態が切り替わること', (
