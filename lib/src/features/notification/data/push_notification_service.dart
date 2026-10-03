@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_sample/src/features/notification/domain/notification_payload.dart';
 import 'package:talker_flutter/talker_flutter.dart';
@@ -279,6 +280,18 @@ class PushNotificationService {
       title: message.notification?.title,
       body: message.notification?.body,
     );
+
+    // 🔔 iOS かつ 表示可能な通知（notification != null）の場合:
+    // AppDelegate の userNotificationCenter でネイティブバナーが表示されるため、
+    // 重複表示を防ぐよう Dart側でのローカル通知表示をスキップします。
+    // （※データのみの通知や Android 環境では今まで通りローカル通知を表示します）
+    final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
+    final hasDisplayableNotification = message.notification != null;
+    if (isIOS && hasDisplayableNotification) {
+      _talker.info('🔔 iOSネイティブ側でバナー表示されるため、ローカル通知の表示をスキップします');
+      return;
+    }
+
     final notificationId = _generateNotificationId(message);
     await showLocalNotification(payload, id: notificationId);
   }
