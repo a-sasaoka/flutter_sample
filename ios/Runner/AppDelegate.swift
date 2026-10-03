@@ -34,17 +34,24 @@ import flutter_local_notifications
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
-  // 🔔 アプリ起動中（フォアグラウンド）に通知を受信した際、親クラス(Flutter/Firebase)に通知を転送しつつ、バナー等を表示する
+  // 🔔 アプリ起動中（フォアグラウンド）に通知を受信した際、親クラス(Flutter/Firebase)に通知を転送しつつ、
+  // リモート通知・ローカル通知ともにバナー・サウンド・バッジを確実に表示するようiOSに許可を返す
   override func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     willPresent notification: UNNotification,
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
   ) {
-    // 1. completionHandler が重複して呼ばれないよう安全に保護するフラグ
+    let lock = NSLock()
     var isHandled = false
-    let safeCompletionHandler: (UNNotificationPresentationOptions) -> Void = { options in
+
+    // 1. プラグインからの完了コールバックをスレッドセーフに受けるハンドラ
+    let safeCompletionHandler: (UNNotificationPresentationOptions) -> Void = { _ in
+      lock.lock()
+      defer { lock.unlock() }
       guard !isHandled else { return }
       isHandled = true
+
+      // 🔔 フォアグラウンド受信時、リモート通知(APNs)・ローカル通知ともにバナー等の表示を許可
       if #available(iOS 14.0, *) {
         completionHandler([.banner, .list, .sound, .badge])
       } else {
@@ -52,19 +59,20 @@ import flutter_local_notifications
       }
     }
 
-    // 2. 親クラス(FlutterAppDelegate)に委譲し、Firebase等のプラグインに通知を届ける
-    // これにより、Dart側の FirebaseMessaging.onMessage リスナーが確実に発火します
+    // 2. 親クラス(FlutterAppDelegate)に委譲し、Firebase等のプラグインに通知イベントを届ける
     super.userNotificationCenter(center, willPresent: notification, withCompletionHandler: safeCompletionHandler)
 
-    // 3. 万が一プラグイン側で completionHandler が呼ばれなかった場合の保険（0.1秒後の自動フォールバック）
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-      if !isHandled {
-        isHandled = true
-        if #available(iOS 14.0, *) {
-          completionHandler([.banner, .list, .sound, .badge])
-        } else {
-          completionHandler([.alert, .sound, .badge])
-        }
+    // 3. 万が一プラグイン側で completionHandler が呼ばれなかった場合の保険（0.5秒後のフォールバック）
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+      lock.lock()
+      defer { lock.unlock() }
+      guard !isHandled else { return }
+      isHandled = true
+
+      if #available(iOS 14.0, *) {
+        completionHandler([.banner, .list, .sound, .badge])
+      } else {
+        completionHandler([.alert, .sound, .badge])
       }
     }
   }
