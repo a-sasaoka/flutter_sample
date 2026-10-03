@@ -84,3 +84,6 @@ skills-lock.json
 
 # ローカルメモ
 note
+
+# Widget Preview cache
+.widget_preview/
