@@ -83,4 +83,7 @@ skills-lock.json
 .firebaserc
 
 # ローカルメモ
-note
+/note
+
+# Widget Preview cache
+.widget_preview/

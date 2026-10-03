@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:checks/checks.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_sample/src/features/notification/data/push_notification_service.dart';
@@ -713,6 +714,47 @@ void main() {
       final id2 = fakeLocalNotifications.shownNotificationIds[1];
       check(id1 != id2).isTrue();
     });
+
+    test(
+      'iOS 環境で表示可能 (notification != null) なリモート通知を受信した場合はローカル通知の表示をスキップすること',
+      () async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+        addTearDown(() => debugDefaultTargetPlatformOverride = null);
+
+        const message = RemoteMessage(
+          messageId: 'ios_msg_1',
+          data: {'path': '/chat'},
+          notification: RemoteNotification(
+            title: 'iOS Title',
+            body: 'iOS Body',
+          ),
+        );
+
+        await service.handleForegroundMessage(message);
+
+        // ネイティブ側でバナー表示されるため、ローカル通知は呼ばれない
+        check(fakeLocalNotifications.showCallCount).equals(0);
+      },
+    );
+
+    test(
+      'iOS 環境でもデータのみ (notification == null) のリモート通知を受信した場合はローカル通知を表示すること',
+      () async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+        addTearDown(() => debugDefaultTargetPlatformOverride = null);
+
+        const message = RemoteMessage(
+          messageId: 'ios_data_msg',
+          data: {'path': '/data', 'title': 'Data Title', 'body': 'Data Body'},
+        );
+
+        await service.handleForegroundMessage(message);
+
+        // データのみの通知はネイティブバナーが出ないためローカル通知が表示される
+        check(fakeLocalNotifications.showCallCount).equals(1);
+        check(fakeLocalNotifications.lastShowTitle).equals('Data Title');
+      },
+    );
 
     test('handleMessageOpenedApp で onNotificationTap が呼ばれること', () {
       NotificationPayload? tappedPayload;

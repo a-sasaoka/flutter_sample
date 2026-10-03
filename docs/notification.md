@@ -31,6 +31,7 @@ flowchart TD
 6. **型安全なディープリンク遷移**: 通知のデータペイロードに含まれる `path`（例: `/chat`, `/memos`）を検知し、GoRouter で自動ルーティング。
 7. **開発者向け検証メニュー**: `/dev-tools/notification` から実機・シミュレータでトークンコピー、権限リクエスト、テスト通知発火が可能。
 8. **アプリアイコンバッジの自動クリア**: iOS ネイティブ（`AppDelegate.swift`）にて、アプリ起動時およびフォアグラウンド復帰時にバッジカウントを自動リセット（0）し、バッジの残留を防止。
+9. **iOS ネイティブ通知デリゲート登録**: `AppDelegate.swift` にて `UNUserNotificationCenterDelegate` を登録し、アプリ起動中（フォアグラウンド）でもバナー通知を確実に表示。
 
 ---
 
@@ -74,6 +75,7 @@ Firebase Messaging と `FlutterLocalNotificationsPlugin` のやり取りをラ�
 - **通知タップ時**: `onNotificationTap` コールバックを通じて `NotificationPayload` を上位（Notifier）へ伝達します。
 - **アプリ終了状態からの起動時**: `getInitialNotification()` により Firebase 及びローカル通知の起動情報を取得し、初期通知ペイロードとして保持します。
 - **Android ネイティブ高重要度チャンネル初期化**: アプリ未起動（terminated）状態でのFCM通知受信時にも高重要度（バナー/サウンド）で確実に表示されるよう、`MainApplication.kt` の `onCreate()` で `high_importance_channel` をネイティブ初期化しています。
+- **iOS ネイティブ通知デリゲート登録**: フォアグラウンドでのローカル通知・リモート通知バナーを正しく表示するため、`AppDelegate.swift` で `UNUserNotificationCenterDelegate` に適合し、起動時にデリゲートを登録しています。実装詳細は [AppDelegate.swift](../ios/Runner/AppDelegate.swift) を参照してください。
 
 ### 3. `NotificationNotifier` (アプリケーション層)
 
