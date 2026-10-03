@@ -183,6 +183,7 @@ class RouteNavigationCard extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           child: SegmentedButton<TravelMode>(
+            key: ValueKey(route.travelMode),
             segments: [
               ButtonSegment(
                 value: TravelMode.driving,

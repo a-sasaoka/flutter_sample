@@ -366,6 +366,17 @@ Google Maps による地図描画および現在地取得アクションボタ�
   - 所要時間（例：「6分」）と総移動距離（例：「3.5 km」）が分かりやすく左右に配置されているか。
 - **画像リンク**: [📷 画像を表示する (route_navigation_card.png)](../test/src/features/map/presentation/goldens/macos/route_navigation_card.png)
 
+#### 7.4 公共交通機関案内ボトムシート (TransitGuideBottomSheet)
+
+移動手段で「公共交通」を選択した際に表示される、日本国内API制限の説明と公式Googleマップへの案内モーダルです。
+
+- **テスト対象**: ライトモード、ダークモードの計2状態
+- **チェックポイント**:
+  - 電車アイコン、案内タイトル「公共交通機関のルート案内」、および丁寧な説明文が中央に表示されているか。
+  - 「Googleマップで開く」アクションボタンおよび「キャンセル」ボタンが正しく配置されているか。
+  - 背景色やカードの境界、テキストのコントラストがライト／ダークモードで適切に保たれているか。
+- **画像リンク**: [📷 画像を表示する (transit_guide_bottom_sheet.png)](../test/src/features/map/presentation/goldens/macos/transit_guide_bottom_sheet.png)
+
 ---
 
 ### 8. アプリロック機能 (App Lock Features)

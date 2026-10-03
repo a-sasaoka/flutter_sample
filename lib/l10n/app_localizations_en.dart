@@ -781,6 +781,26 @@ class AppLocalizationsEn extends AppLocalizations {
       'Bicycling directions may lack dedicated bike lanes. Follow traffic rules.';
 
   @override
+  String get mapTransitGuideTitle => 'Transit Directions';
+
+  @override
+  String get mapTransitGuideApiNotice =>
+      'Due to Google Maps API limitations, transit directions (trains and buses) in Japan cannot be drawn directly within the app.';
+
+  @override
+  String get mapTransitGuidePrompt =>
+      'Would you like to open transit directions in the official Google Maps app for up-to-date schedules and fares?';
+
+  @override
+  String get mapTransitGuideOpenMaps => 'Open Google Maps';
+
+  @override
+  String get mapTransitGuideCancel => 'Cancel';
+
+  @override
+  String get mapTransitGuideError => 'Could not open Google Maps';
+
+  @override
   String get devLottieTitle => 'Lottie Animation Demo';
 
   @override

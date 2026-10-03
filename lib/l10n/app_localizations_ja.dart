@@ -762,6 +762,25 @@ class AppLocalizationsJa extends AppLocalizations {
       '自転車ルートには専用道がない区間が含まれる場合があります。交通ルールに従って走行してください。';
 
   @override
+  String get mapTransitGuideTitle => '公共交通機関のルート案内';
+
+  @override
+  String get mapTransitGuideApiNotice =>
+      'Google Maps APIの仕様により、日本国内の公共交通機関（電車・バス等）のルート検索・描画には対応していません。';
+
+  @override
+  String get mapTransitGuidePrompt => '公式Googleマップで最新の乗換案内（運行情報・時刻表・運賃）を開きますか？';
+
+  @override
+  String get mapTransitGuideOpenMaps => 'Googleマップで開く';
+
+  @override
+  String get mapTransitGuideCancel => 'キャンセル';
+
+  @override
+  String get mapTransitGuideError => 'Googleマップを開けませんでした';
+
+  @override
   String get devLottieTitle => 'Lottie アニメーションデモ';
 
   @override

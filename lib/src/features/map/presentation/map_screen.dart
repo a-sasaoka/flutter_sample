@@ -8,14 +8,17 @@ import 'package:flutter_sample/src/features/map/application/map_notifier.dart';
 import 'package:flutter_sample/src/features/map/application/map_route_notifier.dart';
 import 'package:flutter_sample/src/features/map/application/map_search_notifier.dart';
 import 'package:flutter_sample/src/features/map/application/spot_notifier.dart';
+import 'package:flutter_sample/src/features/map/application/transit_launcher_service.dart';
 import 'package:flutter_sample/src/features/map/domain/location_candidate.dart';
 import 'package:flutter_sample/src/features/map/domain/location_state.dart';
 import 'package:flutter_sample/src/features/map/domain/map_route_state.dart';
 import 'package:flutter_sample/src/features/map/domain/map_search_state.dart';
 import 'package:flutter_sample/src/features/map/domain/map_spot.dart';
+import 'package:flutter_sample/src/features/map/domain/travel_mode.dart';
 import 'package:flutter_sample/src/features/map/presentation/widgets/map_search_bar.dart';
 import 'package:flutter_sample/src/features/map/presentation/widgets/route_navigation_card.dart';
 import 'package:flutter_sample/src/features/map/presentation/widgets/spot_detail_bottom_sheet.dart';
+import 'package:flutter_sample/src/features/map/presentation/widgets/transit_guide_bottom_sheet.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -511,6 +514,45 @@ class MapScreen extends HookConsumerWidget {
                             },
                             onTravelModeChanged: (mode) {
                               if (mode != routeState.route.travelMode) {
+                                if (mode == TravelMode.transit) {
+                                  final currentRoute = routeState.route;
+                                  unawaited(
+                                    showModalBottomSheet<void>(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      showDragHandle: true,
+                                      builder: (modalContext) {
+                                        return TransitGuideBottomSheet(
+                                          destinationName:
+                                              currentRoute.destinationName,
+                                          onOpenGoogleMapsPressed: () async {
+                                            Navigator.of(modalContext).pop();
+                                            final launcher = ref.read(
+                                              transitLauncherServiceProvider,
+                                            );
+                                            final success = await launcher
+                                                .launchTransitRoute(
+                                                  origin: currentRoute.origin,
+                                                  destination:
+                                                      currentRoute.destination,
+                                                  destinationName: currentRoute
+                                                      .destinationName,
+                                                );
+                                            if (!success && context.mounted) {
+                                              context.showErrorSnackBar(
+                                                l10n.mapTransitGuideError,
+                                              );
+                                            }
+                                          },
+                                          onCancelPressed: () {
+                                            Navigator.of(modalContext).pop();
+                                          },
+                                        );
+                                      },
+                                    ),
+                                  );
+                                  return;
+                                }
                                 unawaited(
                                   ref
                                       .read(mapRouteProvider.notifier)

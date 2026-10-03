@@ -1556,6 +1556,42 @@ abstract class AppLocalizations {
   /// **'Bicycling directions may lack dedicated bike lanes. Follow traffic rules.'**
   String get mapRouteBicyclingWarning;
 
+  /// No description provided for @mapTransitGuideTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Transit Directions'**
+  String get mapTransitGuideTitle;
+
+  /// No description provided for @mapTransitGuideApiNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Due to Google Maps API limitations, transit directions (trains and buses) in Japan cannot be drawn directly within the app.'**
+  String get mapTransitGuideApiNotice;
+
+  /// No description provided for @mapTransitGuidePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Would you like to open transit directions in the official Google Maps app for up-to-date schedules and fares?'**
+  String get mapTransitGuidePrompt;
+
+  /// No description provided for @mapTransitGuideOpenMaps.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Google Maps'**
+  String get mapTransitGuideOpenMaps;
+
+  /// No description provided for @mapTransitGuideCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get mapTransitGuideCancel;
+
+  /// No description provided for @mapTransitGuideError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open Google Maps'**
+  String get mapTransitGuideError;
+
   /// No description provided for @devLottieTitle.
   ///
   /// In en, this message translates to:
