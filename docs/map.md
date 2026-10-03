@@ -113,10 +113,10 @@ Google Maps Platform（Routes API / Directions API）では、日本国内の公
 
 参照ソースコード:
 
-- 定数定義: [`lib/src/features/map/domain/map_constants.dart`](file:///Users/a.sasaoka/develop/flutter/flutter_sample/lib/src/features/map/domain/map_constants.dart)
-- 連携サービス: [`lib/src/features/map/application/transit_launcher_service.dart`](file:///Users/a.sasaoka/develop/flutter/flutter_sample/lib/src/features/map/application/transit_launcher_service.dart)
-- 案内モーダル: [`lib/src/features/map/presentation/widgets/transit_guide_bottom_sheet.dart`](file:///Users/a.sasaoka/develop/flutter/flutter_sample/lib/src/features/map/presentation/widgets/transit_guide_bottom_sheet.dart)
-- 画面連動: [`lib/src/features/map/presentation/map_screen.dart`](file:///Users/a.sasaoka/develop/flutter/flutter_sample/lib/src/features/map/presentation/map_screen.dart)
+- 定数定義: [`lib/src/features/map/domain/map_constants.dart`](../lib/src/features/map/domain/map_constants.dart)
+- 連携サービス: [`lib/src/features/map/application/transit_launcher_service.dart`](../lib/src/features/map/application/transit_launcher_service.dart)
+- 案内モーダル: [`lib/src/features/map/presentation/widgets/transit_guide_bottom_sheet.dart`](../lib/src/features/map/presentation/widgets/transit_guide_bottom_sheet.dart)
+- 画面連動: [`lib/src/features/map/presentation/map_screen.dart`](../lib/src/features/map/presentation/map_screen.dart)
 
 ---
 
