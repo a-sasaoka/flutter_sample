@@ -34,16 +34,38 @@ import flutter_local_notifications
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
-  // 🔔 アプリ起動中（フォアグラウンド）に通知を受信した際、バナー・リスト・音・バッジを表示するようiOSに許可を返す
+  // 🔔 アプリ起動中（フォアグラウンド）に通知を受信した際、親クラス(Flutter/Firebase)に通知を転送しつつ、バナー等を表示する
   override func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     willPresent notification: UNNotification,
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
   ) {
-    if #available(iOS 14.0, *) {
-      completionHandler([.banner, .list, .sound, .badge])
-    } else {
-      completionHandler([.alert, .sound, .badge])
+    // 1. completionHandler が重複して呼ばれないよう安全に保護するフラグ
+    var isHandled = false
+    let safeCompletionHandler: (UNNotificationPresentationOptions) -> Void = { options in
+      guard !isHandled else { return }
+      isHandled = true
+      if #available(iOS 14.0, *) {
+        completionHandler([.banner, .list, .sound, .badge])
+      } else {
+        completionHandler([.alert, .sound, .badge])
+      }
+    }
+
+    // 2. 親クラス(FlutterAppDelegate)に委譲し、Firebase等のプラグインに通知を届ける
+    // これにより、Dart側の FirebaseMessaging.onMessage リスナーが確実に発火します
+    super.userNotificationCenter(center, willPresent: notification, withCompletionHandler: safeCompletionHandler)
+
+    // 3. 万が一プラグイン側で completionHandler が呼ばれなかった場合の保険（0.1秒後の自動フォールバック）
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+      if !isHandled {
+        isHandled = true
+        if #available(iOS 14.0, *) {
+          completionHandler([.banner, .list, .sound, .badge])
+        } else {
+          completionHandler([.alert, .sound, .badge])
+        }
+      }
     }
   }
 
