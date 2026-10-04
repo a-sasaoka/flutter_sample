@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:checks/checks.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
@@ -757,6 +759,64 @@ void main() {
       final state = container.read(appLockServiceProvider).value;
       check(state).equals(const AppLockState.disabled());
     });
+
+    test(
+      'ログアウト時の clearAll 実行中に再ログインした場合、clearAll の完了を待ってから hasPasscode が呼ばれること',
+      () async {
+        final authNotifier = _TestAuthStateNotifier(isAuthenticated: true);
+        final clearCompleter = Completer<void>();
+        var hasPasscodeCallCount = 0;
+
+        final container = createContainer(
+          isAuthenticated: true,
+          hasPasscode: true,
+          isBiometricEnabled: false,
+          testAuthNotifier: authNotifier,
+        );
+
+        when(
+          () => mockRepository.clearAll(),
+        ).thenAnswer((_) => clearCompleter.future);
+        when(() => mockRepository.hasPasscode()).thenAnswer((_) async {
+          hasPasscodeCallCount++;
+          // 1回目は設定あり、clearAll 完了後の2回目は設定なし
+          return hasPasscodeCallCount == 1;
+        });
+
+        // 初回ログイン時の初期化完了を待機（hasPasscode: true -> locked）
+        final initialState = await container.read(
+          appLockServiceProvider.future,
+        );
+        check(
+          initialState,
+        ).equals(const AppLockState.locked(isBiometricEnabled: false));
+        check(hasPasscodeCallCount).equals(1);
+
+        // ログアウト（clearAll が開始されるが保留中）
+        authNotifier.setAuthenticated(isAuthenticated: false);
+        await pumpEventQueue();
+        verify(() => mockRepository.clearAll()).called(1);
+
+        // 💡 clearAll が保留中のまま、素早く再ログイン（false -> true）
+        authNotifier.setAuthenticated(isAuthenticated: true);
+        await pumpEventQueue();
+
+        // 💡 clearAll が未完了のため、再ログイン側の build() は待機しており、
+        // 2回目の hasPasscode() はまだ呼ばれていない
+        check(hasPasscodeCallCount).equals(1);
+
+        // 💡 clearAll の保留を解除
+        clearCompleter.complete();
+        await pumpEventQueue();
+
+        // 💡 clearAll 完了後に再ログイン側の hasPasscode() が呼ばれる（2回目）
+        check(hasPasscodeCallCount).equals(2);
+
+        // パスコード未設定なので setupRequired 状態になること
+        final finalState = container.read(appLockServiceProvider).value;
+        check(finalState).equals(const AppLockState.setupRequired());
+      },
+    );
   });
 }
 

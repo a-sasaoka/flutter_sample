@@ -10,6 +10,7 @@ import 'package:flutter_sample/src/features/auth/application/auth_state_notifier
 import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 part 'app_lock_service.g.dart';
 
@@ -37,6 +38,9 @@ class AppLockService extends _$AppLockService {
   /// 前回の認証状態（ログアウト検知用フラグ）
   bool _wasAuthenticated = false;
 
+  /// ログアウト時の設定消去処理の実行中タスク（再ログイン時の競合防止用）
+  Future<void>? _clearTask;
+
   @override
   Future<AppLockState> build() async {
     final talker = ref.watch(loggerProvider);
@@ -63,22 +67,27 @@ class AppLockService extends _$AppLockService {
         talker.info(
           '[AppLockService] Detected logout. Clearing app lock settings...',
         );
-        try {
-          await ref.read(appLockRepositoryProvider).clearAll();
-        } on Object catch (e, st) {
-          talker.handle(
-            e,
-            st,
-            '[AppLockService] Failed to clear app lock settings during logout',
-          );
-        }
         _shouldSkipNextLock = false;
         _wasAuthenticated = false;
+
+        // 実行中タスクを保持し、再ログイン側の build() からも待機できるようにする
+        final task = _performClearSettings(talker);
+        _clearTask = task;
+        await task;
       }
       return const AppLockState.disabled();
     }
 
     _wasAuthenticated = true;
+
+    // 前のログアウトに伴う設定消去が実行中であれば、完了を待ってから読み込む
+    if (_clearTask != null) {
+      talker.debug(
+        '[AppLockService] Waiting for ongoing clear task before reading '
+        'settings...',
+      );
+      await _clearTask;
+    }
 
     // 非同期でパスコード・生体認証設定を安全に読み込み
     final repository = ref.watch(appLockRepositoryProvider);
@@ -96,6 +105,21 @@ class AppLockService extends _$AppLockService {
     } else {
       // パスコード設定済みの場合はアプリ起動時にロック状態へ
       return AppLockState.locked(isBiometricEnabled: isBiometricEnabled);
+    }
+  }
+
+  /// ログアウト時の設定消去処理を実行
+  Future<void> _performClearSettings(Talker talker) async {
+    try {
+      await ref.read(appLockRepositoryProvider).clearAll();
+    } on Object catch (e, st) {
+      talker.handle(
+        e,
+        st,
+        '[AppLockService] Failed to clear app lock settings during logout',
+      );
+    } finally {
+      _clearTask = null;
     }
   }
 
