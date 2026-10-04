@@ -4,9 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 
 /// 画像データの先頭バイト（マジックナンバー）からMIMEタイプを判定する
-/// 判定不能な場合はフォールバックとして 'image/jpeg' を返す
+/// サポート外または判定不能な場合は null を返す
 @visibleForTesting
-String detectImageMimeType(Uint8List bytes) {
+String? detectImageMimeType(Uint8List bytes) {
   // PNG: 89 50 4E 47 0D 0A 1A 0A
   if (bytes.length >= 8 &&
       bytes[0] == 0x89 &&
@@ -52,7 +52,7 @@ String detectImageMimeType(Uint8List bytes) {
       return 'image/heic';
     }
   }
-  return 'image/jpeg';
+  return null;
 }
 
 /// Gemini APIクライアントの実装
@@ -61,9 +61,14 @@ class GeminiApiClient implements ChatApiClient {
   GeminiApiClient(this._session);
   final ChatSession _session;
 
-  Content _buildContent(String prompt, Uint8List? imageBytes) {
+  /// テスト用にコンテンツ生成メソッドを公開
+  @visibleForTesting
+  static Content buildContent(String prompt, Uint8List? imageBytes) {
     if (imageBytes != null && imageBytes.isNotEmpty) {
       final mimeType = detectImageMimeType(imageBytes);
+      if (mimeType == null) {
+        throw ChatUnsupportedImageFormatException();
+      }
       return Content.multi([
         TextPart(prompt),
         InlineDataPart(mimeType, imageBytes),
@@ -75,7 +80,7 @@ class GeminiApiClient implements ChatApiClient {
   @override
   Future<String?> sendMessage(String prompt, {Uint8List? imageBytes}) async {
     final response = await _session.sendMessage(
-      _buildContent(prompt, imageBytes),
+      buildContent(prompt, imageBytes),
     );
     return response.text;
   }
@@ -83,7 +88,7 @@ class GeminiApiClient implements ChatApiClient {
   @override
   Stream<String?> sendMessageStream(String prompt, {Uint8List? imageBytes}) {
     return _session
-        .sendMessageStream(_buildContent(prompt, imageBytes))
+        .sendMessageStream(buildContent(prompt, imageBytes))
         .map((chunk) => chunk.text);
   }
 }

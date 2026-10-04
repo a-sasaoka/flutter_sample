@@ -11,3 +11,6 @@ abstract class ChatApiClient {
 
 /// AIからの返答が空だった時の例外クラス
 class ChatEmptyResponseException implements Exception {}
+
+/// サポートされていない画像形式だった場合の例外クラス
+class ChatUnsupportedImageFormatException implements Exception {}
