@@ -481,6 +481,7 @@ class _ChatInputArea extends HookConsumerWidget {
       final pickedFile = await imagePickerService.pickImage(source: source);
       if (pickedFile != null) {
         final bytes = await pickedFile.readAsBytes();
+        if (!context.mounted) return;
         selectedImage.value = bytes;
       }
     } on ImagePermissionDeniedException {
@@ -488,10 +489,9 @@ class _ChatInputArea extends HookConsumerWidget {
         ErrorHandler.showSnackBar(context, l10n.chatError);
       }
     } on Object catch (e, st) {
+      if (!context.mounted) return;
       ref.read(loggerProvider).handle(e, st, 'Failed to pick image');
-      if (context.mounted) {
-        ErrorHandler.showSnackBar(context, e);
-      }
+      ErrorHandler.showSnackBar(context, e);
     }
   }
 
