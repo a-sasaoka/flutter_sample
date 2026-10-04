@@ -822,6 +822,15 @@ void main() {
         // パスコード未設定なので setupRequired 状態になること
         final finalState = container.read(appLockServiceProvider).value;
         check(finalState).equals(const AppLockState.setupRequired());
+
+        // 💡 再ログイン完了後に再度ログアウトした場合、正常に clearAll が再度（2回目）呼ばれること
+        when(() => mockRepository.clearAll()).thenAnswer((_) async {});
+        authNotifier.setAuthenticated(isAuthenticated: false);
+        await pumpEventQueue();
+
+        verify(() => mockRepository.clearAll()).called(1);
+        final afterLogoutState = container.read(appLockServiceProvider).value;
+        check(afterLogoutState).equals(const AppLockState.disabled());
       },
     );
   });

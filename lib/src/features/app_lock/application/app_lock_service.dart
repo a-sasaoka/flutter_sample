@@ -77,8 +77,6 @@ class AppLockService extends _$AppLockService {
       return const AppLockState.disabled();
     }
 
-    _wasAuthenticated = true;
-
     // 前のログアウトに伴う設定消去が実行中であれば、完了を待ってから読み込む
     if (_clearTask != null) {
       talker.debug(
@@ -87,6 +85,8 @@ class AppLockService extends _$AppLockService {
       );
       await _clearTask;
     }
+
+    _wasAuthenticated = true;
 
     // 非同期でパスコード・生体認証設定を安全に読み込み
     final repository = ref.watch(appLockRepositoryProvider);
