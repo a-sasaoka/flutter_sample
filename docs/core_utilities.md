@@ -259,4 +259,4 @@ WebサイトのURL検証および外部ブラウザ起動を安全に行う共�
 - **汎用的な画像取得（`pickImage`）**: カメラ撮影またはアルバムからの選択を行い、圧縮率（品質）や最大解像度（幅・高さ）を指定して画像（`XFile`）を取得します（利用例: [chat_screen.dart](../lib/src/features/chat/presentation/chat_screen.dart) のAIチャット画像添付）。
 - **アバター用切り抜き付き取得（`pickAndCropAvatar`）**: プロフィールアイコン向けに、正方形のアスペクト比指定や円形マスクでのトリミングを連続して行います（利用例: [profile_edit_screen.dart](../lib/src/features/profile/presentation/profile_edit_screen.dart)）。
 - **誤ロック防止との連携**: カメラやアルバム選択画面などのOS画面を開く際、アプリ復帰時に誤って画面ロックがかからないよう [LockSuppressionRunner](../lib/src/core/services/lock_suppression_handler.dart) と自動連携しています。
-- **パーミッション（権限）の自動チェック**: カメラや写真ライブラリの利用権限がない場合はOSダイアログで許可を求め、拒否された場合は安全に `null` を返します。
+- **パーミッション（権限）の自動チェック**: カメラや写真ライブラリの利用権限がない場合はOSダイアログで許可を求め、拒否された場合は [ImagePermissionDeniedException](../lib/src/core/services/image_picker_service.dart#L24-L41) をスローします（ユーザーが画像選択や切り抜きをキャンセルした場合は `null` を返します）。
