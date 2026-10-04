@@ -68,7 +68,6 @@ class AppLockService extends _$AppLockService {
           '[AppLockService] Detected logout. Clearing app lock settings...',
         );
         _shouldSkipNextLock = false;
-        _wasAuthenticated = false;
 
         // 実行中タスクを保持し、再ログイン側の build() からも待機できるようにする
         final task = _performClearSettings(talker);
@@ -112,6 +111,7 @@ class AppLockService extends _$AppLockService {
   Future<void> _performClearSettings(Talker talker) async {
     try {
       await ref.read(appLockRepositoryProvider).clearAll();
+      _wasAuthenticated = false;
     } on Object catch (e, st) {
       talker.handle(
         e,

@@ -758,6 +758,13 @@ void main() {
 
       final state = container.read(appLockServiceProvider).value;
       check(state).equals(const AppLockState.disabled());
+
+      // 💡 失敗時は _wasAuthenticated が維持されるため、次回未認証 build 時にリトライされる
+      when(() => mockRepository.clearAll()).thenAnswer((_) async {});
+      container.invalidate(appLockServiceProvider);
+      await pumpEventQueue();
+
+      verify(() => mockRepository.clearAll()).called(1);
     });
 
     test(
