@@ -54,16 +54,20 @@ void main() {
       check(result).equals('image/webp');
     });
 
-    test('HEIC画像の場合、image/heic が返されること', () {
+    test('HEIC/HEIF画像（heic, mif1）の場合、未対応形式として null が返されること', () {
       final heicBytes = Uint8List.fromList([
         0x00, 0x00, 0x00, 0x18,
         0x66, 0x74, 0x79, 0x70, // ftyp
         0x68, 0x65, 0x69, 0x63, // heic
       ]);
+      final mif1Bytes = Uint8List.fromList([
+        0x00, 0x00, 0x00, 0x18,
+        0x66, 0x74, 0x79, 0x70, // ftyp
+        0x6D, 0x69, 0x66, 0x31, // mif1
+      ]);
 
-      final result = detectImageMimeType(heicBytes);
-
-      check(result).equals('image/heic');
+      check(detectImageMimeType(heicBytes)).isNull();
+      check(detectImageMimeType(mif1Bytes)).isNull();
     });
 
     test('GIF画像の場合、未対応形式として null が返され、image/jpeg と判定されないこと', () {
@@ -131,6 +135,18 @@ void main() {
 
       check(
         () => GeminiApiClient.buildContent('GIFテスト', gifBytes),
+      ).throws<ChatUnsupportedImageFormatException>();
+    });
+
+    test('未対応画像（HEIC）の場合、ChatUnsupportedImageFormatException がスローされること', () {
+      final heicBytes = Uint8List.fromList([
+        0x00, 0x00, 0x00, 0x18,
+        0x66, 0x74, 0x79, 0x70, // ftyp
+        0x68, 0x65, 0x69, 0x63, // heic
+      ]);
+
+      check(
+        () => GeminiApiClient.buildContent('HEICテスト', heicBytes),
       ).throws<ChatUnsupportedImageFormatException>();
     });
 
