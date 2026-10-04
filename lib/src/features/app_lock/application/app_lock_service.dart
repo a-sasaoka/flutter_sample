@@ -63,7 +63,15 @@ class AppLockService extends _$AppLockService {
         talker.info(
           '[AppLockService] Detected logout. Clearing app lock settings...',
         );
-        unawaited(ref.read(appLockRepositoryProvider).clearAll());
+        try {
+          await ref.read(appLockRepositoryProvider).clearAll();
+        } on Object catch (e, st) {
+          talker.handle(
+            e,
+            st,
+            '[AppLockService] Failed to clear app lock settings during logout',
+          );
+        }
         _shouldSkipNextLock = false;
         _wasAuthenticated = false;
       }

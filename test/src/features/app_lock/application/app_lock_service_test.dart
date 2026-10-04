@@ -715,6 +715,48 @@ void main() {
 
       verify(() => mockRepository.clearAll()).called(1);
     });
+
+    test('ログアウト時の clearAll で例外が発生した場合、エラーが記録され disabled 状態になること', () async {
+      final authNotifier = _TestAuthStateNotifier(isAuthenticated: true);
+      when(
+        () => mockRepository.clearAll(),
+      ).thenThrow(Exception('Clear failed'));
+      when(
+        () => mockTalker.handle(
+          any<Object>(),
+          any<StackTrace?>(),
+          any<dynamic>(),
+        ),
+      ).thenReturn(null);
+
+      final container = createContainer(
+        isAuthenticated: true,
+        hasPasscode: true,
+        isBiometricEnabled: false,
+        testAuthNotifier: authNotifier,
+      );
+
+      // 初期化完了を待機
+      await container.read(appLockServiceProvider.future);
+
+      // ログアウト（true -> false）
+      authNotifier.setAuthenticated(isAuthenticated: false);
+
+      // 非同期イベントキューの処理を待機
+      await pumpEventQueue();
+
+      verify(() => mockRepository.clearAll()).called(1);
+      verify(
+        () => mockTalker.handle(
+          any<Object>(),
+          any<StackTrace?>(),
+          '[AppLockService] Failed to clear app lock settings during logout',
+        ),
+      ).called(1);
+
+      final state = container.read(appLockServiceProvider).value;
+      check(state).equals(const AppLockState.disabled());
+    });
   });
 }
 
