@@ -35,6 +35,7 @@ void main() {
     bool useFirebaseAuth = false,
     User? firebaseUser,
     DateTime Function()? clock,
+    _TestAuthStateNotifier? testAuthNotifier,
   }) {
     var failedAttempts = 0;
     DateTime? lockoutUntil;
@@ -84,7 +85,9 @@ void main() {
           ),
         ),
         authStateProvider.overrideWith(
-          () => _TestAuthStateNotifier(isAuthenticated: isAuthenticated),
+          testAuthNotifier != null
+              ? () => testAuthNotifier
+              : () => _TestAuthStateNotifier(isAuthenticated: isAuthenticated),
         ),
         firebaseAuthStateProvider.overrideWith(
           () => _TestFirebaseAuthStateNotifier(firebaseUser),
@@ -689,16 +692,44 @@ void main() {
       check(state).equals(const AppLockState.disabled());
       verify(() => mockRepository.clearAll()).called(1);
     });
+
+    test('認証状態がログインから未ログインへ変化した際、自動で clearAll が呼ばれること', () async {
+      final authNotifier = _TestAuthStateNotifier(isAuthenticated: true);
+      when(() => mockRepository.clearAll()).thenAnswer((_) async {});
+
+      final container = createContainer(
+        isAuthenticated: true,
+        hasPasscode: true,
+        isBiometricEnabled: false,
+        testAuthNotifier: authNotifier,
+      );
+
+      // 初期化完了を待機
+      await container.read(appLockServiceProvider.future);
+
+      // ログアウト（true -> false）
+      authNotifier.setAuthenticated(isAuthenticated: false);
+
+      // 非同期イベントキューの処理を待機
+      await pumpEventQueue();
+
+      verify(() => mockRepository.clearAll()).called(1);
+    });
   });
 }
 
 class _TestAuthStateNotifier extends AuthStateNotifier {
   _TestAuthStateNotifier({required bool isAuthenticated})
     : _isAuthenticated = isAuthenticated;
-  final bool _isAuthenticated;
+  bool _isAuthenticated;
 
   @override
   Future<bool> build() async => _isAuthenticated;
+
+  void setAuthenticated({required bool isAuthenticated}) {
+    _isAuthenticated = isAuthenticated;
+    state = AsyncData(isAuthenticated);
+  }
 }
 
 class _TestFirebaseAuthStateNotifier extends FirebaseAuthStateNotifier {

@@ -59,4 +59,4 @@ final class TransitLauncherServiceProvider
 }
 
 String _$transitLauncherServiceHash() =>
-    r'6c3695e5726b1958e599e544583cb393254699ed';
+    r'72e115ef1c30c02d70bbf46069468ec455ee06ac';

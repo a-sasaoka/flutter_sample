@@ -1,8 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
-import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
-import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
 import 'package:flutter_sample/src/features/map/application/transit_launcher_service.dart';
 import 'package:flutter_sample/src/features/map/domain/map_constants.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,21 +15,19 @@ class MockUrlLauncherPlatform extends Mock
     with MockPlatformInterfaceMixin
     implements UrlLauncherPlatform {}
 
-class MockAppLockService extends Mock implements AppLockService {}
-
 class MockTalker extends Mock implements Talker {}
-
-class FakeAppLockService extends AppLockService {
-  @override
-  Future<AppLockState> build() async => const AppLockState.disabled();
-}
 
 void main() {
   late UrlLauncherPlatform originalPlatform;
   late MockUrlLauncherPlatform mockUrlLauncherPlatform;
-  late MockAppLockService mockAppLockService;
   late MockTalker mockLogger;
   late TransitLauncherService service;
+  var lockSuppressionCallCount = 0;
+
+  Future<T> testLockSuppressionRunner<T>(Future<T> Function() action) async {
+    lockSuppressionCallCount++;
+    return await action();
+  }
 
   const origin = LatLng(35.681236, 139.767125);
   const destination = LatLng(35.658581, 139.745433);
@@ -50,19 +46,11 @@ void main() {
     mockUrlLauncherPlatform = MockUrlLauncherPlatform();
     UrlLauncherPlatform.instance = mockUrlLauncherPlatform;
 
-    mockAppLockService = MockAppLockService();
     mockLogger = MockTalker();
-
-    when(
-      () => mockAppLockService.runWithLockSuppression<bool>(any()),
-    ).thenAnswer((invocation) async {
-      final action =
-          invocation.positionalArguments[0] as Future<bool> Function();
-      return await action();
-    });
+    lockSuppressionCallCount = 0;
 
     service = TransitLauncherService(
-      appLockService: mockAppLockService,
+      lockSuppressionRunner: testLockSuppressionRunner,
       logger: mockLogger,
     );
   });
@@ -121,9 +109,7 @@ void main() {
       );
 
       check(result).isTrue();
-      verify(
-        () => mockAppLockService.runWithLockSuppression<bool>(any()),
-      ).called(1);
+      check(lockSuppressionCallCount).equals(1);
       verify(
         () => mockUrlLauncherPlatform.launchUrl(
           any(
@@ -169,10 +155,7 @@ void main() {
 
     test('transitLauncherServiceProvider からインスタンスを正常に取得できること', () {
       final container = ProviderContainer(
-        overrides: [
-          appLockServiceProvider.overrideWith(FakeAppLockService.new),
-          loggerProvider.overrideWithValue(mockLogger),
-        ],
+        overrides: [loggerProvider.overrideWithValue(mockLogger)],
       );
       addTearDown(container.dispose);
 

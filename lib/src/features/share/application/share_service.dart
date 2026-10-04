@@ -1,8 +1,8 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/src/core/services/lock_suppression_handler.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
-import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
 import 'package:flutter_sample/src/features/share/domain/share_config.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:share_plus/share_plus.dart';
@@ -15,13 +15,13 @@ part 'share_service.g.dart';
 class ShareService {
   /// コンストラクタ
   ShareService({
-    required this.appLockService,
+    required this.lockSuppressionRunner,
     required this.logger,
     required SharePlus sharePlus,
   }) : _sharePlus = sharePlus;
 
-  /// アプリロック誤作動防止用のサービス
-  final AppLockService appLockService;
+  /// アプリロック誤作動防止用の実行ハンドラー
+  final LockSuppressionRunner lockSuppressionRunner;
 
   /// ロガー
   final Talker logger;
@@ -156,7 +156,7 @@ class ShareService {
   Future<ShareResult> _safeShare(String actionName, ShareParams params) async {
     ShareResult result;
     try {
-      result = await appLockService.runWithLockSuppression<ShareResult>(
+      result = await lockSuppressionRunner<ShareResult>(
         () => _sharePlus.share(params),
       );
     } on Object {
@@ -187,7 +187,7 @@ class ShareService {
   /// URL起動を安全に実行し、起動失敗または例外発生時は false を返す
   Future<bool> _safeLaunchUrl(String serviceName, Uri uri) async {
     try {
-      final launched = await appLockService.runWithLockSuppression<bool>(
+      final launched = await lockSuppressionRunner<bool>(
         () => launchUrl(uri, mode: LaunchMode.externalApplication),
       );
 
@@ -218,7 +218,7 @@ SharePlus sharePlus(Ref ref) => SharePlus.instance;
 @riverpod
 ShareService shareService(Ref ref) {
   return ShareService(
-    appLockService: ref.watch(appLockServiceProvider.notifier),
+    lockSuppressionRunner: ref.watch(lockSuppressionRunnerProvider),
     logger: ref.watch(loggerProvider),
     sharePlus: ref.watch(sharePlusProvider),
   );

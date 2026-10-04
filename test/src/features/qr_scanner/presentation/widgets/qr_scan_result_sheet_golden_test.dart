@@ -1,6 +1,6 @@
 import 'package:alchemist/alchemist.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_sample/src/features/qr_scanner/application/url_launcher_service.dart';
+import 'package:flutter_sample/src/core/services/url_launcher_service.dart';
 import 'package:flutter_sample/src/features/qr_scanner/presentation/widgets/qr_scan_result_sheet.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';

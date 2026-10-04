@@ -108,7 +108,7 @@ Google Maps Platform（Routes API / Directions API）では、日本国内の公
   - キャンセル時は `RouteNavigationCard` の選択状態を直前の移動手段（車・徒歩等）へ自動維持。
 - **公式マップ連携サービス (`TransitLauncherService`)**:
   - `MapConstants` に集約された定数を参照し、Google公式推奨のUniversal URL（`https://www.google.com/maps/dir/?api=1&origin=LAT,LNG&destination=...&travelmode=transit`）を生成。
-  - アプリ復帰時の誤ロックを防ぐため、`AppLockService.runWithLockSuppression` で保護した上で `LaunchMode.externalApplication` で安全に外部マップ（未インストール時はブラウザ）を起動。
+  - アプリ復帰時の誤ロックを防ぐため、Core層の共通ハンドラー（[lock_suppression_handler.dart](../lib/src/core/services/lock_suppression_handler.dart)）で保護した上で `LaunchMode.externalApplication` で安全に外部マップ（未インストール時はブラウザ）を起動。
   - 起動失敗時は `SnackBar` でユーザーへ通知。
 
 参照ソースコード:

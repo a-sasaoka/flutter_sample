@@ -4,9 +4,9 @@ import 'package:app_settings/app_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
+import 'package:flutter_sample/src/core/services/lock_suppression_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
-import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
 import 'package:flutter_sample/src/features/qr_scanner/application/qr_scanner_controller.dart';
 import 'package:flutter_sample/src/features/qr_scanner/domain/qr_image_pick_result.dart';
 import 'package:flutter_sample/src/features/qr_scanner/domain/qr_scanner_state.dart';
@@ -102,9 +102,9 @@ class QrScannerScreen extends HookConsumerWidget {
             errorBuilder: (context, error) {
               return _CameraErrorView(
                 error: error,
-                onOpenSettings: () => ref
-                    .read(appLockServiceProvider.notifier)
-                    .runWithLockSuppression(AppSettings.openAppSettings),
+                onOpenSettings: () => ref.read(lockSuppressionRunnerProvider)(
+                  AppSettings.openAppSettings,
+                ),
                 onPickImage: handlePickImage,
               );
             },

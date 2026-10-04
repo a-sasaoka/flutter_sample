@@ -59,4 +59,4 @@ final class UrlLauncherServiceProvider
 }
 
 String _$urlLauncherServiceHash() =>
-    r'58ab5f59243dd59bbc30dda3329841c14b4e1860';
+    r'5c65b6b49c378b3991fa38771688c0e84755d644';

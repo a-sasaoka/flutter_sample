@@ -12,7 +12,7 @@
 ```plaintext
 lib/src/features/auth/
  ├── application/
- │    ├── auth_service.dart        # 共通ログアウト・認証状態判定（アプリロック連携）
+ │    ├── auth_service.dart        # 共通ログアウト・認証状態判定・ユーザーID提供・プロフィール更新
  │    └── auth_state_notifier.dart # トークン認証状態の管理
  └── data/
       ├── token_storage.dart       # トークンの永続化（SecureStorage利用）
@@ -108,7 +108,7 @@ lib/src/features/auth/
   - `ref.watch(authStateProvider)` の変更を検知し、パスコード未設定の場合は `PasscodeSetupScreen`（初期設定画面）へ自動誘導します。
   - パスコード登録済みの場合は、アプリ起動時およびフォアグラウンド復帰時に `PasscodeLockScreen`（ロック解除画面）を最前面にオーバーレイ描画します。
 - **ログアウト時**:
-  - ログアウト処理の中で `ref.read(appLockServiceProvider.notifier).clearAppLock()` を呼び出し、暗号化保存されたパスコードおよび生体認証設定を安全に全削除して `disabled` 状態へ遷移させます。
+  - `AuthService.signOut()` により認証セッションが終了し、認証状態が未ログインへ遷移すると、`AppLockService` がそれをリアクティブに検知して、暗号化保存されたパスコードおよび生体認証設定を自動的にクリアして `disabled` 状態へ遷移させます（Feature間の循環依存を排除した疎結合設計）。
 
 詳細な仕様は [アプリロック機能 (App Lock)](app_lock.md) を参照してください。
 
@@ -120,7 +120,7 @@ lib/src/features/auth/
 
 - **完全な依存性注入 (DI)**: `Ref` への直接依存を排除し、必要なロガー・設定・リポジトリ・Notifier をコンストラクタ引数として個別に受け取る設計になっており、単体テスト時のモック差し替えが容易です。実装詳細は [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) を参照してください。
 - **認証方式の隠蔽**: `EnvConfig.useFirebaseAuth` の値に応じて、Firebase のサインアウトまたはローカルトークンの破棄を適切に実行します。
-- **アプリロック連携の自動化**: ログアウト処理の中で `AppLockService.clearAppLock()` を呼び出し、暗号化保存されたパスコード・生体認証設定を自動的にクリアします。
+- **循環依存の排除**: `AuthService` は `AppLockService` を直接保持・呼び出しせず、純粋にセッションの破棄のみを担当します。アプリロック側の消去はイベント検知（`ref.listen`）によって自律的に行われます。
 - **統一されたログイン判定**: `isAuthenticatedProvider` により、UI 側は1行で「何らかの方式でログイン中か」を監視・判定できます。
 
 ---

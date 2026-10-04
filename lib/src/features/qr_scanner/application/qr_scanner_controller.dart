@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
+import 'package:flutter_sample/src/core/services/lock_suppression_handler.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
-import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
 import 'package:flutter_sample/src/features/qr_scanner/data/qr_scan_histories_dao.dart';
 import 'package:flutter_sample/src/features/qr_scanner/domain/qr_image_pick_result.dart';
 import 'package:flutter_sample/src/features/qr_scanner/domain/qr_scanner_state.dart';
@@ -87,18 +87,21 @@ class QrScannerController extends _$QrScannerController {
   Future<QrImagePickResult> pickAndScanImage({
     ImagePicker? imagePicker,
     MobileScannerController? scannerController,
-    AppLockService? appLockService,
+    LockSuppressionRunner? lockSuppressionRunner,
   }) async {
     final picker = imagePicker ?? ImagePicker();
     final controller = scannerController ?? MobileScannerController();
-    final lockService =
-        appLockService ??
-        ref.read<AppLockService>(appLockServiceProvider.notifier);
+    final LockSuppressionRunner runner;
+    if (lockSuppressionRunner != null) {
+      runner = lockSuppressionRunner;
+    } else {
+      runner = ref.read(lockSuppressionRunnerProvider);
+    }
 
     state = QrScannerState.processingImage(isTorchOn: state.isTorchOn);
 
     try {
-      final image = await lockService.runWithLockSuppression(
+      final image = await runner<XFile?>(
         () => picker.pickImage(source: ImageSource.gallery),
       );
       if (image == null) {

@@ -4,7 +4,7 @@ import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
-import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/profile/application/profile_notifier.dart';
 import 'package:flutter_sample/src/features/profile/data/profile_repository.dart';
 import 'package:flutter_sample/src/features/profile/data/storage_service.dart';
@@ -16,8 +16,7 @@ import 'package:talker_flutter/talker_flutter.dart';
 
 class MockProfileRepository extends Mock implements ProfileRepository {}
 
-class MockFirebaseAuthRepository extends Mock
-    implements FirebaseAuthRepository {}
+class MockAuthService extends Mock implements AuthService {}
 
 class MockStorageService extends Mock implements StorageService {}
 
@@ -29,9 +28,10 @@ class MockTalker extends Mock implements Talker {}
 
 void main() {
   late MockProfileRepository mockProfileRepo;
-  late MockFirebaseAuthRepository mockAuthRepo;
+  late MockAuthService mockAuthService;
   late MockStorageService mockStorageService;
   late MockTalker mockTalker;
+  String? currentUserId;
 
   const testProfile = UserProfile(
     name: 'テスト太郎',
@@ -48,9 +48,10 @@ void main() {
 
   setUp(() {
     mockProfileRepo = MockProfileRepository();
-    mockAuthRepo = MockFirebaseAuthRepository();
+    mockAuthService = MockAuthService();
     mockStorageService = MockStorageService();
     mockTalker = MockTalker();
+    currentUserId = 'test_uid';
 
     // デフォルトのモック設定
     when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
@@ -63,14 +64,14 @@ void main() {
     when(
       () => mockProfileRepo.fetchProfile(),
     ).thenAnswer((_) async => testProfile);
-    when(() => mockAuthRepo.currentUserId).thenReturn('test_uid');
   });
 
-  ProviderContainer createContainer({required bool useAuth}) {
+  ProviderContainer createContainer({required bool useAuth, String? userId}) {
     final container = ProviderContainer(
       overrides: [
         profileRepositoryProvider.overrideWithValue(mockProfileRepo),
-        firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+        authServiceProvider.overrideWithValue(mockAuthService),
+        currentUserIdProvider.overrideWith((ref) => userId ?? currentUserId),
         storageServiceProvider.overrideWithValue(mockStorageService),
         envConfigProvider.overrideWithValue(
           EnvConfigState(
@@ -130,7 +131,7 @@ void main() {
 
       verify(() => mockProfileRepo.updateProfile(updated)).called(1);
       verifyNever(
-        () => mockAuthRepo.updateAuthProfile(
+        () => mockAuthService.updateAuthProfile(
           displayName: any<String>(named: 'displayName'),
           email: any<String>(named: 'email'),
         ),
@@ -156,7 +157,7 @@ void main() {
         () => mockProfileRepo.updateProfile(updated),
       ).thenAnswer((_) async => updated);
       when(
-        () => mockAuthRepo.updateAuthProfile(
+        () => mockAuthService.updateAuthProfile(
           displayName: updated.displayName,
           email: updated.email,
           photoUrl: any(named: 'photoUrl'),
@@ -172,7 +173,7 @@ void main() {
 
       verify(() => mockProfileRepo.updateProfile(updated)).called(1);
       verify(
-        () => mockAuthRepo.updateAuthProfile(
+        () => mockAuthService.updateAuthProfile(
           displayName: updated.displayName,
           email: updated.email,
           photoUrl: any(named: 'photoUrl'),
@@ -244,7 +245,7 @@ void main() {
           () => mockProfileRepo.updateProfile(updated),
         ).thenAnswer((_) async => updated);
         when(
-          () => mockAuthRepo.updateAuthProfile(
+          () => mockAuthService.updateAuthProfile(
             displayName: updated.displayName,
             email: updated.email,
             photoUrl: any(named: 'photoUrl'),
@@ -288,7 +289,7 @@ void main() {
         () => mockProfileRepo.updateProfile(updated),
       ).thenAnswer((_) async => updated);
       when(
-        () => mockAuthRepo.updateAuthProfile(
+        () => mockAuthService.updateAuthProfile(
           displayName: updated.displayName,
           email: updated.email,
           photoUrl: any(named: 'photoUrl'),
@@ -326,7 +327,7 @@ void main() {
     test('updateProfile: useFirebaseAuth: true かつ currentUserId が null の時、 '
         'AppException.unauthenticated がスローされること', () async {
       // ログイン状態ではない（ユーザーIDが取得できない）状態をシミュレートします
-      when(() => mockAuthRepo.currentUserId).thenReturn(null);
+      currentUserId = null;
       final container = createContainer(useAuth: true);
       final subscription = container.listen(profileProvider, (prev, next) {});
       await container.read(profileProvider.future);
@@ -363,7 +364,7 @@ void main() {
         () => mockProfileRepo.updateProfile(updated),
       ).thenAnswer((_) async => updated);
       when(
-        () => mockAuthRepo.updateAuthProfile(
+        () => mockAuthService.updateAuthProfile(
           displayName: updated.displayName,
           email: updated.email,
           photoUrl: uploadedUrl,
@@ -384,7 +385,7 @@ void main() {
       ).called(1);
       verify(() => mockProfileRepo.updateProfile(updated)).called(1);
       verify(
-        () => mockAuthRepo.updateAuthProfile(
+        () => mockAuthService.updateAuthProfile(
           displayName: updated.displayName,
           email: updated.email,
           photoUrl: uploadedUrl,
@@ -423,7 +424,7 @@ void main() {
         () => mockProfileRepo.updateProfile(updated),
       ).thenAnswer((_) async => updated);
       when(
-        () => mockAuthRepo.updateAuthProfile(
+        () => mockAuthService.updateAuthProfile(
           displayName: updated.displayName,
           email: updated.email,
           photoUrl: '',
@@ -445,7 +446,7 @@ void main() {
       ).called(1);
       verify(() => mockProfileRepo.updateProfile(updated)).called(1);
       verify(
-        () => mockAuthRepo.updateAuthProfile(
+        () => mockAuthService.updateAuthProfile(
           displayName: updated.displayName,
           email: updated.email,
           photoUrl: '',
@@ -484,7 +485,7 @@ void main() {
         () => mockProfileRepo.updateProfile(updated),
       ).thenAnswer((_) async => updated);
       when(
-        () => mockAuthRepo.updateAuthProfile(
+        () => mockAuthService.updateAuthProfile(
           displayName: updated.displayName,
           email: updated.email,
           photoUrl: uploadedUrl,
@@ -509,7 +510,7 @@ void main() {
       ).called(1);
       verify(() => mockProfileRepo.updateProfile(updated)).called(1);
       verify(
-        () => mockAuthRepo.updateAuthProfile(
+        () => mockAuthService.updateAuthProfile(
           displayName: updated.displayName,
           email: updated.email,
           photoUrl: uploadedUrl,
@@ -552,7 +553,7 @@ void main() {
         () => mockProfileRepo.updateProfile(updated),
       ).thenAnswer((_) async => updated);
       when(
-        () => mockAuthRepo.updateAuthProfile(
+        () => mockAuthService.updateAuthProfile(
           displayName: updated.displayName,
           email: updated.email,
           photoUrl: '',
@@ -714,7 +715,7 @@ void main() {
         () => mockProfileRepo.updateProfile(testProfile),
       ).thenAnswer((_) async => testProfile);
       when(
-        () => mockAuthRepo.updateAuthProfile(
+        () => mockAuthService.updateAuthProfile(
           displayName: updated.displayName,
           email: updated.email,
           photoUrl: uploadedUrl,
@@ -767,7 +768,7 @@ void main() {
         () => mockProfileRepo.updateProfile(updated),
       ).thenAnswer((_) async => updated);
       when(
-        () => mockAuthRepo.updateAuthProfile(
+        () => mockAuthService.updateAuthProfile(
           displayName: updated.displayName,
           email: updated.email,
           photoUrl: uploadedUrl,
@@ -828,7 +829,7 @@ void main() {
         () => mockProfileRepo.updateProfile(updated),
       ).thenAnswer((_) async => updated);
       when(
-        () => mockAuthRepo.updateAuthProfile(
+        () => mockAuthService.updateAuthProfile(
           displayName: updated.displayName,
           email: updated.email,
           photoUrl: '',

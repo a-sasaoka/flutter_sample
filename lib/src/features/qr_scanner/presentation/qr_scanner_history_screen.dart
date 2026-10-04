@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/src/core/services/url_launcher_service.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/qr_scanner/application/qr_scanner_history_controller.dart';
-import 'package:flutter_sample/src/features/qr_scanner/application/url_launcher_service.dart';
 import 'package:flutter_sample/src/features/qr_scanner/domain/qr_scan_history_model.dart';
 import 'package:flutter_sample/src/features/qr_scanner/presentation/widgets/qr_scan_result_sheet.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';

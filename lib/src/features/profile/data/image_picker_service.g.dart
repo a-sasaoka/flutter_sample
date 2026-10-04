@@ -151,4 +151,4 @@ final class ImagePickerServiceProvider
 }
 
 String _$imagePickerServiceHash() =>
-    r'f7df5fae6ce4a16a9316ddc0646e1459631b510d';
+    r'5870f4f88904f598513a34946e580494044ef1a2';

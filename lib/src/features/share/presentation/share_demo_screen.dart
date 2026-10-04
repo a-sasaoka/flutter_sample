@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_sample/src/core/services/lock_suppression_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
-import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
 import 'package:flutter_sample/src/features/share/application/share_position_origin_extension.dart';
 import 'package:flutter_sample/src/features/share/application/share_service.dart';
 import 'package:flutter_sample/src/features/share/domain/share_config.dart';
@@ -21,7 +21,7 @@ class ShareDemoScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final shareService = ref.watch(shareServiceProvider);
-    final appLockService = ref.watch(appLockServiceProvider.notifier);
+    final lockSuppressionRunner = ref.watch(lockSuppressionRunnerProvider);
     final logger = ref.watch(loggerProvider);
 
     final textController = useTextEditingController(
@@ -225,20 +225,21 @@ class ShareDemoScreen extends HookConsumerWidget {
                     OutlinedButton.icon(
                       key: const Key('pick_image_button'),
                       onPressed: () async {
-                        final picked = await appLockService
-                            .runWithLockSuppression<XFile?>(() async {
-                              try {
-                                final picker = ImagePicker();
-                                return await picker.pickImage(
-                                  source: ImageSource.gallery,
-                                );
-                              } on Object {
-                                logger.warning(
-                                  '⚠️ [ShareDemoScreen] Failed to pick image',
-                                );
-                                return null;
-                              }
-                            });
+                        final picked = await lockSuppressionRunner<XFile?>(
+                          () async {
+                            try {
+                              final picker = ImagePicker();
+                              return await picker.pickImage(
+                                source: ImageSource.gallery,
+                              );
+                            } on Object {
+                              logger.warning(
+                                '⚠️ [ShareDemoScreen] Failed to pick image',
+                              );
+                              return null;
+                            }
+                          },
+                        );
                         if (context.mounted && picked != null) {
                           selectedImage.value = picked;
                         }

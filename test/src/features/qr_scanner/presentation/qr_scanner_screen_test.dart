@@ -8,9 +8,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/services/lock_suppression_handler.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
-import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
-import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
 import 'package:flutter_sample/src/features/qr_scanner/application/qr_scanner_controller.dart';
 import 'package:flutter_sample/src/features/qr_scanner/domain/qr_image_pick_result.dart';
 import 'package:flutter_sample/src/features/qr_scanner/domain/qr_scanner_state.dart';
@@ -124,12 +123,6 @@ class FakeMobileScannerPlatform extends MobileScannerPlatform {
   }
 }
 
-/// テスト用の AppLockService
-class FakeAppLockService extends AppLockService {
-  @override
-  Future<AppLockState> build() async => const AppLockState.disabled();
-}
-
 /// テスト用の QrScannerController
 class FakeQrScannerController extends QrScannerController {
   FakeQrScannerController({
@@ -188,7 +181,7 @@ class FakeQrScannerController extends QrScannerController {
   Future<QrImagePickResult> pickAndScanImage({
     ImagePicker? imagePicker,
     MobileScannerController? scannerController,
-    AppLockService? appLockService,
+    LockSuppressionRunner? lockSuppressionRunner,
   }) async {
     pickAndScanImageCalled = true;
     pickAndScanImageCallCount++;
@@ -280,7 +273,6 @@ void main() {
       return ProviderScope(
         overrides: [
           qrScannerControllerProvider.overrideWith(() => controller),
-          appLockServiceProvider.overrideWith(FakeAppLockService.new),
           loggerProvider.overrideWithValue(testTalker),
         ],
         child: MaterialApp.router(

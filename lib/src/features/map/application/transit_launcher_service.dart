@@ -1,5 +1,5 @@
+import 'package:flutter_sample/src/core/services/lock_suppression_handler.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
-import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
 import 'package:flutter_sample/src/features/map/domain/map_constants.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -12,12 +12,12 @@ part 'transit_launcher_service.g.dart';
 class TransitLauncherService {
   /// コンストラクタ
   const TransitLauncherService({
-    required AppLockService appLockService,
+    required LockSuppressionRunner lockSuppressionRunner,
     required Talker logger,
-  }) : _appLockService = appLockService,
+  }) : _lockSuppressionRunner = lockSuppressionRunner,
        _logger = logger;
 
-  final AppLockService _appLockService;
+  final LockSuppressionRunner _lockSuppressionRunner;
   final Talker _logger;
 
   /// Googleマップの乗換案内Universal URLを生成する
@@ -51,7 +51,7 @@ class TransitLauncherService {
 
   /// 公共交通機関ルートの乗換案内を公式Googleマップ（または外部ブラウザ）で起動する
   ///
-  /// アプリ復帰時の誤ロックを防ぐため、[AppLockService.runWithLockSuppression] で保護します。
+  /// アプリ復帰時の誤ロックを防ぐため、[LockSuppressionRunner] で保護します。
   Future<bool> launchTransitRoute({
     required LatLng origin,
     required LatLng destination,
@@ -63,7 +63,7 @@ class TransitLauncherService {
       destinationName: destinationName,
     );
 
-    return await _appLockService.runWithLockSuppression<bool>(() async {
+    return await _lockSuppressionRunner<bool>(() async {
       try {
         final launched = await launchUrl(
           uri,
@@ -85,7 +85,7 @@ class TransitLauncherService {
 @riverpod
 TransitLauncherService transitLauncherService(Ref ref) {
   return TransitLauncherService(
-    appLockService: ref.watch(appLockServiceProvider.notifier),
+    lockSuppressionRunner: ref.watch(lockSuppressionRunnerProvider),
     logger: ref.watch(loggerProvider),
   );
 }

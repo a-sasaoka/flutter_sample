@@ -1,5 +1,5 @@
+import 'package:flutter_sample/src/core/services/lock_suppression_handler.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
-import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -52,7 +52,7 @@ ImagePickerService imagePickerService(Ref ref) {
     picker: ref.watch(imagePickerProvider),
     cropper: ref.watch(imageCropperProvider),
     talker: ref.watch(loggerProvider),
-    appLockService: ref.watch(appLockServiceProvider.notifier),
+    lockSuppressionRunner: ref.watch(lockSuppressionRunnerProvider),
   );
 }
 
@@ -63,7 +63,7 @@ class ImagePickerService {
     required this.picker,
     required this.cropper,
     required this.talker,
-    required this.appLockService,
+    required this.lockSuppressionRunner,
   });
 
   /// 画像選択プラグイン
@@ -75,8 +75,8 @@ class ImagePickerService {
   /// ロガー
   final Talker talker;
 
-  /// アプリロックサービス（外部画面表示時の誤ロック防止用）
-  final AppLockService appLockService;
+  /// 誤ロック防止用の実行ハンドラー
+  final LockSuppressionRunner lockSuppressionRunner;
 
   /// 必要な権限をチェック・リクエストする
   /// 拒否されている場合は [AvatarPermissionDeniedException] をスローする
@@ -125,7 +125,7 @@ class ImagePickerService {
     required AvatarPickSource source,
     required String cropperTitle,
   }) async {
-    return await appLockService.runWithLockSuppression(
+    return await lockSuppressionRunner(
       () => _pickAndCropAvatarInternal(
         source: source,
         cropperTitle: cropperTitle,

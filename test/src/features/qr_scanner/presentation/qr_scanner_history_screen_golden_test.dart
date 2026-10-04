@@ -1,7 +1,7 @@
 import 'package:alchemist/alchemist.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/app/database/app_database.dart';
-import 'package:flutter_sample/src/features/qr_scanner/application/url_launcher_service.dart';
+import 'package:flutter_sample/src/core/services/url_launcher_service.dart';
 import 'package:flutter_sample/src/features/qr_scanner/data/qr_scan_histories_dao.dart';
 import 'package:flutter_sample/src/features/qr_scanner/presentation/qr_scanner_history_screen.dart';
 import 'package:flutter_test/flutter_test.dart';

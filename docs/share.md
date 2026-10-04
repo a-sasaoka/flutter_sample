@@ -29,11 +29,11 @@ lib/src/features/share/
 iPad（iPadOS）では、共有ダイアログが画面中央ではなくタップしたボタンを起点とする「吹き出し（ポップオーバー）」として表示されます。\
 アンカーとなる座標（`sharePositionOrigin`）が指定されていないとアプリがクラッシュするため、BuildContext拡張 `context.sharePositionOrigin` を用意し、タップされたボタンの位置と大きさを正確に取得して安全に渡す設計にしています。
 
-### 2. アプリロックの誤作動防止（`runWithLockSuppression`）
+### 2. アプリロックの誤作動防止（`lockSuppressionRunnerProvider`）
 
 本アプリには一定時間のバックグラウンド移行で生体認証・パスコードロックをかける機能があります。\
 OS標準のシェアシートを開くと、OSの仕様によりアプリが一瞬非アクティブ（バックグラウンド扱い）となり、共有完了後に誤ってロック画面が表示されてしまう問題があります。\
-これを防ぐため、`AppLockService.runWithLockSuppression` を活用し、シェア実行中は一時的にロック判定をスキップするように連携しています。
+これを防ぐため、Core層の共通ハンドラー（[lock_suppression_handler.dart](../lib/src/core/services/lock_suppression_handler.dart)）を活用し、シェア実行中は一時的にロック判定をスキップするように連携しています。
 
 ### 3. テキスト・URL・画像の共有（`share_plus` 13.x 準拠）
 

@@ -83,10 +83,10 @@ lib/src/features/profile/
   `StrictDigitsTextInputFormatter` を自作し、文字が入力・ペーストされた瞬間に半角数字のみで構成されているかをチェックします。  
   もし1文字でもそれ以外の文字（ハイフン等）が含まれていれば、変更を無効化（入力前の状態を維持）します。これにより無効な入力を根本的にブロックします。
 - **差分更新による最適化**:
-  `FirebaseAuthRepository.updateAuthProfile` 内では、変更が検知された項目（現在の値と異なる場合）のみ Firebase Auth の `updateDisplayName` や `verifyBeforeUpdateEmail`、`updatePhotoURL` を呼び出すようにし、不要な通信負荷を低減させています。
+  [AuthService.updateAuthProfile](../lib/src/features/auth/application/auth_service.dart) 経由で呼び出される [FirebaseAuthRepository.updateAuthProfile](../lib/src/features/auth/data/firebase_auth_repository.dart) 内では、変更が検知された項目（現在の値と異なる場合）のみ Firebase Auth の `updateDisplayName` や `verifyBeforeUpdateEmail`、`updatePhotoURL` を呼び出すようにし、不要な通信負荷を低減させています。
 - **外部依存の分離とテスタビリティ**:
-  ネイティブ機能であるカメラ・アルバム（`image_picker`）、切り抜き（`image_cropper`）、誤ロック抑止（`AppLockService`）は [image_picker_service.dart](../lib/src/features/profile/data/image_picker_service.dart) のコンストラクタで必須注入（DI）され、権限確認・要求（`Permission.camera`, `Permission.photos`）はサービス内で直接利用されています（テスト時はプラットフォームインターフェース経由でモック化）。また Firebase Storage 操作や UUID・時計機能（`getCurrentDateTime`）は [storage_service.dart](../lib/src/features/profile/data/storage_service.dart) としてコンストラクタで必須注入されています。これにより、保存ファイル名の日時制御を含め、単体テスト時にモック（`mocktail`）へ容易に差し替え可能となり、テストカバレッジ 100% を達成しています。
+  ネイティブ機能であるカメラ・アルバム（`image_picker`）、切り抜き（`image_cropper`）、誤ロック抑止（`LockSuppressionRunner`）は [image_picker_service.dart](../lib/src/features/profile/data/image_picker_service.dart) のコンストラクタで必須注入（DI）され、権限確認・要求（`Permission.camera`, `Permission.photos`）はサービス内で直接利用されています（テスト時はプラットフォームインターフェース経由でモック化）。また Firebase Storage 操作や UUID・時計機能（`getCurrentDateTime`）は [storage_service.dart](../lib/src/features/profile/data/storage_service.dart) としてコンストラクタで必須注入されています。これにより、保存ファイル名の日時制御を含め、単体テスト時にモック（`mocktail`）へ容易に差し替え可能となり、テストカバレッジ 100% を達成しています。
 - **同期処理と非同期処理の切り分け（FakeAsync対策）**:
   ウィジェットテスト環境下での FakeAsync デッドロックを回避するため、画像の一時ファイル生成には同期API（`Directory.systemTemp.createTempSync()`）を採用しています。
 - **アプリロック（AppLock）とのシームレスな連携**:
-  カメラ起動やアルバム選択、切り抜き画面などの OS 画面を開く間は、アプリが一時的にバックグラウンドと判定されます。`AppLockService.runWithLockSuppression` を通じて写真選択処理を実行することで、写真を選んでアプリに戻った瞬間に誤って画面ロックがかかるのを確実に防止しています。
+  カメラ起動やアルバム選択、切り抜き画面などの OS 画面を開く間は、アプリが一時的にバックグラウンドと判定されます。[LockSuppressionRunner](../lib/src/core/services/lock_suppression_handler.dart) を通じて写真選択処理を実行することで、写真を選んでアプリに戻った瞬間に誤って画面ロックがかかるのを確実に防止しています。

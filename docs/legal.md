@@ -11,7 +11,7 @@
 
 - **型安全なアセット管理**: `flutter_gen` により生成された `Assets.markdown` を使用し、ファイルパスの文字列直書きによるタイポやリンク切れを防止。
 - **誰でもアクセス可能（Public Route）**: 未ログインユーザーでも会員登録前や設定画面から閲覧できるよう、認証ガード（`authGuard` / `firebaseAuthGuard`）の `alwaysPublicPaths` に登録。
-- **安全な外部リンク連携**: Markdown内のWebリンク（URL）をタップした際、`UrlLauncherService`（アプリ誤ロック防止のロック抑止機構付き）を通じて外部ブラウザで起動。
+- **安全な外部リンク連携**: Markdown内のWebリンク（URL）をタップした際、共通基盤の [`UrlLauncherService`](../lib/src/core/services/url_launcher_service.dart) を通じて外部ブラウザで安全に起動。
 - **堅牢な状態管理とUI**: Riverpodの非同期プロバイダーによるキャッシュ、ローディングインジケータ、エラーハンドリング（再試行ボタン）を完備。
 
 ---
@@ -44,7 +44,7 @@ lib/src/features/legal/
 
 - `flutter_markdown_plus` の `Markdown` ウィジェットを採用。
 - `selectable: true` によりユーザーによるテキスト選択・コピーが可能。
-- `onTapLink` コールバックで `urlLauncherServiceProvider` を呼び出し、安全にURLを起動します。
+- `onTapLink` コールバックで共通基盤の `urlLauncherServiceProvider` を呼び出し、安全にURLを起動します。
 
 ---
 

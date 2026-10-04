@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter_sample/src/core/config/env_config.dart';
@@ -33,6 +34,9 @@ class AppLockService extends _$AppLockService {
   /// OSのプロンプト消去起因の1回限りの復帰イベントを消費してスキップするフラグ
   bool _shouldSkipNextLock = false;
 
+  /// 前回の認証状態（ログアウト検知用フラグ）
+  bool _wasAuthenticated = false;
+
   @override
   Future<AppLockState> build() async {
     final talker = ref.watch(loggerProvider);
@@ -43,16 +47,30 @@ class AppLockService extends _$AppLockService {
     // 認証状態の監視 (ログイン中かどうか判定)
     // select を使って「ログイン中かどうか (bool)」の変更のみを監視し、
     // トークン更新等による不要な build() の再実行・誤ロックを防止する
-    final isAuthenticated = useFirebase
-        ? ref.watch(firebaseAuthStateProvider.select((s) => s.value != null))
-        : ref.watch(authStateProvider.select((s) => s.value == true));
+    final authStateSelector = useFirebase
+        ? firebaseAuthStateProvider.select((s) => s.value != null)
+        : authStateProvider.select((s) => s.value == true);
+
+    final isAuthenticated = ref.watch(authStateSelector);
 
     talker.debug('[AppLockService] build (isAuthenticated: $isAuthenticated)');
 
     // 未ログインの場合はロック無効状態（disabled）を返す
     if (!isAuthenticated) {
+      // 以前ログイン中だった場合はログアウトとみなし、
+      // 暗号化ストレージのパスコード・生体認証設定を自律的にクリアする
+      if (_wasAuthenticated) {
+        talker.info(
+          '[AppLockService] Detected logout. Clearing app lock settings...',
+        );
+        unawaited(ref.read(appLockRepositoryProvider).clearAll());
+        _shouldSkipNextLock = false;
+        _wasAuthenticated = false;
+      }
       return const AppLockState.disabled();
     }
+
+    _wasAuthenticated = true;
 
     // 非同期でパスコード・生体認証設定を安全に読み込み
     final repository = ref.watch(appLockRepositoryProvider);
@@ -275,6 +293,7 @@ class AppLockService extends _$AppLockService {
     final repository = ref.read(appLockRepositoryProvider);
     await repository.clearAll();
     _shouldSkipNextLock = false;
+    _wasAuthenticated = false;
     state = const AsyncValue.data(AppLockState.disabled());
   }
 }

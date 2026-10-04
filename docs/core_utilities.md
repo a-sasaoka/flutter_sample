@@ -184,3 +184,59 @@ AI プロンプト等で、端末 OS から自動取得したタイムゾーン�
 ### 使用例（LoginScreen）
 
 実際の入力フォームにおけるバリデーション（空白文字のみの禁止・必須入力・メールアドレス形式）の組み合わせ実装は、[login_screen.dart](../lib/src/features/auth/presentation/login_screen.dart) の `LoginScreen`（メールアドレスおよびパスワードの `TextFormField` 内 `validator` 設定）を参照してください。バリデータ自体の実装は [form_validators.dart](../lib/src/core/utils/form_validators.dart) の `FormValidators` クラスに集約されています。
+
+---
+
+## 🔗 9. URL起動サービス（UrlLauncherService）
+
+WebサイトのURL検証および外部ブラウザ起動を安全に行う共通サービスです。
+
+### 📁 関連ファイル
+
+- `lib/src/core/services/url_launcher_service.dart`
+- `lib/src/core/services/lock_suppression_handler.dart`
+- `test/src/core/services/url_launcher_service_test.dart`
+
+### 特徴と使用方法
+
+`urlLauncherServiceProvider` を通じて `UrlLauncherService` を取得し、`openUrl(String urlString)` を呼び出します。実装詳細は [url_launcher_service.dart](../lib/src/core/services/url_launcher_service.dart) を参照してください。
+
+- **URL形式の検証**: `http` / `https` スキームの有効なWeb URLであるかを判定し、不正な文字列（空文字やプレーンテキストなど）の場合は安全に `false` を返します。
+- **誤ロック防止の抽象化**: 外部ブラウザを起動してアプリが一時的にバックグラウンドへ移行する際、復帰時の誤ロックを防ぐための共通ハンドラー（`lockSuppressionRunnerProvider`）と連携しています。Core層は直接 `app_lock` に依存せず、起動時に注入されるハンドラー経由で透過的にロック一時停止を実行します。
+
+---
+
+## 🛡️ 10. 誤ロック防止ハンドラー（LockSuppressionHandler）
+
+カメラ撮影、画像ピッカー、外部ブラウザ起動、システム共有など、OS側の画面が前面に出てアプリが一時的に非アクティブ（バックグラウンド移行）になる処理を行う際、アプリ復帰時に誤ってパスコードロック画面が表示されるのを防ぐ共通インターフェースです。
+
+### 📁 関連ファイル
+
+- `lib/src/core/services/lock_suppression_handler.dart`
+- `test/src/core/services/lock_suppression_handler_test.dart`
+
+### 特徴と使用方法
+
+各機能（`features/qr_scanner`, `features/profile`, `features/map`, `features/share` など）がアプリロック機能（`features/app_lock`）に直接依存することを防ぐため、Core層で `lockSuppressionRunnerProvider` を提供しています。実装詳細は [lock_suppression_handler.dart](../lib/src/core/services/lock_suppression_handler.dart) を参照してください。
+
+- **抽象化されたハンドラー**: Core層のデフォルト実装は渡された非同期処理をそのまま実行（パススルー）します。アプリ起動時（`getAppLockOverrides`）に `AppLockService.runWithLockSuppression` を呼び出す実装へと注入（オーバーライド）されます。
+- **依存の排除**: 各機能は `ref.read(lockSuppressionRunnerProvider)` を経由して処理を実行することで、`app_lock` パッケージやサービスへの直接参照を持たずに誤ロック防止を利用できます。
+
+---
+
+## 🔓 11. アプリロック解除状態の監視（AppLockStateProvider）
+
+アプリが現在ロック解除済み（操作可能な状態）であるかを判定するための共通プロバイダーです。
+
+### 📁 関連ファイル
+
+- `lib/src/core/services/app_lock_state_provider.dart`
+- `test/src/core/services/app_lock_state_provider_test.dart`
+
+### 特徴と使用方法
+
+クイックアクションやショートカットから特定画面（新規メモ作成ダイアログなど）を起動する際、パスコードロックがかかっていれば解除されるまで待機する必要があります。実装詳細は [app_lock_state_provider.dart](../lib/src/core/services/app_lock_state_provider.dart) を参照してください。
+
+- **`isAppUnlockedProvider`**: Core層のデフォルト実装は常に `true`（ロックなし）を返します。
+- **アプリ起動時の同期**: アプリ起動時（`getAppLockOverrides`）に、`AppLockService` の状態（`AppLockStateUnlocked` または `AppLockStateDisabled`）と動的に同期するようオーバーライドされます。
+- **機能間の疎結合化**: これにより、UI画面（例: [memo_screen.dart](../lib/src/features/memos/presentation/memo_screen.dart)）が `app_lock` の内部状態やクラス定義に依存することなく、安全にロック解除を待機できます。

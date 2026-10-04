@@ -2,8 +2,6 @@ import 'package:checks/checks.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
-import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
-import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
@@ -17,22 +15,6 @@ class MockFirebaseAuthRepository extends Mock
     implements FirebaseAuthRepository {}
 
 class MockUser extends Mock implements User {}
-
-class FakeAppLockService extends AppLockService {
-  bool isClearCalled = false;
-  bool shouldThrow = false;
-
-  @override
-  Future<AppLockState> build() async => const AppLockState.disabled();
-
-  @override
-  Future<void> clearAppLock() async {
-    isClearCalled = true;
-    if (shouldThrow) {
-      throw Exception('Failed to clear app lock');
-    }
-  }
-}
 
 class FakeAuthStateNotifier extends AuthStateNotifier {
   FakeAuthStateNotifier({this.initial = true});
@@ -61,12 +43,10 @@ class FakeFirebaseAuthStateNotifier extends FirebaseAuthStateNotifier {
 
 void main() {
   late MockFirebaseAuthRepository mockAuthRepo;
-  late FakeAppLockService fakeAppLockService;
   late Talker talker;
 
   setUp(() {
     mockAuthRepo = MockFirebaseAuthRepository();
-    fakeAppLockService = FakeAppLockService();
     talker = TalkerFlutter.init(
       settings: TalkerSettings(useConsoleLogs: false),
     );
@@ -95,7 +75,6 @@ void main() {
         ),
         loggerProvider.overrideWithValue(talker),
         firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
-        appLockServiceProvider.overrideWith(() => fakeAppLockService),
         firebaseAuthStateProvider.overrideWith(
           () => FakeFirebaseAuthStateNotifier(firebaseUser),
         ),
@@ -154,66 +133,121 @@ void main() {
     );
   });
 
-  group('AuthService.signOut', () {
-    test(
-      'useFirebaseAuth: true の場合、Firebase signOut と clearAppLock が呼ばれること',
-      () async {
-        final container = createContainer(useFirebaseAuth: true);
-        final service = container.read(authServiceProvider);
+  group('currentUserIdProvider', () {
+    test('useFirebaseAuth: true かつ Firebase User が存在する場合、uid を返すこと', () {
+      final mockUser = MockUser();
+      when(() => mockUser.uid).thenReturn('test-user-id');
+      final container = createContainer(
+        useFirebaseAuth: true,
+        firebaseUser: mockUser,
+      );
 
-        await service.signOut();
+      final uid = container.read(currentUserIdProvider);
+      check(uid).equals('test-user-id');
+    });
 
-        verify(() => mockAuthRepo.signOut()).called(1);
-        check(fakeAppLockService.isClearCalled).equals(true);
-      },
-    );
+    test('useFirebaseAuth: true かつ Firebase User が null の場合、null を返すこと', () {
+      final container = createContainer(useFirebaseAuth: true);
 
-    test(
-      'useFirebaseAuth: false の場合、authState logout と clearAppLock が呼ばれること',
-      () async {
-        final fakeAuthNotifier = FakeAuthStateNotifier();
-        final container = ProviderContainer(
-          overrides: [
-            envConfigProvider.overrideWithValue(
-              const EnvConfigState(
-                baseUrl: 'https://test.example.com',
-                imageBaseUrl: defaultImageBaseUrl,
-                aiModel: 'test-model',
-                connectTimeout: 10,
-                receiveTimeout: 15,
-                sendTimeout: 10,
-                useFirebaseAuth: false,
-                useAgentPlatform: true,
-              ),
-            ),
-            loggerProvider.overrideWithValue(talker),
-            firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
-            appLockServiceProvider.overrideWith(() => fakeAppLockService),
-            authStateProvider.overrideWith(() => fakeAuthNotifier),
-          ],
-        );
-        addTearDown(container.dispose);
+      final uid = container.read(currentUserIdProvider);
+      check(uid).isNull();
+    });
 
-        final service = container.read(authServiceProvider);
+    test('useFirebaseAuth: false の場合、null を返すこと', () {
+      final container = createContainer(useFirebaseAuth: false);
 
-        await service.signOut();
+      final uid = container.read(currentUserIdProvider);
+      check(uid).isNull();
+    });
+  });
 
-        check(fakeAuthNotifier.isLogoutCalled).equals(true);
-        check(fakeAppLockService.isClearCalled).equals(true);
-        verifyNever(() => mockAuthRepo.signOut());
-      },
-    );
+  group('AuthService.updateAuthProfile', () {
+    test('useFirebaseAuth: true の場合、updateAuthProfile が呼ばれること', () async {
+      when(
+        () => mockAuthRepo.updateAuthProfile(
+          displayName: any(named: 'displayName'),
+          email: any(named: 'email'),
+          photoUrl: any(named: 'photoUrl'),
+        ),
+      ).thenAnswer((_) async {});
 
-    test('clearAppLock で例外が発生しても、エラーがハンドリングされ処理が完了すること', () async {
-      fakeAppLockService.shouldThrow = true;
       final container = createContainer(useFirebaseAuth: true);
       final service = container.read(authServiceProvider);
 
-      // 例外が外に漏れずに完了すること
+      await service.updateAuthProfile(
+        displayName: '新しい名前',
+        email: 'new@example.com',
+        photoUrl: 'https://example.com/photo.png',
+      );
+
+      verify(
+        () => mockAuthRepo.updateAuthProfile(
+          displayName: '新しい名前',
+          email: 'new@example.com',
+          photoUrl: 'https://example.com/photo.png',
+        ),
+      ).called(1);
+    });
+
+    test('useFirebaseAuth: false の場合、何もしないこと', () async {
+      final container = createContainer(useFirebaseAuth: false);
+      final service = container.read(authServiceProvider);
+
+      await service.updateAuthProfile(
+        displayName: '新しい名前',
+        email: 'new@example.com',
+        photoUrl: 'https://example.com/photo.png',
+      );
+
+      verifyNever(
+        () => mockAuthRepo.updateAuthProfile(
+          displayName: any(named: 'displayName'),
+          email: any(named: 'email'),
+          photoUrl: any(named: 'photoUrl'),
+        ),
+      );
+    });
+  });
+
+  group('AuthService.signOut', () {
+    test('useFirebaseAuth: true の場合、Firebase signOut が呼ばれること', () async {
+      final container = createContainer(useFirebaseAuth: true);
+      final service = container.read(authServiceProvider);
+
       await service.signOut();
 
       verify(() => mockAuthRepo.signOut()).called(1);
-      check(fakeAppLockService.isClearCalled).equals(true);
+    });
+
+    test('useFirebaseAuth: false の場合、authState logout が呼ばれること', () async {
+      final fakeAuthNotifier = FakeAuthStateNotifier();
+      final container = ProviderContainer(
+        overrides: [
+          envConfigProvider.overrideWithValue(
+            const EnvConfigState(
+              baseUrl: 'https://test.example.com',
+              imageBaseUrl: defaultImageBaseUrl,
+              aiModel: 'test-model',
+              connectTimeout: 10,
+              receiveTimeout: 15,
+              sendTimeout: 10,
+              useFirebaseAuth: false,
+              useAgentPlatform: true,
+            ),
+          ),
+          loggerProvider.overrideWithValue(talker),
+          firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+          authStateProvider.overrideWith(() => fakeAuthNotifier),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final service = container.read(authServiceProvider);
+
+      await service.signOut();
+
+      check(fakeAuthNotifier.isLogoutCalled).equals(true);
+      verifyNever(() => mockAuthRepo.signOut());
     });
   });
 }

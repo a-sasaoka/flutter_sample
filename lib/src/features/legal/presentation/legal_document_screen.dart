@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:flutter_sample/src/core/services/url_launcher_service.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:flutter_sample/src/features/legal/application/legal_document_provider.dart';
 import 'package:flutter_sample/src/features/legal/domain/legal_document_type.dart';
-import 'package:flutter_sample/src/features/qr_scanner/application/url_launcher_service.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// 利用規約・プライバシーポリシー閲覧画面
