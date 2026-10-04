@@ -1,7 +1,5 @@
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
-import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
-import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
 import 'package:flutter_sample/src/features/profile/data/image_picker_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -27,13 +25,6 @@ class MockCroppedFile extends Mock implements CroppedFile {}
 
 class MockTalker extends Mock implements Talker {}
 
-class MockAppLockService extends Mock implements AppLockService {}
-
-class FakeAppLockService extends AppLockService {
-  @override
-  Future<AppLockState> build() async => const AppLockState.disabled();
-}
-
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -41,8 +32,13 @@ void main() {
   late MockImagePicker mockPicker;
   late MockImageCropper mockCropper;
   late MockTalker mockTalker;
-  late MockAppLockService mockAppLockService;
   late ImagePickerService service;
+  var lockSuppressionCallCount = 0;
+
+  Future<T> testLockSuppressionRunner<T>(Future<T> Function() action) async {
+    lockSuppressionCallCount++;
+    return await action();
+  }
 
   setUpAll(() {
     registerFallbackValue(ImageSource.gallery);
@@ -57,23 +53,16 @@ void main() {
     mockPicker = MockImagePicker();
     mockCropper = MockImageCropper();
     mockTalker = MockTalker();
-    mockAppLockService = MockAppLockService();
+    lockSuppressionCallCount = 0;
 
     when(() => mockTalker.debug(any<dynamic>())).thenReturn(null);
     when(() => mockTalker.warning(any<dynamic>())).thenReturn(null);
-    when(
-      () => mockAppLockService.runWithLockSuppression<String?>(any()),
-    ).thenAnswer((invocation) async {
-      final action =
-          invocation.positionalArguments[0] as Future<String?> Function();
-      return await action();
-    });
 
     service = ImagePickerService(
       picker: mockPicker,
       cropper: mockCropper,
       talker: mockTalker,
-      appLockService: mockAppLockService,
+      lockSuppressionRunner: testLockSuppressionRunner,
     );
   });
 
@@ -284,16 +273,7 @@ void main() {
       check(result).isNull();
     });
 
-    test('pickAndCropAvatar: appLockService が設定されている場合は '
-        'runWithLockSuppression を通して実行されること', () async {
-      final mockAppLockService = MockAppLockService();
-      final serviceWithLock = ImagePickerService(
-        picker: mockPicker,
-        cropper: mockCropper,
-        talker: mockTalker,
-        appLockService: mockAppLockService,
-      );
-
+    test('pickAndCropAvatar: lockSuppressionRunner を通して実行されること', () async {
       when(
         () => mockPlatform.checkPermissionStatus(Permission.photos),
       ).thenAnswer((_) async => PermissionStatus.granted);
@@ -316,23 +296,13 @@ void main() {
         ),
       ).thenAnswer((_) async => mockCropped);
 
-      when(
-        () => mockAppLockService.runWithLockSuppression<String?>(any()),
-      ).thenAnswer((invocation) async {
-        final action =
-            invocation.positionalArguments[0] as Future<String?> Function();
-        return await action();
-      });
-
-      final result = await serviceWithLock.pickAndCropAvatar(
+      final result = await service.pickAndCropAvatar(
         source: AvatarPickSource.gallery,
         cropperTitle: cropperTitle,
       );
 
       check(result).equals('/path/to/cropped.jpg');
-      verify(
-        () => mockAppLockService.runWithLockSuppression<String?>(any()),
-      ).called(1);
+      check(lockSuppressionCallCount).equals(1);
     });
   });
 
@@ -349,10 +319,7 @@ void main() {
   group('ImagePickerService Providers Tests', () {
     test('Providers can be read and provide correct instances', () {
       final container = ProviderContainer(
-        overrides: [
-          loggerProvider.overrideWithValue(mockTalker),
-          appLockServiceProvider.overrideWith(FakeAppLockService.new),
-        ],
+        overrides: [loggerProvider.overrideWithValue(mockTalker)],
       );
       addTearDown(container.dispose);
 

@@ -6,11 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/services/app_lock_state_provider.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/empty_state_widget.dart';
-import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
-import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
@@ -99,9 +98,7 @@ void main() {
           memoRepositoryProvider.overrideWithValue(mockMemoRepository),
           isOnlineProvider.overrideWithValue(isOnline),
           loggerProvider.overrideWithValue(mockTalker),
-          appLockServiceProvider.overrideWith(
-            () => TestAppLockService(const AppLockState.disabled()),
-          ),
+          isAppUnlockedProvider.overrideWithValue(true),
         ],
         child: MaterialApp(
           localizationsDelegates: [
@@ -530,11 +527,7 @@ void main() {
           overrides: [
             memoRepositoryProvider.overrideWithValue(mockMemoRepository),
             loggerProvider.overrideWithValue(mockTalker),
-            appLockServiceProvider.overrideWith(
-              () => TestAppLockService(
-                const AppLockState.unlocked(isBiometricEnabled: false),
-              ),
-            ),
+            isAppUnlockedProvider.overrideWithValue(true),
           ],
           child: MaterialApp.router(
             localizationsDelegates: [
@@ -572,11 +565,7 @@ void main() {
           overrides: [
             memoRepositoryProvider.overrideWithValue(mockMemoRepository),
             loggerProvider.overrideWithValue(mockTalker),
-            appLockServiceProvider.overrideWith(
-              () => TestAppLockService(
-                const AppLockState.locked(isBiometricEnabled: false),
-              ),
-            ),
+            isAppUnlockedProvider.overrideWithValue(false),
           ],
           child: MaterialApp.router(
             localizationsDelegates: [
@@ -595,12 +584,4 @@ void main() {
       check(find.text('保存')).findsNothing();
     });
   });
-}
-
-class TestAppLockService extends AppLockService {
-  TestAppLockService(this._initialState);
-  final AppLockState _initialState;
-
-  @override
-  Future<AppLockState> build() async => _initialState;
 }

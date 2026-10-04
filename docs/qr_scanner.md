@@ -19,8 +19,7 @@ qr_scanner/
  │    └── qr_scan_histories_dao.dart     # 履歴のCRUD操作を行うDAO
  ├── application/
  │    ├── qr_scanner_controller.dart     # スキャナーのロジック・状態管理 (Notifier)
- │    ├── qr_scanner_history_controller.dart # 履歴一覧のストリーム監視 Notifier
- │    └── url_launcher_service.dart      # URL検証・外部ブラウザ起動サービス
+ │    └── qr_scanner_history_controller.dart # 履歴一覧のストリーム監視 Notifier
  └── presentation/
       ├── qr_scanner_screen.dart         # QRコードスキャン画面（カメラプレビュー）
       ├── qr_scanner_history_screen.dart # スキャン履歴一覧画面（スワイプ削除・全削除）
@@ -57,7 +56,7 @@ qr_scanner/
 スキャン成功時は、画面下部から `QrScanResultSheet` がスライドアップ表示されます。
 
 - **URL自動判定**: `Uri.tryParse` により `http`/`https` スキームの有効なWeb URLであるかを判定。
-- **URLを開く**: 有効なURLの場合は「URLを開く」ボタンが表示され、`url_launcher` を介して外部ブラウザで起動します。
+- **URLを開く**: 有効なURLの場合は「URLを開く」ボタンが表示され、共通サービス [`UrlLauncherService`](../lib/src/core/services/url_launcher_service.dart) を介して外部ブラウザで安全に起動します。
 - **クリップボードへコピー**: ボタン1タップで端末のクリップボードへコピーし、SnackBarで通知します。
 - **再スキャン**: シートを閉じると自動的にカメラのスキャンが再開されます。
 
@@ -79,13 +78,13 @@ qr_scanner/
 - **シミュレーター・カメラ未搭載時（`unsupported`）**:
   iOSシミュレーター等のカメラハードウェアが存在しない環境では、権限エラーと誤認させずに「カメラを利用できません」と案内を表示します。さらに「画像から読み取り」ボタンを表示することで、シミュレーター環境でもアルバムの写真からQRコードをスムーズに読み取って動作確認できます。
 
-### 7. OS画面遷移時の誤ロック防止連携 (`runWithLockSuppression`)
+### 7. OS画面遷移時の誤ロック防止連携 (`lockSuppressionRunnerProvider`)
 
 写真アルバムの選択画面、外部ブラウザ、スマホの端末設定など、OSが提供する別画面を開く際はアプリが一瞬バックグラウンド扱いになります。\
-アプリロック機能が有効な場合に誤ってロック画面が表示されてしまうのを防ぐため、以下の操作を `AppLockService.runWithLockSuppression` で保護しています。
+アプリロック機能が有効な場合に誤ってロック画面が表示されてしまうのを防ぐため、Core層の共通ハンドラー（[lock_suppression_handler.dart](../lib/src/core/services/lock_suppression_handler.dart)）を用いて以下の操作を保護しています。
 
 - **アルバムからのQR画像選択** (`QrScannerController.pickAndScanImage`)
-- **外部ブラウザでのURL起動** (`UrlLauncherService.openUrl` ※ `AppLockService` をコンストラクタで必須注入して誤ロックを防止)
+- **外部ブラウザでのURL起動** (`UrlLauncherService.openUrl`)
 - **端末の設定画面オープン** (`QrScannerScreen` の「設定を開く」ボタン)
 
 ---

@@ -18,6 +18,7 @@ import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/package_info_provider.dart';
 import 'package:flutter_sample/src/core/utils/scaffold_messenger_key.dart';
 import 'package:flutter_sample/src/core/widgets/offline_banner.dart';
+import 'package:flutter_sample/src/features/app_lock/data/app_lock_overrides.dart';
 import 'package:flutter_sample/src/features/app_lock/presentation/app_lock_wrapper.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_overrides.dart';
 import 'package:flutter_sample/src/features/home_widget/application/home_widget_sync_coordinator.dart';
@@ -86,6 +87,9 @@ Future<void> mainCommon(
 
       // 動的切り替えを含む共通の認証オーバーライド設定を追加
       ...getAuthOverrides().cast(),
+
+      // アプリロックの一時停止ハンドラーを含むオーバーライド設定を追加
+      ...getAppLockOverrides().cast(),
 
       // プロバイダーにTalkerを設定
       loggerProvider.overrideWithValue(talker),

@@ -1,6 +1,5 @@
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
-import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
@@ -22,7 +21,19 @@ bool isAuthenticated(Ref ref) {
       : ref.watch(authStateProvider.select((s) => s.value == true));
 }
 
-/// 認証関連の高レベルな操作（ログアウト、アプリロック連携など）を提供するサービス
+/// 現在ログイン中のユーザーIDを提供するプロバイダー（未ログイン時はnull）
+@Riverpod(keepAlive: true)
+String? currentUserId(Ref ref) {
+  final useFirebase = ref.watch(
+    envConfigProvider.select((c) => c.useFirebaseAuth),
+  );
+
+  return useFirebase
+      ? ref.watch(firebaseAuthStateProvider.select((s) => s.value?.uid))
+      : null;
+}
+
+/// 認証関連の高レベルな操作（ログアウトなど）を提供するサービス
 @Riverpod(keepAlive: true)
 AuthService authService(Ref ref) {
   return AuthService(
@@ -32,7 +43,6 @@ AuthService authService(Ref ref) {
     ),
     firebaseAuthRepository: ref.watch(firebaseAuthRepositoryProvider),
     authStateNotifier: ref.watch(authStateProvider.notifier),
-    appLockService: ref.watch(appLockServiceProvider.notifier),
   );
 }
 
@@ -44,23 +54,43 @@ class AuthService {
     required bool useFirebaseAuth,
     required FirebaseAuthRepository firebaseAuthRepository,
     required AuthStateNotifier authStateNotifier,
-    required AppLockService appLockService,
   }) : _talker = talker,
        _useFirebaseAuth = useFirebaseAuth,
        _firebaseAuthRepository = firebaseAuthRepository,
-       _authStateNotifier = authStateNotifier,
-       _appLockService = appLockService;
+       _authStateNotifier = authStateNotifier;
 
   final Talker _talker;
   final bool _useFirebaseAuth;
   final FirebaseAuthRepository _firebaseAuthRepository;
   final AuthStateNotifier _authStateNotifier;
-  final AppLockService _appLockService;
+
+  /// アカウントの認証プロフィール（表示名、メール、アイコン画像URL）を更新します。
+  ///
+  /// Firebase Auth を使用している場合、Firebaseのアカウント情報を更新します。
+  Future<void> updateAuthProfile({
+    required String displayName,
+    required String email,
+    String? photoUrl,
+  }) async {
+    _talker.info(
+      '[AuthService] updateAuthProfile started '
+      '(useFirebase: $_useFirebaseAuth)',
+    );
+
+    if (_useFirebaseAuth) {
+      await _firebaseAuthRepository.updateAuthProfile(
+        displayName: displayName,
+        email: email,
+        photoUrl: photoUrl,
+      );
+    }
+
+    _talker.info('[AuthService] updateAuthProfile completed');
+  }
 
   /// アプリ全体のログアウト処理を実行します。
   ///
   /// - Firebase Auth または自前認証のセッションを終了
-  /// - アプリロック（パスコード・生体認証設定）をクリア
   Future<void> signOut() async {
     _talker.info(
       '[AuthService] signOut started (useFirebase: $_useFirebaseAuth)',
@@ -70,13 +100,6 @@ class AuthService {
       await _firebaseAuthRepository.signOut();
     } else {
       await _authStateNotifier.logout();
-    }
-
-    try {
-      await _appLockService.clearAppLock();
-      _talker.debug('[AuthService] clearAppLock succeeded');
-    } on Object catch (e, st) {
-      _talker.handle(e, st, '[AuthService] Failed to clear app lock');
     }
 
     _talker.info('[AuthService] signOut completed');

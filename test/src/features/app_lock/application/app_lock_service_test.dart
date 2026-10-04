@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:checks/checks.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
@@ -35,6 +37,7 @@ void main() {
     bool useFirebaseAuth = false,
     User? firebaseUser,
     DateTime Function()? clock,
+    _TestAuthStateNotifier? testAuthNotifier,
   }) {
     var failedAttempts = 0;
     DateTime? lockoutUntil;
@@ -84,7 +87,9 @@ void main() {
           ),
         ),
         authStateProvider.overrideWith(
-          () => _TestAuthStateNotifier(isAuthenticated: isAuthenticated),
+          testAuthNotifier != null
+              ? () => testAuthNotifier
+              : () => _TestAuthStateNotifier(isAuthenticated: isAuthenticated),
         ),
         firebaseAuthStateProvider.overrideWith(
           () => _TestFirebaseAuthStateNotifier(firebaseUser),
@@ -689,16 +694,160 @@ void main() {
       check(state).equals(const AppLockState.disabled());
       verify(() => mockRepository.clearAll()).called(1);
     });
+
+    test('認証状態がログインから未ログインへ変化した際、自動で clearAll が呼ばれること', () async {
+      final authNotifier = _TestAuthStateNotifier(isAuthenticated: true);
+      when(() => mockRepository.clearAll()).thenAnswer((_) async {});
+
+      final container = createContainer(
+        isAuthenticated: true,
+        hasPasscode: true,
+        isBiometricEnabled: false,
+        testAuthNotifier: authNotifier,
+      );
+
+      // 初期化完了を待機
+      await container.read(appLockServiceProvider.future);
+
+      // ログアウト（true -> false）
+      authNotifier.setAuthenticated(isAuthenticated: false);
+
+      // 非同期イベントキューの処理を待機
+      await pumpEventQueue();
+
+      verify(() => mockRepository.clearAll()).called(1);
+    });
+
+    test('ログアウト時の clearAll で例外が発生した場合、エラーが記録され disabled 状態になること', () async {
+      final authNotifier = _TestAuthStateNotifier(isAuthenticated: true);
+      when(
+        () => mockRepository.clearAll(),
+      ).thenThrow(Exception('Clear failed'));
+      when(
+        () => mockTalker.handle(
+          any<Object>(),
+          any<StackTrace?>(),
+          any<dynamic>(),
+        ),
+      ).thenReturn(null);
+
+      final container = createContainer(
+        isAuthenticated: true,
+        hasPasscode: true,
+        isBiometricEnabled: false,
+        testAuthNotifier: authNotifier,
+      );
+
+      // 初期化完了を待機
+      await container.read(appLockServiceProvider.future);
+
+      // ログアウト（true -> false）
+      authNotifier.setAuthenticated(isAuthenticated: false);
+
+      // 非同期イベントキューの処理を待機
+      await pumpEventQueue();
+
+      verify(() => mockRepository.clearAll()).called(1);
+      verify(
+        () => mockTalker.handle(
+          any<Object>(),
+          any<StackTrace?>(),
+          '[AppLockService] Failed to clear app lock settings during logout',
+        ),
+      ).called(1);
+
+      final state = container.read(appLockServiceProvider).value;
+      check(state).equals(const AppLockState.disabled());
+
+      // 💡 失敗時は _wasAuthenticated が維持されるため、次回未認証 build 時にリトライされる
+      when(() => mockRepository.clearAll()).thenAnswer((_) async {});
+      container.invalidate(appLockServiceProvider);
+      await pumpEventQueue();
+
+      verify(() => mockRepository.clearAll()).called(1);
+    });
+
+    test(
+      'ログアウト時の clearAll 実行中に再ログインした場合、clearAll の完了を待ってから hasPasscode が呼ばれること',
+      () async {
+        final authNotifier = _TestAuthStateNotifier(isAuthenticated: true);
+        final clearCompleter = Completer<void>();
+        var hasPasscodeCallCount = 0;
+
+        final container = createContainer(
+          isAuthenticated: true,
+          hasPasscode: true,
+          isBiometricEnabled: false,
+          testAuthNotifier: authNotifier,
+        );
+
+        when(
+          () => mockRepository.clearAll(),
+        ).thenAnswer((_) => clearCompleter.future);
+        when(() => mockRepository.hasPasscode()).thenAnswer((_) async {
+          hasPasscodeCallCount++;
+          // 1回目は設定あり、clearAll 完了後の2回目は設定なし
+          return hasPasscodeCallCount == 1;
+        });
+
+        // 初回ログイン時の初期化完了を待機（hasPasscode: true -> locked）
+        final initialState = await container.read(
+          appLockServiceProvider.future,
+        );
+        check(
+          initialState,
+        ).equals(const AppLockState.locked(isBiometricEnabled: false));
+        check(hasPasscodeCallCount).equals(1);
+
+        // ログアウト（clearAll が開始されるが保留中）
+        authNotifier.setAuthenticated(isAuthenticated: false);
+        await pumpEventQueue();
+        verify(() => mockRepository.clearAll()).called(1);
+
+        // 💡 clearAll が保留中のまま、素早く再ログイン（false -> true）
+        authNotifier.setAuthenticated(isAuthenticated: true);
+        await pumpEventQueue();
+
+        // 💡 clearAll が未完了のため、再ログイン側の build() は待機しており、
+        // 2回目の hasPasscode() はまだ呼ばれていない
+        check(hasPasscodeCallCount).equals(1);
+
+        // 💡 clearAll の保留を解除
+        clearCompleter.complete();
+        await pumpEventQueue();
+
+        // 💡 clearAll 完了後に再ログイン側の hasPasscode() が呼ばれる（2回目）
+        check(hasPasscodeCallCount).equals(2);
+
+        // パスコード未設定なので setupRequired 状態になること
+        final finalState = container.read(appLockServiceProvider).value;
+        check(finalState).equals(const AppLockState.setupRequired());
+
+        // 💡 再ログイン完了後に再度ログアウトした場合、正常に clearAll が再度（2回目）呼ばれること
+        when(() => mockRepository.clearAll()).thenAnswer((_) async {});
+        authNotifier.setAuthenticated(isAuthenticated: false);
+        await pumpEventQueue();
+
+        verify(() => mockRepository.clearAll()).called(1);
+        final afterLogoutState = container.read(appLockServiceProvider).value;
+        check(afterLogoutState).equals(const AppLockState.disabled());
+      },
+    );
   });
 }
 
 class _TestAuthStateNotifier extends AuthStateNotifier {
   _TestAuthStateNotifier({required bool isAuthenticated})
     : _isAuthenticated = isAuthenticated;
-  final bool _isAuthenticated;
+  bool _isAuthenticated;
 
   @override
   Future<bool> build() async => _isAuthenticated;
+
+  void setAuthenticated({required bool isAuthenticated}) {
+    _isAuthenticated = isAuthenticated;
+    state = AsyncData(isAuthenticated);
+  }
 }
 
 class _TestFirebaseAuthStateNotifier extends FirebaseAuthStateNotifier {

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_sample/src/core/services/url_launcher_service.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
-import 'package:flutter_sample/src/features/qr_scanner/application/url_launcher_service.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// QRコードスキャン結果を表示するボトムシート

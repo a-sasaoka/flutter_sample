@@ -3,8 +3,6 @@ import 'dart:ui';
 
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
-import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
-import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
 import 'package:flutter_sample/src/features/share/application/share_service.dart';
 import 'package:flutter_sample/src/features/share/domain/share_config.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,28 +22,19 @@ class MockUrlLauncherPlatform extends Mock
     with MockPlatformInterfaceMixin
     implements UrlLauncherPlatform {}
 
-/// アプリロック抑止をテスト内で安全に通過させる Fake サービス
-class FakeAppLockService extends AppLockService {
-  int suppressionCallCount = 0;
-
-  @override
-  Future<AppLockState> build() async => const AppLockState.disabled();
-
-  @override
-  Future<T> runWithLockSuppression<T>(Future<T> Function() action) async {
-    suppressionCallCount++;
-    return await action();
-  }
-}
-
 void main() {
   late SharePlatform originalSharePlatform;
   late UrlLauncherPlatform originalUrlPlatform;
   late MockSharePlatform mockSharePlatform;
-  late FakeAppLockService fakeAppLockService;
   late MockUrlLauncherPlatform mockUrlLauncherPlatform;
   late Talker talker;
   late ShareService service;
+  var suppressionCallCount = 0;
+
+  Future<T> testRunner<T>(Future<T> Function() action) async {
+    suppressionCallCount++;
+    return await action();
+  }
 
   setUpAll(() {
     originalSharePlatform = SharePlatform.instance;
@@ -67,11 +56,11 @@ void main() {
     mockUrlLauncherPlatform = MockUrlLauncherPlatform();
     UrlLauncherPlatform.instance = mockUrlLauncherPlatform;
 
-    fakeAppLockService = FakeAppLockService();
+    suppressionCallCount = 0;
 
     talker = Talker();
     service = ShareService(
-      appLockService: fakeAppLockService,
+      lockSuppressionRunner: testRunner,
       logger: talker,
       sharePlus: SharePlus.custom(mockSharePlatform),
     );
@@ -105,7 +94,7 @@ void main() {
         captured.sharePositionOrigin,
       ).equals(const Rect.fromLTWH(10, 20, 30, 40));
 
-      check(fakeAppLockService.suppressionCallCount).equals(1);
+      check(suppressionCallCount).equals(1);
     });
 
     test('ユーザーが共有をキャンセルした場合、ShareResult.dismissed を返すこと', () async {
@@ -117,7 +106,7 @@ void main() {
       final result = await service.shareText(text: 'キャンセルテスト');
 
       check(result.status).equals(ShareResultStatus.dismissed);
-      check(fakeAppLockService.suppressionCallCount).equals(1);
+      check(suppressionCallCount).equals(1);
     });
 
     test('共有が利用不可の場合、ShareResult.unavailable を返すこと', () async {
@@ -129,7 +118,7 @@ void main() {
       final result = await service.shareText(text: '利用不可テスト');
 
       check(result.status).equals(ShareResultStatus.unavailable);
-      check(fakeAppLockService.suppressionCallCount).equals(1);
+      check(suppressionCallCount).equals(1);
     });
 
     test('プラットフォーム例外が発生した場合、ShareResult.unavailable を返すこと', () async {
@@ -140,7 +129,7 @@ void main() {
       final result = await service.shareText(text: '例外テスト');
 
       check(result.status).equals(ShareResultStatus.unavailable);
-      check(fakeAppLockService.suppressionCallCount).equals(1);
+      check(suppressionCallCount).equals(1);
     });
 
     test(
@@ -194,7 +183,7 @@ void main() {
         captured.sharePositionOrigin,
       ).equals(const Rect.fromLTWH(50, 50, 100, 100));
 
-      check(fakeAppLockService.suppressionCallCount).equals(1);
+      check(suppressionCallCount).equals(1);
     });
 
     test(
@@ -249,7 +238,7 @@ void main() {
       check(uri.queryParameters['url']).equals('https://example.com');
       check(uri.queryParameters['hashtags']).equals('Flutter,Dart');
 
-      check(fakeAppLockService.suppressionCallCount).equals(1);
+      check(suppressionCallCount).equals(1);
     });
 
     test('X (Twitter) 起動に失敗した場合に false を返すこと', () async {
@@ -260,7 +249,7 @@ void main() {
       final launched = await service.shareToX(text: '失敗テスト');
 
       check(launched).isFalse();
-      check(fakeAppLockService.suppressionCallCount).equals(1);
+      check(suppressionCallCount).equals(1);
     });
 
     test('X (Twitter) 起動時に例外が発生した場合に false を返すこと', () async {
@@ -271,7 +260,7 @@ void main() {
       final launched = await service.shareToX(text: '例外テスト');
 
       check(launched).isFalse();
-      check(fakeAppLockService.suppressionCallCount).equals(1);
+      check(suppressionCallCount).equals(1);
     });
   });
 
@@ -292,7 +281,7 @@ void main() {
       final url = captured[0] as String;
       check(url).startsWith('https://line.me/R/msg/text/?');
 
-      check(fakeAppLockService.suppressionCallCount).equals(1);
+      check(suppressionCallCount).equals(1);
     });
 
     test('LINE 起動に失敗した場合に false を返すこと', () async {
@@ -303,7 +292,7 @@ void main() {
       final launched = await service.shareToLine(text: 'LINE失敗テスト');
 
       check(launched).isFalse();
-      check(fakeAppLockService.suppressionCallCount).equals(1);
+      check(suppressionCallCount).equals(1);
     });
 
     test('LINE 起動時に例外が発生した場合に false を返すこと', () async {
@@ -314,7 +303,7 @@ void main() {
       final launched = await service.shareToLine(text: 'LINE例外テスト');
 
       check(launched).isFalse();
-      check(fakeAppLockService.suppressionCallCount).equals(1);
+      check(suppressionCallCount).equals(1);
     });
   });
 
@@ -330,10 +319,7 @@ void main() {
   group('shareServiceProvider', () {
     test('ProviderContainer から ShareService が正常に取得できること', () {
       final container = ProviderContainer(
-        overrides: [
-          appLockServiceProvider.overrideWith(FakeAppLockService.new),
-          loggerProvider.overrideWithValue(talker),
-        ],
+        overrides: [loggerProvider.overrideWithValue(talker)],
       );
       addTearDown(container.dispose);
 

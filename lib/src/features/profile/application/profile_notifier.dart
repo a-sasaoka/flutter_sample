@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
-import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/profile/data/profile_repository.dart';
 import 'package:flutter_sample/src/features/profile/data/storage_service.dart';
 import 'package:flutter_sample/src/features/profile/domain/user_profile.dart';
@@ -53,7 +53,7 @@ class Profile extends _$Profile {
 
       // 1. アバター画像のアップロードまたは削除処理
       if (useFirebase) {
-        final userId = ref.read(firebaseAuthRepositoryProvider).currentUserId;
+        final userId = ref.read(currentUserIdProvider);
         if (userId == null) {
           talker.warning(
             'Cannot update profile: No user is currently signed in.',
@@ -119,7 +119,7 @@ class Profile extends _$Profile {
         talker.debug('useFirebaseAuth is true. Syncing to Firebase Auth...');
         try {
           await ref
-              .read(firebaseAuthRepositoryProvider)
+              .read(authServiceProvider)
               .updateAuthProfile(
                 displayName: newProfile.displayName,
                 email: newProfile.email,

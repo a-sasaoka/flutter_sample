@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
-import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
-import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
 import 'package:flutter_sample/src/features/qr_scanner/application/qr_scanner_controller.dart';
 import 'package:flutter_sample/src/features/qr_scanner/data/qr_scan_histories_dao.dart';
 import 'package:flutter_sample/src/features/qr_scanner/domain/qr_image_pick_result.dart';
@@ -28,13 +26,6 @@ class MockImagePickerPlatform extends Mock
 class MockMobileScannerController extends Mock
     implements MobileScannerController {}
 
-class MockAppLockService extends Mock implements AppLockService {}
-
-class FakeAppLockService extends AppLockService {
-  @override
-  Future<AppLockState> build() async => const AppLockState.disabled();
-}
-
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -52,7 +43,6 @@ void main() {
         overrides: [
           qrScanHistoriesDaoProvider.overrideWithValue(mockDao),
           loggerProvider.overrideWithValue(Talker()),
-          appLockServiceProvider.overrideWith(FakeAppLockService.new),
         ],
       );
       when(() => mockDao.upsertHistory(any())).thenAnswer((_) async {});
@@ -479,44 +469,35 @@ void main() {
       subscription.close();
     });
 
-    test(
-      'pickAndScanImage: appLockService 指定時に runWithLockSuppression を呼ぶこと',
-      () async {
-        final subscription = container.listen(
-          qrScannerControllerProvider,
-          (_, _) {},
-        );
-        final mockPicker = MockImagePicker();
-        final mockController = MockMobileScannerController();
-        final mockLockService = MockAppLockService();
+    test('pickAndScanImage: lockSuppressionRunner 指定時に正しく呼ばれること', () async {
+      final subscription = container.listen(
+        qrScannerControllerProvider,
+        (_, _) {},
+      );
+      final mockPicker = MockImagePicker();
+      final mockController = MockMobileScannerController();
+      var lockSuppressionCalled = false;
 
-        when(
-          () => mockLockService.runWithLockSuppression<XFile?>(any()),
-        ).thenAnswer((invocation) async {
-          final action =
-              invocation.positionalArguments[0] as Future<XFile?> Function();
-          return await action();
-        });
-        when(
-          () => mockPicker.pickImage(source: ImageSource.gallery),
-        ).thenAnswer((_) async => null);
+      Future<T> runner<T>(Future<T> Function() action) async {
+        lockSuppressionCalled = true;
+        return await action();
+      }
 
-        final notifier = container.read(qrScannerControllerProvider.notifier);
-        final result = await notifier.pickAndScanImage(
-          imagePicker: mockPicker,
-          scannerController: mockController,
-          appLockService: mockLockService,
-        );
+      when(
+        () => mockPicker.pickImage(source: ImageSource.gallery),
+      ).thenAnswer((_) async => null);
 
-        check(result).equals(const QrImagePickResult.canceled());
-        verify(
-          () => mockLockService.runWithLockSuppression<XFile?>(any()),
-        ).called(1);
-        verify(
-          () => mockPicker.pickImage(source: ImageSource.gallery),
-        ).called(1);
-        subscription.close();
-      },
-    );
+      final notifier = container.read(qrScannerControllerProvider.notifier);
+      final result = await notifier.pickAndScanImage(
+        imagePicker: mockPicker,
+        scannerController: mockController,
+        lockSuppressionRunner: runner,
+      );
+
+      check(result).equals(const QrImagePickResult.canceled());
+      check(lockSuppressionCalled).isTrue();
+      verify(() => mockPicker.pickImage(source: ImageSource.gallery)).called(1);
+      subscription.close();
+    });
   });
 }

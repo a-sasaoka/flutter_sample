@@ -2,12 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_sample/src/core/services/app_lock_state_provider.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/empty_state_widget.dart';
-import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
-import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_sort_order.dart';
@@ -29,15 +28,7 @@ class MemoScreen extends HookConsumerWidget {
 
     // 📱 新規追加アクションが指定されている場合のみ、アプリロック解除を待機して入力シートを開く
     final isCreateAction = action == 'create';
-    final isUnlocked =
-        isCreateAction &&
-        switch (ref.watch(appLockServiceProvider)) {
-          AsyncData(:final value) => switch (value) {
-            AppLockStateUnlocked() || AppLockStateDisabled() => true,
-            _ => false,
-          },
-          _ => false,
-        };
+    final isUnlocked = isCreateAction && ref.watch(isAppUnlockedProvider);
 
     useEffect(() {
       if (isCreateAction && isUnlocked) {

@@ -1,4 +1,4 @@
-import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
+import 'package:flutter_sample/src/core/services/lock_suppression_handler.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -7,10 +7,10 @@ part 'url_launcher_service.g.dart';
 /// URL起動を担当するサービスクラス
 class UrlLauncherService {
   /// コンストラクタ
-  const UrlLauncherService({required this.appLockService});
+  const UrlLauncherService({required this.lockSuppressionRunner});
 
-  /// 誤ロック防止用のアプリロックサービス
-  final AppLockService appLockService;
+  /// アプリ復帰時の誤ロック防止用ランナー
+  final LockSuppressionRunner lockSuppressionRunner;
 
   /// 文字列が有効な Web URL (http/https) かどうかを判定する
   bool isWebUrl(String urlString) {
@@ -28,7 +28,7 @@ class UrlLauncherService {
       return false;
     }
     final uri = Uri.parse(trimmed);
-    return await appLockService.runWithLockSuppression(
+    return await lockSuppressionRunner(
       () => launchUrl(uri, mode: LaunchMode.externalApplication),
     );
   }
@@ -38,6 +38,6 @@ class UrlLauncherService {
 @riverpod
 UrlLauncherService urlLauncherService(Ref ref) {
   return UrlLauncherService(
-    appLockService: ref.watch(appLockServiceProvider.notifier),
+    lockSuppressionRunner: ref.watch(lockSuppressionRunnerProvider),
   );
 }

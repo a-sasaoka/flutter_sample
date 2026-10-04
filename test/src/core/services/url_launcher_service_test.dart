@@ -1,7 +1,6 @@
 import 'package:checks/checks.dart';
-import 'package:flutter_sample/src/features/app_lock/application/app_lock_service.dart';
-import 'package:flutter_sample/src/features/app_lock/domain/app_lock_state.dart';
-import 'package:flutter_sample/src/features/qr_scanner/application/url_launcher_service.dart';
+import 'package:flutter_sample/src/core/services/lock_suppression_handler.dart';
+import 'package:flutter_sample/src/core/services/url_launcher_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
@@ -11,13 +10,6 @@ import 'package:url_launcher_platform_interface/url_launcher_platform_interface.
 class MockUrlLauncherPlatform extends Mock
     with MockPlatformInterfaceMixin
     implements UrlLauncherPlatform {}
-
-class MockAppLockService extends Mock implements AppLockService {}
-
-class FakeAppLockService extends AppLockService {
-  @override
-  Future<AppLockState> build() async => const AppLockState.disabled();
-}
 
 void main() {
   late UrlLauncherPlatform originalPlatform;
@@ -33,18 +25,16 @@ void main() {
 
   group('UrlLauncherService', () {
     late UrlLauncherService service;
-    late MockAppLockService mockAppLockService;
+    late bool runnerCalled;
 
     setUp(() {
-      mockAppLockService = MockAppLockService();
-      when(
-        () => mockAppLockService.runWithLockSuppression<bool>(any()),
-      ).thenAnswer((invocation) async {
-        final action =
-            invocation.positionalArguments[0] as Future<bool> Function();
-        return await action();
-      });
-      service = UrlLauncherService(appLockService: mockAppLockService);
+      runnerCalled = false;
+      service = UrlLauncherService(
+        lockSuppressionRunner: <T>(action) async {
+          runnerCalled = true;
+          return await action();
+        },
+      );
     });
 
     test('http または https の URL を正しく Web URL と判定できること', () {
@@ -87,50 +77,33 @@ void main() {
 
       final result = await service.openUrl('https://example.com');
       check(result).equals(true);
-      verify(
-        () => mockPlatform.launchUrl('https://example.com', any()),
-      ).called(1);
-    });
-
-    test('appLockService 注入時に runWithLockSuppression を呼ぶこと', () async {
-      final mockPlatform = MockUrlLauncherPlatform();
-      UrlLauncherPlatform.instance = mockPlatform;
-      final mockAppLockService = MockAppLockService();
-      final serviceWithLock = UrlLauncherService(
-        appLockService: mockAppLockService,
-      );
-
-      when(
-        () => mockPlatform.launchUrl(any(), any()),
-      ).thenAnswer((_) async => true);
-      when(
-        () => mockAppLockService.runWithLockSuppression<bool>(any()),
-      ).thenAnswer((invocation) async {
-        final action =
-            invocation.positionalArguments[0] as Future<bool> Function();
-        return await action();
-      });
-
-      final result = await serviceWithLock.openUrl('https://example.com');
-      check(result).equals(true);
-      verify(
-        () => mockAppLockService.runWithLockSuppression<bool>(any()),
-      ).called(1);
+      check(runnerCalled).equals(true);
       verify(
         () => mockPlatform.launchUrl('https://example.com', any()),
       ).called(1);
     });
 
     test('urlLauncherServiceProvider からインスタンスが取得できること', () {
-      final container = ProviderContainer(
-        overrides: [
-          appLockServiceProvider.overrideWith(FakeAppLockService.new),
-        ],
-      );
+      final container = ProviderContainer();
       addTearDown(container.dispose);
 
       final providerService = container.read(urlLauncherServiceProvider);
       check(providerService).isA<UrlLauncherService>();
+    });
+
+    test('lockSuppressionRunnerProvider のデフォルト実装が正しく動作すること', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final runner = container.read(lockSuppressionRunnerProvider);
+      var actionCalled = false;
+      final result = await runner(() async {
+        actionCalled = true;
+        return 42;
+      });
+
+      check(actionCalled).equals(true);
+      check(result).equals(42);
     });
   });
 }
