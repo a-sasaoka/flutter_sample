@@ -362,18 +362,21 @@ class _ChatInputArea extends HookConsumerWidget {
                       Positioned(
                         top: 2,
                         right: 2,
-                        child: GestureDetector(
-                          onTap: () => selectedImage.value = null,
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: const BoxDecoration(
-                              color: Colors.black54,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.close,
-                              size: 16,
-                              color: Colors.white,
+                        child: Tooltip(
+                          message: l10n.chatRemoveImage,
+                          child: GestureDetector(
+                            onTap: () => selectedImage.value = null,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: const BoxDecoration(
+                                color: Colors.black54,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                size: 16,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
