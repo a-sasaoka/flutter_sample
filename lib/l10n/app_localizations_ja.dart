@@ -207,6 +207,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chatError => 'エラーが発生しました';
 
   @override
+  String get chatAttachImage => '写真を添付';
+
+  @override
+  String get chatCamera => '写真を撮る';
+
+  @override
+  String get chatGallery => 'アルバムから選ぶ';
+
+  @override
+  String get chatRemoveImage => '写真を削除';
+
+  @override
+  String get chatDefaultPromptWithImage => 'この画像について詳しく説明してください';
+
+  @override
   String get settingsTitle => '設定';
 
   @override

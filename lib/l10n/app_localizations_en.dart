@@ -218,6 +218,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatError => 'An error occurred';
 
   @override
+  String get chatAttachImage => 'Attach image';
+
+  @override
+  String get chatCamera => 'Take photo';
+
+  @override
+  String get chatGallery => 'Choose from library';
+
+  @override
+  String get chatRemoveImage => 'Remove image';
+
+  @override
+  String get chatDefaultPromptWithImage =>
+      'Please describe this image in detail.';
+
+  @override
   String get settingsTitle => 'Settings';
 
   @override

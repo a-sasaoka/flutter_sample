@@ -494,6 +494,36 @@ abstract class AppLocalizations {
   /// **'An error occurred'**
   String get chatError;
 
+  /// No description provided for @chatAttachImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach image'**
+  String get chatAttachImage;
+
+  /// No description provided for @chatCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Take photo'**
+  String get chatCamera;
+
+  /// No description provided for @chatGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from library'**
+  String get chatGallery;
+
+  /// No description provided for @chatRemoveImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove image'**
+  String get chatRemoveImage;
+
+  /// No description provided for @chatDefaultPromptWithImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Please describe this image in detail.'**
+  String get chatDefaultPromptWithImage;
+
   /// No description provided for @settingsTitle.
   ///
   /// In en, this message translates to:

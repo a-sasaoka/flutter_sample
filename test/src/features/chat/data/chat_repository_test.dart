@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
@@ -34,6 +35,23 @@ void main() {
         // Assert: 結果を検証
         check(result).equals('こんにちは！AIです。');
         verify(() => mockApiClient.sendMessage('テストプロンプト')).called(1);
+      });
+
+      test('正常系: 画像データ付きで送信した場合、APIクライアントに画像データが渡されること', () async {
+        final dummyBytes = Uint8List.fromList([1, 2, 3]);
+        when(
+          () => mockApiClient.sendMessage('テスト', imageBytes: dummyBytes),
+        ).thenAnswer((_) async => '画像認識結果');
+
+        final result = await repository.sendMessage(
+          'テスト',
+          imageBytes: dummyBytes,
+        );
+
+        check(result).equals('画像認識結果');
+        verify(
+          () => mockApiClient.sendMessage('テスト', imageBytes: dummyBytes),
+        ).called(1);
       });
 
       test(
@@ -82,6 +100,29 @@ void main() {
             emitsDone, // Streamが正しく完了すること
           ]),
         );
+      });
+
+      test('正常系: 画像データ付きでStream送信した場合、APIクライアントに画像データが渡されること', () async {
+        final dummyBytes = Uint8List.fromList([4, 5, 6]);
+        when(
+          () => mockApiClient.sendMessageStream(
+            'ストリームテスト',
+            imageBytes: dummyBytes,
+          ),
+        ).thenAnswer((_) => Stream.fromIterable(['結果']));
+
+        final stream = repository.sendMessageStream(
+          'ストリームテスト',
+          imageBytes: dummyBytes,
+        );
+
+        check(stream).legacyMatcher(emitsInOrder(['結果', emitsDone]));
+        verify(
+          () => mockApiClient.sendMessageStream(
+            'ストリームテスト',
+            imageBytes: dummyBytes,
+          ),
+        ).called(1);
       });
     });
   });

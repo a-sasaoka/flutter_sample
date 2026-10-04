@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'chat_message.freezed.dart';
@@ -12,6 +14,7 @@ sealed class ChatMessage with _$ChatMessage {
     required String id,
     required String text,
     required DateTime createdAt,
+    Uint8List? imageBytes,
   }) = ChatMessageUser;
 
   /// AIからの返答メッセージ

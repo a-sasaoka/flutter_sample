@@ -76,6 +76,11 @@
   "thinking": "AI is thinking...",
   "chatEmptyMessage": "The response from AI was empty.",
   "chatError": "An error occurred",
+  "chatAttachImage": "Attach image",
+  "chatCamera": "Take photo",
+  "chatGallery": "Choose from library",
+  "chatRemoveImage": "Remove image",
+  "chatDefaultPromptWithImage": "Please describe this image in detail.",
 
   "@_SETTINGS": {},
   "settingsTitle": "Settings",

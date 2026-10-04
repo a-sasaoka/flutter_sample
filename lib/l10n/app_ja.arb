@@ -76,6 +76,11 @@
   "thinking": "AIが考え中...",
   "chatEmptyMessage": "AIからの返答が空でした。",
   "chatError": "エラーが発生しました",
+  "chatAttachImage": "写真を添付",
+  "chatCamera": "写真を撮る",
+  "chatGallery": "アルバムから選ぶ",
+  "chatRemoveImage": "写真を削除",
+  "chatDefaultPromptWithImage": "この画像について詳しく説明してください",
 
   "@_SETTINGS": {},
   "settingsTitle": "設定",
