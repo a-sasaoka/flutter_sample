@@ -126,6 +126,7 @@ void main() {
       check(content.parts[1]).isA<InlineDataPart>();
       final inlinePart = content.parts[1] as InlineDataPart;
       check(inlinePart.mimeType).equals('image/png');
+      check(inlinePart.bytes).equals(pngBytes);
     });
 
     test('未対応画像（GIF）の場合、ChatUnsupportedImageFormatException がスローされること', () {
