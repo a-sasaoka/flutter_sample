@@ -118,6 +118,7 @@ void main() {
         0x1A,
         0x0A,
       ]);
+      final expectedBytes = Uint8List.fromList(pngBytes);
 
       final content = GeminiApiClient.buildContent('画像付きテスト', pngBytes);
 
@@ -126,7 +127,7 @@ void main() {
       check(content.parts[1]).isA<InlineDataPart>();
       final inlinePart = content.parts[1] as InlineDataPart;
       check(inlinePart.mimeType).equals('image/png');
-      check(inlinePart.bytes).equals(pngBytes);
+      check(inlinePart.bytes).deepEquals(expectedBytes);
     });
 
     test('未対応画像（GIF）の場合、ChatUnsupportedImageFormatException がスローされること', () {
