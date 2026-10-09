@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
@@ -34,9 +35,14 @@ class FakeChatRepository extends Fake implements ChatRepository {
   // Streamに渡された最終的なテキスト（日時コンテキスト検証用）
   String? lastStreamText;
 
+  // 渡された画像データ（マルチモーダル検証用）
+  Uint8List? lastSentImageBytes;
+  Uint8List? lastStreamImageBytes;
+
   @override
-  Future<String> sendMessage(String text) async {
+  Future<String> sendMessage(String text, {Uint8List? imageBytes}) async {
     sendMessageCallCount++;
+    lastSentImageBytes = imageBytes;
     if (exceptionToThrow != null) throw exceptionToThrow!;
     if (shouldThrow) throw Exception('API Error');
     // 非同期処理（生成中）をシミュレートするため少し待つ
@@ -45,9 +51,13 @@ class FakeChatRepository extends Fake implements ChatRepository {
   }
 
   @override
-  Stream<String> sendMessageStream(String text) async* {
+  Stream<String> sendMessageStream(
+    String text, {
+    Uint8List? imageBytes,
+  }) async* {
     sendMessageStreamCallCount++;
     lastStreamText = text;
+    lastStreamImageBytes = imageBytes;
 
     if (streamExceptionToThrow != null) throw streamExceptionToThrow!;
     if (shouldStreamThrow) throw Exception('Stream API Error');
@@ -196,6 +206,21 @@ void main() {
         check(spyTalker.handleCalls.first.exception).equals(expectedException);
         check(spyTalker.handleCalls.first.stackTrace).isNotNull();
       });
+
+      test('画像付き送信: ユーザーメッセージに画像データが保持されリポジトリに渡されること', () async {
+        final fakeRepo = FakeChatRepository();
+        final container = createContainer(fakeRepo);
+        final notifier = container.read(chatProvider.notifier);
+        final dummyBytes = Uint8List.fromList([1, 2, 3]);
+
+        await notifier.sendMessage('画像付き', imageBytes: dummyBytes);
+
+        final state = container.read(chatProvider);
+        final userMessage = state.messages.first as ChatMessageUser;
+        check(userMessage.text).equals('画像付き');
+        check(userMessage.imageBytes).equals(dummyBytes);
+        check(fakeRepo.lastSentImageBytes).equals(dummyBytes);
+      });
     });
 
     group('sendMessageStream (Stream送信)', () {
@@ -299,6 +324,36 @@ void main() {
         check(spyTalker.handleCalls).length.equals(1);
         check(spyTalker.handleCalls.first.exception).equals(expectedException);
         check(spyTalker.handleCalls.first.stackTrace).isNotNull();
+      });
+
+      test('画像付き送信: ユーザーメッセージに画像データが保持されリポジトリに渡されること', () async {
+        final fakeRepo = FakeChatRepository();
+        final container = createContainer(fakeRepo);
+        final notifier = container.read(chatProvider.notifier);
+        final dummyBytes = Uint8List.fromList([4, 5, 6]);
+
+        await notifier.sendMessageStream('画像付きStream', imageBytes: dummyBytes);
+
+        final state = container.read(chatProvider);
+        final userMessage = state.messages.first as ChatMessageUser;
+        check(userMessage.text).equals('画像付きStream');
+        check(userMessage.imageBytes).equals(dummyBytes);
+        check(fakeRepo.lastStreamImageBytes).equals(dummyBytes);
+      });
+
+      test('テキストが空でも画像があれば送信処理が実行されること', () async {
+        final fakeRepo = FakeChatRepository();
+        final container = createContainer(fakeRepo);
+        final notifier = container.read(chatProvider.notifier);
+        final dummyBytes = Uint8List.fromList([7, 8, 9]);
+
+        await notifier.sendMessageStream('', imageBytes: dummyBytes);
+
+        check(fakeRepo.sendMessageStreamCallCount).equals(1);
+        final state = container.read(chatProvider);
+        final userMessage = state.messages.first as ChatMessageUser;
+        check(userMessage.text).equals('');
+        check(userMessage.imageBytes).equals(dummyBytes);
       });
     });
 

@@ -78,6 +78,15 @@ AI が世界各地の正確な現地日付・時刻を認識できるよう、`s
 - **オフライン制御**: デバイスがオフラインの際、送信ボタンを自動的に非活性化（タップ不可・グレーアウト）し、無効なリクエストを防止します。テキスト入力自体は継続可能とし、オンライン復帰後にスムーズに送信できるUXに配慮しています。
 - **エラーハンドリング**: 通信エラー発生時は `errorContainer` の配色でメッセージを表示し、エラー内容の多言語翻訳は、`BuildContext` を持つ UI 層で行うという責務の分離を徹底しています。
 
+### 7. マルチモーダル対応（画像認識・写真付き対話）
+
+テキストによる対話だけでなく、カメラ撮影やフォトライブラリから選択した画像を添付して AI に質問・解析できるマルチモーダル機能を備えています。
+
+- **共通基盤の活用**: アプリ全体の共通サービスクラスである [image_picker_service.dart](../lib/src/core/services/image_picker_service.dart) を利用し、カメラ撮影やアルバムからの写真取得を行います。外部画面（カメラ/ギャラリー）起動時の誤ロック防止処理（`lockSuppressionRunner`）も共通サービス側で一括制御されます。
+- **ドメインモデルの拡張**: [chat_message.dart](../lib/src/features/chat/domain/chat_message.dart) の `ChatMessage.user` に画像バイトデータ（`Uint8List? imageBytes`）を保持し、端末の一時ファイル削除に影響されない安全なメモリ内保持と高いテスト容易性を実現しています。
+- **データ送信と InlineDataPart**: [gemini_api_client.dart](../lib/src/features/chat/data/gemini_api_client.dart) において、画像データが添付されている場合は `Content.multi([TextPart(prompt), InlineDataPart('image/jpeg', imageBytes)])` を構築して Gemini API へ送信します。
+- **UI/UX の最適化**: [chat_screen.dart](../lib/src/features/chat/presentation/chat_screen.dart) では、写真選択時に入力欄上部へサムネイルプレビューと削除ボタンを表示します。テキストが未入力で写真のみ送信された場合でも、自動的にデフォルトプロンプトとして送信され、送信後のチャット履歴吹き出し内には角丸の画像サムネイルが綺麗にレイアウトされます。
+
 ## 🛡️ セキュリティ (Firebase App Check)
 
 本機能のAPI呼び出しは、不正なクライアントからのアクセスを防ぐため **Firebase App Check** によって保護されています。

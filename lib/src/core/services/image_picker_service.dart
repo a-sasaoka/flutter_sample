@@ -9,7 +9,7 @@ import 'package:talker_flutter/talker_flutter.dart';
 part 'image_picker_service.g.dart';
 
 /// 画像の取得元
-enum AvatarPickSource {
+enum ImagePickSource {
   /// カメラで撮影
   camera,
 
@@ -17,10 +17,13 @@ enum AvatarPickSource {
   gallery,
 }
 
+/// 互換性のためのエイリアス
+typedef AvatarPickSource = ImagePickSource;
+
 /// 権限が拒否されたことを表す例外
-class AvatarPermissionDeniedException implements Exception {
+class ImagePermissionDeniedException implements Exception {
   /// コンストラクタ
-  const AvatarPermissionDeniedException({
+  const ImagePermissionDeniedException({
     required this.permission,
     this.isPermanentlyDenied = false,
   });
@@ -33,9 +36,12 @@ class AvatarPermissionDeniedException implements Exception {
 
   @override
   String toString() =>
-      'AvatarPermissionDeniedException: $permission '
+      'ImagePermissionDeniedException: $permission '
       '(permanently: $isPermanentlyDenied)';
 }
+
+/// 互換性のためのエイリアス
+typedef AvatarPermissionDeniedException = ImagePermissionDeniedException;
 
 /// ImagePicker を提供するプロバイダー
 @riverpod
@@ -79,17 +85,17 @@ class ImagePickerService {
   final LockSuppressionRunner lockSuppressionRunner;
 
   /// 必要な権限をチェック・リクエストする
-  /// 拒否されている場合は [AvatarPermissionDeniedException] をスローする
-  Future<void> checkAndRequestPermission(AvatarPickSource source) async {
+  /// 拒否されている場合は [ImagePermissionDeniedException] をスローする
+  Future<void> checkAndRequestPermission(ImagePickSource source) async {
     final permission = switch (source) {
-      AvatarPickSource.camera => Permission.camera,
-      AvatarPickSource.gallery => Permission.photos,
+      ImagePickSource.camera => Permission.camera,
+      ImagePickSource.gallery => Permission.photos,
     };
 
     final status = await permission.status;
     if (status.isPermanentlyDenied) {
       talker.warning('Permission permanently denied: $permission');
-      throw AvatarPermissionDeniedException(
+      throw ImagePermissionDeniedException(
         permission: permission,
         isPermanentlyDenied: true,
       );
@@ -101,14 +107,14 @@ class ImagePickerService {
         talker.warning(
           'Permission permanently denied after request: $permission',
         );
-        throw AvatarPermissionDeniedException(
+        throw ImagePermissionDeniedException(
           permission: permission,
           isPermanentlyDenied: true,
         );
       }
       if (!result.isGranted && !result.isLimited) {
         talker.warning('Permission denied: $permission');
-        throw AvatarPermissionDeniedException(permission: permission);
+        throw ImagePermissionDeniedException(permission: permission);
       }
     }
   }
@@ -117,6 +123,54 @@ class ImagePickerService {
   Future<bool> openSettings() async {
     talker.debug('Opening app settings...');
     return await openAppSettings();
+  }
+
+  /// 画像を選択または撮影して取得する
+  /// ユーザーがキャンセルした場合は null を返す
+  Future<XFile?> pickImage({
+    required ImagePickSource source,
+    double maxWidth = 1024,
+    double maxHeight = 1024,
+    int imageQuality = 85,
+  }) async {
+    return await lockSuppressionRunner(
+      () => _pickImageInternal(
+        source: source,
+        maxWidth: maxWidth,
+        maxHeight: maxHeight,
+        imageQuality: imageQuality,
+      ),
+    );
+  }
+
+  Future<XFile?> _pickImageInternal({
+    required ImagePickSource source,
+    required double maxWidth,
+    required double maxHeight,
+    required int imageQuality,
+  }) async {
+    await checkAndRequestPermission(source);
+
+    final imageSource = switch (source) {
+      ImagePickSource.camera => ImageSource.camera,
+      ImagePickSource.gallery => ImageSource.gallery,
+    };
+
+    talker.debug('Picking image from: $imageSource');
+    final pickedFile = await picker.pickImage(
+      source: imageSource,
+      maxWidth: maxWidth,
+      maxHeight: maxHeight,
+      imageQuality: imageQuality,
+    );
+
+    if (pickedFile == null) {
+      talker.debug('Image picking was cancelled by user.');
+      return null;
+    }
+
+    talker.debug('Image picked successfully: ${pickedFile.path}');
+    return pickedFile;
   }
 
   /// 画像を選択し、円形に切り抜いたファイルパスを返す

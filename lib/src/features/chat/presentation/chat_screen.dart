@@ -1,11 +1,15 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/services/image_picker_service.dart';
+import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
@@ -140,13 +144,15 @@ class _ChatBubble extends StatelessWidget {
     // Dart3のパターンマッチングでUIを出し分ける
     return switch (message) {
       ChatMessageLoading() => const ChatBubbleShimmer(),
-      ChatMessageUser(:final text, :final createdAt) => _BubbleLayout(
-        text: text,
-        isUser: true,
-        color: Theme.of(context).colorScheme.primaryContainer,
-        textColor: Theme.of(context).colorScheme.onPrimaryContainer,
-        createdAt: createdAt,
-      ),
+      ChatMessageUser(:final text, :final createdAt, :final imageBytes) =>
+        _BubbleLayout(
+          text: text,
+          isUser: true,
+          color: Theme.of(context).colorScheme.primaryContainer,
+          textColor: Theme.of(context).colorScheme.onPrimaryContainer,
+          createdAt: createdAt,
+          imageBytes: imageBytes,
+        ),
       ChatMessageAi(:final text, :final createdAt) => _BubbleLayout(
         text: text,
         isUser: false,
@@ -176,6 +182,7 @@ class _BubbleLayout extends StatelessWidget {
     required this.color,
     required this.textColor,
     required this.createdAt,
+    this.imageBytes,
   });
 
   /// 表示するテキスト
@@ -192,6 +199,9 @@ class _BubbleLayout extends StatelessWidget {
 
   /// 作成日時
   final DateTime createdAt;
+
+  /// 添付画像データ
+  final Uint8List? imageBytes;
 
   @override
   Widget build(BuildContext context) {
@@ -224,6 +234,7 @@ class _BubbleLayout extends StatelessWidget {
             color: color,
             textColor: textColor,
             isUser: isUser,
+            imageBytes: imageBytes,
           ),
           if (!isUser) const SizedBox(width: 8),
           if (!isUser) timeWidget,
@@ -241,6 +252,7 @@ class _BubbleContainer extends StatelessWidget {
     required this.color,
     required this.textColor,
     required this.isUser,
+    this.imageBytes,
   });
 
   /// 表示するテキスト
@@ -255,6 +267,9 @@ class _BubbleContainer extends StatelessWidget {
   /// ユーザーメッセージかどうか
   final bool isUser;
 
+  /// 添付画像データ
+  final Uint8List? imageBytes;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -266,9 +281,29 @@ class _BubbleContainer extends StatelessWidget {
         color: color,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: isUser
-          ? Text(text, style: TextStyle(color: textColor))
-          : MarkdownBody(
+      child: Column(
+        crossAxisAlignment: isUser
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (imageBytes != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.memory(
+                  imageBytes!,
+                  fit: BoxFit.cover,
+                  width: 200,
+                  height: 150,
+                ),
+              ),
+            ),
+          if (isUser)
+            Text(text, style: TextStyle(color: textColor))
+          else
+            MarkdownBody(
               data: text,
               selectable: true,
               styleSheet: MarkdownStyleSheet(
@@ -281,6 +316,8 @@ class _BubbleContainer extends StatelessWidget {
                 ),
               ),
             ),
+        ],
+      ),
     );
   }
 }
@@ -297,58 +334,191 @@ class _ChatInputArea extends HookConsumerWidget {
     final isOnline = ref.watch(isOnlineProvider);
 
     final textController = useTextEditingController();
+    final selectedImage = useState<Uint8List?>(null);
     final l10n = context.l10n;
 
+    final isSendDisabled = isGenerating || !isOnline;
+
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: textController,
-                enabled: !isGenerating,
-                decoration: InputDecoration(
-                  hintText: isGenerating ? l10n.thinking : l10n.chatHint,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (selectedImage.value != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.memory(
+                          selectedImage.value!,
+                          width: 64,
+                          height: 64,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: 2,
+                        right: 2,
+                        child: Tooltip(
+                          message: l10n.chatRemoveImage,
+                          child: GestureDetector(
+                            onTap: () => selectedImage.value = null,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: const BoxDecoration(
+                                color: Colors.black54,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                ),
-                onSubmitted: (text) =>
-                    _onSend(ref, textController, isGenerating, isOnline),
+                ],
               ),
             ),
-            const SizedBox(width: 8),
-            CircleAvatar(
-              backgroundColor: isGenerating || !isOnline
-                  ? Theme.of(context).colorScheme.outline
-                  : Theme.of(context).colorScheme.primary,
-              child: IconButton(
-                icon: const Icon(Icons.send, color: Colors.white),
-                onPressed: isGenerating || !isOnline
-                    ? null
-                    : () =>
-                          _onSend(ref, textController, isGenerating, isOnline),
-              ),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.add_photo_alternate_outlined),
+                  tooltip: l10n.chatAttachImage,
+                  onPressed: isGenerating
+                      ? null
+                      : () => _pickImage(context, ref, selectedImage),
+                ),
+                Expanded(
+                  child: TextField(
+                    controller: textController,
+                    enabled: !isGenerating,
+                    decoration: InputDecoration(
+                      hintText: isGenerating ? l10n.thinking : l10n.chatHint,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
+                    ),
+                    onSubmitted: (_) => _onSend(
+                      ref,
+                      textController,
+                      selectedImage,
+                      isGenerating,
+                      isOnline,
+                      l10n,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                CircleAvatar(
+                  backgroundColor: isSendDisabled
+                      ? Theme.of(context).colorScheme.outline
+                      : Theme.of(context).colorScheme.primary,
+                  child: IconButton(
+                    icon: const Icon(Icons.send, color: Colors.white),
+                    onPressed: isSendDisabled
+                        ? null
+                        : () => _onSend(
+                            ref,
+                            textController,
+                            selectedImage,
+                            isGenerating,
+                            isOnline,
+                            l10n,
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickImage(
+    BuildContext context,
+    WidgetRef ref,
+    ValueNotifier<Uint8List?> selectedImage,
+  ) async {
+    final l10n = context.l10n;
+    final source = await showModalBottomSheet<ImagePickSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: Text(l10n.chatCamera),
+              onTap: () => Navigator.pop(context, ImagePickSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: Text(l10n.chatGallery),
+              onTap: () => Navigator.pop(context, ImagePickSource.gallery),
             ),
           ],
         ),
       ),
     );
+
+    if (source == null || !context.mounted) return;
+
+    try {
+      final imagePickerService = ref.read(imagePickerServiceProvider);
+      final pickedFile = await imagePickerService.pickImage(source: source);
+      if (pickedFile != null) {
+        final bytes = await pickedFile.readAsBytes();
+        if (!context.mounted) return;
+        selectedImage.value = bytes;
+      }
+    } on ImagePermissionDeniedException {
+      if (context.mounted) {
+        ErrorHandler.showSnackBar(context, l10n.chatError);
+      }
+    } on Object catch (e, st) {
+      if (!context.mounted) return;
+      ref.read(loggerProvider).handle(e, st, 'Failed to pick image');
+      ErrorHandler.showSnackBar(context, e);
+    }
   }
 
   Future<void> _onSend(
     WidgetRef ref,
     TextEditingController controller,
+    ValueNotifier<Uint8List?> selectedImage,
     bool isGenerating,
     bool isOnline,
+    AppLocalizations l10n,
   ) async {
-    final text = controller.text;
-    if (text.trim().isEmpty || isGenerating || !isOnline) return;
+    var text = controller.text.trim();
+    final imageBytes = selectedImage.value;
+
+    if ((text.isEmpty && imageBytes == null) || isGenerating || !isOnline) {
+      return;
+    }
+
+    if (text.isEmpty && imageBytes != null) {
+      text = l10n.chatDefaultPromptWithImage;
+    }
 
     controller.clear();
+    selectedImage.value = null;
 
-    await ref.read(chatProvider.notifier).sendMessageStream(text);
+    await ref
+        .read(chatProvider.notifier)
+        .sendMessageStream(text, imageBytes: imageBytes);
   }
 }

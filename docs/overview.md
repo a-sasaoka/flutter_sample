@@ -24,7 +24,7 @@
 | 📈 グラフ           | fl_chart を用いた動的なグラフ（折れ線・棒・円）の表示とデータ入力、期間切り替え付き売上推移折れ線グラフ                                                                                                                                |
 | ⚙️ 設定             | SegmentedButton によるテーマ・言語切り替え、永続化連携、安全なログアウト処理                                                                                                                                                           |
 | 🔐 アプリロック     | 4桁PINパスコード＋生体認証（iOS: Face ID / Touch ID, Android: 指紋認証 / 顔認証）による最前面保護・自動復帰ロック                                                                                                                      |
-| 🤖 生成AI           | Firebase AI Logic（firebase_ai）を用いたストリーミング応答と履歴保持チャット                                                                                                                                                           |
+| 🤖 生成AI           | Firebase AI Logic（firebase_ai）を用いたマルチモーダル対応（画像認識・写真付き対話）、ストリーミング応答、会話履歴保持チャット                                                                                                         |
 | 🎬 アニメーション   | Lottie + flutter_gen によるベクターアニメーションの型安全な導入と制御（再生・一時停止・シークバー・ループ切替）、事前キャッシュ機構、および非同期処理連動アニメーションボタンの実装                                                    |
 | 🔔 Push通知         | FCM + flutter_local_notifications による通知受信・バナー表示、通知タップ時の GoRouter 自動ディープリンク遷移                                                                                                                           |
 | ⚡️ パフォーマンス   | cached_network_image による画像キャッシュ・メモリ最適化、Firebase Performance による通信・処理時間の自動監視、DevTools を用いたアプリサイズ分析、ウィジェット不要再ビルドの特定と撲滅検証                                              |

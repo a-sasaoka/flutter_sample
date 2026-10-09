@@ -240,3 +240,23 @@ WebサイトのURL検証および外部ブラウザ起動を安全に行う共�
 - **`isAppUnlockedProvider`**: Core層のデフォルト実装は常に `true`（ロックなし）を返します。
 - **アプリ起動時の同期**: アプリ起動時（`getAppLockOverrides`）に、`AppLockService` の状態（`AppLockStateUnlocked` または `AppLockStateDisabled`）と動的に同期するようオーバーライドされます。
 - **機能間の疎結合化**: これにより、UI画面（例: [memo_screen.dart](../lib/src/features/memos/presentation/memo_screen.dart)）が `app_lock` の内部状態やクラス定義に依存することなく、安全にロック解除を待機できます。
+
+---
+
+## 📸 12. 画像取得サービス（ImagePickerService）
+
+カメラ撮影やフォトライブラリ（アルバム）からの画像選択、権限管理、および画像切り抜き（トリミング）を共通で処理するサービスです。
+
+### 📁 関連ファイル
+
+- `lib/src/core/services/image_picker_service.dart`
+- `test/src/core/services/image_picker_service_test.dart`
+
+### 特徴と使用方法
+
+`imagePickerServiceProvider` を通じて `ImagePickerService` を取得し、用途に合わせて `pickImage` または `pickAndCropAvatar` を呼び出します。実装詳細は [image_picker_service.dart](../lib/src/core/services/image_picker_service.dart) を参照してください。
+
+- **汎用的な画像取得（`pickImage`）**: カメラ撮影またはアルバムからの選択を行い、圧縮率（品質）や最大解像度（幅・高さ）を指定して画像（`XFile`）を取得します（利用例: [chat_screen.dart](../lib/src/features/chat/presentation/chat_screen.dart) のAIチャット画像添付）。
+- **アバター用切り抜き付き取得（`pickAndCropAvatar`）**: プロフィールアイコン向けに、正方形のアスペクト比指定や円形マスクでのトリミングを連続して行います（利用例: [profile_edit_screen.dart](../lib/src/features/profile/presentation/profile_edit_screen.dart)）。
+- **誤ロック防止との連携**: カメラやアルバム選択画面などのOS画面を開く際、アプリ復帰時に誤って画面ロックがかからないよう [LockSuppressionRunner](../lib/src/core/services/lock_suppression_handler.dart) と自動連携しています。
+- **パーミッション（権限）の自動チェック**: カメラや写真ライブラリの利用権限がない場合はOSダイアログで許可を求め、拒否された場合は [ImagePermissionDeniedException](../lib/src/core/services/image_picker_service.dart#L24-L41) をスローします（ユーザーが画像選択や切り抜きをキャンセルした場合は `null` を返します）。

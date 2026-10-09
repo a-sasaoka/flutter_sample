@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:alchemist/alchemist.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -34,6 +36,13 @@ void main() {
       when(() => mockL10n.close).thenReturn('閉じる');
       when(() => mockL10n.ok).thenReturn('OK');
       when(() => mockL10n.userListTitle).thenReturn('データ一覧');
+      when(() => mockL10n.chatAttachImage).thenReturn('写真を添付');
+      when(() => mockL10n.chatCamera).thenReturn('写真を撮る');
+      when(() => mockL10n.chatGallery).thenReturn('アルバムから選ぶ');
+      when(() => mockL10n.chatRemoveImage).thenReturn('写真を削除');
+      when(
+        () => mockL10n.chatDefaultPromptWithImage,
+      ).thenReturn('この画像について詳しく説明してください');
     });
 
     Widget buildChatForGolden({required ChatState state}) {
@@ -116,6 +125,98 @@ void main() {
                     ),
                   ],
                   isGenerating: true,
+                ),
+              ),
+            ),
+          ),
+          GoldenTestScenario(
+            name: 'Image Message State',
+            child: SizedBox(
+              width: 390,
+              height: 844,
+              child: buildChatForGolden(
+                state: ChatState(
+                  messages: [
+                    ChatMessage.user(
+                      id: '1',
+                      text: 'この花の名前を教えてください。',
+                      createdAt: DateTime(2026, 6, 6, 12, 3),
+                      imageBytes: Uint8List.fromList([
+                        0x89,
+                        0x50,
+                        0x4E,
+                        0x47,
+                        0x0D,
+                        0x0A,
+                        0x1A,
+                        0x0A,
+                        0x00,
+                        0x00,
+                        0x00,
+                        0x0D,
+                        0x49,
+                        0x48,
+                        0x44,
+                        0x52,
+                        0x00,
+                        0x00,
+                        0x00,
+                        0x01,
+                        0x00,
+                        0x00,
+                        0x00,
+                        0x01,
+                        0x08,
+                        0x06,
+                        0x00,
+                        0x00,
+                        0x00,
+                        0x1F,
+                        0x15,
+                        0xC4,
+                        0x89,
+                        0x00,
+                        0x00,
+                        0x00,
+                        0x0A,
+                        0x49,
+                        0x44,
+                        0x41,
+                        0x54,
+                        0x78,
+                        0x9C,
+                        0x63,
+                        0x00,
+                        0x01,
+                        0x00,
+                        0x00,
+                        0x05,
+                        0x00,
+                        0x01,
+                        0x0D,
+                        0x0A,
+                        0x2D,
+                        0xB4,
+                        0x00,
+                        0x00,
+                        0x00,
+                        0x00,
+                        0x49,
+                        0x45,
+                        0x4E,
+                        0x44,
+                        0xAE,
+                        0x42,
+                        0x60,
+                        0x82,
+                      ]),
+                    ),
+                    ChatMessage.ai(
+                      id: '2',
+                      text: 'こちらはヒマワリ（向日葵）ですね！🌻',
+                      createdAt: DateTime(2026, 6, 6, 12, 4),
+                    ),
+                  ],
                 ),
               ),
             ),

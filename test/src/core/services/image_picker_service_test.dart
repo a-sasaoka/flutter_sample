@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
+import 'package:flutter_sample/src/core/services/image_picker_service.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
-import 'package:flutter_sample/src/features/profile/data/image_picker_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:image_cropper/image_cropper.dart';
@@ -22,6 +22,8 @@ class MockImagePicker extends Mock implements ImagePicker {}
 class MockImageCropper extends Mock implements ImageCropper {}
 
 class MockCroppedFile extends Mock implements CroppedFile {}
+
+class MockXFile extends Mock implements XFile {}
 
 class MockTalker extends Mock implements Talker {}
 
@@ -302,6 +304,52 @@ void main() {
       );
 
       check(result).equals('/path/to/cropped.jpg');
+      check(lockSuppressionCallCount).equals(1);
+    });
+  });
+
+  group('ImagePickerService pickImage Tests', () {
+    test('pickImage: ユーザーがキャンセルした場合は null を返すこと', () async {
+      when(
+        () => mockPlatform.checkPermissionStatus(Permission.photos),
+      ).thenAnswer((_) async => PermissionStatus.granted);
+
+      when(
+        () => mockPicker.pickImage(
+          source: ImageSource.gallery,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 85,
+        ),
+      ).thenAnswer((_) async => null);
+
+      final result = await service.pickImage(source: ImagePickSource.gallery);
+
+      check(result).isNull();
+      check(lockSuppressionCallCount).equals(1);
+    });
+
+    test('pickImage: 正常に画像を選択した場合は XFile を返すこと', () async {
+      final mockFile = MockXFile();
+      when(() => mockFile.path).thenReturn('/path/to/picked.jpg');
+
+      when(
+        () => mockPlatform.checkPermissionStatus(Permission.camera),
+      ).thenAnswer((_) async => PermissionStatus.granted);
+
+      when(
+        () => mockPicker.pickImage(
+          source: ImageSource.camera,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 85,
+        ),
+      ).thenAnswer((_) async => mockFile);
+
+      final result = await service.pickImage(source: ImagePickSource.camera);
+
+      check(result).isNotNull();
+      check(result!.path).equals('/path/to/picked.jpg');
       check(lockSuppressionCallCount).equals(1);
     });
   });

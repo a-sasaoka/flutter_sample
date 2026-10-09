@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_sample/src/core/utils/date_time_extension.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
@@ -24,9 +26,9 @@ class ChatNotifier extends _$ChatNotifier {
   }
 
   /// メッセージを送信するメソッド
-  Future<void> sendMessage(String text) async {
-    // 空文字の送信や、生成中の連打を防ぐ
-    if (text.trim().isEmpty || state.isGenerating) {
+  Future<void> sendMessage(String text, {Uint8List? imageBytes}) async {
+    // 空文字かつ画像もない場合、または生成中の連打を防ぐ
+    if ((text.trim().isEmpty && imageBytes == null) || state.isGenerating) {
       return;
     }
 
@@ -34,13 +36,16 @@ class ChatNotifier extends _$ChatNotifier {
 
     // 事前にAIのメッセージIDを発行し、ローディングと共に追加
     final targetAiId = ref.read(uuidProvider).v4();
-    _addMessageAndLoading(text, targetAiId);
+    _addMessageAndLoading(text, targetAiId, imageBytes: imageBytes);
 
     final talker = ref.read(loggerProvider);
     try {
       final repository = ref.read(chatRepositoryProvider);
       final promptWithTime = _buildPromptWithTime(text);
-      final responseText = await repository.sendMessage(promptWithTime);
+      final responseText = await repository.sendMessage(
+        promptWithTime,
+        imageBytes: imageBytes,
+      );
 
       if (!ref.mounted) return;
 
@@ -68,9 +73,9 @@ class ChatNotifier extends _$ChatNotifier {
   }
 
   /// メッセージを送信するメソッド（Stream版）
-  Future<void> sendMessageStream(String text) async {
-    // 空文字の送信や、生成中の連打を防ぐ
-    if (text.trim().isEmpty || state.isGenerating) {
+  Future<void> sendMessageStream(String text, {Uint8List? imageBytes}) async {
+    // 空文字かつ画像もない場合、または生成中の連打を防ぐ
+    if ((text.trim().isEmpty && imageBytes == null) || state.isGenerating) {
       return;
     }
 
@@ -78,13 +83,16 @@ class ChatNotifier extends _$ChatNotifier {
 
     // 事前にAIのメッセージIDを発行し、ローディングと共に追加
     final targetAiId = ref.read(uuidProvider).v4();
-    _addMessageAndLoading(text, targetAiId);
+    _addMessageAndLoading(text, targetAiId, imageBytes: imageBytes);
 
     final talker = ref.read(loggerProvider);
     try {
       final repository = ref.read(chatRepositoryProvider);
       final promptWithTime = _buildPromptWithTime(text);
-      final stream = repository.sendMessageStream(promptWithTime);
+      final stream = repository.sendMessageStream(
+        promptWithTime,
+        imageBytes: imageBytes,
+      );
 
       var aiResponseText = '';
       var isFirstChunk = true;
@@ -135,7 +143,11 @@ class ChatNotifier extends _$ChatNotifier {
 
   /// ユーザーメッセージとローディング状態をセットで追加する
   /// [targetAiId] は後で上書き検索するための目印
-  void _addMessageAndLoading(String text, String targetAiId) {
+  void _addMessageAndLoading(
+    String text,
+    String targetAiId, {
+    Uint8List? imageBytes,
+  }) {
     final now = ref.read(clockProvider)();
     state = state.copyWith(
       messages: [
@@ -144,6 +156,7 @@ class ChatNotifier extends _$ChatNotifier {
           id: ref.read(uuidProvider).v4(),
           text: text,
           createdAt: now,
+          imageBytes: imageBytes,
         ),
         ChatMessage.loading(id: targetAiId, createdAt: now),
       ],

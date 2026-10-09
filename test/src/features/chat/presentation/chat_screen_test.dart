@@ -1,10 +1,14 @@
 // ignore_for_file: document_ignores, use_setters_to_change_properties
 
+import 'dart:typed_data';
+
 import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_sample/src/core/services/image_picker_service.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_state.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
@@ -15,12 +19,20 @@ import 'package:flutter_sample/src/features/chat/presentation/chat_bubble_shimme
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:talker_flutter/talker_flutter.dart';
+
 import '../../../core/widgets/widgets_test_helper.dart';
 
 // --- モッククラス ---
 
 class MockChatRepository extends Mock implements ChatRepository {}
+
+class MockImagePickerService extends Mock implements ImagePickerService {}
+
+class MockTalker extends Mock implements Talker {}
 
 // Notifier の挙動をコントロールするための Fake
 class FakeChatNotifier extends ChatNotifier {
@@ -39,9 +51,11 @@ class FakeChatNotifier extends ChatNotifier {
   }
 
   String? lastSentText;
+  Uint8List? lastSentImageBytes;
   @override
-  Future<void> sendMessageStream(String text) async {
+  Future<void> sendMessageStream(String text, {Uint8List? imageBytes}) async {
     lastSentText = text;
+    lastSentImageBytes = imageBytes;
   }
 
   bool clearHistoryCalled = false;
@@ -53,23 +67,39 @@ class FakeChatNotifier extends ChatNotifier {
 }
 
 void main() {
+  setUpAll(() {
+    registerFallbackValue(ImagePickSource.camera);
+  });
+
   late MockAppLocalizations mockL10n;
   late MockChatRepository mockRepo;
+  late MockImagePickerService mockImagePickerService;
+  late MockTalker mockTalker;
 
   setUp(() {
     mockL10n = MockAppLocalizations();
     mockRepo = MockChatRepository();
+    mockImagePickerService = MockImagePickerService();
+    mockTalker = MockTalker();
 
     when(() => mockL10n.chatTitle).thenReturn('チャット');
     when(() => mockL10n.chatHint).thenReturn('入力してください');
     when(() => mockL10n.thinking).thenReturn('考え中...');
     when(() => mockL10n.chatEmptyMessage).thenReturn('空の返答');
     when(() => mockL10n.chatError).thenReturn('エラー発生');
+    when(() => mockL10n.errorUnknown).thenReturn('エラーが発生しました');
     when(() => mockL10n.chartClearAll).thenReturn('すべて削除');
     when(() => mockL10n.chartClearConfirm).thenReturn('削除しますか？');
     when(() => mockL10n.close).thenReturn('閉じる');
     when(() => mockL10n.ok).thenReturn('OK');
     when(() => mockL10n.userListTitle).thenReturn('データ一覧');
+    when(() => mockL10n.chatAttachImage).thenReturn('写真を添付');
+    when(() => mockL10n.chatCamera).thenReturn('写真を撮る');
+    when(() => mockL10n.chatGallery).thenReturn('アルバムから選ぶ');
+    when(() => mockL10n.chatRemoveImage).thenReturn('写真を削除');
+    when(
+      () => mockL10n.chatDefaultPromptWithImage,
+    ).thenReturn('この画像について詳しく説明してください');
   });
 
   Future<void> setupWidget(
@@ -82,6 +112,8 @@ void main() {
         overrides: [
           chatRepositoryProvider.overrideWithValue(mockRepo),
           isOnlineProvider.overrideWithValue(isOnline),
+          imagePickerServiceProvider.overrideWithValue(mockImagePickerService),
+          loggerProvider.overrideWithValue(mockTalker),
           if (notifier != null) chatProvider.overrideWith(() => notifier),
         ],
         child: MaterialApp(
@@ -314,6 +346,369 @@ void main() {
       await tester.pumpAndSettle();
 
       check(FocusScope.of(context).focusedChild).isNull();
+    });
+
+    testWidgets('画像付きメッセージ: ユーザーメッセージ内にImageウィジェットが描画されること', (tester) async {
+      final now = DateTime.now();
+      final dummyPng = Uint8List.fromList([
+        0x89,
+        0x50,
+        0x4E,
+        0x47,
+        0x0D,
+        0x0A,
+        0x1A,
+        0x0A,
+        0x00,
+        0x00,
+        0x00,
+        0x0D,
+        0x49,
+        0x48,
+        0x44,
+        0x52,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x08,
+        0x06,
+        0x00,
+        0x00,
+        0x00,
+        0x1F,
+        0x15,
+        0xC4,
+        0x89,
+        0x00,
+        0x00,
+        0x00,
+        0x0A,
+        0x49,
+        0x44,
+        0x41,
+        0x54,
+        0x78,
+        0x9C,
+        0x63,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x05,
+        0x00,
+        0x01,
+        0x0D,
+        0x0A,
+        0x2D,
+        0xB4,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x49,
+        0x45,
+        0x4E,
+        0x44,
+        0xAE,
+        0x42,
+        0x60,
+        0x82,
+      ]);
+
+      final notifier = FakeChatNotifier(
+        ChatState(
+          messages: [
+            ChatMessage.user(
+              id: '1',
+              text: 'この写真を見て',
+              createdAt: now,
+              imageBytes: dummyPng,
+            ),
+          ],
+        ),
+      );
+      await setupWidget(tester, notifier: notifier);
+      await tester.pumpAndSettle();
+
+      check(find.text('この写真を見て').evaluate()).isNotEmpty();
+      check(find.byType(Image).evaluate()).isNotEmpty();
+    });
+
+    testWidgets('写真添付ボタン: ボタンをタップすると撮影・アルバム選択ボトムシートが表示されること', (tester) async {
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      final attachButton = find.byIcon(Icons.add_photo_alternate_outlined);
+      check(attachButton.evaluate()).isNotEmpty();
+
+      await tester.tap(attachButton);
+      await tester.pumpAndSettle();
+
+      check(find.text('写真を撮る').evaluate()).isNotEmpty();
+      check(find.text('アルバムから選ぶ').evaluate()).isNotEmpty();
+    });
+
+    testWidgets('写真添付: アルバムから写真を選択し、画像のみ送信するとデフォルトプロンプトで送信されること', (
+      tester,
+    ) async {
+      final notifier = FakeChatNotifier();
+      final dummyPng = Uint8List.fromList([
+        0x89,
+        0x50,
+        0x4E,
+        0x47,
+        0x0D,
+        0x0A,
+        0x1A,
+        0x0A,
+        0x00,
+        0x00,
+        0x00,
+        0x0D,
+        0x49,
+        0x48,
+        0x44,
+        0x52,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x08,
+        0x06,
+        0x00,
+        0x00,
+        0x00,
+        0x1F,
+        0x15,
+        0xC4,
+        0x89,
+        0x00,
+        0x00,
+        0x00,
+        0x0A,
+        0x49,
+        0x44,
+        0x41,
+        0x54,
+        0x78,
+        0x9C,
+        0x63,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x05,
+        0x00,
+        0x01,
+        0x0D,
+        0x0A,
+        0x2D,
+        0xB4,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x49,
+        0x45,
+        0x4E,
+        0x44,
+        0xAE,
+        0x42,
+        0x60,
+        0x82,
+      ]);
+      final dummyFile = XFile.fromData(dummyPng, name: 'test.png');
+      when(
+        () => mockImagePickerService.pickImage(source: ImagePickSource.gallery),
+      ).thenAnswer((_) async => dummyFile);
+
+      await setupWidget(tester, notifier: notifier);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.add_photo_alternate_outlined));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('アルバムから選ぶ'));
+      await tester.pumpAndSettle();
+
+      check(find.byIcon(Icons.close).evaluate()).isNotEmpty();
+
+      await tester.tap(find.byIcon(Icons.send));
+      await tester.pumpAndSettle();
+
+      check(notifier.lastSentText).equals('この画像について詳しく説明してください');
+      check(notifier.lastSentImageBytes).isNotNull();
+      check(find.byIcon(Icons.close).evaluate()).isEmpty();
+    });
+
+    testWidgets('写真添付: プレビューの閉じるボタンをタップすると画像が削除されること', (tester) async {
+      final dummyPng = Uint8List.fromList([
+        0x89,
+        0x50,
+        0x4E,
+        0x47,
+        0x0D,
+        0x0A,
+        0x1A,
+        0x0A,
+        0x00,
+        0x00,
+        0x00,
+        0x0D,
+        0x49,
+        0x48,
+        0x44,
+        0x52,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x08,
+        0x06,
+        0x00,
+        0x00,
+        0x00,
+        0x1F,
+        0x15,
+        0xC4,
+        0x89,
+        0x00,
+        0x00,
+        0x00,
+        0x0A,
+        0x49,
+        0x44,
+        0x41,
+        0x54,
+        0x78,
+        0x9C,
+        0x63,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x05,
+        0x00,
+        0x01,
+        0x0D,
+        0x0A,
+        0x2D,
+        0xB4,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x49,
+        0x45,
+        0x4E,
+        0x44,
+        0xAE,
+        0x42,
+        0x60,
+        0x82,
+      ]);
+      final dummyFile = XFile.fromData(dummyPng, name: 'test.png');
+      when(
+        () => mockImagePickerService.pickImage(source: ImagePickSource.camera),
+      ).thenAnswer((_) async => dummyFile);
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.add_photo_alternate_outlined));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('写真を撮る'));
+      await tester.pumpAndSettle();
+
+      check(find.byIcon(Icons.close).evaluate()).isNotEmpty();
+
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+
+      check(find.byIcon(Icons.close).evaluate()).isEmpty();
+    });
+
+    testWidgets('写真添付: ボトムシート外をタップしてキャンセルした場合は何も起きないこと', (tester) async {
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.add_photo_alternate_outlined));
+      await tester.pumpAndSettle();
+
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      check(find.byIcon(Icons.close).evaluate()).isEmpty();
+      verifyNever(
+        () => mockImagePickerService.pickImage(source: any(named: 'source')),
+      );
+    });
+
+    testWidgets('写真添付: 権限拒否時にSnackBarが表示されること', (tester) async {
+      when(
+        () => mockImagePickerService.pickImage(source: any(named: 'source')),
+      ).thenThrow(
+        const ImagePermissionDeniedException(permission: Permission.camera),
+      );
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.add_photo_alternate_outlined));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('写真を撮る'));
+      await tester.pumpAndSettle();
+
+      check(find.byType(SnackBar).evaluate()).isNotEmpty();
+    });
+
+    testWidgets('写真添付: 予期せぬエラー発生時にSnackBarが表示されること', (tester) async {
+      when(
+        () => mockImagePickerService.pickImage(source: any(named: 'source')),
+      ).thenThrow(Exception('Unknown Error'));
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.add_photo_alternate_outlined));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('アルバムから選ぶ'));
+      await tester.pumpAndSettle();
+
+      check(find.byType(SnackBar).evaluate()).isNotEmpty();
+    });
+
+    testWidgets('写真添付: ピッカーで選択をキャンセル（null返却）した場合は何もしないこと', (tester) async {
+      when(
+        () => mockImagePickerService.pickImage(source: any(named: 'source')),
+      ).thenAnswer((_) async => null);
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.add_photo_alternate_outlined));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('写真を撮る'));
+      await tester.pumpAndSettle();
+
+      check(find.byIcon(Icons.close).evaluate()).isEmpty();
     });
   });
 }

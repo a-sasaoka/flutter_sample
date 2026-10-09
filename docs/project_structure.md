@@ -71,7 +71,7 @@ flutter_sample
         │   ├── exceptions                                      # 共通の例外クラス定義
         │   ├── network                                         # APIクライアント、Interceptor（自動リトライ・べき等性・パフォーマンス自動計測含む）
         │   ├── performance                                     # パフォーマンス計測基盤（Firebase Performance）
-        │   ├── services                                        # 共通サービス（URL起動・誤ロック抑止ハンドラー等）
+        │   ├── services                                        # 共通サービス（画像選択・URL起動・誤ロック抑止ハンドラー等）
         │   ├── storage                                         # 永続化・キャッシュ（SharedPreferences・SecureStorage・画像キャッシュ）
         │   ├── ui                                              # 共通UI関連（エラーハンドリングなど）
         │   ├── utils                                           # 共通ユーティリティ（ロギング・通信状態・ライフサイクル・フォーム検証等）

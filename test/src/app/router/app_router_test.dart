@@ -332,6 +332,13 @@ void main() {
     when(() => mockL10n.chartClearConfirm).thenReturn('Confirm Clear');
     when(() => mockL10n.thinking).thenReturn('Thinking...');
     when(() => mockL10n.chatHint).thenReturn('Type a message');
+    when(() => mockL10n.chatAttachImage).thenReturn('Attach Image');
+    when(() => mockL10n.chatCamera).thenReturn('Camera');
+    when(() => mockL10n.chatGallery).thenReturn('Gallery');
+    when(() => mockL10n.chatRemoveImage).thenReturn('Remove Image');
+    when(
+      () => mockL10n.chatDefaultPromptWithImage,
+    ).thenReturn('Please describe this image in detail');
     when(() => mockL10n.memoSyncing).thenReturn('Syncing...');
     when(() => mockL10n.memoEmpty).thenReturn('No memos');
     when(() => mockL10n.memoSearchHint).thenReturn('Search memos');

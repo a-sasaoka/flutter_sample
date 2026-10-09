@@ -44,7 +44,7 @@ final class ChatNotifierProvider
   }
 }
 
-String _$chatNotifierHash() => r'6efa0ceeaf79b50ba5b57f6893805c87a4afebbc';
+String _$chatNotifierHash() => r'cbd88404542c8bb55f76f5e9678dcc9bd03b1274';
 
 /// チャットのやり取りを管理するプロバーダー
 
