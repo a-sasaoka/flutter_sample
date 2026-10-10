@@ -162,7 +162,7 @@ class ChatNotifier extends _$ChatNotifier {
       }
 
       // ループ終了後の世代整合性チェック
-      if (currentGen != _generation) return;
+      if (!ref.mounted || currentGen != _generation) return;
 
       if (isFirstChunk) {
         throw ChatEmptyResponseException(); // 空のままStreamが終わった場合
