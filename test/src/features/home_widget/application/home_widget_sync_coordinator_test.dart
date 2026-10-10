@@ -599,9 +599,12 @@ void main() {
     );
 
     test('未ログイン状態では resumeSyncForCurrentUser を呼び出しても同期が再開されないこと', () async {
+      final controller = StreamController<List<MemoModel>>.broadcast();
+      addTearDown(controller.close);
+
       when(
         () => mockMemoRepository.watchAllMemos(),
-      ).thenAnswer((_) => const Stream.empty());
+      ).thenAnswer((_) => controller.stream);
 
       final container = ProviderContainer(
         overrides: [
@@ -615,10 +618,28 @@ void main() {
       addTearDown(container.dispose);
 
       container
-          .read(homeWidgetSyncCoordinatorProvider.notifier)
-          .resumeSyncForCurrentUser();
+        ..listen(memoProvider, (_, _) {})
+        ..read(
+          homeWidgetSyncCoordinatorProvider.notifier,
+        ).resumeSyncForCurrentUser();
 
       await pumpEventQueue();
+
+      final testMemos = [
+        MemoModel(
+          id: 'memo-unauth',
+          title: '未ログイン時のメモ',
+          content: '内容',
+          createdAt: DateTime(2026, 9, 28),
+          updatedAt: DateTime(2026, 9, 28),
+        ),
+      ];
+      controller.add(testMemos);
+      await pumpEventQueue();
+
+      verifyNever(
+        () => mockService.updateMemoWidget(memos: any(named: 'memos')),
+      );
     });
   });
 }
