@@ -9,6 +9,9 @@ abstract final class SecureStorageKeys {
   /// 認証用リフレッシュトークン
   static const refreshToken = 'refresh_token';
 
+  /// 独自認証のログイン中ユーザーID
+  static const customUserId = 'custom_user_id';
+
   /// アプリロック用パスコード
   static const appLockPasscode = 'app_lock_passcode';
 

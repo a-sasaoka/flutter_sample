@@ -6,6 +6,7 @@ import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
@@ -15,6 +16,8 @@ class MockFirebaseAuthRepository extends Mock
     implements FirebaseAuthRepository {}
 
 class MockUser extends Mock implements User {}
+
+class MockTokenStorage extends Mock implements TokenStorage {}
 
 class FakeAuthStateNotifier extends AuthStateNotifier {
   FakeAuthStateNotifier({this.initial = true});
@@ -43,22 +46,27 @@ class FakeFirebaseAuthStateNotifier extends FirebaseAuthStateNotifier {
 
 void main() {
   late MockFirebaseAuthRepository mockAuthRepo;
+  late MockTokenStorage mockTokenStorage;
   late Talker talker;
 
   setUp(() {
     mockAuthRepo = MockFirebaseAuthRepository();
+    mockTokenStorage = MockTokenStorage();
     talker = TalkerFlutter.init(
       settings: TalkerSettings(useConsoleLogs: false),
     );
 
     when(() => mockAuthRepo.signOut()).thenAnswer((_) async {});
+    when(() => mockTokenStorage.getUserId()).thenAnswer((_) async => null);
   });
 
   ProviderContainer createContainer({
     required bool useFirebaseAuth,
     User? firebaseUser,
     bool authStateValue = true,
+    TokenStorage? tokenStorage,
   }) {
+    final effectiveTokenStorage = tokenStorage ?? mockTokenStorage;
     final container = ProviderContainer(
       overrides: [
         envConfigProvider.overrideWithValue(
@@ -75,6 +83,7 @@ void main() {
         ),
         loggerProvider.overrideWithValue(talker),
         firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+        tokenStorageProvider.overrideWithValue(effectiveTokenStorage),
         firebaseAuthStateProvider.overrideWith(
           () => FakeFirebaseAuthStateNotifier(firebaseUser),
         ),
@@ -133,6 +142,34 @@ void main() {
     );
   });
 
+  group('customUserIdProvider', () {
+    test('未ログイン（authState が false）の場合、null を返すこと', () async {
+      final container = createContainer(
+        useFirebaseAuth: false,
+        authStateValue: false,
+      );
+
+      await container.read(authStateProvider.future);
+      final userId = await container.read(customUserIdProvider.future);
+      check(userId).isNull();
+    });
+
+    test(
+      'ログイン中（authState が true）の場合、tokenStorage から取得した userId を返すこと',
+      () async {
+        when(
+          () => mockTokenStorage.getUserId(),
+        ).thenAnswer((_) async => 'custom_user_123');
+
+        final container = createContainer(useFirebaseAuth: false);
+
+        await container.read(authStateProvider.future);
+        final userId = await container.read(customUserIdProvider.future);
+        check(userId).equals('custom_user_123');
+      },
+    );
+  });
+
   group('currentUserIdProvider', () {
     test('useFirebaseAuth: true かつ Firebase User が存在する場合、uid を返すこと', () {
       final mockUser = MockUser();
@@ -153,8 +190,31 @@ void main() {
       check(uid).isNull();
     });
 
-    test('useFirebaseAuth: false の場合、null を返すこと', () {
-      final container = createContainer(useFirebaseAuth: false);
+    test(
+      'useFirebaseAuth: false かつ 独自認証ログイン済みの場合、customUserId を返すこと',
+      () async {
+        when(
+          () => mockTokenStorage.getUserId(),
+        ).thenAnswer((_) async => 'custom_user_789');
+
+        final container = createContainer(useFirebaseAuth: false);
+
+        await container.read(authStateProvider.future);
+        await container.read(customUserIdProvider.future);
+
+        final uid = container.read(currentUserIdProvider);
+        check(uid).equals('custom_user_789');
+      },
+    );
+
+    test('useFirebaseAuth: false かつ 未ログインの場合、null を返すこと', () async {
+      final container = createContainer(
+        useFirebaseAuth: false,
+        authStateValue: false,
+      );
+
+      await container.read(authStateProvider.future);
+      await container.read(customUserIdProvider.future);
 
       final uid = container.read(currentUserIdProvider);
       check(uid).isNull();

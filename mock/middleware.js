@@ -288,20 +288,22 @@ module.exports = (req, res, next) => {
     });
   }
 
-  // 4. POST /auth/login モック（常にダミートークンを返却）
+  // 4. POST /auth/login モック（常に有効なJWTダミートークンを返却）
   if (req.method === 'POST' && (req.path === '/auth/login' || req.url === '/auth/login')) {
     console.log('🔑 [Mock Server] POST /auth/login received');
     return res.status(200).json({
-      access_token: 'mock_local_access_token_123',
+      access_token:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrX3VzZXJfMTIzIiwiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIn0.mock_signature_123',
       refresh_token: 'mock_local_refresh_token_456',
     });
   }
 
-  // 5. POST /auth/refresh モック（常に新しいダミートークンを返却）
+  // 5. POST /auth/refresh モック（常に新しい有効なJWTダミートークンを返却）
   if (req.method === 'POST' && (req.path === '/auth/refresh' || req.url === '/auth/refresh')) {
     console.log('🔄 [Mock Server] POST /auth/refresh received');
     return res.status(200).json({
-      access_token: 'mock_local_refreshed_access_token_789',
+      access_token:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrX3VzZXJfMTIzIiwiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIn0.mock_signature_456',
     });
   }
 
