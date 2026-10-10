@@ -9,6 +9,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/src/core/services/image_picker_service.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_state.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
@@ -25,6 +26,99 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 import '../../../core/widgets/widgets_test_helper.dart';
+
+// --- Test Auth Notifiers ---
+class TestUserIdNotifier extends Notifier<String?> {
+  @override
+  String? build() => 'initial-user';
+  String? get userId => state;
+  set userId(String? id) => state = id;
+}
+
+final testUserIdProvider = NotifierProvider<TestUserIdNotifier, String?>(
+  TestUserIdNotifier.new,
+);
+
+class TestAuthNotifier extends Notifier<bool> {
+  @override
+  bool build() => true;
+  bool get isAuthenticated => state;
+  set isAuthenticated(bool value) => state = value;
+}
+
+final testAuthNotifierProvider = NotifierProvider<TestAuthNotifier, bool>(
+  TestAuthNotifier.new,
+);
+
+final dummyPng = Uint8List.fromList([
+  0x89,
+  0x50,
+  0x4E,
+  0x47,
+  0x0D,
+  0x0A,
+  0x1A,
+  0x0A,
+  0x00,
+  0x00,
+  0x00,
+  0x0D,
+  0x49,
+  0x48,
+  0x44,
+  0x52,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x08,
+  0x06,
+  0x00,
+  0x00,
+  0x00,
+  0x1F,
+  0x15,
+  0xC4,
+  0x89,
+  0x00,
+  0x00,
+  0x00,
+  0x0A,
+  0x49,
+  0x44,
+  0x41,
+  0x54,
+  0x78,
+  0x9C,
+  0x63,
+  0x00,
+  0x01,
+  0x00,
+  0x00,
+  0x05,
+  0x00,
+  0x01,
+  0x0D,
+  0x0A,
+  0x2D,
+  0xB4,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0x49,
+  0x45,
+  0x4E,
+  0x44,
+  0xAE,
+  0x42,
+  0x60,
+  0x82,
+]);
 
 // --- モッククラス ---
 
@@ -114,6 +208,12 @@ void main() {
           isOnlineProvider.overrideWithValue(isOnline),
           imagePickerServiceProvider.overrideWithValue(mockImagePickerService),
           loggerProvider.overrideWithValue(mockTalker),
+          currentUserIdProvider.overrideWith(
+            (ref) => ref.watch(testUserIdProvider),
+          ),
+          isAuthenticatedProvider.overrideWith(
+            (ref) => ref.watch(testAuthNotifierProvider),
+          ),
           if (notifier != null) chatProvider.overrideWith(() => notifier),
         ],
         child: MaterialApp(
@@ -709,6 +809,80 @@ void main() {
       await tester.pumpAndSettle();
 
       check(find.byIcon(Icons.close).evaluate()).isEmpty();
+    });
+
+    testWidgets('写真添付後・テキスト入力後にユーザーIDが切り替わった場合、下書き画像とテキストがクリアされること', (
+      tester,
+    ) async {
+      final dummyFile = XFile.fromData(dummyPng, name: 'test.png');
+      when(
+        () => mockImagePickerService.pickImage(source: any(named: 'source')),
+      ).thenAnswer((_) async => dummyFile);
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      // 写真を選択
+      await tester.tap(find.byIcon(Icons.add_photo_alternate_outlined));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('写真を撮る'));
+      await tester.pumpAndSettle();
+
+      // テキストを入力
+      await tester.enterText(find.byType(TextField), '下書きテキスト');
+      await tester.pumpAndSettle();
+
+      // プレビュー画像とテキストが存在することを確認
+      check(find.byIcon(Icons.close).evaluate()).isNotEmpty();
+      check(
+        tester.widget<TextField>(find.byType(TextField)).controller?.text,
+      ).equals('下書きテキスト');
+
+      // ユーザーIDを変更（アカウント切り替え）
+      final element = tester.element(find.byType(ChatScreen));
+      final container = ProviderScope.containerOf(element);
+      container.read(testUserIdProvider.notifier).userId = 'user-changed';
+      await tester.pumpAndSettle();
+
+      // プレビュー画像とテキストが消去されていることを検証
+      check(find.byIcon(Icons.close).evaluate()).isEmpty();
+      check(
+        tester.widget<TextField>(find.byType(TextField)).controller?.text,
+      ).equals('');
+    });
+
+    testWidgets('写真添付後・テキスト入力後にサインアウトした場合、下書き画像とテキストがクリアされること', (tester) async {
+      final dummyFile = XFile.fromData(dummyPng, name: 'test.png');
+      when(
+        () => mockImagePickerService.pickImage(source: any(named: 'source')),
+      ).thenAnswer((_) async => dummyFile);
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      // 写真を選択
+      await tester.tap(find.byIcon(Icons.add_photo_alternate_outlined));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('写真を撮る'));
+      await tester.pumpAndSettle();
+
+      // テキストを入力
+      await tester.enterText(find.byType(TextField), '下書きテキスト');
+      await tester.pumpAndSettle();
+
+      check(find.byIcon(Icons.close).evaluate()).isNotEmpty();
+
+      // サインアウト（未ログインへ遷移）
+      final element = tester.element(find.byType(ChatScreen));
+      final container = ProviderScope.containerOf(element);
+      container.read(testAuthNotifierProvider.notifier).isAuthenticated = false;
+      await tester.pumpAndSettle();
+
+      // プレビュー画像とテキストが消去されていることを検証
+      check(find.byIcon(Icons.close).evaluate()).isEmpty();
+      check(
+        tester.widget<TextField>(find.byType(TextField)).controller?.text,
+      ).equals('');
     });
   });
 }

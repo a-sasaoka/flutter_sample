@@ -10,6 +10,7 @@ import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
@@ -336,6 +337,22 @@ class _ChatInputArea extends HookConsumerWidget {
     final textController = useTextEditingController();
     final selectedImage = useState<Uint8List?>(null);
     final l10n = context.l10n;
+
+    // 認証状態の変化（ログアウトや別アカウントへの切り替え）を検知して、
+    // 送信前の下書き画像や入力中テキストを安全にクリアする
+    ref
+      ..listen<String?>(currentUserIdProvider, (previous, next) {
+        if (previous != next) {
+          selectedImage.value = null;
+          textController.clear();
+        }
+      })
+      ..listen<bool>(isAuthenticatedProvider, (previous, next) {
+        if (previous != next) {
+          selectedImage.value = null;
+          textController.clear();
+        }
+      });
 
     final isSendDisabled = isGenerating || !isOnline;
 

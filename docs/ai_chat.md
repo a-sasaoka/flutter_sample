@@ -66,6 +66,7 @@ AIが文脈を理解した対話を行えるよう、クライアント内で `C
 - **明示的なリセット**: ユーザーが会話を新しくやり直したい場合は、画面上部の「履歴をすべて削除」ボタンからいつでもコンテキストをリセットできます。
 - **サインアウト・アカウント切り替え時の自動破棄**: 同一端末でのプライバシー保護と情報漏えい防止のため、[chat_notifier.dart](../lib/src/features/chat/application/chat_notifier.dart) は [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の認証状態（`currentUserIdProvider` および `isAuthenticatedProvider`）をリアクティブに監視しています。ユーザーIDの変更やログアウト（未ログインへの遷移）を検知すると、画面上の履歴クリア（`clearHistory()`）と同時に [chat_provider.dart](../lib/src/features/chat/data/chat_provider.dart) の `chatRepositoryProvider` を自動で無効化（`invalidate`）し、Geminiモデル内部の会話セッションも含めて安全に破棄・再生成します。
 - **進行中リクエストの遮断（Fencing）**: メッセージ送信中（ストリーミング含む）にログアウトやアカウント切り替えが発生した場合でも、旧アカウントの通信結果が新しいアカウントの画面状態に混入しないよう、世代管理カウンターによる厳格なコールバック遮断（Fencing）を実施しています。
+- **入力欄（UIローカル状態）の下書き破棄**: 会話履歴だけでなく、チャット入力欄（[chat_screen.dart](../lib/src/features/chat/presentation/chat_screen.dart)）で送信前に選択されていた添付画像（下書き画像）や入力中のテキストについても、認証状態の変更（サインアウトや別ユーザーへの切り替え）を検知して自動的にクリアし、別ユーザーへの入力内容の残留・漏えいを防止しています。
 
 ### 5. OS タイムゾーン情報を含めた日時コンテキスト制御
 
