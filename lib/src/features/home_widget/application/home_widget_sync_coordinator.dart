@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/home_widget/application/home_widget_service.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
+import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -97,7 +98,8 @@ class HomeWidgetSyncCoordinator extends _$HomeWidgetSyncCoordinator {
         // アカウント切り替え（旧ユーザーと異なるIDへの遷移）またはログアウト時は、
         // ローカルSQLiteに残存する旧メモの同期を停止する
         final isUserSwitched = _lastUserId != null && _lastUserId != nextUserId;
-        final isSignedOut = !nextAuth || nextUserId == null;
+        final isSignedOut =
+            !nextAuth || (_lastUserId != null && nextUserId == null);
 
         if (isUserSwitched || isSignedOut) {
           _isSyncSuspended = true;
@@ -112,6 +114,28 @@ class HomeWidgetSyncCoordinator extends _$HomeWidgetSyncCoordinator {
             await service.clearWidgetData();
           }),
         );
+
+        // ログイン状態（新規ログイン、再ログイン、アカウント切り替え後）の場合、
+        // 現在のユーザーのメモを確認した上で同期を再開する
+        if (nextAuth) {
+          final targetUserId = nextUserId;
+          final taskGen = _syncGeneration;
+          unawaited(() async {
+            try {
+              final repository = ref.read(memoRepositoryProvider);
+              final memos = await repository.getAllMemos();
+
+              // 待機中に認証状態やユーザーが再変更されていないか検証
+              if (taskGen != _syncGeneration) return;
+              if (!ref.read(isAuthenticatedProvider)) return;
+              if (ref.read(currentUserIdProvider) != targetUserId) return;
+
+              resumeSyncForCurrentUser(verifiedMemos: memos);
+            } on Object catch (_) {
+              // メモ取得時のエラーは安全のため停止を維持する
+            }
+          }());
+        }
       }
     }
 

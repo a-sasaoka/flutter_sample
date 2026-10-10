@@ -45,7 +45,7 @@ final class HomeWidgetSyncCoordinatorProvider
 }
 
 String _$homeWidgetSyncCoordinatorHash() =>
-    r'a52d943ed52ea699e46800aedc0ee03ac1113641';
+    r'a0677e5be17e0a19c144897f0a1a185b329ac8d7';
 
 /// メモ一覧のデータ変更をリアクティブに検知し、ホーム画面ウィジェットへ自動同期するコーディネーター
 

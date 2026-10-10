@@ -641,5 +641,72 @@ void main() {
         () => mockService.updateMemoWidget(memos: any(named: 'memos')),
       );
     });
+
+    test(
+      '未ログイン状態からログインへ遷移した際、新ユーザーのメモが確認されて同期が自動再開され、updateMemoWidget が呼び出されること',
+      () async {
+        final controller = StreamController<List<MemoModel>>.broadcast();
+        addTearDown(controller.close);
+
+        when(
+          () => mockMemoRepository.watchAllMemos(),
+        ).thenAnswer((_) => controller.stream);
+        when(() => mockService.clearWidgetData()).thenAnswer((_) async {});
+        when(
+          () => mockService.updateMemoWidget(memos: any(named: 'memos')),
+        ).thenAnswer((_) async {});
+
+        final newMemos = [
+          MemoModel(
+            id: 'memo-login',
+            title: 'ログイン後のメモ',
+            content: '内容',
+            createdAt: DateTime(2026, 9, 28),
+            updatedAt: DateTime(2026, 9, 28),
+          ),
+        ];
+        when(
+          () => mockMemoRepository.getAllMemos(),
+        ).thenAnswer((_) async => newMemos);
+
+        final container = ProviderContainer(
+          overrides: [
+            homeWidgetServiceProvider.overrideWithValue(mockService),
+            memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+            isOnlineProvider.overrideWithValue(false),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(testUserIdProvider),
+            ),
+            isAuthenticatedProvider.overrideWith(
+              (ref) => ref.watch(testAuthNotifierProvider),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        // 1. 未ログイン状態で起動
+        container.read(testUserIdProvider.notifier).userId = null;
+        container.read(testAuthNotifierProvider.notifier).isAuthenticated =
+            false;
+        container
+          ..listen(memoProvider, (_, _) {})
+          ..read(homeWidgetSyncCoordinatorProvider);
+        await pumpEventQueue();
+
+        // 2. ログイン状態へ遷移（user-new）
+        container.read(testUserIdProvider.notifier).userId = 'user-new';
+        container.read(testAuthNotifierProvider.notifier).isAuthenticated =
+            true;
+        container
+          ..read(currentUserIdProvider)
+          ..read(isAuthenticatedProvider);
+
+        await pumpEventQueue();
+
+        // handleAuthChange によって getAllMemos が呼ばれ、新メモで updateMemoWidget が実行されること
+        verify(() => mockMemoRepository.getAllMemos()).called(1);
+        verify(() => mockService.updateMemoWidget(memos: newMemos)).called(1);
+      },
+    );
   });
 }
