@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/home_widget/application/home_widget_service.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
+import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'home_widget_sync_coordinator.g.dart';
@@ -120,7 +121,10 @@ class HomeWidgetSyncCoordinator extends _$HomeWidgetSyncCoordinator {
   }
 
   /// 現在の認証ユーザーに属するメモであることが確認できた場合に、ウィジェット同期を再開・許可する
-  void resumeSyncForCurrentUser() {
+  ///
+  /// [verifiedMemos] が指定された場合は、確認済みのメモのみをウィジェットへ同期する。
+  /// 未確認のメモ（`memoProvider.value` など）は書き込まず、旧メモの誤反映を防止する。
+  void resumeSyncForCurrentUser({List<MemoModel>? verifiedMemos}) {
     final currentUserId = ref.read(currentUserIdProvider);
     final isAuthenticated = ref.read(isAuthenticatedProvider);
 
@@ -128,14 +132,13 @@ class HomeWidgetSyncCoordinator extends _$HomeWidgetSyncCoordinator {
       _isSyncSuspended = false;
       _syncedUserId = currentUserId;
 
-      final memos = ref.read(memoProvider).value;
-      if (memos != null) {
+      if (verifiedMemos != null) {
         final service = ref.read(homeWidgetServiceProvider);
         final taskGen = _syncGeneration;
         unawaited(
           _enqueueWrite(() async {
             if (taskGen != _syncGeneration) return;
-            await service.updateMemoWidget(memos: memos);
+            await service.updateMemoWidget(memos: verifiedMemos);
           }),
         );
       }

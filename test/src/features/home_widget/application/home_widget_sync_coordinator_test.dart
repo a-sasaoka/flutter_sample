@@ -526,11 +526,14 @@ void main() {
         // 同期が停止されているため、updateMemoWidget は呼ばれないこと
         verifyNever(() => mockService.updateMemoWidget(memos: oldMemos));
 
-        // 4. 新ユーザー（user-2）のメモ確認が完了して同期を再開
+        // 4. 新ユーザー（user-2）のメモ確認が完了して同期を再開（未確認の旧メモは書き込まれないこと）
         container
             .read(homeWidgetSyncCoordinatorProvider.notifier)
             .resumeSyncForCurrentUser();
         await pumpEventQueue();
+
+        // 再開処理によって oldMemos が書き込まれていないこと
+        verifyNever(() => mockService.updateMemoWidget(memos: oldMemos));
 
         // 5. 新ユーザーのメモが通知された場合、正常に同期されること
         final newMemos = [
@@ -546,6 +549,52 @@ void main() {
         await pumpEventQueue();
 
         verify(() => mockService.updateMemoWidget(memos: newMemos)).called(1);
+
+        // 再開後・新メモ通知後も含めて oldMemos は一度も書き込まれていないこと
+        verifyNever(() => mockService.updateMemoWidget(memos: oldMemos));
+      },
+    );
+
+    test(
+      'resumeSyncForCurrentUser に verifiedMemos を渡した場合は直ちにその確認済みメモが同期されること',
+      () async {
+        when(
+          () => mockMemoRepository.watchAllMemos(),
+        ).thenAnswer((_) => const Stream.empty());
+        when(
+          () => mockService.updateMemoWidget(memos: any(named: 'memos')),
+        ).thenAnswer((_) async {});
+
+        final container = ProviderContainer(
+          overrides: [
+            homeWidgetServiceProvider.overrideWithValue(mockService),
+            memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+            isOnlineProvider.overrideWithValue(false),
+            currentUserIdProvider.overrideWith((ref) => 'user-verified'),
+            isAuthenticatedProvider.overrideWith((ref) => true),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final verifiedMemos = [
+          MemoModel(
+            id: 'memo-verified',
+            title: '確認済みメモ',
+            content: '内容',
+            createdAt: DateTime(2026, 9, 28),
+            updatedAt: DateTime(2026, 9, 28),
+          ),
+        ];
+
+        container
+            .read(homeWidgetSyncCoordinatorProvider.notifier)
+            .resumeSyncForCurrentUser(verifiedMemos: verifiedMemos);
+
+        await pumpEventQueue();
+
+        verify(
+          () => mockService.updateMemoWidget(memos: verifiedMemos),
+        ).called(1);
       },
     );
 
