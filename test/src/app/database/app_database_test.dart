@@ -69,6 +69,37 @@ void main() {
       check(afterMemos.isEmpty).equals(true);
     });
 
+    test(
+      'onUpgrade (from 2 to 3): user_id カラムが存在しない場合に addColumn が実行されること',
+      () async {
+        // memos テーブルを一度削除し、user_id カラム無しの旧スキーマで作成
+        await database.customStatement('DROP TABLE IF EXISTS memos;');
+        await database.customStatement('''
+        CREATE TABLE memos (
+          id TEXT NOT NULL PRIMARY KEY,
+          title TEXT NOT NULL,
+          content TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          is_deleted INTEGER NOT NULL,
+          is_synced INTEGER NOT NULL
+        );
+      ''');
+
+        // マイグレーション実行 (from 2 to 3)
+        await database.migration.onUpgrade(database.createMigrator(), 2, 3);
+
+        // user_id カラムが追加されたことを確認
+        final columns = await database
+            .customSelect('PRAGMA table_info(memos);')
+            .get();
+        final hasUserId = columns.any(
+          (row) => row.read<String>('name') == 'user_id',
+        );
+        check(hasUserId).isTrue();
+      },
+    );
+
     test('テーブル操作の基本テスト (CRUD)', () async {
       // Create
       await database
