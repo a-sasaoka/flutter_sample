@@ -123,7 +123,7 @@ Google Maps Platform（Routes API / Directions API）では、日本国内の公
 ユーザーの現在地情報は機密性の高いプライバシーデータです。  
 [map_notifier.dart](../lib/src/features/map/application/map_notifier.dart) は `keepAlive: true` で状態が維持されるため、ユーザーがログアウトした後や別アカウントへ切り替えた後も以前のユーザーの現在地座標がメモリ上に残存するリスクがあります。
 
-- **認証状態のリアクティブ監視**: [map_notifier.dart](../lib/src/features/map/application/map_notifier.dart) 内で [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の `currentUserIdProvider` および `isAuthenticatedProvider` をリアクティブに監視（`ref.listen`）しています。
+- **認証状態のリアクティブ監視**: [map_notifier.dart](../lib/src/features/map/application/map_notifier.dart) 内で [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の `currentUserIdProvider` および `isAuthenticatedProvider` をリアクティブに監視（`ref.listen`）しています。独自認証環境でもJWTの `sub` クレームから取得した `customUserId` が提供されるため、Firebase認証と同様にアカウント変更（`previousUserId != nextUserId`）が即座に検知されます（Issue #314）。
 - **自律的リセット (`reset()`)**: ユーザーのサインアウトまたは別アカウントへの切り替えを検知すると、直ちに `reset()` を呼び出して内部状態を初期状態（`LocationState.initial()`）へ自律的に復帰させます。これにより、取得済みの位置情報やカメラ追従状態がクリーンアップされ、別ユーザーへの位置情報漏洩を確実に防止します。
 - **疎結合アーキテクチャ**: `AuthService` から直接 `MapNotifier` を呼び出すのではなく、Notifier 自身が認証状態の変化を監視して自己初期化を行うため、Feature 間の不要な結合を生じさせません。
 

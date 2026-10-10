@@ -44,7 +44,7 @@ Flutter開発のサンプルプロジェクトです。\
 - [遠隔機能制御・バージョン通知（Firebase Remote Config）](docs/remote_config.md)
 - [AIチャット機能 (Firebase AI Logic)](docs/ai_chat.md)
 - [fl_chart によるグラフ表示デモ](docs/chart.md)
-- [オフラインメモ機能（Memos）](docs/memos.md)
+- [オフラインメモ機能・マルチユーザー対応（Memos）](docs/memos.md)
 - [設定機能（Settings）](docs/settings.md)
 - [オンボーディング機能 (Onboarding)](docs/onboarding.md)
 - [プロフィール登録・変更・アバター画像設定機能 (Profile)](docs/profile.md)

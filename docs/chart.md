@@ -56,7 +56,7 @@ lib/src/features/chart
 - **DIの活用**: 項目の ID 生成に `uuidProvider` を使用しています。これにより、テスト時に ID を固定し、予測可能な検証が可能です。
 - **リセット機能**: 全てのデータを一括削除する `reset()` メソッドを提供しています。
 - **永続性 (keepAlive)**: `keepAlive: true` を設定しているため、入力画面と表示画面を往復してもデータが保持されます。
-- **サインアウト・アカウント変更時の自律リセット**: [chart_notifier.dart](../lib/src/features/chart/application/chart_notifier.dart) 内で [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の `currentUserIdProvider` および `isAuthenticatedProvider` をリアクティブに監視（`ref.listen`）しています。`keepAlive: true` で画面破棄後も保持される一時入力データですが、ユーザーのログアウトや別アカウントへの切り替えを検知して自動的に `reset()` を実行し、前ユーザーの入力データが残存するのを自律的に防止します。
+- **サインアウト・アカウント変更時の自律リセット**: [chart_notifier.dart](../lib/src/features/chart/application/chart_notifier.dart) 内で [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の `currentUserIdProvider` および `isAuthenticatedProvider` をリアクティブに監視（`ref.listen`）しています。独自認証環境でもJWTの `sub` クレームから取得した `customUserId` が提供されるため、Firebase認証と同様にアカウント変更（`previousUserId != nextUserId`）が即座に検知されます（Issue #314）。`keepAlive: true` で画面破棄後も保持される一時入力データですが、ユーザーのログアウトや別アカウントへの切り替えを検知して自動的に `reset()` を実行し、前ユーザーの入力データが残存するのを自律的に防止します。
 
 ### 2. 売上推移グラフの状態管理 (`SalesChartController`)
 

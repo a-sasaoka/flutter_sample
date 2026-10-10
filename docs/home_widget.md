@@ -51,6 +51,7 @@ iOSのWidgetKitおよびAndroidのAppWidgetとFlutter本体の間でデータを
 ### 2. メモデータ変更時の自動同期コーディネーター
 
 メモ画面（Memos）での追加・更新・削除操作が行われた際、UIコンポーネント側にウィジェット同期の責務を持たせず、専用の [home_widget_sync_coordinator.dart](../lib/src/features/home_widget/application/home_widget_sync_coordinator.dart) が `ref.listen(memoProvider, ...)` 経由で自律的にデータ更新を検知します。
+また、同期実行時には現在ログインしているユーザーの `targetUserId` を渡して `memoRepository.getAllMemos(targetUserId)` を呼び出すことで、別ユーザーのメモがウィジェットに混入するのを厳密に防ぎます。
 
 - メモ一覧から論理削除（`isDeleted`）されていない有効なメモのみを抽出。
 - 最終更新日時（`updatedAt`）が最も新しいメモを先頭にソート。
@@ -61,6 +62,7 @@ iOSのWidgetKitおよびAndroidのAppWidgetとFlutter本体の間でデータを
 
 ユーザーがサインアウトした際や別のアカウントへ切り替えた際に、前のユーザーのメモ内容がホーム画面ウィジェット上に残り続けるとプライバシー侵害につながります。  
 本プロジェクトでは、[home_widget_sync_coordinator.dart](../lib/src/features/home_widget/application/home_widget_sync_coordinator.dart) が [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の認証プロバイダー（`currentUserIdProvider` / `isAuthenticatedProvider`）をリアクティブに監視し、ログアウトやアカウント変更を検知してウィジェット共有ストレージを自律的に初期化します。
+独自認証環境においても、JWTから抽出された `customUserId` が `currentUserIdProvider` から提供されるため、Firebase認証と同様にアカウント変更（`previousUserId != nextUserId`）が即座に検知され、新ユーザーのメモ同期へと安全に切り替わります（Issue #314）。
 
 - **初期化処理 (`clearWidgetData`)**: [home_widget_service.dart](../lib/src/features/home_widget/application/home_widget_service.dart) の `clearWidgetData()` を呼び出し、共有ストレージ（App Groups / SharedPreferences）内の最新メモタイトルや件数をクリアして、多言語化された空状態テキストをセットします。
 - **ウィジェット再描画リクエスト**: 初期化データの書き込み完了後、iOS / Android それぞれのネイティブウィジェットへ再描画をリクエストし、ホーム画面の表示を即座にリセットします。
