@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/home_widget/application/home_widget_service.dart';
 import 'package:flutter_sample/src/features/home_widget/application/home_widget_sync_coordinator.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
@@ -13,6 +14,28 @@ import 'package:mocktail/mocktail.dart';
 class MockHomeWidgetService extends Mock implements HomeWidgetService {}
 
 class MockMemoRepository extends Mock implements MemoRepository {}
+
+class TestUserIdNotifier extends Notifier<String?> {
+  @override
+  String? build() => 'initial-user';
+  String? get userId => state;
+  set userId(String? id) => state = id;
+}
+
+final testUserIdProvider = NotifierProvider<TestUserIdNotifier, String?>(
+  TestUserIdNotifier.new,
+);
+
+class TestAuthNotifier extends Notifier<bool> {
+  @override
+  bool build() => true;
+  bool get isAuthenticated => state;
+  set isAuthenticated(bool value) => state = value;
+}
+
+final testAuthNotifierProvider = NotifierProvider<TestAuthNotifier, bool>(
+  TestAuthNotifier.new,
+);
 
 void main() {
   group('HomeWidgetSyncCoordinator', () {
@@ -92,6 +115,77 @@ void main() {
         await pumpEventQueue();
 
         verify(() => mockService.updateMemoWidget(memos: testMemos)).called(1);
+      },
+    );
+
+    test(
+      'currentUserIdProvider の変化（アカウント切り替え）時に clearWidgetData が呼ばれること',
+      () async {
+        when(
+          () => mockMemoRepository.watchAllMemos(),
+        ).thenAnswer((_) => const Stream.empty());
+        when(() => mockService.clearWidgetData()).thenAnswer((_) async {});
+
+        final container = ProviderContainer(
+          overrides: [
+            homeWidgetServiceProvider.overrideWithValue(mockService),
+            memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+            isOnlineProvider.overrideWithValue(false),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(testUserIdProvider),
+            ),
+            isAuthenticatedProvider.overrideWith(
+              (ref) => ref.watch(testAuthNotifierProvider),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        container.read(homeWidgetSyncCoordinatorProvider);
+
+        // ユーザーIDを変更（アカウント切り替え）
+        container.read(testUserIdProvider.notifier).userId = 'changed-user';
+        container.read(currentUserIdProvider);
+
+        await pumpEventQueue();
+
+        verify(() => mockService.clearWidgetData()).called(1);
+      },
+    );
+
+    test(
+      'isAuthenticatedProvider の変化（ログアウト）時に clearWidgetData が呼ばれること',
+      () async {
+        when(
+          () => mockMemoRepository.watchAllMemos(),
+        ).thenAnswer((_) => const Stream.empty());
+        when(() => mockService.clearWidgetData()).thenAnswer((_) async {});
+
+        final container = ProviderContainer(
+          overrides: [
+            homeWidgetServiceProvider.overrideWithValue(mockService),
+            memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+            isOnlineProvider.overrideWithValue(false),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(testUserIdProvider),
+            ),
+            isAuthenticatedProvider.overrideWith(
+              (ref) => ref.watch(testAuthNotifierProvider),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        container.read(homeWidgetSyncCoordinatorProvider);
+
+        // ログアウト（isAuthenticated: false）
+        container.read(testAuthNotifierProvider.notifier).isAuthenticated =
+            false;
+        container.read(isAuthenticatedProvider);
+
+        await pumpEventQueue();
+
+        verify(() => mockService.clearWidgetData()).called(1);
       },
     );
   });

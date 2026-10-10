@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/home_widget/application/home_widget_service.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -17,10 +18,23 @@ class HomeWidgetSyncCoordinator extends _$HomeWidgetSyncCoordinator {
     unawaited(service.initialize());
 
     // 2. メモ一覧の状態（AsyncValue）を監視し、データが更新されたらウィジェットへ反映
-    ref.listen(memoProvider, (previous, next) {
-      if (next case AsyncData(value: final memos)) {
-        unawaited(service.updateMemoWidget(memos: memos));
-      }
-    });
+    // 3. 認証状態の変化（ログアウトや別アカウントへの切り替え）を監視し、
+    //    ウィジェット共有ストレージのデータを初期化（空表示）する
+    ref
+      ..listen(memoProvider, (previous, next) {
+        if (next case AsyncData(value: final memos)) {
+          unawaited(service.updateMemoWidget(memos: memos));
+        }
+      })
+      ..listen<String?>(currentUserIdProvider, (previous, next) {
+        if (previous != next) {
+          unawaited(service.clearWidgetData());
+        }
+      })
+      ..listen<bool>(isAuthenticatedProvider, (previous, next) {
+        if (previous != next) {
+          unawaited(service.clearWidgetData());
+        }
+      });
   }
 }

@@ -290,6 +290,67 @@ void main() {
       });
     });
 
+    group('clearWidgetData', () {
+      test('空状態の多言語化データが保存されウィジェット更新がリクエストされること', () async {
+        when(
+          () => mockDataSource.saveWidgetData<int>(any(), any()),
+        ).thenAnswer((_) async => true);
+        when(
+          () => mockDataSource.saveWidgetData<String>(any(), any()),
+        ).thenAnswer((_) async => true);
+        when(
+          () => mockDataSource.updateWidget(
+            name: any(named: 'name'),
+            androidName: any(named: 'androidName'),
+            iOSName: any(named: 'iOSName'),
+            qualifiedAndroidName: any(named: 'qualifiedAndroidName'),
+          ),
+        ).thenAnswer((_) async => true);
+
+        await service.clearWidgetData();
+
+        verify(
+          () => mockLogger.info('📱 [HomeWidgetService] Clearing widget data'),
+        ).called(1);
+        verify(
+          () => mockDataSource.saveWidgetData<int>(
+            HomeWidgetConstants.keyMemoCount,
+            0,
+          ),
+        ).called(1);
+        verify(
+          () => mockDataSource.saveWidgetData<String>(
+            HomeWidgetConstants.keyLatestMemoId,
+            '',
+          ),
+        ).called(1);
+        verify(
+          () => mockDataSource.saveWidgetData<String>(
+            HomeWidgetConstants.keyLatestMemoTitle,
+            'メモがありません',
+          ),
+        ).called(1);
+        verify(
+          () => mockDataSource.saveWidgetData<String>(
+            HomeWidgetConstants.keyLatestMemoContent,
+            '＋ボタンから最初のメモを作成しましょう！',
+          ),
+        ).called(1);
+        verify(
+          () => mockDataSource.saveWidgetData<String>(
+            HomeWidgetConstants.keyLatestMemoUpdatedAt,
+            '',
+          ),
+        ).called(1);
+        verify(
+          () => mockDataSource.updateWidget(
+            name: HomeWidgetConstants.androidWidgetName,
+            iOSName: HomeWidgetConstants.iOSWidgetName,
+          ),
+        ).called(1);
+      });
+    });
+
     group('getInitiallyLaunchedUri', () {
       test('正常系: 起動時URIを取得できること', () async {
         final testUri = Uri.parse('sampleapp://memos/create');
