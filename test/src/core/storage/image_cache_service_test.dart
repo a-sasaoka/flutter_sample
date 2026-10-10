@@ -165,6 +165,27 @@ void main() {
       },
     );
 
+    test('currentUserIdProvider と isAuthenticatedProvider が同時に変化した際にも '
+        'clearCache が1回だけ呼び出されること', () async {
+      when(() => mockCacheManager.emptyCache()).thenAnswer((_) async {});
+
+      // サービスを購読して初期化
+      authContainer.listen(imageCacheServiceProvider, (_, _) {});
+
+      // ユーザーIDとログイン状態が同時に変化
+      authContainer.read(testUserIdProvider.notifier).userId = null;
+      authContainer.read(testAuthNotifierProvider.notifier).isAuthenticated =
+          false;
+      authContainer
+        ..read(currentUserIdProvider)
+        ..read(isAuthenticatedProvider);
+
+      await pumpEventQueue();
+
+      // 重複せず1回だけ呼び出されることを検証
+      verify(() => mockCacheManager.emptyCache()).called(1);
+    });
+
     test('認証連動の clearCache 実行時に例外が発生してもクラッシュしないこと', () async {
       final exception = Exception('Disk error');
       when(() => mockCacheManager.emptyCache()).thenThrow(exception);
