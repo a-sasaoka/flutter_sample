@@ -449,5 +449,127 @@ void main() {
 
       verify(() => mockService.clearWidgetData()).called(2);
     });
+
+    test(
+      'アカウント切り替え後に旧ユーザーのメモが通知されても updateMemoWidget が呼ばれないこと（同期停止の維持）',
+      () async {
+        final controller = StreamController<List<MemoModel>>.broadcast();
+        addTearDown(controller.close);
+
+        when(
+          () => mockMemoRepository.watchAllMemos(),
+        ).thenAnswer((_) => controller.stream);
+        when(() => mockService.clearWidgetData()).thenAnswer((_) async {});
+        when(
+          () => mockService.updateMemoWidget(memos: any(named: 'memos')),
+        ).thenAnswer((_) async {});
+
+        final container = ProviderContainer(
+          overrides: [
+            homeWidgetServiceProvider.overrideWithValue(mockService),
+            memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+            isOnlineProvider.overrideWithValue(false),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(testUserIdProvider),
+            ),
+            isAuthenticatedProvider.overrideWith(
+              (ref) => ref.watch(testAuthNotifierProvider),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        // 1. 初期ユーザー（user-1）で起動
+        container.read(testUserIdProvider.notifier).userId = 'user-1';
+        container
+          ..listen(memoProvider, (_, _) {})
+          ..read(homeWidgetSyncCoordinatorProvider);
+
+        final initialMemos = [
+          MemoModel(
+            id: 'memo-user1',
+            title: 'ユーザー1のメモ',
+            content: '内容',
+            createdAt: DateTime(2026, 9, 27),
+            updatedAt: DateTime(2026, 9, 27),
+          ),
+        ];
+
+        // ユーザー1のメモは正常に同期される
+        controller.add(initialMemos);
+        await pumpEventQueue();
+        verify(
+          () => mockService.updateMemoWidget(memos: initialMemos),
+        ).called(1);
+
+        // 2. ユーザー2へアカウントを切り替え
+        container.read(testUserIdProvider.notifier).userId = 'user-2';
+        container.read(currentUserIdProvider);
+        await pumpEventQueue();
+
+        // アカウント切り替えによってウィジェットデータがクリアされる
+        verify(() => mockService.clearWidgetData()).called(1);
+
+        // 3. 切り替え後に、SQLiteに残存する旧メモ（ユーザー1のメモ）が通知される
+        final oldMemos = [
+          MemoModel(
+            id: 'memo-user1-old',
+            title: '旧ユーザーの残存メモ',
+            content: '内容',
+            createdAt: DateTime(2026, 9, 27),
+            updatedAt: DateTime(2026, 9, 27),
+          ),
+        ];
+        controller.add(oldMemos);
+        await pumpEventQueue();
+
+        // 同期が停止されているため、updateMemoWidget は呼ばれないこと
+        verifyNever(() => mockService.updateMemoWidget(memos: oldMemos));
+
+        // 4. 新ユーザー（user-2）のメモ確認が完了して同期を再開
+        container
+            .read(homeWidgetSyncCoordinatorProvider.notifier)
+            .resumeSyncForCurrentUser();
+        await pumpEventQueue();
+
+        // 5. 新ユーザーのメモが通知された場合、正常に同期されること
+        final newMemos = [
+          MemoModel(
+            id: 'memo-user2',
+            title: 'ユーザー2の新メモ',
+            content: '内容',
+            createdAt: DateTime(2026, 9, 28),
+            updatedAt: DateTime(2026, 9, 28),
+          ),
+        ];
+        controller.add(newMemos);
+        await pumpEventQueue();
+
+        verify(() => mockService.updateMemoWidget(memos: newMemos)).called(1);
+      },
+    );
+
+    test('未ログイン状態では resumeSyncForCurrentUser を呼び出しても同期が再開されないこと', () async {
+      when(
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => const Stream.empty());
+
+      final container = ProviderContainer(
+        overrides: [
+          homeWidgetServiceProvider.overrideWithValue(mockService),
+          memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+          isOnlineProvider.overrideWithValue(false),
+          currentUserIdProvider.overrideWith((ref) => null),
+          isAuthenticatedProvider.overrideWith((ref) => false),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container
+          .read(homeWidgetSyncCoordinatorProvider.notifier)
+          .resumeSyncForCurrentUser();
+
+      await pumpEventQueue();
+    });
   });
 }
