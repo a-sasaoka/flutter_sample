@@ -120,7 +120,7 @@ lib/src/features/auth/
 
 - **完全な依存性注入 (DI)**: `Ref` への直接依存を排除し、必要なロガー・設定・リポジトリ・Notifier をコンストラクタ引数として個別に受け取る設計になっており、単体テスト時のモック差し替えが容易です。実装詳細は [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) を参照してください。
 - **認証方式の隠蔽**: `EnvConfig.useFirebaseAuth` の値に応じて、Firebase のサインアウトまたはローカルトークンの破棄を適切に実行します。
-- **循環依存の排除**: `AuthService` は `AppLockService` を直接保持・呼び出しせず、純粋にセッションの破棄のみを担当します。アプリロック側の消去はイベント検知（`ref.listen`）によって自律的に行われます。
+- **循環依存の排除**: `AuthService` は `AppLockService` や `ChatNotifier` を直接保持・呼び出しせず、純粋にセッションの破棄のみを担当します。アプリロック側の消去やチャット履歴・AIセッションの破棄は、各機能が認証状態の変化を監視（`ref.listen`）して自律的に実行されます（Feature Driven Architecture に従った疎結合設計）。
 - **統一されたログイン判定**: `isAuthenticatedProvider` により、UI 側は1行で「何らかの方式でログイン中か」を監視・判定できます。
 
 ---

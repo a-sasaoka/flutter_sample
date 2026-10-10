@@ -5,6 +5,7 @@ import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
@@ -15,6 +16,30 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 import 'package:uuid/data.dart';
 import 'package:uuid/uuid.dart';
+
+// --- Test Auth Notifiers ---
+// 認証状態の動的変化をシミュレートするためのテスト用Notifier
+class TestUserIdNotifier extends Notifier<String?> {
+  @override
+  String? build() => 'initial-user';
+  String? get userId => state;
+  set userId(String? id) => state = id;
+}
+
+final testUserIdProvider = NotifierProvider<TestUserIdNotifier, String?>(
+  TestUserIdNotifier.new,
+);
+
+class TestAuthNotifier extends Notifier<bool> {
+  @override
+  bool build() => true;
+  bool get isAuthenticated => state;
+  set isAuthenticated(bool value) => state = value;
+}
+
+final testAuthNotifierProvider = NotifierProvider<TestAuthNotifier, bool>(
+  TestAuthNotifier.new,
+);
 
 // --- Fake Repository ---
 // Streamの挙動を完全にコントロールするためのFakeクラス
@@ -109,16 +134,28 @@ void main() {
   });
 
   /// テスト環境のセットアップヘルパー
-  ProviderContainer createContainer(FakeChatRepository fakeRepo) {
+  ProviderContainer createContainer(
+    FakeChatRepository fakeRepo, {
+    void Function(Ref)? onRepoInit,
+  }) {
     // 現在時刻を固定して、システム情報の文字列を完全に予測可能にする
     final fixedDateTime = DateTime(2026, 3, 21, 10);
 
     final container = ProviderContainer(
       overrides: [
-        chatRepositoryProvider.overrideWithValue(fakeRepo),
+        chatRepositoryProvider.overrideWith((ref) {
+          onRepoInit?.call(ref);
+          return fakeRepo;
+        }),
         clockProvider.overrideWithValue(() => fixedDateTime),
         uuidProvider.overrideWithValue(FakeUuid()),
         loggerProvider.overrideWithValue(spyTalker),
+        currentUserIdProvider.overrideWith(
+          (ref) => ref.watch(testUserIdProvider),
+        ),
+        isAuthenticatedProvider.overrideWith(
+          (ref) => ref.watch(testAuthNotifierProvider),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -427,5 +464,190 @@ void main() {
         check(spy.handleCalls.first.stackTrace).isNotNull();
       },
     );
+
+    group('認証状態の変更・サインアウト連動 (Issue #311)', () {
+      test('ユーザーID変更時（アカウント切り替え）に履歴が自動クリアされ、セッションが破棄されること', () async {
+        var repoDisposed = false;
+        final fakeRepo = FakeChatRepository();
+        final container = createContainer(
+          fakeRepo,
+          onRepoInit: (ref) {
+            ref.onDispose(() => repoDisposed = true);
+          },
+        );
+        final notifier = container.read(chatProvider.notifier);
+
+        // メッセージを送信して履歴を作る
+        await notifier.sendMessage('アカウントAのメッセージ');
+        check(container.read(chatProvider).messages).isNotEmpty();
+        check(repoDisposed).isFalse();
+
+        // ユーザーIDを変更（アカウント切り替え）
+        container.read(testUserIdProvider.notifier).userId = 'user-b';
+
+        // 検証: 履歴が空になり、chatRepositoryProviderが破棄されていること
+        final state = container.read(chatProvider);
+        check(state.messages).isEmpty();
+        check(state.isGenerating).isFalse();
+        check(repoDisposed).isTrue();
+      });
+
+      test(
+        'サインアウト時（isAuthenticatedがfalseへ遷移）に履歴が自動クリアされ、セッションが破棄されること',
+        () async {
+          var repoDisposed = false;
+          final fakeRepo = FakeChatRepository();
+          final container = createContainer(
+            fakeRepo,
+            onRepoInit: (ref) {
+              ref.onDispose(() => repoDisposed = true);
+            },
+          );
+          final notifier = container.read(chatProvider.notifier);
+
+          await notifier.sendMessage('ログアウト前のメッセージ');
+          check(container.read(chatProvider).messages).isNotEmpty();
+          check(repoDisposed).isFalse();
+
+          // ログアウト状態へ遷移
+          container.read(testAuthNotifierProvider.notifier).isAuthenticated =
+              false;
+
+          final state = container.read(chatProvider);
+          check(state.messages).isEmpty();
+          check(state.isGenerating).isFalse();
+          check(repoDisposed).isTrue();
+        },
+      );
+
+      test('サインアウト時（currentUserIdがnullへ遷移）に履歴が自動クリアされ、セッションが破棄されること', () async {
+        var repoDisposed = false;
+        final fakeRepo = FakeChatRepository();
+        final container = createContainer(
+          fakeRepo,
+          onRepoInit: (ref) {
+            ref.onDispose(() => repoDisposed = true);
+          },
+        );
+        final notifier = container.read(chatProvider.notifier);
+
+        await notifier.sendMessage('Firebaseログアウト前のメッセージ');
+        check(container.read(chatProvider).messages).isNotEmpty();
+
+        // Firebaseログアウト（nullへ遷移）
+        container.read(testUserIdProvider.notifier).userId = null;
+
+        final state = container.read(chatProvider);
+        check(state.messages).isEmpty();
+        check(state.isGenerating).isFalse();
+        check(repoDisposed).isTrue();
+      });
+
+      test(
+        'sendMessage送信中にサインアウトされた場合、返答がstateに反映されず遮断（Fencing）されること',
+        () async {
+          final fakeRepo = FakeChatRepository();
+          final container = createContainer(fakeRepo);
+          final notifier = container.read(chatProvider.notifier);
+
+          // 送信開始（50ms待機中にログアウトさせる）
+          final future = notifier.sendMessage('送信中の質問');
+
+          check(container.read(chatProvider).isGenerating).isTrue();
+
+          // 通信中にログアウト
+          container.read(testAuthNotifierProvider.notifier).isAuthenticated =
+              false;
+
+          await future;
+
+          // 検証: ログアウト後の画面に古いレスポンスは反映されず、isGeneratingも解除されていること
+          final state = container.read(chatProvider);
+          check(state.messages).isEmpty();
+          check(state.isGenerating).isFalse();
+        },
+      );
+
+      test(
+        'sendMessageStream受信中にアカウントが切り替わった場合、後続チャンクが遮断（Fencing）されること',
+        () async {
+          final fakeRepo = FakeChatRepository();
+          final container = createContainer(fakeRepo);
+          final notifier = container.read(chatProvider.notifier);
+
+          // Stream送信開始
+          final future = notifier.sendMessageStream('ストリーミング質問');
+
+          check(container.read(chatProvider).isGenerating).isTrue();
+
+          // 最初のチャンクが流れる直前にアカウント切り替え
+          container.read(testUserIdProvider.notifier).userId = 'user-new';
+
+          await future;
+
+          // 検証: 履歴は空のままであり、新アカウントに古いストリームデータが混入していないこと
+          final state = container.read(chatProvider);
+          check(state.messages).isEmpty();
+          check(state.isGenerating).isFalse();
+        },
+      );
+
+      test('sendMessage送信中に例外が発生し、世代が変更されていた場合エラー表示も遮断されること', () async {
+        final expectedException = Exception('API Error');
+        final fakeRepo = FakeChatRepository()
+          ..exceptionToThrow = expectedException;
+        final container = createContainer(fakeRepo);
+        final notifier = container.read(chatProvider.notifier);
+
+        final future = notifier.sendMessage('エラー質問');
+        container.read(testUserIdProvider.notifier).userId = 'user-changed';
+
+        await future;
+
+        final state = container.read(chatProvider);
+        check(state.messages).isEmpty();
+        check(state.isGenerating).isFalse();
+      });
+
+      test('sendMessageStream受信中に例外が発生し、世代が変更されていた場合エラー表示も遮断されること', () async {
+        final expectedException = Exception('Stream API Error');
+        final fakeRepo = FakeChatRepository()
+          ..streamExceptionToThrow = expectedException;
+        final container = createContainer(fakeRepo);
+        final notifier = container.read(chatProvider.notifier);
+
+        final future = notifier.sendMessageStream('Streamエラー質問');
+        container.read(testUserIdProvider.notifier).userId = 'user-changed';
+
+        await future;
+
+        final state = container.read(chatProvider);
+        check(state.messages).isEmpty();
+        check(state.isGenerating).isFalse();
+      });
+
+      test(
+        'clearHistory手動呼び出し時にchatRepositoryProviderが無効化（再生成）されること',
+        () async {
+          var repoDisposed = false;
+          final fakeRepo = FakeChatRepository();
+          final container = createContainer(
+            fakeRepo,
+            onRepoInit: (ref) {
+              ref.onDispose(() => repoDisposed = true);
+            },
+          );
+          final notifier = container.read(chatProvider.notifier);
+
+          await notifier.sendMessage('テスト');
+          check(repoDisposed).isFalse();
+
+          notifier.clearHistory();
+
+          check(repoDisposed).isTrue();
+          check(container.read(chatProvider).messages).isEmpty();
+        },
+      );
+    });
   });
 }

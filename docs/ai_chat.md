@@ -58,12 +58,14 @@ FirebaseのSDKに直接依存するのではなく、`ChatApiClient` という�
 - **Repository**: クライアントから受け取ったテキストの Stream を返却。
 - **Notifier**: `await for` ループを用いてチャンクを受信するたびに State を更新し、文字がタイピングされるようなリアルタイムなUI描画を実現。
 
-### 4. 会話履歴（コンテキスト）の保持と永続性
+### 4. 会話履歴（コンテキスト）の保持と安全なセッション破棄
 
 AIが文脈を理解した対話を行えるよう、クライアント内で `ChatSession` クラスを利用しています。  
 本プロジェクトでは `keepAlive: true` を設定した `ChatRepository` および `ChatNotifier` により、**「画面を閉じたりホームに戻ったりしても、会話の履歴をアプリ内で保持し続ける」** という、モダンなチャットアプリの挙動を実現しています。
 
 - **明示的なリセット**: ユーザーが会話を新しくやり直したい場合は、画面上部の「履歴をすべて削除」ボタンからいつでもコンテキストをリセットできます。
+- **サインアウト・アカウント切り替え時の自動破棄**: 同一端末でのプライバシー保護と情報漏えい防止のため、[chat_notifier.dart](../lib/src/features/chat/application/chat_notifier.dart) は [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の認証状態（`currentUserIdProvider` および `isAuthenticatedProvider`）をリアクティブに監視しています。ユーザーIDの変更やログアウト（未ログインへの遷移）を検知すると、画面上の履歴クリア（`clearHistory()`）と同時に [chat_provider.dart](../lib/src/features/chat/data/chat_provider.dart) の `chatRepositoryProvider` を自動で無効化（`invalidate`）し、Geminiモデル内部の会話セッションも含めて安全に破棄・再生成します。
+- **進行中リクエストの遮断（Fencing）**: メッセージ送信中（ストリーミング含む）にログアウトやアカウント切り替えが発生した場合でも、旧アカウントの通信結果が新しいアカウントの画面状態に混入しないよう、世代管理カウンターによる厳格なコールバック遮断（Fencing）を実施しています。
 
 ### 5. OS タイムゾーン情報を含めた日時コンテキスト制御
 
