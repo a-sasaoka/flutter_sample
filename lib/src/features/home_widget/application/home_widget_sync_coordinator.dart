@@ -17,6 +17,22 @@ class HomeWidgetSyncCoordinator extends _$HomeWidgetSyncCoordinator {
   String? _lastUserId;
   bool? _lastIsAuthenticated;
 
+  /// ウィジェット共有ストレージへの書き込み順序を直列化（FIFO順）するためのチェーン
+  Future<void> _writeQueue = Future<void>.value();
+
+  /// ウィジェット書き込み処理を直列化キューに積む内部ヘルパー
+  Future<void> _enqueueWrite(Future<void> Function() action) {
+    final nextTask = _writeQueue
+        .then((_) async {
+          await action();
+        })
+        .catchError((Object _, StackTrace _) {
+          // 直列化チェーンが例外で破断しないよう握りつぶす
+        });
+    _writeQueue = nextTask;
+    return nextTask;
+  }
+
   @override
   void build() {
     final service = ref.watch(homeWidgetServiceProvider);
@@ -28,8 +44,8 @@ class HomeWidgetSyncCoordinator extends _$HomeWidgetSyncCoordinator {
     _lastUserId = ref.read(currentUserIdProvider);
     _lastIsAuthenticated = ref.read(isAuthenticatedProvider);
 
-    // 2. メモ一覧の状態（AsyncValue）を監視し、ログイン中であればウィジェットへ反映
-    ref.listen(memoProvider, (previous, next) async {
+    // 2. メモ一覧の状態（AsyncValue）を監視し、ログイン中であれば直列化キュー経由でウィジェットへ反映
+    ref.listen(memoProvider, (previous, next) {
       final isAuthenticated = ref.read(isAuthenticatedProvider);
       // 未ログイン状態では同期を停止（前ユーザーのメモ混入防止）
       if (!isAuthenticated) {
@@ -37,18 +53,21 @@ class HomeWidgetSyncCoordinator extends _$HomeWidgetSyncCoordinator {
       }
 
       if (next case AsyncData(value: final memos)) {
-        final currentGen = _syncGeneration;
-        await service.updateMemoWidget(memos: memos);
-        // 更新中にアカウント切替やログアウトが発生していた場合、
-        // 古いメモが上書きされた可能性があるため、直ちに再初期化を実行（Fencing）
-        if (currentGen != _syncGeneration) {
-          unawaited(service.clearWidgetData());
-        }
+        final taskGen = _syncGeneration;
+        unawaited(
+          _enqueueWrite(() async {
+            // 実行順が回ってきた時点で世代が変わっている（ログアウトやアカウント切替）場合はスキップ
+            if (taskGen != _syncGeneration) {
+              return;
+            }
+            await service.updateMemoWidget(memos: memos);
+          }),
+        );
       }
     });
 
     // 3. 認証状態の変化（ログアウトや別アカウントへの切り替え）を監視し、
-    //    進行中同期を遮断（Fencing）した上でウィジェット共有ストレージを初期化（空表示）する
+    //    直列化キュー経由でウィジェット共有ストレージを初期化（空表示）する
     void handleAuthChange() {
       final nextUserId = ref.read(currentUserIdProvider);
       final nextAuth = ref.read(isAuthenticatedProvider);
@@ -57,7 +76,11 @@ class HomeWidgetSyncCoordinator extends _$HomeWidgetSyncCoordinator {
         _lastUserId = nextUserId;
         _lastIsAuthenticated = nextAuth;
         _syncGeneration++;
-        unawaited(service.clearWidgetData());
+        unawaited(
+          _enqueueWrite(() async {
+            await service.clearWidgetData();
+          }),
+        );
       }
     }
 

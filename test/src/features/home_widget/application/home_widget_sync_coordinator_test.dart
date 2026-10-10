@@ -267,69 +267,187 @@ void main() {
       verify(() => mockService.clearWidgetData()).called(1);
     });
 
-    test(
-      'updateMemoWidget 実行中に認証状態が変化した場合、Fencing により clearWidgetData が呼び出されること',
-      () async {
-        final controller = StreamController<List<MemoModel>>.broadcast();
-        final completer = Completer<void>();
-        addTearDown(controller.close);
+    test('updateMemoWidget 実行中に認証状態が変化した場合、 '
+        '直列化キューにより updateMemoWidget 完了直後に clearWidgetData が呼び出されること', () async {
+      final controller = StreamController<List<MemoModel>>.broadcast();
+      final completer = Completer<void>();
+      addTearDown(controller.close);
 
-        when(
-          () => mockMemoRepository.watchAllMemos(),
-        ).thenAnswer((_) => controller.stream);
-        when(
-          () => mockService.updateMemoWidget(memos: any(named: 'memos')),
-        ).thenAnswer((_) => completer.future);
-        when(() => mockService.clearWidgetData()).thenAnswer((_) async {});
+      when(
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => controller.stream);
+      when(
+        () => mockService.updateMemoWidget(memos: any(named: 'memos')),
+      ).thenAnswer((_) => completer.future);
+      when(() => mockService.clearWidgetData()).thenAnswer((_) async {});
 
-        final container = ProviderContainer(
-          overrides: [
-            homeWidgetServiceProvider.overrideWithValue(mockService),
-            memoRepositoryProvider.overrideWithValue(mockMemoRepository),
-            isOnlineProvider.overrideWithValue(false),
-            currentUserIdProvider.overrideWith(
-              (ref) => ref.watch(testUserIdProvider),
-            ),
-            isAuthenticatedProvider.overrideWith(
-              (ref) => ref.watch(testAuthNotifierProvider),
-            ),
-          ],
-        );
-        addTearDown(container.dispose);
-
-        container
-          ..listen(memoProvider, (_, _) {})
-          ..read(homeWidgetSyncCoordinatorProvider);
-
-        final testMemos = [
-          MemoModel(
-            id: 'memo-1',
-            title: 'テスト',
-            content: '内容',
-            createdAt: DateTime(2026, 9, 27),
-            updatedAt: DateTime(2026, 9, 27),
+      final container = ProviderContainer(
+        overrides: [
+          homeWidgetServiceProvider.overrideWithValue(mockService),
+          memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+          isOnlineProvider.overrideWithValue(false),
+          currentUserIdProvider.overrideWith(
+            (ref) => ref.watch(testUserIdProvider),
           ),
-        ];
+          isAuthenticatedProvider.overrideWith(
+            (ref) => ref.watch(testAuthNotifierProvider),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
 
-        // 1. メモ更新を開始（completer.future により未完了状態）
-        controller.add(testMemos);
-        await pumpEventQueue();
+      container
+        ..listen(memoProvider, (_, _) {})
+        ..read(homeWidgetSyncCoordinatorProvider);
 
-        // 2. 更新の最中にアカウント変更が発生
-        container.read(testUserIdProvider.notifier).userId = 'another-user';
-        container.read(currentUserIdProvider);
-        await pumpEventQueue();
+      final testMemos = [
+        MemoModel(
+          id: 'memo-1',
+          title: 'テスト',
+          content: '内容',
+          createdAt: DateTime(2026, 9, 27),
+          updatedAt: DateTime(2026, 9, 27),
+        ),
+      ];
 
-        // アカウント変更によって1回目の clearWidgetData が呼ばれている
-        verify(() => mockService.clearWidgetData()).called(1);
+      // 1. メモ更新を開始（completer.future により未完了状態）
+      controller.add(testMemos);
+      await pumpEventQueue();
 
-        // 3. 遅れて最初の updateMemoWidget が完了
-        completer.complete();
-        await pumpEventQueue();
+      // 2. 更新の最中にアカウント変更が発生
+      container.read(testUserIdProvider.notifier).userId = 'another-user';
+      container.read(currentUserIdProvider);
+      await pumpEventQueue();
 
-        // Fencing により、世代不一致を検知して再度 clearWidgetData が呼ばれ、上書きを防止
-        verify(() => mockService.clearWidgetData()).called(1);
-      },
-    );
+      // 直列化キューにより、updateMemoWidget が完了するまでは clearWidgetData は待機する
+      verifyNever(() => mockService.clearWidgetData());
+
+      // 3. updateMemoWidget が完了
+      completer.complete();
+      await pumpEventQueue();
+
+      // 直列化キューにより、updateMemoWidget 完了直後に clearWidgetData が確実に呼ばれて空表示に確定する
+      verify(() => mockService.clearWidgetData()).called(1);
+    });
+
+    test('メモ更新タスクがキュー待機中にアカウント変更が発生した場合、 '
+        '実行順が回ってきた際にメモ更新がスキップされ、clearWidgetData のみが実行されること', () async {
+      final controller = StreamController<List<MemoModel>>.broadcast();
+      final firstMemoCompleter = Completer<void>();
+      addTearDown(controller.close);
+
+      when(
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => controller.stream);
+      when(
+        () => mockService.updateMemoWidget(memos: any(named: 'memos')),
+      ).thenAnswer((_) => firstMemoCompleter.future);
+      when(() => mockService.clearWidgetData()).thenAnswer((_) async {});
+
+      final container = ProviderContainer(
+        overrides: [
+          homeWidgetServiceProvider.overrideWithValue(mockService),
+          memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+          isOnlineProvider.overrideWithValue(false),
+          currentUserIdProvider.overrideWith(
+            (ref) => ref.watch(testUserIdProvider),
+          ),
+          isAuthenticatedProvider.overrideWith(
+            (ref) => ref.watch(testAuthNotifierProvider),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container
+        ..listen(memoProvider, (_, _) {})
+        ..read(homeWidgetSyncCoordinatorProvider);
+
+      final firstMemos = [
+        MemoModel(
+          id: 'memo-1',
+          title: '最初のメモ',
+          content: '内容',
+          createdAt: DateTime(2026, 9, 27),
+          updatedAt: DateTime(2026, 9, 27),
+        ),
+      ];
+
+      // 1. 最初（タスク1）のメモ更新を開始（completer.future で実行中）
+      controller.add(firstMemos);
+      await pumpEventQueue();
+
+      // 2. タスク1が実行中の状態で、2つ目（タスク2）のメモ更新をキューに追加
+      final secondMemos = [
+        MemoModel(
+          id: 'memo-2',
+          title: '2つ目のメモ',
+          content: '内容',
+          createdAt: DateTime(2026, 9, 27),
+          updatedAt: DateTime(2026, 9, 27),
+        ),
+      ];
+      controller.add(secondMemos);
+      await pumpEventQueue();
+
+      // 3. タスク2が待機中の間にアカウント変更が発生
+      container.read(testUserIdProvider.notifier).userId = 'another-user';
+      container.read(currentUserIdProvider);
+      await pumpEventQueue();
+
+      // 4. タスク1を完了させる
+      firstMemoCompleter.complete();
+      await pumpEventQueue();
+
+      // タスク2は taskGen != _syncGeneration によりスキップされるため、
+      // updateMemoWidget は最初の1回しか呼ばれていない
+      verify(() => mockService.updateMemoWidget(memos: firstMemos)).called(1);
+      verifyNever(() => mockService.updateMemoWidget(memos: secondMemos));
+
+      // clearWidgetData が実行されている
+      verify(() => mockService.clearWidgetData()).called(1);
+    });
+
+    test('直列化キュー内のタスクがエラーをスローしてもチェーンが破断せず後続のタスクが正常に実行されること', () async {
+      when(
+        () => mockMemoRepository.watchAllMemos(),
+      ).thenAnswer((_) => const Stream.empty());
+      var callCount = 0;
+      when(() => mockService.clearWidgetData()).thenAnswer((_) async {
+        callCount++;
+        if (callCount == 1) {
+          throw Exception('Simulated widget clear failure');
+        }
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          homeWidgetServiceProvider.overrideWithValue(mockService),
+          memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+          isOnlineProvider.overrideWithValue(false),
+          currentUserIdProvider.overrideWith(
+            (ref) => ref.watch(testUserIdProvider),
+          ),
+          isAuthenticatedProvider.overrideWith(
+            (ref) => ref.watch(testAuthNotifierProvider),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(homeWidgetSyncCoordinatorProvider);
+
+      // 1回目のアカウント変更（例外が発生する）
+      container.read(testUserIdProvider.notifier).userId = 'user-2';
+      container.read(currentUserIdProvider);
+      await pumpEventQueue();
+
+      // 2回目のアカウント変更（破断せず実行されること）
+      container.read(testUserIdProvider.notifier).userId = 'user-3';
+      container.read(currentUserIdProvider);
+      await pumpEventQueue();
+
+      verify(() => mockService.clearWidgetData()).called(2);
+    });
   });
 }
