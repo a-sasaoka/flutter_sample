@@ -4,6 +4,7 @@ import 'package:checks/checks.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/notification/application/notification_notifier.dart';
 import 'package:flutter_sample/src/features/notification/application/notification_state.dart';
 import 'package:flutter_sample/src/features/notification/data/push_notification_service.dart';
@@ -23,6 +24,28 @@ class MockGoRouter extends Mock implements GoRouter {}
 class MockNotificationSettings extends Mock implements NotificationSettings {}
 
 class MockTalker extends Mock implements Talker {}
+
+class TestUserIdNotifier extends Notifier<String?> {
+  @override
+  String? build() => 'initial-user';
+  String? get userId => state;
+  set userId(String? id) => state = id;
+}
+
+final testUserIdProvider = NotifierProvider<TestUserIdNotifier, String?>(
+  TestUserIdNotifier.new,
+);
+
+class TestAuthNotifier extends Notifier<bool> {
+  @override
+  bool build() => true;
+  bool get isAuthenticated => state;
+  set isAuthenticated(bool value) => state = value;
+}
+
+final testAuthNotifierProvider = NotifierProvider<TestAuthNotifier, bool>(
+  TestAuthNotifier.new,
+);
 
 void main() {
   late MockPushNotificationService mockService;
@@ -58,6 +81,8 @@ void main() {
     when(
       () => mockService.onTokenRefresh,
     ).thenAnswer((_) => tokenRefreshController.stream);
+    when(() => mockService.deleteToken()).thenAnswer((_) async {});
+    when(() => mockService.cancelAllNotifications()).thenAnswer((_) async {});
   });
 
   tearDown(() async {
@@ -70,6 +95,12 @@ void main() {
         pushNotificationServiceProvider.overrideWithValue(mockService),
         routerProvider.overrideWithValue(mockRouter),
         loggerProvider.overrideWithValue(mockTalker),
+        currentUserIdProvider.overrideWith(
+          (ref) => ref.watch(testUserIdProvider),
+        ),
+        isAuthenticatedProvider.overrideWith(
+          (ref) => ref.watch(testAuthNotifierProvider),
+        ),
       ],
     )..listen(notificationProvider, (previous, next) {});
     addTearDown(container.dispose);
@@ -376,6 +407,163 @@ void main() {
       final dataState = state as NotificationStateData;
       check(dataState.latestPayload).equals(pendingPayload);
       check(dataState.lastReceivedPayload).equals(pendingPayload);
+    });
+
+    group('認証連動テスト', () {
+      test(
+        'currentUserIdProvider の変化（アカウント切り替え）時にトークン破棄・通知消去・新トークン再取得が行われること',
+        () async {
+          final container = createContainer();
+          await pumpEventQueue();
+
+          // 初期状態でトークンがセットされていることを確認
+          final initialState = container.read(notificationProvider);
+          check(initialState).isA<NotificationStateData>();
+          check(
+            (initialState as NotificationStateData).fcmToken,
+          ).equals('initial_test_token');
+
+          // 新しいトークンを返すようにモックを設定
+          when(
+            () => mockService.getToken(),
+          ).thenAnswer((_) async => 'new_account_token');
+
+          // ユーザーIDを変更（アカウント切り替え）
+          container.read(testUserIdProvider.notifier).userId = 'another_user';
+          container.read(currentUserIdProvider);
+
+          await pumpEventQueue();
+
+          verify(() => mockService.deleteToken()).called(1);
+          verify(() => mockService.cancelAllNotifications()).called(1);
+
+          final updatedState = container.read(notificationProvider);
+          check(updatedState).isA<NotificationStateData>();
+          check(
+            (updatedState as NotificationStateData).fcmToken,
+          ).equals('new_account_token');
+        },
+      );
+
+      test(
+        'currentUserIdProvider の変化（ログアウト）時にトークン破棄・通知消去・状態リセットが行われること',
+        () async {
+          final container = createContainer();
+          await pumpEventQueue();
+
+          // ユーザーIDを null に変更（ログアウト）
+          container.read(testUserIdProvider.notifier).userId = null;
+          container.read(currentUserIdProvider);
+
+          await pumpEventQueue();
+
+          verify(() => mockService.deleteToken()).called(1);
+          verify(() => mockService.cancelAllNotifications()).called(1);
+
+          final state = container.read(notificationProvider);
+          check(state).isA<NotificationStateData>();
+          final dataState = state as NotificationStateData;
+          check(dataState.fcmToken).isNull();
+          check(dataState.latestPayload).isNull();
+          check(dataState.lastReceivedPayload).isNull();
+        },
+      );
+
+      test(
+        'isAuthenticatedProvider の変化（ログアウト）時にトークン破棄・通知消去・状態リセットが行われること',
+        () async {
+          final container = createContainer();
+          await pumpEventQueue();
+
+          // isAuthenticated を false に変更（ログアウト）
+          container.read(testAuthNotifierProvider.notifier).isAuthenticated =
+              false;
+          container.read(isAuthenticatedProvider);
+
+          await pumpEventQueue();
+
+          verify(() => mockService.deleteToken()).called(1);
+          verify(() => mockService.cancelAllNotifications()).called(1);
+
+          final state = container.read(notificationProvider);
+          check(state).isA<NotificationStateData>();
+          final dataState = state as NotificationStateData;
+          check(dataState.fcmToken).isNull();
+        },
+      );
+
+      test('自前認証ログイン時（currentUserId は null だが '
+          'isAuthenticated が true へ遷移）にトークンが再取得されること', () async {
+        // 初期状態は未ログイン
+        final container = ProviderContainer(
+          overrides: [
+            pushNotificationServiceProvider.overrideWithValue(mockService),
+            routerProvider.overrideWithValue(mockRouter),
+            loggerProvider.overrideWithValue(mockTalker),
+            currentUserIdProvider.overrideWith((ref) => null),
+            isAuthenticatedProvider.overrideWith(
+              (ref) => ref.watch(testAuthNotifierProvider),
+            ),
+          ],
+        )..listen(notificationProvider, (previous, next) {});
+        addTearDown(container.dispose);
+
+        // 未ログイン状態で初期化
+        container.read(testAuthNotifierProvider.notifier).isAuthenticated =
+            false;
+        await pumpEventQueue();
+
+        // ログイン状態へ遷移
+        when(
+          () => mockService.getToken(),
+        ).thenAnswer((_) async => 'custom_auth_token');
+        container.read(testAuthNotifierProvider.notifier).isAuthenticated =
+            true;
+        container.read(isAuthenticatedProvider);
+
+        await pumpEventQueue();
+
+        final state = container.read(notificationProvider);
+        check(state).isA<NotificationStateData>();
+        final dataState = state as NotificationStateData;
+        check(dataState.fcmToken).equals('custom_auth_token');
+      });
+
+      test('未ログインから Firebase Auth ログイン（currentUserId が '
+          'null から ID へ遷移）時にトークンが再取得されること', () async {
+        final container = ProviderContainer(
+          overrides: [
+            pushNotificationServiceProvider.overrideWithValue(mockService),
+            routerProvider.overrideWithValue(mockRouter),
+            loggerProvider.overrideWithValue(mockTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(testUserIdProvider),
+            ),
+            isAuthenticatedProvider.overrideWith(
+              (ref) => ref.watch(testAuthNotifierProvider),
+            ),
+          ],
+        )..listen(notificationProvider, (previous, next) {});
+        addTearDown(container.dispose);
+
+        container.read(testUserIdProvider.notifier).userId = null;
+        await pumpEventQueue();
+
+        // ログイン
+        when(
+          () => mockService.getToken(),
+        ).thenAnswer((_) async => 'firebase_login_token');
+        container.read(testUserIdProvider.notifier).userId = 'logged_in_user';
+        container.read(currentUserIdProvider);
+
+        await pumpEventQueue();
+
+        final state = container.read(notificationProvider);
+        check(state).isA<NotificationStateData>();
+        check(
+          (state as NotificationStateData).fcmToken,
+        ).equals('firebase_login_token');
+      });
     });
   });
 }

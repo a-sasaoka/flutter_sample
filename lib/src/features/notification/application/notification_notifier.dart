@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/notification/application/notification_state.dart';
 import 'package:flutter_sample/src/features/notification/data/push_notification_service_provider.dart';
 import 'package:flutter_sample/src/features/notification/domain/notification_payload.dart';
@@ -12,9 +13,30 @@ part 'notification_notifier.g.dart';
 @Riverpod(keepAlive: true)
 class NotificationNotifier extends _$NotificationNotifier {
   NotificationPayload? _pendingPayload;
+  bool _isCleaningUp = false;
 
   @override
   NotificationState build() {
+    // 認証状態の変化（ログアウトや別アカウントへの切り替え）を監視し、
+    // FCMトークンの破棄、通知バナーの消去、および再ログイン時のトークン再取得を行う
+    ref
+      ..listen<String?>(currentUserIdProvider, (previous, next) {
+        if (previous != next) {
+          unawaited(_handleUserChanged(previous, next));
+        }
+      })
+      ..listen<bool>(isAuthenticatedProvider, (previous, next) {
+        if (previous != next) {
+          if (!next) {
+            unawaited(_handleSignOut());
+          } else if (ref.read(currentUserIdProvider) == null) {
+            // 自前認証ログイン（currentUserIdProvider は null だが
+            // isAuthenticated が true に遷移）
+            unawaited(_init());
+          }
+        }
+      });
+
     unawaited(_init());
     return const NotificationState.loading();
   }
@@ -56,6 +78,62 @@ class NotificationNotifier extends _$NotificationNotifier {
       if (!ref.mounted) return;
       talker.handle(e, st, '通知の初期化処理中にエラーが発生しました');
       state = NotificationState.error(message: e.toString());
+    }
+  }
+
+  /// サインアウト時のクリーンアップ処理（トークン破棄・通知バナー消去・状態リセット）
+  Future<void> _handleSignOut() async {
+    if (_isCleaningUp) return;
+    _isCleaningUp = true;
+    try {
+      final service = ref.read(pushNotificationServiceProvider);
+      await service.deleteToken();
+      if (!ref.mounted) return;
+      await service.cancelAllNotifications();
+      if (!ref.mounted) return;
+
+      _pendingPayload = null;
+      if (state case final NotificationStateData dataState) {
+        state = dataState.copyWith(
+          fcmToken: null,
+          initialPayload: null,
+          latestPayload: null,
+          lastReceivedPayload: null,
+        );
+      }
+    } finally {
+      _isCleaningUp = false;
+    }
+  }
+
+  /// ユーザーID変更時の処理（アカウント切り替え時は破棄後に新トークン再取得）
+  Future<void> _handleUserChanged(String? previous, String? next) async {
+    if (next == null) {
+      await _handleSignOut();
+      return;
+    }
+
+    if (previous != null && previous != next) {
+      // 別アカウントへの切り替え
+      final service = ref.read(pushNotificationServiceProvider);
+      await service.deleteToken();
+      if (!ref.mounted) return;
+      await service.cancelAllNotifications();
+      if (!ref.mounted) return;
+
+      _pendingPayload = null;
+      if (state case final NotificationStateData dataState) {
+        state = dataState.copyWith(
+          fcmToken: null,
+          initialPayload: null,
+          latestPayload: null,
+          lastReceivedPayload: null,
+        );
+      }
+      await _init();
+    } else if (previous == null) {
+      // ログイン時: トークン再取得・初期化
+      await _init();
     }
   }
 

@@ -259,6 +259,28 @@ class PushNotificationService {
     }
   }
 
+  /// FCM トークンの破棄（ログアウト時などにサーバーとの紐付けを解除）
+  Future<void> deleteToken() async {
+    final messaging = _messaging;
+    if (messaging == null) return;
+    try {
+      await messaging.deleteToken();
+      _talker.info('🔔 FCM トークンを破棄しました');
+    } on Object catch (e, st) {
+      _talker.handle(e, st, 'FCM トークンの破棄に失敗しました');
+    }
+  }
+
+  /// 全ての表示中ローカル通知・通知バナーを消去
+  Future<void> cancelAllNotifications() async {
+    try {
+      await _localNotifications.cancelAll();
+      _talker.info('🔔 全てのローカル通知を消去しました');
+    } on Object catch (e, st) {
+      _talker.handle(e, st, 'ローカル通知の消去に失敗しました');
+    }
+  }
+
   /// FCM トークン更新ストリーム
   Stream<String> get onTokenRefresh =>
       _messaging?.onTokenRefresh ?? const Stream.empty();
