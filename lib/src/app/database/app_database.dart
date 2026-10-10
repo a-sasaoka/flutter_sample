@@ -18,7 +18,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -30,6 +30,20 @@ class AppDatabase extends _$AppDatabase {
       // 今後、テーブルの定義を変更した際（バージョンアップ時）の処理をここに記述する
       if (from < 2) {
         await m.createTable(qrScanHistories);
+      }
+      if (from < 3) {
+        // メモ機能のマルチユーザー対応:
+        // 旧メモテーブルのデータをクリア（初期化）し、userId カラムを追加
+        await delete(memos).go();
+
+        // 冪等性確保: user_id カラムが存在しない場合のみ追加
+        final columns = await customSelect('PRAGMA table_info(memos);').get();
+        final hasUserId = columns.any(
+          (row) => row.read<String>('name') == 'user_id',
+        );
+        if (!hasUserId) {
+          await m.addColumn(memos, memos.userId);
+        }
       }
     },
     beforeOpen: (details) async {

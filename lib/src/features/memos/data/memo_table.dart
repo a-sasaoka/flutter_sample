@@ -6,6 +6,9 @@ class Memos extends Table {
   /// メモの番号（複数の端末で被らないように、UUIDにする）
   TextColumn get id => text()();
 
+  /// メモの所有ユーザーID
+  TextColumn get userId => text()();
+
   /// メモのタイトル
   TextColumn get title => text()();
 

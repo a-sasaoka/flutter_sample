@@ -22,8 +22,8 @@ void main() {
       await database.close();
     });
 
-    test('schemaVersion returns 2', () {
-      check(database.schemaVersion).equals(2);
+    test('schemaVersion returns 3', () {
+      check(database.schemaVersion).equals(3);
     });
 
     test('onUpgrade migration strategy executes without error', () async {
@@ -32,7 +32,7 @@ void main() {
 
       // 実際には Migrator インスタンスが必要だが、モックやダミーで呼び出しだけ確認
       // ここでは、onUpgrade が例外なく実行されることをテストし、カバレッジを通す
-      await strategy.onUpgrade(database.createMigrator(), 1, 2);
+      await strategy.onUpgrade(database.createMigrator(), 1, 3);
 
       // 前後のフックもカバレッジのために実行
       // onCreate は AppDatabase インスタンス作成時に暗黙的に呼ばれているが、明示的にも呼ぶ
@@ -44,6 +44,31 @@ void main() {
       check(true).equals(true); // ここまで到達すればOK
     });
 
+    test('onUpgrade (from 2 to 3): 旧メモテーブルのデータが削除されること', () async {
+      // 事前にメモデータを投入
+      await database
+          .into(database.memos)
+          .insert(
+            MemosCompanion.insert(
+              id: 'old-memo-1',
+              userId: 'old-user-1',
+              title: '旧メモ',
+              content: '旧内容',
+              createdAt: DateTime(2026, 5),
+              updatedAt: DateTime(2026, 5),
+            ),
+          );
+      final beforeMemos = await database.select(database.memos).get();
+      check(beforeMemos.length).equals(1);
+
+      // マイグレーション実行 (from 2 to 3)
+      await database.migration.onUpgrade(database.createMigrator(), 2, 3);
+
+      // データがクリアされていることを確認
+      final afterMemos = await database.select(database.memos).get();
+      check(afterMemos.isEmpty).equals(true);
+    });
+
     test('テーブル操作の基本テスト (CRUD)', () async {
       // Create
       await database
@@ -51,6 +76,7 @@ void main() {
           .insert(
             MemosCompanion.insert(
               id: 'test-id-1',
+              userId: 'test-user-id-1',
               title: 'テストタイトル',
               content: 'テストコンテンツ',
               createdAt: DateTime(2026, 5),

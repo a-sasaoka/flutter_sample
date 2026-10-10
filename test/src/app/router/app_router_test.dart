@@ -209,13 +209,19 @@ void main() {
     ];
 
     when(
-      () => mockMemoRepository.getAllMemos(),
+      () => mockMemoRepository.getAllMemos(
+        any(),
+        syncUnsent: any(named: 'syncUnsent'),
+      ),
     ).thenAnswer((_) async => <MemoModel>[]);
     when(
-      () => mockMemoRepository.watchAllMemos(),
+      () => mockMemoRepository.watchAllMemos(any()),
     ).thenAnswer((_) => Stream.value(<MemoModel>[]));
     when(
-      () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+      () => mockMemoRepository.fetchAndMergeRemoteMemos(
+        any(),
+        syncUnsent: any(named: 'syncUnsent'),
+      ),
     ).thenAnswer((_) async {});
 
     when(() => mockUser.uid).thenReturn('dummy_uid_123');

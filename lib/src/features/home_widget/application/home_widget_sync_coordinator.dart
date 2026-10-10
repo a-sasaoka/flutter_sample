@@ -119,11 +119,15 @@ class HomeWidgetSyncCoordinator extends _$HomeWidgetSyncCoordinator {
         // 現在のユーザーのメモを確認した上で同期を再開する
         if (nextAuth) {
           final targetUserId = nextUserId;
+          if (targetUserId == null) return;
           final taskGen = _syncGeneration;
           unawaited(() async {
             try {
               final repository = ref.read(memoRepositoryProvider);
-              final memos = await repository.getAllMemos(syncUnsent: false);
+              final memos = await repository.getAllMemos(
+                targetUserId,
+                syncUnsent: false,
+              );
 
               // 待機中に認証状態やユーザーが再変更されていないか検証
               if (taskGen != _syncGeneration) return;

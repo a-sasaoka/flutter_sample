@@ -44,6 +44,8 @@ void main() {
     late MockMemoRemoteService mockRemoteService;
     late SpyTalker spyTalker;
     final now = DateTime(2026, 5);
+    const testUserId = 'test-user-id';
+    const otherUserId = 'other-user-id';
 
     setUpAll(() {
       registerFallbackValue(DateTime.now());
@@ -88,10 +90,11 @@ void main() {
       final container = createContainer(isOnline: false);
       final repository = container.read(memoRepositoryProvider);
 
-      await repository.addMemo('title', 'content');
+      await repository.addMemo('title', 'content', testUserId);
 
       final memos = await database.select(database.memos).get();
       check(memos.length).equals(1);
+      check(memos.first.userId).equals(testUserId);
       check(memos.first.title).equals('title');
       check(memos.first.isSynced).equals(false);
       verifyNever(
@@ -110,10 +113,11 @@ void main() {
       final container = createContainer();
       final repository = container.read(memoRepositoryProvider);
 
-      await repository.addMemo('title', 'content');
+      await repository.addMemo('title', 'content', testUserId);
 
       final memos = await database.select(database.memos).get();
       check(memos.length).equals(1);
+      check(memos.first.userId).equals(testUserId);
       check(memos.first.title).equals('title');
       check(memos.first.isSynced).equals(true);
       verify(
@@ -143,9 +147,10 @@ void main() {
         ),
       ).thenThrow(uploadError);
 
-      await repository.addMemo('title', 'content');
+      await repository.addMemo('title', 'content', testUserId);
 
       final memos = await database.select(database.memos).get();
+      check(memos.first.userId).equals(testUserId);
       check(memos.first.isSynced).equals(false);
       check(spyTalker.handleCalls).length.equals(1);
       check(spyTalker.handleCalls.first.exception).equals(uploadError);
@@ -163,6 +168,7 @@ void main() {
           .insert(
             MemosCompanion.insert(
               id: 'id1',
+              userId: testUserId,
               title: 'old',
               content: 'old',
               createdAt: now,
@@ -171,7 +177,12 @@ void main() {
             ),
           );
 
-      await repository.updateMemo('id1', 'new title', 'new content');
+      await repository.updateMemo(
+        'id1',
+        'new title',
+        'new content',
+        testUserId,
+      );
 
       final memo = await (database.select(
         database.memos,
@@ -198,6 +209,7 @@ void main() {
           .insert(
             MemosCompanion.insert(
               id: 'id1',
+              userId: testUserId,
               title: 'old',
               content: 'old',
               createdAt: now,
@@ -205,7 +217,12 @@ void main() {
             ),
           );
 
-      await repository.updateMemo('id1', 'new title', 'new content');
+      await repository.updateMemo(
+        'id1',
+        'new title',
+        'new content',
+        testUserId,
+      );
 
       final memo = await (database.select(
         database.memos,
@@ -231,6 +248,7 @@ void main() {
           .insert(
             MemosCompanion.insert(
               id: 'id1',
+              userId: testUserId,
               title: 'old',
               content: 'old',
               createdAt: now,
@@ -249,7 +267,12 @@ void main() {
         ),
       ).thenThrow(uploadError);
 
-      await repository.updateMemo('id1', 'new title', 'new content');
+      await repository.updateMemo(
+        'id1',
+        'new title',
+        'new content',
+        testUserId,
+      );
 
       final memo = await (database.select(
         database.memos,
@@ -271,6 +294,7 @@ void main() {
           .insert(
             MemosCompanion.insert(
               id: 'id1',
+              userId: testUserId,
               title: 'old',
               content: 'old',
               createdAt: now,
@@ -279,7 +303,7 @@ void main() {
             ),
           );
 
-      await repository.deleteMemo('id1');
+      await repository.deleteMemo('id1', testUserId);
 
       final memo = await (database.select(
         database.memos,
@@ -308,6 +332,7 @@ void main() {
             .insert(
               MemosCompanion.insert(
                 id: 'id1',
+                userId: testUserId,
                 title: 'old',
                 content: 'old',
                 createdAt: now,
@@ -315,7 +340,7 @@ void main() {
               ),
             );
 
-        await repository.deleteMemo('id1');
+        await repository.deleteMemo('id1', testUserId);
 
         final memo = await (database.select(
           database.memos,
@@ -333,6 +358,7 @@ void main() {
           .insert(
             MemosCompanion.insert(
               id: 'id1',
+              userId: testUserId,
               title: 'old',
               content: 'old',
               createdAt: now,
@@ -351,7 +377,7 @@ void main() {
         ),
       ).thenThrow(uploadError);
 
-      await repository.deleteMemo('id1');
+      await repository.deleteMemo('id1', testUserId);
 
       final memo = await (database.select(
         database.memos,
@@ -369,7 +395,7 @@ void main() {
     test('syncUnsentMemos: 未送信のメモがない場合、何もしないこと', () async {
       final container = createContainer();
       final repository = container.read(memoRepositoryProvider);
-      await repository.syncUnsentMemos();
+      await repository.syncUnsentMemos(testUserId);
       verifyNever(
         () => mockRemoteService.uploadMemo(
           id: any(named: 'id'),
@@ -390,6 +416,7 @@ void main() {
           .insert(
             MemosCompanion.insert(
               id: '1',
+              userId: testUserId,
               title: '1',
               content: '1',
               createdAt: now,
@@ -402,6 +429,7 @@ void main() {
           .insert(
             MemosCompanion.insert(
               id: '2',
+              userId: testUserId,
               title: '2',
               content: '2',
               createdAt: now,
@@ -410,7 +438,7 @@ void main() {
             ),
           );
 
-      await repository.syncUnsentMemos();
+      await repository.syncUnsentMemos(testUserId);
 
       final memo1 = await (database.select(
         database.memos,
@@ -436,6 +464,7 @@ void main() {
           .insert(
             MemosCompanion.insert(
               id: '1',
+              userId: testUserId,
               title: '1',
               content: '1',
               createdAt: now,
@@ -448,6 +477,7 @@ void main() {
           .insert(
             MemosCompanion.insert(
               id: '2',
+              userId: testUserId,
               title: '2',
               content: '2',
               createdAt: now,
@@ -467,7 +497,7 @@ void main() {
         ),
       ).thenThrow(syncError);
 
-      await repository.syncUnsentMemos();
+      await repository.syncUnsentMemos(testUserId);
 
       final memos = await database.select(database.memos).get();
       check(memos.firstWhere((m) => m.id == '1').isSynced).equals(false);
@@ -498,6 +528,7 @@ void main() {
           .insert(
             MemosCompanion.insert(
               id: '1',
+              userId: testUserId,
               title: '1',
               content: '1',
               createdAt: now,
@@ -510,6 +541,7 @@ void main() {
           .insert(
             MemosCompanion.insert(
               id: '2',
+              userId: testUserId,
               title: '2',
               content: '2',
               createdAt: now,
@@ -518,10 +550,11 @@ void main() {
             ),
           );
 
-      final memos = await repository.getAllMemos();
+      final memos = await repository.getAllMemos(testUserId);
 
       check(memos.length).equals(1);
       check(memos.first.id).equals('1');
+      check(memos.first.userId).equals(testUserId);
       // オフラインでも fetchMemos は呼ばれる実装になっている
       verify(() => mockRemoteService.fetchMemos()).called(1);
     });
@@ -542,10 +575,11 @@ void main() {
         ],
       );
 
-      final memos = await repository.getAllMemos();
+      final memos = await repository.getAllMemos(testUserId);
 
       check(memos.length).equals(1);
       check(memos.first.id).equals('remote1');
+      check(memos.first.userId).equals(testUserId);
       check(memos.first.title).equals('rtitle');
     });
 
@@ -559,6 +593,7 @@ void main() {
             .insert(
               MemosCompanion.insert(
                 id: '1',
+                userId: testUserId,
                 title: 'local',
                 content: 'local',
                 createdAt: now,
@@ -580,7 +615,7 @@ void main() {
           ],
         );
 
-        final memos = await repository.getAllMemos();
+        final memos = await repository.getAllMemos(testUserId);
 
         check(memos.length).equals(1);
         check(memos.first.title).equals('remote');
@@ -598,6 +633,7 @@ void main() {
             .insert(
               MemosCompanion.insert(
                 id: '1',
+                userId: testUserId,
                 title: 'local',
                 content: 'local',
                 createdAt: now,
@@ -618,7 +654,7 @@ void main() {
           ],
         );
 
-        final memos = await repository.getAllMemos();
+        final memos = await repository.getAllMemos(testUserId);
 
         check(memos.length).equals(1);
         check(memos.first.title).equals('local');
@@ -631,7 +667,7 @@ void main() {
       final fetchError = Exception('fetch error');
       when(() => mockRemoteService.fetchMemos()).thenThrow(fetchError);
 
-      final memos = await repository.getAllMemos();
+      final memos = await repository.getAllMemos(testUserId);
 
       check(memos.length).equals(0); // local is empty
       check(spyTalker.handleCalls).length.equals(1);
@@ -654,6 +690,7 @@ void main() {
             .insert(
               MemosCompanion.insert(
                 id: 'unsent-memo-1',
+                userId: testUserId,
                 title: '未送信メモ',
                 content: '内容',
                 createdAt: now,
@@ -663,7 +700,7 @@ void main() {
             );
 
         // getAllMemos(syncUnsent: false) を呼び出し
-        await repository.getAllMemos(syncUnsent: false);
+        await repository.getAllMemos(testUserId, syncUnsent: false);
 
         // uploadMemo は一度も呼ばれないこと（未送信メモの送信がスキップされたこと）
         verifyNever(
@@ -693,7 +730,9 @@ void main() {
 
       final emissions = <List<MemoModel>>[];
       // Streamの購読を開始
-      final subscription = repository.watchAllMemos().listen(emissions.add);
+      final subscription = repository
+          .watchAllMemos(testUserId)
+          .listen(emissions.add);
 
       // 1. 初期状態（空リスト）のイベントが届くのを待つ
       await Future<void>.delayed(const Duration(milliseconds: 10));
@@ -701,14 +740,14 @@ void main() {
       check(emissions.first).isEmpty();
 
       // 2. 1つ目のメモを追加
-      await repository.addMemo('watch1', 'content1');
+      await repository.addMemo('watch1', 'content1', testUserId);
       await Future<void>.delayed(const Duration(milliseconds: 10));
       check(emissions.length).equals(2);
       check(emissions[1].length).equals(1);
       check(emissions[1][0].title).equals('watch1');
 
       // 3. 2つ目のメモを追加
-      await repository.addMemo('watch2', 'content2');
+      await repository.addMemo('watch2', 'content2', testUserId);
       await Future<void>.delayed(const Duration(milliseconds: 10));
       check(emissions.length).equals(3);
       check(emissions[2].length).equals(2);
@@ -738,12 +777,49 @@ void main() {
         ],
       );
 
-      await repository.fetchAndMergeRemoteMemos();
+      await repository.fetchAndMergeRemoteMemos(testUserId);
 
       final memos = await database.select(database.memos).get();
       check(memos.length).equals(1);
       check(memos.first.id).equals('remote_fetch');
+      check(memos.first.userId).equals(testUserId);
       check(memos.first.title).equals('fetch_title');
+    });
+
+    test('マルチユーザー分離: 異なるユーザーIDのメモは互いに取得・更新・削除されないこと', () async {
+      final container = createContainer(isOnline: false);
+      final repository = container.read(memoRepositoryProvider);
+
+      // ユーザーA（testUserId）とユーザーB（otherUserId）のメモを追加
+      await repository.addMemo('User A Memo', 'Content A', testUserId);
+      await repository.addMemo('User B Memo', 'Content B', otherUserId);
+
+      // ユーザーAで取得するとユーザーAのメモのみ返る
+      final userAMemos = await repository.getAllMemos(testUserId);
+      check(userAMemos.length).equals(1);
+      check(userAMemos.first.title).equals('User A Memo');
+      check(userAMemos.first.userId).equals(testUserId);
+
+      // ユーザーBで取得するとユーザーBのメモのみ返る
+      final userBMemos = await repository.getAllMemos(otherUserId);
+      check(userBMemos.length).equals(1);
+      check(userBMemos.first.title).equals('User B Memo');
+      check(userBMemos.first.userId).equals(otherUserId);
+
+      // ユーザーAがユーザーBのメモIDを指定して更新しようとしても変更されない
+      await repository.updateMemo(
+        userBMemos.first.id,
+        'Hacked Title',
+        'Hacked Content',
+        testUserId,
+      );
+      final userBMemosAfterUpdate = await repository.getAllMemos(otherUserId);
+      check(userBMemosAfterUpdate.first.title).equals('User B Memo');
+
+      // ユーザーAがユーザーBのメモIDを指定して削除しようとしても削除されない
+      await repository.deleteMemo(userBMemos.first.id, testUserId);
+      final userBMemosAfterDelete = await repository.getAllMemos(otherUserId);
+      check(userBMemosAfterDelete.length).equals(1);
     });
   });
 }
