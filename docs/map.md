@@ -118,6 +118,15 @@ Google Maps Platform（Routes API / Directions API）では、日本国内の公
 - 案内モーダル: [`lib/src/features/map/presentation/widgets/transit_guide_bottom_sheet.dart`](../lib/src/features/map/presentation/widgets/transit_guide_bottom_sheet.dart)
 - 画面連動: [`lib/src/features/map/presentation/map_screen.dart`](../lib/src/features/map/presentation/map_screen.dart)
 
+### 8. サインアウト・アカウント変更時の位置情報プライバシー保護と自律リセット (`MapNotifier`)
+
+ユーザーの現在地情報は機密性の高いプライバシーデータです。  
+[map_notifier.dart](../lib/src/features/map/application/map_notifier.dart) は `keepAlive: true` で状態が維持されるため、ユーザーがログアウトした後や別アカウントへ切り替えた後も以前のユーザーの現在地座標がメモリ上に残存するリスクがあります。
+
+- **認証状態のリアクティブ監視**: [map_notifier.dart](../lib/src/features/map/application/map_notifier.dart) 内で [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の `currentUserIdProvider` および `isAuthenticatedProvider` をリアクティブに監視（`ref.listen`）しています。
+- **自律的リセット (`reset()`)**: ユーザーのサインアウトまたは別アカウントへの切り替えを検知すると、直ちに `reset()` を呼び出して内部状態を初期状態（`LocationState.initial()`）へ自律的に復帰させます。これにより、取得済みの位置情報やカメラ追従状態がクリーンアップされ、別ユーザーへの位置情報漏洩を確実に防止します。
+- **疎結合アーキテクチャ**: `AuthService` から直接 `MapNotifier` を呼び出すのではなく、Notifier 自身が認証状態の変化を監視して自己初期化を行うため、Feature 間の不要な結合を生じさせません。
+
 ---
 
 ## 🛡️ パーミッション設定
@@ -139,7 +148,7 @@ Google Maps Platform（Routes API / Directions API）では、日本国内の公
 - **単体・ウィジェットテスト (`test/src/features/map/`)**:
   - ドメインモデル (`location_candidate_test.dart`, `map_constants_test.dart`, `map_spot_test.dart`, `map_search_state_test.dart`, `map_route_test.dart`, `map_route_state_test.dart`, `travel_mode_test.dart`)
   - データ層 (`spot_repository_test.dart`, `location_repository_test.dart`, `geocoding_repository_test.dart`, `route_repository_test.dart`, `polyline_decoder_test.dart`)
-  - アプリケーション層 (`spot_notifier_test.dart`, `map_notifier_test.dart`, `map_search_notifier_test.dart`, `map_route_notifier_test.dart`, `transit_launcher_service_test.dart`)
+  - アプリケーション層 (`spot_notifier_test.dart`, `map_notifier_test.dart` [サインアウト・アカウント変更時の自律リセット検証含む], `map_search_notifier_test.dart`, `map_route_notifier_test.dart`, `transit_launcher_service_test.dart`)
   - プレゼンテーション層 (`map_screen_test.dart`, `spot_detail_bottom_sheet_test.dart`, `route_navigation_card_test.dart`, `transit_guide_bottom_sheet_test.dart`)
 - **ゴールデンテスト (`test/src/features/map/presentation/map_screen_golden_test.dart`)**:
   - `MapScreen` (ライト/ダークモード)

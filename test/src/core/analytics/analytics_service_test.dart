@@ -4,6 +4,7 @@ import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
@@ -14,6 +15,17 @@ class MockFirebaseAnalytics extends Mock implements FirebaseAnalytics {}
 
 // Talker のモック
 class MockTalker extends Mock implements Talker {}
+
+class TestUserIdNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+  String? get userId => state;
+  set userId(String? id) => state = id;
+}
+
+final testUserIdProvider = NotifierProvider<TestUserIdNotifier, String?>(
+  TestUserIdNotifier.new,
+);
 
 void main() {
   late MockFirebaseAnalytics mockAnalytics;
@@ -35,6 +47,10 @@ void main() {
         clockProvider.overrideWithValue(() => mockDateTime),
         // 3. Loggerをモック化（flavorProvider のエラー回避 & ログのノイズ軽減）
         loggerProvider.overrideWithValue(mockTalker),
+        // 4. ユーザーIDプロバイダー
+        currentUserIdProvider.overrideWith(
+          (ref) => ref.watch(testUserIdProvider),
+        ),
       ],
     );
   });
@@ -211,5 +227,44 @@ void main() {
       final params = captured.first as Map<String, Object>;
       check(params['timestamp']).equals(fixedDate.millisecondsSinceEpoch);
     });
+  });
+
+  group('AnalyticsService 認証連動テスト (Providerあり)', () {
+    test(
+      'currentUserIdProvider の変化（ログイン）に連動して setUserId が自動呼び出しされること',
+      () async {
+        when(
+          () => mockAnalytics.setUserId(id: any(named: 'id')),
+        ).thenAnswer((_) async {});
+
+        // プロバイダーを監視登録
+        container.listen(analyticsServiceProvider, (_, _) {});
+
+        // ユーザーIDを変更（ログイン）
+        container.read(testUserIdProvider.notifier).userId = 'user_login_123';
+        container.read(currentUserIdProvider);
+
+        verify(() => mockAnalytics.setUserId(id: 'user_login_123')).called(1);
+      },
+    );
+
+    test(
+      'currentUserIdProvider の変化（ログアウト）に連動して setUserId(null) が自動呼び出しされること',
+      () async {
+        when(
+          () => mockAnalytics.setUserId(id: any(named: 'id')),
+        ).thenAnswer((_) async {});
+
+        // ログイン状態を設定
+        container.read(testUserIdProvider.notifier).userId = 'user_login_123';
+        container.listen(analyticsServiceProvider, (_, _) {});
+
+        // ログアウト（nullへ変更）
+        container.read(testUserIdProvider.notifier).userId = null;
+        container.read(currentUserIdProvider);
+
+        verify(() => mockAnalytics.setUserId()).called(1);
+      },
+    );
   });
 }

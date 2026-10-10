@@ -1,4 +1,5 @@
 import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/chart/application/chart_state.dart';
 import 'package:flutter_sample/src/features/chart/domain/chart_item.dart';
 import 'package:flutter_sample/src/features/chart/domain/chart_type.dart';
@@ -11,6 +12,20 @@ part 'chart_notifier.g.dart';
 class ChartNotifier extends _$ChartNotifier {
   @override
   ChartState build() {
+    // 認証状態の変化（ログアウトや別アカウントへの切り替え）を監視し、
+    // 入力中グラフデータを自律的にリセットする
+    ref
+      ..listen<String?>(currentUserIdProvider, (previous, next) {
+        if (previous != next) {
+          reset();
+        }
+      })
+      ..listen<bool>(isAuthenticatedProvider, (previous, next) {
+        if (previous != next) {
+          reset();
+        }
+      });
+
     return const ChartState();
   }
 

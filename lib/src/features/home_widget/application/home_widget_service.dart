@@ -137,6 +137,12 @@ class HomeWidgetService {
     }
   }
 
+  /// サインアウト時やアカウント変更時にウィジェット共有ストレージのデータを初期化（空表示に更新）する
+  Future<void> clearWidgetData() async {
+    _logger.info('📱 [HomeWidgetService] Clearing widget data');
+    await updateMemoWidget(memos: const []);
+  }
+
   /// ウィジェットタップによるアプリ起動時のURIを取得する
   Future<Uri?> getInitiallyLaunchedUri() async {
     try {

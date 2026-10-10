@@ -94,6 +94,17 @@ class FakeFlutterLocalNotificationsPlugin extends Fake
     lastShowPayload = payload;
     shownNotificationIds.add(id);
   }
+
+  int cancelAllCallCount = 0;
+  bool throwOnCancelAll = false;
+
+  @override
+  Future<void> cancelAll() async {
+    if (throwOnCancelAll) {
+      throw Exception('Cancel all error');
+    }
+    cancelAllCallCount++;
+  }
 }
 
 class FakeAndroidNotificationChannel extends Fake
@@ -782,6 +793,70 @@ void main() {
       check(tappedPayload?.path).equals('/chat');
       check(tappedPayload?.title).equals('BG Title');
       check(tappedPayload?.body).equals('BG Body');
+    });
+
+    group('deleteToken', () {
+      test('FirebaseMessaging が null の場合は何もしないこと', () async {
+        final noMessagingService = PushNotificationService(
+          talker: mockTalker,
+          channelName: 'Test Channel',
+          channelDescription: 'Test Desc',
+          defaultTitle: 'Test Title',
+          messaging: null,
+          localNotifications: fakeLocalNotifications,
+        );
+
+        await noMessagingService.deleteToken();
+        verifyNever(() => mockMessaging.deleteToken());
+      });
+
+      test('正常系: messaging.deleteToken が呼ばれログが出力されること', () async {
+        when(() => mockMessaging.deleteToken()).thenAnswer((_) async {});
+
+        await service.deleteToken();
+
+        verify(() => mockMessaging.deleteToken()).called(1);
+        verify(() => mockTalker.info('🔔 FCM トークンを破棄しました')).called(1);
+      });
+
+      test('異常系: 例外発生時に talker.handle が呼ばれクラッシュしないこと', () async {
+        final exception = Exception('Delete token failed');
+        when(() => mockMessaging.deleteToken()).thenThrow(exception);
+
+        await service.deleteToken();
+
+        verify(() => mockMessaging.deleteToken()).called(1);
+        verify(
+          () => mockTalker.handle(
+            exception,
+            any<StackTrace>(),
+            'FCM トークンの破棄に失敗しました',
+          ),
+        ).called(1);
+      });
+    });
+
+    group('cancelAllNotifications', () {
+      test('正常系: localNotifications.cancelAll が呼ばれログが出力されること', () async {
+        await service.cancelAllNotifications();
+
+        check(fakeLocalNotifications.cancelAllCallCount).equals(1);
+        verify(() => mockTalker.info('🔔 全てのローカル通知を消去しました')).called(1);
+      });
+
+      test('異常系: 例外発生時に talker.handle が呼ばれクラッシュしないこと', () async {
+        fakeLocalNotifications.throwOnCancelAll = true;
+
+        await service.cancelAllNotifications();
+
+        verify(
+          () => mockTalker.handle(
+            any<Object>(),
+            any<StackTrace>(),
+            'ローカル通知の消去に失敗しました',
+          ),
+        ).called(1);
+      });
     });
   });
 }

@@ -1,5 +1,6 @@
 import 'package:alchemist/alchemist.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/chart/application/chart_notifier.dart';
 import 'package:flutter_sample/src/features/chart/domain/chart_type.dart';
 import 'package:flutter_sample/src/features/chart/presentation/chart_display_screen.dart';
@@ -16,7 +17,16 @@ void main() {
       required ChartType chartType,
       bool isEmpty = false,
     }) {
-      final container = ProviderContainer();
+      // 認証プロバイダーを未ログイン状態（固定値）で上書きし、
+      // 未初期化のFirebaseへのアクセスやリトライタイマーの発生を防ぎます
+      final container = ProviderContainer(
+        overrides: [
+          currentUserIdProvider.overrideWithValue(null),
+          isAuthenticatedProvider.overrideWithValue(false),
+        ],
+      );
+      // テスト終了時にコンテナを確実に破棄してタイマーやメモリを残さないようにします
+      addTearDown(container.dispose);
 
       // グラフの種類を設定します
       container.read(chartProvider.notifier).updateChartType(chartType);

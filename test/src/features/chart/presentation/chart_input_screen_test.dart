@@ -2,6 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/chart/application/chart_notifier.dart';
 import 'package:flutter_sample/src/features/chart/domain/chart_type.dart';
 import 'package:flutter_sample/src/features/chart/presentation/chart_input_screen.dart';
@@ -27,7 +28,14 @@ void main() {
     late GoRouter router;
 
     setUp(() {
-      container = ProviderContainer();
+      // 認証プロバイダーを未ログイン状態（固定値）で上書きし、
+      // 未初期化のFirebaseへのアクセスやリトライタイマーの発生を防ぎます
+      container = ProviderContainer(
+        overrides: [
+          currentUserIdProvider.overrideWithValue(null),
+          isAuthenticatedProvider.overrideWithValue(false),
+        ],
+      );
       router = GoRouter(
         initialLocation: '/chart-input',
         routes: [
