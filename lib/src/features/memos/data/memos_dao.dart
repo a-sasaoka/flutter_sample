@@ -10,38 +10,47 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
   /// コンストラクタ
   MemosDao(super.attachedDatabase);
 
-  /// すべてのメモを取得する（削除されていないもの）
-  Future<List<Memo>> getAllMemos() =>
-      (select(memos)..where((t) => t.isDeleted.equals(false))).get();
+  /// 指定したユーザーのすべてのメモを取得する（削除されていないもの）
+  Future<List<Memo>> getAllMemos(String userId) => (select(
+    memos,
+  )..where((t) => t.userId.equals(userId) & t.isDeleted.equals(false))).get();
 
-  /// すべてのメモの変更を監視する（削除されていないもの）
-  Stream<List<Memo>> watchAllMemos() =>
-      (select(memos)..where((t) => t.isDeleted.equals(false))).watch();
+  /// 指定したユーザーのすべてのメモの変更を監視する（削除されていないもの）
+  Stream<List<Memo>> watchAllMemos(String userId) => (select(
+    memos,
+  )..where((t) => t.userId.equals(userId) & t.isDeleted.equals(false))).watch();
 
-  /// メモをIDで1件取得する
-  Future<Memo> getMemoById(String id) =>
-      (select(memos)..where((t) => t.id.equals(id))).getSingle();
+  /// メモをIDとユーザーIDで1件取得する
+  Future<Memo> getMemoById(String id, String userId) => (select(
+    memos,
+  )..where((t) => t.id.equals(id) & t.userId.equals(userId))).getSingle();
 
   /// メモを追加する
   Future<void> insertMemo(MemosCompanion memo) => into(memos).insert(memo);
 
-  /// メモを更新する
-  Future<void> updateMemo(String id, MemosCompanion memo) =>
-      (update(memos)..where((t) => t.id.equals(id))).write(memo);
+  /// メモを更新する（所有ユーザーのもののみ）
+  Future<void> updateMemo(String id, String userId, MemosCompanion memo) =>
+      (update(
+        memos,
+      )..where((t) => t.id.equals(id) & t.userId.equals(userId))).write(memo);
 
-  /// 同期が必要なメモ（isSynced = false）を取得する
-  Future<List<Memo>> getUnsyncedMemos() =>
-      (select(memos)..where((t) => t.isSynced.equals(false))).get();
+  /// 指定したユーザーの同期が必要なメモ（isSynced = false）を取得する
+  Future<List<Memo>> getUnsyncedMemos(String userId) => (select(
+    memos,
+  )..where((t) => t.userId.equals(userId) & t.isSynced.equals(false))).get();
 
-  /// 指定したIDリストに含まれるメモを取得する
-  Future<List<Memo>> getMemosByIds(List<String> ids) =>
-      (select(memos)..where((t) => t.id.isIn(ids))).get();
+  /// 指定したユーザーの指定IDリストに含まれるメモを取得する
+  Future<List<Memo>> getMemosByIds(List<String> ids, String userId) => (select(
+    memos,
+  )..where((t) => t.id.isIn(ids) & t.userId.equals(userId))).get();
 
-  /// 指定したIDリストのメモの同期状態を一括更新する
-  Future<void> updateSyncStatus(List<String> ids, {required bool isSynced}) =>
-      (update(memos)..where((t) => t.id.isIn(ids))).write(
-        MemosCompanion(isSynced: Value(isSynced)),
-      );
+  /// 指定したユーザーのメモの同期状態を一括更新する
+  Future<void> updateSyncStatus(
+    List<String> ids,
+    String userId, {
+    required bool isSynced,
+  }) => (update(memos)..where((t) => t.id.isIn(ids) & t.userId.equals(userId)))
+      .write(MemosCompanion(isSynced: Value(isSynced)));
 
   /// 複数のメモを一括で挿入または更新する
   Future<void> upsertMemos(List<MemosCompanion> companions) async {

@@ -21,6 +21,12 @@ class FirebaseAuthTokenStorage implements TokenStorage {
   }
 
   @override
+  Future<String?> getUserId() async {
+    // Firebase Authentication の現在のユーザー UID を返します
+    return _firebaseAuth.currentUser?.uid;
+  }
+
+  @override
   Future<void> saveTokens({
     required String accessToken,
     required String refreshToken,

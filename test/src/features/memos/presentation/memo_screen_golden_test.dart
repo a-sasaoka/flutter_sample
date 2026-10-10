@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
@@ -50,21 +51,18 @@ void main() {
       final repository = MockMemoRepository();
 
       when(
-        // モックの仕様上、クロージャとして渡す必要があるため、unnecessary_lambdas を無視します。
-        // ignore: unnecessary_lambdas
-        () => repository.fetchAndMergeRemoteMemos(),
+        () => repository.fetchAndMergeRemoteMemos(any()),
       ).thenAnswer((_) async {});
 
       when(
-        // モックの仕様上、クロージャとして渡す必要があるため、unnecessary_lambdas を無視します。
-        // ignore: unnecessary_lambdas
-        () => repository.watchAllMemos(),
+        () => repository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value(memos));
 
       final isDark = themeMode == ThemeMode.dark;
 
       return ProviderScope(
         overrides: [
+          currentUserIdProvider.overrideWithValue('test_user_id'),
           memoRepositoryProvider.overrideWithValue(repository),
           isOnlineProvider.overrideWithValue(true),
         ],
@@ -124,6 +122,7 @@ void main() {
                 memos: [
                   MemoModel(
                     id: '1',
+                    userId: 'test_user_id',
                     title: '買物リスト',
                     content: '牛乳、卵、りんごを買う。',
                     createdAt: DateTime(2026, 6, 6, 10),
@@ -132,6 +131,7 @@ void main() {
                   ),
                   MemoModel(
                     id: '2',
+                    userId: 'test_user_id',
                     title: 'アイデア',
                     content: 'Flutterのゴールデンテストを導入する。',
                     createdAt: DateTime(2026, 6, 5, 15, 30),
@@ -151,6 +151,7 @@ void main() {
                 memos: [
                   MemoModel(
                     id: '1',
+                    userId: 'test_user_id',
                     title: '買物リスト',
                     content: '牛乳、卵、りんごを買う。',
                     createdAt: DateTime(2026, 6, 6, 10),
@@ -159,6 +160,7 @@ void main() {
                   ),
                   MemoModel(
                     id: '2',
+                    userId: 'test_user_id',
                     title: 'アイデア',
                     content: 'Flutterのゴールデンテストを導入する。',
                     createdAt: DateTime(2026, 6, 5, 15, 30),

@@ -41,7 +41,7 @@ lib/src/core/database/
 
 `SharedPreferences` や `FlutterSecureStorage` で使用するキー文字列が各プロバイダやリポジトリに直書きされるのを防ぐため、`lib/src/app/constants/storage_keys.dart` に定数クラスとして定義・一元管理しています。
 
-- **`SecureStorageKeys`**: `access_token`, `refresh_token`, `app_lock_passcode` 等の暗号化保存用キー
+- **`SecureStorageKeys`**: `access_token`, `refresh_token`, `custom_user_id`, `app_lock_passcode` 等の暗号化保存用キー
 - **`SharedPrefKeys`**: `theme_mode`, `theme_scheme`, `text_scale`, `locale_key`, `onboarding_completed` 等の標準保存用キー
 
 ---
@@ -83,6 +83,12 @@ DBの値が変更されると、それを監視しているUIが自動的に更�
 
 具体的な実装パターン（同期ロジック等）については、[メモ機能の実装詳細](./memos.md) や [QRコードリーダーの実装詳細](./qr_scanner.md) を参照してください。
 
+### 6. スキーママイグレーションと冪等性の担保 (schemaVersion = 3: Issue #314)
+
+アプリの機能拡張に伴うローカルテーブル構造の変更は、[app_database.dart](../lib/src/app/database/app_database.dart) の `migration.onUpgrade` で安全に管理されます。
+スキーマバージョン 2 から 3 への引き上げでは、`Memos` テーブルへ `userId` カラムを追加し、旧データをクリアしてマルチユーザー環境へクリーン移行します。
+マイグレーション処理内では SQLite の `PRAGMA table_info` を実行してカラムの有無を事前に判定することで、再実行時や開発中のリビルド時にもエラーにならない**冪等性（Idempotency）**を徹底しています。
+
 ---
 
 ## 💡 SharedPreferencesAsync 採用のメリットと設計
@@ -118,8 +124,9 @@ APIのレスポンスなどを一時的に保存するクラスです。
 
 ### TokenStorage (`token_storage.dart`)
 
-アクセストークンやリフレッシュトークンなど、認証に関わる情報を `FlutterSecureStorage` を用いてセキュアに永続化します。  
-DioのInterceptor（通信割り込み）と連携し、APIリクエスト時に自動でトークンをヘッダーに付与するために使用されます。
+アクセストークンやリフレッシュトークン、および独自認証のユーザー識別子（`customUserId`）を `FlutterSecureStorage` を用いてセキュアに暗号化保存します。  
+`saveTokens()` 時にアクセストークン（JWT）から `jwt_utils.dart` を用いて `sub` クレームを自動抽出し、暗号化キーストアに安全に保持します。
+DioのInterceptor（通信割り込み）と連携し、APIリクエスト時に自動でトークンをヘッダーに付与すると共に、`currentUserIdProvider` を通じて各機能へユーザーIDを提供します。
 
 ---
 

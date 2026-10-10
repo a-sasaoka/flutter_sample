@@ -85,7 +85,7 @@ Riverpod の `@Riverpod(keepAlive: true)` Notifier として動作し、FCMト�
 
 - **初期化 (`_init`)**: トークン取得、権限ステータス確認、アプリ起動時通知（`initialPayload`）の取得を非同期で実行します。
 - **サインアウト・アカウント変更時の自律クリーンアップ**:
-  - [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の `currentUserIdProvider` および `isAuthenticatedProvider` をリアクティブに監視（`ref.listen`）します。
+  - [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の `currentUserIdProvider` および `isAuthenticatedProvider` をリアクティブに監視（`ref.listen`）します。独自認証環境でもJWTの `sub` クレームから取得した `customUserId` が提供されるため、Firebase認証と同様にアカウント変更（`previousUserId != nextUserId`）が即座に検知されます（Issue #314）。
   - ログアウト時または別アカウントへの切り替えを検知すると、`_isCleaningUp` による二重実行防止ガードのもとで、FCMトークンの破棄（`deleteToken()`）、端末通知の一括消去（`cancelAllNotifications()`）、および状態リセット（`fcmToken: null`、ペイロード初期化）を実行します。
   - その後、再ログイン（または別ユーザーとしてのログイン）を検知した場合は、自動的に `_init()` を再実行して新しいユーザー用の FCM トークンを取得・再初期化します。
 - **ペイロード消費 (`consumeInitialPayload` / `consumeLatestPayload`)**: 画面遷移処理の重複を防ぐため、一度遷移に使われたペイロードをクリア（消費）します。

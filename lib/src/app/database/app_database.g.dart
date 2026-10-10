@@ -17,6 +17,15 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _titleMeta = const VerificationMeta('title');
   @override
   late final GeneratedColumn<String> title = GeneratedColumn<String>(
@@ -92,6 +101,7 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    userId,
     title,
     content,
     createdAt,
@@ -115,6 +125,14 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
       context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
     }
     if (data.containsKey('title')) {
       context.handle(
@@ -173,6 +191,10 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
       title: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}title'],
@@ -210,6 +232,9 @@ class Memo extends DataClass implements Insertable<Memo> {
   /// メモの番号（複数の端末で被らないように、UUIDにする）
   final String id;
 
+  /// メモの所有ユーザーID
+  final String userId;
+
   /// メモのタイトル
   final String title;
 
@@ -229,6 +254,7 @@ class Memo extends DataClass implements Insertable<Memo> {
   final bool isSynced;
   const Memo({
     required this.id,
+    required this.userId,
     required this.title,
     required this.content,
     required this.createdAt,
@@ -240,6 +266,7 @@ class Memo extends DataClass implements Insertable<Memo> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
     map['title'] = Variable<String>(title);
     map['content'] = Variable<String>(content);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -252,6 +279,7 @@ class Memo extends DataClass implements Insertable<Memo> {
   MemosCompanion toCompanion(bool nullToAbsent) {
     return MemosCompanion(
       id: Value(id),
+      userId: Value(userId),
       title: Value(title),
       content: Value(content),
       createdAt: Value(createdAt),
@@ -268,6 +296,7 @@ class Memo extends DataClass implements Insertable<Memo> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Memo(
       id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
       title: serializer.fromJson<String>(json['title']),
       content: serializer.fromJson<String>(json['content']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -281,6 +310,7 @@ class Memo extends DataClass implements Insertable<Memo> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
       'title': serializer.toJson<String>(title),
       'content': serializer.toJson<String>(content),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -292,6 +322,7 @@ class Memo extends DataClass implements Insertable<Memo> {
 
   Memo copyWith({
     String? id,
+    String? userId,
     String? title,
     String? content,
     DateTime? createdAt,
@@ -300,6 +331,7 @@ class Memo extends DataClass implements Insertable<Memo> {
     bool? isSynced,
   }) => Memo(
     id: id ?? this.id,
+    userId: userId ?? this.userId,
     title: title ?? this.title,
     content: content ?? this.content,
     createdAt: createdAt ?? this.createdAt,
@@ -310,6 +342,7 @@ class Memo extends DataClass implements Insertable<Memo> {
   Memo copyWithCompanion(MemosCompanion data) {
     return Memo(
       id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
       title: data.title.present ? data.title.value : this.title,
       content: data.content.present ? data.content.value : this.content,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -323,6 +356,7 @@ class Memo extends DataClass implements Insertable<Memo> {
   String toString() {
     return (StringBuffer('Memo(')
           ..write('id: $id, ')
+          ..write('userId: $userId, ')
           ..write('title: $title, ')
           ..write('content: $content, ')
           ..write('createdAt: $createdAt, ')
@@ -336,6 +370,7 @@ class Memo extends DataClass implements Insertable<Memo> {
   @override
   int get hashCode => Object.hash(
     id,
+    userId,
     title,
     content,
     createdAt,
@@ -348,6 +383,7 @@ class Memo extends DataClass implements Insertable<Memo> {
       identical(this, other) ||
       (other is Memo &&
           other.id == this.id &&
+          other.userId == this.userId &&
           other.title == this.title &&
           other.content == this.content &&
           other.createdAt == this.createdAt &&
@@ -358,6 +394,7 @@ class Memo extends DataClass implements Insertable<Memo> {
 
 class MemosCompanion extends UpdateCompanion<Memo> {
   final Value<String> id;
+  final Value<String> userId;
   final Value<String> title;
   final Value<String> content;
   final Value<DateTime> createdAt;
@@ -367,6 +404,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
   final Value<int> rowid;
   const MemosCompanion({
     this.id = const Value.absent(),
+    this.userId = const Value.absent(),
     this.title = const Value.absent(),
     this.content = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -377,6 +415,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
   });
   MemosCompanion.insert({
     required String id,
+    required String userId,
     required String title,
     required String content,
     required DateTime createdAt,
@@ -385,12 +424,14 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     this.isSynced = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
+       userId = Value(userId),
        title = Value(title),
        content = Value(content),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
   static Insertable<Memo> custom({
     Expression<String>? id,
+    Expression<String>? userId,
     Expression<String>? title,
     Expression<String>? content,
     Expression<DateTime>? createdAt,
@@ -401,6 +442,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
       if (title != null) 'title': title,
       if (content != null) 'content': content,
       if (createdAt != null) 'created_at': createdAt,
@@ -413,6 +455,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
 
   MemosCompanion copyWith({
     Value<String>? id,
+    Value<String>? userId,
     Value<String>? title,
     Value<String>? content,
     Value<DateTime>? createdAt,
@@ -423,6 +466,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
   }) {
     return MemosCompanion(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       title: title ?? this.title,
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
@@ -438,6 +482,9 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
@@ -467,6 +514,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
   String toString() {
     return (StringBuffer('MemosCompanion(')
           ..write('id: $id, ')
+          ..write('userId: $userId, ')
           ..write('title: $title, ')
           ..write('content: $content, ')
           ..write('createdAt: $createdAt, ')
@@ -757,6 +805,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 typedef $$MemosTableCreateCompanionBuilder =
     MemosCompanion Function({
       required String id,
+      required String userId,
       required String title,
       required String content,
       required DateTime createdAt,
@@ -768,6 +817,7 @@ typedef $$MemosTableCreateCompanionBuilder =
 typedef $$MemosTableUpdateCompanionBuilder =
     MemosCompanion Function({
       Value<String> id,
+      Value<String> userId,
       Value<String> title,
       Value<String> content,
       Value<DateTime> createdAt,
@@ -787,6 +837,11 @@ class $$MemosTableFilterComposer extends Composer<_$AppDatabase, $MemosTable> {
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -835,6 +890,11 @@ class $$MemosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get title => $composableBuilder(
     column: $table.title,
     builder: (column) => ColumnOrderings(column),
@@ -877,6 +937,9 @@ class $$MemosTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
 
   GeneratedColumn<String> get title =>
       $composableBuilder(column: $table.title, builder: (column) => column);
@@ -926,6 +989,7 @@ class $$MemosTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String> content = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -935,6 +999,7 @@ class $$MemosTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => MemosCompanion(
                 id: id,
+                userId: userId,
                 title: title,
                 content: content,
                 createdAt: createdAt,
@@ -946,6 +1011,7 @@ class $$MemosTableTableManager
           createCompanionCallback:
               ({
                 required String id,
+                required String userId,
                 required String title,
                 required String content,
                 required DateTime createdAt,
@@ -955,6 +1021,7 @@ class $$MemosTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => MemosCompanion.insert(
                 id: id,
+                userId: userId,
                 title: title,
                 content: content,
                 createdAt: createdAt,

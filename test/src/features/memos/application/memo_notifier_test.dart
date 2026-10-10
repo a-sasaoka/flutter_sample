@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
@@ -23,13 +24,14 @@ void main() {
       mockMemoRepository = MockMemoRepository();
       container = ProviderContainer(
         overrides: [
+          currentUserIdProvider.overrideWithValue('test_user_id'),
           memoRepositoryProvider.overrideWithValue(mockMemoRepository),
           isOnlineProvider.overrideWithValue(false),
         ],
       );
       // デフォルトの振る舞い
       when(
-        () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+        () => mockMemoRepository.fetchAndMergeRemoteMemos(any()),
       ).thenAnswer((_) async {});
     });
 
@@ -37,10 +39,32 @@ void main() {
       container.dispose();
     });
 
+    test(
+      'build() は未ログイン（userId == null）時に空のリストを返し、watchAllMemosを呼び出さないこと',
+      () async {
+        final loggedOutContainer = ProviderContainer(
+          overrides: [
+            currentUserIdProvider.overrideWithValue(null),
+            memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+            isOnlineProvider.overrideWithValue(false),
+          ],
+        );
+        addTearDown(loggedOutContainer.dispose);
+
+        final subscription = loggedOutContainer.listen(memoProvider, (_, _) {});
+        final memos = await loggedOutContainer.read(memoProvider.future);
+
+        check(memos).isEmpty();
+        verifyNever(() => mockMemoRepository.watchAllMemos(any()));
+        subscription.close();
+      },
+    );
+
     test('build() は repository.watchAllMemos() の結果を返すこと', () async {
       final mockMemos = [
         MemoModel(
           id: '1',
+          userId: 'test_user_id',
           title: 'テストタイトル',
           content: 'テストコンテンツ',
           createdAt: DateTime(2026, 5),
@@ -49,7 +73,7 @@ void main() {
       ];
 
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value(mockMemos));
 
       final subscription = container.listen(memoProvider, (_, _) {});
@@ -57,7 +81,7 @@ void main() {
       final memos = await container.read(memoProvider.future);
 
       check(memos).deepEquals(mockMemos);
-      verify(() => mockMemoRepository.watchAllMemos()).called(1);
+      verify(() => mockMemoRepository.watchAllMemos('test_user_id')).called(1);
 
       subscription.close();
     });
@@ -67,10 +91,10 @@ void main() {
       addTearDown(controller.close);
 
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => controller.stream);
       when(
-        () => mockMemoRepository.addMemo(any(), any()),
+        () => mockMemoRepository.addMemo(any(), any(), any()),
       ).thenAnswer((_) async {});
 
       final subscription = container.listen(memoProvider, (_, _) {});
@@ -80,7 +104,9 @@ void main() {
       await container.read(memoProvider.future);
       await container.read(memoProvider.notifier).addMemo('タイトル', '内容');
 
-      verify(() => mockMemoRepository.addMemo('タイトル', '内容')).called(1);
+      verify(
+        () => mockMemoRepository.addMemo('タイトル', '内容', 'test_user_id'),
+      ).called(1);
 
       subscription.close();
     });
@@ -90,9 +116,11 @@ void main() {
       addTearDown(controller.close);
 
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => controller.stream);
-      when(() => mockMemoRepository.deleteMemo(any())).thenAnswer((_) async {});
+      when(
+        () => mockMemoRepository.deleteMemo(any(), any()),
+      ).thenAnswer((_) async {});
 
       final subscription = container.listen(memoProvider, (_, _) {});
 
@@ -101,7 +129,9 @@ void main() {
       await container.read(memoProvider.future);
       await container.read(memoProvider.notifier).deleteMemo('id1');
 
-      verify(() => mockMemoRepository.deleteMemo('id1')).called(1);
+      verify(
+        () => mockMemoRepository.deleteMemo('id1', 'test_user_id'),
+      ).called(1);
 
       subscription.close();
     });
@@ -115,6 +145,7 @@ void main() {
 
           final onlineContainer = ProviderContainer(
             overrides: [
+              currentUserIdProvider.overrideWithValue('test_user_id'),
               memoRepositoryProvider.overrideWithValue(mockMemoRepository),
               isOnlineProvider.overrideWithValue(true),
             ],
@@ -122,17 +153,19 @@ void main() {
           addTearDown(onlineContainer.dispose);
 
           when(
-            () => mockMemoRepository.watchAllMemos(),
+            () => mockMemoRepository.watchAllMemos(any()),
           ).thenAnswer((_) => controller.stream);
           when(
-            () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+            () => mockMemoRepository.fetchAndMergeRemoteMemos(any()),
           ).thenAnswer((_) async {});
 
           final subscription = onlineContainer.listen(memoProvider, (_, _) {});
           controller.add([]);
           await onlineContainer.read(memoProvider.future);
 
-          verify(() => mockMemoRepository.fetchAndMergeRemoteMemos()).called(1);
+          verify(
+            () => mockMemoRepository.fetchAndMergeRemoteMemos('test_user_id'),
+          ).called(1);
           subscription.close();
         },
       );
@@ -145,6 +178,7 @@ void main() {
 
         final onlineContainer = ProviderContainer(
           overrides: [
+            currentUserIdProvider.overrideWithValue('test_user_id'),
             memoRepositoryProvider.overrideWithValue(mockMemoRepository),
             isOnlineProvider.overrideWithValue(true),
             loggerProvider.overrideWithValue(talker),
@@ -155,10 +189,10 @@ void main() {
         final exception = Exception('Sync error');
 
         when(
-          () => mockMemoRepository.watchAllMemos(),
+          () => mockMemoRepository.watchAllMemos(any()),
         ).thenAnswer((_) => controller.stream);
         when(
-          () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+          () => mockMemoRepository.fetchAndMergeRemoteMemos(any()),
         ).thenThrow(exception);
 
         final subscription = onlineContainer.listen(memoProvider, (_, _) {});
@@ -180,17 +214,17 @@ void main() {
           addTearDown(controller.close);
 
           when(
-            () => mockMemoRepository.watchAllMemos(),
+            () => mockMemoRepository.watchAllMemos(any()),
           ).thenAnswer((_) => controller.stream);
           when(
-            () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+            () => mockMemoRepository.fetchAndMergeRemoteMemos(any()),
           ).thenAnswer((_) async {});
 
           final subscription = container.listen(memoProvider, (_, _) {});
           controller.add([]);
           await container.read(memoProvider.future);
 
-          verifyNever(() => mockMemoRepository.fetchAndMergeRemoteMemos());
+          verifyNever(() => mockMemoRepository.fetchAndMergeRemoteMemos(any()));
           subscription.close();
         },
       );
@@ -200,6 +234,7 @@ void main() {
         () async {
           final onlineContainer = ProviderContainer(
             overrides: [
+              currentUserIdProvider.overrideWithValue('test_user_id'),
               memoRepositoryProvider.overrideWithValue(mockMemoRepository),
               isOnlineProvider.overrideWithValue(true),
             ],
@@ -207,17 +242,19 @@ void main() {
           addTearDown(onlineContainer.dispose);
 
           when(
-            () => mockMemoRepository.watchAllMemos(),
+            () => mockMemoRepository.watchAllMemos(any()),
           ).thenAnswer((_) => Stream.value(<MemoModel>[]));
           when(
-            () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+            () => mockMemoRepository.fetchAndMergeRemoteMemos(any()),
           ).thenAnswer((_) async {});
 
           final subscription = onlineContainer.listen(memoProvider, (_, _) {});
           await onlineContainer.read(memoProvider.future);
 
           // 初回ビルド時に fetchAndMergeRemoteMemos が1回呼ばれることを検証
-          verify(() => mockMemoRepository.fetchAndMergeRemoteMemos()).called(1);
+          verify(
+            () => mockMemoRepository.fetchAndMergeRemoteMemos('test_user_id'),
+          ).called(1);
           clearInteractions(mockMemoRepository);
 
           // searchQueryProviderを更新して再構築をトリガー
@@ -233,7 +270,7 @@ void main() {
           await onlineContainer.read(memoProvider.future);
 
           // 追加の同期呼び出しが行われていないことを検証
-          verifyNever(() => mockMemoRepository.fetchAndMergeRemoteMemos());
+          verifyNever(() => mockMemoRepository.fetchAndMergeRemoteMemos(any()));
 
           subscription.close();
         },
@@ -249,6 +286,7 @@ void main() {
 
           final onlineContainer = ProviderContainer(
             overrides: [
+              currentUserIdProvider.overrideWithValue('test_user_id'),
               memoRepositoryProvider.overrideWithValue(mockMemoRepository),
               isOnlineProvider.overrideWithValue(true),
             ],
@@ -256,10 +294,10 @@ void main() {
           addTearDown(onlineContainer.dispose);
 
           when(
-            () => mockMemoRepository.watchAllMemos(),
+            () => mockMemoRepository.watchAllMemos(any()),
           ).thenAnswer((_) => controller.stream);
           when(
-            () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+            () => mockMemoRepository.fetchAndMergeRemoteMemos(any()),
           ).thenAnswer((_) async {});
 
           final subscription = onlineContainer.listen(memoProvider, (_, _) {});
@@ -271,7 +309,9 @@ void main() {
 
           await onlineContainer.read(memoProvider.notifier).sync();
 
-          verify(() => mockMemoRepository.fetchAndMergeRemoteMemos()).called(1);
+          verify(
+            () => mockMemoRepository.fetchAndMergeRemoteMemos('test_user_id'),
+          ).called(1);
           subscription.close();
         },
       );
@@ -283,10 +323,10 @@ void main() {
           addTearDown(controller.close);
 
           when(
-            () => mockMemoRepository.watchAllMemos(),
+            () => mockMemoRepository.watchAllMemos(any()),
           ).thenAnswer((_) => controller.stream);
           when(
-            () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+            () => mockMemoRepository.fetchAndMergeRemoteMemos(any()),
           ).thenAnswer((_) async {});
 
           final subscription = container.listen(memoProvider, (_, _) {});
@@ -296,7 +336,7 @@ void main() {
 
           await container.read(memoProvider.notifier).sync();
 
-          verifyNever(() => mockMemoRepository.fetchAndMergeRemoteMemos());
+          verifyNever(() => mockMemoRepository.fetchAndMergeRemoteMemos(any()));
           subscription.close();
         },
       );
@@ -306,7 +346,7 @@ void main() {
       final exception = Exception('読み込み失敗');
 
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.error(exception));
 
       final subscription = container.listen(memoProvider, (_, _) {});
@@ -328,6 +368,7 @@ void main() {
       final mockMemos = [
         MemoModel(
           id: '1',
+          userId: 'test_user_id',
           title: 'Apple',
           content: 'This is red apple.',
           createdAt: DateTime(2026, 5, 10),
@@ -335,6 +376,7 @@ void main() {
         ),
         MemoModel(
           id: '2',
+          userId: 'test_user_id',
           title: 'Banana',
           content: 'Yellow banana juice.',
           createdAt: DateTime(2026, 5, 15),
@@ -342,6 +384,7 @@ void main() {
         ),
         MemoModel(
           id: '3',
+          userId: 'test_user_id',
           title: 'Orange juice',
           content: 'Sweet orange.',
           createdAt: DateTime(2026, 5, 5),
@@ -351,7 +394,7 @@ void main() {
 
       setUp(() {
         when(
-          () => mockMemoRepository.watchAllMemos(),
+          () => mockMemoRepository.watchAllMemos(any()),
         ).thenAnswer((_) => Stream.value(mockMemos));
       });
 

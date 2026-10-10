@@ -69,6 +69,15 @@ memos/
 最新の有効メモ（削除済みを除く更新日時の最も新しいメモ）およびメモ件数が、OSの共有領域（iOS App Groups / Android SharedPreferences）を介してホーム画面ウィジェットへ即座に反映されます。
 ウィジェットのメモ本体タップ時はメモ一覧（`/memos`）へ直接遷移し、追加ボタン（「＋」）タップ時はディープリンク（`sampleapp://memos/create` 経由の `?action=create`）を検知して新規作成ボトムシートが自動オープンします（Core層の [app_lock_state_provider.dart](../lib/src/core/services/app_lock_state_provider.dart) の `isAppUnlockedProvider` と連携し、アプリロック解除を安全に待機します）。詳細は [ホーム画面ウィジェット連携 (home_widget.md)](home_widget.md) を参照してください。
 
+### 7. マルチユーザー対応と完全データ分離 (Issue #314)
+
+同一端末で複数アカウントが利用されるシナリオにおいて、ユーザー間のメモ混同やプライバシー漏洩を根本防止するため、データベースからUI層まで完全なマルチユーザー分離を実現しています。
+
+- **テーブル定義とマイグレーション**: [memo_table.dart](../lib/src/features/memos/data/memo_table.dart) に `userId` カラム（NOT NULL）を追加し、[app_database.dart](../lib/src/app/database/app_database.dart) のスキーマバージョンを 2 から 3 へアップデート。過去の旧データはマイグレーション時に安全にクリアされます。
+- **DAO & Repository のユーザー制限**: [memos_dao.dart](../lib/src/features/memos/data/memos_dao.dart) および [memo_repository.dart](../lib/src/features/memos/data/memo_repository.dart) のすべてのクエリ（一覧取得・作成・更新・削除・未同期メモ抽出）に `userId` を必須指定とし、他ユーザーのメモを一切参照・変更できない構造を担保。
+- **Notifier の認証連動**: [memo_notifier.dart](../lib/src/features/memos/application/memo_notifier.dart) は [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の `currentUserIdProvider` をリアクティブに監視。未ログイン時は即座に空リスト（`[]`）を返却し、ログイン（またはアカウント切り替え）時に現在ログインしているユーザーのメモのみを即時提供します。
+- **ホームウィジェット同期のユーザー連携**: [home_widget_sync_coordinator.dart](../lib/src/features/home_widget/application/home_widget_sync_coordinator.dart) においても、`getAllMemos(targetUserId)` を呼び出すことで、現在ログインしているユーザーのメモのみを抽出してウィジェットへ同期します。
+
 ---
 
 ## テスト
@@ -76,8 +85,9 @@ memos/
 本機能は、データ層から UI 層まで 100% のテストカバレッジを実現しています。
 
 - **Unit Test**:
-  - `MemoRepository`: オフライン保存、エラー時のリトライフラグ、リモートデータとのマージロジック。
-  - `MemoNotifier`: 追加・削除・同期命令後の状態更新（StreamNotifier によるリアクティブな自動更新の検証、初期化時および手動同期時の同期処理検証）。
+  - `AppDatabase`: スキーマバージョン 3 へのマイグレーション検証（`app_database_test.dart`）。
+  - `MemoRepository`: オフライン保存、エラー時のリトライフラグ、リモートデータとのマージロジック、および**複数ユーザー間での完全データ分離（他ユーザーのメモが混ざらないこと）**の検証。
+  - `MemoNotifier`: 追加・削除・同期命令後の状態更新、未ログイン時の空配列返却、ログイン時のユーザー別メモ読み込み検証。
 - **Widget Test**:
   - `MemoScreen`: 空状態の表示、ボトムシートでの入力、削除確認ダイアログ、同期ボタンの動作。
   - `MemoScreen (検索・ソート)`: 検索キーワードによる部分一致の絞り込みとクリア、ソート順変更時のメモの表示位置（並び順）の変化。

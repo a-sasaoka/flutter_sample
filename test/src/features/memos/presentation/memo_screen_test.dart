@@ -10,6 +10,7 @@ import 'package:flutter_sample/src/core/services/app_lock_state_provider.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/empty_state_widget.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
@@ -79,14 +80,14 @@ void main() {
 
     // デフォルトのスタブ設定
     when(
-      () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+      () => mockMemoRepository.fetchAndMergeRemoteMemos(any()),
     ).thenAnswer((_) async {});
     when(
       () =>
           mockTalker.handle(any<Object>(), any<StackTrace?>(), any<String?>()),
     ).thenAnswer((_) {});
     when(
-      () => mockMemoRepository.watchAllMemos(),
+      () => mockMemoRepository.watchAllMemos(any()),
     ).thenAnswer((_) => Stream.value([]));
   });
 
@@ -95,6 +96,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          currentUserIdProvider.overrideWithValue('test_user_id'),
           memoRepositoryProvider.overrideWithValue(mockMemoRepository),
           isOnlineProvider.overrideWithValue(isOnline),
           loggerProvider.overrideWithValue(mockTalker),
@@ -118,7 +120,7 @@ void main() {
     testWidgets('ローディング状態が正しく表示されること', (tester) async {
       final completer = Completer<List<MemoModel>>();
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => completer.future.asStream());
 
       await setupWidget(tester);
@@ -128,7 +130,7 @@ void main() {
 
     testWidgets('エラー状態が正しく表示されること', (tester) async {
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.error(Exception('Test Error')));
 
       await setupWidget(tester);
@@ -139,7 +141,7 @@ void main() {
 
     testWidgets('データが空の場合、空の状態が表示されること', (tester) async {
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value([]));
 
       await setupWidget(tester);
@@ -154,6 +156,7 @@ void main() {
       final memoList = [
         MemoModel(
           id: '1',
+          userId: 'test_user_id',
           title: 'タイトル1',
           content: '内容1',
           createdAt: now,
@@ -162,7 +165,7 @@ void main() {
         ),
       ];
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value(memoList));
 
       await setupWidget(tester);
@@ -176,10 +179,10 @@ void main() {
 
     testWidgets('FABを押すとボトムシートが開き、メモを追加できること', (tester) async {
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value([]));
       when(
-        () => mockMemoRepository.addMemo(any(), any()),
+        () => mockMemoRepository.addMemo(any(), any(), any()),
       ).thenAnswer((_) async {});
 
       await setupWidget(tester);
@@ -199,7 +202,9 @@ void main() {
       await tester.tap(find.byIcon(Icons.save));
       await tester.pumpAndSettle();
 
-      verify(() => mockMemoRepository.addMemo('新タイトル', '新内容')).called(1);
+      verify(
+        () => mockMemoRepository.addMemo('新タイトル', '新内容', 'test_user_id'),
+      ).called(1);
       // ボトムシートが閉じていることを確認（検索バーだけが残っている）
       check(find.byType(TextField)).findsOne();
     });
@@ -208,13 +213,14 @@ void main() {
       final now = DateTime.now();
       final memo = MemoModel(
         id: '1',
+        userId: 'test_user_id',
         title: '消さないメモ',
         content: '内容',
         createdAt: now,
         updatedAt: now,
       );
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value([memo]));
 
       await setupWidget(tester);
@@ -230,22 +236,25 @@ void main() {
       await tester.pumpAndSettle();
 
       check(find.byType(AlertDialog)).findsNothing();
-      verifyNever(() => mockMemoRepository.deleteMemo(any()));
+      verifyNever(() => mockMemoRepository.deleteMemo(any(), any()));
     });
 
     testWidgets('削除ボタンを押すとダイアログが表示され、実行すると削除処理が呼ばれること', (tester) async {
       final now = DateTime.now();
       final memo = MemoModel(
         id: '1',
+        userId: 'test_user_id',
         title: '消すメモ',
         content: '内容',
         createdAt: now,
         updatedAt: now,
       );
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value([memo]));
-      when(() => mockMemoRepository.deleteMemo(any())).thenAnswer((_) async {});
+      when(
+        () => mockMemoRepository.deleteMemo(any(), any()),
+      ).thenAnswer((_) async {});
 
       await setupWidget(tester);
       await tester.pumpAndSettle();
@@ -260,12 +269,14 @@ void main() {
       await tester.tap(find.widgetWithText(TextButton, '削除'));
       await tester.pumpAndSettle();
 
-      verify(() => mockMemoRepository.deleteMemo('1')).called(1);
+      verify(
+        () => mockMemoRepository.deleteMemo('1', 'test_user_id'),
+      ).called(1);
     });
 
     testWidgets('同期ボタンを押すと同期処理が呼ばれること', (tester) async {
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value([]));
 
       await setupWidget(tester);
@@ -275,26 +286,28 @@ void main() {
       await tester.pumpAndSettle();
 
       // build時に1回、同期ボタンタップ時に1回で合計2回
-      verify(() => mockMemoRepository.fetchAndMergeRemoteMemos()).called(2);
+      verify(
+        () => mockMemoRepository.fetchAndMergeRemoteMemos('test_user_id'),
+      ).called(2);
     });
 
     testWidgets('同期ボタンを押してエラーが発生した場合、エラー通知が表示されること', (tester) async {
       var callCount = 0;
       final syncException = Exception('同期エラー');
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value([]));
-      when(() => mockMemoRepository.fetchAndMergeRemoteMemos()).thenAnswer((
-        _,
-      ) async {
-        if (callCount++ == 0) {
-          // build時の自動同期は成功
-          return;
-        } else {
-          // ボタンタップ時はエラー
-          throw syncException;
-        }
-      });
+      when(() => mockMemoRepository.fetchAndMergeRemoteMemos(any())).thenAnswer(
+        (_) async {
+          if (callCount++ == 0) {
+            // build時の自動同期は成功
+            return;
+          } else {
+            // ボタンタップ時はエラー
+            throw syncException;
+          }
+        },
+      );
 
       await setupWidget(tester);
       await tester.pumpAndSettle();
@@ -315,7 +328,7 @@ void main() {
 
     testWidgets('引っ張って更新（Pull to Refresh）が動作すること', (tester) async {
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value([]));
 
       await setupWidget(tester);
@@ -329,7 +342,9 @@ void main() {
 
       // リロードのために fetchAndMergeRemoteMemos が再度呼ばれることを確認
       // (初回 build 時に 1 回、onRefresh 時に 1 回で合計 2 回)
-      verify(() => mockMemoRepository.fetchAndMergeRemoteMemos()).called(2);
+      verify(
+        () => mockMemoRepository.fetchAndMergeRemoteMemos('test_user_id'),
+      ).called(2);
     });
 
     testWidgets('検索キーワードを入力した際、部分一致するメモだけが表示されること（インクリメンタルサーチ）', (
@@ -339,6 +354,7 @@ void main() {
       final memoList = [
         MemoModel(
           id: '1',
+          userId: 'test_user_id',
           title: 'りんごのメモ',
           content: '赤くて甘い果物',
           createdAt: now,
@@ -346,6 +362,7 @@ void main() {
         ),
         MemoModel(
           id: '2',
+          userId: 'test_user_id',
           title: 'バナナのメモ',
           content: '黄色くて長い果物',
           createdAt: now,
@@ -353,7 +370,7 @@ void main() {
         ),
       ];
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value(memoList));
 
       await setupWidget(tester);
@@ -386,6 +403,7 @@ void main() {
       final memoList = [
         MemoModel(
           id: '1',
+          userId: 'test_user_id',
           title: 'B_Memo',
           content: 'content B',
           createdAt: t1,
@@ -393,6 +411,7 @@ void main() {
         ),
         MemoModel(
           id: '2',
+          userId: 'test_user_id',
           title: 'A_Memo',
           content: 'content A',
           createdAt: t2,
@@ -400,7 +419,7 @@ void main() {
         ),
       ];
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value(memoList));
 
       await setupWidget(tester);
@@ -427,7 +446,7 @@ void main() {
 
     testWidgets('画面外タップでキーボードが閉じること(一覧画面および追加ボトムシート)', (tester) async {
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value([]));
       await setupWidget(tester);
       await tester.pumpAndSettle();
@@ -466,13 +485,14 @@ void main() {
 
     testWidgets('外部から検索クエリが変更された場合に入力欄の文字が同期して更新されること', (tester) async {
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value([]));
 
       // Riverpodのコンテナに直接アクセスして状態を操作できるようにするため、
       // setupWidget ではなくここで個別にProviderScopeを準備します。
       final container = ProviderContainer(
         overrides: [
+          currentUserIdProvider.overrideWithValue('test_user_id'),
           memoRepositoryProvider.overrideWithValue(mockMemoRepository),
         ],
       );
@@ -525,6 +545,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            currentUserIdProvider.overrideWithValue('test_user_id'),
             memoRepositoryProvider.overrideWithValue(mockMemoRepository),
             loggerProvider.overrideWithValue(mockTalker),
             isAppUnlockedProvider.overrideWithValue(true),
@@ -563,6 +584,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            currentUserIdProvider.overrideWithValue('test_user_id'),
             memoRepositoryProvider.overrideWithValue(mockMemoRepository),
             loggerProvider.overrideWithValue(mockTalker),
             isAppUnlockedProvider.overrideWithValue(false),

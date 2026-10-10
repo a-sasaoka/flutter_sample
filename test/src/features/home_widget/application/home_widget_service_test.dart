@@ -153,6 +153,7 @@ void main() {
       test('メモが存在するとき、削除済みが除外され最新の更新日時メモが保存されること', () async {
         final olderMemo = MemoModel(
           id: 'memo-1',
+          userId: 'user-1',
           title: '古いメモ',
           content: '古い内容',
           createdAt: DateTime(2026, 9, 20, 10),
@@ -160,6 +161,7 @@ void main() {
         );
         final latestMemo = MemoModel(
           id: 'memo-2',
+          userId: 'user-1',
           title: '最新メモ',
           content: '最新内容',
           createdAt: DateTime(2026, 9, 25, 9),
@@ -167,6 +169,7 @@ void main() {
         );
         final deletedMemo = MemoModel(
           id: 'memo-3',
+          userId: 'user-1',
           title: '削除済みメモ',
           content: '削除された内容',
           createdAt: DateTime(2026, 9, 28, 10),
@@ -234,6 +237,7 @@ void main() {
       test('全メモが削除済みのとき、0件（空状態）として扱われること', () async {
         final deletedMemo = MemoModel(
           id: 'memo-del',
+          userId: 'user-del',
           title: '削除メモ',
           content: '削除内容',
           createdAt: DateTime(2026, 9, 27),

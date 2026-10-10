@@ -39,7 +39,7 @@ class MemoRepository {
   final Uuid _uuid;
 
   /// 新しいメモをデータベースに追加する
-  Future<void> addMemo(String title, String content) async {
+  Future<void> addMemo(String title, String content, String userId) async {
     final now = _clock();
 
     // UUIDを作る
@@ -49,6 +49,7 @@ class MemoRepository {
     await _dao.insertMemo(
       MemosCompanion.insert(
         id: generatedId,
+        userId: userId,
         title: title,
         content: content,
         createdAt: now,
@@ -71,6 +72,7 @@ class MemoRepository {
         // 保存に成功したら「送信済み (true)」に更新
         await _dao.updateMemo(
           generatedId,
+          userId,
           const MemosCompanion(isSynced: drift.Value(true)),
         );
 
@@ -82,12 +84,18 @@ class MemoRepository {
   }
 
   /// メモを更新する
-  Future<void> updateMemo(String id, String title, String content) async {
+  Future<void> updateMemo(
+    String id,
+    String title,
+    String content,
+    String userId,
+  ) async {
     final now = _clock();
 
     // まずはスマホ側のデータを更新し、未送信状態に戻す
     await _dao.updateMemo(
       id,
+      userId,
       MemosCompanion(
         title: drift.Value(title),
         content: drift.Value(content),
@@ -99,7 +107,7 @@ class MemoRepository {
     if (_isOnline) {
       // オンラインの時はサーバに保存を試みる
       try {
-        final memo = await _dao.getMemoById(id);
+        final memo = await _dao.getMemoById(id, userId);
         await _remote.uploadMemo(
           id: id,
           title: title,
@@ -112,6 +120,7 @@ class MemoRepository {
         // 保存に成功したら「送信済み (true)」に更新
         await _dao.updateMemo(
           id,
+          userId,
           const MemosCompanion(isSynced: drift.Value(true)),
         );
 
@@ -123,12 +132,13 @@ class MemoRepository {
   }
 
   /// メモを削除（論理削除）する
-  Future<void> deleteMemo(String id) async {
+  Future<void> deleteMemo(String id, String userId) async {
     final now = _clock();
 
     // スマホ側で論理削除マークをつける
     await _dao.updateMemo(
       id,
+      userId,
       MemosCompanion(
         updatedAt: drift.Value(now),
         isDeleted: const drift.Value(true),
@@ -139,7 +149,7 @@ class MemoRepository {
     if (_isOnline) {
       // オンラインの時はサーバに保存を試みる
       try {
-        final memo = await _dao.getMemoById(id);
+        final memo = await _dao.getMemoById(id, userId);
         // サーバーにも「削除済み」として送る
         await _remote.uploadMemo(
           id: id,
@@ -153,6 +163,7 @@ class MemoRepository {
         // 保存に成功したら「送信済み (true)」に更新
         await _dao.updateMemo(
           id,
+          userId,
           const MemosCompanion(isSynced: drift.Value(true)),
         );
 
@@ -164,9 +175,9 @@ class MemoRepository {
   }
 
   /// スマホに残っている「未送信のメモ」をまとめてサーバーに送る処理
-  Future<void> syncUnsentMemos() async {
+  Future<void> syncUnsentMemos(String userId) async {
     // スマホの中から isSynced が false のメモを探し出す
-    final unsentMemos = await _dao.getUnsyncedMemos();
+    final unsentMemos = await _dao.getUnsyncedMemos(userId);
 
     if (unsentMemos.isEmpty) {
       return;
@@ -193,25 +204,28 @@ class MemoRepository {
 
     // 成功したものをまとめてDB更新
     if (syncedIds.isNotEmpty) {
-      await _dao.updateSyncStatus(syncedIds, isSynced: true);
+      await _dao.updateSyncStatus(syncedIds, userId, isSynced: true);
     }
   }
 
   /// 保存されているすべてのメモを一覧（リスト）として取得する
   ///
   /// [syncUnsent] が false の場合、未送信ローカルメモの送信を行わずに取得・マージします。
-  Future<List<MemoModel>> getAllMemos({bool syncUnsent = true}) async {
-    await fetchAndMergeRemoteMemos(syncUnsent: syncUnsent);
+  Future<List<MemoModel>> getAllMemos(
+    String userId, {
+    bool syncUnsent = true,
+  }) async {
+    await fetchAndMergeRemoteMemos(userId, syncUnsent: syncUnsent);
 
     // データベースから「削除されていない」データを取り出す
-    final driftMemos = await _dao.getAllMemos();
+    final driftMemos = await _dao.getAllMemos(userId);
 
     return driftMemos.map(_mapToMemoModel).toList();
   }
 
   /// データベースの変更を自動で検知して流し続けるストリーム
-  Stream<List<MemoModel>> watchAllMemos() {
-    return _dao.watchAllMemos().map((driftMemos) {
+  Stream<List<MemoModel>> watchAllMemos(String userId) {
+    return _dao.watchAllMemos(userId).map((driftMemos) {
       return driftMemos.map(_mapToMemoModel).toList();
     });
   }
@@ -220,6 +234,7 @@ class MemoRepository {
   MemoModel _mapToMemoModel(Memo memo) {
     return MemoModel(
       id: memo.id,
+      userId: memo.userId,
       title: memo.title,
       content: memo.content,
       createdAt: memo.createdAt,
@@ -232,10 +247,13 @@ class MemoRepository {
   /// リモートサーバーからメモを取得し、ローカルデータベースとマージする処理
   ///
   /// [syncUnsent] が false の場合、未送信メモの送信はスキップします。
-  Future<void> fetchAndMergeRemoteMemos({bool syncUnsent = true}) async {
+  Future<void> fetchAndMergeRemoteMemos(
+    String userId, {
+    bool syncUnsent = true,
+  }) async {
     // 未送信のメモがあればサーバーに送る
     if (_isOnline && syncUnsent) {
-      await syncUnsentMemos();
+      await syncUnsentMemos(userId);
     }
 
     try {
@@ -244,7 +262,7 @@ class MemoRepository {
       // サーバーから取得したデータを効率的にマージする
       if (remoteData.isNotEmpty) {
         final ids = remoteData.map((e) => e['id'] as String).toList();
-        final localMemos = await _dao.getMemosByIds(ids);
+        final localMemos = await _dao.getMemosByIds(ids, userId);
         final localMemosMap = {for (final m in localMemos) m.id: m};
         final companionsToUpsert = <MemosCompanion>[];
 
@@ -264,6 +282,7 @@ class MemoRepository {
               companionsToUpsert.add(
                 MemosCompanion.insert(
                   id: id,
+                  userId: userId,
                   title: title,
                   content: content,
                   createdAt: createdAt,

@@ -47,6 +47,25 @@ void main() {
       check(token).isNull();
     });
 
+    test('getUserId: ユーザーがログイン状態の時、ユーザーのuidを返すこと', () async {
+      when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+      when(() => mockUser.uid).thenReturn('dummy_uid');
+
+      final userId = await tokenStorage.getUserId();
+
+      check(userId).equals('dummy_uid');
+      verify(() => mockFirebaseAuth.currentUser).called(1);
+    });
+
+    test('getUserId: ユーザーが未ログイン状態の時、nullを返すこと', () async {
+      when(() => mockFirebaseAuth.currentUser).thenReturn(null);
+
+      final userId = await tokenStorage.getUserId();
+
+      check(userId).isNull();
+      verify(() => mockFirebaseAuth.currentUser).called(1);
+    });
+
     test('saveTokens: 何も処理を行わないこと', () async {
       await check(
         tokenStorage.saveTokens(

@@ -7,6 +7,7 @@ part 'memo_model.freezed.dart';
 sealed class MemoModel with _$MemoModel {
   const factory MemoModel({
     required String id,
+    required String userId,
     required String title,
     required String content,
     required DateTime createdAt,

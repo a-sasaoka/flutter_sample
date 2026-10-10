@@ -3,6 +3,7 @@ import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/application/firebase_auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:talker_flutter/talker_flutter.dart';
@@ -21,6 +22,16 @@ bool isAuthenticated(Ref ref) {
       : ref.watch(authStateProvider.select((s) => s.value == true));
 }
 
+/// 独自認証モードでのログイン中ユーザーIDを提供するプロバイダー（未ログイン時はnull）
+@Riverpod(keepAlive: true)
+Future<String?> customUserId(Ref ref) async {
+  final isAuthed = await ref.watch(authStateProvider.future);
+  if (!isAuthed) {
+    return null;
+  }
+  return await ref.watch(tokenStorageProvider).getUserId();
+}
+
 /// 現在ログイン中のユーザーIDを提供するプロバイダー（未ログイン時はnull）
 @Riverpod(keepAlive: true)
 String? currentUserId(Ref ref) {
@@ -30,7 +41,7 @@ String? currentUserId(Ref ref) {
 
   return useFirebase
       ? ref.watch(firebaseAuthStateProvider.select((s) => s.value?.uid))
-      : null;
+      : ref.watch(customUserIdProvider.select((s) => s.value));
 }
 
 /// 認証関連の高レベルな操作（ログアウトなど）を提供するサービス

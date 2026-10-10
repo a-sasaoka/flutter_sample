@@ -51,17 +51,18 @@ void main() {
         () => mockService.updateMemoWidget(memos: any(named: 'memos')),
       ).thenAnswer((_) async {});
       when(
-        () => mockMemoRepository.fetchAndMergeRemoteMemos(),
+        () => mockMemoRepository.fetchAndMergeRemoteMemos(any()),
       ).thenAnswer((_) async {});
     });
 
     test('初期化時に service.initialize() が呼び出されること', () async {
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => const Stream.empty());
 
       final container = ProviderContainer(
         overrides: [
+          currentUserIdProvider.overrideWithValue('user-1'),
           homeWidgetServiceProvider.overrideWithValue(mockService),
           memoRepositoryProvider.overrideWithValue(mockMemoRepository),
           isOnlineProvider.overrideWithValue(false),
@@ -81,11 +82,12 @@ void main() {
         addTearDown(controller.close);
 
         when(
-          () => mockMemoRepository.watchAllMemos(),
+          () => mockMemoRepository.watchAllMemos(any()),
         ).thenAnswer((_) => controller.stream);
 
         final container = ProviderContainer(
           overrides: [
+            currentUserIdProvider.overrideWithValue('user-1'),
             homeWidgetServiceProvider.overrideWithValue(mockService),
             memoRepositoryProvider.overrideWithValue(mockMemoRepository),
             isOnlineProvider.overrideWithValue(false),
@@ -102,6 +104,7 @@ void main() {
         final testMemos = [
           MemoModel(
             id: 'memo-1',
+            userId: 'user-1',
             title: 'テスト',
             content: '内容',
             createdAt: DateTime(2026, 9, 27),
@@ -125,11 +128,12 @@ void main() {
       addTearDown(controller.close);
 
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => controller.stream);
 
       final container = ProviderContainer(
         overrides: [
+          currentUserIdProvider.overrideWithValue(null),
           homeWidgetServiceProvider.overrideWithValue(mockService),
           memoRepositoryProvider.overrideWithValue(mockMemoRepository),
           isOnlineProvider.overrideWithValue(false),
@@ -145,6 +149,7 @@ void main() {
       final testMemos = [
         MemoModel(
           id: 'memo-1',
+          userId: 'user-1',
           title: 'テスト',
           content: '内容',
           createdAt: DateTime(2026, 9, 27),
@@ -164,7 +169,7 @@ void main() {
       'currentUserIdProvider の変化（アカウント切り替え）時に clearWidgetData が呼ばれること',
       () async {
         when(
-          () => mockMemoRepository.watchAllMemos(),
+          () => mockMemoRepository.watchAllMemos(any()),
         ).thenAnswer((_) => const Stream.empty());
         when(() => mockService.clearWidgetData()).thenAnswer((_) async {});
 
@@ -199,7 +204,7 @@ void main() {
       'isAuthenticatedProvider の変化（ログアウト）時に clearWidgetData が呼ばれること',
       () async {
         when(
-          () => mockMemoRepository.watchAllMemos(),
+          () => mockMemoRepository.watchAllMemos(any()),
         ).thenAnswer((_) => const Stream.empty());
         when(() => mockService.clearWidgetData()).thenAnswer((_) async {});
 
@@ -234,7 +239,7 @@ void main() {
     test('currentUserIdProvider と isAuthenticatedProvider が同時に変化した際にも '
         'clearWidgetData が1回だけ呼ばれること', () async {
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => const Stream.empty());
       when(() => mockService.clearWidgetData()).thenAnswer((_) async {});
 
@@ -274,7 +279,7 @@ void main() {
       addTearDown(controller.close);
 
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => controller.stream);
       when(
         () => mockService.updateMemoWidget(memos: any(named: 'memos')),
@@ -303,6 +308,7 @@ void main() {
       final testMemos = [
         MemoModel(
           id: 'memo-1',
+          userId: 'user-1',
           title: 'テスト',
           content: '内容',
           createdAt: DateTime(2026, 9, 27),
@@ -337,7 +343,7 @@ void main() {
       addTearDown(controller.close);
 
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => controller.stream);
       when(
         () => mockService.updateMemoWidget(memos: any(named: 'memos')),
@@ -366,6 +372,7 @@ void main() {
       final firstMemos = [
         MemoModel(
           id: 'memo-1',
+          userId: 'user-1',
           title: '最初のメモ',
           content: '内容',
           createdAt: DateTime(2026, 9, 27),
@@ -381,6 +388,7 @@ void main() {
       final secondMemos = [
         MemoModel(
           id: 'memo-2',
+          userId: 'user-1',
           title: '2つ目のメモ',
           content: '内容',
           createdAt: DateTime(2026, 9, 27),
@@ -410,7 +418,7 @@ void main() {
 
     test('直列化キュー内のタスクがエラーをスローしてもチェーンが破断せず後続のタスクが正常に実行されること', () async {
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => const Stream.empty());
       var callCount = 0;
       when(() => mockService.clearWidgetData()).thenAnswer((_) async {
@@ -457,7 +465,7 @@ void main() {
         addTearDown(controller.close);
 
         when(
-          () => mockMemoRepository.watchAllMemos(),
+          () => mockMemoRepository.watchAllMemos(any()),
         ).thenAnswer((_) => controller.stream);
         when(() => mockService.clearWidgetData()).thenAnswer((_) async {});
         when(
@@ -488,6 +496,7 @@ void main() {
         final initialMemos = [
           MemoModel(
             id: 'memo-user1',
+            userId: 'user-1',
             title: 'ユーザー1のメモ',
             content: '内容',
             createdAt: DateTime(2026, 9, 27),
@@ -514,6 +523,7 @@ void main() {
         final oldMemos = [
           MemoModel(
             id: 'memo-user1-old',
+            userId: 'user-1',
             title: '旧ユーザーの残存メモ',
             content: '内容',
             createdAt: DateTime(2026, 9, 27),
@@ -539,6 +549,7 @@ void main() {
         final newMemos = [
           MemoModel(
             id: 'memo-user2',
+            userId: 'user-2',
             title: 'ユーザー2の新メモ',
             content: '内容',
             createdAt: DateTime(2026, 9, 28),
@@ -559,7 +570,7 @@ void main() {
       'resumeSyncForCurrentUser に verifiedMemos を渡した場合は直ちにその確認済みメモが同期されること',
       () async {
         when(
-          () => mockMemoRepository.watchAllMemos(),
+          () => mockMemoRepository.watchAllMemos(any()),
         ).thenAnswer((_) => const Stream.empty());
         when(
           () => mockService.updateMemoWidget(memos: any(named: 'memos')),
@@ -579,6 +590,7 @@ void main() {
         final verifiedMemos = [
           MemoModel(
             id: 'memo-verified',
+            userId: 'user-verified',
             title: '確認済みメモ',
             content: '内容',
             createdAt: DateTime(2026, 9, 28),
@@ -603,7 +615,7 @@ void main() {
       addTearDown(controller.close);
 
       when(
-        () => mockMemoRepository.watchAllMemos(),
+        () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => controller.stream);
 
       final container = ProviderContainer(
@@ -628,6 +640,7 @@ void main() {
       final testMemos = [
         MemoModel(
           id: 'memo-unauth',
+          userId: 'user-unauth',
           title: '未ログイン時のメモ',
           content: '内容',
           createdAt: DateTime(2026, 9, 28),
@@ -649,7 +662,7 @@ void main() {
         addTearDown(controller.close);
 
         when(
-          () => mockMemoRepository.watchAllMemos(),
+          () => mockMemoRepository.watchAllMemos(any()),
         ).thenAnswer((_) => controller.stream);
         when(() => mockService.clearWidgetData()).thenAnswer((_) async {});
         when(
@@ -659,6 +672,7 @@ void main() {
         final newMemos = [
           MemoModel(
             id: 'memo-login',
+            userId: 'user-new',
             title: 'ログイン後のメモ',
             content: '内容',
             createdAt: DateTime(2026, 9, 28),
@@ -667,6 +681,7 @@ void main() {
         ];
         when(
           () => mockMemoRepository.getAllMemos(
+            any(),
             syncUnsent: any(named: 'syncUnsent'),
           ),
         ).thenAnswer((_) async => newMemos);
@@ -708,7 +723,7 @@ void main() {
         // handleAuthChange によって getAllMemos(syncUnsent: false) が呼ばれ、
         // 新メモで updateMemoWidget が実行されること
         verify(
-          () => mockMemoRepository.getAllMemos(syncUnsent: false),
+          () => mockMemoRepository.getAllMemos('user-new', syncUnsent: false),
         ).called(1);
         verify(() => mockService.updateMemoWidget(memos: newMemos)).called(1);
       },

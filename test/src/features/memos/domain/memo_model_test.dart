@@ -8,6 +8,7 @@ void main() {
       final now = DateTime(2026, 5);
       final memo = MemoModel(
         id: '1',
+        userId: 'user_1',
         title: 'テスト',
         content: '内容',
         createdAt: now,
@@ -15,6 +16,7 @@ void main() {
       );
 
       check(memo.id).equals('1');
+      check(memo.userId).equals('user_1');
       check(memo.title).equals('テスト');
       check(memo.content).equals('内容');
       check(memo.createdAt).equals(now);
@@ -24,6 +26,7 @@ void main() {
       final now = DateTime(2026, 5);
       final memo1 = MemoModel(
         id: '1',
+        userId: 'user_1',
         title: 'テスト',
         content: '内容',
         createdAt: now,
@@ -31,6 +34,7 @@ void main() {
       );
       final memo2 = MemoModel(
         id: '1',
+        userId: 'user_1',
         title: 'テスト',
         content: '内容',
         createdAt: now,

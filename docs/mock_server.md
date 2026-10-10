@@ -56,7 +56,7 @@ Flutterアプリを **`local` フレーバー** で起動してください。
 | :--- | :--- | :--- |
 | **ユーザー管理** | `GET /users`<br>`POST /users`<br>`PATCH /users/:id`<br>`DELETE /users/:id` | ユーザー一覧取得、新規追加、編集、削除（`db.json` に永続化） |
 | **プロフィール** | `GET /users/me`<br>`PUT /users/me` | ログインユーザー本人のプロフィール取得・更新 |
-| **認証** | `POST /auth/login`<br>`POST /auth/refresh` | ダミートークン発行、アクセストークン更新 |
+| **認証** | `POST /auth/login`<br>`POST /auth/refresh` | 有効なJWT形式（`sub` クレーム含む）のダミートークン発行、アクセストークン更新（`mock/middleware.js`） |
 | **メモ管理** | `GET /memos`<br>`POST /memos`<br>`PUT /memos/:id`<br>`DELETE /memos/:id` | メモ一覧取得、新規作成、編集、論理/物理削除（`db.json` に永続化） |
 | **ルート検索** | `POST /computeRoutesProxy` | 出発地・目的地の座標補間ポリライン自動生成、移動手段ごとの所要時間・距離計算 |
 | **場所検索** | `POST /placesSearchProxy` | 東京駅・東京タワーなど主要スポット検索、入力キーワードに応じた動的候補生成 |

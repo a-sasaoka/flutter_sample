@@ -54,6 +54,44 @@ final class IsAuthenticatedProvider
 
 String _$isAuthenticatedHash() => r'a31798b5809b150c4e72e6c0589a56702a5436b8';
 
+/// 独自認証モードでのログイン中ユーザーIDを提供するプロバイダー（未ログイン時はnull）
+
+@ProviderFor(customUserId)
+final customUserIdProvider = CustomUserIdProvider._();
+
+/// 独自認証モードでのログイン中ユーザーIDを提供するプロバイダー（未ログイン時はnull）
+
+final class CustomUserIdProvider
+    extends $FunctionalProvider<AsyncValue<String?>, String?, FutureOr<String?>>
+    with $FutureModifier<String?>, $FutureProvider<String?> {
+  /// 独自認証モードでのログイン中ユーザーIDを提供するプロバイダー（未ログイン時はnull）
+  CustomUserIdProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'customUserIdProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$customUserIdHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<String?> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<String?> create(Ref ref) {
+    return customUserId(ref);
+  }
+}
+
+String _$customUserIdHash() => r'7ce07cf834565ae590a898055621326ccd162509';
+
 /// 現在ログイン中のユーザーIDを提供するプロバイダー（未ログイン時はnull）
 
 @ProviderFor(currentUserId)
@@ -98,7 +136,7 @@ final class CurrentUserIdProvider
   }
 }
 
-String _$currentUserIdHash() => r'cb7daf4ea3d1a9874c745e80d528062f85d6598f';
+String _$currentUserIdHash() => r'1f94c42d2696bc1ffcab63a92690f48bb928df05';
 
 /// 認証関連の高レベルな操作（ログアウトなど）を提供するサービス
 

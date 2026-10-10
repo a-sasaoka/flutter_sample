@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_sort_order.dart';
@@ -38,16 +39,24 @@ class MemoNotifier extends _$MemoNotifier {
 
   @override
   Stream<List<MemoModel>> build() {
+    final userId = ref.watch(currentUserIdProvider);
+
+    // 未ログイン時は空リストを返し、初期同期フラグもリセット
+    if (userId == null) {
+      _hasSyncedOnInitialOnline = false;
+      return Stream.value([]);
+    }
+
     final repository = ref.watch(memoRepositoryProvider);
 
     // オンライン時はバックグラウンドで未送信データの同期とリモートデータの取得を行う
     if (!_hasSyncedOnInitialOnline && ref.watch(isOnlineProvider)) {
       _hasSyncedOnInitialOnline = true;
-      unawaited(_syncAndFetch(repository));
+      unawaited(_syncAndFetch(repository, userId));
     }
 
-    // データベースから全てのメモを取得する（変更を監視）
-    final allMemosStream = repository.watchAllMemos();
+    // データベースから現在のユーザーのメモを取得する（変更を監視）
+    final allMemosStream = repository.watchAllMemos(userId);
 
     // 検索クエリとソートの現在の状態を監視（watch）します
     final searchQuery = ref.watch(memoSearchQueryProvider).trim().toLowerCase();
@@ -89,9 +98,9 @@ class MemoNotifier extends _$MemoNotifier {
   }
 
   /// 非同期でサーバーとのデータ同期およびマージを実行する
-  Future<void> _syncAndFetch(MemoRepository repository) async {
+  Future<void> _syncAndFetch(MemoRepository repository, String userId) async {
     try {
-      await repository.fetchAndMergeRemoteMemos();
+      await repository.fetchAndMergeRemoteMemos(userId);
     } on Exception catch (e, st) {
       ref.read(loggerProvider).handle(e, st, 'バックグラウンド同期中にエラーが発生しました');
     }
@@ -99,21 +108,33 @@ class MemoNotifier extends _$MemoNotifier {
 
   /// 新しいメモを追加する
   Future<void> addMemo(String title, String content) async {
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null) {
+      return;
+    }
     final repository = ref.read(memoRepositoryProvider);
-    await repository.addMemo(title, content);
+    await repository.addMemo(title, content, userId);
   }
 
   /// メモを削除する
   Future<void> deleteMemo(String id) async {
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null) {
+      return;
+    }
     final repository = ref.read(memoRepositoryProvider);
-    await repository.deleteMemo(id);
+    await repository.deleteMemo(id, userId);
   }
 
   /// 手動同期を実行する
   Future<void> sync() async {
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null) {
+      return;
+    }
     final repository = ref.read(memoRepositoryProvider);
     if (ref.read(isOnlineProvider)) {
-      await repository.fetchAndMergeRemoteMemos();
+      await repository.fetchAndMergeRemoteMemos(userId);
     }
   }
 }

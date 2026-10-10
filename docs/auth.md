@@ -10,16 +10,35 @@
 トークン認証に関わるファイルは、責務ごとに適切なレイヤー（基盤層・機能層）に美しく分離されています。
 
 ```plaintext
+lib/src/core/utils/
+ └── jwt_utils.dart                # JWTペイロードデコード（subクレーム抽出）
+lib/src/app/constants/
+ └── storage_keys.dart             # customUserId等のセキュアストレージキー定義
 lib/src/features/auth/
  ├── application/
  │    ├── auth_service.dart        # 共通ログアウト・認証状態判定・ユーザーID提供・プロフィール更新
  │    └── auth_state_notifier.dart # トークン認証状態の管理
  └── data/
-      ├── token_storage.dart       # トークンの永続化（SecureStorage利用）
+      ├── token_storage.dart       # トークンおよびユーザーIDの永続化（SecureStorage利用）
       ├── token_interceptor.dart   # DioのInterceptor（トークン自動付与・排他リフレッシュ制御）
       ├── auth_repository.dart     # ログイン処理・トークンリフレッシュAPIの呼び出し
       └── auth_overrides.dart      # 認証系プロバイダーの動的切り替え・オーバーライド設定
 ```
+
+---
+
+## 🔑 JWTによるユーザー識別情報の暗号化保持と統合 (Issue #314)
+
+独自認証（Custom Auth）において、バックエンドAPIのレスポンス形式（`access_token` と `refresh_token` のみ返却）を変更することなく、標準的なJWT仕様に基づいてログインユーザーIDを安全に抽出・保持する仕組みを備えています。
+
+1. **JWTペイロードからの自動抽出**:
+   [jwt_utils.dart](../lib/src/core/utils/jwt_utils.dart) の `extractUserIdFromJwt` により、外部パッケージに依存せず標準ライブラリ（`dart:convert`）のみで `access_token` のペイロード（第2パート）をBase64Urlデコードし、`sub`（Subject = ユーザー識別子）を安全に取り出します（不正な形式や数値型などの例外時も安全にガード）。
+2. **ハードウェア暗号化保存**:
+   [token_storage.dart](../lib/src/features/auth/data/token_storage.dart) の `saveTokens()` 内で、トークン保存と同時に [storage_keys.dart](../lib/src/app/constants/storage_keys.dart) の `SecureStorageKeys.customUserId` として端末の暗号化領域（`FlutterSecureStorage`）へ自動保存します。
+3. **認証方式非依存の単一インターフェース**:
+   [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) において `customUserIdProvider` を新設し、統合プロバイダー `currentUserIdProvider` から「Firebase認証時（`User.uid`）」および「独自認証時（`customUserId`）」のいずれであっても、同一のインターフェースでログインユーザーIDを提供します。
+4. **ライフサイクル連動**:
+   サインアウト時（`tokenStorage.clear()`）にトークンと共に `customUserId` も物理削除され、アカウント切り替え時（`previousUserId != nextUserId`）には各機能の自律的データ破棄が確実に連動します。
 
 ---
 
@@ -135,6 +154,7 @@ lib/src/features/auth/
 | **画像キャッシュ** | `imageCacheServiceProvider` | メモリキャッシュと端末ストレージ（ディスク）上の全キャッシュ画像を一括消去（`clearCache()`） | [パフォーマンス仕様](performance.md) |
 | **ホーム画面ウィジェット** | `HomeWidgetSyncCoordinator` | OS共有ストレージ（App Groups等）のデータを空状態に更新し、ウィジェット再描画を要求 | [ウィジェット仕様](home_widget.md) |
 | **プッシュ通知** | `NotificationNotifier` | FCMトークン破棄、端末通知全消去、状態リセットを実行。再ログイン時に新トークンを自動再取得 | [プッシュ通知仕様](notification.md) |
+| **メモ機能** | `MemoNotifier` | 未ログイン時は空リストを返却し、ログイン時に当該ユーザー（`userId`）のメモのみをリアクティブに再読み込み | [メモ仕様](memos.md) |
 
 ---
 
