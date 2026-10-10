@@ -57,12 +57,21 @@ iOSのWidgetKitおよびAndroidのAppWidgetとFlutter本体の間でデータを
 - メモが0件またはすべて削除済みの場合は、多言語化対応された空状態メッセージ（「メモがありません」など）をウィジェットに反映。
 - 共有ストレージへの書き込み完了後、OSに対してウィジェットの再描画をリクエスト。
 
-### 3. 多言語対応（Localization）
+### 3. サインアウト・アカウント変更時のウィジェット初期化
+
+ユーザーがサインアウトした際や別のアカウントへ切り替えた際に、前のユーザーのメモ内容がホーム画面ウィジェット上に残り続けるとプライバシー侵害につながります。  
+本プロジェクトでは、[home_widget_sync_coordinator.dart](../lib/src/features/home_widget/application/home_widget_sync_coordinator.dart) が [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の認証プロバイダー（`currentUserIdProvider` / `isAuthenticatedProvider`）をリアクティブに監視し、ログアウトやアカウント変更を検知してウィジェット共有ストレージを自律的に初期化します。
+
+- **初期化処理 (`clearWidgetData`)**: [home_widget_service.dart](../lib/src/features/home_widget/application/home_widget_service.dart) の `clearWidgetData()` を呼び出し、共有ストレージ（App Groups / SharedPreferences）内の最新メモタイトルや件数をクリアして、多言語化された空状態テキストをセットします。
+- **ウィジェット再描画リクエスト**: 初期化データの書き込み完了後、iOS / Android それぞれのネイティブウィジェットへ再描画をリクエストし、ホーム画面の表示を即座にリセットします。
+- **疎結合設計**: `AuthService` から直接ウィジェット機能を呼ばず、コーディネーター側が認証状態を監視して自律動作するため、モジュール間の循環依存が発生しません。
+
+### 4. 多言語対応（Localization）
 
 ウィジェットに表示する初期状態テキストや空状態メッセージは固定の日本語ではなく、ユーザーが選択している言語設定（またはOSロケール）に合わせて英語と日本語を自動判定します。
 [home_widget_service.dart](../lib/src/features/home_widget/application/home_widget_service.dart) 内で [locale_provider.dart](../lib/src/core/config/locale_provider.dart) および `AppLocalizations` を参照し、動的にローカライズされた文字列をウィジェットストレージへ格納します。
 
-### 4. ウィジェットタップからのディープリンク画面遷移
+### 5. ウィジェットタップからのディープリンク画面遷移
 
 ウィジェットをタップした際、アプリの起動状態およびアクション種別に応じてシームレスに画面遷移を処理します。
 処理ロジックは [app_router.dart](../lib/src/app/router/app_router.dart) および [memo_screen.dart](../lib/src/features/memos/presentation/memo_screen.dart) に集約されています。
@@ -93,10 +102,12 @@ iOSのWidgetKitおよびAndroidのAppWidgetとFlutter本体の間でデータを
   - メモ0件時の空状態データ保存
   - メモ存在時のソート・削除済み除外・最新メモ保存
   - 多言語化（日本語・英語・未対応言語フォールバック）
+  - ログアウト・アカウント変更時のデータクリア処理（`clearWidgetData`）
   - 起動URI取得およびクリックイベントストリームの委譲
 - **コーディネーター層テスト**: [home_widget_sync_coordinator_test.dart](../test/src/features/home_widget/application/home_widget_sync_coordinator_test.dart)
   - アプリ起動時の自動初期化
   - メモ一覧更新検知とウィジェット更新呼び出し
+  - サインアウト・アカウント変更検知とウィジェット初期化（`clearWidgetData`）呼び出し
 - **ルーティング統合テスト**: [app_router_test.dart](../test/src/app/router/app_router_test.dart)
   - コールドスタート時およびバックグラウンド復帰時のメモ一覧遷移
   - 新規作成ディープリンクによるメモ画面遷移

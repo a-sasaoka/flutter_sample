@@ -114,14 +114,27 @@ lib/src/features/auth/
 
 ---
 
-## 🚪 共通ログアウト基盤（AuthService）
+## 🚪 共通ログアウト基盤（AuthService）と自律的データ破棄
 
 本プロジェクトでは、画面側（設定画面など）が「現在 Firebase Auth を使っているか、自前のトークン認証を使っているか」を意識せずに安全にログアウトできるよう、`AuthService` を提供しています。
 
 - **完全な依存性注入 (DI)**: `Ref` への直接依存を排除し、必要なロガー・設定・リポジトリ・Notifier をコンストラクタ引数として個別に受け取る設計になっており、単体テスト時のモック差し替えが容易です。実装詳細は [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) を参照してください。
 - **認証方式の隠蔽**: `EnvConfig.useFirebaseAuth` の値に応じて、Firebase のサインアウトまたはローカルトークンの破棄を適切に実行します。
-- **循環依存の排除**: `AuthService` は `AppLockService` や `ChatNotifier` を直接保持・呼び出しせず、純粋にセッションの破棄のみを担当します。アプリロック側の消去やチャット履歴・AIセッションの破棄は、各機能が認証状態の変化を監視（`ref.listen`）して自律的に実行されます（Feature Driven Architecture に従った疎結合設計）。
-- **統一されたログイン判定**: `isAuthenticatedProvider` により、UI 側は1行で「何らかの方式でログイン中か」を監視・判定できます。
+- **統一されたログイン判定**: `isAuthenticatedProvider` および `currentUserIdProvider` により、UI や各機能は「何らかの方式でログイン中か」「誰がログインしているか」を1行で安全に監視・判定できます。
+- **循環依存を排除した自律的データ破棄**: `AuthService` は他の各機能（キャッシュ、通知、ウィジェット等）を直接呼び出さず、純粋に認証セッションの終了のみを担当します。各機能が `auth_service.dart` の認証プロバイダー（`currentUserIdProvider` / `isAuthenticatedProvider`）をリアクティブに監視（`ref.listen`）し、ログアウトやアカウント切り替えを検知して**自律的に自身のデータ破棄や初期化を実行**します（Feature-Driven Architecture に従った疎結合設計）。
+
+### 連携する各機能の自律破棄一覧
+
+| 対象機能 | 監視クラス / プロバイダー | サインアウト・アカウント変更時の自律動作 | 参照ドキュメント |
+| :--- | :--- | :--- | :--- |
+| **アプリロック** | `AppLockService` | パスコードおよび生体認証設定を消去し、未設定（disabled）状態へ遷移 | [アプリロック仕様](app_lock.md) |
+| **AIチャット** | `ChatNotifier` | メモリ上の会話メッセージ履歴および Vertex AI セッションを破棄 | [AIチャット仕様](chat.md) |
+| **グラフ一時入力** | `ChartNotifier` | メモリ上に一時保持されたグラフ入力データと選択種別を初期化（`reset()`） | [グラフ仕様](chart.md) |
+| **マップ現在地** | `MapNotifier` | プライバシー保護のため、取得済みの現在地状態を初期状態へ自律リセット（`reset()`） | [地図仕様](map.md) |
+| **アクセス解析** | `analyticsServiceProvider` | `AnalyticsService.setUserId(null)` を呼び出し、アナリティクスのユーザー識別をクリア | [アクセス解析仕様](analytics.md) |
+| **画像キャッシュ** | `imageCacheServiceProvider` | メモリキャッシュと端末ストレージ（ディスク）上の全キャッシュ画像を一括消去（`clearCache()`） | [パフォーマンス仕様](performance.md) |
+| **ホーム画面ウィジェット** | `HomeWidgetSyncCoordinator` | OS共有ストレージ（App Groups等）のデータを空状態に更新し、ウィジェット再描画を要求 | [ウィジェット仕様](home_widget.md) |
+| **プッシュ通知** | `NotificationNotifier` | FCMトークン破棄、端末通知全消去、状態リセットを実行。再ログイン時に新トークンを自動再取得 | [プッシュ通知仕様](notification.md) |
 
 ---
 

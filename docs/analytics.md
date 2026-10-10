@@ -42,6 +42,7 @@ UI層から FirebaseAnalytics を直接操作するのではなく、**`Analytic
 
 - **イベントの送信（UI層から）**: `ref.read(analyticsServiceProvider).logEvent(event: AnalyticsEvent.xxx, parameters: ...)` を呼び出すことで、型安全にイベントが送信されます。具体的な呼び出し例は [home_screen.dart](../lib/src/features/home/presentation/home_screen.dart) などを参照してください。
 - **ユーザー識別と属性設定**: `setUserId()` や `setUserProperty()` を使用してログインユーザーの追跡やセグメント分析を行います。実装詳細は [analytics_service.dart](../lib/src/core/analytics/analytics_service.dart) および [analytics_service_test.dart](../test/src/core/analytics/analytics_service_test.dart) を参照してください。
+- **サインアウト・アカウント変更時の自動連動**: [analytics_service.dart](../lib/src/core/analytics/analytics_service.dart) の `analyticsServiceProvider` 内で [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の `currentUserIdProvider` をリアクティブに監視（`ref.listen`）しています。ログイン時は自動的にユーザーIDがセットされ、サインアウト時やアカウント切り替え時は自動的に `setUserId(null)` が呼び出されるため、UI側で意識することなく分析データ上でのユーザー混同を防止します。
 
 ---
 

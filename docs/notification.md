@@ -74,6 +74,8 @@ Firebase Messaging と `FlutterLocalNotificationsPlugin` のやり取りをラ�
 - **バックグラウンド・終了時のデータ受信**: `mainCommon` の `Firebase.initializeApp()` 直後に `@pragma('vm:entry-point')` のトップレベルハンドラ `firebaseMessagingBackgroundHandler` が登録され、バックグラウンドでのメッセージ受信時に呼び出されます（※独立した Isolate で動作するため、UI 操作や Riverpod による状態管理は行えません）。
 - **通知タップ時**: `onNotificationTap` コールバックを通じて `NotificationPayload` を上位（Notifier）へ伝達します。
 - **アプリ終了状態からの起動時**: `getInitialNotification()` により Firebase 及びローカル通知の起動情報を取得し、初期通知ペイロードとして保持します。
+- **トークン削除 (`deleteToken`)**: サインアウト時やアカウント変更時に Firebase サーバー上の FCM トークンを失効・削除し、旧ユーザー宛ての不要な通知配信を停止します。
+- **通知の一括消去 (`cancelAllNotifications`)**: サインアウト時やアカウント変更時に、端末の通知トレイに残存しているローカル通知バナーを一括消去します。
 - **Android ネイティブ高重要度チャンネル初期化**: アプリ未起動（terminated）状態でのFCM通知受信時にも高重要度（バナー/サウンド）で確実に表示されるよう、`MainApplication.kt` の `onCreate()` で `high_importance_channel` をネイティブ初期化しています。
 - **iOS ネイティブ通知デリゲート登録**: フォアグラウンドでのローカル通知・リモート通知バナーを正しく表示するため、`AppDelegate.swift` で `UNUserNotificationCenterDelegate` に適合し、起動時にデリゲートを登録しています。実装詳細は [AppDelegate.swift](../ios/Runner/AppDelegate.swift) を参照してください。
 
@@ -82,6 +84,10 @@ Firebase Messaging と `FlutterLocalNotificationsPlugin` のやり取りをラ�
 Riverpod の `@Riverpod(keepAlive: true)` Notifier として動作し、FCMトークンの取得や通知状態の管理・更新を担当します（実際のディープリンク画面遷移はルーターリスナーが実行します）。実装詳細は [notification_notifier.dart](../lib/src/features/notification/application/notification_notifier.dart) を参照してください。
 
 - **初期化 (`_init`)**: トークン取得、権限ステータス確認、アプリ起動時通知（`initialPayload`）の取得を非同期で実行します。
+- **サインアウト・アカウント変更時の自律クリーンアップ**:
+  - [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の `currentUserIdProvider` および `isAuthenticatedProvider` をリアクティブに監視（`ref.listen`）します。
+  - ログアウト時または別アカウントへの切り替えを検知すると、`_isCleaningUp` による二重実行防止ガードのもとで、FCMトークンの破棄（`deleteToken()`）、端末通知の一括消去（`cancelAllNotifications()`）、および状態リセット（`fcmToken: null`、ペイロード初期化）を実行します。
+  - その後、再ログイン（または別ユーザーとしてのログイン）を検知した場合は、自動的に `_init()` を再実行して新しいユーザー用の FCM トークンを取得・再初期化します。
 - **ペイロード消費 (`consumeInitialPayload` / `consumeLatestPayload`)**: 画面遷移処理の重複を防ぐため、一度遷移に使われたペイロードをクリア（消費）します。
 - **通知タップ処理 (`handleNotificationTap`)**: 通知タップ時にペイロードを受け取り、状態（`latestPayload`, `lastReceivedPayload`）を更新します。非同期初期化中のタップは一時バッファリングされます。
 
@@ -109,8 +115,8 @@ Riverpod の `@Riverpod(keepAlive: true)` Notifier として動作し、FCMト�
 
 - **単体テスト (`checks`)**:
   - `NotificationPayload`: JSON 変換、Map 変換の完全性テスト
-  - `PushNotificationService`: `FakeFlutterLocalNotificationsPlugin` を用いた初期化、フォアグラウンド受信、通知タップ、エラーハンドリングのテスト
-  - `NotificationNotifier`: トークン自動リフレッシュ、パーミッション要求、テスト通知発火、ディープリンク遷移のテスト
+  - `PushNotificationService`: `FakeFlutterLocalNotificationsPlugin` を用いた初期化、フォアグラウンド受信、通知タップ、エラーハンドリング、トークン削除（`deleteToken`）、通知一括消去（`cancelAllNotifications`）のテスト
+  - `NotificationNotifier`: トークン自動リフレッシュ、パーミッション要求、テスト通知発火、ディープリンク遷移、サインアウト・アカウント変更時のトークン破棄・通知消去・再ログイン時の再初期化テスト
   - `pushNotificationServiceProvider`: Firebase 未初期化環境での安全なフォールバックテスト
 - **ウィジェットテスト**: `PushNotificationDemoScreen` のローディング、エラー、データ表示、コピー操作、各テスト通知ボタン押下の完全網羅
 - **ゴールデンテスト**: `PushNotificationDemoScreenGoldenTest`（ライト / ダークモード）
