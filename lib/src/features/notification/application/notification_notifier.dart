@@ -14,9 +14,16 @@ part 'notification_notifier.g.dart';
 class NotificationNotifier extends _$NotificationNotifier {
   NotificationPayload? _pendingPayload;
   bool _isCleaningUp = false;
+  bool _isServiceInitialized = false;
+  StreamSubscription<String>? _tokenRefreshSubscription;
+  String? _latestRefreshedToken;
 
   @override
   NotificationState build() {
+    ref.onDispose(() {
+      unawaited(_tokenRefreshSubscription?.cancel());
+    });
+
     // 認証状態の変化（ログアウトや別アカウントへの切り替え）を監視し、
     // FCMトークンの破棄、通知バナーの消去、および再ログイン時のトークン再取得を行う
     ref
@@ -46,17 +53,20 @@ class NotificationNotifier extends _$NotificationNotifier {
     try {
       final service = ref.read(pushNotificationServiceProvider);
 
-      await service.initialize();
+      // 通知サービス自体の初期化（チャンネル作成・受信リスナー設定）は初回のみ実行
+      if (!_isServiceInitialized) {
+        await service.initialize();
+        _isServiceInitialized = true;
+      }
 
-      String? refreshedToken;
-      final subscription = service.onTokenRefresh.listen((newToken) {
-        refreshedToken = newToken;
+      // トークン更新ストリームの購読（初回のみ登録して再利用）
+      _tokenRefreshSubscription ??= service.onTokenRefresh.listen((newToken) {
+        _latestRefreshedToken = newToken;
         if (!ref.mounted) return;
         if (state case final NotificationStateData dataState) {
           state = dataState.copyWith(fcmToken: newToken);
         }
       });
-      ref.onDispose(subscription.cancel);
 
       final token = await service.getToken();
       final settings = await service.getNotificationSettings();
@@ -66,6 +76,9 @@ class NotificationNotifier extends _$NotificationNotifier {
 
       final pending = _pendingPayload;
       _pendingPayload = null;
+
+      final refreshedToken = _latestRefreshedToken;
+      _latestRefreshedToken = null;
 
       state = NotificationState.data(
         fcmToken: refreshedToken ?? token,

@@ -261,7 +261,7 @@ void main() {
       check(dataState.fcmToken).equals('refreshed_during_init_token');
     });
 
-    test('container が dispose された後の onTokenRefresh は無視されること', () async {
+    test('container が dispose された後の onTokenRefresh は無視され購読が解除されること', () async {
       var notificationCount = 0;
       final container =
           ProviderContainer(
@@ -277,8 +277,13 @@ void main() {
 
       final countBeforeDispose = notificationCount;
       check(countBeforeDispose).isGreaterThan(0);
+      check(tokenRefreshController.hasListener).isTrue();
 
       container.dispose();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      check(tokenRefreshController.hasListener).isFalse();
+
       tokenRefreshController.add('ignore_token');
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
@@ -563,6 +568,38 @@ void main() {
         check(
           (state as NotificationStateData).fcmToken,
         ).equals('firebase_login_token');
+      });
+
+      test('アカウント切り替えや再ログインを経ても service.initialize は重複して呼び出されないこと', () async {
+        final container = createContainer();
+        await pumpEventQueue();
+
+        // 初回初期化により 1 回呼ばれている
+        verify(() => mockService.initialize()).called(1);
+
+        // アカウント切り替え
+        when(
+          () => mockService.getToken(),
+        ).thenAnswer((_) async => 'switched_token');
+        container.read(testUserIdProvider.notifier).userId = 'user_2';
+        container.read(currentUserIdProvider);
+        await pumpEventQueue();
+
+        // ログアウト
+        container.read(testUserIdProvider.notifier).userId = null;
+        container.read(currentUserIdProvider);
+        await pumpEventQueue();
+
+        // 再ログイン
+        when(
+          () => mockService.getToken(),
+        ).thenAnswer((_) async => 'relogin_token');
+        container.read(testUserIdProvider.notifier).userId = 'user_3';
+        container.read(currentUserIdProvider);
+        await pumpEventQueue();
+
+        // 初回以降は initialize() が一度も追加呼び出しされていないこと
+        verifyNever(() => mockService.initialize());
       });
     });
   });
