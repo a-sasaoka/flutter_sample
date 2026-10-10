@@ -601,6 +601,34 @@ void main() {
         // 初回以降は initialize() が一度も追加呼び出しされていないこと
         verifyNever(() => mockService.initialize());
       });
+
+      test('service.initialize() の待機中にユーザーIDが変更されても、 '
+          '同じ初期化 Future が共有され initialize() の呼び出しが1回のみであること（並行実行の防止）', () async {
+        final initCompleter = Completer<void>();
+        when(
+          () => mockService.initialize(),
+        ).thenAnswer((_) => initCompleter.future);
+
+        final container = createContainer();
+
+        // 1. 初回の _init() が開始され、initialize() 待ち状態になる
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+
+        // 2. initialize() が未完了の状態で、ユーザーIDを変更して並行して _init() を誘発
+        container.read(testUserIdProvider.notifier).userId = 'concurrent_user';
+        container.read(currentUserIdProvider);
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+
+        // 初期化 Future が共有されているため、initialize() は重複せず 1 回のみ呼ばれていること
+        verify(() => mockService.initialize()).called(1);
+
+        // 3. initialize() を完了させる
+        initCompleter.complete();
+        await pumpEventQueue();
+
+        // 完了後も追加呼び出しされていないこと
+        verifyNever(() => mockService.initialize());
+      });
     });
   });
 }

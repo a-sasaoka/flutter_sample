@@ -14,7 +14,7 @@ part 'notification_notifier.g.dart';
 class NotificationNotifier extends _$NotificationNotifier {
   NotificationPayload? _pendingPayload;
   bool _isCleaningUp = false;
-  bool _isServiceInitialized = false;
+  Future<void>? _serviceInitFuture;
   StreamSubscription<String>? _tokenRefreshSubscription;
   String? _latestRefreshedToken;
 
@@ -53,11 +53,10 @@ class NotificationNotifier extends _$NotificationNotifier {
     try {
       final service = ref.read(pushNotificationServiceProvider);
 
-      // 通知サービス自体の初期化（チャンネル作成・受信リスナー設定）は初回のみ実行
-      if (!_isServiceInitialized) {
-        await service.initialize();
-        _isServiceInitialized = true;
-      }
+      // 通知サービス自体の初期化（チャンネル作成・受信リスナー設定）は初回のみ実行し、
+      // 並行して _init() が呼ばれた場合も同一の Future を共有して二重実行を防止する
+      _serviceInitFuture ??= service.initialize();
+      await _serviceInitFuture;
 
       // トークン更新ストリームの購読（初回のみ登録して再利用）
       _tokenRefreshSubscription ??= service.onTokenRefresh.listen((newToken) {
