@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/map/application/map_notifier.dart';
 import 'package:flutter_sample/src/features/map/data/location_repository.dart';
 import 'package:flutter_sample/src/features/map/domain/location_state.dart';
@@ -12,6 +13,28 @@ import 'package:talker_flutter/talker_flutter.dart';
 class MockLocationRepository extends Mock implements LocationRepository {}
 
 class MockTalker extends Mock implements Talker {}
+
+class TestUserIdNotifier extends Notifier<String?> {
+  @override
+  String? build() => 'initial-user';
+  String? get userId => state;
+  set userId(String? id) => state = id;
+}
+
+final testUserIdProvider = NotifierProvider<TestUserIdNotifier, String?>(
+  TestUserIdNotifier.new,
+);
+
+class TestAuthNotifier extends Notifier<bool> {
+  @override
+  bool build() => true;
+  bool get isAuthenticated => state;
+  set isAuthenticated(bool value) => state = value;
+}
+
+final testAuthNotifierProvider = NotifierProvider<TestAuthNotifier, bool>(
+  TestAuthNotifier.new,
+);
 
 void main() {
   late MockLocationRepository mockRepository;
@@ -29,6 +52,12 @@ void main() {
       overrides: [
         locationRepositoryProvider.overrideWithValue(mockRepository),
         loggerProvider.overrideWithValue(mockTalker),
+        currentUserIdProvider.overrideWith(
+          (ref) => ref.watch(testUserIdProvider),
+        ),
+        isAuthenticatedProvider.overrideWith(
+          (ref) => ref.watch(testAuthNotifierProvider),
+        ),
       ],
     );
   });
@@ -160,6 +189,54 @@ void main() {
       await notifier.openLocationSettings();
 
       verify(() => mockRepository.openLocationSettings()).called(1);
+    });
+
+    test('reset が状態を初期状態へ戻すこと', () async {
+      when(
+        () => mockRepository.isLocationServiceEnabled(),
+      ).thenAnswer((_) async => false);
+      when(() => mockTalker.warning(any<dynamic>())).thenReturn(null);
+
+      final notifier = container.read(mapProvider.notifier);
+      await notifier.fetchCurrentLocation();
+      check(container.read(mapProvider)).isA<LocationStateServiceDisabled>();
+
+      notifier.reset();
+      check(container.read(mapProvider)).isA<LocationStateInitial>();
+    });
+
+    test('ユーザーID変更時（アカウント切り替え）に状態が自動リセットされること', () async {
+      when(
+        () => mockRepository.isLocationServiceEnabled(),
+      ).thenAnswer((_) async => false);
+      when(() => mockTalker.warning(any<dynamic>())).thenReturn(null);
+
+      final notifier = container.read(mapProvider.notifier);
+      await notifier.fetchCurrentLocation();
+      check(container.read(mapProvider)).isA<LocationStateServiceDisabled>();
+
+      // ユーザーIDを変更（アカウント切り替え）
+      container.read(testUserIdProvider.notifier).userId = 'changed-user';
+
+      // 変更検知により自律的に reset() され初期状態に戻っていることを検証
+      check(container.read(mapProvider)).isA<LocationStateInitial>();
+    });
+
+    test('サインアウト時（isAuthenticatedがfalseへ遷移）に状態が自動リセットされること', () async {
+      when(
+        () => mockRepository.isLocationServiceEnabled(),
+      ).thenAnswer((_) async => false);
+      when(() => mockTalker.warning(any<dynamic>())).thenReturn(null);
+
+      final notifier = container.read(mapProvider.notifier);
+      await notifier.fetchCurrentLocation();
+      check(container.read(mapProvider)).isA<LocationStateServiceDisabled>();
+
+      // サインアウト
+      container.read(testAuthNotifierProvider.notifier).isAuthenticated = false;
+
+      // 変更検知により自律的に reset() され初期状態に戻っていることを検証
+      check(container.read(mapProvider)).isA<LocationStateInitial>();
     });
   });
 }

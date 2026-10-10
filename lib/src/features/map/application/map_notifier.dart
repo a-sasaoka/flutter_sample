@@ -1,4 +1,5 @@
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/map/data/location_repository.dart';
 import 'package:flutter_sample/src/features/map/domain/location_state.dart';
 import 'package:geolocator/geolocator.dart';
@@ -11,7 +12,26 @@ part 'map_notifier.g.dart';
 class MapNotifier extends _$MapNotifier {
   @override
   LocationState build() {
+    // 認証状態の変化（ログアウトや別アカウントへの切り替え）を監視し、
+    // プライバシー保護のため位置情報を自律的にリセットする
+    ref
+      ..listen<String?>(currentUserIdProvider, (previous, next) {
+        if (previous != next) {
+          reset();
+        }
+      })
+      ..listen<bool>(isAuthenticatedProvider, (previous, next) {
+        if (previous != next) {
+          reset();
+        }
+      });
+
     return const LocationState.initial();
+  }
+
+  /// 状態を初期状態へリセットする
+  void reset() {
+    state = const LocationState.initial();
   }
 
   /// 現在地を取得し、状態を更新する

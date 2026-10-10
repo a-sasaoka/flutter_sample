@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
@@ -18,11 +21,20 @@ FirebaseAnalytics firebaseAnalytics(Ref ref) {
 /// Analytics Service を Riverpod で提供
 @Riverpod(keepAlive: true)
 AnalyticsService analyticsService(Ref ref) {
-  return AnalyticsService(
+  final service = AnalyticsService(
     firebaseAnalytics: ref.watch(firebaseAnalyticsProvider),
     talker: ref.watch(loggerProvider),
     getCurrentDateTime: ref.watch(clockProvider),
   );
+
+  // 認証状態（ユーザーID）の変更を監視し、アナリティクスのユーザーID設定を自動連動する
+  ref.listen<String?>(currentUserIdProvider, (previous, next) {
+    if (previous != next) {
+      unawaited(service.setUserId(next));
+    }
+  }, fireImmediately: true);
+
+  return service;
 }
 
 /// Analytics Service

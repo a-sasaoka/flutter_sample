@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/chart/application/chart_notifier.dart';
 import 'package:flutter_sample/src/features/chart/domain/chart_type.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +9,28 @@ import 'package:mocktail/mocktail.dart';
 import 'package:uuid/uuid.dart';
 
 class MockUuid extends Mock implements Uuid {}
+
+class TestUserIdNotifier extends Notifier<String?> {
+  @override
+  String? build() => 'initial-user';
+  String? get userId => state;
+  set userId(String? id) => state = id;
+}
+
+final testUserIdProvider = NotifierProvider<TestUserIdNotifier, String?>(
+  TestUserIdNotifier.new,
+);
+
+class TestAuthNotifier extends Notifier<bool> {
+  @override
+  bool build() => true;
+  bool get isAuthenticated => state;
+  set isAuthenticated(bool value) => state = value;
+}
+
+final testAuthNotifierProvider = NotifierProvider<TestAuthNotifier, bool>(
+  TestAuthNotifier.new,
+);
 
 void main() {
   late MockUuid mockUuid;
@@ -18,7 +41,15 @@ void main() {
 
   ProviderContainer makeProviderContainer() {
     final container = ProviderContainer(
-      overrides: [uuidProvider.overrideWithValue(mockUuid)],
+      overrides: [
+        uuidProvider.overrideWithValue(mockUuid),
+        currentUserIdProvider.overrideWith(
+          (ref) => ref.watch(testUserIdProvider),
+        ),
+        isAuthenticatedProvider.overrideWith(
+          (ref) => ref.watch(testAuthNotifierProvider),
+        ),
+      ],
     );
     addTearDown(container.dispose);
     return container;
@@ -104,6 +135,33 @@ void main() {
 
       container.read(chartProvider.notifier).updateValue(firstId, 100.5);
       check(container.read(chartProvider).items.first.value).equals(100.5);
+    });
+
+    test('ユーザーID変更時（アカウント切り替え）に入力データが自動リセットされること', () {
+      final container = makeProviderContainer();
+      // 初期状態ではデフォルト項目が2件ある
+      check(container.read(chartProvider).items.length).equals(2);
+
+      // ユーザーIDを変更（アカウント切り替え）
+      container.read(testUserIdProvider.notifier).userId = 'new-user';
+
+      // 変更検知によって自律的に reset() され空になっていることを検証
+      final state = container.read(chartProvider);
+      check(state.items).isEmpty();
+      check(state.itemCounter).equals(0);
+    });
+
+    test('サインアウト時（isAuthenticatedがfalseへ遷移）に入力データが自動リセットされること', () {
+      final container = makeProviderContainer();
+      check(container.read(chartProvider).items.length).equals(2);
+
+      // サインアウト
+      container.read(testAuthNotifierProvider.notifier).isAuthenticated = false;
+
+      // 変更検知によって自律的に reset() され空になっていることを検証
+      final state = container.read(chartProvider);
+      check(state.items).isEmpty();
+      check(state.itemCounter).equals(0);
     });
   });
 }

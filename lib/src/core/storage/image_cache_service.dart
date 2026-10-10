@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/painting.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
@@ -44,8 +47,24 @@ BaseCacheManager imageCacheManager(Ref ref) {
 /// ImageCacheService を提供するプロバイダー
 @Riverpod(keepAlive: true)
 ImageCacheService imageCacheService(Ref ref) {
-  return ImageCacheService(
+  final service = ImageCacheService(
     talker: ref.watch(loggerProvider),
     cacheManager: ref.watch(imageCacheManagerProvider),
   );
+
+  // 認証状態の変化（ログアウトや別アカウントへの切り替え）を監視し、
+  // 画像キャッシュを自律的にクリアする
+  ref
+    ..listen<String?>(currentUserIdProvider, (previous, next) {
+      if (previous != next) {
+        unawaited(service.clearCache().catchError((_) {}));
+      }
+    })
+    ..listen<bool>(isAuthenticatedProvider, (previous, next) {
+      if (previous != next) {
+        unawaited(service.clearCache().catchError((_) {}));
+      }
+    });
+
+  return service;
 }
