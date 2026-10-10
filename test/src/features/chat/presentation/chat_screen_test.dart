@@ -1,5 +1,6 @@
 // ignore_for_file: document_ignores, use_setters_to_change_properties
 
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
@@ -883,6 +884,66 @@ void main() {
       check(
         tester.widget<TextField>(find.byType(TextField)).controller?.text,
       ).equals('');
+    });
+
+    testWidgets('画像選択待機中にユーザーIDが切り替わった場合、完了後の画像が破棄されてセットされないこと', (
+      tester,
+    ) async {
+      final completer = Completer<XFile?>();
+      when(
+        () => mockImagePickerService.pickImage(source: any(named: 'source')),
+      ).thenAnswer((_) => completer.future);
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      // 写真選択アクションを開始
+      await tester.tap(find.byIcon(Icons.add_photo_alternate_outlined));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('写真を撮る'));
+      await tester.pump();
+
+      // 待機中にユーザーIDを変更（アカウント切り替え）
+      final element = tester.element(find.byType(ChatScreen));
+      final container = ProviderScope.containerOf(element);
+      container.read(testUserIdProvider.notifier).userId = 'user-changed';
+      await tester.pump();
+
+      // 画像選択が遅延完了
+      completer.complete(XFile.fromData(dummyPng, name: 'test.png'));
+      await tester.pumpAndSettle();
+
+      // 世代不一致（Fencing）により画像が破棄され、プレビューが表示されないことを検証
+      check(find.byIcon(Icons.close).evaluate()).isEmpty();
+    });
+
+    testWidgets('画像選択待機中にサインアウトした場合、完了後の画像が破棄されてセットされないこと', (tester) async {
+      final completer = Completer<XFile?>();
+      when(
+        () => mockImagePickerService.pickImage(source: any(named: 'source')),
+      ).thenAnswer((_) => completer.future);
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      // 写真選択アクションを開始
+      await tester.tap(find.byIcon(Icons.add_photo_alternate_outlined));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('写真を撮る'));
+      await tester.pump();
+
+      // 待機中にサインアウト
+      final element = tester.element(find.byType(ChatScreen));
+      final container = ProviderScope.containerOf(element);
+      container.read(testAuthNotifierProvider.notifier).isAuthenticated = false;
+      await tester.pump();
+
+      // 画像選択が遅延完了
+      completer.complete(XFile.fromData(dummyPng, name: 'test.png'));
+      await tester.pumpAndSettle();
+
+      // 世代不一致（Fencing）により画像が破棄され、プレビューが表示されないことを検証
+      check(find.byIcon(Icons.close).evaluate()).isEmpty();
     });
   });
 }
