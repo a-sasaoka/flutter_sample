@@ -10,6 +10,7 @@ import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
@@ -337,6 +338,27 @@ class _ChatInputArea extends HookConsumerWidget {
     final selectedImage = useState<Uint8List?>(null);
     final l10n = context.l10n;
 
+    // 認証状態の世代カウンター（画像選択中のアカウント変更を遮断するためのFencing用）
+    final authGeneration = useRef(0);
+
+    // 認証状態の変化（ログアウトや別アカウントへの切り替え）を検知して、
+    // 送信前の下書き画像や入力中テキストを安全にクリアする
+    ref
+      ..listen<String?>(currentUserIdProvider, (previous, next) {
+        if (previous != next) {
+          authGeneration.value++;
+          selectedImage.value = null;
+          textController.clear();
+        }
+      })
+      ..listen<bool>(isAuthenticatedProvider, (previous, next) {
+        if (previous != next) {
+          authGeneration.value++;
+          selectedImage.value = null;
+          textController.clear();
+        }
+      });
+
     final isSendDisabled = isGenerating || !isOnline;
 
     return SafeArea(
@@ -395,7 +417,12 @@ class _ChatInputArea extends HookConsumerWidget {
                   tooltip: l10n.chatAttachImage,
                   onPressed: isGenerating
                       ? null
-                      : () => _pickImage(context, ref, selectedImage),
+                      : () => _pickImage(
+                          context,
+                          ref,
+                          selectedImage,
+                          authGeneration,
+                        ),
                 ),
                 Expanded(
                   child: TextField(
@@ -451,7 +478,9 @@ class _ChatInputArea extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     ValueNotifier<Uint8List?> selectedImage,
+    ObjectRef<int> authGeneration,
   ) async {
+    final startGeneration = authGeneration.value;
     final l10n = context.l10n;
     final source = await showModalBottomSheet<ImagePickSource>(
       context: context,
@@ -474,22 +503,26 @@ class _ChatInputArea extends HookConsumerWidget {
       ),
     );
 
-    if (source == null || !context.mounted) return;
+    if (source == null ||
+        !context.mounted ||
+        startGeneration != authGeneration.value) {
+      return;
+    }
 
     try {
       final imagePickerService = ref.read(imagePickerServiceProvider);
       final pickedFile = await imagePickerService.pickImage(source: source);
       if (pickedFile != null) {
         final bytes = await pickedFile.readAsBytes();
-        if (!context.mounted) return;
+        if (!context.mounted || startGeneration != authGeneration.value) return;
         selectedImage.value = bytes;
       }
     } on ImagePermissionDeniedException {
-      if (context.mounted) {
+      if (context.mounted && startGeneration == authGeneration.value) {
         ErrorHandler.showSnackBar(context, l10n.chatError);
       }
     } on Object catch (e, st) {
-      if (!context.mounted) return;
+      if (!context.mounted || startGeneration != authGeneration.value) return;
       ref.read(loggerProvider).handle(e, st, 'Failed to pick image');
       ErrorHandler.showSnackBar(context, e);
     }
