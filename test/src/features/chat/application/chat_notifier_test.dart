@@ -520,6 +520,38 @@ void main() {
         },
       );
 
+      test(
+        '自前認証ログイン時（isAuthenticatedがtrueへ遷移）に未ログイン時の履歴が自動クリアされ、セッションが破棄されること',
+        () async {
+          var repoDisposed = false;
+          final fakeRepo = FakeChatRepository();
+          final container = createContainer(
+            fakeRepo,
+            onRepoInit: (ref) {
+              ref.onDispose(() => repoDisposed = true);
+            },
+          );
+          // 未ログイン状態を設定
+          container.read(testAuthNotifierProvider.notifier).isAuthenticated =
+              false;
+          repoDisposed = false;
+
+          final notifier = container.read(chatProvider.notifier);
+          await notifier.sendMessage('未ログイン時のメッセージ');
+          check(container.read(chatProvider).messages).isNotEmpty();
+          check(repoDisposed).isFalse();
+
+          // ログイン状態へ遷移（未ログイン時の履歴が漏洩しないようリセット）
+          container.read(testAuthNotifierProvider.notifier).isAuthenticated =
+              true;
+
+          final state = container.read(chatProvider);
+          check(state.messages).isEmpty();
+          check(state.isGenerating).isFalse();
+          check(repoDisposed).isTrue();
+        },
+      );
+
       test('サインアウト時（currentUserIdがnullへ遷移）に履歴が自動クリアされ、セッションが破棄されること', () async {
         var repoDisposed = false;
         final fakeRepo = FakeChatRepository();

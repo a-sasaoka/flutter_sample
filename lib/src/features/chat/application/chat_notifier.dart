@@ -33,11 +33,13 @@ class ChatNotifier extends _$ChatNotifier {
 
     // 認証状態（ログイン・ログアウト）の変化をリアクティブに監視
     ref.listen<bool>(isAuthenticatedProvider, (previous, next) {
-      // ログイン状態からログアウト（false）へ遷移したケースを安全に検知
-      if (previous == true && !next) {
+      // 認証状態の変化（ログイン・ログアウト）を検知して安全に初期化
+      if (previous != next) {
         ref
             .read(loggerProvider)
-            .info('[ChatNotifier] Signed out. Resetting chat session...');
+            .info(
+              '[ChatNotifier] Auth state changed. Resetting chat session...',
+            );
         clearHistory();
       }
     });
