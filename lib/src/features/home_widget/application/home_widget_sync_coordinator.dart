@@ -123,7 +123,7 @@ class HomeWidgetSyncCoordinator extends _$HomeWidgetSyncCoordinator {
           unawaited(() async {
             try {
               final repository = ref.read(memoRepositoryProvider);
-              final memos = await repository.getAllMemos();
+              final memos = await repository.getAllMemos(syncUnsent: false);
 
               // 待機中に認証状態やユーザーが再変更されていないか検証
               if (taskGen != _syncGeneration) return;

@@ -642,6 +642,45 @@ void main() {
       ).equals('Failed to fetch data from the server');
     });
 
+    test(
+      'getAllMemos: syncUnsent が false の場合、未送信メモの送信（uploadMemo）をスキップすること',
+      () async {
+        final container = createContainer();
+        final repository = container.read(memoRepositoryProvider);
+
+        // 未送信のローカルメモを直接挿入（isSynced = false）
+        await database
+            .into(database.memos)
+            .insert(
+              MemosCompanion.insert(
+                id: 'unsent-memo-1',
+                title: '未送信メモ',
+                content: '内容',
+                createdAt: now,
+                updatedAt: now,
+                isSynced: const drift.Value(false),
+              ),
+            );
+
+        // getAllMemos(syncUnsent: false) を呼び出し
+        await repository.getAllMemos(syncUnsent: false);
+
+        // uploadMemo は一度も呼ばれないこと（未送信メモの送信がスキップされたこと）
+        verifyNever(
+          () => mockRemoteService.uploadMemo(
+            id: any(named: 'id'),
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: any(named: 'isDeleted'),
+          ),
+        );
+        // リモートからの取得自体は行われること
+        verify(() => mockRemoteService.fetchMemos()).called(1);
+      },
+    );
+
     test('memoRepositoryProvider が正しいインスタンスを提供すること', () {
       final container = createContainer();
       final repo = container.read(memoRepositoryProvider);

@@ -198,8 +198,10 @@ class MemoRepository {
   }
 
   /// 保存されているすべてのメモを一覧（リスト）として取得する
-  Future<List<MemoModel>> getAllMemos() async {
-    await fetchAndMergeRemoteMemos();
+  ///
+  /// [syncUnsent] が false の場合、未送信ローカルメモの送信を行わずに取得・マージします。
+  Future<List<MemoModel>> getAllMemos({bool syncUnsent = true}) async {
+    await fetchAndMergeRemoteMemos(syncUnsent: syncUnsent);
 
     // データベースから「削除されていない」データを取り出す
     final driftMemos = await _dao.getAllMemos();
@@ -228,9 +230,11 @@ class MemoRepository {
   }
 
   /// リモートサーバーからメモを取得し、ローカルデータベースとマージする処理
-  Future<void> fetchAndMergeRemoteMemos() async {
+  ///
+  /// [syncUnsent] が false の場合、未送信メモの送信はスキップします。
+  Future<void> fetchAndMergeRemoteMemos({bool syncUnsent = true}) async {
     // 未送信のメモがあればサーバーに送る
-    if (_isOnline) {
+    if (_isOnline && syncUnsent) {
       await syncUnsentMemos();
     }
 

@@ -666,7 +666,9 @@ void main() {
           ),
         ];
         when(
-          () => mockMemoRepository.getAllMemos(),
+          () => mockMemoRepository.getAllMemos(
+            syncUnsent: any(named: 'syncUnsent'),
+          ),
         ).thenAnswer((_) async => newMemos);
 
         final container = ProviderContainer(
@@ -703,8 +705,11 @@ void main() {
 
         await pumpEventQueue();
 
-        // handleAuthChange によって getAllMemos が呼ばれ、新メモで updateMemoWidget が実行されること
-        verify(() => mockMemoRepository.getAllMemos()).called(1);
+        // handleAuthChange によって getAllMemos(syncUnsent: false) が呼ばれ、
+        // 新メモで updateMemoWidget が実行されること
+        verify(
+          () => mockMemoRepository.getAllMemos(syncUnsent: false),
+        ).called(1);
         verify(() => mockService.updateMemoWidget(memos: newMemos)).called(1);
       },
     );
