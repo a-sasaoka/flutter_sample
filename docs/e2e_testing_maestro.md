@@ -67,5 +67,5 @@ fvm flutter run --flavor local -t lib/main_e2e.dart --dart-define-from-file conf
 テストフローは `maestro/` ディレクトリ配下で管理されています。
 
 - **[maestro/app_launch_and_login.yaml](../maestro/app_launch_and_login.yaml)**: 起動 $\rightarrow$ オンボーディングスキップ $\rightarrow$ ログイン $\rightarrow$ 4桁パスコード初期登録 (`1234` + `1234`) $\rightarrow$ ホーム表示までの基本最短フローを検証。
-- **[maestro/app_lock_flow.yaml](../maestro/app_lock_flow.yaml)**: ログイン＆パスコード登録後、生体認証プロンプト閉じに伴う誤ロック防止ロジック (`_shouldSkipNextLock`) の挙動を踏まえ、バックグラウンド復帰動作 (`pressKey: Home` $\rightarrow$ `launchApp`) により自動表示されるロック画面 (`PasscodeLockScreen`) を 4桁パスコード (`1234`) で解除するリアルなアプリロック解錠テスト。
+- **[maestro/app_lock_flow.yaml](../maestro/app_lock_flow.yaml)**: ログイン＆パスコード登録後、生体認証プロンプト閉じに伴う誤ロック防止ロジック（`_shouldSkipNextLock` の有効期限と消費ライフサイクル）の挙動を踏まえ、バックグラウンド復帰動作 (`pressKey: Home` $\rightarrow$ `launchApp`) により自動表示されるロック画面 (`PasscodeLockScreen`) を 4桁パスコード (`1234`) で解除するリアルなアプリロック解錠テスト。
 - iOSのアクセシビリティ仕様（ラベルの改行結合）に対応するため、入力フィールドのタップなどには正規表現（regex）を用いて確実に要素を検出する工夫をしています。

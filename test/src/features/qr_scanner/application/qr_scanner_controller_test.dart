@@ -478,7 +478,10 @@ void main() {
       final mockController = MockMobileScannerController();
       var lockSuppressionCalled = false;
 
-      Future<T> runner<T>(Future<T> Function() action) async {
+      Future<T> runner<T>(
+        Future<T> Function() action, {
+        bool Function(T result)? isSuccess,
+      }) async {
         lockSuppressionCalled = true;
         return await action();
       }

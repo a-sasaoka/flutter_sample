@@ -81,7 +81,7 @@ qr_scanner/
 ### 7. OS画面遷移時の誤ロック防止連携 (`lockSuppressionRunnerProvider`)
 
 写真アルバムの選択画面、外部ブラウザ、スマホの端末設定など、OSが提供する別画面を開く際はアプリが一瞬バックグラウンド扱いになります。\
-アプリロック機能が有効な場合に誤ってロック画面が表示されてしまうのを防ぐため、Core層の共通ハンドラー（[lock_suppression_handler.dart](../lib/src/core/services/lock_suppression_handler.dart)）を用いて以下の操作を保護しています。
+アプリロック機能が有効な場合に誤ってロック画面が表示されてしまうのを防ぐため、Core層の共通ハンドラー（[lock_suppression_handler.dart](../lib/src/core/services/lock_suppression_handler.dart)）を用いて以下の操作を保護しています。なお、アルバムからの画像選択キャンセル時（`null` 返却時）や失敗時にはスキップフラグを有効化せず、安全にアプリロックが維持されます。
 
 - **アルバムからのQR画像選択** (`QrScannerController.pickAndScanImage`)
 - **外部ブラウザでのURL起動** (`UrlLauncherService.openUrl`)

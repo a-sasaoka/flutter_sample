@@ -158,6 +158,7 @@ class ShareService {
     try {
       result = await lockSuppressionRunner<ShareResult>(
         () => _sharePlus.share(params),
+        isSuccess: (res) => res.status == ShareResultStatus.success,
       );
     } on Object {
       logger.error('❌ [ShareService] $actionName failed with exception');

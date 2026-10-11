@@ -26,6 +26,13 @@ class AppLockService extends _$AppLockService {
   /// OSの生体認証プロンプトが完全に消去されるまでの待機時間
   static const Duration biometricPromptDelay = Duration(milliseconds: 1000);
 
+  /// OSの生体認証プロンプト消去や外部画面復帰に伴う誤ロック防止の有効期間
+  static const Duration suppressionSkipTimeout = Duration(seconds: 2);
+
+  static Type _typeOf<X>() => X;
+  static final Type _voidType = _typeOf<void>();
+  static final Type _nullType = _typeOf<Null>();
+
   /// OS標準生体認証やカメラ・写真選択など、OS別画面を開く際の誤ロックを防ぐ実行中カウンタ
   int _suppressionCount = 0;
 
@@ -34,6 +41,9 @@ class AppLockService extends _$AppLockService {
 
   /// OSのプロンプト消去起因の1回限りの復帰イベントを消費してスキップするフラグ
   bool _shouldSkipNextLock = false;
+
+  /// 復帰ロックスキップフラグの有効期限（タイムアウト時刻）
+  DateTime? _suppressionSkipUntil;
 
   /// 前回の認証状態（ログアウト検知用フラグ）
   bool _wasAuthenticated = false;
@@ -68,6 +78,7 @@ class AppLockService extends _$AppLockService {
           '[AppLockService] Detected logout. Clearing app lock settings...',
         );
         _shouldSkipNextLock = false;
+        _suppressionSkipUntil = null;
 
         // 実行中タスクを保持し、再ログイン側の build() からも待機できるようにする
         final task = _performClearSettings(talker);
@@ -238,23 +249,42 @@ class AppLockService extends _$AppLockService {
   }
 
   /// OS別画面（生体認証、カメラ、アルバム等）を開く処理を誤ロックなしで実行する共通ガード
-  Future<T> runWithLockSuppression<T>(Future<T> Function() action) async {
+  Future<T> runWithLockSuppression<T>(
+    Future<T> Function() action, {
+    bool Function(T result)? isSuccess,
+  }) async {
     _suppressionCount++;
-    var isSuccess = false;
+    var success = false;
     try {
       final result = await action();
-      // result が bool 型で false の場合は「失敗」とみなし、次回復帰ロックスキップを有効化しない
-      if (result is! bool || result) {
-        isSuccess = true;
+      if (isSuccess != null) {
+        success = isSuccess(result);
+      } else if (result is bool) {
+        success = result;
+      } else if (T == _voidType || T == _nullType) {
+        success = true;
+      } else {
+        // null 返却（ピッカーキャンセル等）の場合は失敗とみなす
+        success = result != null;
       }
       return result;
     } finally {
       if (_suppressionCount > 0) {
         _suppressionCount--;
       }
-      // 最外層のガードかつ成功結果（bool 以外の成功、または true）の場合のみ次回復帰ロックのスキップを有効化
-      if (_suppressionCount == 0 && isSuccess) {
-        _shouldSkipNextLock = true;
+      // 最外層のガード終了時の処理
+      if (_suppressionCount == 0) {
+        if (success) {
+          // 成功結果の場合のみ次回復帰ロックのスキップ（有効期限付き）を有効化
+          _shouldSkipNextLock = true;
+          _suppressionSkipUntil = ref
+              .read(clockProvider)()
+              .add(suppressionSkipTimeout);
+        } else {
+          // 失敗またはキャンセル時はスキップ状態を明示的にクリア
+          _shouldSkipNextLock = false;
+          _suppressionSkipUntil = null;
+        }
       }
     }
   }
@@ -295,6 +325,7 @@ class AppLockService extends _$AppLockService {
     // 認証失敗またはキャンセルの場合はアンロックされないため、次回の誤ロックスキップは無効化する
     if (!authenticated) {
       _shouldSkipNextLock = false;
+      _suppressionSkipUntil = null;
     }
 
     return authenticated;
@@ -306,10 +337,16 @@ class AppLockService extends _$AppLockService {
       return; // 生体認証やカメラ等の外部操作中は誤ロック防止のためスキップ
     }
 
-    // OSプロンプト消去起因の1回限りの復帰イベントを消費・スキップ
+    // OSプロンプト消去起因の復帰イベントを消費・スキップ（有効期限内かつ1回限り）
     if (_shouldSkipNextLock) {
       _shouldSkipNextLock = false;
-      return;
+      final skipUntil = _suppressionSkipUntil;
+      _suppressionSkipUntil = null;
+
+      final now = ref.read(clockProvider)();
+      if (skipUntil != null && !now.isAfter(skipUntil)) {
+        return;
+      }
     }
 
     if (state.value case AppLockStateUnlocked(:final isBiometricEnabled)) {
@@ -325,6 +362,7 @@ class AppLockService extends _$AppLockService {
     final repository = ref.read(appLockRepositoryProvider);
     await repository.clearAll();
     _shouldSkipNextLock = false;
+    _suppressionSkipUntil = null;
     _wasAuthenticated = false;
     state = const AsyncValue.data(AppLockState.disabled());
   }

@@ -90,4 +90,4 @@ lib/src/features/profile/
 - **同期処理と非同期処理の切り分け（FakeAsync対策）**:
   ウィジェットテスト環境下での FakeAsync デッドロックを回避するため、画像の一時ファイル生成には同期API（`Directory.systemTemp.createTempSync()`）を採用しています。
 - **アプリロック（AppLock）とのシームレスな連携**:
-  カメラ起動やアルバム選択、切り抜き画面などの OS 画面を開く間は、アプリが一時的にバックグラウンドと判定されます。[LockSuppressionRunner](../lib/src/core/services/lock_suppression_handler.dart) を通じて写真選択処理を実行することで、写真を選んでアプリに戻った瞬間に誤って画面ロックがかかるのを確実に防止しています。
+  カメラ起動やアルバム選択、切り抜き画面などの OS 画面を開く間は、アプリが一時的にバックグラウンドと判定されます。[LockSuppressionRunner](../lib/src/core/services/lock_suppression_handler.dart) を通じて写真選択処理を実行することで、写真を選んでアプリに戻った瞬間に誤って画面ロックがかかるのを確実に防止しています。また、ユーザーが写真選択や切り抜きをキャンセルした際（`null` 返却時）はスキップフラグを有効化しない安全設計となっており、不要なフラグ残留による誤解除を防いでいます。

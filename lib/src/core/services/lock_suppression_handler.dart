@@ -4,7 +4,10 @@ part 'lock_suppression_handler.g.dart';
 
 /// 外部画面表示時（ブラウザ・カメラ・共有シート等）にアプリロックを一時停止しながら非同期処理を実行する関数の型定義
 typedef LockSuppressionRunner =
-    Future<T> Function<T>(Future<T> Function() action);
+    Future<T> Function<T>(
+      Future<T> Function() action, {
+      bool Function(T result)? isSuccess,
+    });
 
 /// アプリロック一時停止ハンドラーを提供するプロバイダー
 ///
@@ -12,5 +15,5 @@ typedef LockSuppressionRunner =
 /// アプリ起動時に `appLockOverrides` 等を通じて本実装がオーバーライドされます。
 @Riverpod(keepAlive: true)
 LockSuppressionRunner lockSuppressionRunner(Ref ref) {
-  return <T>(action) => action();
+  return <T>(action, {isSuccess}) => action();
 }

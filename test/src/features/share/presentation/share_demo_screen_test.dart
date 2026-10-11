@@ -32,7 +32,10 @@ void main() {
   late Talker talker;
   var suppressionCallCount = 0;
 
-  Future<T> testLockSuppressionRunner<T>(Future<T> Function() action) async {
+  Future<T> testLockSuppressionRunner<T>(
+    Future<T> Function() action, {
+    bool Function(T result)? isSuccess,
+  }) async {
     suppressionCallCount++;
     return await action();
   }

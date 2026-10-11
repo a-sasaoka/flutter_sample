@@ -643,6 +643,153 @@ void main() {
       ).equals(const AppLockState.locked(isBiometricEnabled: false));
     });
 
+    test('runWithLockSuppression: 戻り値が null（ピッカーキャンセル等）の場合は失敗とみなし、 '
+        'スキップフラグは設定されずに即座にロック可能であること', () async {
+      final container = createContainer(
+        isAuthenticated: true,
+        hasPasscode: true,
+        isBiometricEnabled: false,
+      );
+      await container.read(appLockServiceProvider.future);
+
+      final notifier = container.read(appLockServiceProvider.notifier)
+        ..skipBiometric(); // unlocked 状態にする
+
+      // 写真選択などをキャンセルして null が返るシナリオ
+      final result = await notifier.runWithLockSuppression<String?>(() async {
+        return null;
+      });
+
+      check(result).isNull();
+      check(notifier.isLockSuppressed).equals(false);
+
+      // null 返却時はスキップフラグが設定されないため、直後の lockApp() で即座にロックされる
+      notifier.lockApp();
+      check(
+        container.read(appLockServiceProvider).value,
+      ).equals(const AppLockState.locked(isBiometricEnabled: false));
+    });
+
+    test('runWithLockSuppression: isSuccess 述語が false を返した場合は失敗とみなし、 '
+        'スキップフラグは設定されずに即座にロック可能であること', () async {
+      final container = createContainer(
+        isAuthenticated: true,
+        hasPasscode: true,
+        isBiometricEnabled: false,
+      );
+      await container.read(appLockServiceProvider.future);
+
+      final notifier = container.read(appLockServiceProvider.notifier)
+        ..skipBiometric(); // unlocked 状態にする
+
+      final result = await notifier.runWithLockSuppression<int>(
+        () async => 999,
+        isSuccess: (res) => false,
+      );
+
+      check(result).equals(999);
+      check(notifier.isLockSuppressed).equals(false);
+
+      // isSuccess が false のためスキップフラグは設定されず即座にロックされる
+      notifier.lockApp();
+      check(
+        container.read(appLockServiceProvider).value,
+      ).equals(const AppLockState.locked(isBiometricEnabled: false));
+    });
+
+    test(
+      'runWithLockSuppression: isSuccess 述語が true を返した場合はスキップフラグが有効化されること',
+      () async {
+        final container = createContainer(
+          isAuthenticated: true,
+          hasPasscode: true,
+          isBiometricEnabled: false,
+        );
+        await container.read(appLockServiceProvider.future);
+
+        final notifier = container.read(appLockServiceProvider.notifier)
+          ..skipBiometric(); // unlocked 状態にする
+
+        final result = await notifier.runWithLockSuppression<int>(
+          () async => 999,
+          isSuccess: (res) => true,
+        );
+
+        check(result).equals(999);
+        check(notifier.isLockSuppressed).equals(false);
+
+        // 1回目の lockApp() はスキップされる
+        notifier.lockApp();
+        check(
+          container.read(appLockServiceProvider).value,
+        ).equals(const AppLockState.unlocked(isBiometricEnabled: false));
+
+        // 2回目の lockApp() で再ロックされる
+        notifier.lockApp();
+        check(
+          container.read(appLockServiceProvider).value,
+        ).equals(const AppLockState.locked(isBiometricEnabled: false));
+      },
+    );
+
+    test('runWithLockSuppression: 完了後に2秒以上経過（タイムアウト）した場合は '
+        'スキップフラグが自動失効し、即座にロックされること', () async {
+      var currentTime = DateTime(2026, 10, 11, 12);
+      final container = createContainer(
+        isAuthenticated: true,
+        hasPasscode: true,
+        isBiometricEnabled: false,
+        clock: () => currentTime,
+      );
+      await container.read(appLockServiceProvider.future);
+
+      final notifier = container.read(appLockServiceProvider.notifier)
+        ..skipBiometric(); // unlocked 状態にする
+
+      await notifier.runWithLockSuppression<String>(() async => 'success');
+
+      // 2.1秒時間を進める（有効期限 2 秒を超過）
+      currentTime = currentTime.add(const Duration(milliseconds: 2100));
+
+      // タイムアウトによりフラグが失効しているため、1回目の lockApp() で即座にロックされる
+      notifier.lockApp();
+      check(
+        container.read(appLockServiceProvider).value,
+      ).equals(const AppLockState.locked(isBiometricEnabled: false));
+    });
+
+    test('runWithLockSuppression: 完了後2秒以内であれば1回目のロックがスキップされ、 '
+        '消費後の2回目で再ロックされること', () async {
+      var currentTime = DateTime(2026, 10, 11, 12);
+      final container = createContainer(
+        isAuthenticated: true,
+        hasPasscode: true,
+        isBiometricEnabled: false,
+        clock: () => currentTime,
+      );
+      await container.read(appLockServiceProvider.future);
+
+      final notifier = container.read(appLockServiceProvider.notifier)
+        ..skipBiometric(); // unlocked 状態にする
+
+      await notifier.runWithLockSuppression<String>(() async => 'success');
+
+      // 1.5秒進める（2秒以内）
+      currentTime = currentTime.add(const Duration(milliseconds: 1500));
+
+      // 期限内のため1回目はスキップ
+      notifier.lockApp();
+      check(
+        container.read(appLockServiceProvider).value,
+      ).equals(const AppLockState.unlocked(isBiometricEnabled: false));
+
+      // 1回目でフラグが消費されたため、2回目はロックされる
+      notifier.lockApp();
+      check(
+        container.read(appLockServiceProvider).value,
+      ).equals(const AppLockState.locked(isBiometricEnabled: false));
+    });
+
     test('runWithLockSuppression: ネスト呼び出し時は最外層が完了するまでスキップフラグは立たないこと', () async {
       final container = createContainer(
         isAuthenticated: true,

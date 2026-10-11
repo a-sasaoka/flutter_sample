@@ -30,7 +30,7 @@ void main() {
     setUp(() {
       runnerCalled = false;
       service = UrlLauncherService(
-        lockSuppressionRunner: <T>(action) async {
+        lockSuppressionRunner: <T>(action, {isSuccess}) async {
           runnerCalled = true;
           return await action();
         },

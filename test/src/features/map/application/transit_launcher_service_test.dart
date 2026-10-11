@@ -24,7 +24,10 @@ void main() {
   late TransitLauncherService service;
   var lockSuppressionCallCount = 0;
 
-  Future<T> testLockSuppressionRunner<T>(Future<T> Function() action) async {
+  Future<T> testLockSuppressionRunner<T>(
+    Future<T> Function() action, {
+    bool Function(T result)? isSuccess,
+  }) async {
     lockSuppressionCallCount++;
     return await action();
   }
