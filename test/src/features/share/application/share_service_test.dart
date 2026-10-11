@@ -30,10 +30,18 @@ void main() {
   late Talker talker;
   late ShareService service;
   var suppressionCallCount = 0;
+  var lastIsSuccessResult = true;
 
-  Future<T> testRunner<T>(Future<T> Function() action) async {
+  Future<T> testRunner<T>(
+    Future<T> Function() action, {
+    bool Function(T result)? isSuccess,
+  }) async {
     suppressionCallCount++;
-    return await action();
+    final result = await action();
+    if (isSuccess != null) {
+      lastIsSuccessResult = isSuccess(result);
+    }
+    return result;
   }
 
   setUpAll(() {
@@ -57,6 +65,7 @@ void main() {
     UrlLauncherPlatform.instance = mockUrlLauncherPlatform;
 
     suppressionCallCount = 0;
+    lastIsSuccessResult = true;
 
     talker = Talker();
     service = ShareService(
@@ -95,6 +104,7 @@ void main() {
       ).equals(const Rect.fromLTWH(10, 20, 30, 40));
 
       check(suppressionCallCount).equals(1);
+      check(lastIsSuccessResult).equals(true);
     });
 
     test('ユーザーが共有をキャンセルした場合、ShareResult.dismissed を返すこと', () async {
@@ -107,6 +117,7 @@ void main() {
 
       check(result.status).equals(ShareResultStatus.dismissed);
       check(suppressionCallCount).equals(1);
+      check(lastIsSuccessResult).equals(false);
     });
 
     test('共有が利用不可の場合、ShareResult.unavailable を返すこと', () async {
@@ -119,6 +130,7 @@ void main() {
 
       check(result.status).equals(ShareResultStatus.unavailable);
       check(suppressionCallCount).equals(1);
+      check(lastIsSuccessResult).equals(false);
     });
 
     test('プラットフォーム例外が発生した場合、ShareResult.unavailable を返すこと', () async {

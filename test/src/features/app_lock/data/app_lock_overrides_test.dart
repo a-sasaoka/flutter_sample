@@ -17,7 +17,10 @@ class StubAppLockService extends AppLockService {
   Future<AppLockState> build() => _buildState();
 
   @override
-  Future<T> runWithLockSuppression<T>(Future<T> Function() action) => action();
+  Future<T> runWithLockSuppression<T>(
+    Future<T> Function() action, {
+    bool Function(T result)? isSuccess,
+  }) => action();
 }
 
 class ErrorStubAppLockService extends AppLockService {
@@ -28,7 +31,10 @@ class ErrorStubAppLockService extends AppLockService {
   }
 
   @override
-  Future<T> runWithLockSuppression<T>(Future<T> Function() action) => action();
+  Future<T> runWithLockSuppression<T>(
+    Future<T> Function() action, {
+    bool Function(T result)? isSuccess,
+  }) => action();
 }
 
 void main() {
