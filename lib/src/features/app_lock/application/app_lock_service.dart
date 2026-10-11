@@ -272,12 +272,19 @@ class AppLockService extends _$AppLockService {
       if (_suppressionCount > 0) {
         _suppressionCount--;
       }
-      // 最外層のガードかつ成功結果の場合のみ次回復帰ロックのスキップ（有効期限付き）を有効化
-      if (_suppressionCount == 0 && success) {
-        _shouldSkipNextLock = true;
-        _suppressionSkipUntil = ref
-            .read(clockProvider)()
-            .add(suppressionSkipTimeout);
+      // 最外層のガード終了時の処理
+      if (_suppressionCount == 0) {
+        if (success) {
+          // 成功結果の場合のみ次回復帰ロックのスキップ（有効期限付き）を有効化
+          _shouldSkipNextLock = true;
+          _suppressionSkipUntil = ref
+              .read(clockProvider)()
+              .add(suppressionSkipTimeout);
+        } else {
+          // 失敗またはキャンセル時はスキップ状態を明示的にクリア
+          _shouldSkipNextLock = false;
+          _suppressionSkipUntil = null;
+        }
       }
     }
   }
