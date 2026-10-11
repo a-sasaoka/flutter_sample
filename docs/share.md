@@ -33,7 +33,7 @@ iPad（iPadOS）では、共有ダイアログが画面中央ではなくタッ�
 
 本アプリには一定時間のバックグラウンド移行で生体認証・パスコードロックをかける機能があります。\
 OS標準のシェアシートを開くと、OSの仕様によりアプリが一瞬非アクティブ（バックグラウンド扱い）となり、共有完了後に誤ってロック画面が表示されてしまう問題があります。\
-これを防ぐため、Core層の共通ハンドラー（[lock_suppression_handler.dart](../lib/src/core/services/lock_suppression_handler.dart)）を活用し、シェア実行中は一時的にロック判定をスキップするように連携しています。
+これを防ぐため、Core層の共通ハンドラー（[lock_suppression_handler.dart](../lib/src/core/services/lock_suppression_handler.dart)）を活用し、シェア実行中は一時的にロック判定をスキップするように連携しています。さらに、共有がキャンセルされた場合（`dismissed`）や失敗時にはスキップフラグを有効化しない安全設計（`isSuccess` 述語による検証）を取り入れ、無関係なバックグラウンド移行での誤ロック解除を防いでいます。実装詳細は [share_service.dart](../lib/src/features/share/application/share_service.dart) を参照してください。
 
 ### 3. テキスト・URL・画像の共有（`share_plus` 13.x 準拠）
 

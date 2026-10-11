@@ -91,9 +91,12 @@ stateDiagram-v2
 - **一時非活性の分離**: チャット送信時やキーボード開閉、Firebase ネットワーク通信等に伴う単なる一時非活性状態（`resumed` $\rightarrow$ `inactive` $\rightarrow$ `resumed`）ではバックグラウンド通過フラグが `false` のため誤ロックが発生しません。
 - **統一された誤ロック抑制ガード (`runWithLockSuppression`)**:
   - 生体認証ダイアログ（Face ID / 指紋認証）の表示中や、カメラ撮影・アルバム写真選択・切り抜き画面（プロフィール機能）、アルバム画像選択・URLブラウザ起動・端末設定画面遷移（QRコード機能）、OS標準シェアシートの表示・共有完了（SNSシェア機能）などの OS 画面を開いている最中は、アプリが一時的に `paused`（バックグラウンド）と判定されます。
-  - これらの操作を個別に特別扱いするのではなく、`AppLockService.runWithLockSuppression(action)` という共通ガードで一元管理しています。
-  - 操作実行中は `_suppressionCount` により誤ロックがスキップされ、操作完了直後（アプリへの復帰時）の1回限りの復帰イベントも `_shouldSkipNextLock` で安全に消費・スキップされます。
+  - これらの操作を個別に特別扱いするのではなく、`AppLockService.runWithLockSuppression` という共通ガードで一元管理しています。
+  - 操作実行中は `_suppressionCount` により誤ロックがスキップされ、操作完了直後（アプリへの復帰時）の復帰イベントも `_shouldSkipNextLock` で安全に消費・スキップされます。
+  - **ライフサイクルの適正化（ハイブリッド方式）**: スキップフラグ（`_shouldSkipNextLock`）には「1回限りの消費」に加えて「短時間（2秒）の有効期限（`suppressionSkipTimeout`）」が設けられています。復帰後2秒が経過した場合はフラグが自動失効し、その後の無関係なバックグラウンド遷移での誤ロック解除を防止します。
+  - **成功判定とキャンセル時の安全設計**: 写真ピッカーのキャンセル（`null` 返却）や処理失敗（`false` 返却、例外発生時）、共有シートのキャンセル時（`isSuccess` 判定失敗時）にはスキップフラグを有効化せず、直後のバックグラウンド離脱時に即座にアプリロックを発動させます。
   - 外部操作が完全に終了した後の通常バックグラウンド離脱（ホーム画面に戻る等）では、通常通り確実に再ロックが発動します。
+  - 実装詳細は [app_lock_service.dart](../lib/src/features/app_lock/application/app_lock_service.dart) を参照してください。
 
 ---
 
