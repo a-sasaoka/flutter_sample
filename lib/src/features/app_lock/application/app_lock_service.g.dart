@@ -36,7 +36,7 @@ final class AppLockServiceProvider
   AppLockService create() => AppLockService();
 }
 
-String _$appLockServiceHash() => r'76ed0a2238c3539bdbca1398d3b5c60743fcb8e2';
+String _$appLockServiceHash() => r'07959e0129db611861e108b3a23855fcd27b7307';
 
 /// 🔐 アプリロックのロジックと状態（sealed クラス）を管理する AsyncNotifier
 
