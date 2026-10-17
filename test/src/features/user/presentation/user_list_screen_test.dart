@@ -110,6 +110,38 @@ void main() {
       await tester.pumpAndSettle();
     });
 
+    testWidgets('【UIテスト】大量リストのスクロールと画面外のカードタップ検証', (tester) async {
+      // 1. ダミーデータを100件用意
+      final dummyUsers = List.generate(100, createDummyUser);
+      when(
+        () => mockRepository.fetchUsers(),
+      ).thenAnswer((_) async => (dummyUsers, dummyTimestamp));
+
+      // 2. 画面を描画
+      await pumpUserListScreen(tester);
+      await tester.pumpAndSettle();
+
+      // 画面内の1番目、2番目のカードが表示されていることを確認
+      check(find.text('Test User 0')).findsOne();
+      check(find.text('Test User 1')).findsOne();
+
+      // 💡 画面外にある「Test User 50」を探して、見つかるまで自動スクロール！
+      final targetCard = find.text('Test User 50');
+      await tester.dragUntilVisible(
+        targetCard, // 探したいWidget
+        find.byType(ListView), // スクロール対象のリスト
+        const Offset(0, -300), // 上方向へドラッグする移動量
+      );
+      await tester.pumpAndSettle();
+
+      // 3. スクロール後に画面内に現れたことを確認
+      check(targetCard).findsOne();
+
+      // 4. そのカードをタップできることを確認
+      await tester.tap(targetCard);
+      await tester.pumpAndSettle();
+    });
+
     testWidgets('【正常系】データが空の場合、専用の表示がされること', (tester) async {
       when(
         () => mockRepository.fetchUsers(),
