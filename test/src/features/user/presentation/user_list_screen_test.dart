@@ -137,6 +137,11 @@ void main() {
       // 3. スクロール後に画面内に現れたことを確認
       check(targetCard).findsOne();
 
+      // 💡 カードが画面表示範囲（可視領域 0〜1920）内にあることを検証
+      final cardRect = tester.getRect(targetCard);
+      check(cardRect.top).isGreaterOrEqual(0);
+      check(cardRect.bottom).isLessOrEqual(1920);
+
       // 4. そのカードをタップできることを確認
       await tester.tap(targetCard);
       await tester.pumpAndSettle();
