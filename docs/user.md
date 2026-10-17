@@ -61,7 +61,7 @@ user/
   - `UserRepository`: キャッシュ優先取得、API 取得失敗時の挙動、CRUD 操作の整合性。
   - `UserNotifier`: 状態遷移（Loading → Data / Error）の検証。
 - **Widget Test**:
-  - `UserListScreen`: 一覧描画、Empty 状態の表示、再試行ボタンの動作、Pull-to-Refresh のトリガー。
+  - `UserListScreen`: 一覧描画、Empty 状態の表示、再試行ボタンの動作、Pull-to-Refresh のトリガー、大量リストのスクロール（dragUntilVisible）と画面外カードタップ検証。
 - **Golden Test**:
   - `UserListScreen`: ユーザー一覧画面（データあり/空）のライトモード/ダークモードでの表示確認。
 
