@@ -233,12 +233,14 @@ class ChatNotifier extends _$ChatNotifier {
           );
         }
 
-        // 4. 実行結果をAIに返送し、後続の会話ストリームに切り替えてループ継続
-        stream = repository.sendFunctionResponseStream(
-          name: pendingCall.name,
-          response: result,
-          id: pendingCall.id,
-        );
+        // 4. 最大ターンに達していない場合のみ、実行結果をAIに返送して後続ストリームへ移行
+        if (currentTurn < maxTurns) {
+          stream = repository.sendFunctionResponseStream(
+            name: pendingCall.name,
+            response: result,
+            id: pendingCall.id,
+          );
+        }
       }
 
       // ループ終了後の世代整合性チェック
@@ -298,21 +300,15 @@ class ChatNotifier extends _$ChatNotifier {
   }
 
   /// 状態リストの特定メッセージIDの手前に新しいメッセージを挿入する
-  /// 見つからない場合は末尾に追加する
   void _insertMessageBefore(String targetId, ChatMessage newMessage) {
-    final newMessages = <ChatMessage>[];
-    var inserted = false;
-    for (final msg in state.messages) {
-      if (msg.id == targetId && !inserted) {
-        newMessages.add(newMessage);
-        inserted = true;
-      }
-      newMessages.add(msg);
-    }
-    if (!inserted) {
-      newMessages.add(newMessage);
-    }
-    state = state.copyWith(messages: newMessages);
+    state = state.copyWith(
+      messages: [
+        for (final msg in state.messages) ...[
+          if (msg.id == targetId) newMessage,
+          msg,
+        ],
+      ],
+    );
   }
 
   /// AIに送るプロンプトにシステム日時を付加する

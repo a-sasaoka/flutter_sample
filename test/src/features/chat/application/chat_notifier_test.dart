@@ -66,6 +66,8 @@ class FakeAppActionDispatcher extends Fake implements AppActionDispatcher {
     if (onExecute != null) {
       await onExecute!();
     }
+    // 実際の非同期処理（DB操作等）と同様にイベントループを回して状態通知を反映
+    await Future<void>.delayed(Duration.zero);
     return responseToReturn;
   }
 }
@@ -616,6 +618,72 @@ void main() {
           check(action.isError).isFalse();
         });
 
+        test('正常系: createMemo ツール呼び出し時、 '
+            'resultにtitleがなくてもargsからフォールバックされること', () async {
+          final fakeRepo = FakeChatRepository()
+            ..customStreamEvents = [
+              const ChatStreamEvent.functionCall(
+                name: ChatActionNames.createMemo,
+                args: {CreateMemoActionKeys.title: 'フォールバックメモ'},
+              ),
+            ]
+            ..customFunctionResponseEvents = [
+              const ChatStreamEvent.text('メモを作成しました'),
+            ];
+
+          final fakeDispatcher = FakeAppActionDispatcher()
+            ..responseToReturn = {
+              ChatActionResultKeys.status: ChatActionResultKeys.success,
+            };
+
+          final container = createContainer(
+            fakeRepo,
+            fakeDispatcher: fakeDispatcher,
+          );
+          final notifier = container.read(chatProvider.notifier);
+
+          await notifier.sendMessageStream('メモ作成');
+
+          final state = container.read(chatProvider);
+          final action = state.messages[1] as ChatMessageAction;
+          check(action.actionType).equals(ChatActionType.createMemo);
+          check(action.detail).equals('フォールバックメモ');
+        });
+
+        test('正常系: changeThemeMode ツール呼び出し時、 '
+            'resultにthemeがなくてもargsからフォールバックされること', () async {
+          final fakeRepo = FakeChatRepository()
+            ..customStreamEvents = [
+              const ChatStreamEvent.functionCall(
+                name: ChatActionNames.changeThemeMode,
+                args: {
+                  ChangeThemeActionKeys.theme: ChangeThemeActionKeys.light,
+                },
+              ),
+            ]
+            ..customFunctionResponseEvents = [
+              const ChatStreamEvent.text('ライトモードに切り替えました'),
+            ];
+
+          final fakeDispatcher = FakeAppActionDispatcher()
+            ..responseToReturn = {
+              ChatActionResultKeys.status: ChatActionResultKeys.success,
+            };
+
+          final container = createContainer(
+            fakeRepo,
+            fakeDispatcher: fakeDispatcher,
+          );
+          final notifier = container.read(chatProvider.notifier);
+
+          await notifier.sendMessageStream('ライトモードにして');
+
+          final state = container.read(chatProvider);
+          final action = state.messages[1] as ChatMessageAction;
+          check(action.actionType).equals(ChatActionType.changeThemeMode);
+          check(action.detail).equals(ChangeThemeActionKeys.light);
+        });
+
         test('未知のツール名の場合はアクションチップを挿入せずAI返答のみ反映されること', () async {
           final fakeRepo = FakeChatRepository()
             ..customStreamEvents = [
@@ -803,7 +871,8 @@ void main() {
 
           // execute は最大3回まで呼ばれること
           check(fakeDispatcher.executeCallCount).equals(3);
-          check(fakeRepo.sendFunctionResponseStreamCallCount).equals(3);
+          // 1回目と2回目は結果返送ストリームが生成され、3回目は上限に達して返送せずループ終了すること
+          check(fakeRepo.sendFunctionResponseStreamCallCount).equals(2);
         });
       });
     });
