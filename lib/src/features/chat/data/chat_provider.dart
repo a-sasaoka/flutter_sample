@@ -27,9 +27,14 @@ ChatRepository chatRepository(Ref ref) {
     systemInstruction: Content.system(
       'You are a helpful AI assistant. '
       'Always refer to the [System Information] provided in the user prompt '
-      'for current local date, time, and timezone.',
+      'for current local date, time, and timezone. '
+      'You can perform app operations (such as managing memos and theme) '
+      'by calling the provided tools when requested.',
     ),
-    tools: [Tool.googleSearch()],
+    tools: [
+      Tool.googleSearch(),
+      Tool.functionDeclarations(chatFunctionDeclarations),
+    ],
   );
 
   // GeminiApiClient を生成して注入

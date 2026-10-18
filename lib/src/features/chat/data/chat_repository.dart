@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_stream_event.dart';
 
 /// チャットのリポジトリクラス
 class ChatRepository {
@@ -24,9 +25,23 @@ class ChatRepository {
   }
 
   /// メッセージを送信するストリームメソッド（AIのレスポンスにリアルタイムで反応する）
-  Stream<String> sendMessageStream(String prompt, {Uint8List? imageBytes}) {
-    return _apiClient
-        .sendMessageStream(prompt, imageBytes: imageBytes)
-        .map((text) => text ?? '');
+  Stream<ChatStreamEvent> sendMessageStream(
+    String prompt, {
+    Uint8List? imageBytes,
+  }) {
+    return _apiClient.sendMessageStream(prompt, imageBytes: imageBytes);
+  }
+
+  /// ツール実行結果をAIに送信し、後続の返答ストリームを受信するメソッド
+  Stream<ChatStreamEvent> sendFunctionResponseStream({
+    required String name,
+    required Map<String, Object?> response,
+    String? id,
+  }) {
+    return _apiClient.sendFunctionResponseStream(
+      name: name,
+      response: response,
+      id: id,
+    );
   }
 }

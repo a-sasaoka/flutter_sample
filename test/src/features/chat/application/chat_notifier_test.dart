@@ -11,6 +11,7 @@ import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_stream_event.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:talker_flutter/talker_flutter.dart';
@@ -76,7 +77,7 @@ class FakeChatRepository extends Fake implements ChatRepository {
   }
 
   @override
-  Stream<String> sendMessageStream(
+  Stream<ChatStreamEvent> sendMessageStream(
     String text, {
     Uint8List? imageBytes,
   }) async* {
@@ -91,7 +92,18 @@ class FakeChatRepository extends Fake implements ChatRepository {
     for (final chunk in streamChunks) {
       // Streamが徐々に流れてくる様子をシミュレート（生成中の隙間を作る）
       await Future<void>.delayed(const Duration(milliseconds: 20));
-      yield chunk;
+      yield ChatStreamEvent.text(chunk);
+    }
+  }
+
+  @override
+  Stream<ChatStreamEvent> sendFunctionResponseStream({
+    required String name,
+    required Map<String, Object?> response,
+    String? id,
+  }) async* {
+    for (final chunk in streamChunks) {
+      yield ChatStreamEvent.text(chunk);
     }
   }
 }

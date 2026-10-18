@@ -160,4 +160,13 @@ void main() {
       ).throws<ChatUnsupportedImageFormatException>();
     });
   });
+
+  group('chatFunctionDeclarations', () {
+    test('3つのツール（createMemo, listMemos, changeThemeMode）が定義されていること', () {
+      check(chatFunctionDeclarations.length).equals(3);
+
+      final names = chatFunctionDeclarations.map((d) => d.name).toList();
+      check(names).deepEquals(['createMemo', 'listMemos', 'changeThemeMode']);
+    });
+  });
 }

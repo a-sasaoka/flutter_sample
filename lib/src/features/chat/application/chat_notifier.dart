@@ -9,6 +9,7 @@ import 'package:flutter_sample/src/features/chat/application/chat_state.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_stream_event.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'chat_notifier.g.dart';
@@ -137,28 +138,30 @@ class ChatNotifier extends _$ChatNotifier {
       late DateTime aiMessageCreatedAt;
       final buffer = StringBuffer();
 
-      await for (final chunk in stream) {
+      await for (final event in stream) {
         // マウントされていない、または世代が変更された場合はStream受信を直ちに中断
         if (!ref.mounted || currentGen != _generation) return;
 
-        if (isFirstChunk) {
-          // 最初のチャンクが届いた瞬間の時刻を記録
-          aiMessageCreatedAt = ref.read(clockProvider)();
-          isFirstChunk = false;
+        if (event case ChatStreamEventText(:final text)) {
+          if (isFirstChunk) {
+            // 最初のチャンクが届いた瞬間の時刻を記録
+            aiMessageCreatedAt = ref.read(clockProvider)();
+            isFirstChunk = false;
+          }
+
+          buffer.write(text);
+          aiResponseText = buffer.toString();
+
+          // 既存のIDと時刻を引き継ぎながら、テキストを更新（競合対策）
+          _updateMessageById(
+            targetAiId,
+            ChatMessage.ai(
+              id: targetAiId,
+              text: aiResponseText,
+              createdAt: aiMessageCreatedAt,
+            ),
+          );
         }
-
-        buffer.write(chunk);
-        aiResponseText = buffer.toString();
-
-        // 既存のIDと時刻を引き継ぎながら、テキストを更新（競合対策）
-        _updateMessageById(
-          targetAiId,
-          ChatMessage.ai(
-            id: targetAiId,
-            text: aiResponseText,
-            createdAt: aiMessageCreatedAt,
-          ),
-        );
       }
 
       // ループ終了後の世代整合性チェック

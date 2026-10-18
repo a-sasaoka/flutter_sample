@@ -2,6 +2,41 @@
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_stream_event.dart';
+
+/// Geminiに提供するアプリ操作用のツール定義（Function Declarations）
+final chatFunctionDeclarations = [
+  FunctionDeclaration(
+    'createMemo',
+    'Create a new memo and save it to the local database.',
+    parameters: {
+      'title': Schema.string(description: 'The title of the memo (required).'),
+      'content': Schema.string(description: 'The content or body of the memo.'),
+    },
+    optionalParameters: ['content'],
+  ),
+  FunctionDeclaration(
+    'listMemos',
+    'List all memos or search memos by a keyword query.',
+    parameters: {
+      'query': Schema.string(
+        description:
+            'Optional search keyword to filter memos by title or content.',
+      ),
+    },
+    optionalParameters: ['query'],
+  ),
+  FunctionDeclaration(
+    'changeThemeMode',
+    'Change the application theme mode (system, light, or dark).',
+    parameters: {
+      'theme': Schema.enumString(
+        enumValues: ['system', 'light', 'dark'],
+        description: 'The desired theme mode.',
+      ),
+    },
+  ),
+];
 
 /// 画像データの先頭バイト（マジックナンバー）からMIMEタイプを判定する
 /// サポート外または判定不能な場合は null を返す
@@ -72,9 +107,48 @@ class GeminiApiClient implements ChatApiClient {
   }
 
   @override
-  Stream<String?> sendMessageStream(String prompt, {Uint8List? imageBytes}) {
-    return _session
-        .sendMessageStream(buildContent(prompt, imageBytes))
-        .map((chunk) => chunk.text);
+  Stream<ChatStreamEvent> sendMessageStream(
+    String prompt, {
+    Uint8List? imageBytes,
+  }) async* {
+    final responseStream = _session.sendMessageStream(
+      buildContent(prompt, imageBytes),
+    );
+    await for (final chunk in responseStream) {
+      for (final call in chunk.functionCalls) {
+        yield ChatStreamEvent.functionCall(
+          name: call.name,
+          args: call.args,
+          id: call.id,
+        );
+      }
+      final text = chunk.text;
+      if (text != null && text.isNotEmpty) {
+        yield ChatStreamEvent.text(text);
+      }
+    }
+  }
+
+  @override
+  Stream<ChatStreamEvent> sendFunctionResponseStream({
+    required String name,
+    required Map<String, Object?> response,
+    String? id,
+  }) async* {
+    final content = Content.functionResponse(name, response, id: id);
+    final responseStream = _session.sendMessageStream(content);
+    await for (final chunk in responseStream) {
+      for (final call in chunk.functionCalls) {
+        yield ChatStreamEvent.functionCall(
+          name: call.name,
+          args: call.args,
+          id: call.id,
+        );
+      }
+      final text = chunk.text;
+      if (text != null && text.isNotEmpty) {
+        yield ChatStreamEvent.text(text);
+      }
+    }
   }
 }
