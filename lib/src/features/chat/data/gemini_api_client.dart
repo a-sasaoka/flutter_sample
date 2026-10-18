@@ -2,36 +2,45 @@
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_action_constants.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_stream_event.dart';
 
 /// Geminiに提供するアプリ操作用のツール定義（Function Declarations）
 final chatFunctionDeclarations = [
   FunctionDeclaration(
-    'createMemo',
+    ChatActionNames.createMemo,
     'Create a new memo and save it to the local database.',
     parameters: {
-      'title': Schema.string(description: 'The title of the memo (required).'),
-      'content': Schema.string(description: 'The content or body of the memo.'),
+      CreateMemoActionKeys.title: Schema.string(
+        description: 'The title of the memo (required).',
+      ),
+      CreateMemoActionKeys.content: Schema.string(
+        description: 'The content or body of the memo.',
+      ),
     },
-    optionalParameters: ['content'],
+    optionalParameters: [CreateMemoActionKeys.content],
   ),
   FunctionDeclaration(
-    'listMemos',
+    ChatActionNames.listMemos,
     'List all memos or search memos by a keyword query.',
     parameters: {
-      'query': Schema.string(
+      ListMemosActionKeys.query: Schema.string(
         description:
             'Optional search keyword to filter memos by title or content.',
       ),
     },
-    optionalParameters: ['query'],
+    optionalParameters: [ListMemosActionKeys.query],
   ),
   FunctionDeclaration(
-    'changeThemeMode',
+    ChatActionNames.changeThemeMode,
     'Change the application theme mode (system, light, or dark).',
     parameters: {
-      'theme': Schema.enumString(
-        enumValues: ['system', 'light', 'dark'],
+      ChangeThemeActionKeys.theme: Schema.enumString(
+        enumValues: [
+          ChangeThemeActionKeys.system,
+          ChangeThemeActionKeys.light,
+          ChangeThemeActionKeys.dark,
+        ],
         description: 'The desired theme mode.',
       ),
     },

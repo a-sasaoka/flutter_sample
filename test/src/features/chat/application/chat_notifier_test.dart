@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
+import 'package:flutter_sample/src/core/actions/app_action_dispatcher.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
@@ -10,6 +11,8 @@ import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart'
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_action_constants.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_action_type.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_stream_event.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -42,6 +45,31 @@ final testAuthNotifierProvider = NotifierProvider<TestAuthNotifier, bool>(
   TestAuthNotifier.new,
 );
 
+// --- Fake AppActionDispatcher ---
+class FakeAppActionDispatcher extends Fake implements AppActionDispatcher {
+  Map<String, Object?> responseToReturn = {
+    ChatActionResultKeys.status: ChatActionResultKeys.success,
+  };
+  String? lastExecutedName;
+  Map<String, Object?>? lastExecutedArgs;
+  int executeCallCount = 0;
+  Future<void> Function()? onExecute;
+
+  @override
+  Future<Map<String, Object?>> execute({
+    required String name,
+    required Map<String, Object?> args,
+  }) async {
+    executeCallCount++;
+    lastExecutedName = name;
+    lastExecutedArgs = args;
+    if (onExecute != null) {
+      await onExecute!();
+    }
+    return responseToReturn;
+  }
+}
+
 // --- Fake Repository ---
 // Streamの挙動を完全にコントロールするためのFakeクラス
 class FakeChatRepository extends Fake implements ChatRepository {
@@ -54,9 +82,23 @@ class FakeChatRepository extends Fake implements ChatRepository {
   // 排他制御（連打防止）が正しく機能しているか確認するためのカウンター
   int sendMessageCallCount = 0;
   int sendMessageStreamCallCount = 0;
+  int sendFunctionResponseStreamCallCount = 0;
 
   // Streamで流す分割された文字列（チャンク）
   List<String> streamChunks = ['AI', 'からの', '返答です'];
+
+  // カスタムイベントリスト（設定されている場合はこちらを流す）
+  List<ChatStreamEvent>? customStreamEvents;
+  List<ChatStreamEvent>? customFunctionResponseEvents;
+
+  // 複数ターンの関数レスポンスイベントリスト
+  List<List<ChatStreamEvent>> multiTurnFunctionResponseEvents = [];
+  int _functionResponseTurnIndex = 0;
+
+  // 関数レスポンスストリームの引数記録
+  String? lastFunctionName;
+  Map<String, Object?>? lastFunctionResponse;
+  String? lastFunctionId;
 
   // Streamに渡された最終的なテキスト（日時コンテキスト検証用）
   String? lastStreamText;
@@ -89,6 +131,14 @@ class FakeChatRepository extends Fake implements ChatRepository {
     if (shouldStreamThrow) throw Exception('Stream API Error');
     if (streamEmpty) return; // 空のStreamを返して終了
 
+    if (customStreamEvents != null) {
+      for (final event in customStreamEvents!) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        yield event;
+      }
+      return;
+    }
+
     for (final chunk in streamChunks) {
       // Streamが徐々に流れてくる様子をシミュレート（生成中の隙間を作る）
       await Future<void>.delayed(const Duration(milliseconds: 20));
@@ -102,7 +152,32 @@ class FakeChatRepository extends Fake implements ChatRepository {
     required Map<String, Object?> response,
     String? id,
   }) async* {
+    sendFunctionResponseStreamCallCount++;
+    lastFunctionName = name;
+    lastFunctionResponse = response;
+    lastFunctionId = id;
+
+    if (multiTurnFunctionResponseEvents.isNotEmpty &&
+        _functionResponseTurnIndex < multiTurnFunctionResponseEvents.length) {
+      final events =
+          multiTurnFunctionResponseEvents[_functionResponseTurnIndex++];
+      for (final event in events) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        yield event;
+      }
+      return;
+    }
+
+    if (customFunctionResponseEvents != null) {
+      for (final event in customFunctionResponseEvents!) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        yield event;
+      }
+      return;
+    }
+
     for (final chunk in streamChunks) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
       yield ChatStreamEvent.text(chunk);
     }
   }
@@ -148,6 +223,7 @@ void main() {
   /// テスト環境のセットアップヘルパー
   ProviderContainer createContainer(
     FakeChatRepository fakeRepo, {
+    FakeAppActionDispatcher? fakeDispatcher,
     void Function(Ref)? onRepoInit,
   }) {
     // 現在時刻を固定して、システム情報の文字列を完全に予測可能にする
@@ -159,6 +235,9 @@ void main() {
           onRepoInit?.call(ref);
           return fakeRepo;
         }),
+        appActionDispatcherProvider.overrideWithValue(
+          fakeDispatcher ?? FakeAppActionDispatcher(),
+        ),
         clockProvider.overrideWithValue(() => fixedDateTime),
         uuidProvider.overrideWithValue(FakeUuid()),
         loggerProvider.overrideWithValue(spyTalker),
@@ -403,6 +482,329 @@ void main() {
         final userMessage = state.messages.first as ChatMessageUser;
         check(userMessage.text).equals('');
         check(userMessage.imageBytes).equals(dummyBytes);
+      });
+
+      group('Function Calling（ツール呼び出し）', () {
+        test(
+          '正常系: createMemo ツール呼び出し時にアクションメッセージが挿入され、AIの最終返答が反映されること',
+          () async {
+            final fakeRepo = FakeChatRepository()
+              ..customStreamEvents = [
+                const ChatStreamEvent.functionCall(
+                  name: ChatActionNames.createMemo,
+                  args: {CreateMemoActionKeys.title: '牛乳を買う'},
+                  id: 'call-1',
+                ),
+              ]
+              ..customFunctionResponseEvents = [
+                const ChatStreamEvent.text('メモに「牛乳を買う」を追加しました！'),
+              ];
+
+            final fakeDispatcher = FakeAppActionDispatcher()
+              ..responseToReturn = {
+                ChatActionResultKeys.status: ChatActionResultKeys.success,
+                CreateMemoActionKeys.title: '牛乳を買う',
+              };
+
+            final container = createContainer(
+              fakeRepo,
+              fakeDispatcher: fakeDispatcher,
+            );
+            final notifier = container.read(chatProvider.notifier);
+
+            await notifier.sendMessageStream('買い物メモを作って');
+
+            final state = container.read(chatProvider);
+
+            // 検証:
+            // 0: User ("買い物メモを作って")
+            // 1: Action (createMemo, detail: "牛乳を買う", isError: false)
+            // 2: AI ("メモに「牛乳を買う」を追加しました！")
+            check(state.messages.length).equals(3);
+
+            final actionMessage = state.messages[1];
+            check(actionMessage).isA<ChatMessageAction>();
+            final action = actionMessage as ChatMessageAction;
+            check(action.actionType).equals(ChatActionType.createMemo);
+            check(action.detail).equals('牛乳を買う');
+            check(action.isError).isFalse();
+
+            final aiMessage = state.messages[2];
+            check(aiMessage).isA<ChatMessageAi>();
+            check(
+              (aiMessage as ChatMessageAi).text,
+            ).equals('メモに「牛乳を買う」を追加しました！');
+
+            // リポジトリへの呼び出し検証
+            check(fakeDispatcher.executeCallCount).equals(1);
+            check(
+              fakeDispatcher.lastExecutedName,
+            ).equals(ChatActionNames.createMemo);
+            check(fakeRepo.sendFunctionResponseStreamCallCount).equals(1);
+            check(fakeRepo.lastFunctionName).equals(ChatActionNames.createMemo);
+            check(fakeRepo.lastFunctionId).equals('call-1');
+          },
+        );
+
+        test('正常系: listMemos ツール呼び出し時に件数が detail に反映されること', () async {
+          final fakeRepo = FakeChatRepository()
+            ..customStreamEvents = [
+              const ChatStreamEvent.functionCall(
+                name: ChatActionNames.listMemos,
+                args: {ListMemosActionKeys.query: 'flutter'},
+              ),
+            ]
+            ..customFunctionResponseEvents = [
+              const ChatStreamEvent.text('2件見つかりました'),
+            ];
+
+          final fakeDispatcher = FakeAppActionDispatcher()
+            ..responseToReturn = {
+              ChatActionResultKeys.status: ChatActionResultKeys.success,
+              ListMemosActionKeys.count: 2,
+            };
+
+          final container = createContainer(
+            fakeRepo,
+            fakeDispatcher: fakeDispatcher,
+          );
+          final notifier = container.read(chatProvider.notifier);
+
+          await notifier.sendMessageStream('メモを検索して');
+
+          final state = container.read(chatProvider);
+          check(state.messages.length).equals(3);
+
+          final action = state.messages[1] as ChatMessageAction;
+          check(action.actionType).equals(ChatActionType.listMemos);
+          check(action.detail).equals('2');
+          check(action.isError).isFalse();
+        });
+
+        test('正常系: changeThemeMode ツール呼び出し時にテーマ名が detail に反映されること', () async {
+          final fakeRepo = FakeChatRepository()
+            ..customStreamEvents = [
+              const ChatStreamEvent.functionCall(
+                name: ChatActionNames.changeThemeMode,
+                args: {ChangeThemeActionKeys.theme: ChangeThemeActionKeys.dark},
+              ),
+            ]
+            ..customFunctionResponseEvents = [
+              const ChatStreamEvent.text('ダークモードに切り替えました'),
+            ];
+
+          final fakeDispatcher = FakeAppActionDispatcher()
+            ..responseToReturn = {
+              ChatActionResultKeys.status: ChatActionResultKeys.success,
+              ChangeThemeActionKeys.theme: ChangeThemeActionKeys.dark,
+            };
+
+          final container = createContainer(
+            fakeRepo,
+            fakeDispatcher: fakeDispatcher,
+          );
+          final notifier = container.read(chatProvider.notifier);
+
+          await notifier.sendMessageStream('ダークモードにして');
+
+          final state = container.read(chatProvider);
+          check(state.messages.length).equals(3);
+
+          final action = state.messages[1] as ChatMessageAction;
+          check(action.actionType).equals(ChatActionType.changeThemeMode);
+          check(action.detail).equals(ChangeThemeActionKeys.dark);
+          check(action.isError).isFalse();
+        });
+
+        test('未知のツール名の場合はアクションチップを挿入せずAI返答のみ反映されること', () async {
+          final fakeRepo = FakeChatRepository()
+            ..customStreamEvents = [
+              const ChatStreamEvent.functionCall(
+                name: 'unknownAction',
+                args: {'foo': 'bar'},
+              ),
+            ]
+            ..customFunctionResponseEvents = [
+              const ChatStreamEvent.text('未知のツールを実行しました'),
+            ];
+
+          final fakeDispatcher = FakeAppActionDispatcher()
+            ..responseToReturn = {
+              ChatActionResultKeys.status: ChatActionResultKeys.error,
+              ChatActionResultKeys.errorMessage: 'Unsupported action',
+            };
+
+          final container = createContainer(
+            fakeRepo,
+            fakeDispatcher: fakeDispatcher,
+          );
+          final notifier = container.read(chatProvider.notifier);
+
+          await notifier.sendMessageStream('未知のツールを実行して');
+
+          final state = container.read(chatProvider);
+          // 未知のツールのため Action メッセージは入らず、User と AI の2つのみ
+          check(state.messages.length).equals(2);
+          check(state.messages[0]).isA<ChatMessageUser>();
+          check(state.messages[1]).isA<ChatMessageAi>();
+          check(
+            (state.messages[1] as ChatMessageAi).text,
+          ).equals('未知のツールを実行しました');
+        });
+
+        test('異常系: ツール実行が失敗（status: error）した場合、isError: true となること', () async {
+          final fakeRepo = FakeChatRepository()
+            ..customStreamEvents = [
+              const ChatStreamEvent.functionCall(
+                name: ChatActionNames.createMemo,
+                args: {CreateMemoActionKeys.title: '失敗メモ'},
+              ),
+            ]
+            ..customFunctionResponseEvents = [
+              const ChatStreamEvent.text('メモの作成に失敗しました'),
+            ];
+
+          final fakeDispatcher = FakeAppActionDispatcher()
+            ..responseToReturn = {
+              ChatActionResultKeys.status: ChatActionResultKeys.error,
+              ChatActionResultKeys.errorMessage: 'Database write error',
+            };
+
+          final container = createContainer(
+            fakeRepo,
+            fakeDispatcher: fakeDispatcher,
+          );
+          final notifier = container.read(chatProvider.notifier);
+
+          await notifier.sendMessageStream('メモを作って');
+
+          final state = container.read(chatProvider);
+          check(state.messages.length).equals(3);
+
+          final action = state.messages[1] as ChatMessageAction;
+          check(action.actionType).equals(ChatActionType.createMemo);
+          check(action.isError).isTrue();
+          check(action.detail).isNull();
+        });
+
+        test(
+          'Fencing: ツール実行（dispatcher.execute）中にアカウント切り替えがあった場合、状態更新が遮断されること',
+          () async {
+            final fakeRepo = FakeChatRepository()
+              ..customStreamEvents = [
+                const ChatStreamEvent.functionCall(
+                  name: ChatActionNames.createMemo,
+                  args: {CreateMemoActionKeys.title: '切り替えメモ'},
+                ),
+              ];
+
+            late ProviderContainer container;
+            final fakeDispatcher = FakeAppActionDispatcher()
+              ..onExecute = () async {
+                // ツール実行の瞬間にアカウント切り替え
+                container.read(testUserIdProvider.notifier).userId =
+                    'user-changed';
+              };
+
+            container = createContainer(
+              fakeRepo,
+              fakeDispatcher: fakeDispatcher,
+            );
+            final notifier = container.read(chatProvider.notifier);
+
+            await notifier.sendMessageStream('メモを作って');
+
+            // 検証: clearHistoryによりメッセージは空になり、古いリクエストの更新は遮断されていること
+            final state = container.read(chatProvider);
+            check(state.messages).isEmpty();
+            check(state.isGenerating).isFalse();
+            check(fakeRepo.sendFunctionResponseStreamCallCount).equals(0);
+          },
+        );
+
+        test(
+          'Fencing: sendFunctionResponseStream 受信中にアカウント切り替えがあった場合、更新が遮断されること',
+          () async {
+            final fakeRepo = FakeChatRepository()
+              ..customStreamEvents = [
+                const ChatStreamEvent.functionCall(
+                  name: ChatActionNames.createMemo,
+                  args: {CreateMemoActionKeys.title: 'メモ'},
+                ),
+              ];
+
+            final fakeDispatcher = FakeAppActionDispatcher();
+            final container = createContainer(
+              fakeRepo,
+              fakeDispatcher: fakeDispatcher,
+            );
+            final notifier = container.read(chatProvider.notifier);
+
+            final future = notifier.sendMessageStream('メモを作って');
+
+            // ツール実行完了直後のストリーム受信中にアカウント切り替え
+            await Future<void>.delayed(const Duration(milliseconds: 25));
+            container.read(testUserIdProvider.notifier).userId =
+                'user-changed-2';
+
+            await future;
+
+            final state = container.read(chatProvider);
+            check(state.messages).isEmpty();
+            check(state.isGenerating).isFalse();
+          },
+        );
+
+        test('安全装置: 最大ターン数（maxTurns = 3）に達した場合はループが終了すること', () async {
+          final fakeRepo = FakeChatRepository()
+            ..customStreamEvents = [
+              const ChatStreamEvent.functionCall(
+                name: ChatActionNames.listMemos,
+                args: {},
+              ),
+            ]
+            ..multiTurnFunctionResponseEvents = [
+              // ターン1の応答 -> 2回目のfunctionCall
+              [
+                const ChatStreamEvent.functionCall(
+                  name: ChatActionNames.listMemos,
+                  args: {},
+                ),
+              ],
+              // ターン2の応答 -> 3回目のfunctionCall
+              [
+                const ChatStreamEvent.functionCall(
+                  name: ChatActionNames.listMemos,
+                  args: {},
+                ),
+              ],
+              // ターン3の応答 -> 4回目を要求してもmaxTurns=3でループ終了する
+              [
+                const ChatStreamEvent.functionCall(
+                  name: ChatActionNames.listMemos,
+                  args: {},
+                ),
+              ],
+            ];
+
+          final fakeDispatcher = FakeAppActionDispatcher()
+            ..responseToReturn = {
+              ChatActionResultKeys.status: ChatActionResultKeys.success,
+              ListMemosActionKeys.count: 1,
+            };
+
+          final container = createContainer(
+            fakeRepo,
+            fakeDispatcher: fakeDispatcher,
+          );
+          final notifier = container.read(chatProvider.notifier);
+
+          await notifier.sendMessageStream('無限ループテスト');
+
+          // execute は最大3回まで呼ばれること
+          check(fakeDispatcher.executeCallCount).equals(3);
+          check(fakeRepo.sendFunctionResponseStreamCallCount).equals(3);
+        });
       });
     });
 
