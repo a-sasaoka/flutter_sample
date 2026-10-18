@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_action_constants.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -23,10 +24,6 @@ abstract final class WikipediaApiConstants {
 
   /// User-Agent ヘッダー名
   static const headerUserAgent = 'User-Agent';
-
-  /// アプリ用 User-Agent 文字列
-  static const defaultUserAgent =
-      'FlutterSampleApp/1.0 (https://github.com/example/flutter_sample)';
 
   /// リクエストタイムアウト時間
   static const requestTimeout = Duration(seconds: 10);
@@ -112,12 +109,25 @@ class WebSearchResult {
 /// Wikipedia API を利用したWeb検索サービスクラス
 class WebSearchService {
   /// コンストラクタ
-  WebSearchService({required Dio dio, required Talker logger})
-    : _dio = dio,
-      _logger = logger;
+  WebSearchService({
+    required Dio dio,
+    required Talker logger,
+    required String userAgent,
+  }) : _dio = dio,
+       _logger = logger,
+       _userAgent = userAgent {
+    if (userAgent.trim().isEmpty) {
+      throw ArgumentError.value(
+        userAgent,
+        'userAgent',
+        'User-Agent must not be empty.',
+      );
+    }
+  }
 
   final Dio _dio;
   final Talker _logger;
+  final String _userAgent;
 
   /// 指定したクエリで検索し、最も関連性の高い結果を返す
   Future<List<WebSearchResult>> search(String query) async {
@@ -143,10 +153,7 @@ class WebSearchService {
               WikipediaApiConstants.defaultSearchLimit,
         },
         options: Options(
-          headers: {
-            WikipediaApiConstants.headerUserAgent:
-                WikipediaApiConstants.defaultUserAgent,
-          },
+          headers: {WikipediaApiConstants.headerUserAgent: _userAgent},
         ),
       );
 
@@ -178,10 +185,7 @@ class WebSearchService {
         final summaryResponse = await _dio.get<Map<String, dynamic>>(
           summaryUrl,
           options: Options(
-            headers: {
-              WikipediaApiConstants.headerUserAgent:
-                  WikipediaApiConstants.defaultUserAgent,
-            },
+            headers: {WikipediaApiConstants.headerUserAgent: _userAgent},
           ),
         );
         final summaryData = summaryResponse.data;
@@ -257,6 +261,18 @@ class WebSearchService {
 @Riverpod(keepAlive: true)
 WebSearchService webSearchService(Ref ref) {
   final logger = ref.watch(loggerProvider);
+  final config = ref.watch(envConfigProvider);
+  final userAgent = config.wikipediaUserAgent;
+
+  if (userAgent == null || userAgent.trim().isEmpty) {
+    throw StateError(
+      'WIKIPEDIA_USER_AGENT is not configured. '
+      'Please specify WIKIPEDIA_USER_AGENT in your .env file '
+      '(e.g., WIKIPEDIA_USER_AGENT=FlutterSampleApp/1.0 '
+      '(https://github.com/your-username/flutter_sample)).',
+    );
+  }
+
   final dio = Dio(
     BaseOptions(
       connectTimeout: WikipediaApiConstants.requestTimeout,
@@ -264,5 +280,9 @@ WebSearchService webSearchService(Ref ref) {
       sendTimeout: WikipediaApiConstants.requestTimeout,
     ),
   );
-  return WebSearchService(dio: dio, logger: logger);
+  return WebSearchService(
+    dio: dio,
+    logger: logger,
+    userAgent: userAgent.trim(),
+  );
 }

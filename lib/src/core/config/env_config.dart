@@ -33,6 +33,9 @@ sealed class EnvConfigState with _$EnvConfigState {
 
     /// 画像ベース URL (未設定時は空文字)
     required String imageBaseUrl,
+
+    /// Wikipedia Web検索時の User-Agent（未設定時はnull）
+    String? wikipediaUserAgent,
   }) = _EnvConfigState;
 
   const EnvConfigState._();
@@ -48,7 +51,8 @@ sealed class EnvConfigState with _$EnvConfigState {
 🤖 AI Model          : $aiModel
 ⏱️ Timeouts (C/R/S)  : $connectTimeout / $receiveTimeout / $sendTimeout
 🔥 Firebase Auth     : $useFirebaseAuth
-🤖 Use Agent Platform: $useAgentPlatform''';
+🤖 Use Agent Platform: $useAgentPlatform
+🌐 Wikipedia User-Agent: $wikipediaUserAgent''';
 }
 
 /// デフォルトの API ベース URL（ローカルモックサーバーの動作確認用）
@@ -78,6 +82,38 @@ const defaultUseAgentPlatform = true;
 /// JSON から読み込んだ環境設定を提供するプロバイダー。
 @Riverpod(keepAlive: true)
 EnvConfigState envConfig(Ref ref) {
+  if (const bool.hasEnvironment('WIKIPEDIA_USER_AGENT')) {
+    return const EnvConfigState(
+      baseUrl: String.fromEnvironment('BASE_URL', defaultValue: defaultBaseUrl),
+      imageBaseUrl: String.fromEnvironment(
+        'IMAGE_BASE_URL',
+        defaultValue: defaultImageBaseUrl,
+      ),
+      aiModel: String.fromEnvironment('AI_MODEL', defaultValue: defaultAiModel),
+      connectTimeout: int.fromEnvironment(
+        'CONNECT_TIMEOUT',
+        defaultValue: defaultConnectTimeout,
+      ),
+      receiveTimeout: int.fromEnvironment(
+        'RECEIVE_TIMEOUT',
+        defaultValue: defaultReceiveTimeout,
+      ),
+      sendTimeout: int.fromEnvironment(
+        'SEND_TIMEOUT',
+        defaultValue: defaultSendTimeout,
+      ),
+      useFirebaseAuth: bool.fromEnvironment(
+        'USE_FIREBASE_AUTH',
+        defaultValue: defaultUseFirebaseAuth,
+      ),
+      useAgentPlatform: bool.fromEnvironment(
+        'USE_AGENT_PLATFORM',
+        defaultValue: defaultUseAgentPlatform,
+      ),
+      wikipediaUserAgent: String.fromEnvironment('WIKIPEDIA_USER_AGENT'),
+    );
+  }
+
   return const EnvConfigState(
     baseUrl: String.fromEnvironment('BASE_URL', defaultValue: defaultBaseUrl),
     imageBaseUrl: String.fromEnvironment(

@@ -57,4 +57,4 @@ final class WebSearchServiceProvider
   }
 }
 
-String _$webSearchServiceHash() => r'2f3df0f17c6ab926a7cfea1878a3f864f30e0f2a';
+String _$webSearchServiceHash() => r'4e41e5828583bd380bac0ce71196e4d17feeb947';

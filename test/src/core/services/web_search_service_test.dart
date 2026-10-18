@@ -1,5 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/misc.dart';
+import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/services/web_search_service.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_action_constants.dart';
@@ -20,7 +22,11 @@ void main() {
   setUp(() {
     mockDio = MockDio();
     mockTalker = MockTalker();
-    service = WebSearchService(dio: mockDio, logger: mockTalker);
+    service = WebSearchService(
+      dio: mockDio,
+      logger: mockTalker,
+      userAgent: 'TestUserAgent/1.0',
+    );
   });
 
   group('WebSearchResult', () {
@@ -309,18 +315,98 @@ void main() {
         ),
       ).called(1);
     });
+
+    test('userAgent が空文字または空白の場合は ArgumentError をスローすること', () {
+      check(
+        () => WebSearchService(dio: mockDio, logger: mockTalker, userAgent: ''),
+      ).throws<ArgumentError>();
+
+      check(
+        () => WebSearchService(
+          dio: mockDio,
+          logger: mockTalker,
+          userAgent: '   ',
+        ),
+      ).throws<ArgumentError>();
+    });
   });
 
   group('webSearchServiceProvider', () {
-    test('ProviderContainerからWebSearchServiceを正常に取得できること', () {
+    test('wikipediaUserAgent が設定されている場合、正常に WebSearchService を取得できること', () {
       final container = ProviderContainer(
-        overrides: [loggerProvider.overrideWithValue(mockTalker)],
+        overrides: [
+          loggerProvider.overrideWithValue(mockTalker),
+          envConfigProvider.overrideWithValue(
+            const EnvConfigState(
+              baseUrl: 'https://test.com',
+              imageBaseUrl: 'https://images.test.com',
+              aiModel: 'test-model',
+              connectTimeout: 1,
+              receiveTimeout: 2,
+              sendTimeout: 3,
+              useFirebaseAuth: false,
+              useAgentPlatform: true,
+              wikipediaUserAgent: 'TestApp/1.0 (https://test.com)',
+            ),
+          ),
+        ],
       );
       addTearDown(container.dispose);
 
       final searchService = container.read(webSearchServiceProvider);
 
       check(searchService).isA<WebSearchService>();
+    });
+
+    test('wikipediaUserAgent が未設定（null または空文字）の場合、StateError をスローすること', () {
+      final containerNull = ProviderContainer(
+        overrides: [
+          loggerProvider.overrideWithValue(mockTalker),
+          envConfigProvider.overrideWithValue(
+            const EnvConfigState(
+              baseUrl: 'https://test.com',
+              imageBaseUrl: 'https://images.test.com',
+              aiModel: 'test-model',
+              connectTimeout: 1,
+              receiveTimeout: 2,
+              sendTimeout: 3,
+              useFirebaseAuth: false,
+              useAgentPlatform: true,
+            ),
+          ),
+        ],
+      );
+      addTearDown(containerNull.dispose);
+
+      check(() => containerNull.read(webSearchServiceProvider))
+          .throws<ProviderException>()
+          .has((e) => e.exception, 'exception')
+          .isA<StateError>();
+
+      final containerEmpty = ProviderContainer(
+        overrides: [
+          loggerProvider.overrideWithValue(mockTalker),
+          envConfigProvider.overrideWithValue(
+            const EnvConfigState(
+              baseUrl: 'https://test.com',
+              imageBaseUrl: 'https://images.test.com',
+              aiModel: 'test-model',
+              connectTimeout: 1,
+              receiveTimeout: 2,
+              sendTimeout: 3,
+              useFirebaseAuth: false,
+              useAgentPlatform: true,
+              wikipediaUserAgent: '   ',
+            ),
+          ),
+        ],
+      );
+      addTearDown(containerEmpty.dispose);
+
+      check(() => containerEmpty.read(webSearchServiceProvider))
+          .throws<ProviderException>()
+          .has((e) => e.exception, 'exception')
+          .isA<StateError>();
     });
   });
 }
