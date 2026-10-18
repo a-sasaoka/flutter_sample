@@ -14,6 +14,9 @@ void main() {
       check(
         ChatActionType.fromFunctionName('changeThemeMode'),
       ).equals(ChatActionType.changeThemeMode);
+      check(
+        ChatActionType.fromFunctionName('searchWeb'),
+      ).equals(ChatActionType.searchWeb);
     });
 
     test('fromFunctionName: 未定義の関数名の場合はnullを返すこと', () {

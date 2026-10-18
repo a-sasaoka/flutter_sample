@@ -8,6 +8,9 @@ abstract final class ChatActionNames {
 
   /// テーマモードの変更 ('changeThemeMode')
   static const changeThemeMode = 'changeThemeMode';
+
+  /// Web検索 ('searchWeb')
+  static const searchWeb = 'searchWeb';
 }
 
 /// AIツール実行の共通結果ステータス
@@ -59,4 +62,25 @@ abstract final class ChangeThemeActionKeys {
 
   /// ダークモード ('dark')
   static const dark = 'dark';
+}
+
+/// Web検索（searchWeb）ツールの引数・結果キー
+abstract final class SearchWebActionKeys {
+  /// 検索クエリ ('query')
+  static const query = 'query';
+
+  /// 記事タイトル ('title')
+  static const title = 'title';
+
+  /// 要約・スニペット ('snippet')
+  static const snippet = 'snippet';
+
+  /// 記事URL ('url')
+  static const url = 'url';
+
+  /// 検索結果リスト ('results')
+  static const results = 'results';
+
+  /// メッセージキー ('message')
+  static const message = 'message';
 }

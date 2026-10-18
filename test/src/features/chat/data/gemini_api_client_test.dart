@@ -163,12 +163,24 @@ void main() {
   });
 
   group('chatFunctionDeclarations', () {
-    test('3つのツール（createMemo, listMemos, changeThemeMode）が定義されていること', () {
-      check(chatFunctionDeclarations.length).equals(3);
+    test(
+      '4つのツール（createMemo, listMemos, changeThemeMode, searchWeb）が定義されていること',
+      () {
+        // ツールの合計数が4つになっているか検証
+        check(chatFunctionDeclarations.length).equals(4);
 
-      final names = chatFunctionDeclarations.map((d) => d.name).toList();
-      check(names).deepEquals(['createMemo', 'listMemos', 'changeThemeMode']);
-    });
+        // 各ツールの名前を一覧で取得
+        final names = chatFunctionDeclarations.map((d) => d.name).toList();
+
+        // 4つのツール名が正しい順番・内容で定義されているか検証
+        check(names).deepEquals([
+          'createMemo',
+          'listMemos',
+          'changeThemeMode',
+          'searchWeb',
+        ]);
+      },
+    );
   });
 
   group('buildFunctionResponsesContent', () {

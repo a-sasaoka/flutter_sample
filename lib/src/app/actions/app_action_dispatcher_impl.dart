@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/core/actions/app_action_dispatcher.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
+import 'package:flutter_sample/src/core/services/web_search_service.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_action_constants.dart';
@@ -26,6 +27,7 @@ class AppActionDispatcherImpl implements AppActionDispatcher {
       ChatActionType.createMemo => await _createMemo(args),
       ChatActionType.listMemos => await _listMemos(args),
       ChatActionType.changeThemeMode => await _changeThemeMode(args),
+      ChatActionType.searchWeb => await _searchWeb(args),
       null => {
         ChatActionResultKeys.status: ChatActionResultKeys.error,
         ChatActionResultKeys.errorMessage: 'Unsupported action: $name',
@@ -150,6 +152,47 @@ class AppActionDispatcherImpl implements AppActionDispatcher {
       return {
         ChatActionResultKeys.status: ChatActionResultKeys.error,
         ChatActionResultKeys.errorMessage: 'Failed to change theme: $e',
+      };
+    }
+  }
+
+  /// Web検索（Wikipedia）を実行
+  Future<Map<String, Object?>> _searchWeb(Map<String, Object?> args) async {
+    final query = args[SearchWebActionKeys.query] as String?;
+    if (query == null || query.trim().isEmpty) {
+      return {
+        ChatActionResultKeys.status: ChatActionResultKeys.error,
+        ChatActionResultKeys.errorMessage: 'Query is required for searchWeb',
+      };
+    }
+
+    final trimmedQuery = query.trim();
+    try {
+      final results = await _ref
+          .read(webSearchServiceProvider)
+          .search(trimmedQuery);
+
+      if (results.isEmpty) {
+        return {
+          ChatActionResultKeys.status: ChatActionResultKeys.success,
+          SearchWebActionKeys.query: trimmedQuery,
+          SearchWebActionKeys.results: const <Map<String, Object?>>[],
+          SearchWebActionKeys.message: 'No articles found for "$trimmedQuery".',
+        };
+      }
+
+      return {
+        ChatActionResultKeys.status: ChatActionResultKeys.success,
+        SearchWebActionKeys.query: trimmedQuery,
+        SearchWebActionKeys.results: results.map((r) => r.toMap()).toList(),
+      };
+    } on Exception catch (e, st) {
+      _ref
+          .read(loggerProvider)
+          .handle(e, st, 'Failed to search web via AI tool');
+      return {
+        ChatActionResultKeys.status: ChatActionResultKeys.error,
+        ChatActionResultKeys.errorMessage: 'Failed to search web: $e',
       };
     }
   }

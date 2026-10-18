@@ -234,6 +234,11 @@ class ChatNotifier extends _$ChatNotifier {
                   ? null
                   : (result[ChangeThemeActionKeys.theme] as String? ??
                         call.args[ChangeThemeActionKeys.theme] as String?),
+            ChatActionType.searchWeb =>
+              isError
+                  ? null
+                  : (result[SearchWebActionKeys.query] as String? ??
+                        call.args[SearchWebActionKeys.query] as String?),
             null => null,
           };
 

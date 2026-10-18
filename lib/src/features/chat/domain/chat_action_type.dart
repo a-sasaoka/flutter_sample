@@ -9,7 +9,10 @@ enum ChatActionType {
   listMemos,
 
   /// テーマモード（ライト/ダーク/システム）の切り替え
-  changeThemeMode;
+  changeThemeMode,
+
+  /// Web検索（Wikipedia）の実行
+  searchWeb;
 
   /// Geminiからの関数名（文字列）を安全にEnumへ変換するヘルパー
   static ChatActionType? fromFunctionName(String name) {
@@ -17,6 +20,7 @@ enum ChatActionType {
       ChatActionNames.createMemo => ChatActionType.createMemo,
       ChatActionNames.listMemos => ChatActionType.listMemos,
       ChatActionNames.changeThemeMode => ChatActionType.changeThemeMode,
+      ChatActionNames.searchWeb => ChatActionType.searchWeb,
       _ => null,
     };
   }

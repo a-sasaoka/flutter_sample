@@ -45,6 +45,16 @@ final chatFunctionDeclarations = [
       ),
     },
   ),
+  FunctionDeclaration(
+    ChatActionNames.searchWeb,
+    'Search the web (via Wikipedia) for up-to-date knowledge, explanations, '
+    'definitions, or general facts.',
+    parameters: {
+      SearchWebActionKeys.query: Schema.string(
+        description: 'The search keywords or query string to look up.',
+      ),
+    },
+  ),
 ];
 
 /// 画像データの先頭バイト（マジックナンバー）からMIMEタイプを判定する

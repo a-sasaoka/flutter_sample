@@ -31,10 +31,7 @@ ChatRepository chatRepository(Ref ref) {
       'You can perform app operations (such as managing memos and theme) '
       'by calling the provided tools when requested.',
     ),
-    tools: [
-      Tool.googleSearch(),
-      Tool.functionDeclarations(chatFunctionDeclarations),
-    ],
+    tools: [Tool.functionDeclarations(chatFunctionDeclarations)],
   );
 
   // GeminiApiClient を生成して注入

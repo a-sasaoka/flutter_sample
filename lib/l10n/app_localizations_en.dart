@@ -263,6 +263,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String chatActionSearchWebExecuted(String query) {
+    return 'Searched \"$query\"';
+  }
+
+  @override
+  String get chatActionSearchWebFailed => 'Failed to search the web';
+
+  @override
   String get settingsTitle => 'Settings';
 
   @override

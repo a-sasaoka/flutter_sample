@@ -210,6 +210,10 @@ void main() {
     when(
       () => mockL10n.chatActionThemeChangeFailed,
     ).thenReturn('テーマの変更に失敗しました');
+    when(
+      () => mockL10n.chatActionSearchWebExecuted(any()),
+    ).thenAnswer((inv) => '「${inv.positionalArguments.first}」を検索しました');
+    when(() => mockL10n.chatActionSearchWebFailed).thenReturn('Web検索に失敗しました');
     when(() => mockL10n.settingsThemeLight).thenReturn('ライト');
     when(() => mockL10n.settingsThemeDark).thenReturn('ダーク');
     when(() => mockL10n.settingsThemeSystem).thenReturn('システム');
@@ -944,6 +948,42 @@ void main() {
         await tester.pumpAndSettle();
 
         check(find.text('テーマの変更に失敗しました').evaluate()).length.equals(1);
+        check(find.byIcon(Icons.error_outline).evaluate()).length.equals(1);
+      });
+
+      testWidgets('searchWeb 成功時にクエリが表示され検索アイコンが表示されること', (tester) async {
+        final actionMessage = ChatMessage.action(
+          id: 'action-11',
+          actionType: ChatActionType.searchWeb,
+          detail: 'Flutter',
+          createdAt: now,
+        );
+        final fakeNotifier = FakeChatNotifier(
+          ChatState(messages: [actionMessage]),
+        );
+
+        await setupWidget(tester, notifier: fakeNotifier);
+        await tester.pumpAndSettle();
+
+        check(find.text('「Flutter」を検索しました').evaluate()).length.equals(1);
+        check(find.byIcon(Icons.search).evaluate()).length.equals(1);
+      });
+
+      testWidgets('searchWeb 失敗時にエラーメッセージが表示されること', (tester) async {
+        final actionMessage = ChatMessage.action(
+          id: 'action-12',
+          actionType: ChatActionType.searchWeb,
+          isError: true,
+          createdAt: now,
+        );
+        final fakeNotifier = FakeChatNotifier(
+          ChatState(messages: [actionMessage]),
+        );
+
+        await setupWidget(tester, notifier: fakeNotifier);
+        await tester.pumpAndSettle();
+
+        check(find.text('Web検索に失敗しました').evaluate()).length.equals(1);
         check(find.byIcon(Icons.error_outline).evaluate()).length.equals(1);
       });
     });

@@ -2,6 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/app/actions/app_action_dispatcher_impl.dart';
 import 'package:flutter_sample/src/app/actions/app_action_overrides.dart';
 import 'package:flutter_sample/src/core/actions/app_action_dispatcher.dart';
+import 'package:flutter_sample/src/core/services/web_search_service.dart';
 import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
@@ -22,15 +23,19 @@ class MockMemoRepository extends Mock implements MemoRepository {}
 class MockSharedPreferencesAsync extends Mock
     implements SharedPreferencesAsync {}
 
+class MockWebSearchService extends Mock implements WebSearchService {}
+
 void main() {
   late MockTalker mockTalker;
   late MockMemoRepository mockMemoRepository;
   late MockSharedPreferencesAsync mockPrefs;
+  late MockWebSearchService mockWebSearchService;
 
   setUp(() {
     mockTalker = MockTalker();
     mockMemoRepository = MockMemoRepository();
     mockPrefs = MockSharedPreferencesAsync();
+    mockWebSearchService = MockWebSearchService();
 
     when(
       () => mockPrefs.getString('theme_mode'),
@@ -52,6 +57,7 @@ void main() {
         memoRepositoryProvider.overrideWithValue(mockMemoRepository),
         sharedPreferencesProvider.overrideWithValue(mockPrefs),
         isOnlineProvider.overrideWithValue(false),
+        webSearchServiceProvider.overrideWithValue(mockWebSearchService),
       ],
     );
     addTearDown(container.dispose);
@@ -306,6 +312,102 @@ void main() {
             any(),
             any(),
             'Failed to change theme mode via AI tool',
+          ),
+        ).called(1);
+      });
+    });
+
+    group('searchWeb', () {
+      test('クエリがnullまたは空文字の場合はエラーを返すこと', () async {
+        final container = createContainer();
+        final dispatcher = AppActionDispatcherImpl(container.read(refProvider));
+
+        final resultNull = await dispatcher.execute(
+          name: 'searchWeb',
+          args: {},
+        );
+        check(resultNull['status']).equals('error');
+        check(resultNull['error']).equals('Query is required for searchWeb');
+
+        final resultEmpty = await dispatcher.execute(
+          name: 'searchWeb',
+          args: {'query': '   '},
+        );
+        check(resultEmpty['status']).equals('error');
+        check(resultEmpty['error']).equals('Query is required for searchWeb');
+      });
+
+      test('正常系: 記事が見つかった場合は結果リストを返すこと', () async {
+        when(() => mockWebSearchService.search('Flutter')).thenAnswer(
+          (_) async => [
+            const WebSearchResult(
+              title: 'Flutter',
+              snippet: 'Googleが開発したSDK',
+              url: 'https://ja.wikipedia.org/wiki/Flutter',
+            ),
+          ],
+        );
+
+        final container = createContainer();
+        final dispatcher = AppActionDispatcherImpl(container.read(refProvider));
+
+        final result = await dispatcher.execute(
+          name: 'searchWeb',
+          args: {'query': 'Flutter'},
+        );
+
+        check(result['status']).equals('success');
+        check(result['query']).equals('Flutter');
+        final results = result['results'] as List<dynamic>?;
+        check(results).isNotNull();
+        check(results!).length.equals(1);
+        final first = results.first as Map<String, Object?>;
+        check(first['title']).equals('Flutter');
+        check(first['snippet']).equals('Googleが開発したSDK');
+        check(first['url']).equals('https://ja.wikipedia.org/wiki/Flutter');
+      });
+
+      test('正常系: 記事が見つからなかった（0件）場合は空リストとメッセージを返すこと', () async {
+        when(
+          () => mockWebSearchService.search('Unknown'),
+        ).thenAnswer((_) async => []);
+
+        final container = createContainer();
+        final dispatcher = AppActionDispatcherImpl(container.read(refProvider));
+
+        final result = await dispatcher.execute(
+          name: 'searchWeb',
+          args: {'query': 'Unknown'},
+        );
+
+        check(result['status']).equals('success');
+        check(result['query']).equals('Unknown');
+        final results = result['results'] as List<dynamic>?;
+        check(results).isNotNull();
+        check(results!).isEmpty();
+        check(result['message']).equals('No articles found for "Unknown".');
+      });
+
+      test('異常系: 検索サービスが例外をスローした場合はエラー結果を返すこと', () async {
+        when(
+          () => mockWebSearchService.search(any()),
+        ).thenThrow(Exception('Network error'));
+
+        final container = createContainer();
+        final dispatcher = AppActionDispatcherImpl(container.read(refProvider));
+
+        final result = await dispatcher.execute(
+          name: 'searchWeb',
+          args: {'query': 'Flutter'},
+        );
+
+        check(result['status']).equals('error');
+        check(result['error'].toString()).contains('Network error');
+        verify(
+          () => mockTalker.handle(
+            any(),
+            any(),
+            'Failed to search web via AI tool',
           ),
         ).called(1);
       });

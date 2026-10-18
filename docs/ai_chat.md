@@ -112,6 +112,10 @@ AI が世界各地の正確な現地日付・時刻を認識できるよう、`s
   - アクションチップの表示文言は、[chat_screen.dart](../lib/src/features/chat/presentation/chat_screen.dart) で `AppLocalizations` を参照して動的に生成し、多言語環境に完全対応しています。
 - **世代管理（Fencing）によるセキュリティ保護**:
   - ツール実行の非同期処理中や結果返送ストリーム中にアカウント切り替えやログアウトが発生した場合でも、旧アカウントの実行結果が新しいアカウントの画面状態に反映されないよう、世代管理カウンターによる厳格なコールバック遮断（Fencing）を適用しています。
+- **Web検索ツール（Wikipedia連携）による情報補完**:
+  - メモ操作やテーマ変更などのアプリ操作に加え、Wikipedia API を利用した Web 検索ツール（`searchWeb`）を独自に組み込んでいます。
+  - Core 層の [web_search_service.dart](../lib/src/core/services/web_search_service.dart) が Dio を用いてキーワード検索および記事要約・URL を取得し、AI に返却することで、最新の一般知識や解説を対話の中で提供します。
+  - これにより、一部の AI プラットフォーム（Vertex AI Agent Platform など）において Google 検索ツール（Grounding）とカスタム関数（Function Calling）を同一リクエストで併用できない制約（400エラー）を回避し、すべての環境で安定した検索とツール実行の両立を実現しています。
 
 ## 🛡️ セキュリティ (Firebase App Check)
 

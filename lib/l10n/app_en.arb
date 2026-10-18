@@ -116,6 +116,15 @@
       }
     }
   },
+  "chatActionSearchWebExecuted": "Searched \"{query}\"",
+  "@chatActionSearchWebExecuted": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "chatActionSearchWebFailed": "Failed to search the web",
 
   "@_SETTINGS": {},
   "settingsTitle": "Settings",

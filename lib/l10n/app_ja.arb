@@ -116,6 +116,15 @@
       }
     }
   },
+  "chatActionSearchWebExecuted": "「{query}」を検索しました",
+  "@chatActionSearchWebExecuted": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "chatActionSearchWebFailed": "Web検索に失敗しました",
 
   "@_SETTINGS": {},
   "settingsTitle": "設定",

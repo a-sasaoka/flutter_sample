@@ -566,6 +566,18 @@ abstract class AppLocalizations {
   /// **'Unsupported action: {action}'**
   String chatActionUnknown(String action);
 
+  /// No description provided for @chatActionSearchWebExecuted.
+  ///
+  /// In en, this message translates to:
+  /// **'Searched \"{query}\"'**
+  String chatActionSearchWebExecuted(String query);
+
+  /// No description provided for @chatActionSearchWebFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to search the web'**
+  String get chatActionSearchWebFailed;
+
   /// No description provided for @settingsTitle.
   ///
   /// In en, this message translates to:

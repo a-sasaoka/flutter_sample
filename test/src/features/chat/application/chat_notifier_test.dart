@@ -686,6 +686,112 @@ void main() {
           check(action.detail).equals(ChangeThemeActionKeys.light);
         });
 
+        test('正常系: searchWeb ツール呼び出し時にクエリが detail に反映されること', () async {
+          final fakeRepo = FakeChatRepository()
+            ..customStreamEvents = [
+              const ChatStreamEvent.functionCall(
+                name: ChatActionNames.searchWeb,
+                args: {SearchWebActionKeys.query: 'Flutter'},
+              ),
+            ]
+            ..customFunctionResponseEvents = [
+              const ChatStreamEvent.text('Flutterに関する情報です'),
+            ];
+
+          final fakeDispatcher = FakeAppActionDispatcher()
+            ..responseToReturn = {
+              ChatActionResultKeys.status: ChatActionResultKeys.success,
+              SearchWebActionKeys.query: 'Flutter',
+              SearchWebActionKeys.results: [
+                {
+                  SearchWebActionKeys.title: 'Flutter',
+                  SearchWebActionKeys.snippet: 'SDKです',
+                  SearchWebActionKeys.url:
+                      'https://ja.wikipedia.org/wiki/Flutter',
+                },
+              ],
+            };
+
+          final container = createContainer(
+            fakeRepo,
+            fakeDispatcher: fakeDispatcher,
+          );
+          final notifier = container.read(chatProvider.notifier);
+
+          await notifier.sendMessageStream('Flutterについて教えて');
+
+          final state = container.read(chatProvider);
+          final action = state.messages[1] as ChatMessageAction;
+          check(action.actionType).equals(ChatActionType.searchWeb);
+          check(action.detail).equals('Flutter');
+          check(action.isError).isFalse();
+        });
+
+        test('正常系: searchWeb ツール呼び出し時、 '
+            'resultにqueryがなくてもargsからフォールバックされること', () async {
+          final fakeRepo = FakeChatRepository()
+            ..customStreamEvents = [
+              const ChatStreamEvent.functionCall(
+                name: ChatActionNames.searchWeb,
+                args: {SearchWebActionKeys.query: 'Dart言語'},
+              ),
+            ]
+            ..customFunctionResponseEvents = [
+              const ChatStreamEvent.text('Dart言語に関する情報です'),
+            ];
+
+          final fakeDispatcher = FakeAppActionDispatcher()
+            ..responseToReturn = {
+              ChatActionResultKeys.status: ChatActionResultKeys.success,
+            };
+
+          final container = createContainer(
+            fakeRepo,
+            fakeDispatcher: fakeDispatcher,
+          );
+          final notifier = container.read(chatProvider.notifier);
+
+          await notifier.sendMessageStream('Dart言語について教えて');
+
+          final state = container.read(chatProvider);
+          final action = state.messages[1] as ChatMessageAction;
+          check(action.actionType).equals(ChatActionType.searchWeb);
+          check(action.detail).equals('Dart言語');
+        });
+
+        test('異常系: searchWeb ツール呼び出し時、エラーの場合は detail が null になること', () async {
+          final fakeRepo = FakeChatRepository()
+            ..customStreamEvents = [
+              const ChatStreamEvent.functionCall(
+                name: ChatActionNames.searchWeb,
+                args: {SearchWebActionKeys.query: 'Flutter'},
+              ),
+            ]
+            ..customFunctionResponseEvents = [
+              const ChatStreamEvent.text('検索に失敗しました'),
+            ];
+
+          final fakeDispatcher = FakeAppActionDispatcher()
+            ..responseToReturn = {
+              ChatActionResultKeys.status: ChatActionResultKeys.error,
+              ChatActionResultKeys.errorMessage: 'API Error',
+            };
+
+          final container = createContainer(
+            fakeRepo,
+            fakeDispatcher: fakeDispatcher,
+          );
+          final notifier = container.read(chatProvider.notifier);
+
+          await notifier.sendMessageStream('Flutterについて検索して');
+
+          final state = container.read(chatProvider);
+          final action = state.messages[1] as ChatMessageAction;
+          check(action.actionType).equals(ChatActionType.searchWeb);
+          check(action.detail).isNull();
+          check(action.isError).isTrue();
+        });
+
         test('未知のツール名の場合はアクションチップを挿入せずAI返答のみ反映されること', () async {
           final fakeRepo = FakeChatRepository()
             ..customStreamEvents = [

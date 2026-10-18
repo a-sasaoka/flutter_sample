@@ -47,6 +47,10 @@ void main() {
       when(
         () => mockL10n.chatActionMemoCreated(any()),
       ).thenAnswer((inv) => 'メモ「${inv.positionalArguments.first}」を作成しました');
+      when(
+        () => mockL10n.chatActionSearchWebExecuted(any()),
+      ).thenAnswer((inv) => '「${inv.positionalArguments.first}」を検索しました');
+      when(() => mockL10n.chatActionSearchWebFailed).thenReturn('Web検索に失敗しました');
     });
 
     Widget buildChatForGolden({required ChatState state}) {

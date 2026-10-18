@@ -216,6 +216,10 @@ class _ActionChipLayout extends StatelessWidget {
                 'dark' => l10n.settingsThemeDark,
                 _ => l10n.settingsThemeSystem,
               }),
+      ChatActionType.searchWeb =>
+        isError
+            ? l10n.chatActionSearchWebFailed
+            : l10n.chatActionSearchWebExecuted(detail ?? ''),
     };
 
     return Center(
@@ -237,7 +241,11 @@ class _ActionChipLayout extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                isError ? Icons.error_outline : Icons.build_circle_outlined,
+                isError
+                    ? Icons.error_outline
+                    : (actionType == ChatActionType.searchWeb
+                          ? Icons.search
+                          : Icons.build_circle_outlined),
                 size: 16,
                 color: isError ? colorScheme.error : colorScheme.primary,
               ),
