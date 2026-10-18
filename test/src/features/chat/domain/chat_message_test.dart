@@ -1,4 +1,5 @@
 import 'package:checks/checks.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_action_type.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -21,6 +22,7 @@ void main() {
       // 2. カスタムゲッターの検証
       check(message.isUser).equals(true);
       check(message.isAi).equals(false);
+      check(message.isAction).equals(false);
       check(message.displayText).equals('こんにちは');
     });
 
@@ -36,6 +38,7 @@ void main() {
 
       check(message.isUser).equals(false);
       check(message.isAi).equals(true);
+      check(message.isAction).equals(false);
       check(message.displayText).equals('AIの返答です');
     });
 
@@ -51,6 +54,7 @@ void main() {
       // loading はどちらでもなく、表示すべきテキストもない
       check(message.isUser).equals(false);
       check(message.isAi).equals(false);
+      check(message.isAction).equals(false);
       check(message.displayText).isNull();
     });
 
@@ -70,6 +74,45 @@ void main() {
 
       check(message.isUser).equals(false);
       check(message.isAi).equals(false);
+      check(message.isAction).equals(false);
+      check(message.displayText).isNull();
+    });
+
+    test('action: プロパティとカスタムゲッターが正しく機能すること（正常系）', () {
+      final message = ChatMessage.action(
+        id: 'action_1',
+        actionType: ChatActionType.createMemo,
+        detail: 'テストメモ',
+        createdAt: dummyTime,
+      );
+
+      check(message.id).equals('action_1');
+      check(message.createdAt).equals(dummyTime);
+
+      final actionMsg = message as ChatMessageAction;
+      check(actionMsg.actionType).equals(ChatActionType.createMemo);
+      check(actionMsg.detail).equals('テストメモ');
+      check(actionMsg.isError).equals(false);
+
+      check(message.isUser).equals(false);
+      check(message.isAi).equals(false);
+      check(message.isAction).equals(true);
+      check(message.displayText).equals('テストメモ');
+    });
+
+    test('action: エラー時のプロパティが正しく保持されること', () {
+      final message = ChatMessage.action(
+        id: 'action_error_1',
+        actionType: ChatActionType.changeThemeMode,
+        createdAt: dummyTime,
+        isError: true,
+      );
+
+      final actionMsg = message as ChatMessageAction;
+      check(actionMsg.actionType).equals(ChatActionType.changeThemeMode);
+      check(actionMsg.detail).isNull();
+      check(actionMsg.isError).equals(true);
+      check(message.isAction).equals(true);
       check(message.displayText).isNull();
     });
 

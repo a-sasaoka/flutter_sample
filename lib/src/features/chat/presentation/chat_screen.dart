@@ -13,6 +13,7 @@ import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_action_type.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_bubble_shimmer.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -170,7 +171,100 @@ class _ChatBubble extends StatelessWidget {
         textColor: Theme.of(context).colorScheme.onErrorContainer,
         createdAt: createdAt,
       ),
+      ChatMessageAction(:final actionType, :final isError, :final detail) =>
+        _ActionChipLayout(
+          actionType: actionType,
+          isError: isError,
+          detail: detail,
+        ),
     };
+  }
+}
+
+/// アプリ操作（ツール実行）結果を表示するチップウィジェット
+class _ActionChipLayout extends StatelessWidget {
+  const _ActionChipLayout({
+    required this.actionType,
+    required this.isError,
+    this.detail,
+  });
+
+  final ChatActionType actionType;
+  final bool isError;
+  final String? detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final l10n = context.l10n;
+
+    final displayText = switch (actionType) {
+      ChatActionType.createMemo =>
+        isError
+            ? l10n.chatActionMemoCreateFailed
+            : l10n.chatActionMemoCreated(detail ?? ''),
+      ChatActionType.listMemos =>
+        isError
+            ? l10n.chatActionMemosListFailed
+            : l10n.chatActionMemosListed(int.tryParse(detail ?? '0') ?? 0),
+      ChatActionType.changeThemeMode =>
+        isError
+            ? l10n.chatActionThemeChangeFailed
+            : l10n.chatActionThemeChanged(switch (detail) {
+                'light' => l10n.settingsThemeLight,
+                'dark' => l10n.settingsThemeDark,
+                _ => l10n.settingsThemeSystem,
+              }),
+      ChatActionType.searchWeb =>
+        isError
+            ? l10n.chatActionSearchWebFailed
+            : l10n.chatActionSearchWebExecuted(detail ?? ''),
+    };
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: isError
+                ? colorScheme.errorContainer.withValues(alpha: 0.7)
+                : colorScheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isError ? colorScheme.error : colorScheme.outlineVariant,
+              width: 0.5,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isError
+                    ? Icons.error_outline
+                    : (actionType == ChatActionType.searchWeb
+                          ? Icons.search
+                          : Icons.build_circle_outlined),
+                size: 16,
+                color: isError ? colorScheme.error : colorScheme.primary,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  displayText,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: isError
+                        ? colorScheme.onErrorContainer
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

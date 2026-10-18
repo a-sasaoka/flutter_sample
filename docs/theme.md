@@ -74,3 +74,12 @@ lib/src/core/config/
 ### 2. タイポグラフィ（文字のスタイル）を調整する
 
 アプリ全体のフォントスタイルや字幅をカスタマイズする場合は、`FlexThemeData` の `typography` プロパティ（例: `Typography.material2021()`）を設定します。詳細は [FlexColorScheme 公式ドキュメント (Theming Text)](https://docs.flexcolorscheme.com/) を参照してください。
+
+---
+
+## 🤖 AIチャット機能（Function Calling）との連携
+
+AIチャット画面からの自然言語指示（「ダークモードにして」「ライトテーマに切り替えて」など）に基づき、AIエージェントが `changeThemeMode` ツールを呼び出してテーマを自動切り替えできます。
+
+- **DIP設計と状態更新**: 結合層である [app_action_dispatcher_impl.dart](../lib/src/app/actions/app_action_dispatcher_impl.dart) が Core層の [theme_mode_provider.dart](../lib/src/core/config/theme_mode_provider.dart) の `themeModeProvider.notifier` を呼び出し、安全にテーマを更新します。
+- **永続化と即時反映**: 手動での設定変更時と同様に `SharedPreferencesAsync` への非同期保存が実行され、アプリ全体の `ColorScheme` が即座にリアクティブに切り替わります。テーマ設定層自身はAIチャット層に依存しない疎結合設計が維持されています。

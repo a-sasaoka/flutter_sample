@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter_sample/src/core/actions/app_action_dispatcher.dart';
 import 'package:flutter_sample/src/core/utils/date_time_extension.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
@@ -8,7 +9,10 @@ import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_state.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_action_constants.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_action_type.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_stream_event.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'chat_notifier.g.dart';
@@ -127,7 +131,7 @@ class ChatNotifier extends _$ChatNotifier {
     try {
       final repository = ref.read(chatRepositoryProvider);
       final promptWithTime = _buildPromptWithTime(text);
-      final stream = repository.sendMessageStream(
+      var stream = repository.sendMessageStream(
         promptWithTime,
         imageBytes: imageBytes,
       );
@@ -137,28 +141,124 @@ class ChatNotifier extends _$ChatNotifier {
       late DateTime aiMessageCreatedAt;
       final buffer = StringBuffer();
 
-      await for (final chunk in stream) {
-        // マウントされていない、または世代が変更された場合はStream受信を直ちに中断
-        if (!ref.mounted || currentGen != _generation) return;
+      // ツール実行の連鎖（安全のため最大3回までループ保護）
+      const maxTurns = 3;
+      var currentTurn = 0;
 
-        if (isFirstChunk) {
-          // 最初のチャンクが届いた瞬間の時刻を記録
-          aiMessageCreatedAt = ref.read(clockProvider)();
-          isFirstChunk = false;
+      while (true) {
+        final pendingCalls = <ChatStreamEventFunctionCall>[];
+
+        await for (final event in stream) {
+          // マウントされていない、または世代が変更された場合はStream受信を直ちに中断
+          if (!ref.mounted || currentGen != _generation) return;
+
+          switch (event) {
+            case ChatStreamEventText(:final text):
+              if (isFirstChunk) {
+                // 最初のチャンクが届いた瞬間の時刻を記録
+                aiMessageCreatedAt = ref.read(clockProvider)();
+                isFirstChunk = false;
+              }
+
+              buffer.write(text);
+              aiResponseText = buffer.toString();
+
+              // 既存のIDと時刻を引き継ぎながら、テキストを更新（競合対策）
+              _updateMessageById(
+                targetAiId,
+                ChatMessage.ai(
+                  id: targetAiId,
+                  text: aiResponseText,
+                  createdAt: aiMessageCreatedAt,
+                ),
+              );
+            case ChatStreamEventFunctionCall():
+              // ツール呼び出し要求を受け取ったらリストに蓄積
+              pendingCalls.add(event);
+          }
         }
 
-        buffer.write(chunk);
-        aiResponseText = buffer.toString();
+        // ループ終了後の世代整合性チェック
+        if (!ref.mounted || currentGen != _generation) return;
 
-        // 既存のIDと時刻を引き継ぎながら、テキストを更新（競合対策）
-        _updateMessageById(
-          targetAiId,
-          ChatMessage.ai(
-            id: targetAiId,
-            text: aiResponseText,
-            createdAt: aiMessageCreatedAt,
-          ),
-        );
+        // ツール呼び出し要求がなければ会話終了
+        if (pendingCalls.isEmpty) {
+          break;
+        }
+
+        // 安全装置: 最大ターン数に達している場合は副作用の実行を防ぎセッションをリセット
+        if (currentTurn >= maxTurns) {
+          ref.invalidate(chatRepositoryProvider);
+          throw ChatMaxTurnsExceededException();
+        }
+
+        currentTurn++;
+
+        // 2. 蓄積されたツールを順番に特定して実行
+        final functionResponses = <ChatFunctionResponse>[];
+        final dispatcher = ref.read(appActionDispatcherProvider);
+        final uuid = ref.read(uuidProvider);
+        final clock = ref.read(clockProvider);
+
+        for (final call in pendingCalls) {
+          final actionType = ChatActionType.fromFunctionName(call.name);
+          final result = await dispatcher.execute(
+            name: call.name,
+            args: call.args,
+          );
+
+          // 各実行後の世代整合性チェック（安全ガード）
+          if (!ref.mounted || currentGen != _generation) return;
+
+          functionResponses.add((
+            name: call.name,
+            response: result,
+            id: call.id,
+          ));
+
+          final isError =
+              result[ChatActionResultKeys.status] == ChatActionResultKeys.error;
+          final now = clock();
+
+          // 画面に表示する多言語パラメータ（タイトルや件数など）を抽出
+          final detail = switch (actionType) {
+            ChatActionType.createMemo =>
+              isError
+                  ? null
+                  : (result[CreateMemoActionKeys.title] as String? ??
+                        call.args[CreateMemoActionKeys.title] as String?),
+            ChatActionType.listMemos =>
+              isError ? null : result[ListMemosActionKeys.count]?.toString(),
+            ChatActionType.changeThemeMode =>
+              isError
+                  ? null
+                  : (result[ChangeThemeActionKeys.theme] as String? ??
+                        call.args[ChangeThemeActionKeys.theme] as String?),
+            ChatActionType.searchWeb =>
+              isError
+                  ? null
+                  : (result[SearchWebActionKeys.query] as String? ??
+                        call.args[SearchWebActionKeys.query] as String?),
+            null => null,
+          };
+
+          // 3. アクション実行チップをAIローディング（targetAiId）の直前に挿入
+          if (actionType != null) {
+            _insertMessageBefore(
+              targetAiId,
+              ChatMessage.action(
+                id: uuid.v4(),
+                actionType: actionType,
+                createdAt: now,
+                isError: isError,
+                detail: detail,
+              ),
+            );
+          }
+        }
+
+        // 4. すべての実行結果をAIに返送して後続ストリームへ移行
+        stream = repository.sendFunctionResponseStream(functionResponses);
       }
 
       // ループ終了後の世代整合性チェック
@@ -213,6 +313,18 @@ class ChatNotifier extends _$ChatNotifier {
       messages: [
         for (final msg in state.messages)
           if (msg.id == targetId) newMessage else msg,
+      ],
+    );
+  }
+
+  /// 状態リストの特定メッセージIDの手前に新しいメッセージを挿入する
+  void _insertMessageBefore(String targetId, ChatMessage newMessage) {
+    state = state.copyWith(
+      messages: [
+        for (final msg in state.messages) ...[
+          if (msg.id == targetId) newMessage,
+          msg,
+        ],
       ],
     );
   }

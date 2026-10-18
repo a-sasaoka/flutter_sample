@@ -8,6 +8,7 @@ import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_notifier.dart';
 import 'package:flutter_sample/src/features/chat/application/chat_state.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_action_type.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -43,6 +44,13 @@ void main() {
       when(
         () => mockL10n.chatDefaultPromptWithImage,
       ).thenReturn('この画像について詳しく説明してください');
+      when(
+        () => mockL10n.chatActionMemoCreated(any()),
+      ).thenAnswer((inv) => 'メモ「${inv.positionalArguments.first}」を作成しました');
+      when(
+        () => mockL10n.chatActionSearchWebExecuted(any()),
+      ).thenAnswer((inv) => '「${inv.positionalArguments.first}」を検索しました');
+      when(() => mockL10n.chatActionSearchWebFailed).thenReturn('Web検索に失敗しました');
     });
 
     Widget buildChatForGolden({required ChatState state}) {
@@ -215,6 +223,35 @@ void main() {
                       id: '2',
                       text: 'こちらはヒマワリ（向日葵）ですね！🌻',
                       createdAt: DateTime(2026, 6, 6, 12, 4),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          GoldenTestScenario(
+            name: 'Action Chip State',
+            child: SizedBox(
+              width: 390,
+              height: 844,
+              child: buildChatForGolden(
+                state: ChatState(
+                  messages: [
+                    ChatMessage.user(
+                      id: '1',
+                      text: '「牛乳を買う」とメモに追加して',
+                      createdAt: DateTime(2026, 6, 6, 12, 5),
+                    ),
+                    ChatMessage.action(
+                      id: '2',
+                      actionType: ChatActionType.createMemo,
+                      detail: '牛乳を買う',
+                      createdAt: DateTime(2026, 6, 6, 12, 5),
+                    ),
+                    ChatMessage.ai(
+                      id: '3',
+                      text: 'メモに「牛乳を買う」を追加しました！📝',
+                      createdAt: DateTime(2026, 6, 6, 12, 6),
                     ),
                   ],
                 ),

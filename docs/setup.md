@@ -96,14 +96,15 @@ cd ..
 
 各ファイルには、各自の環境に応じた以下の値を設定してください。
 
-| 項目                        | 区分 | 説明                                                                                                                                                                |
-| :-------------------------- | :--- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `DEBUG_TOKEN`               | 必須 | Firebase App Check のデバッグトークン                                                                                                                               |
-| `GOOGLE_REVERSED_CLIENT_ID` | 必須 | iOS の URL Scheme 設定に必要な逆クライアント ID                                                                                                                     |
-| `MAPS_ANDROID_API_KEY`      | 必須 | Android Maps SDK 用 API キー（パッケージ名 + SHA-1 制限）                                                                                                           |
-| `MAPS_IOS_API_KEY`          | 必須 | iOS Maps SDK 用 API キー（Bundle ID 制限）                                                                                                                          |
-| `BASE_URL`                  | 任意 | API サーバー URL（チーム共通値 `config/flavor_*.json` を個人プロジェクトや端末環境に合わせて上書きする場合。※stg/prod ではローカルURLを設定しないでください）       |
-| `IMAGE_BASE_URL`            | 任意 | 画像配信サーバーのベース URL（チーム共通値 `config/flavor_*.json` を個人用に上書きする場合）                                                                        |
+| 項目                        | 区分 | 説明                                                                                                                                                                                           |
+| :-------------------------- | :--- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DEBUG_TOKEN`               | 必須 | Firebase App Check のデバッグトークン                                                                                                                                                          |
+| `GOOGLE_REVERSED_CLIENT_ID` | 必須 | iOS の URL Scheme 設定に必要な逆クライアント ID                                                                                                                                                |
+| `MAPS_ANDROID_API_KEY`      | 必須 | Android Maps SDK 用 API キー（パッケージ名 + SHA-1 制限）                                                                                                                                      |
+| `MAPS_IOS_API_KEY`          | 必須 | iOS Maps SDK 用 API キー（Bundle ID 制限）                                                                                                                                                     |
+| `BASE_URL`                  | 任意 | API サーバー URL（チーム共通値 `config/flavor_*.json` を個人プロジェクトや端末環境に合わせて上書きする場合。※stg/prod ではローカルURLを設定しないでください）                                  |
+| `IMAGE_BASE_URL`            | 任意 | 画像配信サーバーのベース URL（チーム共通値 `config/flavor_*.json` を個人用に上書きする場合）                                                                                                   |
+| `WIKIPEDIA_USER_AGENT`      | 任意 | Wikipedia Web 検索機能（AI Function Calling）で利用する連絡先情報付き User-Agent（例: `FlutterSampleApp/1.0 (https://github.com/your-username/flutter_sample)`。未指定時は検索実行時にエラー） |
 
 > 🛡️ **Google Maps API キーのセキュリティ設計（ベストプラクティス）**:
 >

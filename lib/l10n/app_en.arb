@@ -81,6 +81,50 @@
   "chatGallery": "Choose from library",
   "chatRemoveImage": "Remove image",
   "chatDefaultPromptWithImage": "Please describe this image in detail.",
+  "chatActionMemoCreated": "Created memo \"{title}\"",
+  "@chatActionMemoCreated": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "chatActionMemoCreateFailed": "Failed to create memo",
+  "chatActionMemosListed": "Retrieved memos ({count})",
+  "@chatActionMemosListed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chatActionMemosListFailed": "Failed to retrieve memos",
+  "chatActionThemeChanged": "Changed theme to {theme}",
+  "@chatActionThemeChanged": {
+    "placeholders": {
+      "theme": {
+        "type": "String"
+      }
+    }
+  },
+  "chatActionThemeChangeFailed": "Failed to change theme",
+  "chatActionUnknown": "Unsupported action: {action}",
+  "@chatActionUnknown": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "chatActionSearchWebExecuted": "Searched \"{query}\"",
+  "@chatActionSearchWebExecuted": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "chatActionSearchWebFailed": "Failed to search the web",
 
   "@_SETTINGS": {},
   "settingsTitle": "Settings",

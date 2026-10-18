@@ -7,6 +7,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/app/actions/app_action_overrides.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/config/app_config_provider.dart';
@@ -90,6 +91,9 @@ Future<void> mainCommon(
 
       // アプリロックの一時停止ハンドラーを含むオーバーライド設定を追加
       ...getAppLockOverrides().cast(),
+
+      // アプリ機能ディスパッチャーのオーバーライド設定を追加
+      ...getAppActionOverrides().cast(),
 
       // プロバイダーにTalkerを設定
       loggerProvider.overrideWithValue(talker),

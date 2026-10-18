@@ -21,6 +21,7 @@ void main() {
       check(config.useFirebaseAuth).equals(defaultUseFirebaseAuth);
       check(config.useAgentPlatform).equals(defaultUseAgentPlatform);
       check(config.imageBaseUrl).equals(defaultImageBaseUrl);
+      check(config.wikipediaUserAgent).isNull();
     });
 
     test('getDebugReport が正しいフォーマットで文字列を生成すること', () {
@@ -53,6 +54,7 @@ void main() {
       check(report).contains('⏱️ Timeouts (C/R/S)  : 1 / 2 / 3');
       check(report).contains('🔥 Firebase Auth     : false');
       check(report).contains('🤖 Use Agent Platform: true');
+      check(report).contains('🌐 Wikipedia User-Agent:');
     });
   });
 }

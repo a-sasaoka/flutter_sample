@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_stream_event.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:legacy_checks/legacy_checks.dart';
 import 'package:mocktail/mocktail.dart';
@@ -81,47 +82,70 @@ void main() {
     });
 
     group('sendMessageStream (ストリーム)', () {
-      test('正常系: Streamの各チャンクが順番に返され、nullは空文字に変換されること', () async {
-        // Arrange: モックのStreamが ['AI', null, 'からの返答'] の順で流れてくると仮定
+      test('正常系: Streamの各ChatStreamEventが順番に返されること', () async {
+        final expectedEvents = [
+          const ChatStreamEvent.text('AI'),
+          const ChatStreamEvent.functionCall(
+            name: 'createMemo',
+            args: {'title': '買い物'},
+            id: 'call_1',
+          ),
+          const ChatStreamEvent.text('完了'),
+        ];
+
         when(
           () => mockApiClient.sendMessageStream('ストリームテスト'),
-        ).thenAnswer((_) => Stream.fromIterable(['AI', null, 'からの返答']));
+        ).thenAnswer((_) => Stream.fromIterable(expectedEvents));
 
-        // Act: Streamを取得
         final stream = repository.sendMessageStream('ストリームテスト');
 
-        // Assert: Streamから流れてくる値を順番に検証
-        // .map((text) => text ?? '') のロジックによって、nullが空文字に変換されることを確認
-        check(stream).legacyMatcher(
-          emitsInOrder([
-            'AI',
-            '', // null が 空文字('') に変換されていること！
-            'からの返答',
-            emitsDone, // Streamが正しく完了すること
-          ]),
-        );
+        check(
+          stream,
+        ).legacyMatcher(emitsInOrder([...expectedEvents, emitsDone]));
       });
 
       test('正常系: 画像データ付きでStream送信した場合、APIクライアントに画像データが渡されること', () async {
         final dummyBytes = Uint8List.fromList([4, 5, 6]);
+        const expectedEvent = ChatStreamEvent.text('結果');
+
         when(
           () => mockApiClient.sendMessageStream(
             'ストリームテスト',
             imageBytes: dummyBytes,
           ),
-        ).thenAnswer((_) => Stream.fromIterable(['結果']));
+        ).thenAnswer((_) => Stream.fromIterable([expectedEvent]));
 
         final stream = repository.sendMessageStream(
           'ストリームテスト',
           imageBytes: dummyBytes,
         );
 
-        check(stream).legacyMatcher(emitsInOrder(['結果', emitsDone]));
+        check(stream).legacyMatcher(emitsInOrder([expectedEvent, emitsDone]));
         verify(
           () => mockApiClient.sendMessageStream(
             'ストリームテスト',
             imageBytes: dummyBytes,
           ),
+        ).called(1);
+      });
+    });
+
+    group('sendFunctionResponseStream (ツール結果返送ストリーム)', () {
+      test('正常系: ツール実行結果リストを渡して後続イベントが取得できること', () async {
+        const expectedEvent = ChatStreamEvent.text('メモを作成しました。');
+        final responses = <ChatFunctionResponse>[
+          (name: 'createMemo', response: {'status': 'success'}, id: 'call_1'),
+        ];
+
+        when(
+          () => mockApiClient.sendFunctionResponseStream(responses),
+        ).thenAnswer((_) => Stream.fromIterable([expectedEvent]));
+
+        final stream = repository.sendFunctionResponseStream(responses);
+
+        check(stream).legacyMatcher(emitsInOrder([expectedEvent, emitsDone]));
+        verify(
+          () => mockApiClient.sendFunctionResponseStream(responses),
         ).called(1);
       });
     });

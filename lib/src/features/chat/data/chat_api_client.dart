@@ -1,12 +1,22 @@
 import 'dart:typed_data';
 
+import 'package:flutter_sample/src/features/chat/domain/chat_stream_event.dart';
+
 /// チャットAPIクライアントのインターフェース
 abstract class ChatApiClient {
   /// メッセージを送信するメソッド
   Future<String?> sendMessage(String prompt, {Uint8List? imageBytes});
 
-  /// メッセージを送信するストリームメソッド（AIのレスポンスにリアルタイムで反応する）
-  Stream<String?> sendMessageStream(String prompt, {Uint8List? imageBytes});
+  /// メッセージを送信するストリームメソッド（テキストチャンクおよびツール呼び出し要求をストリーミング配信）
+  Stream<ChatStreamEvent> sendMessageStream(
+    String prompt, {
+    Uint8List? imageBytes,
+  });
+
+  /// ツール実行結果（1つまたは複数）をAIに送信し、後続の返答ストリームを受信するメソッド
+  Stream<ChatStreamEvent> sendFunctionResponseStream(
+    List<ChatFunctionResponse> responses,
+  );
 }
 
 /// AIからの返答が空だった時の例外クラス
@@ -14,3 +24,6 @@ class ChatEmptyResponseException implements Exception {}
 
 /// サポートされていない画像形式だった場合の例外クラス
 class ChatUnsupportedImageFormatException implements Exception {}
+
+/// ツール実行の最大ターン数に達した場合の例外クラス
+class ChatMaxTurnsExceededException implements Exception {}
