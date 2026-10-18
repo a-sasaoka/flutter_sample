@@ -101,6 +101,7 @@ class FakeChatRepository extends Fake implements ChatRepository {
   String? lastFunctionName;
   Map<String, Object?>? lastFunctionResponse;
   String? lastFunctionId;
+  List<ChatFunctionResponse>? lastFunctionResponses;
 
   // Streamに渡された最終的なテキスト（日時コンテキスト検証用）
   String? lastStreamText;
@@ -149,15 +150,16 @@ class FakeChatRepository extends Fake implements ChatRepository {
   }
 
   @override
-  Stream<ChatStreamEvent> sendFunctionResponseStream({
-    required String name,
-    required Map<String, Object?> response,
-    String? id,
-  }) async* {
+  Stream<ChatStreamEvent> sendFunctionResponseStream(
+    List<ChatFunctionResponse> responses,
+  ) async* {
     sendFunctionResponseStreamCallCount++;
-    lastFunctionName = name;
-    lastFunctionResponse = response;
-    lastFunctionId = id;
+    lastFunctionResponses = responses;
+    if (responses.isNotEmpty) {
+      lastFunctionName = responses.first.name;
+      lastFunctionResponse = responses.first.response;
+      lastFunctionId = responses.first.id;
+    }
 
     if (multiTurnFunctionResponseEvents.isNotEmpty &&
         _functionResponseTurnIndex < multiTurnFunctionResponseEvents.length) {
@@ -822,6 +824,71 @@ void main() {
             check(state.isGenerating).isFalse();
           },
         );
+
+        test('正常系: 並列関数呼び出し（複数のツール要求）を同時に受信した場合、 '
+            'すべて実行して結果をまとめて返送すること', () async {
+          final fakeRepo = FakeChatRepository()
+            ..customStreamEvents = [
+              const ChatStreamEvent.functionCall(
+                name: ChatActionNames.createMemo,
+                args: {CreateMemoActionKeys.title: '並列メモ'},
+                id: 'call_memo',
+              ),
+              const ChatStreamEvent.functionCall(
+                name: ChatActionNames.changeThemeMode,
+                args: {ChangeThemeActionKeys.theme: ChangeThemeActionKeys.dark},
+                id: 'call_theme',
+              ),
+            ]
+            ..customFunctionResponseEvents = [
+              const ChatStreamEvent.text('メモを作成し、ダークモードにしました！'),
+            ];
+
+          final executedCalls = <String>[];
+          final fakeDispatcher = FakeAppActionDispatcher()
+            ..onExecute = () async {
+              executedCalls.add('executed');
+            };
+
+          final container = createContainer(
+            fakeRepo,
+            fakeDispatcher: fakeDispatcher,
+          );
+          final notifier = container.read(chatProvider.notifier);
+
+          await notifier.sendMessageStream('メモを作ってダークモードにして');
+
+          // 1. dispatcher が2回呼ばれたこと
+          check(fakeDispatcher.executeCallCount).equals(2);
+
+          // 2. 状態メッセージに2つのアクションチップとAI返答が含まれていること
+          final state = container.read(chatProvider);
+          // messages: [user, action1, action2, ai]
+          check(state.messages.length).equals(4);
+
+          final action1 = state.messages[1] as ChatMessageAction;
+          check(action1.actionType).equals(ChatActionType.createMemo);
+          check(action1.detail).equals('並列メモ');
+
+          final action2 = state.messages[2] as ChatMessageAction;
+          check(action2.actionType).equals(ChatActionType.changeThemeMode);
+          check(action2.detail).equals(ChangeThemeActionKeys.dark);
+
+          final aiMsg = state.messages[3] as ChatMessageAi;
+          check(aiMsg.text).equals('メモを作成し、ダークモードにしました！');
+
+          // 3. sendFunctionResponseStream に2つのレスポンスがまとめて渡されたこと
+          check(fakeRepo.sendFunctionResponseStreamCallCount).equals(1);
+          check(fakeRepo.lastFunctionResponses?.length).equals(2);
+          check(
+            fakeRepo.lastFunctionResponses?[0].name,
+          ).equals(ChatActionNames.createMemo);
+          check(fakeRepo.lastFunctionResponses?[0].id).equals('call_memo');
+          check(
+            fakeRepo.lastFunctionResponses?[1].name,
+          ).equals(ChatActionNames.changeThemeMode);
+          check(fakeRepo.lastFunctionResponses?[1].id).equals('call_theme');
+        });
 
         test('安全装置: 最大ターン数（maxTurns = 3）に達した場合はループが終了すること', () async {
           final fakeRepo = FakeChatRepository()

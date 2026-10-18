@@ -131,30 +131,21 @@ void main() {
     });
 
     group('sendFunctionResponseStream (ツール結果返送ストリーム)', () {
-      test('正常系: ツール実行結果を渡して後続イベントが取得できること', () async {
+      test('正常系: ツール実行結果リストを渡して後続イベントが取得できること', () async {
         const expectedEvent = ChatStreamEvent.text('メモを作成しました。');
+        final responses = <ChatFunctionResponse>[
+          (name: 'createMemo', response: {'status': 'success'}, id: 'call_1'),
+        ];
 
         when(
-          () => mockApiClient.sendFunctionResponseStream(
-            name: 'createMemo',
-            response: {'status': 'success'},
-            id: 'call_1',
-          ),
+          () => mockApiClient.sendFunctionResponseStream(responses),
         ).thenAnswer((_) => Stream.fromIterable([expectedEvent]));
 
-        final stream = repository.sendFunctionResponseStream(
-          name: 'createMemo',
-          response: {'status': 'success'},
-          id: 'call_1',
-        );
+        final stream = repository.sendFunctionResponseStream(responses);
 
         check(stream).legacyMatcher(emitsInOrder([expectedEvent, emitsDone]));
         verify(
-          () => mockApiClient.sendFunctionResponseStream(
-            name: 'createMemo',
-            response: {'status': 'success'},
-            id: 'call_1',
-          ),
+          () => mockApiClient.sendFunctionResponseStream(responses),
         ).called(1);
       });
     });

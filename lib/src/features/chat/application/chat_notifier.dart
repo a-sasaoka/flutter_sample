@@ -147,7 +147,7 @@ class ChatNotifier extends _$ChatNotifier {
 
       while (currentTurn < maxTurns) {
         currentTurn++;
-        ChatStreamEventFunctionCall? pendingCall;
+        final pendingCalls = <ChatStreamEventFunctionCall>[];
 
         await for (final event in stream) {
           // マウントされていない、または世代が変更された場合はStream受信を直ちに中断
@@ -174,8 +174,8 @@ class ChatNotifier extends _$ChatNotifier {
                 ),
               );
             case ChatStreamEventFunctionCall():
-              // ツール呼び出し要求を受け取ったら記録
-              pendingCall = event;
+              // ツール呼び出し要求を受け取ったらリストに蓄積
+              pendingCalls.add(event);
           }
         }
 
@@ -183,63 +183,71 @@ class ChatNotifier extends _$ChatNotifier {
         if (!ref.mounted || currentGen != _generation) return;
 
         // ツール呼び出し要求がなければ会話終了
-        if (pendingCall == null) {
+        if (pendingCalls.isEmpty) {
           break;
         }
 
-        // 2. 該当するツールを特定して実行
-        final actionType = ChatActionType.fromFunctionName(pendingCall.name);
+        // 2. 蓄積されたツールを順番に特定して実行
+        final functionResponses = <ChatFunctionResponse>[];
         final dispatcher = ref.read(appActionDispatcherProvider);
-        final result = await dispatcher.execute(
-          name: pendingCall.name,
-          args: pendingCall.args,
-        );
+        final uuid = ref.read(uuidProvider);
+        final clock = ref.read(clockProvider);
 
-        // 実行後の世代整合性チェック（安全ガード）
-        if (!ref.mounted || currentGen != _generation) return;
-
-        final isError =
-            result[ChatActionResultKeys.status] == ChatActionResultKeys.error;
-        final now = ref.read(clockProvider)();
-
-        // 画面に表示する多言語パラメータ（タイトルや件数など）を抽出
-        final detail = switch (actionType) {
-          ChatActionType.createMemo =>
-            isError
-                ? null
-                : (result[CreateMemoActionKeys.title] as String? ??
-                      pendingCall.args[CreateMemoActionKeys.title] as String?),
-          ChatActionType.listMemos =>
-            isError ? null : result[ListMemosActionKeys.count]?.toString(),
-          ChatActionType.changeThemeMode =>
-            isError
-                ? null
-                : (result[ChangeThemeActionKeys.theme] as String? ??
-                      pendingCall.args[ChangeThemeActionKeys.theme] as String?),
-          null => null,
-        };
-
-        // 3. アクション実行チップをAIローディング（targetAiId）の直前に挿入
-        if (actionType != null) {
-          _insertMessageBefore(
-            targetAiId,
-            ChatMessage.action(
-              id: ref.read(uuidProvider).v4(),
-              actionType: actionType,
-              createdAt: now,
-              isError: isError,
-              detail: detail,
-            ),
+        for (final call in pendingCalls) {
+          final actionType = ChatActionType.fromFunctionName(call.name);
+          final result = await dispatcher.execute(
+            name: call.name,
+            args: call.args,
           );
+
+          // 各実行後の世代整合性チェック（安全ガード）
+          if (!ref.mounted || currentGen != _generation) return;
+
+          functionResponses.add((
+            name: call.name,
+            response: result,
+            id: call.id,
+          ));
+
+          final isError =
+              result[ChatActionResultKeys.status] == ChatActionResultKeys.error;
+          final now = clock();
+
+          // 画面に表示する多言語パラメータ（タイトルや件数など）を抽出
+          final detail = switch (actionType) {
+            ChatActionType.createMemo =>
+              isError
+                  ? null
+                  : (result[CreateMemoActionKeys.title] as String? ??
+                        call.args[CreateMemoActionKeys.title] as String?),
+            ChatActionType.listMemos =>
+              isError ? null : result[ListMemosActionKeys.count]?.toString(),
+            ChatActionType.changeThemeMode =>
+              isError
+                  ? null
+                  : (result[ChangeThemeActionKeys.theme] as String? ??
+                        call.args[ChangeThemeActionKeys.theme] as String?),
+            null => null,
+          };
+
+          // 3. アクション実行チップをAIローディング（targetAiId）の直前に挿入
+          if (actionType != null) {
+            _insertMessageBefore(
+              targetAiId,
+              ChatMessage.action(
+                id: uuid.v4(),
+                actionType: actionType,
+                createdAt: now,
+                isError: isError,
+                detail: detail,
+              ),
+            );
+          }
         }
 
-        // 4. 最大ターンに達していない場合のみ、実行結果をAIに返送して後続ストリームへ移行
+        // 4. 最大ターンに達していない場合のみ、すべての実行結果をAIに返送して後続ストリームへ移行
         if (currentTurn < maxTurns) {
-          stream = repository.sendFunctionResponseStream(
-            name: pendingCall.name,
-            response: result,
-            id: pendingCall.id,
-          );
+          stream = repository.sendFunctionResponseStream(functionResponses);
         }
       }
 

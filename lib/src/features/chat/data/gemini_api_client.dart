@@ -138,13 +138,22 @@ class GeminiApiClient implements ChatApiClient {
     }
   }
 
+  /// テスト用にツール応答コンテンツ生成メソッドを公開
+  @visibleForTesting
+  static Content buildFunctionResponsesContent(
+    List<ChatFunctionResponse> responses,
+  ) {
+    final parts = responses
+        .map((r) => FunctionResponse(r.name, r.response, id: r.id))
+        .toList();
+    return Content.functionResponses(parts);
+  }
+
   @override
-  Stream<ChatStreamEvent> sendFunctionResponseStream({
-    required String name,
-    required Map<String, Object?> response,
-    String? id,
-  }) async* {
-    final content = Content.functionResponse(name, response, id: id);
+  Stream<ChatStreamEvent> sendFunctionResponseStream(
+    List<ChatFunctionResponse> responses,
+  ) async* {
+    final content = buildFunctionResponsesContent(responses);
     final responseStream = _session.sendMessageStream(content);
     await for (final chunk in responseStream) {
       for (final call in chunk.functionCalls) {

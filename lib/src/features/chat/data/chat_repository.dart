@@ -32,16 +32,10 @@ class ChatRepository {
     return _apiClient.sendMessageStream(prompt, imageBytes: imageBytes);
   }
 
-  /// ツール実行結果をAIに送信し、後続の返答ストリームを受信するメソッド
-  Stream<ChatStreamEvent> sendFunctionResponseStream({
-    required String name,
-    required Map<String, Object?> response,
-    String? id,
-  }) {
-    return _apiClient.sendFunctionResponseStream(
-      name: name,
-      response: response,
-      id: id,
-    );
+  /// ツール実行結果（1つまたは複数）をAIに送信し、後続の返答ストリームを受信するメソッド
+  Stream<ChatStreamEvent> sendFunctionResponseStream(
+    List<ChatFunctionResponse> responses,
+  ) {
+    return _apiClient.sendFunctionResponseStream(responses);
   }
 }

@@ -13,12 +13,10 @@ abstract class ChatApiClient {
     Uint8List? imageBytes,
   });
 
-  /// ツール実行結果をAIに送信し、後続の返答ストリームを受信するメソッド
-  Stream<ChatStreamEvent> sendFunctionResponseStream({
-    required String name,
-    required Map<String, Object?> response,
-    String? id,
-  });
+  /// ツール実行結果（1つまたは複数）をAIに送信し、後続の返答ストリームを受信するメソッド
+  Stream<ChatStreamEvent> sendFunctionResponseStream(
+    List<ChatFunctionResponse> responses,
+  );
 }
 
 /// AIからの返答が空だった時の例外クラス

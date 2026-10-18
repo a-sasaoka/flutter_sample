@@ -18,3 +18,10 @@ sealed class ChatStreamEvent with _$ChatStreamEvent {
     String? id,
   }) = ChatStreamEventFunctionCall;
 }
+
+/// AIモデルへ返却するツール実行結果
+typedef ChatFunctionResponse = ({
+  String name,
+  Map<String, Object?> response,
+  String? id,
+});

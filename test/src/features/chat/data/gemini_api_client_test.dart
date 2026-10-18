@@ -4,6 +4,7 @@ import 'package:checks/checks.dart';
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/data/gemini_api_client.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_stream_event.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -167,6 +168,52 @@ void main() {
 
       final names = chatFunctionDeclarations.map((d) => d.name).toList();
       check(names).deepEquals(['createMemo', 'listMemos', 'changeThemeMode']);
+    });
+  });
+
+  group('buildFunctionResponsesContent', () {
+    test('単一のツール実行結果からContentが生成されること', () {
+      final responses = <ChatFunctionResponse>[
+        (
+          name: 'createMemo',
+          response: {'status': 'success', 'title': '買い物'},
+          id: 'call_1',
+        ),
+      ];
+
+      final content = GeminiApiClient.buildFunctionResponsesContent(responses);
+
+      check(content.role).equals('function');
+      check(content.parts.length).equals(1);
+      check(content.parts[0]).isA<FunctionResponse>();
+      final part = content.parts[0] as FunctionResponse;
+      check(part.name).equals('createMemo');
+      check(part.response).deepEquals({'status': 'success', 'title': '買い物'});
+      check(part.id).equals('call_1');
+    });
+
+    test('複数のツール実行結果（並列呼び出し）からContentがまとめて生成されること', () {
+      final responses = <ChatFunctionResponse>[
+        (name: 'createMemo', response: {'status': 'success'}, id: 'call_1'),
+        (
+          name: 'changeThemeMode',
+          response: {'status': 'success', 'theme': 'dark'},
+          id: 'call_2',
+        ),
+      ];
+
+      final content = GeminiApiClient.buildFunctionResponsesContent(responses);
+
+      check(content.role).equals('function');
+      check(content.parts.length).equals(2);
+      check(content.parts[0]).isA<FunctionResponse>();
+      check(content.parts[1]).isA<FunctionResponse>();
+      final part1 = content.parts[0] as FunctionResponse;
+      final part2 = content.parts[1] as FunctionResponse;
+      check(part1.name).equals('createMemo');
+      check(part1.id).equals('call_1');
+      check(part2.name).equals('changeThemeMode');
+      check(part2.id).equals('call_2');
     });
   });
 }
