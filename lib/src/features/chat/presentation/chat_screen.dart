@@ -170,7 +170,63 @@ class _ChatBubble extends StatelessWidget {
         textColor: Theme.of(context).colorScheme.onErrorContainer,
         createdAt: createdAt,
       ),
+      ChatMessageAction(:final displayText, :final isError) =>
+        _ActionChipLayout(displayText: displayText, isError: isError),
     };
+  }
+}
+
+/// アプリ操作（ツール実行）結果を表示するチップウィジェット
+class _ActionChipLayout extends StatelessWidget {
+  const _ActionChipLayout({required this.displayText, required this.isError});
+
+  final String displayText;
+  final bool isError;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: isError
+                ? colorScheme.errorContainer.withValues(alpha: 0.7)
+                : colorScheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isError ? colorScheme.error : colorScheme.outlineVariant,
+              width: 0.5,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isError ? Icons.error_outline : Icons.build_circle_outlined,
+                size: 16,
+                color: isError ? colorScheme.error : colorScheme.primary,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  displayText,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: isError
+                        ? colorScheme.onErrorContainer
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

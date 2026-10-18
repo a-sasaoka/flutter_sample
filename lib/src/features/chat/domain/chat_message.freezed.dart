@@ -87,14 +87,15 @@ extension ChatMessagePatterns on ChatMessage {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( ChatMessageUser value)?  user,TResult Function( ChatMessageAi value)?  ai,TResult Function( ChatMessageLoading value)?  loading,TResult Function( ChatMessageError value)?  error,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( ChatMessageUser value)?  user,TResult Function( ChatMessageAi value)?  ai,TResult Function( ChatMessageLoading value)?  loading,TResult Function( ChatMessageError value)?  error,TResult Function( ChatMessageAction value)?  action,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case ChatMessageUser() when user != null:
 return user(_that);case ChatMessageAi() when ai != null:
 return ai(_that);case ChatMessageLoading() when loading != null:
 return loading(_that);case ChatMessageError() when error != null:
-return error(_that);case _:
+return error(_that);case ChatMessageAction() when action != null:
+return action(_that);case _:
   return orElse();
 
 }
@@ -112,14 +113,15 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( ChatMessageUser value)  user,required TResult Function( ChatMessageAi value)  ai,required TResult Function( ChatMessageLoading value)  loading,required TResult Function( ChatMessageError value)  error,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( ChatMessageUser value)  user,required TResult Function( ChatMessageAi value)  ai,required TResult Function( ChatMessageLoading value)  loading,required TResult Function( ChatMessageError value)  error,required TResult Function( ChatMessageAction value)  action,}){
 final _that = this;
 switch (_that) {
 case ChatMessageUser():
 return user(_that);case ChatMessageAi():
 return ai(_that);case ChatMessageLoading():
 return loading(_that);case ChatMessageError():
-return error(_that);}
+return error(_that);case ChatMessageAction():
+return action(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -133,14 +135,15 @@ return error(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( ChatMessageUser value)?  user,TResult? Function( ChatMessageAi value)?  ai,TResult? Function( ChatMessageLoading value)?  loading,TResult? Function( ChatMessageError value)?  error,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( ChatMessageUser value)?  user,TResult? Function( ChatMessageAi value)?  ai,TResult? Function( ChatMessageLoading value)?  loading,TResult? Function( ChatMessageError value)?  error,TResult? Function( ChatMessageAction value)?  action,}){
 final _that = this;
 switch (_that) {
 case ChatMessageUser() when user != null:
 return user(_that);case ChatMessageAi() when ai != null:
 return ai(_that);case ChatMessageLoading() when loading != null:
 return loading(_that);case ChatMessageError() when error != null:
-return error(_that);case _:
+return error(_that);case ChatMessageAction() when action != null:
+return action(_that);case _:
   return null;
 
 }
@@ -157,13 +160,14 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String text,  DateTime createdAt,  Uint8List? imageBytes)?  user,TResult Function( String id,  String text,  DateTime createdAt)?  ai,TResult Function( String id,  DateTime createdAt)?  loading,TResult Function( String id,  Object error,  DateTime createdAt)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String text,  DateTime createdAt,  Uint8List? imageBytes)?  user,TResult Function( String id,  String text,  DateTime createdAt)?  ai,TResult Function( String id,  DateTime createdAt)?  loading,TResult Function( String id,  Object error,  DateTime createdAt)?  error,TResult Function( String id,  ChatActionType actionType,  String displayText,  DateTime createdAt,  bool isError)?  action,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case ChatMessageUser() when user != null:
 return user(_that.id,_that.text,_that.createdAt,_that.imageBytes);case ChatMessageAi() when ai != null:
 return ai(_that.id,_that.text,_that.createdAt);case ChatMessageLoading() when loading != null:
 return loading(_that.id,_that.createdAt);case ChatMessageError() when error != null:
-return error(_that.id,_that.error,_that.createdAt);case _:
+return error(_that.id,_that.error,_that.createdAt);case ChatMessageAction() when action != null:
+return action(_that.id,_that.actionType,_that.displayText,_that.createdAt,_that.isError);case _:
   return orElse();
 
 }
@@ -181,13 +185,14 @@ return error(_that.id,_that.error,_that.createdAt);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String text,  DateTime createdAt,  Uint8List? imageBytes)  user,required TResult Function( String id,  String text,  DateTime createdAt)  ai,required TResult Function( String id,  DateTime createdAt)  loading,required TResult Function( String id,  Object error,  DateTime createdAt)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String text,  DateTime createdAt,  Uint8List? imageBytes)  user,required TResult Function( String id,  String text,  DateTime createdAt)  ai,required TResult Function( String id,  DateTime createdAt)  loading,required TResult Function( String id,  Object error,  DateTime createdAt)  error,required TResult Function( String id,  ChatActionType actionType,  String displayText,  DateTime createdAt,  bool isError)  action,}) {final _that = this;
 switch (_that) {
 case ChatMessageUser():
 return user(_that.id,_that.text,_that.createdAt,_that.imageBytes);case ChatMessageAi():
 return ai(_that.id,_that.text,_that.createdAt);case ChatMessageLoading():
 return loading(_that.id,_that.createdAt);case ChatMessageError():
-return error(_that.id,_that.error,_that.createdAt);}
+return error(_that.id,_that.error,_that.createdAt);case ChatMessageAction():
+return action(_that.id,_that.actionType,_that.displayText,_that.createdAt,_that.isError);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -201,13 +206,14 @@ return error(_that.id,_that.error,_that.createdAt);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String text,  DateTime createdAt,  Uint8List? imageBytes)?  user,TResult? Function( String id,  String text,  DateTime createdAt)?  ai,TResult? Function( String id,  DateTime createdAt)?  loading,TResult? Function( String id,  Object error,  DateTime createdAt)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String text,  DateTime createdAt,  Uint8List? imageBytes)?  user,TResult? Function( String id,  String text,  DateTime createdAt)?  ai,TResult? Function( String id,  DateTime createdAt)?  loading,TResult? Function( String id,  Object error,  DateTime createdAt)?  error,TResult? Function( String id,  ChatActionType actionType,  String displayText,  DateTime createdAt,  bool isError)?  action,}) {final _that = this;
 switch (_that) {
 case ChatMessageUser() when user != null:
 return user(_that.id,_that.text,_that.createdAt,_that.imageBytes);case ChatMessageAi() when ai != null:
 return ai(_that.id,_that.text,_that.createdAt);case ChatMessageLoading() when loading != null:
 return loading(_that.id,_that.createdAt);case ChatMessageError() when error != null:
-return error(_that.id,_that.error,_that.createdAt);case _:
+return error(_that.id,_that.error,_that.createdAt);case ChatMessageAction() when action != null:
+return action(_that.id,_that.actionType,_that.displayText,_that.createdAt,_that.isError);case _:
   return null;
 
 }
@@ -488,6 +494,80 @@ class _$ChatMessageErrorCopyWithImpl<$Res>
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,error: null == error ? _self.error : error ,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class ChatMessageAction extends ChatMessage {
+  const ChatMessageAction({required this.id, required this.actionType, required this.displayText, required this.createdAt, this.isError = false}): super._();
+  
+
+@override final  String id;
+ final  ChatActionType actionType;
+ final  String displayText;
+@override final  DateTime createdAt;
+@JsonKey() final  bool isError;
+
+/// Create a copy of ChatMessage
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ChatMessageActionCopyWith<ChatMessageAction> get copyWith => _$ChatMessageActionCopyWithImpl<ChatMessageAction>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChatMessageAction&&(identical(other.id, id) || other.id == id)&&(identical(other.actionType, actionType) || other.actionType == actionType)&&(identical(other.displayText, displayText) || other.displayText == displayText)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.isError, isError) || other.isError == isError));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,id,actionType,displayText,createdAt,isError);
+
+@override
+String toString() {
+  return 'ChatMessage.action(id: $id, actionType: $actionType, displayText: $displayText, createdAt: $createdAt, isError: $isError)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ChatMessageActionCopyWith<$Res> implements $ChatMessageCopyWith<$Res> {
+  factory $ChatMessageActionCopyWith(ChatMessageAction value, $Res Function(ChatMessageAction) _then) = _$ChatMessageActionCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, ChatActionType actionType, String displayText, DateTime createdAt, bool isError
+});
+
+
+
+
+}
+/// @nodoc
+class _$ChatMessageActionCopyWithImpl<$Res>
+    implements $ChatMessageActionCopyWith<$Res> {
+  _$ChatMessageActionCopyWithImpl(this._self, this._then);
+
+  final ChatMessageAction _self;
+  final $Res Function(ChatMessageAction) _then;
+
+/// Create a copy of ChatMessage
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? actionType = null,Object? displayText = null,Object? createdAt = null,Object? isError = null,}) {
+  return _then(ChatMessageAction(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,actionType: null == actionType ? _self.actionType : actionType // ignore: cast_nullable_to_non_nullable
+as ChatActionType,displayText: null == displayText ? _self.displayText : displayText // ignore: cast_nullable_to_non_nullable
+as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime,isError: null == isError ? _self.isError : isError // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
