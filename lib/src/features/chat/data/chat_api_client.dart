@@ -24,3 +24,6 @@ class ChatEmptyResponseException implements Exception {}
 
 /// サポートされていない画像形式だった場合の例外クラス
 class ChatUnsupportedImageFormatException implements Exception {}
+
+/// ツール実行の最大ターン数に達した場合の例外クラス
+class ChatMaxTurnsExceededException implements Exception {}

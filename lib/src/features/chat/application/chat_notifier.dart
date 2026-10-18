@@ -145,8 +145,7 @@ class ChatNotifier extends _$ChatNotifier {
       const maxTurns = 3;
       var currentTurn = 0;
 
-      while (currentTurn < maxTurns) {
-        currentTurn++;
+      while (true) {
         final pendingCalls = <ChatStreamEventFunctionCall>[];
 
         await for (final event in stream) {
@@ -186,6 +185,14 @@ class ChatNotifier extends _$ChatNotifier {
         if (pendingCalls.isEmpty) {
           break;
         }
+
+        // 安全装置: 最大ターン数に達している場合は副作用の実行を防ぎセッションをリセット
+        if (currentTurn >= maxTurns) {
+          ref.invalidate(chatRepositoryProvider);
+          throw ChatMaxTurnsExceededException();
+        }
+
+        currentTurn++;
 
         // 2. 蓄積されたツールを順番に特定して実行
         final functionResponses = <ChatFunctionResponse>[];
@@ -245,10 +252,8 @@ class ChatNotifier extends _$ChatNotifier {
           }
         }
 
-        // 4. 最大ターンに達していない場合のみ、すべての実行結果をAIに返送して後続ストリームへ移行
-        if (currentTurn < maxTurns) {
-          stream = repository.sendFunctionResponseStream(functionResponses);
-        }
+        // 4. すべての実行結果をAIに返送して後続ストリームへ移行
+        stream = repository.sendFunctionResponseStream(functionResponses);
       }
 
       // ループ終了後の世代整合性チェック

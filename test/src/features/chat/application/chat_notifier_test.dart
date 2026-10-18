@@ -936,10 +936,17 @@ void main() {
 
           await notifier.sendMessageStream('無限ループテスト');
 
-          // execute は最大3回まで呼ばれること
+          // execute は上限の3回まで実行され、すべて結果がAIに返送されること
           check(fakeDispatcher.executeCallCount).equals(3);
-          // 1回目と2回目は結果返送ストリームが生成され、3回目は上限に達して返送せずループ終了すること
-          check(fakeRepo.sendFunctionResponseStreamCallCount).equals(2);
+          check(fakeRepo.sendFunctionResponseStreamCallCount).equals(3);
+
+          // 4回目のツール要求時に副作用を実行せずエラーメッセージが表示されること
+          final state = container.read(chatProvider);
+          check(state.isGenerating).isFalse();
+          final lastMessage = state.messages.last;
+          check(lastMessage).isA<ChatMessageError>();
+          final errorMessage = lastMessage as ChatMessageError;
+          check(errorMessage.error).isA<ChatMaxTurnsExceededException>();
         });
       });
     });
