@@ -160,14 +160,14 @@ return action(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String text,  DateTime createdAt,  Uint8List? imageBytes)?  user,TResult Function( String id,  String text,  DateTime createdAt)?  ai,TResult Function( String id,  DateTime createdAt)?  loading,TResult Function( String id,  Object error,  DateTime createdAt)?  error,TResult Function( String id,  ChatActionType actionType,  String displayText,  DateTime createdAt,  bool isError)?  action,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String text,  DateTime createdAt,  Uint8List? imageBytes)?  user,TResult Function( String id,  String text,  DateTime createdAt)?  ai,TResult Function( String id,  DateTime createdAt)?  loading,TResult Function( String id,  Object error,  DateTime createdAt)?  error,TResult Function( String id,  ChatActionType actionType,  DateTime createdAt,  bool isError,  String? detail)?  action,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case ChatMessageUser() when user != null:
 return user(_that.id,_that.text,_that.createdAt,_that.imageBytes);case ChatMessageAi() when ai != null:
 return ai(_that.id,_that.text,_that.createdAt);case ChatMessageLoading() when loading != null:
 return loading(_that.id,_that.createdAt);case ChatMessageError() when error != null:
 return error(_that.id,_that.error,_that.createdAt);case ChatMessageAction() when action != null:
-return action(_that.id,_that.actionType,_that.displayText,_that.createdAt,_that.isError);case _:
+return action(_that.id,_that.actionType,_that.createdAt,_that.isError,_that.detail);case _:
   return orElse();
 
 }
@@ -185,14 +185,14 @@ return action(_that.id,_that.actionType,_that.displayText,_that.createdAt,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String text,  DateTime createdAt,  Uint8List? imageBytes)  user,required TResult Function( String id,  String text,  DateTime createdAt)  ai,required TResult Function( String id,  DateTime createdAt)  loading,required TResult Function( String id,  Object error,  DateTime createdAt)  error,required TResult Function( String id,  ChatActionType actionType,  String displayText,  DateTime createdAt,  bool isError)  action,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String text,  DateTime createdAt,  Uint8List? imageBytes)  user,required TResult Function( String id,  String text,  DateTime createdAt)  ai,required TResult Function( String id,  DateTime createdAt)  loading,required TResult Function( String id,  Object error,  DateTime createdAt)  error,required TResult Function( String id,  ChatActionType actionType,  DateTime createdAt,  bool isError,  String? detail)  action,}) {final _that = this;
 switch (_that) {
 case ChatMessageUser():
 return user(_that.id,_that.text,_that.createdAt,_that.imageBytes);case ChatMessageAi():
 return ai(_that.id,_that.text,_that.createdAt);case ChatMessageLoading():
 return loading(_that.id,_that.createdAt);case ChatMessageError():
 return error(_that.id,_that.error,_that.createdAt);case ChatMessageAction():
-return action(_that.id,_that.actionType,_that.displayText,_that.createdAt,_that.isError);}
+return action(_that.id,_that.actionType,_that.createdAt,_that.isError,_that.detail);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -206,14 +206,14 @@ return action(_that.id,_that.actionType,_that.displayText,_that.createdAt,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String text,  DateTime createdAt,  Uint8List? imageBytes)?  user,TResult? Function( String id,  String text,  DateTime createdAt)?  ai,TResult? Function( String id,  DateTime createdAt)?  loading,TResult? Function( String id,  Object error,  DateTime createdAt)?  error,TResult? Function( String id,  ChatActionType actionType,  String displayText,  DateTime createdAt,  bool isError)?  action,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String text,  DateTime createdAt,  Uint8List? imageBytes)?  user,TResult? Function( String id,  String text,  DateTime createdAt)?  ai,TResult? Function( String id,  DateTime createdAt)?  loading,TResult? Function( String id,  Object error,  DateTime createdAt)?  error,TResult? Function( String id,  ChatActionType actionType,  DateTime createdAt,  bool isError,  String? detail)?  action,}) {final _that = this;
 switch (_that) {
 case ChatMessageUser() when user != null:
 return user(_that.id,_that.text,_that.createdAt,_that.imageBytes);case ChatMessageAi() when ai != null:
 return ai(_that.id,_that.text,_that.createdAt);case ChatMessageLoading() when loading != null:
 return loading(_that.id,_that.createdAt);case ChatMessageError() when error != null:
 return error(_that.id,_that.error,_that.createdAt);case ChatMessageAction() when action != null:
-return action(_that.id,_that.actionType,_that.displayText,_that.createdAt,_that.isError);case _:
+return action(_that.id,_that.actionType,_that.createdAt,_that.isError,_that.detail);case _:
   return null;
 
 }
@@ -504,14 +504,14 @@ as DateTime,
 
 
 class ChatMessageAction extends ChatMessage {
-  const ChatMessageAction({required this.id, required this.actionType, required this.displayText, required this.createdAt, this.isError = false}): super._();
+  const ChatMessageAction({required this.id, required this.actionType, required this.createdAt, this.isError = false, this.detail}): super._();
   
 
 @override final  String id;
  final  ChatActionType actionType;
- final  String displayText;
 @override final  DateTime createdAt;
 @JsonKey() final  bool isError;
+ final  String? detail;
 
 /// Create a copy of ChatMessage
 /// with the given fields replaced by the non-null parameter values.
@@ -523,16 +523,16 @@ $ChatMessageActionCopyWith<ChatMessageAction> get copyWith => _$ChatMessageActio
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChatMessageAction&&(identical(other.id, id) || other.id == id)&&(identical(other.actionType, actionType) || other.actionType == actionType)&&(identical(other.displayText, displayText) || other.displayText == displayText)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.isError, isError) || other.isError == isError));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChatMessageAction&&(identical(other.id, id) || other.id == id)&&(identical(other.actionType, actionType) || other.actionType == actionType)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.isError, isError) || other.isError == isError)&&(identical(other.detail, detail) || other.detail == detail));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,actionType,displayText,createdAt,isError);
+int get hashCode => Object.hash(runtimeType,id,actionType,createdAt,isError,detail);
 
 @override
 String toString() {
-  return 'ChatMessage.action(id: $id, actionType: $actionType, displayText: $displayText, createdAt: $createdAt, isError: $isError)';
+  return 'ChatMessage.action(id: $id, actionType: $actionType, createdAt: $createdAt, isError: $isError, detail: $detail)';
 }
 
 
@@ -543,7 +543,7 @@ abstract mixin class $ChatMessageActionCopyWith<$Res> implements $ChatMessageCop
   factory $ChatMessageActionCopyWith(ChatMessageAction value, $Res Function(ChatMessageAction) _then) = _$ChatMessageActionCopyWithImpl;
 @override @useResult
 $Res call({
- String id, ChatActionType actionType, String displayText, DateTime createdAt, bool isError
+ String id, ChatActionType actionType, DateTime createdAt, bool isError, String? detail
 });
 
 
@@ -560,14 +560,14 @@ class _$ChatMessageActionCopyWithImpl<$Res>
 
 /// Create a copy of ChatMessage
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? actionType = null,Object? displayText = null,Object? createdAt = null,Object? isError = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? actionType = null,Object? createdAt = null,Object? isError = null,Object? detail = freezed,}) {
   return _then(ChatMessageAction(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,actionType: null == actionType ? _self.actionType : actionType // ignore: cast_nullable_to_non_nullable
-as ChatActionType,displayText: null == displayText ? _self.displayText : displayText // ignore: cast_nullable_to_non_nullable
-as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as ChatActionType,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,isError: null == isError ? _self.isError : isError // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,detail: freezed == detail ? _self.detail : detail // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

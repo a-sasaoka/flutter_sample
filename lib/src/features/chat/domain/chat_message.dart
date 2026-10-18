@@ -42,9 +42,9 @@ sealed class ChatMessage with _$ChatMessage {
   const factory ChatMessage.action({
     required String id,
     required ChatActionType actionType,
-    required String displayText,
     required DateTime createdAt,
     @Default(false) bool isError,
+    String? detail,
   }) = ChatMessageAction;
 
   /// ユーザーのメッセージかどうかを判定
@@ -61,7 +61,7 @@ sealed class ChatMessage with _$ChatMessage {
     return switch (this) {
       ChatMessageUser(:final text) => text,
       ChatMessageAi(:final text) => text,
-      ChatMessageAction(:final displayText) => displayText,
+      ChatMessageAction(:final detail) => detail,
       _ => null,
     };
   }

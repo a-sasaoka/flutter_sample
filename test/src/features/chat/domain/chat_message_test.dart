@@ -82,7 +82,7 @@ void main() {
       final message = ChatMessage.action(
         id: 'action_1',
         actionType: ChatActionType.createMemo,
-        displayText: '🛠️ メモを作成しました',
+        detail: 'テストメモ',
         createdAt: dummyTime,
       );
 
@@ -91,29 +91,29 @@ void main() {
 
       final actionMsg = message as ChatMessageAction;
       check(actionMsg.actionType).equals(ChatActionType.createMemo);
-      check(actionMsg.displayText).equals('🛠️ メモを作成しました');
+      check(actionMsg.detail).equals('テストメモ');
       check(actionMsg.isError).equals(false);
 
       check(message.isUser).equals(false);
       check(message.isAi).equals(false);
       check(message.isAction).equals(true);
-      check(message.displayText).equals('🛠️ メモを作成しました');
+      check(message.displayText).equals('テストメモ');
     });
 
     test('action: エラー時のプロパティが正しく保持されること', () {
       final message = ChatMessage.action(
         id: 'action_error_1',
         actionType: ChatActionType.changeThemeMode,
-        displayText: '⚠️ テーマの切り替えに失敗しました',
         createdAt: dummyTime,
         isError: true,
       );
 
       final actionMsg = message as ChatMessageAction;
       check(actionMsg.actionType).equals(ChatActionType.changeThemeMode);
+      check(actionMsg.detail).isNull();
       check(actionMsg.isError).equals(true);
       check(message.isAction).equals(true);
-      check(message.displayText).equals('⚠️ テーマの切り替えに失敗しました');
+      check(message.displayText).isNull();
     });
 
     test('同値性(Equatable): 同じ値を持つインスタンスは等価と判定されること', () {

@@ -222,6 +222,35 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chatDefaultPromptWithImage => 'この画像について詳しく説明してください';
 
   @override
+  String chatActionMemoCreated(String title) {
+    return 'メモ「$title」を作成しました';
+  }
+
+  @override
+  String get chatActionMemoCreateFailed => 'メモの作成に失敗しました';
+
+  @override
+  String chatActionMemosListed(int count) {
+    return 'メモ一覧を取得しました（$count件）';
+  }
+
+  @override
+  String get chatActionMemosListFailed => 'メモ一覧の取得に失敗しました';
+
+  @override
+  String chatActionThemeChanged(String theme) {
+    return 'テーマを$themeに変更しました';
+  }
+
+  @override
+  String get chatActionThemeChangeFailed => 'テーマの変更に失敗しました';
+
+  @override
+  String chatActionUnknown(String action) {
+    return '未対応の操作です: $action';
+  }
+
+  @override
   String get settingsTitle => '設定';
 
   @override

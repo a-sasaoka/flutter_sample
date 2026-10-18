@@ -81,6 +81,41 @@
   "chatGallery": "アルバムから選ぶ",
   "chatRemoveImage": "写真を削除",
   "chatDefaultPromptWithImage": "この画像について詳しく説明してください",
+  "chatActionMemoCreated": "メモ「{title}」を作成しました",
+  "@chatActionMemoCreated": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "chatActionMemoCreateFailed": "メモの作成に失敗しました",
+  "chatActionMemosListed": "メモ一覧を取得しました（{count}件）",
+  "@chatActionMemosListed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chatActionMemosListFailed": "メモ一覧の取得に失敗しました",
+  "chatActionThemeChanged": "テーマを{theme}に変更しました",
+  "@chatActionThemeChanged": {
+    "placeholders": {
+      "theme": {
+        "type": "String"
+      }
+    }
+  },
+  "chatActionThemeChangeFailed": "テーマの変更に失敗しました",
+  "chatActionUnknown": "未対応の操作です: {action}",
+  "@chatActionUnknown": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
 
   "@_SETTINGS": {},
   "settingsTitle": "設定",

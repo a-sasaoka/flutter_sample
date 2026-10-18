@@ -524,6 +524,48 @@ abstract class AppLocalizations {
   /// **'Please describe this image in detail.'**
   String get chatDefaultPromptWithImage;
 
+  /// No description provided for @chatActionMemoCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Created memo \"{title}\"'**
+  String chatActionMemoCreated(String title);
+
+  /// No description provided for @chatActionMemoCreateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create memo'**
+  String get chatActionMemoCreateFailed;
+
+  /// No description provided for @chatActionMemosListed.
+  ///
+  /// In en, this message translates to:
+  /// **'Retrieved memos ({count})'**
+  String chatActionMemosListed(int count);
+
+  /// No description provided for @chatActionMemosListFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to retrieve memos'**
+  String get chatActionMemosListFailed;
+
+  /// No description provided for @chatActionThemeChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Changed theme to {theme}'**
+  String chatActionThemeChanged(String theme);
+
+  /// No description provided for @chatActionThemeChangeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to change theme'**
+  String get chatActionThemeChangeFailed;
+
+  /// No description provided for @chatActionUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported action: {action}'**
+  String chatActionUnknown(String action);
+
   /// No description provided for @settingsTitle.
   ///
   /// In en, this message translates to:
