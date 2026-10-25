@@ -22,8 +22,8 @@ void main() {
       await database.close();
     });
 
-    test('schemaVersion returns 3', () {
-      check(database.schemaVersion).equals(3);
+    test('schemaVersion returns 4', () {
+      check(database.schemaVersion).equals(4);
     });
 
     test('onUpgrade migration strategy executes without error', () async {
@@ -32,7 +32,7 @@ void main() {
 
       // 実際には Migrator インスタンスが必要だが、モックやダミーで呼び出しだけ確認
       // ここでは、onUpgrade が例外なく実行されることをテストし、カバレッジを通す
-      await strategy.onUpgrade(database.createMigrator(), 1, 3);
+      await strategy.onUpgrade(database.createMigrator(), 1, 4);
 
       // 前後のフックもカバレッジのために実行
       // onCreate は AppDatabase インスタンス作成時に暗黙的に呼ばれているが、明示的にも呼ぶ
@@ -97,6 +97,38 @@ void main() {
           (row) => row.read<String>('name') == 'user_id',
         );
         check(hasUserId).isTrue();
+      },
+    );
+
+    test(
+      'onUpgrade (from 3 to 4): category カラムが存在しない場合に addColumn が実行されること',
+      () async {
+        // memos テーブルを一度削除し、category カラム無しのスキーマ（v3）で作成
+        await database.customStatement('DROP TABLE IF EXISTS memos;');
+        await database.customStatement('''
+        CREATE TABLE memos (
+          id TEXT NOT NULL PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          title TEXT NOT NULL,
+          content TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          is_deleted INTEGER NOT NULL,
+          is_synced INTEGER NOT NULL
+        );
+      ''');
+
+        // マイグレーション実行 (from 3 to 4)
+        await database.migration.onUpgrade(database.createMigrator(), 3, 4);
+
+        // category カラムが追加されたことを確認
+        final columns = await database
+            .customSelect('PRAGMA table_info(memos);')
+            .get();
+        final hasCategory = columns.any(
+          (row) => row.read<String>('name') == 'category',
+        );
+        check(hasCategory).isTrue();
       },
     );
 

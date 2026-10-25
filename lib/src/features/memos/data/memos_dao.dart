@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_sample/src/app/database/app_database.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_table.dart';
+import 'package:flutter_sample/src/features/memos/domain/memo_category.dart';
 
 part 'memos_dao.g.dart';
 
@@ -19,6 +20,62 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
   Stream<List<Memo>> watchAllMemos(String userId) => (select(
     memos,
   )..where((t) => t.userId.equals(userId) & t.isDeleted.equals(false))).watch();
+
+  /// 指定したユーザーのメモをキーワード・カテゴリ・未同期条件で絞り込んで監視する
+  Stream<List<Memo>> watchFilteredMemos(
+    String userId, {
+    String? query,
+    MemoCategory? category,
+    bool? unsyncedOnly,
+  }) {
+    return (select(memos)..where((t) {
+          var predicate = t.userId.equals(userId) & t.isDeleted.equals(false);
+          final trimmedQuery = query?.trim();
+          if (trimmedQuery != null && trimmedQuery.isNotEmpty) {
+            final pattern = '%${trimmedQuery.toLowerCase()}%';
+            predicate =
+                predicate &
+                (t.title.lower().like(pattern) |
+                    t.content.lower().like(pattern));
+          }
+          if (category != null) {
+            predicate = predicate & t.category.equals(category.name);
+          }
+          if (unsyncedOnly == true) {
+            predicate = predicate & t.isSynced.equals(false);
+          }
+          return predicate;
+        }))
+        .watch();
+  }
+
+  /// 指定したユーザーのメモをキーワード・カテゴリ・未同期条件で絞り込んで取得する
+  Future<List<Memo>> getFilteredMemos(
+    String userId, {
+    String? query,
+    MemoCategory? category,
+    bool? unsyncedOnly,
+  }) {
+    return (select(memos)..where((t) {
+          var predicate = t.userId.equals(userId) & t.isDeleted.equals(false);
+          final trimmedQuery = query?.trim();
+          if (trimmedQuery != null && trimmedQuery.isNotEmpty) {
+            final pattern = '%${trimmedQuery.toLowerCase()}%';
+            predicate =
+                predicate &
+                (t.title.lower().like(pattern) |
+                    t.content.lower().like(pattern));
+          }
+          if (category != null) {
+            predicate = predicate & t.category.equals(category.name);
+          }
+          if (unsyncedOnly == true) {
+            predicate = predicate & t.isSynced.equals(false);
+          }
+          return predicate;
+        }))
+        .get();
+  }
 
   /// メモをIDとユーザーIDで1件取得する
   Future<Memo> getMemoById(String id, String userId) => (select(

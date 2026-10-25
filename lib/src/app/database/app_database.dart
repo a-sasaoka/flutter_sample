@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_table.dart';
 import 'package:flutter_sample/src/features/memos/data/memos_dao.dart';
+import 'package:flutter_sample/src/features/memos/domain/memo_category.dart';
 import 'package:flutter_sample/src/features/qr_scanner/data/qr_scan_histories_dao.dart';
 import 'package:flutter_sample/src/features/qr_scanner/data/qr_scan_histories_table.dart';
 
@@ -18,7 +19,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -43,6 +44,17 @@ class AppDatabase extends _$AppDatabase {
         );
         if (!hasUserId) {
           await m.addColumn(memos, memos.userId);
+        }
+      }
+      if (from < 4) {
+        // メモ機能のタグ・カテゴリ対応:
+        // 冪等性確保: category カラムが存在しない場合のみ追加
+        final columns = await customSelect('PRAGMA table_info(memos);').get();
+        final hasCategory = columns.any(
+          (row) => row.read<String>('name') == 'category',
+        );
+        if (!hasCategory) {
+          await m.addColumn(memos, memos.category);
         }
       }
     },
