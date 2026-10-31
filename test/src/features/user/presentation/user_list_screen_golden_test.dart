@@ -26,6 +26,9 @@ void main() {
       when(() => mockL10n.userListFetchError).thenReturn('Pull to refresh');
       when(() => mockL10n.retry).thenReturn('Retry');
       when(() => mockL10n.close).thenReturn('Close');
+      when(() => mockL10n.userSearchHint).thenReturn('Search users...');
+      when(() => mockL10n.userSearchEmpty).thenReturn('No matching users.');
+      when(() => mockL10n.userClearFilter).thenReturn('Clear filter');
     });
 
     // テスト用のダミーのユーザーモデルを作成する関数

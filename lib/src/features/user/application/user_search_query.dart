@@ -29,7 +29,7 @@ AsyncValue<(List<UserModel>, DateTime?)> filteredUsers(Ref ref) {
   final usersAsync = ref.watch(userProvider);
   final query = ref.watch(userSearchQueryProvider).trim().toLowerCase();
 
-  return usersAsync.whenData((data) {
+  (List<UserModel>, DateTime?) filterData((List<UserModel>, DateTime?) data) {
     final (users, lastFetchedAt) = data;
     if (query.isEmpty) {
       return (users, lastFetchedAt);
@@ -40,5 +40,13 @@ AsyncValue<(List<UserModel>, DateTime?)> filteredUsers(Ref ref) {
       return matchesName || matchesEmail;
     }).toList();
     return (filtered, lastFetchedAt);
-  });
+  }
+
+  if (usersAsync.hasValue) {
+    return AsyncData(filterData(usersAsync.requireValue));
+  }
+  if (usersAsync.hasError) {
+    return AsyncError(usersAsync.error!, usersAsync.stackTrace!);
+  }
+  return const AsyncLoading();
 }
