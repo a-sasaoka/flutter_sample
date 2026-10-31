@@ -229,11 +229,25 @@ void main() {
               testUserId,
               query: '買い物',
               category: MemoCategory.personal,
+              unsyncedOnly: true,
             )
             .first;
         check(streamResult.length).equals(1);
         check(streamResult.first.id).equals('personal-1');
       });
+
+      test(
+        '【正常系】watchFilteredMemos で未同期メモのみ（unsyncedOnly: true）をストリーム監視できること',
+        () async {
+          final streamResult = await dao
+              .watchFilteredMemos(testUserId, unsyncedOnly: true)
+              .first;
+          check(streamResult.length).equals(2);
+          final ids = streamResult.map((m) => m.id).toList();
+          check(ids).contains('personal-1');
+          check(ids).contains('idea-1');
+        },
+      );
 
       test('【正常系】条件がすべて空の場合は有効な全件が取得されること', () async {
         final results = await dao.getFilteredMemos(testUserId);
