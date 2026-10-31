@@ -8,6 +8,7 @@ import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_remote_service.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
+import 'package:flutter_sample/src/features/memos/domain/memo_category.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -760,6 +761,57 @@ void main() {
       // 購読を解除
       await subscription.cancel();
     });
+
+    test(
+      'watchFilteredMemos: 指定した条件（クエリ・カテゴリ・未同期）で絞り込まれたメモを Stream で取得できること',
+      () async {
+        final container = createContainer(isOnline: false);
+        final repository = container.read(memoRepositoryProvider);
+
+        // テストデータの準備（オフライン保存のため isSynced は false）
+        await repository.addMemo(
+          '買物リスト',
+          '牛乳を買う',
+          testUserId,
+          category: MemoCategory.personal,
+        );
+        await repository.addMemo(
+          '仕事のタスク',
+          '資料作成',
+          testUserId,
+          category: MemoCategory.work,
+        );
+
+        // 1. クエリ（部分一致）絞り込みの検証
+        final queryEmissions = <List<MemoModel>>[];
+        final querySub = repository
+            .watchFilteredMemos(testUserId, query: '買物')
+            .listen(queryEmissions.add);
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        check(queryEmissions.last.length).equals(1);
+        check(queryEmissions.last.first.title).equals('買物リスト');
+        await querySub.cancel();
+
+        // 2. カテゴリ絞り込みの検証
+        final categoryEmissions = <List<MemoModel>>[];
+        final categorySub = repository
+            .watchFilteredMemos(testUserId, category: MemoCategory.work)
+            .listen(categoryEmissions.add);
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        check(categoryEmissions.last.length).equals(1);
+        check(categoryEmissions.last.first.title).equals('仕事のタスク');
+        await categorySub.cancel();
+
+        // 3. 未同期（unsyncedOnly: true）絞り込みの検証
+        final unsyncedEmissions = <List<MemoModel>>[];
+        final unsyncedSub = repository
+            .watchFilteredMemos(testUserId, unsyncedOnly: true)
+            .listen(unsyncedEmissions.add);
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        check(unsyncedEmissions.last.length).equals(2);
+        await unsyncedSub.cancel();
+      },
+    );
 
     test('fetchAndMergeRemoteMemos: オンラインの場合、リモートから取得してマージすること', () async {
       final container = createContainer();
