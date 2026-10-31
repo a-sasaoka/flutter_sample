@@ -64,10 +64,11 @@ void main() {
     ];
 
     test('検索クエリが空のときは全件を返すこと', () async {
+      final expectedFetchedAt = DateTime(2026, 5, 20);
       final container = ProviderContainer(
         overrides: [
           userProvider.overrideWith(
-            () => _FakeUserNotifier(dummyUsers, DateTime(2026, 5, 20)),
+            () => _FakeUserNotifier(dummyUsers, expectedFetchedAt),
           ),
         ],
       );
@@ -78,6 +79,7 @@ void main() {
       await container.read(userProvider.future);
       final result = container.read(filteredUsersProvider);
       check(result.value?.$1.length).equals(2);
+      check(result.value?.$2).equals(expectedFetchedAt);
     });
 
     test('名前で大文字小文字を区別せず部分一致で絞り込めること', () async {
