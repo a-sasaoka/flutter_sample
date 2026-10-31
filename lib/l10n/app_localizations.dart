@@ -806,6 +806,54 @@ abstract class AppLocalizations {
   /// **'Title: Z-A'**
   String get memoSortTitleDesc;
 
+  /// No description provided for @memoCategoryAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get memoCategoryAll;
+
+  /// No description provided for @memoCategoryWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Work'**
+  String get memoCategoryWork;
+
+  /// No description provided for @memoCategoryPersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal'**
+  String get memoCategoryPersonal;
+
+  /// No description provided for @memoCategoryIdea.
+  ///
+  /// In en, this message translates to:
+  /// **'Idea'**
+  String get memoCategoryIdea;
+
+  /// No description provided for @memoCategorySelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get memoCategorySelect;
+
+  /// No description provided for @memoFilterUnsyncedOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsynced only'**
+  String get memoFilterUnsyncedOnly;
+
+  /// No description provided for @memoSearchEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No memos match your search criteria'**
+  String get memoSearchEmpty;
+
+  /// No description provided for @memoClearFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear filters'**
+  String get memoClearFilter;
+
   /// No description provided for @widgetMemoEmptyTitle.
   ///
   /// In en, this message translates to:
@@ -949,6 +997,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No users found.'**
   String get userListEmpty;
+
+  /// No description provided for @userSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name or email...'**
+  String get userSearchHint;
+
+  /// No description provided for @userSearchEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No users match your search criteria'**
+  String get userSearchEmpty;
+
+  /// No description provided for @userClearFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get userClearFilter;
 
   /// No description provided for @userListFetchError.
   ///
