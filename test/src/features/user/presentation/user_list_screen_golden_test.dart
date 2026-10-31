@@ -1,5 +1,6 @@
 import 'package:alchemist/alchemist.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_sample/src/features/user/application/user_search_query.dart';
 import 'package:flutter_sample/src/features/user/data/user_repository.dart';
 import 'package:flutter_sample/src/features/user/domain/user_model.dart';
 import 'package:flutter_sample/src/features/user/presentation/user_list_screen.dart';
@@ -9,6 +10,14 @@ import 'package:mocktail/mocktail.dart';
 
 import '../../../../golden_test_helper.dart';
 import '../../../core/widgets/widgets_test_helper.dart';
+
+class _TestUserSearchQuery extends UserSearchQuery {
+  _TestUserSearchQuery(this._initialState);
+  final String _initialState;
+
+  @override
+  String build() => _initialState;
+}
 
 void main() {
   group('UserListScreen Golden Tests', () {
@@ -53,6 +62,7 @@ void main() {
     Widget buildUserListForGolden({
       required ThemeMode themeMode,
       bool isEmpty = false,
+      String? initialQuery,
     }) {
       // 💡 同一インスタンスが再利用されて stub 設定が上書きされるのを防ぐため、
       // 呼び出しごとに新しく MockUserRepository をインスタンス化します。
@@ -69,7 +79,13 @@ void main() {
       ).thenAnswer((_) async => (dummyUsers, dummyTimestamp));
 
       return ProviderScope(
-        overrides: [userRepositoryProvider.overrideWithValue(repository)],
+        overrides: [
+          userRepositoryProvider.overrideWithValue(repository),
+          if (initialQuery != null)
+            userSearchQueryProvider.overrideWith(
+              () => _TestUserSearchQuery(initialQuery),
+            ),
+        ],
         child: buildGoldenTestApp(
           themeMode: themeMode,
           additionalDelegates: [MockLocalizationsDelegate(mockL10n)],
@@ -80,7 +96,7 @@ void main() {
 
     // ignore: discarded_futures, テストフレームワークが同期的にテストを登録するための警告回避
     goldenTest(
-      'UserListScreen の描画 (ライト/ダークモード/空データ)',
+      'UserListScreen の描画 (ライト/ダークモード/空データ・検索・0件)',
       fileName: 'user_list_screen',
       builder: () => GoldenTestGroup(
         children: [
@@ -119,6 +135,28 @@ void main() {
               child: buildUserListForGolden(
                 themeMode: ThemeMode.dark,
                 isEmpty: true,
+              ),
+            ),
+          ),
+          GoldenTestScenario(
+            name: 'With Users (Search & Highlight) - Light Mode',
+            child: SizedBox(
+              width: 390,
+              height: 844,
+              child: buildUserListForGolden(
+                themeMode: ThemeMode.light,
+                initialQuery: 'User 1',
+              ),
+            ),
+          ),
+          GoldenTestScenario(
+            name: 'Empty Search State - Light Mode',
+            child: SizedBox(
+              width: 390,
+              height: 844,
+              child: buildUserListForGolden(
+                themeMode: ThemeMode.light,
+                initialQuery: 'Unknown',
               ),
             ),
           ),
