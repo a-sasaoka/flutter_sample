@@ -150,12 +150,34 @@ void main() {
             ),
           ),
           GoldenTestScenario(
+            name: 'With Users (Search & Highlight) - Dark Mode',
+            child: SizedBox(
+              width: 390,
+              height: 844,
+              child: buildUserListForGolden(
+                themeMode: ThemeMode.dark,
+                initialQuery: 'User 1',
+              ),
+            ),
+          ),
+          GoldenTestScenario(
             name: 'Empty Search State - Light Mode',
             child: SizedBox(
               width: 390,
               height: 844,
               child: buildUserListForGolden(
                 themeMode: ThemeMode.light,
+                initialQuery: 'Unknown',
+              ),
+            ),
+          ),
+          GoldenTestScenario(
+            name: 'Empty Search State - Dark Mode',
+            child: SizedBox(
+              width: 390,
+              height: 844,
+              child: buildUserListForGolden(
+                themeMode: ThemeMode.dark,
                 initialQuery: 'Unknown',
               ),
             ),
