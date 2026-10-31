@@ -78,8 +78,11 @@ void main() {
 
   group('UserListScreen Test', () {
     test('コンストラクタのテスト', () {
-      const screen = UserListScreen(key: ValueKey<String>('test'));
+      // カバレッジ計測でコンストラクタのコードを確実に実行させてカバーするため、あえて非constでインスタンス化します。
+      // ignore: prefer_const_constructors
+      final screen = UserListScreen(key: const ValueKey<String>('test'));
       check(screen.key).isA<ValueKey<String>>();
+      check(screen).isA<UserListScreen>();
     });
     testWidgets('【状態系】Loading状態の時にインジケータが表示されること', (tester) async {
       final completer = Completer<(List<UserModel>, DateTime)>();
