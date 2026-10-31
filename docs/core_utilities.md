@@ -261,3 +261,33 @@ WebサイトのURL検証および外部ブラウザ起動を安全に行う共�
 - **アバター用切り抜き付き取得（`pickAndCropAvatar`）**: プロフィールアイコン向けに、正方形のアスペクト比指定や円形マスクでのトリミングを連続して行います（利用例: [profile_edit_screen.dart](../lib/src/features/profile/presentation/profile_edit_screen.dart)）。
 - **誤ロック防止との連携**: カメラやアルバム選択画面などのOS画面を開く際、アプリ復帰時に誤って画面ロックがかからないよう [LockSuppressionRunner](../lib/src/core/services/lock_suppression_handler.dart) と自動連携しています。
 - **パーミッション（権限）の自動チェック**: カメラや写真ライブラリの利用権限がない場合はOSダイアログで許可を求め、拒否された場合は [ImagePermissionDeniedException](../lib/src/core/services/image_picker_service.dart#L24-L41) をスローします（ユーザーが画像選択や切り抜きをキャンセルした場合は `null` を返します）。
+
+---
+
+## ⏱️ 13. デバウンサー（Debouncer）
+
+検索フォームなどにおいて、ユーザーの連続した文字入力のたびに検索処理が即時発火して画面がちらついたり負荷がかかるのを防ぐため、最後の入力から一定時間（デフォルト400ms）待機してから処理を安全に実行する共通タイマーユーティリティです。
+
+### 📁 関連ファイル
+
+- `lib/src/core/utils/debouncer.dart`
+- `test/src/core/utils/debouncer_test.dart`
+
+### 特徴と使用方法
+
+コンストラクタで待機時間（`Duration`）を指定し、`run(VoidCallback action)` で実行したい処理を登録します。短時間の連続入力時には直前のタイマーが自動キャンセルされ、最後の1回だけが実行されます。画面破棄時には `dispose()` でタイマーを破棄します。実装詳細は [debouncer.dart](../lib/src/core/utils/debouncer.dart) を参照してください（利用例: [memo_screen.dart](../lib/src/features/memos/presentation/memo_screen.dart)、[user_list_screen.dart](../lib/src/features/user/presentation/user_list_screen.dart)）。
+
+---
+
+## 🖍️ 14. テキストハイライト共通Widget（HighlightedText）
+
+指定したテキスト文字列の中で、検索クエリと一致する部分（大文字・小文字を区別しない部分一致）を検出して背景色や文字色を変更して目立たせる（ハイライト表示する）共通UIコンポーネントです。
+
+### 📁 関連ファイル
+
+- `lib/src/core/widgets/highlighted_text.dart`
+- `test/src/core/widgets/highlighted_text_test.dart`
+
+### 特徴と使用方法
+
+`Text.rich` と `TextSpan` を用いて、一致箇所と非一致箇所を安全に分割レンダリングします。正規表現の特殊文字（`*`, `+`, `?` など）が含まれていても `RegExp.escape` で自動エスケープ処理されるため、安全に検索一致を抽出できます。実装詳細は [highlighted_text.dart](../lib/src/core/widgets/highlighted_text.dart) を参照してください（利用例: [memo_screen.dart](../lib/src/features/memos/presentation/memo_screen.dart)、[user_list_screen.dart](../lib/src/features/user/presentation/user_list_screen.dart)）。

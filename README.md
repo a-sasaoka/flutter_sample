@@ -30,11 +30,11 @@ Flutter開発のサンプルプロジェクトです。\
 - [API通信とエラーハンドリング（Dio）](docs/api_and_error_handling.md)
 - [データ永続化・ローカルDB（SharedPreferences / Drift / Secure Storage）](docs/persistence.md)
 - [テーマ設定（FlexColorScheme）](docs/theme.md)
-- [共通ユーティリティ（ログ・通信状態・ライフサイクル・フォーム検証）](docs/core_utilities.md)
+- [共通ユーティリティ（ログ・通信状態・ライフサイクル・デバウンス・ハイライト等）](docs/core_utilities.md)
 
 ### D. 機能別実装
 
-- [ユーザー一覧機能 (User List)](docs/user.md)
+- [ユーザー一覧機能・デバウンス検索 (User List)](docs/user.md)
 - [ホーム画面 (Navigation Hub)](docs/home.md)
 - [トークン認証（Bearer + Refresh）](docs/auth.md)
 - [Firebase Authenticationによる認証対応](docs/firebase_authentication.md)
@@ -44,7 +44,7 @@ Flutter開発のサンプルプロジェクトです。\
 - [遠隔機能制御・バージョン通知（Firebase Remote Config）](docs/remote_config.md)
 - [AIチャット機能・アプリ操作エージェント (Firebase AI Logic)](docs/ai_chat.md)
 - [fl_chart によるグラフ表示デモ](docs/chart.md)
-- [オフラインメモ機能・マルチユーザー対応（Memos）](docs/memos.md)
+- [オフラインメモ機能・タグ絞り込み検索（Memos）](docs/memos.md)
 - [設定機能（Settings）](docs/settings.md)
 - [オンボーディング機能 (Onboarding)](docs/onboarding.md)
 - [プロフィール登録・変更・アバター画像設定機能 (Profile)](docs/profile.md)
