@@ -932,7 +932,9 @@ void main() {
           ),
         ).thenAnswer((invocation) {
           final query = invocation.namedArguments[#query] as String? ?? '';
-          if (query == 'ひらめき') {
+          final category =
+              invocation.namedArguments[#category] as MemoCategory?;
+          if (query == 'ひらめき' && category == null) {
             return Stream.value([
               MemoModel(
                 id: '2',
