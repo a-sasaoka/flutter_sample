@@ -784,6 +784,65 @@ void main() {
       check(find.text('既存メモ')).findsOne();
     });
 
+    testWidgets('カテゴリ選択中に検索語を入力し、400ms以内に「すべて」チップを押した場合に保留中検索が取り消されること', (
+      tester,
+    ) async {
+      when(() => mockMemoRepository.watchAllMemos(any())).thenAnswer(
+        (_) => Stream.value([
+          MemoModel(
+            id: '1',
+            userId: 'test_user_id',
+            title: '仕事のメモ',
+            content: '内容1',
+            category: MemoCategory.work,
+            createdAt: DateTime(2026, 10, 25),
+            updatedAt: DateTime(2026, 10, 25),
+          ),
+          MemoModel(
+            id: '2',
+            userId: 'test_user_id',
+            title: 'アイデアのメモ',
+            content: '内容2',
+            category: MemoCategory.idea,
+            createdAt: DateTime(2026, 10, 25),
+            updatedAt: DateTime(2026, 10, 25),
+          ),
+        ]),
+      );
+      when(
+        () => mockMemoRepository.watchFilteredMemos(
+          any(),
+          query: any(named: 'query'),
+          category: any(named: 'category'),
+          unsyncedOnly: any(named: 'unsyncedOnly'),
+        ),
+      ).thenAnswer((_) => Stream.value([]));
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      // 1. 「仕事」チップをタップしてカテゴリを絞り込み
+      await tester.tap(find.widgetWithText(FilterChip, '仕事'));
+      await tester.pumpAndSettle();
+
+      // 2. 検索バーに文字を入力（400ms待機中）
+      await tester.enterText(find.byType(TextField).first, '未適用の検索語');
+      await tester.pump();
+
+      // 3. 400ms待たずに「すべて」チップをタップして全解除
+      await tester.tap(find.widgetWithText(FilterChip, 'すべて'));
+      await tester.pumpAndSettle();
+
+      // 4. 検索バーの文字がクリアされていること
+      check(find.text('未適用の検索語')).findsNothing();
+
+      // 5. 500ms経過しても検索が遅延発火せず、全件表示が維持されること
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+      check(find.text('仕事のメモ')).findsOne();
+      check(find.text('アイデアのメモ')).findsOne();
+    });
+
     testWidgets('新規メモ追加ダイアログでカテゴリを選択して保存できること', (tester) async {
       when(
         () => mockMemoRepository.addMemo(

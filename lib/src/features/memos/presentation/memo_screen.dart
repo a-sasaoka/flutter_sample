@@ -12,6 +12,7 @@ import 'package:flutter_sample/src/core/widgets/empty_state_widget.dart';
 import 'package:flutter_sample/src/core/widgets/highlighted_text.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_category.dart';
+import 'package:flutter_sample/src/features/memos/domain/memo_filter_state.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_sort_order.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_list_shimmer.dart';
@@ -243,16 +244,27 @@ class _MemoSearchAndSortBar extends HookConsumerWidget {
     // 入力中の文字の有無に応じてクリアボタン（×）を即座に再描画するために購読
     useListenable(controller);
 
-    // 外部から条件がクリアされた場合にコントローラも同期し、保留中のデバウンスもキャンセル
+    // 外部からクエリが変更された場合に入力欄を同期
     useEffect(() {
       if (filter.query != controller.text) {
         controller.text = filter.query;
       }
-      if (filter.query.isEmpty) {
-        debouncer.cancel();
-      }
       return null;
     }, [filter.query]);
+
+    // 「すべて」チップや「条件をクリア」による明示的な全解除時に検索欄と保留中タイマーを取り消す
+    ref.listen<MemoFilterState>(memoFilterProvider, (previous, next) {
+      final hadFilter =
+          (previous?.category != null) ||
+          (previous?.unsyncedOnly == true) ||
+          (previous?.query.isNotEmpty == true);
+      final isNowAllCleared =
+          next.category == null && !next.unsyncedOnly && next.query.isEmpty;
+      if (hadFilter && isNowAllCleared) {
+        controller.clear();
+        debouncer.cancel();
+      }
+    });
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
