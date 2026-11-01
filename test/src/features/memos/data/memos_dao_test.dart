@@ -345,6 +345,35 @@ void main() {
         check(backslashResults.first.id).equals('wildcard-backslash');
       });
 
+      test('【正常系】LIKEパターンが50,000バイトちょうどの境界値キーワードの場合、正常に検索できること', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        // 両端の「%」（2バイト）と合わせてちょうど50,000バイトとなる49,998文字のキーワード
+        final boundaryQuery = 'a' * 49998;
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'boundary-memo',
+            userId: testUserId,
+            title: '境界値テストメモ',
+            content: boundaryQuery,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+        final results = await dao.getFilteredMemos(
+          testUserId,
+          query: boundaryQuery,
+        );
+        check(results.length).equals(1);
+        check(results.first.id).equals('boundary-memo');
+
+        final streamResults = await dao
+            .watchFilteredMemos(testUserId, query: boundaryQuery)
+            .first;
+        check(streamResults.length).equals(1);
+        check(streamResults.first.id).equals('boundary-memo');
+      });
+
       test('【正常系】50,000バイトを超える長大キーワードの場合、SQLiteエラーにならず0件を返すこと', () async {
         // 50,001バイト以上の長いキーワード（日本語1文字は3バイト）
         final longQuery = 'あ' * 17000;
