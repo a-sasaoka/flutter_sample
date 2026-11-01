@@ -19,7 +19,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -55,6 +55,30 @@ class AppDatabase extends _$AppDatabase {
         );
         if (!hasCategory) {
           await m.addColumn(memos, memos.category);
+        }
+      }
+      if (from < 5) {
+        // メモ機能の並び替え（ドラッグ＆ドロップ）対応:
+        // 冪等性確保: sort_order カラムが存在しない場合のみ追加
+        final columns = await customSelect('PRAGMA table_info(memos);').get();
+        final hasSortOrder = columns.any(
+          (row) => row.read<String>('name') == 'sort_order',
+        );
+        if (!hasSortOrder) {
+          await m.addColumn(memos, memos.sortOrder);
+        }
+
+        // 既存メモが存在する場合、ユーザーごとに作成日時の降順で連番（0, 1, 2...）を初期設定
+        final existingMemos = await (select(
+          memos,
+        )..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).get();
+        final userSortCount = <String, int>{};
+        for (final memo in existingMemos) {
+          final count = userSortCount[memo.userId] ?? 0;
+          await (update(memos)..where((t) => t.id.equals(memo.id))).write(
+            MemosCompanion(sortOrder: Value(count)),
+          );
+          userSortCount[memo.userId] = count + 1;
         }
       }
     },

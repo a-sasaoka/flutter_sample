@@ -28,6 +28,7 @@ void main() {
           currentUserIdProvider.overrideWithValue('test_user_id'),
           memoRepositoryProvider.overrideWithValue(mockMemoRepository),
           isOnlineProvider.overrideWithValue(false),
+          loggerProvider.overrideWithValue(Talker()),
         ],
       );
       // デフォルトの振る舞い
@@ -503,8 +504,127 @@ void main() {
         memos = await container.read(memoProvider.future);
         check(memos.map((m) => m.id).toList()).deepEquals(['3', '2', '1']);
 
+        container
+            .read(memoSortOrderStateProvider.notifier)
+            .setSortOrder(MemoSortOrder.custom);
+        memos = await container.read(memoProvider.future);
+        check(memos.map((m) => m.id).toList()).deepEquals(['1', '2', '3']);
+
         sortSub.close();
         memoSub.close();
+      });
+
+      test('reorderMemos: 正常系でOptimistic UI更新されDB一括保存が呼ばれること', () async {
+        when(
+          () => mockMemoRepository.updateSortOrders(any(), any()),
+        ).thenAnswer((_) async {});
+
+        final memoSub = container.listen(memoProvider, (_, _) {});
+        await container.read(memoProvider.future);
+
+        // 最初の順序（作成日降順）: 2, 1, 3
+        check(
+          container.read(memoProvider).value!.map((m) => m.id).toList(),
+        ).deepEquals(['2', '1', '3']);
+
+        // index 0（'2'）を index 2 の位置へ移動
+        await container.read(memoProvider.notifier).reorderMemos(0, 2);
+
+        // Optimistic UIで即時反映: 1, 3, 2
+        check(
+          container.read(memoProvider).value!.map((m) => m.id).toList(),
+        ).deepEquals(['1', '3', '2']);
+
+        // ソート順が自動でcustomに切り替わっていること
+        check(
+          container.read(memoFilterProvider).sortOrder,
+        ).equals(MemoSortOrder.custom);
+
+        verify(
+          () => mockMemoRepository.updateSortOrders([
+            '1',
+            '3',
+            '2',
+          ], 'test_user_id'),
+        ).called(1);
+
+        memoSub.close();
+      });
+
+      test('reorderMemos: DB更新エラー時に元の順序にロールバックされること', () async {
+        when(
+          () => mockMemoRepository.updateSortOrders(any(), any()),
+        ).thenThrow(Exception('DB Error'));
+
+        final memoSub = container.listen(memoProvider, (_, _) {});
+        await container.read(memoProvider.future);
+
+        final initialIds = ['2', '1', '3'];
+
+        // 例外がスローされ、stateがロールバックされることを検証
+        await check(
+          container.read(memoProvider.notifier).reorderMemos(0, 1),
+        ).throws<Exception>();
+
+        check(
+          container.read(memoProvider).value!.map((m) => m.id).toList(),
+        ).deepEquals(initialIds);
+
+        memoSub.close();
+      });
+
+      test('reorderMemos: フィルタ適用中・同位置移動・未ログイン時は何もしないこと', () async {
+        final memoSub = container.listen(memoProvider, (_, _) {});
+        await container.read(memoProvider.future);
+
+        // 1. 同一インデックスへの移動
+        await container.read(memoProvider.notifier).reorderMemos(1, 1);
+        verifyNever(() => mockMemoRepository.updateSortOrders(any(), any()));
+
+        // 2. 検索中（アクティブフィルタあり）
+        container.read(memoFilterProvider.notifier).setQuery('search');
+        await container.read(memoProvider.notifier).reorderMemos(0, 1);
+        verifyNever(() => mockMemoRepository.updateSortOrders(any(), any()));
+
+        // 3. 未ログイン
+        final loggedOutContainer = ProviderContainer(
+          overrides: [
+            currentUserIdProvider.overrideWithValue(null),
+            memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+            isOnlineProvider.overrideWithValue(false),
+          ],
+        );
+        addTearDown(loggedOutContainer.dispose);
+        await loggedOutContainer.read(memoProvider.notifier).reorderMemos(0, 1);
+        verifyNever(() => mockMemoRepository.updateSortOrders(any(), any()));
+
+        memoSub.close();
+      });
+
+      test('restoreMemo: ログイン時にリポジトリのrestoreMemoが呼ばれ、未ログイン時は何もしないこと', () async {
+        when(
+          () => mockMemoRepository.restoreMemo(any(), any()),
+        ).thenAnswer((_) async {});
+
+        // ログイン時
+        await container.read(memoProvider.notifier).restoreMemo('memo-1');
+        verify(
+          () => mockMemoRepository.restoreMemo('memo-1', 'test_user_id'),
+        ).called(1);
+
+        // 未ログイン時
+        final loggedOutContainer = ProviderContainer(
+          overrides: [
+            currentUserIdProvider.overrideWithValue(null),
+            memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+            isOnlineProvider.overrideWithValue(false),
+          ],
+        );
+        addTearDown(loggedOutContainer.dispose);
+        await loggedOutContainer
+            .read(memoProvider.notifier)
+            .restoreMemo('memo-1');
+        verifyNever(() => mockMemoRepository.restoreMemo('memo-1', any()));
       });
     });
   });

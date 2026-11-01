@@ -16,5 +16,6 @@ sealed class MemoModel with _$MemoModel {
     @Default(false) bool isDeleted,
     @Default(false) bool isSynced,
     MemoCategory? category,
+    @Default(0) int sortOrder,
   }) = _MemoModel;
 }

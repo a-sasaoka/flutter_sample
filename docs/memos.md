@@ -49,10 +49,12 @@ memos/
 ### 3. 洗練された UI/UX
 
 - **追加フロー**: FAB から `ModalBottomSheet` を開き、一覧を隠さずスムーズに入力できます。
+- **ドラッグ＆ドロップ並び替え**: カード右端のドラッグハンドルアイコンから直感的にメモの表示順を入れ替え可能です。
+- **スワイプ削除 & Undo復元**: メモカードを右から左へ横スワイプするだけで安全に削除され、直後に表示される SnackBar の「元に戻す（Undo）」ボタンから即座に元の位置・元のIDのまま復元できます。
 - **同期状態の可視化**: 各メモカードに「同期済み（雲チェック）」「未同期（雲オフ）」のアイコンを表示。
 - **手動同期**: 通信環境が回復した際、AppBar の同期ボタンから一括送信が可能です。
 - **Pull-to-Refresh**: リストを下に引っ張ることで、強制的にリモートとの同期（マージ）を実行します。
-- **触覚フィードバック（Haptic Feedback）**: 同期、追加、保存、削除といった主要な操作に対して、操作の重要度に応じた振動フィードバックを提供し、直感的な操作感をサポートします。
+- **触覚フィードバック（Haptic Feedback）**: 同期、追加、保存、スワイプ削除、並び替えといった主要な操作に対して、操作の重要度に応じた振動フィードバックを提供し、直感的な操作感をサポートします。
 
 ### 4. Drift + StreamNotifier によるリアクティブ UI
 
@@ -67,7 +69,7 @@ memos/
 - **複数タグ（FilterChip）によるカテゴリ・未同期絞り込み**: 検索窓の下部に横スクロール可能な FilterChip バー（すべて / 仕事 / プライベート / アイデア / 未同期のみ）を配置。ワンタップでカテゴリや未同期メモのみを複合的に絞り込めます。
 - **一致キーワードのハイライト表示**: Core層の [highlighted_text.dart](../lib/src/core/widgets/highlighted_text.dart) を使用し、メモカードのタイトルや内容に含まれる検索クエリと一致する文字を背景色付きで視覚的に強調します。
 - **0件時の検索条件クリアボタン**: 絞り込み条件（キーワードやタグ）に合致するメモが0件の場合、専用の EmptyStateWidget に「条件をクリア」アクションボタンを表示し、1タップで条件をリセットできます。
-- **多様なソート条件**: 作成日時（新旧）、更新日時（新旧）、タイトル（昇順・降順）の6つの並び替え順を、状態管理 (StreamNotifier) 層でリストをコピーしつつ適用し、安全なデータ操作を保証します。
+- **多様なソート条件**: 作成日時（新旧）、更新日時（新旧）、タイトル（昇順・降順）、および手動ドラッグ＆ドロップによるカスタム順の計7つの並び替え順を、状態管理 (StreamNotifier) 層でリストをコピーしつつ適用し、安全なデータ操作を保証します。ドラッグ並び替え時は自動でカスタム順へ切り替わります。
 - **新規メモ作成時のカテゴリ選択**: 追加ダイアログ（ModalBottomSheet）内にもカテゴリ選択チップを搭載し、メモ登録時にカテゴリ（仕事/プライベート/アイデア/指定なし）を直感的に設定できます。
 
 ### 6. ホーム画面ウィジェット連携（最新メモの自動同期）
@@ -80,8 +82,8 @@ memos/
 
 同一端末で複数アカウントが利用されるシナリオにおいて、ユーザー間のメモ混同やプライバシー漏洩を根本防止するため、データベースからUI層まで完全なマルチユーザー分離を実現しています。
 
-- **テーブル定義とマイグレーション**: [memo_table.dart](../lib/src/features/memos/data/memo_table.dart) に `userId` カラム（NOT NULL）を追加（v3）し、さらに `category` カラム（Nullable TextColumn）を追加（v4）。[app_database.dart](../lib/src/app/database/app_database.dart) のスキーマバージョンを 3 から 4 へ安全にアップデートしています。
-- **DAO & Repository のユーザー制限**: [memos_dao.dart](../lib/src/features/memos/data/memos_dao.dart) および [memo_repository.dart](../lib/src/features/memos/data/memo_repository.dart) のすべてのクエリ（一覧取得・カテゴリ絞り込み・作成・更新・削除・未同期メモ抽出）に `userId` を必須指定とし、他ユーザーのメモを一切参照・変更できない構造を担保。
+- **テーブル定義とマイグレーション**: [memo_table.dart](../lib/src/features/memos/data/memo_table.dart) に `userId` カラム（NOT NULL）を追加（v3）、さらに `category` カラム（Nullable TextColumn）を追加（v4）、そして並び順永続化用の `sortOrder` カラム（integer、デフォルト 0）を追加（v5）。[app_database.dart](../lib/src/app/database/app_database.dart) のスキーマバージョンを段階的に安全にアップデートしています。
+- **DAO & Repository のユーザー制限**: [memos_dao.dart](../lib/src/features/memos/data/memos_dao.dart) および [memo_repository.dart](../lib/src/features/memos/data/memo_repository.dart) のすべてのクエリ（一覧取得・カテゴリ絞り込み・作成・更新・削除・並び順更新・未同期メモ抽出）に `userId` を必須指定とし、他ユーザーのメモを一切参照・変更できない構造を担保。
 - **Notifier の認証連動**: [memo_notifier.dart](../lib/src/features/memos/application/memo_notifier.dart) は [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の `currentUserIdProvider` をリアクティブに監視。未ログイン時は即座に空リスト（`[]`）を返却し、ログイン（またはアカウント切り替え）時に現在ログインしているユーザーのメモのみを即時提供します。
 
 ### 8. AIチャット機能（Function Calling）との連携
@@ -91,6 +93,14 @@ AIチャット画面からの自然言語指示に基づき、AIエージェン�
 - **依存性逆転（DIP）による疎結合**: メモ機能層（`features/memos`）は AIチャット機能層（`features/chat`）を一切参照していません。結合層である [app_action_dispatcher_impl.dart](../lib/src/app/actions/app_action_dispatcher_impl.dart) が Core層の抽象インターフェース [app_action_dispatcher.dart](../lib/src/core/actions/app_action_dispatcher.dart) を実装し、[memo_repository.dart](../lib/src/features/memos/data/memo_repository.dart) を呼び出すため、各機能の独立性とテスト容易性が完全に保たれています。
 - **マルチユーザー保護とウィジェット連携の維持**: AI経由で作成されたメモも、現在ログインしているユーザーの `currentUserIdProvider` から取得したユーザーIDに厳格に紐付けてローカルDB（Drift）へ保存されます。作成後は既存の [home_widget_sync_coordinator.dart](../lib/src/features/home_widget/application/home_widget_sync_coordinator.dart) を通じてホーム画面ウィジェットへも即座に同期されます。
 
+### 9. ドラッグ＆ドロップ並び替え（Optimistic UI）とスワイプ削除（Undo復元）
+
+学習ニーズと実務での検索需要が高いリストUI操作を、堅牢なアーキテクチャと最適なユーザー体験で両立しています。実装詳細は [memo_notifier.dart](../lib/src/features/memos/application/memo_notifier.dart) および [memo_screen.dart](../lib/src/features/memos/presentation/memo_screen.dart) を参照してください。
+
+- **Optimistic UI（即時反映）による画面チラつき防止**: Drift の Stream を直接監視している場合、ドラッグ完了から DB 更新・Stream 再発行までのラグによってアイテムが一瞬元の位置に戻るチラつきが発生します。`MemoNotifier.reorderMemos` 内でローカルの `state` を即座に並び替えて同期的に描画更新し、バックグラウンドで `memosDao.updateSortOrders` トランザクションを実行します。万一の DB 保存エラー時は元のリストへ安全にロールバックします。
+- **誤操作を防ぐ明瞭な操作UX**: アイテム長押しドラッグと横スワイプ削除の誤爆を防ぐため、`buildDefaultDragHandles: false` を設定し、カード右端に配置した専用のドラッグハンドルアイコン（`ReorderableDragStartListener`）でのみ並び替えを開始できるようにしています。また、検索中やタグ絞り込み中などのフィルタ適用時はドラッグハンドルを非活性化し、意図しない順序破壊を未然に防ぎます。
+- **右から左スワイプ削除 & SnackBar による Undo 復元**: `Dismissible`（`DismissDirection.endToStart`）を採用し、誤操作の少ない右から左スワイプで赤色背景＋ゴミ箱アイコンを表示して即座に論理削除（`isDeleted: true`）します。削除直後に画面下部に表示される SnackBar の「元に戻す（Undo）」ボタンをタップすると、元の `sortOrder`・元のIDのまま即座に `isDeleted: false` に更新され、元の位置へ完全に復活します。
+
 ---
 
 ## テスト
@@ -98,14 +108,15 @@ AIチャット画面からの自然言語指示に基づき、AIエージェン�
 本機能は、データ層から UI 層まで 100% のテストカバレッジを実現しています。
 
 - **Unit Test**:
-  - `AppDatabase`: スキーマバージョン 3 および 4 への安全なマイグレーション検証（`app_database_test.dart`）。
-  - `MemosDao`: `category` カラムやキーワード、未同期フラグを指定した絞り込みクエリの正確性検証（`memos_dao_test.dart`）。
-  - `MemoRepository`: オフライン保存、エラー時のリトライフラグ、リモートデータとのマージロジック、および**複数ユーザー間での完全データ分離（他ユーザーのメモが混ざらないこと）**の検証。
-  - `MemoFilterNotifier`: 検索クエリ、カテゴリ選択、未同期フラグ、ソート順の更新・リセットおよびアクティブフィルタ判定の検証（`memo_filter_notifier_test.dart`）。
-  - `MemoNotifier`: 追加・削除・同期命令後の状態更新、未ログイン時の空配列返却、ログイン時のユーザー別メモ読み込み検証。
+  - `AppDatabase`: スキーマバージョン 3, 4, および 5 への安全なマイグレーション検証（`app_database_test.dart`）。
+  - `MemosDao`: カテゴリ・未同期絞り込み、新規追加時の順序シフト（`shiftSortOrders`）、一括並び替え（`updateSortOrders`）、削除復元（`restoreMemo`）の正確性検証（`memos_dao_test.dart`）。
+  - `MemoRepository`: オフライン保存、エラー時のリトライフラグ、リモートデータとのマージロジック、新規メモ先頭採番、並び替え一括保存、Undo復元、および複数ユーザー間での完全データ分離の検証（`memo_repository_test.dart`）。
+  - `MemoFilterNotifier`: 検索クエリ、カテゴリ選択、未同期フラグ、カスタム順を含むソート順の更新・リセットおよびアクティブフィルタ判定の検証（`memo_filter_notifier_test.dart`）。
+  - `MemoNotifier`: 追加・削除・同期命令後の状態更新、未ログイン時の空配列返却、ログイン時のユーザー別メモ読み込み、Optimistic UI 並び替えとロールバック、Undo復元の検証（`memo_notifier_test.dart`）。
 - **Widget Test**:
-  - `MemoScreen`: 空状態の表示、ボトムシートでの入力、削除確認ダイアログ、同期ボタンの動作。
+  - `MemoScreen`: 空状態の表示、ボトムシートでの入力、同期ボタンの動作。
   - `MemoScreen (検索・タグ絞り込み・ソート)`: 400ms デバウンス検索、FilterChip によるカテゴリおよび未同期絞り込み、一致ハイライト表示、検索結果0件時の条件クリアボタンの動作、新規作成ダイアログでのカテゴリ保存の検証。
+  - `MemoScreen (並び替え・スワイプ削除・Undo)`: ドラッグハンドルの活性/非活性切り替え、カスタムソートメニュー選択、右から左スワイプによる削除、および SnackBar の「元に戻す」タップによる復元検証（`memo_screen_test.dart`）。
 - **Golden Test**:
   - `MemoScreen`: メモ一覧画面（データあり/空/検索キーワード一致ハイライト/カテゴリタグ絞り込み/検索結果0件）の表示確認（`memo_screen_golden_test.dart`）。
 

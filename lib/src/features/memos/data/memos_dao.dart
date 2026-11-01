@@ -142,4 +142,49 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
       batch.insertAll(memos, companions, mode: InsertMode.insertOrReplace);
     });
   }
+
+  /// 新規メモを先頭に追加するため、既存の有効なメモの並び順を1つずつ後ろにずらす
+  Future<void> shiftSortOrders(String userId) async {
+    await customUpdate(
+      'UPDATE memos SET sort_order = sort_order + 1 '
+      'WHERE user_id = ? AND is_deleted = 0;',
+      variables: [Variable.withString(userId)],
+      updates: {memos},
+    );
+  }
+
+  /// 新規メモを先頭（sortOrder: 0）に追加し、既存の有効なメモを1つずつ後ろにずらす
+  /// トランザクション内でアトミックに実行されるため、変更通知は1回のみ発行されます
+  Future<void> insertMemoWithShift(String userId, MemosCompanion memo) async {
+    await transaction(() async {
+      await shiftSortOrders(userId);
+      await insertMemo(memo);
+    });
+  }
+
+  /// 指定したユーザーのメモの並び順（sortOrder）を一括更新する
+  Future<void> updateSortOrders(
+    Map<String, int> idToOrderMap,
+    String userId,
+  ) async {
+    await transaction(() async {
+      for (final entry in idToOrderMap.entries) {
+        await (update(memos)
+              ..where((t) => t.id.equals(entry.key) & t.userId.equals(userId)))
+            .write(MemosCompanion(sortOrder: Value(entry.value)));
+      }
+    });
+  }
+
+  /// 削除されたメモを復元する（論理削除フラグを解除して未同期状態にする）
+  Future<void> restoreMemo(String id, String userId, DateTime updatedAt) =>
+      (update(
+        memos,
+      )..where((t) => t.id.equals(id) & t.userId.equals(userId))).write(
+        MemosCompanion(
+          isDeleted: const Value(false),
+          updatedAt: Value(updatedAt),
+          isSynced: const Value(false),
+        ),
+      );
 }

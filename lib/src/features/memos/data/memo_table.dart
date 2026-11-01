@@ -31,6 +31,9 @@ class Memos extends Table {
   /// メモのカテゴリ（enumで型安全に管理。未設定はnull）
   TextColumn get category => textEnum<MemoCategory>().nullable()();
 
+  /// メモの並び順（0が一番上。昇順でソートする）
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
   @override
   Set<Column> get primaryKey => {id}; // idを主キー（メインの目印）にする
 }
