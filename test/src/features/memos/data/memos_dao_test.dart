@@ -254,7 +254,7 @@ void main() {
         check(results.length).equals(3);
       });
 
-      test('【正常系】% や _ を含むキーワードがワイルドカードではなくリテラルとして検索されること', () async {
+      test(r'【正常系】%、_、\ を含むキーワードがワイルドカードやエスケープ文字ではなくリテラルとして検索されること', () async {
         final now = DateTime(2026, 10, 25, 10);
         await dao.insertMemo(
           MemosCompanion.insert(
@@ -298,6 +298,27 @@ void main() {
             updatedAt: now,
           ),
         );
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'wildcard-backslash',
+            userId: testUserId,
+            title: r'C:\path のメモ',
+            content: '詳細情報',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+        // \ がエスケープ文字として消費された場合に誤ヒットするダミーメモ
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'wildcard-backslash-dummy',
+            userId: testUserId,
+            title: 'C:path のメモ',
+            content: '詳細情報',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
 
         // '100%' で検索して「割引率100%セール」のみヒットし、「割引率100円セール」は除外されること
         final percentResults = await dao.getFilteredMemos(
@@ -314,6 +335,14 @@ void main() {
         );
         check(underscoreResults.length).equals(1);
         check(underscoreResults.first.id).equals('wildcard-underscore');
+
+        // r'C:\path' で検索して「C:\path のメモ」のみヒットし、「C:path のメモ」は除外されること
+        final backslashResults = await dao.getFilteredMemos(
+          testUserId,
+          query: r'C:\path',
+        );
+        check(backslashResults.length).equals(1);
+        check(backslashResults.first.id).equals('wildcard-backslash');
       });
 
       test('【正常系】50,000バイトを超える長大キーワードの場合、SQLiteエラーにならず0件を返すこと', () async {
