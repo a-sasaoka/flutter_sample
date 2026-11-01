@@ -68,6 +68,29 @@ void main() {
       check(highlightSpan.style?.fontWeight).equals(FontWeight.bold);
     });
 
+    testWidgets('【正常系】正規表現の特殊文字（.など）が含まれていてもリテラルとして一致すること', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: HighlightedText(text: 'axb a.b', highlight: 'a.b'),
+          ),
+        ),
+      );
+
+      final textWidget = tester.widget<Text>(find.byType(Text));
+      final textSpan = textWidget.textSpan! as TextSpan;
+
+      // 'axb ' と 'a.b' の計2つに分割されること（'axb' はハイライトされない）
+      check(textSpan.children?.length).equals(2);
+
+      final beforeSpan = textSpan.children![0] as TextSpan;
+      final highlightSpan = textSpan.children![1] as TextSpan;
+
+      check(beforeSpan.text).equals('axb ');
+      check(highlightSpan.text).equals('a.b');
+      check(highlightSpan.style?.fontWeight).equals(FontWeight.bold);
+    });
+
     testWidgets('【正常系】大文字・小文字を区別せずハイライトされること', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
