@@ -100,12 +100,10 @@ void main() {
       },
     );
 
-    test(
-      'onUpgrade (from 3 to 4): category カラムが存在しない場合に addColumn が実行されること',
-      () async {
-        // memos テーブルを一度削除し、category カラム無しのスキーマ（v3）で作成
-        await database.customStatement('DROP TABLE IF EXISTS memos;');
-        await database.customStatement('''
+    test('onUpgrade (from 3 to 4): category カラム追加時に既存データが保持されること', () async {
+      // memos テーブルを一度削除し、category カラム無しのスキーマ（v3）で作成
+      await database.customStatement('DROP TABLE IF EXISTS memos;');
+      await database.customStatement('''
         CREATE TABLE memos (
           id TEXT NOT NULL PRIMARY KEY,
           user_id TEXT NOT NULL,
@@ -118,19 +116,35 @@ void main() {
         );
       ''');
 
-        // マイグレーション実行 (from 3 to 4)
-        await database.migration.onUpgrade(database.createMigrator(), 3, 4);
+      // 移行前のv3テーブルにテスト用のメモデータを投入
+      await database.customStatement('''
+        INSERT INTO memos (id, user_id, title, content, created_at, updated_at, is_deleted, is_synced)
+        VALUES ('v3-memo-1', 'user-123', '移行前タイトル', '移行前コンテンツ', 1748000000, 1748000000, 0, 1);
+      ''');
 
-        // category カラムが追加されたことを確認
-        final columns = await database
-            .customSelect('PRAGMA table_info(memos);')
-            .get();
-        final hasCategory = columns.any(
-          (row) => row.read<String>('name') == 'category',
-        );
-        check(hasCategory).isTrue();
-      },
-    );
+      // マイグレーション実行 (from 3 to 4)
+      await database.migration.onUpgrade(database.createMigrator(), 3, 4);
+
+      // category カラムが追加されたことを確認
+      final columns = await database
+          .customSelect('PRAGMA table_info(memos);')
+          .get();
+      final hasCategory = columns.any(
+        (row) => row.read<String>('name') == 'category',
+      );
+      check(hasCategory).isTrue();
+
+      // 既存行が保持され、新設された category 列が null であることを確認
+      final memos = await database.select(database.memos).get();
+      check(memos.length).equals(1);
+      final memo = memos.first;
+      check(memo.id).equals('v3-memo-1');
+      check(memo.userId).equals('user-123');
+      check(memo.title).equals('移行前タイトル');
+      check(memo.content).equals('移行前コンテンツ');
+      check(memo.category).isNull();
+      check(memo.isSynced).isTrue();
+    });
 
     test('テーブル操作の基本テスト (CRUD)', () async {
       // Create
