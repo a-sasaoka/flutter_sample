@@ -243,10 +243,13 @@ class _MemoSearchAndSortBar extends HookConsumerWidget {
     // 入力中の文字の有無に応じてクリアボタン（×）を即座に再描画するために購読
     useListenable(controller);
 
-    // 外部から条件がクリアされた場合にコントローラも同期
+    // 外部から条件がクリアされた場合にコントローラも同期し、保留中のデバウンスもキャンセル
     useEffect(() {
       if (filter.query != controller.text) {
         controller.text = filter.query;
+      }
+      if (filter.query.isEmpty) {
+        debouncer.cancel();
       }
       return null;
     }, [filter.query]);

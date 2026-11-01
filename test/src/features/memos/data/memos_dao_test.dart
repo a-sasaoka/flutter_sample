@@ -253,6 +253,46 @@ void main() {
         final results = await dao.getFilteredMemos(testUserId);
         check(results.length).equals(3);
       });
+
+      test('【正常系】% や _ を含むキーワードがワイルドカードではなくリテラルとして検索されること', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'wildcard-percent',
+            userId: testUserId,
+            title: '割引率100%セール',
+            content: '詳細情報',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'wildcard-underscore',
+            userId: testUserId,
+            title: 'user_1の設定',
+            content: '設定内容',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+        // '100%' で検索して該当の1件のみヒットすること
+        final percentResults = await dao.getFilteredMemos(
+          testUserId,
+          query: '100%',
+        );
+        check(percentResults.length).equals(1);
+        check(percentResults.first.id).equals('wildcard-percent');
+
+        // 'user_1' で検索して該当の1件のみヒットすること
+        final underscoreResults = await dao.getFilteredMemos(
+          testUserId,
+          query: 'user_1',
+        );
+        check(underscoreResults.length).equals(1);
+        check(underscoreResults.first.id).equals('wildcard-underscore');
+      });
     });
   });
 }

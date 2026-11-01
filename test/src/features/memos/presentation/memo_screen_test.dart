@@ -765,6 +765,23 @@ void main() {
 
       // 既存メモが再表示される
       check(find.text('既存メモ')).findsOne();
+
+      // 【再入力直後のクリア検証】0件状態で再入力し、400ms待たずにクリアボタンを押しても遅延発火しないこと
+      await tester.enterText(find.byType(TextField).first, '存在しないキーワード');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+
+      // 0件状態で新しい文字を入力
+      await tester.enterText(find.byType(TextField).first, '再入力キーワード');
+      await tester.pump();
+      // 400ms待たずに「条件をクリア」をタップ
+      await tester.tap(find.text('条件をクリア'));
+      await tester.pumpAndSettle();
+
+      // 400ms以上経過しても保留中だった「再入力キーワード」で上書きされず全件表示が維持されること
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+      check(find.text('既存メモ')).findsOne();
     });
 
     testWidgets('新規メモ追加ダイアログでカテゴリを選択して保存できること', (tester) async {

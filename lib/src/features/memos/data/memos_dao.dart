@@ -21,6 +21,15 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
     memos,
   )..where((t) => t.userId.equals(userId) & t.isDeleted.equals(false))).watch();
 
+  static String _escapeLikePattern(String input) {
+    final escaped = input
+        .replaceAll(r'\', r'\\')
+        .replaceAll('%', r'\%')
+        .replaceAll('_', r'\_')
+        .toLowerCase();
+    return '%$escaped%';
+  }
+
   /// 指定したユーザーのメモをキーワード・カテゴリ・未同期条件で絞り込んで監視する
   Stream<List<Memo>> watchFilteredMemos(
     String userId, {
@@ -32,11 +41,11 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
           var predicate = t.userId.equals(userId) & t.isDeleted.equals(false);
           final trimmedQuery = query?.trim();
           if (trimmedQuery != null && trimmedQuery.isNotEmpty) {
-            final pattern = '%${trimmedQuery.toLowerCase()}%';
+            final pattern = _escapeLikePattern(trimmedQuery);
             predicate =
                 predicate &
-                (t.title.lower().like(pattern) |
-                    t.content.lower().like(pattern));
+                (t.title.lower().like(pattern, escapeChar: r'\') |
+                    t.content.lower().like(pattern, escapeChar: r'\'));
           }
           if (category != null) {
             predicate = predicate & t.category.equals(category.name);
@@ -60,11 +69,11 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
           var predicate = t.userId.equals(userId) & t.isDeleted.equals(false);
           final trimmedQuery = query?.trim();
           if (trimmedQuery != null && trimmedQuery.isNotEmpty) {
-            final pattern = '%${trimmedQuery.toLowerCase()}%';
+            final pattern = _escapeLikePattern(trimmedQuery);
             predicate =
                 predicate &
-                (t.title.lower().like(pattern) |
-                    t.content.lower().like(pattern));
+                (t.title.lower().like(pattern, escapeChar: r'\') |
+                    t.content.lower().like(pattern, escapeChar: r'\'));
           }
           if (category != null) {
             predicate = predicate & t.category.equals(category.name);

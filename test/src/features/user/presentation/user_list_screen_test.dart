@@ -319,6 +319,23 @@ void main() {
 
       // 再び元のリストが表示されること
       check(find.text('Test User 1')).findsOne();
+
+      // 【再入力直後のクリア検証】0件状態で再入力し、400ms待たずにクリアボタンを押しても遅延発火しないこと
+      await tester.enterText(find.byType(TextField), 'Unknown User');
+      await tester.pump(const Duration(milliseconds: 450));
+      await tester.pumpAndSettle();
+
+      // 0件状態で新しい文字を入力
+      await tester.enterText(find.byType(TextField), 'Another Query');
+      await tester.pump();
+      // 400ms待たずに「Clear filter」をタップ
+      await tester.tap(find.widgetWithText(FilledButton, 'Clear filter'));
+      await tester.pumpAndSettle();
+
+      // 400ms以上経過しても保留中だった「Another Query」で上書きされず全件表示が維持されること
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+      check(find.text('Test User 1')).findsOne();
     });
 
     testWidgets('【UIテスト】画面外タップでキーボードのフォーカスが外れること', (tester) async {

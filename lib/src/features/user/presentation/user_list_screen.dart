@@ -193,10 +193,13 @@ class _UserSearchBar extends HookConsumerWidget {
 
     useEffect(() => debouncer.dispose, const []);
 
-    // 外部からクエリが変更された場合に入力欄を同期
+    // 外部からクエリが変更された場合に入力欄を同期し、保留中のデバウンスもキャンセル
     ref.listen<String>(userSearchQueryProvider, (previous, next) {
       if (controller.text != next) {
         controller.text = next;
+      }
+      if (next.isEmpty) {
+        debouncer.cancel();
       }
     });
 
