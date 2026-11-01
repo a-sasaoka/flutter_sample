@@ -124,6 +124,26 @@ void main() {
       check(result.value?.$2).equals(expectedFetchedAt);
     });
 
+    test('一致するユーザーがいない検索語の場合は空リストを返し、fetchedAt を維持すること', () async {
+      final expectedFetchedAt = DateTime(2026, 5, 20);
+      final container = ProviderContainer(
+        overrides: [
+          userProvider.overrideWith(
+            () => _FakeUserNotifier(dummyUsers, expectedFetchedAt),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      final sub = container.listen(filteredUsersProvider, (_, _) {});
+      addTearDown(sub.close);
+
+      await container.read(userProvider.future);
+      container.read(userSearchQueryProvider.notifier).setQuery('nonexistent');
+      final result = container.read(filteredUsersProvider);
+      check(result.value?.$1).isNotNull().isEmpty();
+      check(result.value?.$2).equals(expectedFetchedAt);
+    });
+
     test('初回ローディング中は AsyncLoading になること', () {
       final completer = Completer<(List<UserModel>, DateTime?)>();
       final container = ProviderContainer(
