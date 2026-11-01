@@ -838,6 +838,45 @@ void main() {
       check(memos.first.title).equals('fetch_title');
     });
 
+    test('fetchAndMergeRemoteMemos: リモート更新マージ時に既存のローカルカテゴリが維持されること', () async {
+      final container = createContainer();
+      final repository = container.read(memoRepositoryProvider);
+
+      // 事前にローカルにカテゴリ付きメモを作成
+      await repository.addMemo(
+        '既存タイトル',
+        '既存本文',
+        testUserId,
+        category: MemoCategory.work,
+      );
+      final localMemos = await database.select(database.memos).get();
+      final memoId = localMemos.first.id;
+
+      // リモートから更新（より新しい updatedAt）を受信
+      final remoteUpdatedAt = now.add(const Duration(minutes: 5));
+      when(() => mockRemoteService.fetchMemos()).thenAnswer(
+        (_) async => [
+          {
+            'id': memoId,
+            'title': 'リモート更新タイトル',
+            'content': 'リモート更新本文',
+            'createdAt': now,
+            'updatedAt': remoteUpdatedAt,
+            'isDeleted': false,
+          },
+        ],
+      );
+
+      await repository.fetchAndMergeRemoteMemos(testUserId);
+
+      final mergedMemos = await database.select(database.memos).get();
+      check(mergedMemos.length).equals(1);
+      check(mergedMemos.first.id).equals(memoId);
+      check(mergedMemos.first.title).equals('リモート更新タイトル');
+      // ローカルで設定していたカテゴリが保持されていること
+      check(mergedMemos.first.category).equals(MemoCategory.work);
+    });
+
     test('マルチユーザー分離: 異なるユーザーIDのメモは互いに取得・更新・削除されないこと', () async {
       final container = createContainer(isOnline: false);
       final repository = container.read(memoRepositoryProvider);

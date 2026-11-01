@@ -290,4 +290,4 @@ WebサイトのURL検証および外部ブラウザ起動を安全に行う共�
 
 ### 特徴と使用方法
 
-`Text.rich` と `TextSpan` を用いて、一致箇所と非一致箇所を安全に分割レンダリングします。正規表現の特殊文字（`*`, `+`, `?` など）が含まれていても `RegExp.escape` で自動エスケープ処理されるため、安全に検索一致を抽出できます。実装詳細は [highlighted_text.dart](../lib/src/core/widgets/highlighted_text.dart) を参照してください（利用例: [memo_screen.dart](../lib/src/features/memos/presentation/memo_screen.dart)、[user_list_screen.dart](../lib/src/features/user/presentation/user_list_screen.dart)）。
+`Text.rich` と `TextSpan` を用いて、一致箇所と非一致箇所を安全に分割レンダリングします。小文字化した文字列に対して `String.indexOf` で部分一致箇所を検索するため、正規表現の特殊文字（`*`, `+`, `?` など）が含まれていてもリテラル文字列として安全に検索・ハイライトできます。実装詳細は [highlighted_text.dart](../lib/src/core/widgets/highlighted_text.dart) を参照してください（利用例: [memo_screen.dart](../lib/src/features/memos/presentation/memo_screen.dart)、[user_list_screen.dart](../lib/src/features/user/presentation/user_list_screen.dart)）。

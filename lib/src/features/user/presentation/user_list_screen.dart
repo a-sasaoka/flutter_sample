@@ -91,7 +91,7 @@ class UserListScreen extends HookConsumerWidget {
                         SizedBox(
                           height: MediaQuery.sizeOf(context).height * 0.15,
                         ),
-                        if (searchQuery.isNotEmpty)
+                        if (searchQuery.trim().isNotEmpty)
                           EmptyStateWidget(
                             title: l10n.userSearchEmpty,
                             actionLabel: l10n.userClearFilter,
@@ -187,6 +187,8 @@ class _UserSearchBar extends HookConsumerWidget {
     final l10n = context.l10n;
     final currentQuery = ref.watch(userSearchQueryProvider);
     final controller = useTextEditingController(text: currentQuery);
+    // 入力中の文字の有無に応じてクリアボタン（×）を即座に再描画するために購読
+    useListenable(controller);
     final debouncer = useMemoized(Debouncer.new, const []);
 
     useEffect(() => debouncer.dispose, const []);

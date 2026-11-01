@@ -318,6 +318,7 @@ class MemoRepository {
                   updatedAt: updatedAt,
                   isDeleted: drift.Value(isDeleted),
                   isSynced: const drift.Value(true),
+                  category: drift.Value(localMemo?.category),
                 ),
               );
             }

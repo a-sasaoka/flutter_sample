@@ -99,7 +99,7 @@ AIチャット画面からの自然言語指示に基づき、AIエージェン�
 
 - **Unit Test**:
   - `AppDatabase`: スキーマバージョン 3 および 4 への安全なマイグレーション検証（`app_database_test.dart`）。
-  - `MemosDao`: `category` カラムを指定した絞り込みクエリおよびソート順クエリの正確性検証（`memos_dao_test.dart`）。
+  - `MemosDao`: `category` カラムやキーワード、未同期フラグを指定した絞り込みクエリの正確性検証（`memos_dao_test.dart`）。
   - `MemoRepository`: オフライン保存、エラー時のリトライフラグ、リモートデータとのマージロジック、および**複数ユーザー間での完全データ分離（他ユーザーのメモが混ざらないこと）**の検証。
   - `MemoFilterNotifier`: 検索クエリ、カテゴリ選択、未同期フラグ、ソート順の更新・リセットおよびアクティブフィルタ判定の検証（`memo_filter_notifier_test.dart`）。
   - `MemoNotifier`: 追加・削除・同期命令後の状態更新、未ログイン時の空配列返却、ログイン時のユーザー別メモ読み込み検証。

@@ -333,16 +333,15 @@ void main() {
       // 検索バーをタップしてフォーカスを当てる
       await tester.tap(find.byType(TextField));
       await tester.pump();
-      check(
-        FocusScope.of(tester.element(find.byType(TextField))).hasFocus,
-      ).equals(true);
+      final focusNode = tester
+          .widget<EditableText>(find.byType(EditableText))
+          .focusNode;
+      check(focusNode.hasFocus).equals(true);
 
       // 画面のAppBarやリスト領域をタップしてフォーカス解除
       await tester.tapAt(const Offset(10, 300));
       await tester.pump();
-      check(
-        FocusScope.of(tester.element(find.byType(TextField))).hasPrimaryFocus,
-      ).equals(false);
+      check(focusNode.hasFocus).equals(false);
     });
   });
 }

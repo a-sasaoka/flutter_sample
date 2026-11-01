@@ -78,6 +78,15 @@ void main() {
         () => repository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value(memos));
 
+      when(
+        () => repository.watchFilteredMemos(
+          any(),
+          query: any(named: 'query'),
+          category: any(named: 'category'),
+          unsyncedOnly: any(named: 'unsyncedOnly'),
+        ),
+      ).thenAnswer((_) => Stream.value(memos));
+
       final isDark = themeMode == ThemeMode.dark;
 
       return ProviderScope(
