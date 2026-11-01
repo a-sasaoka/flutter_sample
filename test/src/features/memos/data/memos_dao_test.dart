@@ -266,6 +266,17 @@ void main() {
             updatedAt: now,
           ),
         );
+        // % がワイルドカードとして解釈された場合に誤ヒットするダミーメモ
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'wildcard-percent-dummy',
+            userId: testUserId,
+            title: '割引率100円セール',
+            content: '詳細情報',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
         await dao.insertMemo(
           MemosCompanion.insert(
             id: 'wildcard-underscore',
@@ -276,8 +287,19 @@ void main() {
             updatedAt: now,
           ),
         );
+        // _ がワイルドカードとして解釈された場合に誤ヒットするダミーメモ
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'wildcard-underscore-dummy',
+            userId: testUserId,
+            title: 'userA1の設定',
+            content: '設定内容',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
 
-        // '100%' で検索して該当の1件のみヒットすること
+        // '100%' で検索して「割引率100%セール」のみヒットし、「割引率100円セール」は除外されること
         final percentResults = await dao.getFilteredMemos(
           testUserId,
           query: '100%',
@@ -285,7 +307,7 @@ void main() {
         check(percentResults.length).equals(1);
         check(percentResults.first.id).equals('wildcard-percent');
 
-        // 'user_1' で検索して該当の1件のみヒットすること
+        // 'user_1' で検索して「user_1の設定」のみヒットし、「userA1の設定」は除外されること
         final underscoreResults = await dao.getFilteredMemos(
           testUserId,
           query: 'user_1',
