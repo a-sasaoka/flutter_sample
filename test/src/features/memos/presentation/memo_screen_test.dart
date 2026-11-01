@@ -13,6 +13,7 @@ import 'package:flutter_sample/src/core/widgets/empty_state_widget.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
+import 'package:flutter_sample/src/features/memos/domain/memo_category.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_list_shimmer.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
@@ -77,6 +78,14 @@ void main() {
     when(() => mockL10n.memoSortUpdatedAtAsc).thenReturn('更新：古い順');
     when(() => mockL10n.memoSortTitleAsc).thenReturn('タイトル：昇順');
     when(() => mockL10n.memoSortTitleDesc).thenReturn('タイトル：降順');
+    when(() => mockL10n.memoCategoryAll).thenReturn('すべて');
+    when(() => mockL10n.memoCategoryWork).thenReturn('仕事');
+    when(() => mockL10n.memoCategoryPersonal).thenReturn('個人');
+    when(() => mockL10n.memoCategoryIdea).thenReturn('アイデア');
+    when(() => mockL10n.memoCategorySelect).thenReturn('カテゴリ');
+    when(() => mockL10n.memoFilterUnsyncedOnly).thenReturn('未同期のみ');
+    when(() => mockL10n.memoSearchEmpty).thenReturn('一致するメモがありません');
+    when(() => mockL10n.memoClearFilter).thenReturn('条件をクリア');
 
     // デフォルトのスタブ設定
     when(
@@ -88,6 +97,14 @@ void main() {
     ).thenAnswer((_) {});
     when(
       () => mockMemoRepository.watchAllMemos(any()),
+    ).thenAnswer((_) => Stream.value([]));
+    when(
+      () => mockMemoRepository.watchFilteredMemos(
+        any(),
+        query: any(named: 'query'),
+        category: any(named: 'category'),
+        unsyncedOnly: any(named: 'unsyncedOnly'),
+      ),
     ).thenAnswer((_) => Stream.value([]));
   });
 
@@ -372,6 +389,22 @@ void main() {
       when(
         () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value(memoList));
+      when(
+        () => mockMemoRepository.watchFilteredMemos(
+          any(),
+          query: any(named: 'query'),
+          category: any(named: 'category'),
+          unsyncedOnly: any(named: 'unsyncedOnly'),
+        ),
+      ).thenAnswer((invocation) {
+        final query = invocation.namedArguments[#query] as String?;
+        if (query == null || query.isEmpty) {
+          return Stream.value(memoList);
+        }
+        return Stream.value(
+          memoList.where((m) => m.title.contains(query)).toList(),
+        );
+      });
 
       await setupWidget(tester);
       await tester.pumpAndSettle();
@@ -382,6 +415,14 @@ void main() {
 
       // 検索バーに「りんご」を入力
       await tester.enterText(find.byType(TextField).first, 'りんご');
+      await tester.pump();
+
+      // 400ms 経過前の 399ms 時点ではデバウンス発火前のため「バナナのメモ」もまだ表示されている
+      await tester.pump(const Duration(milliseconds: 399));
+      check(find.text('バナナのメモ')).findsOne();
+
+      // 残り 1ms 進めて 400ms に達するとデバウンスが発火し絞り込まれる
+      await tester.pump(const Duration(milliseconds: 1));
       await tester.pumpAndSettle();
 
       // 「りんご」のみ表示され、「バナナ」は非表示になる
@@ -604,6 +645,375 @@ void main() {
 
       // ボトムシート内の「保存」ボタンは表示されていないことを確認
       check(find.text('保存')).findsNothing();
+    });
+
+    testWidgets('FilterChip によるカテゴリ絞り込みおよび未同期絞り込みが動作すること', (tester) async {
+      final now = DateTime(2026, 10, 25);
+      final memoList = [
+        MemoModel(
+          id: '1',
+          userId: 'test_user_id',
+          title: '仕事のメモ',
+          content: '仕事内容',
+          createdAt: now,
+          updatedAt: now,
+          category: MemoCategory.work,
+          isSynced: true,
+        ),
+        MemoModel(
+          id: '2',
+          userId: 'test_user_id',
+          title: '個人のメモ',
+          content: '個人内容',
+          createdAt: now,
+          updatedAt: now,
+          category: MemoCategory.personal,
+        ),
+      ];
+
+      when(
+        () => mockMemoRepository.watchAllMemos(any()),
+      ).thenAnswer((_) => Stream.value(memoList));
+      when(
+        () => mockMemoRepository.watchFilteredMemos(
+          any(),
+          query: any(named: 'query'),
+          category: any(named: 'category'),
+          unsyncedOnly: any(named: 'unsyncedOnly'),
+        ),
+      ).thenAnswer((invocation) {
+        final category = invocation.namedArguments[#category] as MemoCategory?;
+        final unsyncedOnly = invocation.namedArguments[#unsyncedOnly] as bool?;
+        var result = memoList;
+        if (category != null) {
+          result = result.where((m) => m.category == category).toList();
+        }
+        if (unsyncedOnly == true) {
+          result = result.where((m) => !m.isSynced).toList();
+        }
+        return Stream.value(result);
+      });
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      // 初期状態（全件）
+      check(find.text('仕事のメモ')).findsOne();
+      check(find.text('個人のメモ')).findsOne();
+
+      // 「仕事」FilterChipをタップ
+      await tester.tap(find.widgetWithText(FilterChip, '仕事'));
+      await tester.pumpAndSettle();
+
+      check(find.text('仕事のメモ')).findsOne();
+      check(find.text('個人のメモ')).findsNothing();
+
+      // 「すべて」FilterChipをタップしてリセット
+      await tester.tap(find.widgetWithText(FilterChip, 'すべて'));
+      await tester.pumpAndSettle();
+
+      check(find.text('仕事のメモ')).findsOne();
+      check(find.text('個人のメモ')).findsOne();
+
+      // 「未同期のみ」FilterChipをタップ
+      await tester.tap(find.widgetWithText(FilterChip, '未同期のみ'));
+      await tester.pumpAndSettle();
+
+      check(find.text('仕事のメモ')).findsNothing();
+      check(find.text('個人のメモ')).findsOne();
+    });
+
+    testWidgets('検索条件に一致するメモが0件のとき「条件をクリア」ボタンが表示され、タップでクリアされること', (
+      tester,
+    ) async {
+      when(() => mockMemoRepository.watchAllMemos(any())).thenAnswer(
+        (_) => Stream.value([
+          MemoModel(
+            id: '1',
+            userId: 'test_user_id',
+            title: '既存メモ',
+            content: '内容',
+            createdAt: DateTime(2026, 10, 25),
+            updatedAt: DateTime(2026, 10, 25),
+          ),
+        ]),
+      );
+      when(
+        () => mockMemoRepository.watchFilteredMemos(
+          any(),
+          query: any(named: 'query'),
+          category: any(named: 'category'),
+          unsyncedOnly: any(named: 'unsyncedOnly'),
+        ),
+      ).thenAnswer((_) => Stream.value([]));
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      // 存在しないキーワードで検索
+      await tester.enterText(find.byType(TextField).first, '存在しないキーワード');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+
+      // 0件メッセージと「条件をクリア」ボタンが表示される
+      check(find.text('一致するメモがありません')).findsOne();
+      check(find.text('条件をクリア')).findsOne();
+
+      // 「条件をクリア」ボタンをタップ
+      await tester.tap(find.text('条件をクリア'));
+      await tester.pumpAndSettle();
+
+      // 既存メモが再表示される
+      check(find.text('既存メモ')).findsOne();
+
+      // 【再入力直後のクリア検証】0件状態で再入力し、400ms待たずにクリアボタンを押しても遅延発火しないこと
+      await tester.enterText(find.byType(TextField).first, '存在しないキーワード');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+
+      // 0件状態で新しい文字を入力
+      await tester.enterText(find.byType(TextField).first, '再入力キーワード');
+      await tester.pump();
+      // 400ms待たずに「条件をクリア」をタップ
+      await tester.tap(find.text('条件をクリア'));
+      await tester.pumpAndSettle();
+
+      // 400ms以上経過しても保留中だった「再入力キーワード」で上書きされず全件表示が維持されること
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+      check(find.text('既存メモ')).findsOne();
+    });
+
+    testWidgets('カテゴリ選択中に検索語を入力し、400ms以内に「すべて」チップを押した場合に保留中検索が取り消されること', (
+      tester,
+    ) async {
+      when(() => mockMemoRepository.watchAllMemos(any())).thenAnswer(
+        (_) => Stream.value([
+          MemoModel(
+            id: '1',
+            userId: 'test_user_id',
+            title: '仕事のメモ',
+            content: '内容1',
+            category: MemoCategory.work,
+            createdAt: DateTime(2026, 10, 25),
+            updatedAt: DateTime(2026, 10, 25),
+          ),
+          MemoModel(
+            id: '2',
+            userId: 'test_user_id',
+            title: 'アイデアのメモ',
+            content: '内容2',
+            category: MemoCategory.idea,
+            createdAt: DateTime(2026, 10, 25),
+            updatedAt: DateTime(2026, 10, 25),
+          ),
+        ]),
+      );
+      when(
+        () => mockMemoRepository.watchFilteredMemos(
+          any(),
+          query: any(named: 'query'),
+          category: any(named: 'category'),
+          unsyncedOnly: any(named: 'unsyncedOnly'),
+        ),
+      ).thenAnswer((_) => Stream.value([]));
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      // 1. 「仕事」チップをタップしてカテゴリを絞り込み
+      await tester.tap(find.widgetWithText(FilterChip, '仕事'));
+      await tester.pumpAndSettle();
+
+      // 2. 検索バーに文字を入力（400ms待機中）
+      await tester.enterText(find.byType(TextField).first, '未適用の検索語');
+      await tester.pump();
+
+      // 3. 400ms待たずに「すべて」チップをタップして全解除
+      await tester.tap(find.widgetWithText(FilterChip, 'すべて'));
+      await tester.pumpAndSettle();
+
+      // 4. 検索バーの文字がクリアされていること
+      check(find.text('未適用の検索語')).findsNothing();
+
+      // 5. 500ms経過しても検索が遅延発火せず、全件表示が維持されること
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+      check(find.text('仕事のメモ')).findsOne();
+      check(find.text('アイデアのメモ')).findsOne();
+    });
+
+    testWidgets('フィルター未適用状態で検索語を入力し、400ms以内に「すべて」チップを押した場合に保留中検索が取り消されること', (
+      tester,
+    ) async {
+      when(() => mockMemoRepository.watchAllMemos(any())).thenAnswer(
+        (_) => Stream.value([
+          MemoModel(
+            id: '1',
+            userId: 'test_user_id',
+            title: '仕事のメモ',
+            content: '内容1',
+            category: MemoCategory.work,
+            createdAt: DateTime(2026, 10, 25),
+            updatedAt: DateTime(2026, 10, 25),
+          ),
+          MemoModel(
+            id: '2',
+            userId: 'test_user_id',
+            title: 'アイデアのメモ',
+            content: '内容2',
+            category: MemoCategory.idea,
+            createdAt: DateTime(2026, 10, 25),
+            updatedAt: DateTime(2026, 10, 25),
+          ),
+        ]),
+      );
+      when(
+        () => mockMemoRepository.watchFilteredMemos(
+          any(),
+          query: any(named: 'query'),
+          category: any(named: 'category'),
+          unsyncedOnly: any(named: 'unsyncedOnly'),
+        ),
+      ).thenAnswer((_) => Stream.value([]));
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      // 1. カテゴリ等のフィルターが何もない状態で検索バーに文字を入力（400ms待機中）
+      await tester.enterText(find.byType(TextField).first, '未適用の検索語');
+      await tester.pump();
+
+      // 2. 400ms待たずに「すべて」チップをタップ
+      await tester.tap(find.widgetWithText(FilterChip, 'すべて'));
+      await tester.pumpAndSettle();
+
+      // 3. 検索バーの文字がクリアされていること
+      check(find.text('未適用の検索語')).findsNothing();
+
+      // 4. 500ms経過しても検索が遅延発火せず、全件表示が維持されること
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+      check(find.text('仕事のメモ')).findsOne();
+      check(find.text('アイデアのメモ')).findsOne();
+    });
+
+    testWidgets(
+      'カテゴリ選択中に検索語を入力し、400ms以内に同一カテゴリチップを押して個別解除した場合、検索語が保持され検索が発火すること',
+      (tester) async {
+        when(() => mockMemoRepository.watchAllMemos(any())).thenAnswer(
+          (_) => Stream.value([
+            MemoModel(
+              id: '1',
+              userId: 'test_user_id',
+              title: '仕事のメモ',
+              content: '内容1',
+              category: MemoCategory.work,
+              createdAt: DateTime(2026, 10, 25),
+              updatedAt: DateTime(2026, 10, 25),
+            ),
+            MemoModel(
+              id: '2',
+              userId: 'test_user_id',
+              title: 'アイデアのメモ',
+              content: '内容2',
+              category: MemoCategory.idea,
+              createdAt: DateTime(2026, 10, 25),
+              updatedAt: DateTime(2026, 10, 25),
+            ),
+          ]),
+        );
+        when(
+          () => mockMemoRepository.watchFilteredMemos(
+            any(),
+            query: any(named: 'query'),
+            category: any(named: 'category'),
+            unsyncedOnly: any(named: 'unsyncedOnly'),
+          ),
+        ).thenAnswer((invocation) {
+          final query = invocation.namedArguments[#query] as String? ?? '';
+          final category =
+              invocation.namedArguments[#category] as MemoCategory?;
+          if (query == 'ひらめき' && category == null) {
+            return Stream.value([
+              MemoModel(
+                id: '2',
+                userId: 'test_user_id',
+                title: 'ひらめきのメモ',
+                content: '内容2',
+                category: MemoCategory.idea,
+                createdAt: DateTime(2026, 10, 25),
+                updatedAt: DateTime(2026, 10, 25),
+              ),
+            ]);
+          }
+          return Stream.value([]);
+        });
+
+        await setupWidget(tester);
+        await tester.pumpAndSettle();
+
+        // 1. 「仕事」チップをタップしてカテゴリ絞り込み
+        await tester.tap(find.widgetWithText(FilterChip, '仕事'));
+        await tester.pumpAndSettle();
+
+        // 2. 検索バーに文字を入力（400ms待機中）
+        await tester.enterText(find.byType(TextField).first, 'ひらめき');
+        await tester.pump();
+
+        // 3. 400ms待たずに「仕事」チップをもう一度タップしてカテゴリ選択のみ解除
+        await tester.tap(find.widgetWithText(FilterChip, '仕事'));
+        await tester.pumpAndSettle();
+
+        // 4. 個別解除では検索バーの入力文字が消えずに残っていること
+        check(find.text('ひらめき')).findsOne();
+
+        // 5. 400ms経過後にデバウンス検索が実行され、「ひらめきのメモ」のみが表示されること
+        await tester.pump(const Duration(milliseconds: 500));
+        await tester.pumpAndSettle();
+        check(find.text('ひらめきのメモ')).findsOne();
+        check(find.text('仕事のメモ')).findsNothing();
+      },
+    );
+
+    testWidgets('新規メモ追加ダイアログでカテゴリを選択して保存できること', (tester) async {
+      when(
+        () => mockMemoRepository.addMemo(
+          any(),
+          any(),
+          any(),
+          category: any(named: 'category'),
+        ),
+      ).thenAnswer((_) async {});
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      // FABをタップしてボトムシートを開く
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      // タイトルと内容を入力
+      await tester.enterText(find.widgetWithText(TextField, 'タイトル'), 'アイデアメモ');
+      await tester.enterText(find.widgetWithText(TextField, '内容'), '閃いたアイデア');
+
+      // 「アイデア」カテゴリを選択
+      await tester.tap(find.widgetWithText(ChoiceChip, 'アイデア'));
+      await tester.pumpAndSettle();
+
+      // 「保存」ボタンをタップ
+      await tester.tap(find.text('保存'));
+      await tester.pumpAndSettle();
+
+      // addMemo が MemoCategory.idea を伴って呼ばれたことを確認
+      verify(
+        () => mockMemoRepository.addMemo(
+          'アイデアメモ',
+          '閃いたアイデア',
+          'test_user_id',
+          category: MemoCategory.idea,
+        ),
+      ).called(1);
     });
   });
 }

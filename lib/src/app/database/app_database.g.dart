@@ -99,6 +99,15 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
     defaultValue: const Constant(false),
   );
   @override
+  late final GeneratedColumnWithTypeConverter<MemoCategory?, String> category =
+      GeneratedColumn<String>(
+        'category',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<MemoCategory?>($MemosTable.$convertercategoryn);
+  @override
   List<GeneratedColumn> get $columns => [
     id,
     userId,
@@ -108,6 +117,7 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
     updatedAt,
     isDeleted,
     isSynced,
+    category,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -219,6 +229,12 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_synced'],
       )!,
+      category: $MemosTable.$convertercategoryn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}category'],
+        ),
+      ),
     );
   }
 
@@ -226,6 +242,11 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
   $MemosTable createAlias(String alias) {
     return $MemosTable(attachedDatabase, alias);
   }
+
+  static JsonTypeConverter2<MemoCategory, String, String> $convertercategory =
+      const EnumNameConverter<MemoCategory>(MemoCategory.values);
+  static JsonTypeConverter2<MemoCategory?, String?, String?>
+  $convertercategoryn = JsonTypeConverter2.asNullable($convertercategory);
 }
 
 class Memo extends DataClass implements Insertable<Memo> {
@@ -252,6 +273,9 @@ class Memo extends DataClass implements Insertable<Memo> {
 
   /// サーバーへ保存（同期）されたかどうかのフラグ
   final bool isSynced;
+
+  /// メモのカテゴリ（enumで型安全に管理。未設定はnull）
+  final MemoCategory? category;
   const Memo({
     required this.id,
     required this.userId,
@@ -261,6 +285,7 @@ class Memo extends DataClass implements Insertable<Memo> {
     required this.updatedAt,
     required this.isDeleted,
     required this.isSynced,
+    this.category,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -273,6 +298,11 @@ class Memo extends DataClass implements Insertable<Memo> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['is_synced'] = Variable<bool>(isSynced);
+    if (!nullToAbsent || category != null) {
+      map['category'] = Variable<String>(
+        $MemosTable.$convertercategoryn.toSql(category),
+      );
+    }
     return map;
   }
 
@@ -286,6 +316,9 @@ class Memo extends DataClass implements Insertable<Memo> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       isSynced: Value(isSynced),
+      category: category == null && nullToAbsent
+          ? const Value.absent()
+          : Value(category),
     );
   }
 
@@ -303,6 +336,9 @@ class Memo extends DataClass implements Insertable<Memo> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
+      category: $MemosTable.$convertercategoryn.fromJson(
+        serializer.fromJson<String?>(json['category']),
+      ),
     );
   }
   @override
@@ -317,6 +353,9 @@ class Memo extends DataClass implements Insertable<Memo> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'isSynced': serializer.toJson<bool>(isSynced),
+      'category': serializer.toJson<String?>(
+        $MemosTable.$convertercategoryn.toJson(category),
+      ),
     };
   }
 
@@ -329,6 +368,7 @@ class Memo extends DataClass implements Insertable<Memo> {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? isSynced,
+    Value<MemoCategory?> category = const Value.absent(),
   }) => Memo(
     id: id ?? this.id,
     userId: userId ?? this.userId,
@@ -338,6 +378,7 @@ class Memo extends DataClass implements Insertable<Memo> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     isSynced: isSynced ?? this.isSynced,
+    category: category.present ? category.value : this.category,
   );
   Memo copyWithCompanion(MemosCompanion data) {
     return Memo(
@@ -349,6 +390,7 @@ class Memo extends DataClass implements Insertable<Memo> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      category: data.category.present ? data.category.value : this.category,
     );
   }
 
@@ -362,7 +404,8 @@ class Memo extends DataClass implements Insertable<Memo> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
-          ..write('isSynced: $isSynced')
+          ..write('isSynced: $isSynced, ')
+          ..write('category: $category')
           ..write(')'))
         .toString();
   }
@@ -377,6 +420,7 @@ class Memo extends DataClass implements Insertable<Memo> {
     updatedAt,
     isDeleted,
     isSynced,
+    category,
   );
   @override
   bool operator ==(Object other) =>
@@ -389,7 +433,8 @@ class Memo extends DataClass implements Insertable<Memo> {
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
-          other.isSynced == this.isSynced);
+          other.isSynced == this.isSynced &&
+          other.category == this.category);
 }
 
 class MemosCompanion extends UpdateCompanion<Memo> {
@@ -401,6 +446,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<bool> isSynced;
+  final Value<MemoCategory?> category;
   final Value<int> rowid;
   const MemosCompanion({
     this.id = const Value.absent(),
@@ -411,6 +457,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
+    this.category = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   MemosCompanion.insert({
@@ -422,6 +469,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     required DateTime updatedAt,
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
+    this.category = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        userId = Value(userId),
@@ -438,6 +486,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? isSynced,
+    Expression<String>? category,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -449,6 +498,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (isSynced != null) 'is_synced': isSynced,
+      if (category != null) 'category': category,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -462,6 +512,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<bool>? isSynced,
+    Value<MemoCategory?>? category,
     Value<int>? rowid,
   }) {
     return MemosCompanion(
@@ -473,6 +524,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       isSynced: isSynced ?? this.isSynced,
+      category: category ?? this.category,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -504,6 +556,11 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     if (isSynced.present) {
       map['is_synced'] = Variable<bool>(isSynced.value);
     }
+    if (category.present) {
+      map['category'] = Variable<String>(
+        $MemosTable.$convertercategoryn.toSql(category.value),
+      );
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -521,6 +578,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('isSynced: $isSynced, ')
+          ..write('category: $category, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -812,6 +870,7 @@ typedef $$MemosTableCreateCompanionBuilder =
       required DateTime updatedAt,
       Value<bool> isDeleted,
       Value<bool> isSynced,
+      Value<MemoCategory?> category,
       Value<int> rowid,
     });
 typedef $$MemosTableUpdateCompanionBuilder =
@@ -824,6 +883,7 @@ typedef $$MemosTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<bool> isSynced,
+      Value<MemoCategory?> category,
       Value<int> rowid,
     });
 
@@ -873,6 +933,12 @@ class $$MemosTableFilterComposer extends Composer<_$AppDatabase, $MemosTable> {
   ColumnFilters<bool> get isSynced => $composableBuilder(
     column: $table.isSynced,
     builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<MemoCategory?, MemoCategory, String>
+  get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 }
 
@@ -924,6 +990,11 @@ class $$MemosTableOrderingComposer
     column: $table.isSynced,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$MemosTableAnnotationComposer
@@ -958,6 +1029,9 @@ class $$MemosTableAnnotationComposer
 
   GeneratedColumn<bool> get isSynced =>
       $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<MemoCategory?, String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
 }
 
 class $$MemosTableTableManager
@@ -996,6 +1070,7 @@ class $$MemosTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
+                Value<MemoCategory?> category = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => MemosCompanion(
                 id: id,
@@ -1006,6 +1081,7 @@ class $$MemosTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 isSynced: isSynced,
+                category: category,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -1018,6 +1094,7 @@ class $$MemosTableTableManager
                 required DateTime updatedAt,
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
+                Value<MemoCategory?> category = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => MemosCompanion.insert(
                 id: id,
@@ -1028,6 +1105,7 @@ class $$MemosTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 isSynced: isSynced,
+                category: category,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

@@ -350,12 +350,23 @@ void main() {
     when(() => mockL10n.memoSearchHint).thenReturn('Search memos');
     when(() => mockL10n.memoSynced).thenReturn('Synced');
     when(() => mockL10n.memoUnsynced).thenReturn('Unsynced');
+    when(() => mockL10n.memoCategoryAll).thenReturn('All');
+    when(() => mockL10n.memoCategoryWork).thenReturn('Work');
+    when(() => mockL10n.memoCategoryPersonal).thenReturn('Personal');
+    when(() => mockL10n.memoCategoryIdea).thenReturn('Idea');
+    when(() => mockL10n.memoCategorySelect).thenReturn('Select Category');
+    when(() => mockL10n.memoFilterUnsyncedOnly).thenReturn('Unsynced Only');
+    when(() => mockL10n.memoSearchEmpty).thenReturn('No memos found');
+    when(() => mockL10n.memoClearFilter).thenReturn('Clear Filter');
     when(() => mockL10n.userListTitle).thenReturn('User List');
     when(
       () => mockL10n.userListLastFetched(any()),
     ).thenAnswer((inv) => 'Last Fetched: ${inv.positionalArguments[0]}');
     when(() => mockL10n.userListEmpty).thenReturn('No Users');
     when(() => mockL10n.userListFetchError).thenReturn('Fetch Error');
+    when(() => mockL10n.userSearchHint).thenReturn('Search users...');
+    when(() => mockL10n.userSearchEmpty).thenReturn('No matching users.');
+    when(() => mockL10n.userClearFilter).thenReturn('Clear filter');
     when(() => mockL10n.chartLine).thenReturn('Line Chart');
     when(() => mockL10n.chartBar).thenReturn('Bar Chart');
     when(() => mockL10n.chartPie).thenReturn('Pie Chart');

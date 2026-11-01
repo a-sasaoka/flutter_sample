@@ -373,6 +373,30 @@ class AppLocalizationsJa extends AppLocalizations {
   String get memoSortTitleDesc => 'タイトル：降順';
 
   @override
+  String get memoCategoryAll => 'すべて';
+
+  @override
+  String get memoCategoryWork => '仕事';
+
+  @override
+  String get memoCategoryPersonal => '個人';
+
+  @override
+  String get memoCategoryIdea => 'アイデア';
+
+  @override
+  String get memoCategorySelect => 'カテゴリ';
+
+  @override
+  String get memoFilterUnsyncedOnly => '未同期のみ';
+
+  @override
+  String get memoSearchEmpty => '検索条件に一致するメモがありません';
+
+  @override
+  String get memoClearFilter => '検索条件をクリア';
+
+  @override
   String get widgetMemoEmptyTitle => 'メモがありません';
 
   @override
@@ -447,6 +471,15 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get userListEmpty => 'ユーザーが見つかりませんでした。';
+
+  @override
+  String get userSearchHint => '名前やメールアドレスで検索...';
+
+  @override
+  String get userSearchEmpty => '検索条件に一致するユーザーがいません';
+
+  @override
+  String get userClearFilter => '検索条件をクリア';
 
   @override
   String get userListFetchError => 'ユーザー一覧の取得に失敗しました。下へスクロールして更新してください。';

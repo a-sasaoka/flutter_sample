@@ -1,13 +1,17 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sample/src/core/services/app_lock_state_provider.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
+import 'package:flutter_sample/src/core/utils/debouncer.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/empty_state_widget.dart';
+import 'package:flutter_sample/src/core/widgets/highlighted_text.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
+import 'package:flutter_sample/src/features/memos/domain/memo_category.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_sort_order.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_list_shimmer.dart';
@@ -70,8 +74,10 @@ class MemoScreen extends HookConsumerWidget {
         ),
         body: Column(
           children: [
-            // 検索窓とソートボタンを上部に配置します
+            // 検索窓とソートボタンを上部に配置
             const _MemoSearchAndSortBar(),
+            // カテゴリタグ・未同期の絞り込みチップを配置
+            const _MemoFilterChipsBar(),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () => ref.read(memoProvider.notifier).sync(),
@@ -101,12 +107,13 @@ class MemoScreen extends HookConsumerWidget {
           final l10n = context.l10n;
           final titleController = useTextEditingController();
           final contentController = useTextEditingController();
+          final selectedCategory = useState<MemoCategory?>(null);
           final isLoading = useState(false);
 
           return GestureDetector(
             onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
             behavior: HitTestBehavior.opaque,
-            child: Padding(
+            child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
                 24,
                 24,
@@ -144,6 +151,30 @@ class MemoScreen extends HookConsumerWidget {
                     maxLines: 3,
                     enabled: !isLoading.value,
                   ),
+                  const SizedBox(height: 16),
+                  // カテゴリ選択用のチップ
+                  Text(
+                    l10n.memoCategorySelect,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: MemoCategory.values.map((cat) {
+                      final isSelected = selectedCategory.value == cat;
+                      return ChoiceChip(
+                        avatar: Icon(cat.icon, size: 16),
+                        label: Text(cat.label(l10n)),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          unawaited(HapticFeedback.selectionClick());
+                          selectedCategory.value = selected ? cat : null;
+                        },
+                      );
+                    }).toList(),
+                  ),
                   const SizedBox(height: 24),
                   FilledButton.icon(
                     onPressed: isLoading.value
@@ -156,7 +187,11 @@ class MemoScreen extends HookConsumerWidget {
                               try {
                                 await ref
                                     .read(memoProvider.notifier)
-                                    .addMemo(title, contentController.text);
+                                    .addMemo(
+                                      title,
+                                      contentController.text,
+                                      category: selectedCategory.value,
+                                    );
                                 unawaited(HapticFeedback.mediumImpact());
                                 if (context.mounted) {
                                   Navigator.pop(context);
@@ -197,42 +232,54 @@ class _MemoSearchAndSortBar extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    // 検索窓に入力されている現在のキーワードを監視します
-    final searchQuery = ref.watch(memoSearchQueryProvider);
-    // 現在選ばれている並び替え順を監視します
-    final sortOrder = ref.watch(memoSortOrderStateProvider);
+    final filter = ref.watch(memoFilterProvider);
+
+    // デバウンス用のタイマー管理インスタンス
+    final debouncer = useMemoized(Debouncer.new);
+    useEffect(() => debouncer.dispose, [debouncer]);
 
     // 入力窓の文字を管理するためのコントローラ
-    final controller = useTextEditingController(text: searchQuery);
+    final controller = useTextEditingController(text: filter.query);
+    // 入力中の文字の有無に応じてクリアボタン（×）を即座に再描画するために購読
+    useListenable(controller);
 
-    // 検索条件が他から空っぽにされた際などに、入力窓の文字もクリアします
+    // 外部からクエリが変更された場合に入力欄を同期
     useEffect(() {
-      if (searchQuery != controller.text) {
-        controller.text = searchQuery;
+      if (filter.query != controller.text) {
+        controller.text = filter.query;
       }
       return null;
-    }, [searchQuery]);
+    }, [filter.query]);
+
+    // 「すべて」チップや「条件をクリア」による明示的な全解除時のみ検索欄と保留中タイマーを取り消す
+    ref.listen<int>(memoFilterProvider.select((s) => s.resetCount), (
+      previous,
+      next,
+    ) {
+      if (previous != null && next > previous) {
+        controller.clear();
+        debouncer.cancel();
+      }
+    });
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Row(
         children: [
-          // 検索窓（文字を入れるとリアルタイムに検索が走るインクリメンタルサーチ）
+          // 検索窓（400msデバウンス検索）
           Expanded(
             child: TextField(
               controller: controller,
               decoration: InputDecoration(
                 hintText: l10n.memoSearchHint,
                 prefixIcon: const Icon(Icons.search),
-                // 文字が入力されている場合のみ、クリア用の「×」ボタンを表示します
                 suffixIcon: controller.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
                         onPressed: () {
                           controller.clear();
-                          ref
-                              .read(memoSearchQueryProvider.notifier)
-                              .setQuery('');
+                          debouncer.cancel();
+                          ref.read(memoFilterProvider.notifier).setQuery('');
                         },
                       )
                     : null,
@@ -242,17 +289,20 @@ class _MemoSearchAndSortBar extends HookConsumerWidget {
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16),
               ),
               onChanged: (value) {
-                ref.read(memoSearchQueryProvider.notifier).setQuery(value);
+                // 文字入力の手が400ms止まったタイミングで検索クエリを発火
+                debouncer.run(() {
+                  ref.read(memoFilterProvider.notifier).setQuery(value);
+                });
               },
             ),
           ),
           const SizedBox(width: 8),
           // 並び替えルールを選択するポップアップメニューボタン
           PopupMenuButton<MemoSortOrder>(
-            initialValue: sortOrder,
+            initialValue: filter.sortOrder,
             icon: const Icon(Icons.sort),
             onSelected: (order) {
-              ref.read(memoSortOrderStateProvider.notifier).setSortOrder(order);
+              ref.read(memoFilterProvider.notifier).setSortOrder(order);
             },
             itemBuilder: (context) => [
               PopupMenuItem(
@@ -287,6 +337,68 @@ class _MemoSearchAndSortBar extends HookConsumerWidget {
   }
 }
 
+/// カテゴリタグおよび未同期フラグによる横スクロール絞り込みバー
+class _MemoFilterChipsBar extends ConsumerWidget {
+  const _MemoFilterChipsBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final filter = ref.watch(memoFilterProvider);
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        children: [
+          // 「すべて」チップ
+          FilterChip(
+            label: Text(l10n.memoCategoryAll),
+            selected: filter.category == null && !filter.unsyncedOnly,
+            onSelected: (_) {
+              unawaited(HapticFeedback.selectionClick());
+              ref.read(memoFilterProvider.notifier).resetFilter();
+            },
+          ),
+          const SizedBox(width: 8),
+          // 各カテゴリチップ
+          ...MemoCategory.values.map((cat) {
+            final isSelected = filter.category == cat;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilterChip(
+                avatar: Icon(cat.icon, size: 16),
+                label: Text(cat.label(l10n)),
+                selected: isSelected,
+                onSelected: (_) {
+                  unawaited(HapticFeedback.selectionClick());
+                  ref.read(memoFilterProvider.notifier).toggleCategory(cat);
+                },
+              ),
+            );
+          }),
+          // 「未同期のみ」チップ
+          FilterChip(
+            avatar: Icon(
+              Icons.cloud_off,
+              size: 16,
+              color: filter.unsyncedOnly
+                  ? Theme.of(context).colorScheme.onErrorContainer
+                  : null,
+            ),
+            label: Text(l10n.memoFilterUnsyncedOnly),
+            selected: filter.unsyncedOnly,
+            onSelected: (_) {
+              unawaited(HapticFeedback.selectionClick());
+              ref.read(memoFilterProvider.notifier).toggleUnsyncedOnly();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// メモ一覧を表示するウィジェット
 class _MemoListView extends ConsumerWidget {
   const _MemoListView();
@@ -295,17 +407,28 @@ class _MemoListView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final memosAsyncValue = ref.watch(memoProvider);
+    final filter = ref.watch(memoFilterProvider);
 
     return switch (memosAsyncValue) {
       AsyncData(value: final memos) when memos.isEmpty => ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           SizedBox(height: MediaQuery.sizeOf(context).height * 0.15),
-          EmptyStateWidget(title: l10n.memoEmpty),
+          if (filter.hasActiveFilter)
+            EmptyStateWidget(
+              title: l10n.memoSearchEmpty,
+              actionLabel: l10n.memoClearFilter,
+              onAction: () {
+                unawaited(HapticFeedback.lightImpact());
+                ref.read(memoFilterProvider.notifier).resetFilter();
+              },
+            )
+          else
+            EmptyStateWidget(title: l10n.memoEmpty),
         ],
       ),
       AsyncData(value: final memos) => ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
         itemCount: memos.length,
         itemBuilder: (context, index) {
           final memo = memos[index];
@@ -335,20 +458,62 @@ class _MemoCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final colorScheme = Theme.of(context).colorScheme;
+    final searchQuery = ref.watch(memoFilterProvider).query;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         contentPadding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-        title: Text(
-          memo.title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        title: Row(
+          children: [
+            Expanded(
+              child: HighlightedText(
+                text: memo.title,
+                highlight: searchQuery,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            if (memo.category case final MemoCategory cat) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: colorScheme.secondaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      cat.icon,
+                      size: 12,
+                      color: colorScheme.onSecondaryContainer,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      cat.label(l10n),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSecondaryContainer,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 4),
-            Text(memo.content),
+            HighlightedText(
+              text: memo.content,
+              highlight: searchQuery,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
             const SizedBox(height: 8),
             Row(
               children: [

@@ -167,6 +167,14 @@
   "memoSortUpdatedAtAsc": "Updated: Oldest",
   "memoSortTitleAsc": "Title: A-Z",
   "memoSortTitleDesc": "Title: Z-A",
+  "memoCategoryAll": "All",
+  "memoCategoryWork": "Work",
+  "memoCategoryPersonal": "Personal",
+  "memoCategoryIdea": "Idea",
+  "memoCategorySelect": "Category",
+  "memoFilterUnsyncedOnly": "Unsynced only",
+  "memoSearchEmpty": "No memos match your search criteria",
+  "memoClearFilter": "Clear filters",
   "widgetMemoEmptyTitle": "No memos yet",
   "widgetMemoEmptyContent": "Tap + to create your first memo!",
 
@@ -209,6 +217,9 @@
     }
   },
   "userListEmpty": "No users found.",
+  "userSearchHint": "Search by name or email...",
+  "userSearchEmpty": "No users match your search criteria",
+  "userClearFilter": "Clear search",
   "userListFetchError": "Failed to fetch users. Please pull down to refresh.",
 
   "@_NOT_FOUND": {},
