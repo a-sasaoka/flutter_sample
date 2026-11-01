@@ -83,10 +83,11 @@ void main() {
     });
 
     test('名前で大文字小文字を区別せず部分一致で絞り込めること', () async {
+      final expectedFetchedAt = DateTime(2026, 5, 20);
       final container = ProviderContainer(
         overrides: [
           userProvider.overrideWith(
-            () => _FakeUserNotifier(dummyUsers, DateTime(2026, 5, 20)),
+            () => _FakeUserNotifier(dummyUsers, expectedFetchedAt),
           ),
         ],
       );
@@ -99,13 +100,15 @@ void main() {
       final result = container.read(filteredUsersProvider);
       check(result.value?.$1.length).equals(1);
       check(result.value?.$1.first.name).equals('Alice Johnson');
+      check(result.value?.$2).equals(expectedFetchedAt);
     });
 
     test('メールアドレスで部分一致で絞り込めること', () async {
+      final expectedFetchedAt = DateTime(2026, 5, 20);
       final container = ProviderContainer(
         overrides: [
           userProvider.overrideWith(
-            () => _FakeUserNotifier(dummyUsers, DateTime(2026, 5, 20)),
+            () => _FakeUserNotifier(dummyUsers, expectedFetchedAt),
           ),
         ],
       );
@@ -118,6 +121,7 @@ void main() {
       final result = container.read(filteredUsersProvider);
       check(result.value?.$1.length).equals(1);
       check(result.value?.$1.first.email).equals('bob@work.org');
+      check(result.value?.$2).equals(expectedFetchedAt);
     });
 
     test('初回ローディング中は AsyncLoading になること', () {
