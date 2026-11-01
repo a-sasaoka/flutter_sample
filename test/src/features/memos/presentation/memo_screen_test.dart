@@ -413,9 +413,16 @@ void main() {
       check(find.text('りんごのメモ')).findsOne();
       check(find.text('バナナのメモ')).findsOne();
 
-      // 検索バーに「りんご」を入力（400msデバウンス待ち）
+      // 検索バーに「りんご」を入力
       await tester.enterText(find.byType(TextField).first, 'りんご');
-      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump();
+
+      // 400ms 経過前の 399ms 時点ではデバウンス発火前のため「バナナのメモ」もまだ表示されている
+      await tester.pump(const Duration(milliseconds: 399));
+      check(find.text('バナナのメモ')).findsOne();
+
+      // 残り 1ms 進めて 400ms に達するとデバウンスが発火し絞り込まれる
+      await tester.pump(const Duration(milliseconds: 1));
       await tester.pumpAndSettle();
 
       // 「りんご」のみ表示され、「バナナ」は非表示になる
