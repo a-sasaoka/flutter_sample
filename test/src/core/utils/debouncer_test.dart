@@ -71,15 +71,17 @@ void main() {
     });
 
     testWidgets('【正常系】dispose() を呼び出すと待機中の処理が安全に破棄されること', (tester) async {
+      var callCount = 0;
       final debouncer = Debouncer()
         ..run(() {
-          // 何もしない
+          callCount++;
         })
         ..dispose();
 
       check(debouncer.isActive).isFalse();
 
       await tester.pump(const Duration(milliseconds: 500));
+      check(callCount).equals(0);
     });
 
     testWidgets('【正常系】カスタムの遅延時間を設定した場合、その時間で正しく動作すること', (tester) async {
