@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MemoFilterState {
 
- String get query; MemoCategory? get category; bool get unsyncedOnly; MemoSortOrder get sortOrder;
+ String get query; MemoCategory? get category; bool get unsyncedOnly; MemoSortOrder get sortOrder; int get resetCount;
 /// Create a copy of MemoFilterState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $MemoFilterStateCopyWith<MemoFilterState> get copyWith => _$MemoFilterStateCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MemoFilterState&&(identical(other.query, query) || other.query == query)&&(identical(other.category, category) || other.category == category)&&(identical(other.unsyncedOnly, unsyncedOnly) || other.unsyncedOnly == unsyncedOnly)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MemoFilterState&&(identical(other.query, query) || other.query == query)&&(identical(other.category, category) || other.category == category)&&(identical(other.unsyncedOnly, unsyncedOnly) || other.unsyncedOnly == unsyncedOnly)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder)&&(identical(other.resetCount, resetCount) || other.resetCount == resetCount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,query,category,unsyncedOnly,sortOrder);
+int get hashCode => Object.hash(runtimeType,query,category,unsyncedOnly,sortOrder,resetCount);
 
 @override
 String toString() {
-  return 'MemoFilterState(query: $query, category: $category, unsyncedOnly: $unsyncedOnly, sortOrder: $sortOrder)';
+  return 'MemoFilterState(query: $query, category: $category, unsyncedOnly: $unsyncedOnly, sortOrder: $sortOrder, resetCount: $resetCount)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $MemoFilterStateCopyWith<$Res>  {
   factory $MemoFilterStateCopyWith(MemoFilterState value, $Res Function(MemoFilterState) _then) = _$MemoFilterStateCopyWithImpl;
 @useResult
 $Res call({
- String query, MemoCategory? category, bool unsyncedOnly, MemoSortOrder sortOrder
+ String query, MemoCategory? category, bool unsyncedOnly, MemoSortOrder sortOrder, int resetCount
 });
 
 
@@ -62,13 +62,14 @@ class _$MemoFilterStateCopyWithImpl<$Res>
 
 /// Create a copy of MemoFilterState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? query = null,Object? category = freezed,Object? unsyncedOnly = null,Object? sortOrder = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? query = null,Object? category = freezed,Object? unsyncedOnly = null,Object? sortOrder = null,Object? resetCount = null,}) {
   return _then(_self.copyWith(
 query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as String,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
 as MemoCategory?,unsyncedOnly: null == unsyncedOnly ? _self.unsyncedOnly : unsyncedOnly // ignore: cast_nullable_to_non_nullable
 as bool,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
-as MemoSortOrder,
+as MemoSortOrder,resetCount: null == resetCount ? _self.resetCount : resetCount // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 
@@ -150,10 +151,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String query,  MemoCategory? category,  bool unsyncedOnly,  MemoSortOrder sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String query,  MemoCategory? category,  bool unsyncedOnly,  MemoSortOrder sortOrder,  int resetCount)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MemoFilterState() when $default != null:
-return $default(_that.query,_that.category,_that.unsyncedOnly,_that.sortOrder);case _:
+return $default(_that.query,_that.category,_that.unsyncedOnly,_that.sortOrder,_that.resetCount);case _:
   return orElse();
 
 }
@@ -171,10 +172,10 @@ return $default(_that.query,_that.category,_that.unsyncedOnly,_that.sortOrder);c
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String query,  MemoCategory? category,  bool unsyncedOnly,  MemoSortOrder sortOrder)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String query,  MemoCategory? category,  bool unsyncedOnly,  MemoSortOrder sortOrder,  int resetCount)  $default,) {final _that = this;
 switch (_that) {
 case _MemoFilterState():
-return $default(_that.query,_that.category,_that.unsyncedOnly,_that.sortOrder);}
+return $default(_that.query,_that.category,_that.unsyncedOnly,_that.sortOrder,_that.resetCount);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -188,10 +189,10 @@ return $default(_that.query,_that.category,_that.unsyncedOnly,_that.sortOrder);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String query,  MemoCategory? category,  bool unsyncedOnly,  MemoSortOrder sortOrder)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String query,  MemoCategory? category,  bool unsyncedOnly,  MemoSortOrder sortOrder,  int resetCount)?  $default,) {final _that = this;
 switch (_that) {
 case _MemoFilterState() when $default != null:
-return $default(_that.query,_that.category,_that.unsyncedOnly,_that.sortOrder);case _:
+return $default(_that.query,_that.category,_that.unsyncedOnly,_that.sortOrder,_that.resetCount);case _:
   return null;
 
 }
@@ -203,13 +204,14 @@ return $default(_that.query,_that.category,_that.unsyncedOnly,_that.sortOrder);c
 
 
 class _MemoFilterState extends MemoFilterState {
-  const _MemoFilterState({this.query = '', this.category, this.unsyncedOnly = false, this.sortOrder = MemoSortOrder.createdAtDesc}): super._();
+  const _MemoFilterState({this.query = '', this.category, this.unsyncedOnly = false, this.sortOrder = MemoSortOrder.createdAtDesc, this.resetCount = 0}): super._();
   
 
 @override@JsonKey() final  String query;
 @override final  MemoCategory? category;
 @override@JsonKey() final  bool unsyncedOnly;
 @override@JsonKey() final  MemoSortOrder sortOrder;
+@override@JsonKey() final  int resetCount;
 
 /// Create a copy of MemoFilterState
 /// with the given fields replaced by the non-null parameter values.
@@ -221,16 +223,16 @@ _$MemoFilterStateCopyWith<_MemoFilterState> get copyWith => __$MemoFilterStateCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MemoFilterState&&(identical(other.query, query) || other.query == query)&&(identical(other.category, category) || other.category == category)&&(identical(other.unsyncedOnly, unsyncedOnly) || other.unsyncedOnly == unsyncedOnly)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MemoFilterState&&(identical(other.query, query) || other.query == query)&&(identical(other.category, category) || other.category == category)&&(identical(other.unsyncedOnly, unsyncedOnly) || other.unsyncedOnly == unsyncedOnly)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder)&&(identical(other.resetCount, resetCount) || other.resetCount == resetCount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,query,category,unsyncedOnly,sortOrder);
+int get hashCode => Object.hash(runtimeType,query,category,unsyncedOnly,sortOrder,resetCount);
 
 @override
 String toString() {
-  return 'MemoFilterState(query: $query, category: $category, unsyncedOnly: $unsyncedOnly, sortOrder: $sortOrder)';
+  return 'MemoFilterState(query: $query, category: $category, unsyncedOnly: $unsyncedOnly, sortOrder: $sortOrder, resetCount: $resetCount)';
 }
 
 
@@ -241,7 +243,7 @@ abstract mixin class _$MemoFilterStateCopyWith<$Res> implements $MemoFilterState
   factory _$MemoFilterStateCopyWith(_MemoFilterState value, $Res Function(_MemoFilterState) _then) = __$MemoFilterStateCopyWithImpl;
 @override @useResult
 $Res call({
- String query, MemoCategory? category, bool unsyncedOnly, MemoSortOrder sortOrder
+ String query, MemoCategory? category, bool unsyncedOnly, MemoSortOrder sortOrder, int resetCount
 });
 
 
@@ -258,13 +260,14 @@ class __$MemoFilterStateCopyWithImpl<$Res>
 
 /// Create a copy of MemoFilterState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? query = null,Object? category = freezed,Object? unsyncedOnly = null,Object? sortOrder = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? query = null,Object? category = freezed,Object? unsyncedOnly = null,Object? sortOrder = null,Object? resetCount = null,}) {
   return _then(_MemoFilterState(
 query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as String,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
 as MemoCategory?,unsyncedOnly: null == unsyncedOnly ? _self.unsyncedOnly : unsyncedOnly // ignore: cast_nullable_to_non_nullable
 as bool,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
-as MemoSortOrder,
+as MemoSortOrder,resetCount: null == resetCount ? _self.resetCount : resetCount // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 

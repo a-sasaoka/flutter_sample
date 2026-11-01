@@ -99,6 +99,7 @@ void main() {
       check(resetState.unsyncedOnly).equals(false);
       check(resetState.sortOrder).equals(MemoSortOrder.titleAsc);
       check(resetState.hasActiveFilter).equals(false);
+      check(resetState.resetCount).equals(1);
     });
   });
 }

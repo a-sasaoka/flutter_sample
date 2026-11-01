@@ -13,6 +13,7 @@ sealed class MemoFilterState with _$MemoFilterState {
     MemoCategory? category,
     @Default(false) bool unsyncedOnly,
     @Default(MemoSortOrder.createdAtDesc) MemoSortOrder sortOrder,
+    @Default(0) int resetCount,
   }) = _MemoFilterState;
 
   const MemoFilterState._();

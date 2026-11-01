@@ -47,7 +47,12 @@ class MemoFilterNotifier extends _$MemoFilterNotifier {
 
   /// 検索・絞り込み条件を一括リセット（初期化）します（ソート順は維持）
   void resetFilter() {
-    state = state.copyWith(query: '', category: null, unsyncedOnly: false);
+    state = state.copyWith(
+      query: '',
+      category: null,
+      unsyncedOnly: false,
+      resetCount: state.resetCount + 1,
+    );
   }
 }
 

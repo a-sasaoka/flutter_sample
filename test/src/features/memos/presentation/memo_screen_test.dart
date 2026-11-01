@@ -843,6 +843,82 @@ void main() {
       check(find.text('アイデアのメモ')).findsOne();
     });
 
+    testWidgets(
+      'カテゴリ選択中に検索語を入力し、400ms以内に同一カテゴリチップを押して個別解除した場合、検索語が保持され検索が発火すること',
+      (tester) async {
+        when(() => mockMemoRepository.watchAllMemos(any())).thenAnswer(
+          (_) => Stream.value([
+            MemoModel(
+              id: '1',
+              userId: 'test_user_id',
+              title: '仕事のメモ',
+              content: '内容1',
+              category: MemoCategory.work,
+              createdAt: DateTime(2026, 10, 25),
+              updatedAt: DateTime(2026, 10, 25),
+            ),
+            MemoModel(
+              id: '2',
+              userId: 'test_user_id',
+              title: 'アイデアのメモ',
+              content: '内容2',
+              category: MemoCategory.idea,
+              createdAt: DateTime(2026, 10, 25),
+              updatedAt: DateTime(2026, 10, 25),
+            ),
+          ]),
+        );
+        when(
+          () => mockMemoRepository.watchFilteredMemos(
+            any(),
+            query: any(named: 'query'),
+            category: any(named: 'category'),
+            unsyncedOnly: any(named: 'unsyncedOnly'),
+          ),
+        ).thenAnswer((invocation) {
+          final query = invocation.namedArguments[#query] as String? ?? '';
+          if (query == 'ひらめき') {
+            return Stream.value([
+              MemoModel(
+                id: '2',
+                userId: 'test_user_id',
+                title: 'ひらめきのメモ',
+                content: '内容2',
+                category: MemoCategory.idea,
+                createdAt: DateTime(2026, 10, 25),
+                updatedAt: DateTime(2026, 10, 25),
+              ),
+            ]);
+          }
+          return Stream.value([]);
+        });
+
+        await setupWidget(tester);
+        await tester.pumpAndSettle();
+
+        // 1. 「仕事」チップをタップしてカテゴリ絞り込み
+        await tester.tap(find.widgetWithText(FilterChip, '仕事'));
+        await tester.pumpAndSettle();
+
+        // 2. 検索バーに文字を入力（400ms待機中）
+        await tester.enterText(find.byType(TextField).first, 'ひらめき');
+        await tester.pump();
+
+        // 3. 400ms待たずに「仕事」チップをもう一度タップしてカテゴリ選択のみ解除
+        await tester.tap(find.widgetWithText(FilterChip, '仕事'));
+        await tester.pumpAndSettle();
+
+        // 4. 個別解除では検索バーの入力文字が消えずに残っていること
+        check(find.text('ひらめき')).findsOne();
+
+        // 5. 400ms経過後にデバウンス検索が実行され、「ひらめきのメモ」のみが表示されること
+        await tester.pump(const Duration(milliseconds: 500));
+        await tester.pumpAndSettle();
+        check(find.text('ひらめきのメモ')).findsOne();
+        check(find.text('仕事のメモ')).findsNothing();
+      },
+    );
+
     testWidgets('新規メモ追加ダイアログでカテゴリを選択して保存できること', (tester) async {
       when(
         () => mockMemoRepository.addMemo(
