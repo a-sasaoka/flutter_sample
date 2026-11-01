@@ -373,6 +373,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get memoSortTitleDesc => 'タイトル：降順';
 
   @override
+  String get memoSortCustom => 'カスタム順（手動）';
+
+  @override
+  String get memoDeleted => 'メモを削除しました';
+
+  @override
+  String get memoUndo => '元に戻す';
+
+  @override
   String get memoCategoryAll => 'すべて';
 
   @override

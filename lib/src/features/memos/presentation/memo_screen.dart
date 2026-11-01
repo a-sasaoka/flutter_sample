@@ -329,6 +329,10 @@ class _MemoSearchAndSortBar extends HookConsumerWidget {
                 value: MemoSortOrder.titleDesc,
                 child: Text(l10n.memoSortTitleDesc),
               ),
+              PopupMenuItem(
+                value: MemoSortOrder.custom,
+                child: Text(l10n.memoSortCustom),
+              ),
             ],
           ),
         ],
@@ -408,6 +412,7 @@ class _MemoListView extends ConsumerWidget {
     final l10n = context.l10n;
     final memosAsyncValue = ref.watch(memoProvider);
     final filter = ref.watch(memoFilterProvider);
+    final canReorder = !filter.hasActiveFilter;
 
     return switch (memosAsyncValue) {
       AsyncData(value: final memos) when memos.isEmpty => ListView(
@@ -427,12 +432,24 @@ class _MemoListView extends ConsumerWidget {
             EmptyStateWidget(title: l10n.memoEmpty),
         ],
       ),
-      AsyncData(value: final memos) => ListView.builder(
+      AsyncData(value: final memos) => ReorderableListView.builder(
+        buildDefaultDragHandles: false,
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
         itemCount: memos.length,
+        onReorderItem: (oldIndex, newIndex) {
+          unawaited(HapticFeedback.mediumImpact());
+          unawaited(
+            ref.read(memoProvider.notifier).reorderMemos(oldIndex, newIndex),
+          );
+        },
         itemBuilder: (context, index) {
           final memo = memos[index];
-          return _MemoCard(key: ValueKey(memo.id), memo: memo);
+          return _MemoCard(
+            key: ValueKey(memo.id),
+            index: index,
+            memo: memo,
+            canReorder: canReorder,
+          );
         },
       ),
       AsyncError() => Center(
@@ -451,8 +468,16 @@ class _MemoListView extends ConsumerWidget {
 }
 
 class _MemoCard extends ConsumerWidget {
-  const _MemoCard({required this.memo, super.key});
+  const _MemoCard({
+    required this.index,
+    required this.memo,
+    required this.canReorder,
+    super.key,
+  });
+
+  final int index;
   final MemoModel memo;
+  final bool canReorder;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -460,122 +485,142 @@ class _MemoCard extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final searchQuery = ref.watch(memoFilterProvider).query;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        contentPadding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-        title: Row(
-          children: [
-            Expanded(
-              child: HighlightedText(
-                text: memo.title,
-                highlight: searchQuery,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+    return Dismissible(
+      key: ValueKey(memo.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: colorScheme.error,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(Icons.delete, color: colorScheme.onError),
+      ),
+      onDismissed: (_) async {
+        unawaited(HapticFeedback.mediumImpact());
+        final memoId = memo.id;
+        await ref.read(memoProvider.notifier).deleteMemo(memoId);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.memoDeleted),
+              action: SnackBarAction(
+                label: l10n.memoUndo,
+                onPressed: () {
+                  unawaited(HapticFeedback.lightImpact());
+                  unawaited(
+                    ref.read(memoProvider.notifier).restoreMemo(memoId),
+                  );
+                },
               ),
             ),
-            if (memo.category case final MemoCategory cat) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: colorScheme.secondaryContainer,
-                  borderRadius: BorderRadius.circular(12),
+          );
+        }
+      },
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        child: ListTile(
+          contentPadding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+          title: Row(
+            children: [
+              Expanded(
+                child: HighlightedText(
+                  text: memo.title,
+                  highlight: searchQuery,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      cat.icon,
-                      size: 12,
-                      color: colorScheme.onSecondaryContainer,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      cat.label(l10n),
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+              ),
+              if (memo.category case final MemoCategory cat) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colorScheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        cat.icon,
+                        size: 12,
                         color: colorScheme.onSecondaryContainer,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      Text(
+                        cat.label(l10n),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSecondaryContainer,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ],
-          ],
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            HighlightedText(
-              text: memo.content,
-              highlight: searchQuery,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(
-                  memo.isSynced ? Icons.cloud_done : Icons.cloud_off,
-                  size: 14,
-                  color: memo.isSynced
-                      ? colorScheme.primary
-                      : colorScheme.error,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  memo.isSynced ? l10n.memoSynced : l10n.memoUnsynced,
-                  style: TextStyle(
-                    fontSize: 10,
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 4),
+              HighlightedText(
+                text: memo.content,
+                highlight: searchQuery,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(
+                    memo.isSynced ? Icons.cloud_done : Icons.cloud_off,
+                    size: 14,
                     color: memo.isSynced
                         ? colorScheme.primary
                         : colorScheme.error,
                   ),
-                ),
-                const Spacer(),
-                Text(
-                  '${memo.createdAt.month}/${memo.createdAt.day} ${memo.createdAt.hour.toString().padLeft(2, '0')}:${memo.createdAt.minute.toString().padLeft(2, '0')}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(fontSize: 10),
-                ),
-              ],
-            ),
-          ],
-        ),
-        trailing: IconButton(
-          icon: Icon(Icons.delete_outline, color: colorScheme.error),
-          onPressed: () async {
-            unawaited(HapticFeedback.mediumImpact());
-            final confirmed = await showDialog<bool>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: Text(l10n.memoDeleteConfirm),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: Text(l10n.close),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      unawaited(HapticFeedback.lightImpact());
-                      Navigator.pop(context, true);
-                    },
-                    child: Text(
-                      l10n.delete,
-                      style: TextStyle(color: colorScheme.error),
+                  const SizedBox(width: 4),
+                  Text(
+                    memo.isSynced ? l10n.memoSynced : l10n.memoUnsynced,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: memo.isSynced
+                          ? colorScheme.primary
+                          : colorScheme.error,
                     ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${memo.createdAt.month}/${memo.createdAt.day} ${memo.createdAt.hour.toString().padLeft(2, '0')}:${memo.createdAt.minute.toString().padLeft(2, '0')}',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(fontSize: 10),
                   ),
                 ],
               ),
-            );
-            if (confirmed == true) {
-              unawaited(HapticFeedback.vibrate());
-              await ref.read(memoProvider.notifier).deleteMemo(memo.id);
-            }
-          },
+            ],
+          ),
+          trailing: canReorder
+              ? ReorderableDragStartListener(
+                  index: index,
+                  child: Icon(
+                    Icons.drag_handle,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                )
+              : Icon(
+                  Icons.drag_handle,
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                ),
         ),
       ),
     );

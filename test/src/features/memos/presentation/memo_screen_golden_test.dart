@@ -59,6 +59,9 @@ void main() {
       when(() => mockL10n.memoFilterUnsyncedOnly).thenReturn('未同期のみ');
       when(() => mockL10n.memoSearchEmpty).thenReturn('条件に一致するメモが見つかりません');
       when(() => mockL10n.memoClearFilter).thenReturn('条件をクリア');
+      when(() => mockL10n.memoSortCustom).thenReturn('カスタム順');
+      when(() => mockL10n.memoDeleted).thenReturn('メモを削除しました');
+      when(() => mockL10n.memoUndo).thenReturn('元に戻す');
     });
 
     Widget buildMemoForGolden({

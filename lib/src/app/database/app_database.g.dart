@@ -107,6 +107,18 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       ).withConverter<MemoCategory?>($MemosTable.$convertercategoryn);
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -118,6 +130,7 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
     isDeleted,
     isSynced,
     category,
+    sortOrder,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -188,6 +201,12 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
         isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
       );
     }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
     return context;
   }
 
@@ -235,6 +254,10 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
           data['${effectivePrefix}category'],
         ),
       ),
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
     );
   }
 
@@ -276,6 +299,9 @@ class Memo extends DataClass implements Insertable<Memo> {
 
   /// メモのカテゴリ（enumで型安全に管理。未設定はnull）
   final MemoCategory? category;
+
+  /// メモの並び順（0が一番上。昇順でソートする）
+  final int sortOrder;
   const Memo({
     required this.id,
     required this.userId,
@@ -286,6 +312,7 @@ class Memo extends DataClass implements Insertable<Memo> {
     required this.isDeleted,
     required this.isSynced,
     this.category,
+    required this.sortOrder,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -303,6 +330,7 @@ class Memo extends DataClass implements Insertable<Memo> {
         $MemosTable.$convertercategoryn.toSql(category),
       );
     }
+    map['sort_order'] = Variable<int>(sortOrder);
     return map;
   }
 
@@ -319,6 +347,7 @@ class Memo extends DataClass implements Insertable<Memo> {
       category: category == null && nullToAbsent
           ? const Value.absent()
           : Value(category),
+      sortOrder: Value(sortOrder),
     );
   }
 
@@ -339,6 +368,7 @@ class Memo extends DataClass implements Insertable<Memo> {
       category: $MemosTable.$convertercategoryn.fromJson(
         serializer.fromJson<String?>(json['category']),
       ),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
     );
   }
   @override
@@ -356,6 +386,7 @@ class Memo extends DataClass implements Insertable<Memo> {
       'category': serializer.toJson<String?>(
         $MemosTable.$convertercategoryn.toJson(category),
       ),
+      'sortOrder': serializer.toJson<int>(sortOrder),
     };
   }
 
@@ -369,6 +400,7 @@ class Memo extends DataClass implements Insertable<Memo> {
     bool? isDeleted,
     bool? isSynced,
     Value<MemoCategory?> category = const Value.absent(),
+    int? sortOrder,
   }) => Memo(
     id: id ?? this.id,
     userId: userId ?? this.userId,
@@ -379,6 +411,7 @@ class Memo extends DataClass implements Insertable<Memo> {
     isDeleted: isDeleted ?? this.isDeleted,
     isSynced: isSynced ?? this.isSynced,
     category: category.present ? category.value : this.category,
+    sortOrder: sortOrder ?? this.sortOrder,
   );
   Memo copyWithCompanion(MemosCompanion data) {
     return Memo(
@@ -391,6 +424,7 @@ class Memo extends DataClass implements Insertable<Memo> {
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
       category: data.category.present ? data.category.value : this.category,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
     );
   }
 
@@ -405,7 +439,8 @@ class Memo extends DataClass implements Insertable<Memo> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('isSynced: $isSynced, ')
-          ..write('category: $category')
+          ..write('category: $category, ')
+          ..write('sortOrder: $sortOrder')
           ..write(')'))
         .toString();
   }
@@ -421,6 +456,7 @@ class Memo extends DataClass implements Insertable<Memo> {
     isDeleted,
     isSynced,
     category,
+    sortOrder,
   );
   @override
   bool operator ==(Object other) =>
@@ -434,7 +470,8 @@ class Memo extends DataClass implements Insertable<Memo> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.isSynced == this.isSynced &&
-          other.category == this.category);
+          other.category == this.category &&
+          other.sortOrder == this.sortOrder);
 }
 
 class MemosCompanion extends UpdateCompanion<Memo> {
@@ -447,6 +484,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
   final Value<bool> isDeleted;
   final Value<bool> isSynced;
   final Value<MemoCategory?> category;
+  final Value<int> sortOrder;
   final Value<int> rowid;
   const MemosCompanion({
     this.id = const Value.absent(),
@@ -458,6 +496,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.category = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   MemosCompanion.insert({
@@ -470,6 +509,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.category = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        userId = Value(userId),
@@ -487,6 +527,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     Expression<bool>? isDeleted,
     Expression<bool>? isSynced,
     Expression<String>? category,
+    Expression<int>? sortOrder,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -499,6 +540,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (isSynced != null) 'is_synced': isSynced,
       if (category != null) 'category': category,
+      if (sortOrder != null) 'sort_order': sortOrder,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -513,6 +555,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     Value<bool>? isDeleted,
     Value<bool>? isSynced,
     Value<MemoCategory?>? category,
+    Value<int>? sortOrder,
     Value<int>? rowid,
   }) {
     return MemosCompanion(
@@ -525,6 +568,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
       isDeleted: isDeleted ?? this.isDeleted,
       isSynced: isSynced ?? this.isSynced,
       category: category ?? this.category,
+      sortOrder: sortOrder ?? this.sortOrder,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -561,6 +605,9 @@ class MemosCompanion extends UpdateCompanion<Memo> {
         $MemosTable.$convertercategoryn.toSql(category.value),
       );
     }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -579,6 +626,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
           ..write('isDeleted: $isDeleted, ')
           ..write('isSynced: $isSynced, ')
           ..write('category: $category, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -871,6 +919,7 @@ typedef $$MemosTableCreateCompanionBuilder =
       Value<bool> isDeleted,
       Value<bool> isSynced,
       Value<MemoCategory?> category,
+      Value<int> sortOrder,
       Value<int> rowid,
     });
 typedef $$MemosTableUpdateCompanionBuilder =
@@ -884,6 +933,7 @@ typedef $$MemosTableUpdateCompanionBuilder =
       Value<bool> isDeleted,
       Value<bool> isSynced,
       Value<MemoCategory?> category,
+      Value<int> sortOrder,
       Value<int> rowid,
     });
 
@@ -940,6 +990,11 @@ class $$MemosTableFilterComposer extends Composer<_$AppDatabase, $MemosTable> {
     column: $table.category,
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$MemosTableOrderingComposer
@@ -995,6 +1050,11 @@ class $$MemosTableOrderingComposer
     column: $table.category,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$MemosTableAnnotationComposer
@@ -1032,6 +1092,9 @@ class $$MemosTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<MemoCategory?, String> get category =>
       $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
 }
 
 class $$MemosTableTableManager
@@ -1071,6 +1134,7 @@ class $$MemosTableTableManager
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
                 Value<MemoCategory?> category = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => MemosCompanion(
                 id: id,
@@ -1082,6 +1146,7 @@ class $$MemosTableTableManager
                 isDeleted: isDeleted,
                 isSynced: isSynced,
                 category: category,
+                sortOrder: sortOrder,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -1095,6 +1160,7 @@ class $$MemosTableTableManager
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
                 Value<MemoCategory?> category = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => MemosCompanion.insert(
                 id: id,
@@ -1106,6 +1172,7 @@ class $$MemosTableTableManager
                 isDeleted: isDeleted,
                 isSynced: isSynced,
                 category: category,
+                sortOrder: sortOrder,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

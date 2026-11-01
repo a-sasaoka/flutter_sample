@@ -385,6 +385,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memoSortTitleDesc => 'Title: Z-A';
 
   @override
+  String get memoSortCustom => 'Custom';
+
+  @override
+  String get memoDeleted => 'Memo deleted';
+
+  @override
+  String get memoUndo => 'Undo';
+
+  @override
   String get memoCategoryAll => 'All';
 
   @override

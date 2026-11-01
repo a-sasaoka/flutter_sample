@@ -51,8 +51,9 @@ class MemoRepository {
     // UUIDを作る
     final generatedId = _uuid.v4();
 
-    // スマホに保存する（isSynced はデフォルトで false, isDeleted も false）
-    await _dao.insertMemo(
+    // スマホに保存する（トランザクションで既存のメモをシフトしつつ先頭に挿入）
+    await _dao.insertMemoWithShift(
+      userId,
       MemosCompanion.insert(
         id: generatedId,
         userId: userId,
@@ -61,6 +62,7 @@ class MemoRepository {
         createdAt: now,
         updatedAt: now,
         category: drift.Value(category),
+        sortOrder: const drift.Value(0),
       ),
     );
 
@@ -183,6 +185,48 @@ class MemoRepository {
     }
   }
 
+  /// 削除されたメモを復元（論理削除を解除）する
+  Future<void> restoreMemo(String id, String userId) async {
+    final now = _clock();
+
+    // スマホ側で論理削除を解除し、未同期状態に戻す
+    await _dao.restoreMemo(id, userId, now);
+
+    if (_isOnline) {
+      // オンラインの時はサーバーに復元状態（isDeleted: false）を送信
+      try {
+        final memo = await _dao.getMemoById(id, userId);
+        await _remote.uploadMemo(
+          id: id,
+          title: memo.title,
+          content: memo.content,
+          createdAt: memo.createdAt,
+          updatedAt: now,
+          isDeleted: false,
+        );
+
+        // 送信に成功したら「送信済み (true)」に更新
+        await _dao.updateMemo(
+          id,
+          userId,
+          const MemosCompanion(isSynced: drift.Value(true)),
+        );
+
+        _talker.debug('The restored status has been sent to the server.');
+      } on Exception catch (e, st) {
+        _talker.handle(e, st, 'Failed to restore data on the server');
+      }
+    }
+  }
+
+  /// メモの並び順（ドラッグ＆ドロップ後）を一括更新する
+  Future<void> updateSortOrders(List<String> orderedIds, String userId) async {
+    final idToOrderMap = {
+      for (var i = 0; i < orderedIds.length; i++) orderedIds[i]: i,
+    };
+    await _dao.updateSortOrders(idToOrderMap, userId);
+  }
+
   /// スマホに残っている「未送信のメモ」をまとめてサーバーに送る処理
   Future<void> syncUnsentMemos(String userId) async {
     // スマホの中から isSynced が false のメモを探し出す
@@ -270,6 +314,7 @@ class MemoRepository {
       isDeleted: memo.isDeleted,
       isSynced: memo.isSynced,
       category: memo.category,
+      sortOrder: memo.sortOrder,
     );
   }
 
@@ -319,6 +364,7 @@ class MemoRepository {
                   isDeleted: drift.Value(isDeleted),
                   isSynced: const drift.Value(true),
                   category: drift.Value(localMemo?.category),
+                  sortOrder: drift.Value(localMemo?.sortOrder ?? 0),
                 ),
               );
             }

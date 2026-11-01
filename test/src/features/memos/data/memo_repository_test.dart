@@ -912,5 +912,121 @@ void main() {
       final userBMemosAfterDelete = await repository.getAllMemos(otherUserId);
       check(userBMemosAfterDelete.length).equals(1);
     });
+
+    test('addMemo: 先頭（sortOrder: 0）に追加され、既存メモがシフトされること', () async {
+      final container = createContainer(isOnline: false);
+      final repository = container.read(memoRepositoryProvider);
+
+      await repository.addMemo('1つ目のメモ', '内容1', testUserId);
+      await repository.addMemo('2つ目のメモ', '内容2', testUserId);
+
+      final memos = await repository.getAllMemos(testUserId);
+      check(memos.length).equals(2);
+
+      final secondAdded = memos.firstWhere((m) => m.title == '2つ目のメモ');
+      final firstAdded = memos.firstWhere((m) => m.title == '1つ目のメモ');
+
+      check(secondAdded.sortOrder).equals(0);
+      check(firstAdded.sortOrder).equals(1);
+    });
+
+    test('updateSortOrders: 渡されたID順にsortOrderが一括更新されること', () async {
+      final container = createContainer(isOnline: false);
+      final repository = container.read(memoRepositoryProvider);
+
+      await repository.addMemo('A', 'CA', testUserId);
+      await repository.addMemo('B', 'CB', testUserId);
+
+      final memos = await repository.getAllMemos(testUserId);
+      final idB = memos.firstWhere((m) => m.title == 'B').id;
+      final idA = memos.firstWhere((m) => m.title == 'A').id;
+
+      // 順序を反転（Aを先頭、Bを2番目）
+      await repository.updateSortOrders([idA, idB], testUserId);
+
+      final reordered = await repository.getAllMemos(testUserId);
+      check(reordered.firstWhere((m) => m.id == idA).sortOrder).equals(0);
+      check(reordered.firstWhere((m) => m.id == idB).sortOrder).equals(1);
+    });
+
+    test('restoreMemo: オフライン時、論理削除されたメモがisDeleted=falseに復元されること', () async {
+      final container = createContainer(isOnline: false);
+      final repository = container.read(memoRepositoryProvider);
+
+      await repository.addMemo('削除予定', '内容', testUserId);
+      final memos = await repository.getAllMemos(testUserId);
+      final memoId = memos.first.id;
+
+      await repository.deleteMemo(memoId, testUserId);
+      check((await repository.getAllMemos(testUserId)).isEmpty).isTrue();
+
+      await repository.restoreMemo(memoId, testUserId);
+      final restoredMemos = await repository.getAllMemos(testUserId);
+      check(restoredMemos.length).equals(1);
+      check(restoredMemos.first.id).equals(memoId);
+      check(restoredMemos.first.isDeleted).isFalse();
+      check(restoredMemos.first.isSynced).isFalse();
+    });
+
+    test('restoreMemo: オンライン時、サーバーに復元が送信されisSynced=trueになること', () async {
+      final container = createContainer();
+      final repository = container.read(memoRepositoryProvider);
+
+      await repository.addMemo('復元オンライン', '内容', testUserId);
+      final memos = await repository.getAllMemos(testUserId);
+      final memoId = memos.first.id;
+
+      await repository.deleteMemo(memoId, testUserId);
+      await repository.restoreMemo(memoId, testUserId);
+
+      final restored = (await repository.getAllMemos(testUserId)).first;
+      check(restored.isSynced).isTrue();
+      verify(
+        () => mockRemoteService.uploadMemo(
+          id: memoId,
+          title: '復元オンライン',
+          content: '内容',
+          createdAt: any(named: 'createdAt'),
+          updatedAt: any(named: 'updatedAt'),
+          isDeleted: false,
+        ),
+      ).called(2); // addMemo時とrestoreMemo時
+    });
+
+    test('restoreMemo: オンライン時、サーバー同期が例外を投げた場合にTalkerで捕捉されること', () async {
+      final container = createContainer();
+      final repository = container.read(memoRepositoryProvider);
+
+      await repository.addMemo('エラーテスト', '内容', testUserId);
+      final memos = await repository.getAllMemos(testUserId);
+      final memoId = memos.first.id;
+
+      await repository.deleteMemo(memoId, testUserId);
+
+      when(
+        () => mockRemoteService.uploadMemo(
+          id: memoId,
+          title: any(named: 'title'),
+          content: any(named: 'content'),
+          createdAt: any(named: 'createdAt'),
+          updatedAt: any(named: 'updatedAt'),
+          isDeleted: false,
+        ),
+      ).thenThrow(Exception('Server error on restore'));
+
+      await repository.restoreMemo(memoId, testUserId);
+
+      // ローカルでは復元されているがisSyncedはfalse
+      final restored = (await repository.getAllMemos(
+        testUserId,
+        syncUnsent: false,
+      )).first;
+      check(restored.isDeleted).isFalse();
+      check(restored.isSynced).isFalse();
+      check(spyTalker.handleCalls.length).equals(1);
+      check(
+        spyTalker.handleCalls.first.message,
+      ).equals('Failed to restore data on the server');
+    });
   });
 }

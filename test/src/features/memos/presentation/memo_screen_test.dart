@@ -86,6 +86,9 @@ void main() {
     when(() => mockL10n.memoFilterUnsyncedOnly).thenReturn('未同期のみ');
     when(() => mockL10n.memoSearchEmpty).thenReturn('一致するメモがありません');
     when(() => mockL10n.memoClearFilter).thenReturn('条件をクリア');
+    when(() => mockL10n.memoSortCustom).thenReturn('カスタム順');
+    when(() => mockL10n.memoDeleted).thenReturn('メモを削除しました');
+    when(() => mockL10n.memoUndo).thenReturn('元に戻す');
 
     // デフォルトのスタブ設定
     when(
@@ -226,37 +229,9 @@ void main() {
       check(find.byType(TextField)).findsOne();
     });
 
-    testWidgets('削除ボタンを押すとダイアログが表示され、キャンセルすると何も起きないこと', (tester) async {
-      final now = DateTime.now();
-      final memo = MemoModel(
-        id: '1',
-        userId: 'test_user_id',
-        title: '消さないメモ',
-        content: '内容',
-        createdAt: now,
-        updatedAt: now,
-      );
-      when(
-        () => mockMemoRepository.watchAllMemos(any()),
-      ).thenAnswer((_) => Stream.value([memo]));
-
-      await setupWidget(tester);
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byIcon(Icons.delete_outline));
-      await tester.pumpAndSettle();
-
-      check(find.byType(AlertDialog)).findsOne();
-
-      // 「閉じる」ボタンをタップしてキャンセル
-      await tester.tap(find.widgetWithText(TextButton, '閉じる'));
-      await tester.pumpAndSettle();
-
-      check(find.byType(AlertDialog)).findsNothing();
-      verifyNever(() => mockMemoRepository.deleteMemo(any(), any()));
-    });
-
-    testWidgets('削除ボタンを押すとダイアログが表示され、実行すると削除処理が呼ばれること', (tester) async {
+    testWidgets('メモカードを右から左へ横スワイプすると削除処理が呼ばれ、Undoアクション付きSnackBarが表示されること', (
+      tester,
+    ) async {
       final now = DateTime.now();
       final memo = MemoModel(
         id: '1',
@@ -272,22 +247,35 @@ void main() {
       when(
         () => mockMemoRepository.deleteMemo(any(), any()),
       ).thenAnswer((_) async {});
+      when(
+        () => mockMemoRepository.restoreMemo(any(), any()),
+      ).thenAnswer((_) async {});
 
       await setupWidget(tester);
       await tester.pumpAndSettle();
 
-      // 削除アイコンをタップ
-      await tester.tap(find.byIcon(Icons.delete_outline));
+      check(find.text('消すメモ')).findsOne();
+
+      // 右から左へスワイプ（Dismissible）
+      await tester.drag(find.byType(Dismissible), const Offset(-500, 0));
       await tester.pumpAndSettle();
 
-      check(find.byType(AlertDialog)).findsOne();
-
-      // 「削除」ボタンをタップ
-      await tester.tap(find.widgetWithText(TextButton, '削除'));
-      await tester.pumpAndSettle();
-
+      // deleteMemo が呼ばれたことを確認
       verify(
         () => mockMemoRepository.deleteMemo('1', 'test_user_id'),
+      ).called(1);
+
+      // SnackBar が表示されていることを確認
+      check(find.text('メモを削除しました')).findsOne();
+      check(find.text('元に戻す')).findsOne();
+
+      // 「元に戻す」をタップ
+      await tester.tap(find.text('元に戻す'));
+      await tester.pumpAndSettle();
+
+      // restoreMemo が呼ばれたことを確認
+      verify(
+        () => mockMemoRepository.restoreMemo('1', 'test_user_id'),
       ).called(1);
     });
 
@@ -1014,6 +1002,63 @@ void main() {
           category: MemoCategory.idea,
         ),
       ).called(1);
+    });
+
+    testWidgets('ドラッグハンドルの表示およびカスタムソート選択テスト', (tester) async {
+      final now = DateTime.now();
+      final memoList = [
+        MemoModel(
+          id: '1',
+          userId: 'test_user_id',
+          title: 'メモ1',
+          content: '内容1',
+          createdAt: now,
+          updatedAt: now,
+        ),
+        MemoModel(
+          id: '2',
+          userId: 'test_user_id',
+          title: 'メモ2',
+          content: '内容2',
+          createdAt: now.add(const Duration(minutes: 1)),
+          updatedAt: now.add(const Duration(minutes: 1)),
+          sortOrder: 1,
+        ),
+      ];
+      when(
+        () => mockMemoRepository.watchAllMemos(any()),
+      ).thenAnswer((_) => Stream.value(memoList));
+      when(
+        () => mockMemoRepository.updateSortOrders(any(), any()),
+      ).thenAnswer((_) async {});
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      // 初期状態（フィルタなし）では ReorderableDragStartListener が2つ存在する
+      check(find.byType(ReorderableDragStartListener)).findsExactly(2);
+
+      // onReorderItem が呼ばれた際に reorderMemos が実行されること
+      final reorderableListView = tester.widget<ReorderableListView>(
+        find.byType(ReorderableListView),
+      );
+      reorderableListView.onReorderItem!(0, 1);
+      await tester.pumpAndSettle();
+      verify(() => mockMemoRepository.updateSortOrders(any(), any())).called(1);
+
+      // ソートメニューから「カスタム順」を選択できること
+      await tester.tap(find.byIcon(Icons.sort));
+      await tester.pumpAndSettle();
+      check(find.text('カスタム順')).findsOne();
+      await tester.tap(find.text('カスタム順'));
+      await tester.pumpAndSettle();
+
+      // 検索窓に文字を入力するとフィルタがアクティブになり、
+      // ドラッグハンドルが無効（ReorderableDragStartListenerが0）になること
+      await tester.enterText(find.byType(TextField).first, '検索');
+      await tester.pump(const Duration(milliseconds: 450));
+      await tester.pumpAndSettle();
+      check(find.byType(ReorderableDragStartListener)).findsNothing();
     });
   });
 }

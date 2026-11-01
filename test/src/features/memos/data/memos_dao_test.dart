@@ -389,5 +389,150 @@ void main() {
         check(streamResults).isEmpty();
       });
     });
+
+    group('並び替え・復元機能のDAOテスト', () {
+      test('【正常系】shiftSortOrdersで指定ユーザーの未削除メモのsortOrderが+1されること', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        await dao.upsertMemos([
+          MemosCompanion.insert(
+            id: 'm1',
+            userId: testUserId,
+            title: 'M1',
+            content: 'C1',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+          MemosCompanion.insert(
+            id: 'm2',
+            userId: testUserId,
+            title: 'M2',
+            content: 'C2',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(1),
+          ),
+          MemosCompanion.insert(
+            id: 'm-deleted',
+            userId: testUserId,
+            title: '削除済',
+            content: 'C',
+            createdAt: now,
+            updatedAt: now,
+            isDeleted: const Value(true),
+            sortOrder: const Value(5),
+          ),
+          MemosCompanion.insert(
+            id: 'm-other',
+            userId: otherUserId,
+            title: '他ユーザー',
+            content: 'C',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+        ]);
+
+        await dao.shiftSortOrders(testUserId);
+
+        final m1 = await dao.getMemoById('m1', testUserId);
+        final m2 = await dao.getMemoById('m2', testUserId);
+        final mDeleted = await dao.getMemoById('m-deleted', testUserId);
+        final mOther = await dao.getMemoById('m-other', otherUserId);
+
+        check(m1.sortOrder).equals(1);
+        check(m2.sortOrder).equals(2);
+        check(mDeleted.sortOrder).equals(5); // 削除済みはシフトされない
+        check(mOther.sortOrder).equals(0); // 他ユーザーはシフトされない
+      });
+
+      test('【正常系】updateSortOrdersで複数のメモのsortOrderが一括更新されること', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        await dao.upsertMemos([
+          MemosCompanion.insert(
+            id: 'm1',
+            userId: testUserId,
+            title: 'M1',
+            content: 'C1',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+          MemosCompanion.insert(
+            id: 'm2',
+            userId: testUserId,
+            title: 'M2',
+            content: 'C2',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(1),
+          ),
+        ]);
+
+        await dao.updateSortOrders({'m1': 1, 'm2': 0}, testUserId);
+
+        final m1 = await dao.getMemoById('m1', testUserId);
+        final m2 = await dao.getMemoById('m2', testUserId);
+        check(m1.sortOrder).equals(1);
+        check(m2.sortOrder).equals(0);
+      });
+
+      test('【正常系】insertMemoWithShiftで既存メモがシフトされ新規メモが先頭に挿入されること', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'm1',
+            userId: testUserId,
+            title: 'M1',
+            content: 'C1',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+        );
+
+        await dao.insertMemoWithShift(
+          testUserId,
+          MemosCompanion.insert(
+            id: 'm2',
+            userId: testUserId,
+            title: 'M2',
+            content: 'C2',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+        );
+
+        final m1 = await dao.getMemoById('m1', testUserId);
+        final m2 = await dao.getMemoById('m2', testUserId);
+        check(m1.sortOrder).equals(1);
+        check(m2.sortOrder).equals(0);
+      });
+
+      test('【正常系】restoreMemoで論理削除フラグが解除され未同期状態になること', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'm-restore',
+            userId: testUserId,
+            title: '復元対象',
+            content: '内容',
+            createdAt: now,
+            updatedAt: now,
+            isDeleted: const Value(true),
+            isSynced: const Value(true),
+          ),
+        );
+
+        final restoreTime = now.add(const Duration(minutes: 10));
+        await dao.restoreMemo('m-restore', testUserId, restoreTime);
+
+        final restored = await dao.getMemoById('m-restore', testUserId);
+        check(restored.isDeleted).isFalse();
+        check(restored.isSynced).isFalse();
+        check(restored.updatedAt).equals(restoreTime);
+      });
+    });
   });
 }

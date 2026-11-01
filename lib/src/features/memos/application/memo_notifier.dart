@@ -67,6 +67,8 @@ class MemoNotifier extends _$MemoNotifier {
           (MemoModel a, MemoModel b) => a.title.compareTo(b.title),
         MemoSortOrder.titleDesc =>
           (MemoModel a, MemoModel b) => b.title.compareTo(a.title),
+        MemoSortOrder.custom =>
+          (MemoModel a, MemoModel b) => a.sortOrder.compareTo(b.sortOrder),
       };
       sortedMemos.sort(comparator);
 
@@ -105,6 +107,65 @@ class MemoNotifier extends _$MemoNotifier {
     }
     final repository = ref.read(memoRepositoryProvider);
     await repository.deleteMemo(id, userId);
+  }
+
+  /// 削除されたメモを復元（Undo）する
+  Future<void> restoreMemo(String id) async {
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null) {
+      return;
+    }
+    final repository = ref.read(memoRepositoryProvider);
+    await repository.restoreMemo(id, userId);
+  }
+
+  /// メモの並び順（ドラッグ＆ドロップ）を更新する（Optimistic UI対応）
+  Future<void> reorderMemos(int oldIndex, int newIndex) async {
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null) {
+      return;
+    }
+
+    final currentMemos = state.asData?.value;
+    if (currentMemos == null || currentMemos.isEmpty) {
+      return;
+    }
+
+    // 検索・絞り込み中は手動並び替え不可
+    final filter = ref.read(memoFilterProvider);
+    if (filter.hasActiveFilter) {
+      return;
+    }
+
+    final targetIndex = newIndex;
+    if (oldIndex == targetIndex) {
+      return;
+    }
+
+    // 画面のチラつき（DriftのStreamラグ）を防ぐため、即座にローカル状態（state）を並び替える（Optimistic UI）
+    final updatedMemos = [...currentMemos];
+    final movedItem = updatedMemos.removeAt(oldIndex);
+    updatedMemos.insert(targetIndex, movedItem);
+    state = AsyncData(updatedMemos);
+
+    final repository = ref.read(memoRepositoryProvider);
+    final orderedIds = updatedMemos.map((m) => m.id).toList();
+
+    try {
+      await repository.updateSortOrders(orderedIds, userId);
+
+      // 保存成功後に、ソート順を「カスタム順（手動並び順）」に切り替える
+      if (ref.read(memoFilterProvider).sortOrder != MemoSortOrder.custom) {
+        ref
+            .read(memoFilterProvider.notifier)
+            .setSortOrder(MemoSortOrder.custom);
+      }
+    } on Exception catch (e, st) {
+      // 失敗した場合は元の順序にロールバック
+      state = AsyncData(currentMemos);
+      ref.read(loggerProvider).handle(e, st, 'メモの並び替え保存に失敗しました');
+      rethrow;
+    }
   }
 
   /// 手動同期を実行する

@@ -50,7 +50,7 @@ iOSのWidgetKitおよびAndroidのAppWidgetとFlutter本体の間でデータを
 
 ### 2. メモデータ変更時の自動同期コーディネーター
 
-メモ画面（Memos）での追加・更新・削除操作が行われた際、UIコンポーネント側にウィジェット同期の責務を持たせず、専用の [home_widget_sync_coordinator.dart](../lib/src/features/home_widget/application/home_widget_sync_coordinator.dart) が `ref.listen(memoProvider, ...)` 経由で自律的にデータ更新を検知します。
+メモ画面（Memos）での追加・更新・削除・並び替え・Undo復元操作が行われた際、UIコンポーネント側にウィジェット同期の責務を持たせず、専用の [home_widget_sync_coordinator.dart](../lib/src/features/home_widget/application/home_widget_sync_coordinator.dart) が `ref.listen(memoProvider, ...)` 経由で自律的にデータ更新を検知します。
 また、同期実行時には現在ログインしているユーザーの `targetUserId` を渡して `memoRepository.getAllMemos(targetUserId)` を呼び出すことで、別ユーザーのメモがウィジェットに混入するのを厳密に防ぎます。
 
 - メモ一覧から論理削除（`isDeleted`）されていない有効なメモのみを抽出。
