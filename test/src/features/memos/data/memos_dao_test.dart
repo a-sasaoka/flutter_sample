@@ -293,6 +293,21 @@ void main() {
         check(underscoreResults.length).equals(1);
         check(underscoreResults.first.id).equals('wildcard-underscore');
       });
+
+      test('【正常系】50,000バイトを超える長大キーワードの場合、SQLiteエラーにならず0件を返すこと', () async {
+        // 50,001バイト以上の長いキーワード（日本語1文字は3バイト）
+        final longQuery = 'あ' * 17000;
+        final results = await dao.getFilteredMemos(
+          testUserId,
+          query: longQuery,
+        );
+        check(results).isEmpty();
+
+        final streamResults = await dao
+            .watchFilteredMemos(testUserId, query: longQuery)
+            .first;
+        check(streamResults).isEmpty();
+      });
     });
   });
 }

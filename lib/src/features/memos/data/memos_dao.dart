@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:flutter_sample/src/app/database/app_database.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_table.dart';
@@ -21,13 +23,21 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
     memos,
   )..where((t) => t.userId.equals(userId) & t.isDeleted.equals(false))).watch();
 
-  static String _escapeLikePattern(String input) {
+  /// SQLiteの既定のLIKEパターン上限バイト数（50,000バイト）
+  /// この上限を超えるLIKEクエリは「LIKE or GLOB pattern too complex」エラーとなるため抑止する
+  static const int _maxLikePatternBytes = 50000;
+
+  static String? _escapeLikePattern(String input) {
     final escaped = input
         .replaceAll(r'\', r'\\')
         .replaceAll('%', r'\%')
         .replaceAll('_', r'\_')
         .toLowerCase();
-    return '%$escaped%';
+    final pattern = '%$escaped%';
+    if (utf8.encode(pattern).length > _maxLikePatternBytes) {
+      return null;
+    }
+    return pattern;
   }
 
   /// 指定したユーザーのメモをキーワード・カテゴリ・未同期条件で絞り込んで監視する
@@ -42,10 +52,14 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
           final trimmedQuery = query?.trim();
           if (trimmedQuery != null && trimmedQuery.isNotEmpty) {
             final pattern = _escapeLikePattern(trimmedQuery);
-            predicate =
-                predicate &
-                (t.title.lower().like(pattern, escapeChar: r'\') |
-                    t.content.lower().like(pattern, escapeChar: r'\'));
+            if (pattern == null) {
+              predicate = predicate & const Constant(false);
+            } else {
+              predicate =
+                  predicate &
+                  (t.title.lower().like(pattern, escapeChar: r'\') |
+                      t.content.lower().like(pattern, escapeChar: r'\'));
+            }
           }
           if (category != null) {
             predicate = predicate & t.category.equals(category.name);
@@ -70,10 +84,14 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
           final trimmedQuery = query?.trim();
           if (trimmedQuery != null && trimmedQuery.isNotEmpty) {
             final pattern = _escapeLikePattern(trimmedQuery);
-            predicate =
-                predicate &
-                (t.title.lower().like(pattern, escapeChar: r'\') |
-                    t.content.lower().like(pattern, escapeChar: r'\'));
+            if (pattern == null) {
+              predicate = predicate & const Constant(false);
+            } else {
+              predicate =
+                  predicate &
+                  (t.title.lower().like(pattern, escapeChar: r'\') |
+                      t.content.lower().like(pattern, escapeChar: r'\'));
+            }
           }
           if (category != null) {
             predicate = predicate & t.category.equals(category.name);
