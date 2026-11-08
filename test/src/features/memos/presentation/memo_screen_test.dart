@@ -314,6 +314,77 @@ void main() {
       check(find.byType(Card)).findsOne();
     });
 
+    testWidgets('最後のメモをスワイプ削除時、遅延する削除処理とストリーム更新でカードが破棄されてもUndoが表示されること', (
+      tester,
+    ) async {
+      final now = DateTime.now();
+      final memo = MemoModel(
+        id: '1',
+        userId: 'test_user_id',
+        title: '最後のメモ',
+        content: '内容',
+        createdAt: now,
+        updatedAt: now,
+      );
+      final streamController = StreamController<List<MemoModel>>();
+      addTearDown(streamController.close);
+
+      when(
+        () => mockMemoRepository.watchAllMemos(any()),
+      ).thenAnswer((_) => streamController.stream);
+
+      final deleteCompleter = Completer<void>();
+      when(() => mockMemoRepository.deleteMemo(any(), any())).thenAnswer((_) {
+        // DB更新によりストリームから空リストが流れる（カードが破棄される）
+        streamController.add(<MemoModel>[]);
+        // リモート送信などに時間がかかっている状態をシミュレート
+        return deleteCompleter.future;
+      });
+      when(
+        () => mockMemoRepository.restoreMemo(any(), any()),
+      ).thenAnswer((_) async {});
+
+      // 初期データを流す
+      streamController.add([memo]);
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      check(find.text('最後のメモ')).findsOne();
+
+      // スワイプ削除を実行
+      await tester.drag(find.byType(Dismissible), const Offset(-500, 0));
+      // スワイプ消去アニメーションを完了させて confirmDismiss を呼び出す
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      verify(
+        () => mockMemoRepository.deleteMemo('1', 'test_user_id'),
+      ).called(1);
+
+      // カードが破棄され、空状態（EmptyStateWidget）が表示されていること
+      check(find.text('最後のメモ')).findsNothing();
+      check(find.byType(EmptyStateWidget)).findsOne();
+
+      // まだ削除処理（リモート送信）が完了していないため、Undo通知は表示されていないこと
+      check(find.text('メモを削除しました')).findsNothing();
+
+      // 削除処理が完了
+      deleteCompleter.complete();
+      await tester.pumpAndSettle();
+
+      // カード破棄後でも Undo SnackBar が表示されていること
+      check(find.text('メモを削除しました')).findsOne();
+      check(find.text('元に戻す')).findsOne();
+
+      // 「元に戻す」をタップして復元処理が呼ばれること
+      await tester.tap(find.text('元に戻す'));
+      await tester.pumpAndSettle();
+
+      verify(
+        () => mockMemoRepository.restoreMemo('1', 'test_user_id'),
+      ).called(1);
+    });
+
     testWidgets('同期ボタンを押すと同期処理が呼ばれること', (tester) async {
       when(
         () => mockMemoRepository.watchAllMemos(any()),

@@ -510,8 +510,28 @@ class _MemoCard extends ConsumerWidget {
       // スワイプ完了前に非同期削除を試行し、失敗時はカードを元の位置に戻す
       confirmDismiss: (_) async {
         unawaited(HapticFeedback.mediumImpact());
+        // 📱 カードが破棄されても通知と復元ができるよう、非同期処理の前にメッセンジャーとNotifierを確保
+        final messenger = ScaffoldMessenger.of(context);
+        final memoNotifier = ref.read(memoProvider.notifier);
         try {
-          await ref.read(memoProvider.notifier).deleteMemo(memo.id);
+          await memoNotifier.deleteMemo(memo.id);
+          // 削除成功：最後のメモなどでカードが破棄された後でも、画面が有効ならUndo通知を表示
+          if (messenger.mounted) {
+            messenger
+              ..clearSnackBars()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(l10n.memoDeleted),
+                  action: SnackBarAction(
+                    label: l10n.memoUndo,
+                    onPressed: () {
+                      unawaited(HapticFeedback.lightImpact());
+                      unawaited(memoNotifier.restoreMemo(memo.id));
+                    },
+                  ),
+                ),
+              );
+          }
           return true; // 削除成功：消去アニメーションを進める
         } on Exception catch (e) {
           // 削除失敗：エラーSnackBarを表示し、カードを元の位置へ戻す（再操作可能）
@@ -522,24 +542,7 @@ class _MemoCard extends ConsumerWidget {
         }
       },
       onDismissed: (_) {
-        // 削除成功後に Undo 付き SnackBar を表示
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).clearSnackBars();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.memoDeleted),
-              action: SnackBarAction(
-                label: l10n.memoUndo,
-                onPressed: () {
-                  unawaited(HapticFeedback.lightImpact());
-                  unawaited(
-                    ref.read(memoProvider.notifier).restoreMemo(memo.id),
-                  );
-                },
-              ),
-            ),
-          );
-        }
+        // SnackBarの表示はconfirmDismiss成功時に一元化したため、ここでは何もしない
       },
       child: Card(
         margin: const EdgeInsets.only(bottom: 12),
