@@ -385,6 +385,80 @@ void main() {
       ).called(1);
     });
 
+    testWidgets('削除処理の完了前に画面遷移した場合、Undo通知が表示されないこと', (tester) async {
+      final now = DateTime.now();
+      final memo = MemoModel(
+        id: '1',
+        userId: 'test_user_id',
+        title: '削除中メモ',
+        content: '内容',
+        createdAt: now,
+        updatedAt: now,
+      );
+      when(
+        () => mockMemoRepository.watchAllMemos(any()),
+      ).thenAnswer((_) => Stream.value([memo]));
+
+      final deleteCompleter = Completer<void>();
+      when(
+        () => mockMemoRepository.deleteMemo(any(), any()),
+      ).thenAnswer((_) => deleteCompleter.future);
+
+      // 同一 MaterialApp 内で画面遷移をシミュレートする ValueNotifier
+      final screenNotifier = ValueNotifier<Widget>(const MemoScreen());
+      addTearDown(screenNotifier.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            currentUserIdProvider.overrideWithValue('test_user_id'),
+            memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(mockTalker),
+            isAppUnlockedProvider.overrideWithValue(true),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: [
+              MockLocalizationsDelegate(mockL10n),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: ValueListenableBuilder<Widget>(
+              valueListenable: screenNotifier,
+              builder: (_, currentScreen, _) => currentScreen,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      check(find.text('削除中メモ')).findsOne();
+
+      // スワイプ削除を開始
+      await tester.drag(find.byType(Dismissible), const Offset(-500, 0));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      verify(
+        () => mockMemoRepository.deleteMemo('1', 'test_user_id'),
+      ).called(1);
+
+      // 削除処理の完了前に画面遷移（MemoScreenがアンマウントされ、別画面に切り替わる）
+      screenNotifier.value = const Scaffold(body: Text('別画面'));
+      await tester.pumpAndSettle();
+
+      check(find.text('別画面')).findsOne();
+      check(find.text('削除中メモ')).findsNothing();
+
+      // 削除処理が完了
+      deleteCompleter.complete();
+      await tester.pumpAndSettle();
+
+      // 別画面で Undo 通知が表示されないこと
+      check(find.text('メモを削除しました')).findsNothing();
+      check(find.text('元に戻す')).findsNothing();
+    });
+
     testWidgets('同期ボタンを押すと同期処理が呼ばれること', (tester) async {
       when(
         () => mockMemoRepository.watchAllMemos(any()),

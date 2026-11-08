@@ -409,10 +409,47 @@ class _MemoListView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
+    // 📱 メモ画面そのものの寿命を表すコンテキスト（カードが破棄されても画面にいる間はmounted）
+    final screenContext = context;
+    final l10n = screenContext.l10n;
     final memosAsyncValue = ref.watch(memoProvider);
     final filter = ref.watch(memoFilterProvider);
     final canReorder = !filter.hasActiveFilter;
+
+    // スワイプ削除の処理（画面の寿命を基準に通知を管理）
+    Future<bool> handleDismissMemo(MemoModel memo) async {
+      unawaited(HapticFeedback.mediumImpact());
+      final messenger = ScaffoldMessenger.of(screenContext);
+      final memoNotifier = ref.read(memoProvider.notifier);
+      try {
+        await memoNotifier.deleteMemo(memo.id);
+        // 削除成功：カードが破棄された後でも、メモ画面そのものが有効（mounted）な場合のみUndo通知を表示
+        // （ログアウトや別画面へ遷移した場合は表示しない）
+        if (screenContext.mounted) {
+          messenger
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(l10n.memoDeleted),
+                action: SnackBarAction(
+                  label: l10n.memoUndo,
+                  onPressed: () {
+                    unawaited(HapticFeedback.lightImpact());
+                    unawaited(memoNotifier.restoreMemo(memo.id));
+                  },
+                ),
+              ),
+            );
+        }
+        return true; // 削除成功：消去アニメーションを進める
+      } on Exception catch (e) {
+        // 削除失敗：メモ画面が有効な場合のみエラーSnackBarを表示し、カードを元の位置へ戻す（再操作可能）
+        if (screenContext.mounted) {
+          ErrorHandler.showSnackBar(screenContext, e);
+        }
+        return false;
+      }
+    }
 
     return switch (memosAsyncValue) {
       AsyncData(value: final memos) when memos.isEmpty => ListView(
@@ -451,13 +488,14 @@ class _MemoListView extends ConsumerWidget {
             }
           }
         },
-        itemBuilder: (context, index) {
+        itemBuilder: (_, index) {
           final memo = memos[index];
           return _MemoCard(
             key: ValueKey(memo.id),
             index: index,
             memo: memo,
             canReorder: canReorder,
+            onDismiss: () => handleDismissMemo(memo),
           );
         },
       ),
@@ -481,12 +519,14 @@ class _MemoCard extends ConsumerWidget {
     required this.index,
     required this.memo,
     required this.canReorder,
+    required this.onDismiss,
     super.key,
   });
 
   final int index;
   final MemoModel memo;
   final bool canReorder;
+  final Future<bool> Function() onDismiss;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -507,42 +547,10 @@ class _MemoCard extends ConsumerWidget {
         ),
         child: Icon(Icons.delete, color: colorScheme.onError),
       ),
-      // スワイプ完了前に非同期削除を試行し、失敗時はカードを元の位置に戻す
-      confirmDismiss: (_) async {
-        unawaited(HapticFeedback.mediumImpact());
-        // 📱 カードが破棄されても通知と復元ができるよう、非同期処理の前にメッセンジャーとNotifierを確保
-        final messenger = ScaffoldMessenger.of(context);
-        final memoNotifier = ref.read(memoProvider.notifier);
-        try {
-          await memoNotifier.deleteMemo(memo.id);
-          // 削除成功：最後のメモなどでカードが破棄された後でも、画面が有効ならUndo通知を表示
-          if (messenger.mounted) {
-            messenger
-              ..clearSnackBars()
-              ..showSnackBar(
-                SnackBar(
-                  content: Text(l10n.memoDeleted),
-                  action: SnackBarAction(
-                    label: l10n.memoUndo,
-                    onPressed: () {
-                      unawaited(HapticFeedback.lightImpact());
-                      unawaited(memoNotifier.restoreMemo(memo.id));
-                    },
-                  ),
-                ),
-              );
-          }
-          return true; // 削除成功：消去アニメーションを進める
-        } on Exception catch (e) {
-          // 削除失敗：エラーSnackBarを表示し、カードを元の位置へ戻す（再操作可能）
-          if (context.mounted) {
-            ErrorHandler.showSnackBar(context, e);
-          }
-          return false;
-        }
-      },
+      // スワイプ完了前に非同期削除を試行し、画面の生存状態に応じてUndoを表示
+      confirmDismiss: (_) => onDismiss(),
       onDismissed: (_) {
-        // SnackBarの表示はconfirmDismiss成功時に一元化したため、ここでは何もしない
+        // SnackBarの表示はconfirmDismiss成功時に一元化しているため、ここでは何もしない
       },
       child: Card(
         margin: const EdgeInsets.only(bottom: 12),
