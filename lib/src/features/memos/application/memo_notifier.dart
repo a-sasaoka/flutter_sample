@@ -18,6 +18,8 @@ part 'memo_notifier.g.dart';
 @riverpod
 class MemoNotifier extends _$MemoNotifier {
   bool _hasSyncedOnInitialOnline = false;
+  List<MemoModel>? _lastConfirmedMemos;
+  int _activeReorderCount = 0;
 
   @override
   Stream<List<MemoModel>> build() {
@@ -26,6 +28,8 @@ class MemoNotifier extends _$MemoNotifier {
     // 未ログイン時は空リストを返し、初期同期フラグもリセット
     if (userId == null) {
       _hasSyncedOnInitialOnline = false;
+      _lastConfirmedMemos = null;
+      _activeReorderCount = 0;
       return Stream.value([]);
     }
 
@@ -71,6 +75,11 @@ class MemoNotifier extends _$MemoNotifier {
           (MemoModel a, MemoModel b) => a.sortOrder.compareTo(b.sortOrder),
       };
       sortedMemos.sort(comparator);
+
+      // 並び替え処理が実行中でなければ、確定した最新順序として記録
+      if (_activeReorderCount == 0) {
+        _lastConfirmedMemos = sortedMemos;
+      }
 
       return sortedMemos;
     });
@@ -142,6 +151,12 @@ class MemoNotifier extends _$MemoNotifier {
       return;
     }
 
+    // 進行中の並び替えがなければ、現在の状態を「最後に保存が確認された順序」として保持
+    if (_activeReorderCount == 0) {
+      _lastConfirmedMemos = currentMemos;
+    }
+    _activeReorderCount++;
+
     // 画面のチラつき（DriftのStreamラグ）を防ぐため、即座にローカル状態（state）を並び替える（Optimistic UI）
     final updatedMemos = [...currentMemos];
     final movedItem = updatedMemos.removeAt(oldIndex);
@@ -154,6 +169,9 @@ class MemoNotifier extends _$MemoNotifier {
     try {
       await repository.updateSortOrders(orderedIds, userId);
 
+      // 保存に成功した順序を確定順序として記録
+      _lastConfirmedMemos = updatedMemos;
+
       // 保存成功後に、ソート順を「カスタム順（手動並び順）」に切り替える
       if (ref.read(memoFilterProvider).sortOrder != MemoSortOrder.custom) {
         ref
@@ -161,10 +179,15 @@ class MemoNotifier extends _$MemoNotifier {
             .setSortOrder(MemoSortOrder.custom);
       }
     } on Exception catch (e, st) {
-      // 失敗した場合は元の順序にロールバック
-      state = AsyncData(currentMemos);
+      // 失敗した場合は、最後に保存が確認された順序にロールバック
+      state = AsyncData(_lastConfirmedMemos ?? currentMemos);
       ref.read(loggerProvider).handle(e, st, 'メモの並び替え保存に失敗しました');
       rethrow;
+    } finally {
+      _activeReorderCount--;
+      if (_activeReorderCount <= 0) {
+        _activeReorderCount = 0;
+      }
     }
   }
 

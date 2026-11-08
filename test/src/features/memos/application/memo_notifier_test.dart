@@ -573,6 +573,57 @@ void main() {
         memoSub.close();
       });
 
+      test(
+        'reorderMemos: 保存中に重複して並び替えが行われ失敗した場合、最後に保存確認された順序にロールバックされること',
+        () async {
+          final completer1 = Completer<void>();
+          final completer2 = Completer<void>();
+
+          when(
+            () => mockMemoRepository.updateSortOrders(any(), any()),
+          ).thenAnswer((invocation) {
+            final ids = invocation.positionalArguments[0] as List<String>;
+            // 1回目の並び替え（ID '1' が先頭）
+            if (ids.first == '1') {
+              return completer1.future;
+            }
+            // 2回目の並び替え
+            return completer2.future;
+          });
+
+          final memoSub = container.listen(memoProvider, (_, _) {});
+          await container.read(memoProvider.future);
+
+          final initialIds = ['2', '1', '3'];
+
+          // 1回目の並び替え（未完了のまま非同期で保留中）
+          final future1 = container
+              .read(memoProvider.notifier)
+              .reorderMemos(0, 1);
+
+          // 1回目の保存中に素早く2回目の並び替えを実行
+          final future2 = container
+              .read(memoProvider.notifier)
+              .reorderMemos(0, 2);
+
+          // 2回目の保存をエラーで失敗させる
+          completer2.completeError(Exception('Second DB error'));
+
+          await check(future2).throws<Exception>();
+
+          // 最後に保存確認された順序（initialIds）にロールバックされていること
+          check(
+            container.read(memoProvider).value!.map((m) => m.id).toList(),
+          ).deepEquals(initialIds);
+
+          // 1回目を完了させて後始末
+          completer1.complete();
+          await future1;
+
+          memoSub.close();
+        },
+      );
+
       test('reorderMemos: フィルタ適用中・同位置移動・未ログイン時は何もしないこと', () async {
         final memoSub = container.listen(memoProvider, (_, _) {});
         await container.read(memoProvider.future);
