@@ -241,15 +241,30 @@ void main() {
         createdAt: now,
         updatedAt: now,
       );
+      // 📱 削除・復元に応じて複数の一覧を流せる StreamController を用意
+      final streamController = StreamController<List<MemoModel>>();
+      addTearDown(streamController.close);
+
       when(
         () => mockMemoRepository.watchAllMemos(any()),
-      ).thenAnswer((_) => Stream.value([memo]));
-      when(
-        () => mockMemoRepository.deleteMemo(any(), any()),
-      ).thenAnswer((_) async {});
-      when(
-        () => mockMemoRepository.restoreMemo(any(), any()),
-      ).thenAnswer((_) async {});
+      ).thenAnswer((_) => streamController.stream);
+
+      // 削除処理が呼ばれた際、対象メモが除外された一覧（空リスト）を流す
+      when(() => mockMemoRepository.deleteMemo(any(), any())).thenAnswer((
+        _,
+      ) async {
+        streamController.add(<MemoModel>[]);
+      });
+
+      // 復元処理が呼ばれた際、メモが再追加された一覧を流す
+      when(() => mockMemoRepository.restoreMemo(any(), any())).thenAnswer((
+        _,
+      ) async {
+        streamController.add([memo]);
+      });
+
+      // 初期一覧を流して画面を表示
+      streamController.add([memo]);
 
       await setupWidget(tester);
       await tester.pumpAndSettle();
@@ -265,6 +280,10 @@ void main() {
         () => mockMemoRepository.deleteMemo('1', 'test_user_id'),
       ).called(1);
 
+      // 削除によって対象カードが画面から消失していること（空状態になっていること）
+      check(find.text('消すメモ')).findsNothing();
+      check(find.byType(EmptyStateWidget)).findsOne();
+
       // SnackBar が表示されていることを確認
       check(find.text('メモを削除しました')).findsOne();
       check(find.text('元に戻す')).findsOne();
@@ -277,6 +296,10 @@ void main() {
       verify(
         () => mockMemoRepository.restoreMemo('1', 'test_user_id'),
       ).called(1);
+
+      // 復元後の一覧でカードが画面に再表示されること
+      check(find.text('消すメモ')).findsOne();
+      check(find.byType(Card)).findsOne();
     });
 
     testWidgets('スワイプ削除に失敗した場合、エラー通知が表示されカードが維持されること', (tester) async {
