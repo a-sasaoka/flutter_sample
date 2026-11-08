@@ -141,8 +141,8 @@ class MemoNotifier extends _$MemoNotifier {
     }
 
     // 検索・絞り込み中は手動並び替え不可
-    final filter = ref.read(memoFilterProvider);
-    if (filter.hasActiveFilter) {
+    final initialFilter = ref.read(memoFilterProvider);
+    if (initialFilter.hasActiveFilter) {
       return;
     }
 
@@ -173,14 +173,22 @@ class MemoNotifier extends _$MemoNotifier {
       _lastConfirmedMemos = updatedMemos;
 
       // 保存成功後に、ソート順を「カスタム順（手動並び順）」に切り替える
-      if (ref.read(memoFilterProvider).sortOrder != MemoSortOrder.custom) {
+      // ただし、待機中にユーザーが別のソートやフィルタに変更していない場合のみ
+      final currentFilter = ref.read(memoFilterProvider);
+      if (currentFilter == initialFilter &&
+          currentFilter.sortOrder != MemoSortOrder.custom) {
         ref
             .read(memoFilterProvider.notifier)
             .setSortOrder(MemoSortOrder.custom);
       }
     } on Exception catch (e, st) {
       // 失敗した場合は、最後に保存が確認された順序にロールバック
-      state = AsyncData(_lastConfirmedMemos ?? currentMemos);
+      // ただし、待機中に検索・フィルタ条件が変更されている場合は、
+      // 検索結果の表示を壊さないようロールバック（stateの上書き）をスキップする
+      final currentFilter = ref.read(memoFilterProvider);
+      if (currentFilter == initialFilter && !currentFilter.hasActiveFilter) {
+        state = AsyncData(_lastConfirmedMemos ?? currentMemos);
+      }
       ref.read(loggerProvider).handle(e, st, 'メモの並び替え保存に失敗しました');
       rethrow;
     } finally {

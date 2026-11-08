@@ -624,6 +624,64 @@ void main() {
         },
       );
 
+      test('reorderMemos: 保存待機中に検索条件が変更され失敗した場合、現在の検索結果が維持されること', () async {
+        final completer = Completer<void>();
+
+        when(
+          () => mockMemoRepository.updateSortOrders(any(), any()),
+        ).thenAnswer((_) => completer.future);
+
+        final memoSub = container.listen(memoProvider, (_, _) {});
+        await container.read(memoProvider.future);
+
+        // 並び替え前の初期状態: ['2', '1', '3']
+        // 並び替えを開始（非同期で保留中）
+        final reorderFuture = container
+            .read(memoProvider.notifier)
+            .reorderMemos(0, 1);
+
+        // 保存待機中に検索クエリを設定（'2' で検索）
+        when(
+          () => mockMemoRepository.watchFilteredMemos(
+            any(),
+            query: '2',
+            category: any(named: 'category'),
+            unsyncedOnly: any(named: 'unsyncedOnly'),
+          ),
+        ).thenAnswer(
+          (_) => Stream.value([
+            MemoModel(
+              id: '2',
+              userId: 'test_user_id',
+              title: 'Title 2',
+              content: 'Content 2',
+              createdAt: DateTime(2026, 5, 2),
+              updatedAt: DateTime(2026, 5, 2),
+            ),
+          ]),
+        );
+
+        container.read(memoFilterProvider.notifier).setQuery('2');
+        // 検索によるストリームの更新を待つ
+        await pumpEventQueue();
+
+        // 検索結果として '2' のみが表示されていることを確認
+        check(
+          container.read(memoProvider).value!.map((m) => m.id).toList(),
+        ).deepEquals(['2']);
+
+        // 保存処理をエラーで失敗させる
+        completer.completeError(Exception('DB Error'));
+        await check(reorderFuture).throws<Exception>();
+
+        // 保存失敗後も、検索前の一覧で上書きされず、検索結果（['2']）が維持されていること
+        check(
+          container.read(memoProvider).value!.map((m) => m.id).toList(),
+        ).deepEquals(['2']);
+
+        memoSub.close();
+      });
+
       test('reorderMemos: フィルタ適用中・同位置移動・未ログイン時は何もしないこと', () async {
         final memoSub = container.listen(memoProvider, (_, _) {});
         await container.read(memoProvider.future);
