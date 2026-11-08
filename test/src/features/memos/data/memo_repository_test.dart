@@ -963,7 +963,7 @@ void main() {
       check(userBMemosAfterDelete.length).equals(1);
     });
 
-    test('addMemo: 先頭（sortOrder: 0）に追加され、既存メモがシフトされること', () async {
+    test('addMemo: 先頭（最小sortOrder未満）に追加され、既存メモより前に並ぶこと', () async {
       final container = createContainer(isOnline: false);
       final repository = container.read(memoRepositoryProvider);
 
@@ -976,8 +976,58 @@ void main() {
       final secondAdded = memos.firstWhere((m) => m.title == '2つ目のメモ');
       final firstAdded = memos.firstWhere((m) => m.title == '1つ目のメモ');
 
-      check(secondAdded.sortOrder).equals(0);
-      check(firstAdded.sortOrder).equals(1);
+      check(firstAdded.sortOrder).equals(0);
+      check(secondAdded.sortOrder).equals(-1);
+    });
+
+    test('fetchAndMergeRemoteMemos後にaddMemoを実行した際、'
+        '現在の最小値未満が割り当てられ先頭になり重複しないこと', () async {
+      final container = createContainer();
+      final repository = container.read(memoRepositoryProvider);
+
+      // 1. リモートからメモを2件取り込む（sortOrder: 0, 1）
+      when(() => mockRemoteService.fetchMemos()).thenAnswer(
+        (_) async => [
+          {
+            'id': 'remote_1',
+            'title': 'リモート1',
+            'content': '内容1',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+          {
+            'id': 'remote_2',
+            'title': 'リモート2',
+            'content': '内容2',
+            'createdAt': now.add(const Duration(minutes: 1)),
+            'updatedAt': now.add(const Duration(minutes: 1)),
+            'isDeleted': false,
+          },
+        ],
+      );
+
+      await repository.fetchAndMergeRemoteMemos(testUserId);
+      final remoteMemos = await database.select(database.memos).get();
+      check(remoteMemos.length).equals(2);
+
+      // 2. その後、ローカルで新規メモを追加
+      await repository.addMemo('ローカルメモ', 'ローカル内容', testUserId);
+
+      final allMemos = await database.select(database.memos).get();
+      check(allMemos.length).equals(3);
+
+      final localMemo = allMemos.firstWhere((m) => m.title == 'ローカルメモ');
+      final existingMin = remoteMemos
+          .map((m) => m.sortOrder)
+          .reduce((a, b) => a < b ? a : b);
+
+      // 新規ローカルメモのsortOrderは既存リモートメモの最小値未満であること
+      check(localMemo.sortOrder).equals(existingMin - 1);
+
+      // すべてのメモのsortOrderが一意（重複なし）であること
+      final sortOrders = allMemos.map((m) => m.sortOrder).toSet();
+      check(sortOrders.length).equals(3);
     });
 
     test('updateSortOrders: 渡されたID順にsortOrderが一括更新されること', () async {

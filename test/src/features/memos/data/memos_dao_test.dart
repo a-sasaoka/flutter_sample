@@ -477,7 +477,7 @@ void main() {
         check(m2.sortOrder).equals(0);
       });
 
-      test('【正常系】insertMemoWithShiftで既存メモがシフトされ新規メモが先頭に挿入されること', () async {
+      test('【正常系】insertMemoWithShiftで既存メモの最小値未満が割り当てられ先頭に挿入されること', () async {
         final now = DateTime(2026, 10, 25, 10);
         await dao.insertMemo(
           MemosCompanion.insert(
@@ -506,8 +506,8 @@ void main() {
 
         final m1 = await dao.getMemoById('m1', testUserId);
         final m2 = await dao.getMemoById('m2', testUserId);
-        check(m1.sortOrder).equals(1);
-        check(m2.sortOrder).equals(0);
+        check(m1.sortOrder).equals(0);
+        check(m2.sortOrder).equals(-1);
       });
 
       test('【正常系】restoreMemoで論理削除フラグが解除され未同期状態になること', () async {
@@ -574,6 +574,57 @@ void main() {
         check(m2.title).equals('M2新規');
         check(m2.sortOrder).equals(-1);
       });
+
+      test(
+        '【正常系】mergeRemoteMemosとupdateSortOrdersを並行実行しても正常に完了しデータ整合性が保たれること',
+        () async {
+          final now = DateTime(2026, 10, 25, 10);
+          await dao.insertMemo(
+            MemosCompanion.insert(
+              id: 'm1',
+              userId: testUserId,
+              title: 'M1',
+              content: 'C1',
+              createdAt: now,
+              updatedAt: now,
+              sortOrder: const Value(0),
+            ),
+          );
+          await dao.insertMemo(
+            MemosCompanion.insert(
+              id: 'm2',
+              userId: testUserId,
+              title: 'M2',
+              content: 'C2',
+              createdAt: now,
+              updatedAt: now,
+              sortOrder: const Value(1),
+            ),
+          );
+
+          // mergeRemoteMemos と updateSortOrders を同時に実行
+          await Future.wait([
+            dao.mergeRemoteMemos(testUserId, [
+              {
+                'id': 'm3',
+                'title': 'M3新規',
+                'content': 'C3新規',
+                'createdAt': now,
+                'updatedAt': now,
+                'isDeleted': false,
+              },
+            ]),
+            dao.updateSortOrders({'m1': 1, 'm2': 0}, testUserId),
+          ]);
+
+          final allMemos = await dao.getAllMemos(testUserId);
+          check(allMemos.length).equals(3);
+
+          // 全メモのsortOrderが一意であり重複しないこと
+          final sortOrders = allMemos.map((m) => m.sortOrder).toSet();
+          check(sortOrders.length).equals(3);
+        },
+      );
     });
   });
 }

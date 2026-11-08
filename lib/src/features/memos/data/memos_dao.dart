@@ -237,12 +237,17 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
     );
   }
 
-  /// 新規メモを先頭（sortOrder: 0）に追加し、既存の有効なメモを1つずつ後ろにずらす
-  /// トランザクション内でアトミックに実行されるため、変更通知は1回のみ発行されます
+  /// 新規メモをカスタム順の先頭に追加する
+  /// 既存メモの最小sortOrder未満の値を割り当てることで、既存メモを変更せずアトミックに先頭へ配置します
   Future<void> insertMemoWithShift(String userId, MemosCompanion memo) async {
     await transaction(() async {
-      await shiftSortOrders(userId);
-      await insertMemo(memo);
+      final allMemos = await getAllMemos(userId);
+      final minSortOrder = allMemos.isEmpty
+          ? 0
+          : allMemos.map((m) => m.sortOrder).reduce((a, b) => a < b ? a : b);
+      final newSortOrder = allMemos.isEmpty ? 0 : minSortOrder - 1;
+
+      await insertMemo(memo.copyWith(sortOrder: Value(newSortOrder)));
     });
   }
 
