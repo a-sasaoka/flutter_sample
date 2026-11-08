@@ -407,6 +407,20 @@ class _MemoFilterChipsBar extends ConsumerWidget {
 class _MemoListView extends ConsumerWidget {
   const _MemoListView();
 
+  /// メモ画面が現在アクティブ（表示中）かどうかを判定する
+  /// - TickerMode: StatefulShellRoute で非選択タブ（お休み中）になっていないか
+  /// - GoRouter: 現在の matchedLocation がメモタブ (/memos) であるか
+  static bool _isScreenActive(BuildContext context) {
+    if (!TickerMode.valuesOf(context).enabled) {
+      return false;
+    }
+    final router = GoRouter.maybeOf(context);
+    if (router != null && !router.state.matchedLocation.startsWith('/memos')) {
+      return false;
+    }
+    return true;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // 📱 メモ画面そのものの寿命を表すコンテキスト（カードが破棄されても画面にいる間はmounted）
@@ -416,16 +430,16 @@ class _MemoListView extends ConsumerWidget {
     final filter = ref.watch(memoFilterProvider);
     final canReorder = !filter.hasActiveFilter;
 
-    // スワイプ削除の処理（画面の寿命を基準に通知を管理）
+    // スワイプ削除の処理（画面の寿命およびタブ選択状態を基準に通知を管理）
     Future<bool> handleDismissMemo(MemoModel memo) async {
       unawaited(HapticFeedback.mediumImpact());
       final messenger = ScaffoldMessenger.of(screenContext);
       final memoNotifier = ref.read(memoProvider.notifier);
       try {
         await memoNotifier.deleteMemo(memo.id);
-        // 削除成功：カードが破棄された後でも、メモ画面そのものが有効（mounted）な場合のみUndo通知を表示
-        // （ログアウトや別画面へ遷移した場合は表示しない）
-        if (screenContext.mounted) {
+        // 削除成功：メモ画面が有効かつ「現在選択中（表示中）」の場合のみUndo通知を表示
+        // （別タブ選択中、ログアウト、別画面遷移時は表示しない）
+        if (screenContext.mounted && _isScreenActive(screenContext)) {
           messenger
             ..clearSnackBars()
             ..showSnackBar(
@@ -443,8 +457,8 @@ class _MemoListView extends ConsumerWidget {
         }
         return true; // 削除成功：消去アニメーションを進める
       } on Exception catch (e) {
-        // 削除失敗：メモ画面が有効な場合のみエラーSnackBarを表示し、カードを元の位置へ戻す（再操作可能）
-        if (screenContext.mounted) {
+        // 削除失敗：メモ画面が有効かつ選択中の場合のみエラーSnackBarを表示し、カードを元の位置へ戻す（再操作可能）
+        if (screenContext.mounted && _isScreenActive(screenContext)) {
           ErrorHandler.showSnackBar(screenContext, e);
         }
         return false;

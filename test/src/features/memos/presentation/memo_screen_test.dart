@@ -459,6 +459,123 @@ void main() {
       check(find.text('元に戻す')).findsNothing();
     });
 
+    testWidgets('削除処理の待機中にStatefulShellRouteでタブを切り替えた場合、Undo通知が表示されないこと', (
+      tester,
+    ) async {
+      final now = DateTime.now();
+      final memo = MemoModel(
+        id: '1',
+        userId: 'test_user_id',
+        title: '削除中メモ',
+        content: '内容',
+        createdAt: now,
+        updatedAt: now,
+      );
+      when(
+        () => mockMemoRepository.watchAllMemos(any()),
+      ).thenAnswer((_) => Stream.value([memo]));
+
+      final deleteCompleter = Completer<void>();
+      when(
+        () => mockMemoRepository.deleteMemo(any(), any()),
+      ).thenAnswer((_) => deleteCompleter.future);
+
+      // StatefulShellRoute を使った実際のタブ切り替え構成
+      final router = GoRouter(
+        initialLocation: '/memos',
+        routes: [
+          StatefulShellRoute.indexedStack(
+            builder: (context, state, navigationShell) {
+              return Scaffold(
+                body: navigationShell,
+                bottomNavigationBar: NavigationBar(
+                  selectedIndex: navigationShell.currentIndex,
+                  onDestinationSelected: (index) {
+                    navigationShell.goBranch(index);
+                  },
+                  destinations: const [
+                    NavigationDestination(
+                      icon: Icon(Icons.edit_note),
+                      label: 'メモ',
+                    ),
+                    NavigationDestination(icon: Icon(Icons.home), label: 'ホーム'),
+                  ],
+                ),
+              );
+            },
+            branches: [
+              StatefulShellBranch(
+                routes: [
+                  GoRoute(
+                    path: '/memos',
+                    builder: (context, state) => const MemoScreen(),
+                  ),
+                ],
+              ),
+              StatefulShellBranch(
+                routes: [
+                  GoRoute(
+                    path: '/home',
+                    builder: (context, state) =>
+                        const Scaffold(body: Text('ホーム画面')),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            currentUserIdProvider.overrideWithValue('test_user_id'),
+            memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(mockTalker),
+            isAppUnlockedProvider.overrideWithValue(true),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: [
+              MockLocalizationsDelegate(mockL10n),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      check(find.text('削除中メモ')).findsOne();
+      check(find.byType(MemoScreen)).findsOne();
+
+      // スワイプ削除を開始
+      await tester.drag(find.byType(Dismissible), const Offset(-500, 0));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      verify(
+        () => mockMemoRepository.deleteMemo('1', 'test_user_id'),
+      ).called(1);
+
+      // 削除処理の完了前に「ホーム」タブをタップして切り替える
+      // （StatefulShellRoute により MemoScreen はアンマウントされずに裏で保持される）
+      await tester.tap(find.text('ホーム'));
+      await tester.pumpAndSettle();
+
+      check(find.text('ホーム画面')).findsOne();
+
+      // 削除処理が完了
+      deleteCompleter.complete();
+      await tester.pumpAndSettle();
+
+      // ホーム画面で Undo 通知が表示されないこと
+      check(find.text('メモを削除しました')).findsNothing();
+      check(find.text('元に戻す')).findsNothing();
+    });
+
     testWidgets('同期ボタンを押すと同期処理が呼ばれること', (tester) async {
       when(
         () => mockMemoRepository.watchAllMemos(any()),
