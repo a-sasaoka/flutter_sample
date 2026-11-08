@@ -256,11 +256,11 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
       )..where((t) => t.userId.equals(userId))).get();
       final allMemosMap = {for (final m in allMemos) m.id: m};
 
-      // 並び替え対象外のメモ（削除済みメモや先行マージされた新規メモ）の番号を
-      // 「予約席」として保持し、番号を変更しない
+      // 並び替え対象外のメモ、または「DB上で削除済みのメモ」の位置を
+      // 予約席として保持し、番号を変更しない
       final reservedOrders = <int>{};
       for (final memo in allMemos) {
-        if (!orderedIds.contains(memo.id)) {
+        if (!orderedIds.contains(memo.id) || memo.isDeleted) {
           reservedOrders.add(memo.sortOrder);
         }
       }
@@ -268,10 +268,11 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
       final idToNewOrderMap = <String, int>{};
       var currentOrder = 0;
 
-      // 並び替えたメモには、予約席（削除済みメモの元の位置など）を避けて
-      // 空いている番号を順番に割り当てる
+      // 並び替えた有効なメモにのみ、予約席を避けて空いている番号を順番に割り当てる
       for (final id in orderedIds) {
-        if (!allMemosMap.containsKey(id)) {
+        final memo = allMemosMap[id];
+        // 存在しないメモ、または DB 上で削除済みのメモは再採番から除外
+        if (memo == null || memo.isDeleted) {
           continue;
         }
         // 予約されている番号はスキップ

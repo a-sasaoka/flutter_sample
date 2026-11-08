@@ -894,6 +894,74 @@ void main() {
         final sortOrders = allMemos.map((m) => m.sortOrder).toSet();
         check(sortOrders.length).equals(3);
       });
+
+      test('【正常系】並び替え一覧取得後に削除が先行反映されても、'
+          '削除済みメモの位置が予約され元位置でUndoできること', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        // 初期状態: A(0), B(1), C(2)
+        await dao.upsertMemos([
+          MemosCompanion.insert(
+            id: 'A',
+            userId: testUserId,
+            title: 'A',
+            content: 'A',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+          MemosCompanion.insert(
+            id: 'B',
+            userId: testUserId,
+            title: 'B',
+            content: 'B',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(1),
+          ),
+          MemosCompanion.insert(
+            id: 'C',
+            userId: testUserId,
+            title: 'C',
+            content: 'C',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(2),
+          ),
+        ]);
+
+        // 並び替え処理が古い一覧 ['B', 'A', 'C'] を保持している状態で、
+        // 先に A の削除が DB に反映される
+        await dao.updateMemo(
+          'A',
+          testUserId,
+          const MemosCompanion(isDeleted: Value(true)),
+        );
+
+        // その後、取得済みの古い一覧 ['B', 'A', 'C'] による並び替えを実行
+        await dao.updateSortOrders(['B', 'A', 'C'], testUserId);
+
+        // A を Undo 復元
+        await dao.restoreMemo(
+          'A',
+          testUserId,
+          now.add(const Duration(minutes: 1)),
+        );
+
+        final allMemos = await dao.getAllMemos(testUserId);
+        check(allMemos.length).equals(3);
+
+        final memoA = allMemos.firstWhere((m) => m.id == 'A');
+        final memoB = allMemos.firstWhere((m) => m.id == 'B');
+        final memoC = allMemos.firstWhere((m) => m.id == 'C');
+
+        // Aは再採番されず元の位置(0)を維持し、Bが1、Cが2となり重複が一切ないこと
+        check(memoA.sortOrder).equals(0);
+        check(memoB.sortOrder).equals(1);
+        check(memoC.sortOrder).equals(2);
+
+        final sortOrders = allMemos.map((m) => m.sortOrder).toSet();
+        check(sortOrders.length).equals(3);
+      });
     });
   });
 }
