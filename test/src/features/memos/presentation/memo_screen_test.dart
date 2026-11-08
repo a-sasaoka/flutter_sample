@@ -1350,11 +1350,36 @@ void main() {
       await tester.tap(find.text('カスタム順'));
       await tester.pumpAndSettle();
 
+      // 検索時に一致するメモを返すようにモックを設定
+      when(
+        () => mockMemoRepository.watchFilteredMemos(
+          any(),
+          query: any(named: 'query'),
+          category: any(named: 'category'),
+          unsyncedOnly: any(named: 'unsyncedOnly'),
+        ),
+      ).thenAnswer(
+        (_) => Stream.value([
+          MemoModel(
+            id: '1',
+            userId: 'test_user_id',
+            title: '検索結果メモ',
+            content: '内容1',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        ]),
+      );
+
       // 検索窓に文字を入力するとフィルタがアクティブになり、
-      // ドラッグハンドルが無効（ReorderableDragStartListenerが0）になること
+      // 検索結果カードが表示されるが、ドラッグハンドルは無効（ReorderableDragStartListenerが0）になること
       await tester.enterText(find.byType(TextField).first, '検索');
       await tester.pump(const Duration(milliseconds: 450));
       await tester.pumpAndSettle();
+
+      // 検索結果カードが表示されていること
+      check(find.text('検索結果メモ')).findsOne();
+      // カードが表示されている状態でも、ドラッグハンドルが存在しないこと
       check(find.byType(ReorderableDragStartListener)).findsNothing();
     });
 
