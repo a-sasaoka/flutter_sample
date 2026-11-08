@@ -143,6 +143,90 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
     });
   }
 
+  /// リモートデータをローカルDBにマージする（読み取りから書き込みまでをトランザクションで直列化・原子化）
+  Future<void> mergeRemoteMemos(
+    String userId,
+    List<Map<String, dynamic>> remoteData,
+  ) async {
+    await transaction(() async {
+      final ids = remoteData.map((e) => e['id'] as String).toList();
+      final localMemos = await getMemosByIds(ids, userId);
+      final localMemosMap = {for (final m in localMemos) m.id: m};
+      final allLocalMemos = await getAllMemos(userId);
+      final companionsToUpsert = <MemosCompanion>[];
+
+      // 既存ローカルメモの最小sortOrderを取得（存在しない場合は0）
+      final currentMinSortOrder = allLocalMemos.isEmpty
+          ? 0
+          : allLocalMemos
+                .map((m) => m.sortOrder)
+                .reduce((a, b) => a < b ? a : b);
+
+      // リモートデータのうち、ローカルに存在しない新規メモの件数をカウント
+      var newMemoCount = 0;
+      for (final remoteMemo in remoteData) {
+        if (remoteMemo case {'id': final String id}) {
+          if (!localMemosMap.containsKey(id)) {
+            newMemoCount++;
+          }
+        }
+      }
+      var newMemoIndex = 0;
+
+      for (final remoteMemo in remoteData) {
+        if (remoteMemo case {
+          'id': final String id,
+          'title': final String title,
+          'content': final String content,
+          'createdAt': final DateTime createdAt,
+          'updatedAt': final DateTime updatedAt,
+          'isDeleted': final bool isDeleted,
+        }) {
+          final localMemo = localMemosMap[id];
+
+          // サーバーのデータが新しい場合、またはローカルに存在しない場合に更新/挿入対象とする
+          if (localMemo == null || updatedAt.isAfter(localMemo.updatedAt)) {
+            final int sortOrder;
+            if (localMemo != null) {
+              sortOrder = localMemo.sortOrder;
+            } else {
+              // 新規メモは既存メモの順序と重複せず、カスタム順で先頭になる値を割り当てる
+              sortOrder = allLocalMemos.isEmpty
+                  ? newMemoIndex
+                  : (currentMinSortOrder - newMemoCount + newMemoIndex);
+              newMemoIndex++;
+            }
+
+            companionsToUpsert.add(
+              MemosCompanion.insert(
+                id: id,
+                userId: userId,
+                title: title,
+                content: content,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                isDeleted: Value(isDeleted),
+                isSynced: const Value(true),
+                category: Value(localMemo?.category),
+                sortOrder: Value(sortOrder),
+              ),
+            );
+          }
+        }
+      }
+
+      if (companionsToUpsert.isNotEmpty) {
+        await batch((batch) {
+          batch.insertAll(
+            memos,
+            companionsToUpsert,
+            mode: InsertMode.insertOrReplace,
+          );
+        });
+      }
+    });
+  }
+
   /// 新規メモを先頭に追加するため、既存の有効なメモの並び順を1つずつ後ろにずらす
   Future<void> shiftSortOrders(String userId) async {
     await customUpdate(

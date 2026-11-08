@@ -335,45 +335,7 @@ class MemoRepository {
 
       // サーバーから取得したデータを効率的にマージする
       if (remoteData.isNotEmpty) {
-        final ids = remoteData.map((e) => e['id'] as String).toList();
-        final localMemos = await _dao.getMemosByIds(ids, userId);
-        final localMemosMap = {for (final m in localMemos) m.id: m};
-        final companionsToUpsert = <MemosCompanion>[];
-
-        for (final remoteMemo in remoteData) {
-          if (remoteMemo case {
-            'id': final String id,
-            'title': final String title,
-            'content': final String content,
-            'createdAt': final DateTime createdAt,
-            'updatedAt': final DateTime updatedAt,
-            'isDeleted': final bool isDeleted,
-          }) {
-            final localMemo = localMemosMap[id];
-
-            // サーバーのデータが新しい場合、またはローカルに存在しない場合に更新/挿入対象とする
-            if (localMemo == null || updatedAt.isAfter(localMemo.updatedAt)) {
-              companionsToUpsert.add(
-                MemosCompanion.insert(
-                  id: id,
-                  userId: userId,
-                  title: title,
-                  content: content,
-                  createdAt: createdAt,
-                  updatedAt: updatedAt,
-                  isDeleted: drift.Value(isDeleted),
-                  isSynced: const drift.Value(true),
-                  category: drift.Value(localMemo?.category),
-                  sortOrder: drift.Value(localMemo?.sortOrder ?? 0),
-                ),
-              );
-            }
-          }
-        }
-
-        if (companionsToUpsert.isNotEmpty) {
-          await _dao.upsertMemos(companionsToUpsert);
-        }
+        await _dao.mergeRemoteMemos(userId, remoteData);
       }
       _talker.debug('Merged remote memos into local database.');
     } on Exception catch (e, st) {

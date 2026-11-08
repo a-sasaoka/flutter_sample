@@ -533,6 +533,47 @@ void main() {
         check(restored.isSynced).isFalse();
         check(restored.updatedAt).equals(restoreTime);
       });
+
+      test('【正常系】mergeRemoteMemosで既存メモの順序を維持しつつ新規メモを先頭にマージすること', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'm1',
+            userId: testUserId,
+            title: 'M1',
+            content: 'C1',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+        );
+
+        await dao.mergeRemoteMemos(testUserId, [
+          {
+            'id': 'm1',
+            'title': 'M1更新',
+            'content': 'C1更新',
+            'createdAt': now,
+            'updatedAt': now.add(const Duration(minutes: 5)),
+            'isDeleted': false,
+          },
+          {
+            'id': 'm2',
+            'title': 'M2新規',
+            'content': 'C2新規',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+        ]);
+
+        final m1 = await dao.getMemoById('m1', testUserId);
+        final m2 = await dao.getMemoById('m2', testUserId);
+        check(m1.title).equals('M1更新');
+        check(m1.sortOrder).equals(0);
+        check(m2.title).equals('M2新規');
+        check(m2.sortOrder).equals(-1);
+      });
     });
   });
 }

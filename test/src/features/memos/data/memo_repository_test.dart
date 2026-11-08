@@ -877,6 +877,56 @@ void main() {
       check(mergedMemos.first.category).equals(MemoCategory.work);
     });
 
+    test('fetchAndMergeRemoteMemos: '
+        '既存メモがある場合、リモート新規メモは重複せず先頭になるsortOrderが割り当てられること', () async {
+      final container = createContainer();
+      final repository = container.read(memoRepositoryProvider);
+
+      // 事前にローカルにメモを作成（sortOrder: 0）
+      await repository.addMemo('既存メモ', '既存内容', testUserId);
+      final initialLocalMemos = await database.select(database.memos).get();
+      check(initialLocalMemos.first.sortOrder).equals(0);
+
+      // リモートから新規メモが2件届く
+      when(() => mockRemoteService.fetchMemos()).thenAnswer(
+        (_) async => [
+          {
+            'id': 'remote_new_1',
+            'title': 'リモート新規1',
+            'content': '本文1',
+            'createdAt': now.add(const Duration(minutes: 1)),
+            'updatedAt': now.add(const Duration(minutes: 1)),
+            'isDeleted': false,
+          },
+          {
+            'id': 'remote_new_2',
+            'title': 'リモート新規2',
+            'content': '本文2',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+        ],
+      );
+
+      await repository.fetchAndMergeRemoteMemos(testUserId);
+
+      final mergedMemos = await database.select(database.memos).get();
+      check(mergedMemos.length).equals(3);
+
+      final newMemo1 = mergedMemos.firstWhere((m) => m.id == 'remote_new_1');
+      final newMemo2 = mergedMemos.firstWhere((m) => m.id == 'remote_new_2');
+      final existingMemo = mergedMemos.firstWhere(
+        (m) => m.id == initialLocalMemos.first.id,
+      );
+
+      // 既存メモのsortOrderは変わらないこと
+      check(existingMemo.sortOrder).equals(0);
+      // 新規メモは既存の最小値（0）未満であり、重複しないこと
+      check(newMemo1.sortOrder).equals(-2);
+      check(newMemo2.sortOrder).equals(-1);
+    });
+
     test('マルチユーザー分離: 異なるユーザーIDのメモは互いに取得・更新・削除されないこと', () async {
       final container = createContainer(isOnline: false);
       final repository = container.read(memoRepositoryProvider);
