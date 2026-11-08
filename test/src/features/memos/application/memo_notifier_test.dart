@@ -391,6 +391,7 @@ void main() {
           content: 'This is red apple.',
           createdAt: DateTime(2026, 5, 10),
           updatedAt: DateTime(2026, 5, 20),
+          sortOrder: 3,
         ),
         MemoModel(
           id: '2',
@@ -399,6 +400,7 @@ void main() {
           content: 'Yellow banana juice.',
           createdAt: DateTime(2026, 5, 15),
           updatedAt: DateTime(2026, 5, 18),
+          sortOrder: 1,
         ),
         MemoModel(
           id: '3',
@@ -407,6 +409,7 @@ void main() {
           content: 'Sweet orange.',
           createdAt: DateTime(2026, 5, 5),
           updatedAt: DateTime(2026, 5, 25),
+          sortOrder: 2,
         ),
       ];
 
@@ -508,7 +511,7 @@ void main() {
             .read(memoSortOrderStateProvider.notifier)
             .setSortOrder(MemoSortOrder.custom);
         memos = await container.read(memoProvider.future);
-        check(memos.map((m) => m.id).toList()).deepEquals(['1', '2', '3']);
+        check(memos.map((m) => m.id).toList()).deepEquals(['2', '3', '1']);
 
         sortSub.close();
         memoSub.close();
