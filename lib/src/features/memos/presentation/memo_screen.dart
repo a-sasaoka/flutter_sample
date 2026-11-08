@@ -436,11 +436,20 @@ class _MemoListView extends ConsumerWidget {
         buildDefaultDragHandles: false,
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
         itemCount: memos.length,
-        onReorderItem: (oldIndex, newIndex) {
+        onReorderItem: (oldIndex, newIndex) async {
+          // 操作時の触覚フィードバック
           unawaited(HapticFeedback.mediumImpact());
-          unawaited(
-            ref.read(memoProvider.notifier).reorderMemos(oldIndex, newIndex),
-          );
+          try {
+            // 並び替え処理を実行（DB保存完了まで待機）
+            await ref
+                .read(memoProvider.notifier)
+                .reorderMemos(oldIndex, newIndex);
+          } on Exception catch (e) {
+            // 保存に失敗し、画面が有効（mounted）な場合にエラー通知を表示
+            if (context.mounted) {
+              ErrorHandler.showSnackBar(context, e);
+            }
+          }
         },
         itemBuilder: (context, index) {
           final memo = memos[index];

@@ -1060,5 +1060,46 @@ void main() {
       await tester.pumpAndSettle();
       check(find.byType(ReorderableDragStartListener)).findsNothing();
     });
+
+    testWidgets('並び替え保存に失敗した場合にエラーSnackBarが表示されること', (tester) async {
+      final memoList = [
+        MemoModel(
+          id: '1',
+          userId: 'test_user_id',
+          title: 'メモ1',
+          content: '内容1',
+          createdAt: DateTime(2026, 10, 25),
+          updatedAt: DateTime(2026, 10, 25),
+        ),
+        MemoModel(
+          id: '2',
+          userId: 'test_user_id',
+          title: 'メモ2',
+          content: '内容2',
+          createdAt: DateTime(2026, 10, 25),
+          updatedAt: DateTime(2026, 10, 25),
+          sortOrder: 1,
+        ),
+      ];
+      when(
+        () => mockMemoRepository.watchAllMemos(any()),
+      ).thenAnswer((_) => Stream.value(memoList));
+      when(
+        () => mockMemoRepository.updateSortOrders(any(), any()),
+      ).thenThrow(Exception('並び替え保存失敗'));
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      final reorderableListView = tester.widget<ReorderableListView>(
+        find.byType(ReorderableListView),
+      );
+      reorderableListView.onReorderItem!(0, 1);
+      await tester.pumpAndSettle();
+
+      // 保存失敗のエラーSnackBarが表示されること
+      check(find.byType(SnackBar)).findsOne();
+      check(find.text('エラーが発生しました')).findsOne();
+    });
   });
 }
