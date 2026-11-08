@@ -703,7 +703,76 @@ void main() {
         check(m1.sortOrder).equals(1);
       });
 
-      test('【正常系】削除後に残りのメモを並び替えてからUndoしてもsortOrderが重複せず順序が保たれること', () async {
+      test(
+        '【正常系】削除後に残りのメモを並び替えてからUndoした際、元の位置（sortOrder）で復元され重複しないこと',
+        () async {
+          final now = DateTime(2026, 10, 25, 10);
+          // 初期状態: A(0), B(1), C(2)
+          await dao.upsertMemos([
+            MemosCompanion.insert(
+              id: 'A',
+              userId: testUserId,
+              title: 'A',
+              content: 'A',
+              createdAt: now,
+              updatedAt: now,
+              sortOrder: const Value(0),
+            ),
+            MemosCompanion.insert(
+              id: 'B',
+              userId: testUserId,
+              title: 'B',
+              content: 'B',
+              createdAt: now,
+              updatedAt: now,
+              sortOrder: const Value(1),
+            ),
+            MemosCompanion.insert(
+              id: 'C',
+              userId: testUserId,
+              title: 'C',
+              content: 'C',
+              createdAt: now,
+              updatedAt: now,
+              sortOrder: const Value(2),
+            ),
+          ]);
+
+          // 1. A を論理削除（sortOrder: 0 をキープ）
+          await dao.updateMemo(
+            'A',
+            testUserId,
+            const MemosCompanion(isDeleted: Value(true)),
+          );
+
+          // 2. 残りのメモ [C, B] を並び替え（Aの0を避けて C: 1, B: 2 が割り当てられる）
+          await dao.updateSortOrders(['C', 'B'], testUserId);
+
+          // 3. A を Undo 復元
+          await dao.restoreMemo(
+            'A',
+            testUserId,
+            now.add(const Duration(minutes: 1)),
+          );
+
+          final allMemos = await dao.getAllMemos(testUserId);
+          check(allMemos.length).equals(3);
+
+          final memoA = allMemos.firstWhere((m) => m.id == 'A');
+          final memoC = allMemos.firstWhere((m) => m.id == 'C');
+          final memoB = allMemos.firstWhere((m) => m.id == 'B');
+
+          // Aは元の先頭位置（0）で復元され、並び替えたCが1、Bが2となり重複が一切ないこと
+          check(memoA.sortOrder).equals(0);
+          check(memoC.sortOrder).equals(1);
+          check(memoB.sortOrder).equals(2);
+
+          final sortOrders = allMemos.map((m) => m.sortOrder).toSet();
+          check(sortOrders.length).equals(3);
+        },
+      );
+
+      test('【正常系】中間のメモ削除後に残りを並び替えてからUndoした際も元の位置で復元され重複しないこと', () async {
         final now = DateTime(2026, 10, 25, 10);
         // 初期状態: A(0), B(1), C(2)
         await dao.upsertMemos([
@@ -736,19 +805,19 @@ void main() {
           ),
         ]);
 
-        // 1. A を論理削除
+        // 1. 中間の B を論理削除（sortOrder: 1 をキープ）
         await dao.updateMemo(
-          'A',
+          'B',
           testUserId,
           const MemosCompanion(isDeleted: Value(true)),
         );
 
-        // 2. 残りのメモ [C, B] を並び替え
-        await dao.updateSortOrders(['C', 'B'], testUserId);
+        // 2. 残りのメモ [C, A] を並び替え（Bの1を避けて C: 0, A: 2 が割り当てられる）
+        await dao.updateSortOrders(['C', 'A'], testUserId);
 
-        // 3. A を Undo 復元
+        // 3. B を Undo 復元
         await dao.restoreMemo(
-          'A',
+          'B',
           testUserId,
           now.add(const Duration(minutes: 1)),
         );
@@ -760,7 +829,7 @@ void main() {
         final memoB = allMemos.firstWhere((m) => m.id == 'B');
         final memoA = allMemos.firstWhere((m) => m.id == 'A');
 
-        // Cが0、Bが1、復元されたAが2となり、重複が一切ないこと
+        // Cが0、復元されたBが元の位置(1)、Aが2となり、重複が一切ないこと
         check(memoC.sortOrder).equals(0);
         check(memoB.sortOrder).equals(1);
         check(memoA.sortOrder).equals(2);
