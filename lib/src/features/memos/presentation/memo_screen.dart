@@ -507,11 +507,22 @@ class _MemoCard extends ConsumerWidget {
         ),
         child: Icon(Icons.delete, color: colorScheme.onError),
       ),
-      onDismissed: (_) async {
+      // スワイプ完了前に非同期削除を試行し、失敗時はカードを元の位置に戻す
+      confirmDismiss: (_) async {
         unawaited(HapticFeedback.mediumImpact());
-        final memoId = memo.id;
-        await ref.read(memoProvider.notifier).deleteMemo(memoId);
-
+        try {
+          await ref.read(memoProvider.notifier).deleteMemo(memo.id);
+          return true; // 削除成功：消去アニメーションを進める
+        } on Exception catch (e) {
+          // 削除失敗：エラーSnackBarを表示し、カードを元の位置へ戻す（再操作可能）
+          if (context.mounted) {
+            ErrorHandler.showSnackBar(context, e);
+          }
+          return false;
+        }
+      },
+      onDismissed: (_) {
+        // 削除成功後に Undo 付き SnackBar を表示
         if (context.mounted) {
           ScaffoldMessenger.of(context).clearSnackBars();
           ScaffoldMessenger.of(context).showSnackBar(
@@ -522,7 +533,7 @@ class _MemoCard extends ConsumerWidget {
                 onPressed: () {
                   unawaited(HapticFeedback.lightImpact());
                   unawaited(
-                    ref.read(memoProvider.notifier).restoreMemo(memoId),
+                    ref.read(memoProvider.notifier).restoreMemo(memo.id),
                   );
                 },
               ),

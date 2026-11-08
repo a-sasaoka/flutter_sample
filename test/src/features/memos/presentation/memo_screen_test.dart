@@ -279,6 +279,41 @@ void main() {
       ).called(1);
     });
 
+    testWidgets('スワイプ削除に失敗した場合、エラー通知が表示されカードが維持されること', (tester) async {
+      final now = DateTime.now();
+      final memo = MemoModel(
+        id: '1',
+        userId: 'test_user_id',
+        title: '削除失敗メモ',
+        content: '内容',
+        createdAt: now,
+        updatedAt: now,
+      );
+      when(
+        () => mockMemoRepository.watchAllMemos(any()),
+      ).thenAnswer((_) => Stream.value([memo]));
+      when(
+        () => mockMemoRepository.deleteMemo(any(), any()),
+      ).thenThrow(Exception('削除エラー'));
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      check(find.text('削除失敗メモ')).findsOne();
+
+      // 右から左へスワイプ（Dismissible）
+      await tester.drag(find.byType(Dismissible), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+
+      // エラー通知が表示されること
+      check(find.byType(SnackBar)).findsOne();
+      check(find.text('エラーが発生しました')).findsOne();
+
+      // カードが削除されず画面上に残っていること（再操作可能）
+      check(find.text('削除失敗メモ')).findsOne();
+      check(find.byType(Card)).findsOne();
+    });
+
     testWidgets('同期ボタンを押すと同期処理が呼ばれること', (tester) async {
       when(
         () => mockMemoRepository.watchAllMemos(any()),
