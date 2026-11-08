@@ -920,11 +920,10 @@ void main() {
         (m) => m.id == initialLocalMemos.first.id,
       );
 
-      // 既存メモのsortOrderは変わらないこと
-      check(existingMemo.sortOrder).equals(0);
-      // 新規メモは既存の最小値（0）未満であり、重複しないこと
-      check(newMemo1.sortOrder).equals(-2);
-      check(newMemo2.sortOrder).equals(-1);
+      // 既存メモは新規件数分シフトされ、新規メモは0, 1に配置されること
+      check(existingMemo.sortOrder).equals(2);
+      check(newMemo1.sortOrder).equals(0);
+      check(newMemo2.sortOrder).equals(1);
     });
 
     test('マルチユーザー分離: 異なるユーザーIDのメモは互いに取得・更新・削除されないこと', () async {
@@ -963,7 +962,7 @@ void main() {
       check(userBMemosAfterDelete.length).equals(1);
     });
 
-    test('addMemo: 先頭（最小sortOrder未満）に追加され、既存メモより前に並ぶこと', () async {
+    test('addMemo: 先頭（sortOrder: 0）に追加され、既存メモが後ろにシフトされること', () async {
       final container = createContainer(isOnline: false);
       final repository = container.read(memoRepositoryProvider);
 
@@ -976,12 +975,13 @@ void main() {
       final secondAdded = memos.firstWhere((m) => m.title == '2つ目のメモ');
       final firstAdded = memos.firstWhere((m) => m.title == '1つ目のメモ');
 
-      check(firstAdded.sortOrder).equals(0);
-      check(secondAdded.sortOrder).equals(-1);
+      // 2つ目（最新）が0、1つ目が1にシフトされていること
+      check(secondAdded.sortOrder).equals(0);
+      check(firstAdded.sortOrder).equals(1);
     });
 
     test('fetchAndMergeRemoteMemos後にaddMemoを実行した際、'
-        '現在の最小値未満が割り当てられ先頭になり重複しないこと', () async {
+        '新規ローカルメモが先頭（0）になり既存メモがシフトされ重複しないこと', () async {
       final container = createContainer();
       final repository = container.read(memoRepositoryProvider);
 
@@ -1018,12 +1018,13 @@ void main() {
       check(allMemos.length).equals(3);
 
       final localMemo = allMemos.firstWhere((m) => m.title == 'ローカルメモ');
-      final existingMin = remoteMemos
-          .map((m) => m.sortOrder)
-          .reduce((a, b) => a < b ? a : b);
+      final remote1 = allMemos.firstWhere((m) => m.id == 'remote_1');
+      final remote2 = allMemos.firstWhere((m) => m.id == 'remote_2');
 
-      // 新規ローカルメモのsortOrderは既存リモートメモの最小値未満であること
-      check(localMemo.sortOrder).equals(existingMin - 1);
+      // 新規ローカルメモが先頭（0）であり、リモートメモが1, 2にシフトされること
+      check(localMemo.sortOrder).equals(0);
+      check(remote1.sortOrder).equals(1);
+      check(remote2.sortOrder).equals(2);
 
       // すべてのメモのsortOrderが一意（重複なし）であること
       final sortOrders = allMemos.map((m) => m.sortOrder).toSet();

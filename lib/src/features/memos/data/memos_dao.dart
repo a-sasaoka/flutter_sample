@@ -152,15 +152,7 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
       final ids = remoteData.map((e) => e['id'] as String).toList();
       final localMemos = await getMemosByIds(ids, userId);
       final localMemosMap = {for (final m in localMemos) m.id: m};
-      final allLocalMemos = await getAllMemos(userId);
       final companionsToUpsert = <MemosCompanion>[];
-
-      // 既存ローカルメモの最小sortOrderを取得（存在しない場合は0）
-      final currentMinSortOrder = allLocalMemos.isEmpty
-          ? 0
-          : allLocalMemos
-                .map((m) => m.sortOrder)
-                .reduce((a, b) => a < b ? a : b);
 
       // リモートデータのうち、ローカルに存在しない新規メモの件数をカウント
       var newMemoCount = 0;
@@ -171,6 +163,12 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
           }
         }
       }
+
+      // 新規リモートメモが存在する場合、既存メモ（削除済み含む）を新規件数分シフト
+      if (newMemoCount > 0) {
+        await shiftSortOrders(userId, newMemoCount);
+      }
+
       var newMemoIndex = 0;
 
       for (final remoteMemo in remoteData) {
@@ -188,12 +186,13 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
           if (localMemo == null || updatedAt.isAfter(localMemo.updatedAt)) {
             final int sortOrder;
             if (localMemo != null) {
-              sortOrder = localMemo.sortOrder;
+              // 既存メモは shiftSortOrders でシフトされた後の値を維持する
+              sortOrder = newMemoCount > 0
+                  ? localMemo.sortOrder + newMemoCount
+                  : localMemo.sortOrder;
             } else {
-              // 新規メモは既存メモの順序と重複せず、カスタム順で先頭になる値を割り当てる
-              sortOrder = allLocalMemos.isEmpty
-                  ? newMemoIndex
-                  : (currentMinSortOrder - newMemoCount + newMemoIndex);
+              // 新規リモートメモは先頭（0, 1, ..., newMemoCount - 1）に配置
+              sortOrder = newMemoIndex;
               newMemoIndex++;
             }
 
@@ -227,27 +226,22 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
     });
   }
 
-  /// 新規メモを先頭に追加するため、既存の有効なメモの並び順を1つずつ後ろにずらす
-  Future<void> shiftSortOrders(String userId) async {
+  /// 新規メモを先頭に追加するため、既存メモ（削除済み・Undo復元対象を含む）の並び順を後ろにずらす
+  Future<void> shiftSortOrders(String userId, [int shiftCount = 1]) async {
     await customUpdate(
-      'UPDATE memos SET sort_order = sort_order + 1 '
-      'WHERE user_id = ? AND is_deleted = 0;',
-      variables: [Variable.withString(userId)],
+      'UPDATE memos SET sort_order = sort_order + ? '
+      'WHERE user_id = ?;',
+      variables: [Variable.withInt(shiftCount), Variable.withString(userId)],
       updates: {memos},
     );
   }
 
-  /// 新規メモをカスタム順の先頭に追加する
-  /// 既存メモの最小sortOrder未満の値を割り当てることで、既存メモを変更せずアトミックに先頭へ配置します
+  /// 新規メモを先頭（sortOrder: 0）に追加し、既存のメモ（削除済み含む）を1つずつ後ろにずらす
+  /// トランザクション内でアトミックに実行されるため、変更通知は1回のみ発行されます
   Future<void> insertMemoWithShift(String userId, MemosCompanion memo) async {
     await transaction(() async {
-      final allMemos = await getAllMemos(userId);
-      final minSortOrder = allMemos.isEmpty
-          ? 0
-          : allMemos.map((m) => m.sortOrder).reduce((a, b) => a < b ? a : b);
-      final newSortOrder = allMemos.isEmpty ? 0 : minSortOrder - 1;
-
-      await insertMemo(memo.copyWith(sortOrder: Value(newSortOrder)));
+      await shiftSortOrders(userId);
+      await insertMemo(memo.copyWith(sortOrder: const Value(0)));
     });
   }
 
