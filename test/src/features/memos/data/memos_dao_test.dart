@@ -472,7 +472,7 @@ void main() {
           ),
         ]);
 
-        await dao.updateSortOrders({'m1': 1, 'm2': 0}, testUserId);
+        await dao.updateSortOrders(['m2', 'm1'], testUserId);
 
         final m1 = await dao.getMemoById('m1', testUserId);
         final m2 = await dao.getMemoById('m2', testUserId);
@@ -690,7 +690,7 @@ void main() {
               'isDeleted': false,
             },
           ]),
-          dao.updateSortOrders({'m1': 1, 'm2': 0}, testUserId),
+          dao.updateSortOrders(['m2', 'm1'], testUserId),
         ]);
 
         final m1 = await dao.getMemoById('m1', testUserId);
@@ -701,6 +701,129 @@ void main() {
         // 並び替えの結果（m2が0、m1が1）が保持されていること
         check(m2.sortOrder).equals(0);
         check(m1.sortOrder).equals(1);
+      });
+
+      test('【正常系】削除後に残りのメモを並び替えてからUndoしてもsortOrderが重複せず順序が保たれること', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        // 初期状態: A(0), B(1), C(2)
+        await dao.upsertMemos([
+          MemosCompanion.insert(
+            id: 'A',
+            userId: testUserId,
+            title: 'A',
+            content: 'A',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+          MemosCompanion.insert(
+            id: 'B',
+            userId: testUserId,
+            title: 'B',
+            content: 'B',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(1),
+          ),
+          MemosCompanion.insert(
+            id: 'C',
+            userId: testUserId,
+            title: 'C',
+            content: 'C',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(2),
+          ),
+        ]);
+
+        // 1. A を論理削除
+        await dao.updateMemo(
+          'A',
+          testUserId,
+          const MemosCompanion(isDeleted: Value(true)),
+        );
+
+        // 2. 残りのメモ [C, B] を並び替え
+        await dao.updateSortOrders(['C', 'B'], testUserId);
+
+        // 3. A を Undo 復元
+        await dao.restoreMemo(
+          'A',
+          testUserId,
+          now.add(const Duration(minutes: 1)),
+        );
+
+        final allMemos = await dao.getAllMemos(testUserId);
+        check(allMemos.length).equals(3);
+
+        final memoC = allMemos.firstWhere((m) => m.id == 'C');
+        final memoB = allMemos.firstWhere((m) => m.id == 'B');
+        final memoA = allMemos.firstWhere((m) => m.id == 'A');
+
+        // Cが0、Bが1、復元されたAが2となり、重複が一切ないこと
+        check(memoC.sortOrder).equals(0);
+        check(memoB.sortOrder).equals(1);
+        check(memoA.sortOrder).equals(2);
+
+        final sortOrders = allMemos.map((m) => m.sortOrder).toSet();
+        check(sortOrders.length).equals(3);
+      });
+
+      test('【正常系】並び替え対象取得後に新規リモートメモが先行マージされても'
+          'sortOrderが重複せず順序が保たれること', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        // 初期状態: A(0), B(1)
+        await dao.upsertMemos([
+          MemosCompanion.insert(
+            id: 'A',
+            userId: testUserId,
+            title: 'A',
+            content: 'A',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+          MemosCompanion.insert(
+            id: 'B',
+            userId: testUserId,
+            title: 'B',
+            content: 'B',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(1),
+          ),
+        ]);
+
+        // 並び替え処理が古い一覧 ['B', 'A'] を保持している状態で、
+        // 先に新規リモートメモ C のマージが完了する
+        await dao.mergeRemoteMemos(testUserId, [
+          {
+            'id': 'C',
+            'title': 'C新規',
+            'content': 'C新規',
+            'createdAt': now.add(const Duration(minutes: 1)),
+            'updatedAt': now.add(const Duration(minutes: 1)),
+            'isDeleted': false,
+          },
+        ]);
+
+        // その後、取得済みの古い一覧 ['B', 'A'] による並び替えを実行
+        await dao.updateSortOrders(['B', 'A'], testUserId);
+
+        final allMemos = await dao.getAllMemos(testUserId);
+        check(allMemos.length).equals(3);
+
+        final memoC = allMemos.firstWhere((m) => m.id == 'C');
+        final memoB = allMemos.firstWhere((m) => m.id == 'B');
+        final memoA = allMemos.firstWhere((m) => m.id == 'A');
+
+        // 新規メモCが先頭(0)、並び替えられたBが(1)、Aが(2)となり、重複が一切ないこと
+        check(memoC.sortOrder).equals(0);
+        check(memoB.sortOrder).equals(1);
+        check(memoA.sortOrder).equals(2);
+
+        final sortOrders = allMemos.map((m) => m.sortOrder).toSet();
+        check(sortOrders.length).equals(3);
       });
     });
   });

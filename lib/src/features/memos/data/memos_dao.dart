@@ -246,15 +246,58 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
   }
 
   /// 指定したユーザーのメモの並び順（sortOrder）を一括更新する
-  Future<void> updateSortOrders(
-    Map<String, int> idToOrderMap,
-    String userId,
-  ) async {
+  /// 並び替え開始後に追加された新規メモや削除済みメモも考慮し、重複なく一意に採番します
+  Future<void> updateSortOrders(List<String> orderedIds, String userId) async {
     await transaction(() async {
-      for (final entry in idToOrderMap.entries) {
-        await (update(memos)
-              ..where((t) => t.id.equals(entry.key) & t.userId.equals(userId)))
-            .write(MemosCompanion(sortOrder: Value(entry.value)));
+      // ユーザーの全メモを取得（削除済み含む）
+      final allMemos = await (select(
+        memos,
+      )..where((t) => t.userId.equals(userId))).get();
+      final allMemosMap = {for (final m in allMemos) m.id: m};
+
+      // 1. 並び替え対象外の新規有効メモ（並び替え開始後に追加されたメモ）
+      final newMemos =
+          allMemos
+              .where((m) => !m.isDeleted && !orderedIds.contains(m.id))
+              .toList()
+            ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+
+      // 2. 削除済みメモ（Undo復元対象）
+      final deletedMemos = allMemos.where((m) => m.isDeleted).toList()
+        ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+
+      final idToNewOrderMap = <String, int>{};
+      var currentOrder = 0;
+
+      // ステップ1: 新規有効メモを先頭に配置（0, 1, ...）
+      for (final memo in newMemos) {
+        idToNewOrderMap[memo.id] = currentOrder;
+        currentOrder++;
+      }
+
+      // ステップ2: 並び替えたメモを新規メモの直後に配置
+      for (final id in orderedIds) {
+        if (allMemosMap.containsKey(id)) {
+          idToNewOrderMap[id] = currentOrder;
+          currentOrder++;
+        }
+      }
+
+      // ステップ3: 削除済みメモを末尾に配置（Undo時の重複を完全に防止）
+      for (final memo in deletedMemos) {
+        idToNewOrderMap[memo.id] = currentOrder;
+        currentOrder++;
+      }
+
+      // 変更があったメモのみDBを更新
+      for (final entry in idToNewOrderMap.entries) {
+        final currentMemo = allMemosMap[entry.key];
+        if (currentMemo != null && currentMemo.sortOrder != entry.value) {
+          await (update(
+                memos,
+              )..where((t) => t.id.equals(entry.key) & t.userId.equals(userId)))
+              .write(MemosCompanion(sortOrder: Value(entry.value)));
+        }
       }
     });
   }

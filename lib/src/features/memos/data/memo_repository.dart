@@ -221,10 +221,7 @@ class MemoRepository {
 
   /// メモの並び順（ドラッグ＆ドロップ後）を一括更新する
   Future<void> updateSortOrders(List<String> orderedIds, String userId) async {
-    final idToOrderMap = {
-      for (var i = 0; i < orderedIds.length; i++) orderedIds[i]: i,
-    };
-    await _dao.updateSortOrders(idToOrderMap, userId);
+    await _dao.updateSortOrders(orderedIds, userId);
   }
 
   /// スマホに残っている「未送信のメモ」をまとめてサーバーに送る処理
