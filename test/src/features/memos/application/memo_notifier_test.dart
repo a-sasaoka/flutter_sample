@@ -609,19 +609,23 @@ void main() {
               .read(memoProvider.notifier)
               .reorderMemos(0, 2);
 
-          // 2回目の保存をエラーで失敗させる
-          completer2.completeError(Exception('Second DB error'));
+          // 1回目の保存をエラーで失敗させる
+          completer1.completeError(Exception('First DB error'));
+          await check(future1).throws<Exception>();
 
-          await check(future2).throws<Exception>();
-
-          // 最後に保存確認された順序（initialIds）にロールバックされていること
+          // 1回目の失敗後、保存確認された順序（initialIds）にロールバックされていること
           check(
             container.read(memoProvider).value!.map((m) => m.id).toList(),
           ).deepEquals(initialIds);
 
-          // 1回目を完了させて後始末
-          completer1.complete();
-          await future1;
+          // 続いて2回目の保存もエラーで失敗させる
+          completer2.completeError(Exception('Second DB error'));
+          await check(future2).throws<Exception>();
+
+          // 2回目の失敗後も、引き続き保存確認された順序（initialIds）が維持されていること
+          check(
+            container.read(memoProvider).value!.map((m) => m.id).toList(),
+          ).deepEquals(initialIds);
 
           memoSub.close();
         },
