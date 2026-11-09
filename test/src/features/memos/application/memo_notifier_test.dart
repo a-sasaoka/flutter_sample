@@ -685,6 +685,57 @@ void main() {
         memoSub.close();
       });
 
+      test(
+        'reorderMemos: 保存待機中に別のメモが削除されて更新された場合、並び替え失敗のロールバックで削除済みメモが復活しないこと',
+        () async {
+          final streamController =
+              StreamController<List<MemoModel>>.broadcast();
+          final completer = Completer<void>();
+
+          // ストリームController経由で初期一覧を提供
+          when(
+            () => mockMemoRepository.watchAllMemos(any()),
+          ).thenAnswer((_) => streamController.stream);
+
+          when(
+            () => mockMemoRepository.updateSortOrders(any(), any()),
+          ).thenAnswer((_) => completer.future);
+
+          final memoSub = container.listen(memoProvider, (_, _) {});
+          streamController.add(mockMemos);
+          await container.read(memoProvider.future);
+
+          // 初期順序: ['2', '1', '3']
+          check(
+            container.read(memoProvider).value!.map((m) => m.id).toList(),
+          ).deepEquals(['2', '1', '3']);
+
+          // 並び替えを開始（保存処理は completer.future で待機中）
+          final reorderFuture = container
+              .read(memoProvider.notifier)
+              .reorderMemos(0, 1);
+
+          // 保存待機中に、別の操作でメモ '3' が削除されたストリームが流れる
+          streamController.add([mockMemos[0], mockMemos[1]]); // '1' と '2' のみ
+          await pumpEventQueue();
+
+          // 並び替え保存がエラーで失敗する
+          completer.completeError(Exception('Reorder failed'));
+          await check(reorderFuture).throws<Exception>();
+
+          // ロールバック後、削除された '3' は復活せず、'2' と '1' が確定順に従って並んでいること
+          final resultIds = container
+              .read(memoProvider)
+              .value!
+              .map((m) => m.id)
+              .toList();
+          check(resultIds).deepEquals(['2', '1']);
+
+          memoSub.close();
+          await streamController.close();
+        },
+      );
+
       test('reorderMemos: フィルタ適用中・同位置移動・未ログイン時は何もしないこと', () async {
         final memoSub = container.listen(memoProvider, (_, _) {});
         await container.read(memoProvider.future);

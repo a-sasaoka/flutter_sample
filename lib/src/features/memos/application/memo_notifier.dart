@@ -187,7 +187,21 @@ class MemoNotifier extends _$MemoNotifier {
       // 検索結果の表示を壊さないようロールバック（stateの上書き）をスキップする
       final currentFilter = ref.read(memoFilterProvider);
       if (currentFilter == initialFilter && !currentFilter.hasActiveFilter) {
-        state = AsyncData(_lastConfirmedMemos ?? currentMemos);
+        final confirmed = _lastConfirmedMemos ?? currentMemos;
+        final current = state.asData?.value ?? currentMemos;
+        // 確定順序（並び替え前の位置）の背番号マップを作成
+        final confirmedOrderMap = {
+          for (var i = 0; i < confirmed.length; i++) confirmed[i].id: i,
+        };
+        // 現在画面に存在するメモだけを、並び替え前の確定順に従ってソートし直す
+        // ※ これにより、並び替え待機中に削除されたメモが復活するのを防ぐ
+        final rolledBackMemos = [...current]
+          ..sort((a, b) {
+            final orderA = confirmedOrderMap[a.id] ?? 999999;
+            final orderB = confirmedOrderMap[b.id] ?? 999999;
+            return orderA.compareTo(orderB);
+          });
+        state = AsyncData(rolledBackMemos);
       }
       ref.read(loggerProvider).handle(e, st, 'メモの並び替え保存に失敗しました');
       rethrow;
