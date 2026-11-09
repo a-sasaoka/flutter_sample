@@ -408,17 +408,9 @@ class _MemoListView extends ConsumerWidget {
   const _MemoListView();
 
   /// メモ画面が現在アクティブ（表示中）かどうかを判定する
-  /// - TickerMode: StatefulShellRoute で非選択タブ（お休み中）になっていないか
-  /// - GoRouter: 現在の matchedLocation がメモタブ (/memos) であるか
+  /// - TickerMode: StatefulShellRoute で非選択タブ（非表示・お休み中）になっていないかを判定
   static bool _isScreenActive(BuildContext context) {
-    if (!TickerMode.valuesOf(context).enabled) {
-      return false;
-    }
-    final router = GoRouter.maybeOf(context);
-    if (router != null && !router.state.matchedLocation.startsWith('/memos')) {
-      return false;
-    }
-    return true;
+    return TickerMode.valuesOf(context).enabled;
   }
 
   @override
@@ -563,9 +555,6 @@ class _MemoCard extends ConsumerWidget {
       ),
       // スワイプ完了前に非同期削除を試行し、画面の生存状態に応じてUndoを表示
       confirmDismiss: (_) => onDismiss(),
-      onDismissed: (_) {
-        // SnackBarの表示はconfirmDismiss成功時に一元化しているため、ここでは何もしない
-      },
       child: Card(
         margin: const EdgeInsets.only(bottom: 12),
         child: ListTile(
