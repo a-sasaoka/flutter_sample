@@ -76,7 +76,13 @@ memos/
 - **テーブル定義とマイグレーション**: [memo_table.dart](../lib/src/features/memos/data/memo_table.dart) に `userId` カラム（NOT NULL）を追加し、[app_database.dart](../lib/src/app/database/app_database.dart) のスキーマバージョンを 2 から 3 へアップデート。過去の旧データはマイグレーション時に安全にクリアされます。
 - **DAO & Repository のユーザー制限**: [memos_dao.dart](../lib/src/features/memos/data/memos_dao.dart) および [memo_repository.dart](../lib/src/features/memos/data/memo_repository.dart) のすべてのクエリ（一覧取得・作成・更新・削除・未同期メモ抽出）に `userId` を必須指定とし、他ユーザーのメモを一切参照・変更できない構造を担保。
 - **Notifier の認証連動**: [memo_notifier.dart](../lib/src/features/memos/application/memo_notifier.dart) は [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の `currentUserIdProvider` をリアクティブに監視。未ログイン時は即座に空リスト（`[]`）を返却し、ログイン（またはアカウント切り替え）時に現在ログインしているユーザーのメモのみを即時提供します。
-- **ホームウィジェット同期のユーザー連携**: [home_widget_sync_coordinator.dart](../lib/src/features/home_widget/application/home_widget_sync_coordinator.dart) においても、`getAllMemos(targetUserId)` を呼び出すことで、現在ログインしているユーザーのメモのみを抽出してウィジェットへ同期します。
+
+### 8. AIチャット機能（Function Calling）との連携
+
+AIチャット画面からの自然言語指示に基づき、AIエージェントがメモの新規作成（`createMemo`）や保存済みメモの検索・一覧取得（`listMemos`）を自律的に呼び出す連携機能を備えています。
+
+- **依存性逆転（DIP）による疎結合**: メモ機能層（`features/memos`）は AIチャット機能層（`features/chat`）を一切参照していません。結合層である [app_action_dispatcher_impl.dart](../lib/src/app/actions/app_action_dispatcher_impl.dart) が Core層の抽象インターフェース [app_action_dispatcher.dart](../lib/src/core/actions/app_action_dispatcher.dart) を実装し、[memo_repository.dart](../lib/src/features/memos/data/memo_repository.dart) を呼び出すため、各機能の独立性とテスト容易性が完全に保たれています。
+- **マルチユーザー保護とウィジェット連携の維持**: AI経由で作成されたメモも、現在ログインしているユーザーの `currentUserIdProvider` から取得したユーザーIDに厳格に紐付けてローカルDB（Drift）へ保存されます。作成後は既存の [home_widget_sync_coordinator.dart](../lib/src/features/home_widget/application/home_widget_sync_coordinator.dart) を通じてホーム画面ウィジェットへも即座に同期されます。
 
 ---
 

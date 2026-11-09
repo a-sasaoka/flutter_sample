@@ -16,6 +16,7 @@ import 'package:flutter_sample/src/features/chat/application/chat_state.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_provider.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_repository.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_action_type.dart';
 import 'package:flutter_sample/src/features/chat/domain/chat_message.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_bubble_shimmer.dart';
 import 'package:flutter_sample/src/features/chat/presentation/chat_screen.dart';
@@ -195,6 +196,27 @@ void main() {
     when(
       () => mockL10n.chatDefaultPromptWithImage,
     ).thenReturn('この画像について詳しく説明してください');
+    when(
+      () => mockL10n.chatActionMemoCreated(any()),
+    ).thenAnswer((inv) => 'メモ「${inv.positionalArguments.first}」を作成しました');
+    when(() => mockL10n.chatActionMemoCreateFailed).thenReturn('メモの作成に失敗しました');
+    when(
+      () => mockL10n.chatActionMemosListed(any()),
+    ).thenAnswer((inv) => '${inv.positionalArguments.first}件のメモを取得しました');
+    when(() => mockL10n.chatActionMemosListFailed).thenReturn('メモの取得に失敗しました');
+    when(
+      () => mockL10n.chatActionThemeChanged(any()),
+    ).thenAnswer((inv) => 'テーマを「${inv.positionalArguments.first}」に変更しました');
+    when(
+      () => mockL10n.chatActionThemeChangeFailed,
+    ).thenReturn('テーマの変更に失敗しました');
+    when(
+      () => mockL10n.chatActionSearchWebExecuted(any()),
+    ).thenAnswer((inv) => '「${inv.positionalArguments.first}」を検索しました');
+    when(() => mockL10n.chatActionSearchWebFailed).thenReturn('Web検索に失敗しました');
+    when(() => mockL10n.settingsThemeLight).thenReturn('ライト');
+    when(() => mockL10n.settingsThemeDark).thenReturn('ダーク');
+    when(() => mockL10n.settingsThemeSystem).thenReturn('システム');
   });
 
   Future<void> setupWidget(
@@ -737,6 +759,233 @@ void main() {
 
       // 世代不一致（Fencing）により画像が破棄され、プレビューが表示されないことを検証
       check(find.byIcon(Icons.close).evaluate()).isEmpty();
+    });
+
+    group('アクションチップ表示 (ChatMessageAction)', () {
+      final now = DateTime(2026, 3, 21, 10);
+
+      testWidgets('createMemo 成功時（detailあり）に作成完了メッセージと通常アイコンが表示されること', (
+        tester,
+      ) async {
+        final actionMessage = ChatMessage.action(
+          id: 'action-1',
+          actionType: ChatActionType.createMemo,
+          detail: '牛乳を買う',
+          createdAt: now,
+        );
+        final fakeNotifier = FakeChatNotifier(
+          ChatState(messages: [actionMessage]),
+        );
+
+        await setupWidget(tester, notifier: fakeNotifier);
+        await tester.pumpAndSettle();
+
+        check(find.text('メモ「牛乳を買う」を作成しました').evaluate()).length.equals(1);
+        check(
+          find.byIcon(Icons.build_circle_outlined).evaluate(),
+        ).length.equals(1);
+        check(find.byIcon(Icons.error_outline).evaluate()).isEmpty();
+      });
+
+      testWidgets('createMemo 成功時（detailがnull）に空文字フォールバックで表示されること', (
+        tester,
+      ) async {
+        final actionMessage = ChatMessage.action(
+          id: 'action-2',
+          actionType: ChatActionType.createMemo,
+          createdAt: now,
+        );
+        final fakeNotifier = FakeChatNotifier(
+          ChatState(messages: [actionMessage]),
+        );
+
+        await setupWidget(tester, notifier: fakeNotifier);
+        await tester.pumpAndSettle();
+
+        check(find.text('メモ「」を作成しました').evaluate()).length.equals(1);
+      });
+
+      testWidgets('createMemo 失敗時にエラーメッセージとエラーアイコンが表示されること', (tester) async {
+        final actionMessage = ChatMessage.action(
+          id: 'action-3',
+          actionType: ChatActionType.createMemo,
+          isError: true,
+          createdAt: now,
+        );
+        final fakeNotifier = FakeChatNotifier(
+          ChatState(messages: [actionMessage]),
+        );
+
+        await setupWidget(tester, notifier: fakeNotifier);
+        await tester.pumpAndSettle();
+
+        check(find.text('メモの作成に失敗しました').evaluate()).length.equals(1);
+        check(find.byIcon(Icons.error_outline).evaluate()).length.equals(1);
+      });
+
+      testWidgets('listMemos 成功時に件数メッセージが表示されること', (tester) async {
+        final actionMessage = ChatMessage.action(
+          id: 'action-4',
+          actionType: ChatActionType.listMemos,
+          detail: '5',
+          createdAt: now,
+        );
+        final fakeNotifier = FakeChatNotifier(
+          ChatState(messages: [actionMessage]),
+        );
+
+        await setupWidget(tester, notifier: fakeNotifier);
+        await tester.pumpAndSettle();
+
+        check(find.text('5件のメモを取得しました').evaluate()).length.equals(1);
+      });
+
+      testWidgets('listMemos 成功時（detailが非数値・null）に0件フォールバックで表示されること', (
+        tester,
+      ) async {
+        final actionMessage = ChatMessage.action(
+          id: 'action-5',
+          actionType: ChatActionType.listMemos,
+          createdAt: now,
+        );
+        final fakeNotifier = FakeChatNotifier(
+          ChatState(messages: [actionMessage]),
+        );
+
+        await setupWidget(tester, notifier: fakeNotifier);
+        await tester.pumpAndSettle();
+
+        check(find.text('0件のメモを取得しました').evaluate()).length.equals(1);
+      });
+
+      testWidgets('listMemos 失敗時にエラーメッセージが表示されること', (tester) async {
+        final actionMessage = ChatMessage.action(
+          id: 'action-6',
+          actionType: ChatActionType.listMemos,
+          isError: true,
+          createdAt: now,
+        );
+        final fakeNotifier = FakeChatNotifier(
+          ChatState(messages: [actionMessage]),
+        );
+
+        await setupWidget(tester, notifier: fakeNotifier);
+        await tester.pumpAndSettle();
+
+        check(find.text('メモの取得に失敗しました').evaluate()).length.equals(1);
+        check(find.byIcon(Icons.error_outline).evaluate()).length.equals(1);
+      });
+
+      testWidgets('changeThemeMode 成功時（light）にライトテーマ変更メッセージが表示されること', (
+        tester,
+      ) async {
+        final actionMessage = ChatMessage.action(
+          id: 'action-7',
+          actionType: ChatActionType.changeThemeMode,
+          detail: 'light',
+          createdAt: now,
+        );
+        final fakeNotifier = FakeChatNotifier(
+          ChatState(messages: [actionMessage]),
+        );
+
+        await setupWidget(tester, notifier: fakeNotifier);
+        await tester.pumpAndSettle();
+
+        check(find.text('テーマを「ライト」に変更しました').evaluate()).length.equals(1);
+      });
+
+      testWidgets('changeThemeMode 成功時（dark）にダークテーマ変更メッセージが表示されること', (
+        tester,
+      ) async {
+        final actionMessage = ChatMessage.action(
+          id: 'action-8',
+          actionType: ChatActionType.changeThemeMode,
+          detail: 'dark',
+          createdAt: now,
+        );
+        final fakeNotifier = FakeChatNotifier(
+          ChatState(messages: [actionMessage]),
+        );
+
+        await setupWidget(tester, notifier: fakeNotifier);
+        await tester.pumpAndSettle();
+
+        check(find.text('テーマを「ダーク」に変更しました').evaluate()).length.equals(1);
+      });
+
+      testWidgets('changeThemeMode 成功時（system）にシステムテーマ変更メッセージが表示されること', (
+        tester,
+      ) async {
+        final actionMessage = ChatMessage.action(
+          id: 'action-9',
+          actionType: ChatActionType.changeThemeMode,
+          detail: 'system',
+          createdAt: now,
+        );
+        final fakeNotifier = FakeChatNotifier(
+          ChatState(messages: [actionMessage]),
+        );
+
+        await setupWidget(tester, notifier: fakeNotifier);
+        await tester.pumpAndSettle();
+
+        check(find.text('テーマを「システム」に変更しました').evaluate()).length.equals(1);
+      });
+
+      testWidgets('changeThemeMode 失敗時にエラーメッセージが表示されること', (tester) async {
+        final actionMessage = ChatMessage.action(
+          id: 'action-10',
+          actionType: ChatActionType.changeThemeMode,
+          isError: true,
+          createdAt: now,
+        );
+        final fakeNotifier = FakeChatNotifier(
+          ChatState(messages: [actionMessage]),
+        );
+
+        await setupWidget(tester, notifier: fakeNotifier);
+        await tester.pumpAndSettle();
+
+        check(find.text('テーマの変更に失敗しました').evaluate()).length.equals(1);
+        check(find.byIcon(Icons.error_outline).evaluate()).length.equals(1);
+      });
+
+      testWidgets('searchWeb 成功時にクエリが表示され検索アイコンが表示されること', (tester) async {
+        final actionMessage = ChatMessage.action(
+          id: 'action-11',
+          actionType: ChatActionType.searchWeb,
+          detail: 'Flutter',
+          createdAt: now,
+        );
+        final fakeNotifier = FakeChatNotifier(
+          ChatState(messages: [actionMessage]),
+        );
+
+        await setupWidget(tester, notifier: fakeNotifier);
+        await tester.pumpAndSettle();
+
+        check(find.text('「Flutter」を検索しました').evaluate()).length.equals(1);
+        check(find.byIcon(Icons.search).evaluate()).length.equals(1);
+      });
+
+      testWidgets('searchWeb 失敗時にエラーメッセージが表示されること', (tester) async {
+        final actionMessage = ChatMessage.action(
+          id: 'action-12',
+          actionType: ChatActionType.searchWeb,
+          isError: true,
+          createdAt: now,
+        );
+        final fakeNotifier = FakeChatNotifier(
+          ChatState(messages: [actionMessage]),
+        );
+
+        await setupWidget(tester, notifier: fakeNotifier);
+        await tester.pumpAndSettle();
+
+        check(find.text('Web検索に失敗しました').evaluate()).length.equals(1);
+        check(find.byIcon(Icons.error_outline).evaluate()).length.equals(1);
+      });
     });
   });
 }

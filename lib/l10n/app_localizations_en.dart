@@ -234,6 +234,43 @@ class AppLocalizationsEn extends AppLocalizations {
       'Please describe this image in detail.';
 
   @override
+  String chatActionMemoCreated(String title) {
+    return 'Created memo \"$title\"';
+  }
+
+  @override
+  String get chatActionMemoCreateFailed => 'Failed to create memo';
+
+  @override
+  String chatActionMemosListed(int count) {
+    return 'Retrieved memos ($count)';
+  }
+
+  @override
+  String get chatActionMemosListFailed => 'Failed to retrieve memos';
+
+  @override
+  String chatActionThemeChanged(String theme) {
+    return 'Changed theme to $theme';
+  }
+
+  @override
+  String get chatActionThemeChangeFailed => 'Failed to change theme';
+
+  @override
+  String chatActionUnknown(String action) {
+    return 'Unsupported action: $action';
+  }
+
+  @override
+  String chatActionSearchWebExecuted(String query) {
+    return 'Searched \"$query\"';
+  }
+
+  @override
+  String get chatActionSearchWebFailed => 'Failed to search the web';
+
+  @override
   String get settingsTitle => 'Settings';
 
   @override

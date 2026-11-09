@@ -2,6 +2,60 @@
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_sample/src/features/chat/data/chat_api_client.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_action_constants.dart';
+import 'package:flutter_sample/src/features/chat/domain/chat_stream_event.dart';
+
+/// Geminiに提供するアプリ操作用のツール定義（Function Declarations）
+final chatFunctionDeclarations = [
+  FunctionDeclaration(
+    ChatActionNames.createMemo,
+    'Create a new memo and save it to the local database.',
+    parameters: {
+      CreateMemoActionKeys.title: Schema.string(
+        description: 'The title of the memo (required).',
+      ),
+      CreateMemoActionKeys.content: Schema.string(
+        description: 'The content or body of the memo.',
+      ),
+    },
+    optionalParameters: [CreateMemoActionKeys.content],
+  ),
+  FunctionDeclaration(
+    ChatActionNames.listMemos,
+    'List all memos or search memos by a keyword query.',
+    parameters: {
+      ListMemosActionKeys.query: Schema.string(
+        description:
+            'Optional search keyword to filter memos by title or content.',
+      ),
+    },
+    optionalParameters: [ListMemosActionKeys.query],
+  ),
+  FunctionDeclaration(
+    ChatActionNames.changeThemeMode,
+    'Change the application theme mode (system, light, or dark).',
+    parameters: {
+      ChangeThemeActionKeys.theme: Schema.enumString(
+        enumValues: [
+          ChangeThemeActionKeys.system,
+          ChangeThemeActionKeys.light,
+          ChangeThemeActionKeys.dark,
+        ],
+        description: 'The desired theme mode.',
+      ),
+    },
+  ),
+  FunctionDeclaration(
+    ChatActionNames.searchWeb,
+    'Search the web (via Wikipedia) for up-to-date knowledge, explanations, '
+    'definitions, or general facts.',
+    parameters: {
+      SearchWebActionKeys.query: Schema.string(
+        description: 'The search keywords or query string to look up.',
+      ),
+    },
+  ),
+];
 
 /// 画像データの先頭バイト（マジックナンバー）からMIMEタイプを判定する
 /// サポート外または判定不能な場合は null を返す
@@ -72,9 +126,57 @@ class GeminiApiClient implements ChatApiClient {
   }
 
   @override
-  Stream<String?> sendMessageStream(String prompt, {Uint8List? imageBytes}) {
-    return _session
-        .sendMessageStream(buildContent(prompt, imageBytes))
-        .map((chunk) => chunk.text);
+  Stream<ChatStreamEvent> sendMessageStream(
+    String prompt, {
+    Uint8List? imageBytes,
+  }) async* {
+    final responseStream = _session.sendMessageStream(
+      buildContent(prompt, imageBytes),
+    );
+    await for (final chunk in responseStream) {
+      for (final call in chunk.functionCalls) {
+        yield ChatStreamEvent.functionCall(
+          name: call.name,
+          args: call.args,
+          id: call.id,
+        );
+      }
+      final text = chunk.text;
+      if (text != null && text.isNotEmpty) {
+        yield ChatStreamEvent.text(text);
+      }
+    }
+  }
+
+  /// テスト用にツール応答コンテンツ生成メソッドを公開
+  @visibleForTesting
+  static Content buildFunctionResponsesContent(
+    List<ChatFunctionResponse> responses,
+  ) {
+    final parts = responses
+        .map((r) => FunctionResponse(r.name, r.response, id: r.id))
+        .toList();
+    return Content.functionResponses(parts);
+  }
+
+  @override
+  Stream<ChatStreamEvent> sendFunctionResponseStream(
+    List<ChatFunctionResponse> responses,
+  ) async* {
+    final content = buildFunctionResponsesContent(responses);
+    final responseStream = _session.sendMessageStream(content);
+    await for (final chunk in responseStream) {
+      for (final call in chunk.functionCalls) {
+        yield ChatStreamEvent.functionCall(
+          name: call.name,
+          args: call.args,
+          id: call.id,
+        );
+      }
+      final text = chunk.text;
+      if (text != null && text.isNotEmpty) {
+        yield ChatStreamEvent.text(text);
+      }
+    }
   }
 }

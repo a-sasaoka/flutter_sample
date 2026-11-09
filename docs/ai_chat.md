@@ -21,17 +21,20 @@
 ```plaintext
 chat/
  ├── domain/
- │    └── chat_message.dart         # メッセージのドメインモデル (Sealed class)
+ │    ├── chat_message.dart           # メッセージのドメインモデル (Sealed class)
+ │    ├── chat_action_type.dart       # ツール種別 (Enum)
+ │    ├── chat_action_constants.dart  # ツール名・引数・戻り値キーの定数定義
+ │    └── chat_stream_event.dart      # AIストリーミングイベント (Sealed class)
  ├── data/
- │    ├── chat_api_client.dart      # AI通信のインターフェース定義（抽象）
- │    ├── gemini_api_client.dart    # Firebase AI Logic を用いた実処理
- │    ├── chat_repository.dart      # クライアントを利用し、エラーハンドリング等をラップする層
- │    └── chat_provider.dart        # 各クラスの依存関係を解決するProvider定義
+ │    ├── chat_api_client.dart        # AI通信のインターフェース定義（抽象）
+ │    ├── gemini_api_client.dart      # Firebase AI Logic を用いた実処理
+ │    ├── chat_repository.dart        # クライアントを利用し、エラーハンドリング等をラップする層
+ │    └── chat_provider.dart          # 各クラスの依存関係を解決するProvider定義
  ├── application/
- │    └── chat_notifier.dart        # UI状態の管理とストリーミング処理 (Notifier)
+ │    └── chat_notifier.dart          # UI状態の管理とストリーミング処理 (Notifier)
  └── presentation/
-      ├── chat_bubble_shimmer.dart  # チャットの返答待ち骨組み（Shimmer）表示
-      └── chat_screen.dart          # チャット画面のUI
+      ├── chat_bubble_shimmer.dart    # チャットの返答待ち骨組み（Shimmer）表示
+      └── chat_screen.dart            # チャット画面のUI
 ```
 
 ## 💡 実装のコアコンセプトとポイント
@@ -44,11 +47,12 @@ FirebaseのSDKに直接依存するのではなく、`ChatApiClient` という�
 ### 2. Sealed Class による安全な状態モデリング (Domain層)
 
 チャットメッセージのモデル（`ChatMessage`）には Dart 3 の `sealed class` と Freezed の Union 型を採用しています。  
-フラグ（`bool isUser`, `bool isLoading` 等）による曖昧な状態管理を排除し、以下の4つの状態をコンパイラレベルで厳密に区別しています。
+フラグ（`bool isUser`, `bool isLoading` 等）による曖昧な状態管理を排除し、以下の5つの状態をコンパイラレベルで厳密に区別しています。
 
-- `ChatMessage.user`: ユーザーの送信メッセージ
+- `ChatMessage.user`: ユーザーの送信メッセージ（テキスト、添付画像）
 - `ChatMessage.ai`: AIの返答メッセージ
 - `ChatMessage.loading`: AIの考え中（ストリーミング開始前）
+- `ChatMessage.action`: アプリ機能（ツール）の実行履歴・結果チップ
 - `ChatMessage.error`: 通信エラー等
 
 ### 3. ストリーミング API を用いたリアルタイム応答 (Application層)
@@ -89,6 +93,29 @@ AI が世界各地の正確な現地日付・時刻を認識できるよう、`s
 - **ドメインモデルの拡張**: [chat_message.dart](../lib/src/features/chat/domain/chat_message.dart) の `ChatMessage.user` に画像バイトデータ（`Uint8List? imageBytes`）を保持し、端末の一時ファイル削除に影響されない安全なメモリ内保持と高いテスト容易性を実現しています。
 - **データ送信と InlineDataPart**: [gemini_api_client.dart](../lib/src/features/chat/data/gemini_api_client.dart) において、画像データが添付されている場合は `Content.multi([TextPart(prompt), InlineDataPart('image/jpeg', imageBytes)])` を構築して Gemini API へ送信します。
 - **UI/UX の最適化**: [chat_screen.dart](../lib/src/features/chat/presentation/chat_screen.dart) では、写真選択時に入力欄上部へサムネイルプレビューと削除ボタンを表示します。テキストが未入力で写真のみ送信された場合でも、自動的にデフォルトプロンプトとして送信され、送信後のチャット履歴吹き出し内には角丸の画像サムネイルが綺麗にレイアウトされます。
+
+### 8. AI Function Calling（ツール呼び出し）によるアプリ操作エージェント機能
+
+ユーザーの自然言語による指示（例:「牛乳と卵を買うとメモして」「登録されているメモを検索して」「ダークモードに切り替えて」など）から、Gemini が自律的に意図を判断し、アプリ内の機能を自動実行するエージェント機能を備えています。
+
+- **Feature-Driven Architecture と依存性逆転（DIP）**:
+  - 共通基盤である Core 層が個別 Feature に依存しないよう、Core 層の [app_action_dispatcher.dart](../lib/src/core/actions/app_action_dispatcher.dart) に抽象インターフェースと Provider を定義しています。
+  - アプリ結合層（Composition Root）である App 層の [app_action_dispatcher_impl.dart](../lib/src/app/actions/app_action_dispatcher_impl.dart) で具体的な機能呼び出し（メモ作成・検索やテーマ変更）を実装し、[app_action_overrides.dart](../lib/src/app/actions/app_action_overrides.dart) 経由で [main.dart](../lib/main.dart) に注入しています。
+  - Chat 層（[chat_notifier.dart](../lib/src/features/chat/application/chat_notifier.dart)）は Core 層の抽象のみを参照してツールを実行するため、Feature 同士の密結合を完全に防止しています。
+- **双方向ストリーミングと多段階対話ループ**:
+  - [gemini_api_client.dart](../lib/src/features/chat/data/gemini_api_client.dart) において、Gemini SDK の `Tool` / `FunctionDeclaration` を宣言し、AI からのストリーミング応答を [chat_stream_event.dart](../lib/src/features/chat/domain/chat_stream_event.dart)（`ChatStreamEvent.text` / `ChatStreamEvent.functionCall`）へマッピングしています。
+  - [chat_notifier.dart](../lib/src/features/chat/application/chat_notifier.dart) が `functionCall` を受信すると、Dispatcher 経由でアクションを実行し、タイムラインに [chat_message.dart](../lib/src/features/chat/domain/chat_message.dart) の `ChatMessage.action`（[chat_action_type.dart](../lib/src/features/chat/domain/chat_action_type.dart)）を挿入します。
+  - [chat_repository.dart](../lib/src/features/chat/data/chat_repository.dart) の `sendFunctionResponseStream` を通じてツールの実行結果を AI に返却し、AI からの後続ストリーム（最終回答テキスト）を受信して描画します。無限ループを防止するため、最大ターン数制限（安全装置）を備えています。
+- **定数管理による堅牢性**:
+  - AI との通信に用いるツール名や入出力キー文字列は [chat_action_constants.dart](../lib/src/features/chat/domain/chat_action_constants.dart) に定数定義し、マジックストリングを排除しています。
+- **多言語化（Localization）**:
+  - アクションチップの表示文言は、[chat_screen.dart](../lib/src/features/chat/presentation/chat_screen.dart) で `AppLocalizations` を参照して動的に生成し、多言語環境に完全対応しています。
+- **世代管理（Fencing）によるセキュリティ保護**:
+  - ツール実行の非同期処理中や結果返送ストリーム中にアカウント切り替えやログアウトが発生した場合でも、旧アカウントの実行結果が新しいアカウントの画面状態に反映されないよう、世代管理カウンターによる厳格なコールバック遮断（Fencing）を適用しています。
+- **Web検索ツール（Wikipedia連携）による情報補完**:
+  - メモ操作やテーマ変更などのアプリ操作に加え、Wikipedia API を利用した Web 検索ツール（`searchWeb`）を独自に組み込んでいます。
+  - Core 層の [web_search_service.dart](../lib/src/core/services/web_search_service.dart) が Dio を用いてキーワード検索および記事要約・URL を取得し、AI に返却することで、最新の一般知識や解説を対話の中で提供します。
+  - これにより、一部の AI プラットフォーム（Vertex AI Agent Platform など）において Google 検索ツール（Grounding）とカスタム関数（Function Calling）を同一リクエストで併用できない制約（400エラー）を回避し、すべての環境で安定した検索とツール実行の両立を実現しています。
 
 ## 🛡️ セキュリティ (Firebase App Check)
 

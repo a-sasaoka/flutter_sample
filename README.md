@@ -42,7 +42,7 @@ Flutter開発のサンプルプロジェクトです。\
 - [Firebase Crashlytics](docs/crashlytics.md)
 - [Firebase Analytics](docs/analytics.md)
 - [遠隔機能制御・バージョン通知（Firebase Remote Config）](docs/remote_config.md)
-- [AIチャット機能 (Firebase AI Logic)](docs/ai_chat.md)
+- [AIチャット機能・アプリ操作エージェント (Firebase AI Logic)](docs/ai_chat.md)
 - [fl_chart によるグラフ表示デモ](docs/chart.md)
 - [オフラインメモ機能・マルチユーザー対応（Memos）](docs/memos.md)
 - [設定機能（Settings）](docs/settings.md)
