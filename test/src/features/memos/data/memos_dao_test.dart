@@ -505,7 +505,8 @@ void main() {
               content: 'C2',
               createdAt: now,
               updatedAt: now,
-              sortOrder: const Value(0),
+              // DAOが必ず先頭（0）に上書きすることを検証するため、あえて非ゼロ値を指定
+              sortOrder: const Value(99),
             ),
           );
 
