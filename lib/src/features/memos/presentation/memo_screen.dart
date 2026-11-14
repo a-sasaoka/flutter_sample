@@ -441,33 +441,52 @@ class _MemoListView extends HookConsumerWidget {
     Future<bool> handleDismissMemo(MemoModel memo) async {
       unawaited(HapticFeedback.mediumImpact());
       final memoNotifier = ref.read(memoProvider.notifier);
+      final logger = ref.read(loggerProvider);
+      late final Future<void> Function() handleRestoreMemo;
+
+      void showUndoSnackBar({
+        required String Function(BuildContext context) buildMessage,
+        required String actionLabel,
+      }) {
+        // メモ画面が有効かつ「現在選択中（表示中）」の場合のみ通知を表示
+        // （別タブ選択中、ログアウト、別画面遷移時は表示しない）
+        if (!screenContext.mounted || !_isScreenActive(screenContext)) {
+          return;
+        }
+        // 通知表示中に画面遷移しても「元に戻す」が機能するようNotifierを一時保持する
+        final releaseKeepAlive = memoNotifier.retainForUndo();
+        messenger.clearSnackBars();
+        final controller = messenger.showSnackBar(
+          SnackBar(
+            content: Text(buildMessage(screenContext)),
+            action: SnackBarAction(
+              label: actionLabel,
+              onPressed: () => unawaited(handleRestoreMemo()),
+            ),
+          ),
+        );
+        unawaited(controller.closed.whenComplete(releaseKeepAlive));
+      }
+
+      handleRestoreMemo = () async {
+        unawaited(HapticFeedback.lightImpact());
+        try {
+          await memoNotifier.restoreMemo(memo.id, expectedUserId: memo.userId);
+        } on Exception catch (e, st) {
+          logger.handle(e, st, 'メモの復元中にエラーが発生しました');
+          showUndoSnackBar(
+            buildMessage: (context) => ErrorHandler.message(context, e),
+            actionLabel: l10n.retry,
+          );
+        }
+      };
+
       try {
         await memoNotifier.deleteMemo(memo.id);
-        // ローカル削除成功：メモ画面が有効かつ「現在選択中（表示中）」の場合のみUndo通知を表示
-        // （別タブ選択中、ログアウト、別画面遷移時は表示しない）
-        if (screenContext.mounted && _isScreenActive(screenContext)) {
-          // 通知表示中に画面遷移しても「元に戻す」が機能するようNotifierを一時保持する
-          final releaseKeepAlive = memoNotifier.retainForUndo();
-          messenger.clearSnackBars();
-          final controller = messenger.showSnackBar(
-            SnackBar(
-              content: Text(l10n.memoDeleted),
-              action: SnackBarAction(
-                label: l10n.memoUndo,
-                onPressed: () {
-                  unawaited(HapticFeedback.lightImpact());
-                  unawaited(
-                    memoNotifier.restoreMemo(
-                      memo.id,
-                      expectedUserId: memo.userId,
-                    ),
-                  );
-                },
-              ),
-            ),
-          );
-          unawaited(controller.closed.whenComplete(releaseKeepAlive));
-        }
+        showUndoSnackBar(
+          buildMessage: (_) => l10n.memoDeleted,
+          actionLabel: l10n.memoUndo,
+        );
         return true; // 削除成功：消去アニメーションを進める
       } on Exception catch (e) {
         // 削除失敗：メモ画面が有効かつ選択中の場合のみエラーSnackBarを表示し、カードを元の位置へ戻す（再操作可能）

@@ -97,6 +97,7 @@ void main() {
     when(() => mockL10n.memoSortCustom).thenReturn('カスタム順');
     when(() => mockL10n.memoDeleted).thenReturn('メモを削除しました');
     when(() => mockL10n.memoUndo).thenReturn('元に戻す');
+    when(() => mockL10n.retry).thenReturn('再試行');
 
     // デフォルトのスタブ設定
     when(
@@ -395,6 +396,163 @@ void main() {
       // 復元後の一覧でカードが画面に再表示されること
       check(find.text('消すメモ')).findsOne();
       check(find.byType(Card)).findsOne();
+    });
+
+    testWidgets('Undo操作の復元に失敗した場合、エラー通知と再試行アクションが表示され、再試行で同じメモが復元されること', (
+      tester,
+    ) async {
+      final now = DateTime.now();
+      final memo = MemoModel(
+        id: '1',
+        userId: 'test_user_id',
+        title: '復元失敗メモ',
+        content: '内容',
+        createdAt: now,
+        updatedAt: now,
+      );
+      final streamController = StreamController<List<MemoModel>>();
+      addTearDown(streamController.close);
+
+      when(
+        () => mockMemoRepository.watchAllMemos(any()),
+      ).thenAnswer((_) => streamController.stream);
+      when(
+        () => mockMemoRepository.deleteMemo(
+          any(),
+          any(),
+          waitForRemoteSync: any(named: 'waitForRemoteSync'),
+        ),
+      ).thenAnswer((_) async {
+        streamController.add(<MemoModel>[]);
+      });
+
+      var restoreCallCount = 0;
+      when(
+        () => mockMemoRepository.restoreMemo(
+          any(),
+          any(),
+          waitForRemoteSync: any(named: 'waitForRemoteSync'),
+        ),
+      ).thenAnswer((_) async {
+        restoreCallCount++;
+        if (restoreCallCount == 1) {
+          throw Exception('復元失敗');
+        }
+        streamController.add([memo]);
+      });
+
+      streamController.add([memo]);
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      check(find.text('復元失敗メモ')).findsOne();
+
+      // 右から左へスワイプ（Dismissible）
+      await tester.drag(find.byType(Dismissible), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+
+      check(find.text('メモを削除しました')).findsOne();
+      check(find.text('元に戻す')).findsOne();
+
+      // 1回目の「元に戻す」タップは失敗する
+      await tester.tap(find.text('元に戻す'));
+      await tester.pumpAndSettle();
+
+      verify(
+        () => mockMemoRepository.restoreMemo(
+          '1',
+          'test_user_id',
+          waitForRemoteSync: false,
+        ),
+      ).called(1);
+      verify(
+        () => mockTalker.handle(any(), any(), 'メモの復元中にエラーが発生しました'),
+      ).called(1);
+
+      // エラーメッセージと再試行アクション付きのSnackBarが表示されること
+      check(find.byType(SnackBar)).findsOne();
+      check(find.text('エラーが発生しました')).findsOne();
+      check(find.text('再試行')).findsOne();
+      check(find.text('復元失敗メモ')).findsNothing();
+
+      // 「再試行」をタップして同じメモの復元が成功すること
+      await tester.tap(find.text('再試行'));
+      await tester.pumpAndSettle();
+
+      verify(
+        () => mockMemoRepository.restoreMemo(
+          '1',
+          'test_user_id',
+          waitForRemoteSync: false,
+        ),
+      ).called(1);
+      check(find.text('復元失敗メモ')).findsOne();
+      check(find.byType(Card)).findsOne();
+      check(find.text('エラーが発生しました')).findsNothing();
+    });
+
+    testWidgets('Undo操作の復元失敗前に画面遷移した場合、エラーログのみ記録され再試行SnackBarは表示されないこと', (
+      tester,
+    ) async {
+      final now = DateTime.now();
+      final memo = MemoModel(
+        id: '1',
+        userId: 'test_user_id',
+        title: '遷移中メモ',
+        content: '内容',
+        createdAt: now,
+        updatedAt: now,
+      );
+      final restoreCompleter = Completer<void>();
+
+      when(
+        () => mockMemoRepository.watchAllMemos(any()),
+      ).thenAnswer((_) => Stream.value([memo]));
+      when(
+        () => mockMemoRepository.deleteMemo(
+          any(),
+          any(),
+          waitForRemoteSync: any(named: 'waitForRemoteSync'),
+        ),
+      ).thenAnswer((_) async {});
+      when(
+        () => mockMemoRepository.restoreMemo(
+          any(),
+          any(),
+          waitForRemoteSync: any(named: 'waitForRemoteSync'),
+        ),
+      ).thenAnswer((_) => restoreCompleter.future);
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.byType(Dismissible), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('元に戻す'));
+      await tester.pumpAndSettle();
+
+      // 復元処理の完了前に別画面へ遷移（MemoScreen を破棄）
+      Navigator.of(tester.element(find.byType(MemoScreen))).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => const Scaffold(body: Text('別画面')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      check(find.text('別画面')).findsOne();
+
+      // 画面遷移後に復元が失敗
+      restoreCompleter.completeError(Exception('復元失敗'));
+      await tester.pumpAndSettle();
+
+      // Non-fatalエラーは記録されるが、別画面上に再試行SnackBarは表示されないこと
+      verify(
+        () => mockTalker.handle(any(), any(), 'メモの復元中にエラーが発生しました'),
+      ).called(1);
+      check(find.byType(SnackBar)).findsNothing();
+      check(find.text('エラーが発生しました')).findsNothing();
+      check(find.text('再試行')).findsNothing();
     });
 
     testWidgets('スワイプ削除に失敗した場合、エラー通知が表示されカードが維持されること', (tester) async {
