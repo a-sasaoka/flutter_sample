@@ -5,6 +5,7 @@ import 'package:checks/checks.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
@@ -410,6 +411,86 @@ void main() {
       // 復元後の一覧でカードが画面に再表示されること
       check(find.text('消すメモ')).findsOne();
       check(find.byType(Card)).findsOne();
+    });
+
+    testWidgets('キーボードフォーカスで削除ボタンを実行すると既存の削除とUndo処理が行われること', (tester) async {
+      final now = DateTime.now();
+      final memo = MemoModel(
+        id: '1',
+        userId: 'test_user_id',
+        title: 'キーボード削除メモ',
+        content: '内容',
+        createdAt: now,
+        updatedAt: now,
+      );
+      final streamController = StreamController<List<MemoModel>>();
+      addTearDown(streamController.close);
+
+      when(
+        () => mockMemoRepository.watchAllMemos(any()),
+      ).thenAnswer((_) => streamController.stream);
+      when(
+        () => mockMemoRepository.deleteMemo(
+          any(),
+          any(),
+          waitForRemoteSync: any(named: 'waitForRemoteSync'),
+        ),
+      ).thenAnswer((_) async {
+        streamController.add(<MemoModel>[]);
+      });
+      when(
+        () => mockMemoRepository.restoreMemo(
+          any(),
+          any(),
+          waitForRemoteSync: any(named: 'waitForRemoteSync'),
+        ),
+      ).thenAnswer((_) async {
+        streamController.add([memo]);
+      });
+
+      streamController.add([memo]);
+
+      await setupWidget(tester);
+      await tester.pumpAndSettle();
+
+      check(find.text('キーボード削除メモ')).findsOne();
+
+      // Tabキーで削除ボタンへフォーカスを移動し、Enterキーで削除を実行
+      final deleteIconFinder = find.byIcon(Icons.delete_outline);
+      check(deleteIconFinder).findsOne();
+      final deleteFocusNode = Focus.of(tester.element(deleteIconFinder));
+      for (var i = 0; i < 30 && !deleteFocusNode.hasPrimaryFocus; i++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
+      }
+      check(deleteFocusNode.hasPrimaryFocus).isTrue();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+
+      verify(
+        () => mockMemoRepository.deleteMemo(
+          '1',
+          'test_user_id',
+          waitForRemoteSync: false,
+        ),
+      ).called(1);
+      check(find.text('キーボード削除メモ')).findsNothing();
+      check(find.text('メモを削除しました')).findsOne();
+      check(find.text('元に戻す')).findsOne();
+
+      // 「元に戻す」で復元できること
+      await tester.tap(find.text('元に戻す'));
+      await tester.pumpAndSettle();
+
+      verify(
+        () => mockMemoRepository.restoreMemo(
+          '1',
+          'test_user_id',
+          waitForRemoteSync: false,
+        ),
+      ).called(1);
+      check(find.text('キーボード削除メモ')).findsOne();
     });
 
     testWidgets('Undo操作の復元に失敗した場合、エラー通知と再試行アクションが表示され、再試行で同じメモが復元されること', (

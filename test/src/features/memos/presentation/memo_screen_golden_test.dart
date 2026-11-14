@@ -90,7 +90,9 @@ void main() {
         ),
       ).thenAnswer((_) => Stream.value(memos));
 
-      final isDark = themeMode == ThemeMode.dark;
+      final baseTheme = themeMode == ThemeMode.dark
+          ? AppTheme.dark()
+          : AppTheme.light();
 
       return ProviderScope(
         overrides: [
@@ -103,17 +105,24 @@ void main() {
             ),
         ],
         child: MaterialApp(
-          theme: isDark
-              ? AppTheme.dark().copyWith(
-                  textTheme: AppTheme.dark().textTheme.apply(
+          theme: baseTheme.copyWith(
+            textTheme: baseTheme.textTheme.apply(fontFamily: 'NotoSansJP'),
+            primaryTextTheme: baseTheme.primaryTextTheme.apply(
+              fontFamily: 'NotoSansJP',
+            ),
+            chipTheme: baseTheme.chipTheme.copyWith(
+              labelStyle:
+                  baseTheme.chipTheme.labelStyle?.copyWith(
                     fontFamily: 'NotoSansJP',
-                  ),
-                )
-              : AppTheme.light().copyWith(
-                  textTheme: AppTheme.light().textTheme.apply(
+                  ) ??
+                  const TextStyle(fontFamily: 'NotoSansJP'),
+              secondaryLabelStyle:
+                  baseTheme.chipTheme.secondaryLabelStyle?.copyWith(
                     fontFamily: 'NotoSansJP',
-                  ),
-                ),
+                  ) ??
+                  const TextStyle(fontFamily: 'NotoSansJP'),
+            ),
+          ),
           themeMode: themeMode,
           localizationsDelegates: [
             MockLocalizationsDelegate(mockL10n),

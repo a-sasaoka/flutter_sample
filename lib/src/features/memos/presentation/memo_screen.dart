@@ -751,18 +751,32 @@ class _MemoCard extends ConsumerWidget {
               ),
             ],
           ),
-          trailing: canReorder
-              ? ReorderableDragStartListener(
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                tooltip: l10n.delete,
+                onPressed: () => unawaited(onDismiss()),
+              ),
+              if (canReorder)
+                ReorderableDragStartListener(
                   index: index,
                   child: Icon(
                     Icons.drag_handle,
                     color: colorScheme.onSurfaceVariant,
                   ),
                 )
-              : Icon(
+              else
+                Icon(
                   Icons.drag_handle,
                   color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                 ),
+            ],
+          ),
         ),
       ),
     );
