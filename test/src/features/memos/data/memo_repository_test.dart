@@ -3001,6 +3001,129 @@ void main() {
         check(merged.single.id).equals('remote-$testUserId');
         check(merged.single.userId).equals(testUserId);
       });
+
+      test('MemoSyncQueue: 先行失敗時も後続は直列実行され自身の成否を返すこと', () async {
+        final queue = MemoSyncQueue();
+        final events = <String>[];
+        final firstGate = Completer<void>();
+
+        final firstFuture = queue.enqueue(testUserId, 'memo-1', () async {
+          events.add('start-1');
+          await firstGate.future;
+        });
+        final secondFuture = queue.enqueue(testUserId, 'memo-1', () async {
+          events.add('run-2');
+        });
+
+        await Future<void>.delayed(Duration.zero);
+        // 先行タスクの完了まで後続タスクは開始されないこと
+        check(events).deepEquals(['start-1']);
+
+        Object? firstError;
+        final firstDone = firstFuture.then<void>(
+          (_) {},
+          onError: (Object e) => firstError = e,
+        );
+        firstGate.completeError(StateError('first error'));
+
+        // 先行タスクが失敗しても、成功した後続タスクのFutureは正常完了すること
+        await Future.wait([firstDone, secondFuture]);
+        check(firstError).isA<StateError>();
+        check(events).deepEquals(['start-1', 'run-2']);
+
+        // 後続タスク自体が失敗した場合は、先行例外ではなく後続自身の例外が返ること
+        final thirdGate = Completer<void>();
+        final thirdFuture = queue.enqueue(testUserId, 'memo-1', () async {
+          events.add('start-3');
+          await thirdGate.future;
+        });
+        final fourthFuture = queue.enqueue(testUserId, 'memo-1', () async {
+          events.add('run-4');
+          throw const FormatException('fourth error');
+        });
+
+        await Future<void>.delayed(Duration.zero);
+        check(events).deepEquals(['start-1', 'run-2', 'start-3']);
+
+        Object? thirdError;
+        Object? fourthError;
+        final thirdDone = thirdFuture.then<void>(
+          (_) {},
+          onError: (Object e) => thirdError = e,
+        );
+        final fourthDone = fourthFuture.then<void>(
+          (_) {},
+          onError: (Object e) => fourthError = e,
+        );
+        thirdGate.completeError(ArgumentError('third error'));
+
+        await Future.wait([thirdDone, fourthDone]);
+        check(thirdError).isA<ArgumentError>();
+        check(fourthError).isA<FormatException>();
+        check(events).deepEquals(['start-1', 'run-2', 'start-3', 'run-4']);
+      });
+
+      test('deleteMemo失敗後も後続restoreMemoは先行例外を引き継がないこと', () async {
+        var isFirstGetMemoCall = true;
+        final deleteDbGate = Completer<void>();
+        final hookedDao = _HookedMemosDao(
+          database,
+          onBeforeGetMemoById: () async {
+            if (isFirstGetMemoCall) {
+              isFirstGetMemoCall = false;
+              await deleteDbGate.future;
+            }
+          },
+        );
+
+        final container = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final repository = MemoRepository(
+          dao: hookedDao,
+          remote: mockRemoteService,
+          clock: container.read(clockProvider),
+          talker: spyTalker,
+          isOnline: true,
+          uuid: container.read(uuidProvider),
+          syncQueue: container.read(memoSyncQueueProvider),
+          currentUserId: container.read(memoAuthUserIdReaderProvider),
+        );
+
+        await repository.addMemo('キューエラー回復テスト', '本文', testUserId);
+        final memoId = (await database.memosDao.getAllMemos(
+          testUserId,
+        )).first.id;
+
+        await repository.deleteMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        final restoreFuture = repository.restoreMemo(memoId, testUserId);
+        deleteDbGate.completeError(StateError('delete sync db failure'));
+
+        // whenComplete 時代と異なり、後続の restoreMemo は先行の StateError を引き継がず完了する
+        await restoreFuture;
+
+        final current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isTrue();
+        check(spyTalker.handleCalls.length).equals(1);
+        check(spyTalker.handleCalls.single.exception).isA<StateError>();
+      });
     });
   });
 }

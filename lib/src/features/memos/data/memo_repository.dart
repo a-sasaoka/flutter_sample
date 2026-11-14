@@ -41,7 +41,12 @@ class MemoSyncQueue {
     final key = (userId, id);
     final previous = _queues[key] ?? Future<void>.value();
     late final Future<void> current;
-    current = previous.whenComplete(() async {
+    current = () async {
+      try {
+        await previous;
+      } on Object catch (_) {
+        // 先行タスクの失敗は先行側の呼び出し元へ委ね、後続タスクへ伝播させない
+      }
       try {
         await task();
       } finally {
@@ -50,7 +55,7 @@ class MemoSyncQueue {
           _latestTokens.remove(key);
         }
       }
-    });
+    }();
     _queues[key] = current;
     return current;
   }
