@@ -116,30 +116,17 @@ class MemoRepository {
 
     if (_isOnline && _currentUserId() == userId) {
       // オンラインの時はサーバに保存を試みる
-      try {
-        await _remote.uploadMemo(
-          id: generatedId,
-          title: title,
-          content: content,
-          createdAt: now,
-          updatedAt: now,
-          isDeleted: false,
-          expectedUserId: userId,
-        );
-
-        if (_currentUserId() == userId) {
-          // 保存に成功したら「送信済み (true)」に更新
-          await _dao.updateMemo(
-            generatedId,
-            userId,
-            const MemosCompanion(isSynced: drift.Value(true)),
-          );
-        }
-
-        _talker.debug('The data has been saved to the server.');
-      } on Exception catch (e, st) {
-        _handleUploadError(e, st, 'Failed to save data to the server');
-      }
+      await _uploadAndMarkSyncedIfUnchanged(
+        id: generatedId,
+        userId: userId,
+        title: title,
+        content: content,
+        createdAt: now,
+        updatedAt: now,
+        isDeleted: false,
+        successLog: 'The data has been saved to the server.',
+        errorLog: 'Failed to save data to the server',
+      );
     }
   }
 
@@ -169,34 +156,21 @@ class MemoRepository {
 
     if (_isOnline) {
       // オンラインの時はサーバに保存を試みる
-      try {
-        final memo = await _dao.getMemoById(id, userId);
-        if (_currentUserId() != userId) {
-          return;
-        }
-        await _remote.uploadMemo(
-          id: id,
-          title: title,
-          content: content,
-          createdAt: memo.createdAt,
-          updatedAt: now,
-          isDeleted: false,
-          expectedUserId: memo.userId,
-        );
-
-        if (_currentUserId() == userId) {
-          // 保存に成功したら「送信済み (true)」に更新
-          await _dao.updateMemo(
-            id,
-            userId,
-            const MemosCompanion(isSynced: drift.Value(true)),
-          );
-        }
-
-        _talker.debug('The updated data has been saved to the server.');
-      } on Exception catch (e, st) {
-        _handleUploadError(e, st, 'Failed to update data to the server');
+      final memo = await _dao.getMemoById(id, userId);
+      if (_currentUserId() != userId) {
+        return;
       }
+      await _uploadAndMarkSyncedIfUnchanged(
+        id: id,
+        userId: memo.userId,
+        title: title,
+        content: content,
+        createdAt: memo.createdAt,
+        updatedAt: now,
+        isDeleted: false,
+        successLog: 'The updated data has been saved to the server.',
+        errorLog: 'Failed to update data to the server',
+      );
     }
   }
 
@@ -210,36 +184,39 @@ class MemoRepository {
     _talker.handle(e, st, errorLog);
   }
 
-  /// メモをリモート送信し、送信状態が最新のローカル状態・トークンと一致する場合のみ同期済みに更新する
-  Future<void> _uploadMemoAndMarkSyncedIfUnchanged({
-    required Memo memo,
+  /// メモをリモート送信し、ローカル状態が送信時と一致する場合のみ同期済みに更新する
+  Future<void> _uploadAndMarkSyncedIfUnchanged({
+    required String id,
+    required String userId,
+    required String title,
+    required String content,
+    required DateTime createdAt,
     required DateTime updatedAt,
     required bool isDeleted,
-    required int? expectedToken,
     required String successLog,
     required String errorLog,
+    bool Function()? canMarkSynced,
   }) async {
     try {
       await _remote.uploadMemo(
-        id: memo.id,
-        title: memo.title,
-        content: memo.content,
-        createdAt: memo.createdAt,
+        id: id,
+        title: title,
+        content: content,
+        createdAt: createdAt,
         updatedAt: updatedAt,
         isDeleted: isDeleted,
-        expectedUserId: memo.userId,
+        expectedUserId: userId,
       );
 
       // 送信待機中に新しいローカル操作（Undoや編集等）が行われた場合や、
       // 認証ユーザーが切り替わった場合は古い通信結果で isSynced を true に上書きしない
-      if (_currentUserId() == memo.userId &&
-          _syncQueue.currentToken(memo.userId, memo.id) == expectedToken) {
+      if (_currentUserId() == userId && (canMarkSynced?.call() ?? true)) {
         await _dao.markAsSyncedIfUnchanged(
-          id: memo.id,
-          userId: memo.userId,
-          title: memo.title,
-          content: memo.content,
-          createdAt: memo.createdAt,
+          id: id,
+          userId: userId,
+          title: title,
+          content: content,
+          createdAt: createdAt,
           updatedAt: updatedAt,
           isDeleted: isDeleted,
         );
@@ -249,6 +226,30 @@ class MemoRepository {
     } on Exception catch (e, st) {
       _handleUploadError(e, st, errorLog);
     }
+  }
+
+  /// メモをリモート送信し、送信状態が最新のローカル状態・トークンと一致する場合のみ同期済みに更新する
+  Future<void> _uploadMemoAndMarkSyncedIfUnchanged({
+    required Memo memo,
+    required DateTime updatedAt,
+    required bool isDeleted,
+    required int? expectedToken,
+    required String successLog,
+    required String errorLog,
+  }) async {
+    await _uploadAndMarkSyncedIfUnchanged(
+      id: memo.id,
+      userId: memo.userId,
+      title: memo.title,
+      content: memo.content,
+      createdAt: memo.createdAt,
+      updatedAt: updatedAt,
+      isDeleted: isDeleted,
+      successLog: successLog,
+      errorLog: errorLog,
+      canMarkSynced: () =>
+          _syncQueue.currentToken(memo.userId, memo.id) == expectedToken,
+    );
   }
 
   /// 現在の認証ユーザーが [userId] と一致する場合のみ、直列キュー上で同期タスクを実行する

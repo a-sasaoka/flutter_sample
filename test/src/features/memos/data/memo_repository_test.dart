@@ -2614,6 +2614,217 @@ void main() {
           },
         );
       });
+
+      test('addMemoの送信待機中に新しい編集が保存された場合、'
+          '送信完了後も最新のローカル内容とisSynced=falseを保つこと', () async {
+        var currentClock = DateTime(2026, 11, 14, 10);
+        final onlineContainer = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            clockProvider.overrideWithValue(() => currentClock),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+          ],
+        );
+        final offlineContainer = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            clockProvider.overrideWithValue(() => currentClock),
+            isOnlineProvider.overrideWithValue(false),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+          ],
+        );
+        addTearDown(() {
+          onlineContainer.dispose();
+          offlineContainer.dispose();
+        });
+
+        final uploadStarted = Completer<void>();
+        final uploadGate = Completer<void>();
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: any(named: 'id'),
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: any(named: 'isDeleted'),
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) {
+          uploadStarted.complete();
+          return uploadGate.future;
+        });
+
+        final repository = onlineContainer.read(memoRepositoryProvider);
+        final offlineRepo = offlineContainer.read(memoRepositoryProvider);
+
+        final addFuture = repository.addMemo('追加時タイトル', '追加時内容', testUserId);
+        await uploadStarted.future;
+
+        final memoId = (await database.memosDao.getAllMemos(
+          testUserId,
+        )).first.id;
+        currentClock = currentClock.add(const Duration(seconds: 1));
+        await offlineRepo.updateMemo(memoId, '送信中編集', '最新内容', testUserId);
+
+        uploadGate.complete();
+        await addFuture;
+
+        final current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.title).equals('送信中編集');
+        check(current.content).equals('最新内容');
+        check(current.isSynced).isFalse();
+      });
+
+      test('updateMemoの送信待機中に新しい編集が保存された場合、'
+          '送信完了後も最新のローカル内容とisSynced=falseを保つこと', () async {
+        var currentClock = DateTime(2026, 11, 14, 10);
+        final onlineContainer = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            clockProvider.overrideWithValue(() => currentClock),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+          ],
+        );
+        final offlineContainer = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            clockProvider.overrideWithValue(() => currentClock),
+            isOnlineProvider.overrideWithValue(false),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+          ],
+        );
+        addTearDown(() {
+          onlineContainer.dispose();
+          offlineContainer.dispose();
+        });
+
+        final repository = onlineContainer.read(memoRepositoryProvider);
+        final offlineRepo = offlineContainer.read(memoRepositoryProvider);
+
+        await repository.addMemo('初期タイトル', '初期内容', testUserId);
+        final memoId = (await database.memosDao.getAllMemos(
+          testUserId,
+        )).first.id;
+
+        final uploadStarted = Completer<void>();
+        final uploadGate = Completer<void>();
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: any(named: 'id'),
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: any(named: 'isDeleted'),
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) {
+          uploadStarted.complete();
+          return uploadGate.future;
+        });
+
+        currentClock = currentClock.add(const Duration(seconds: 1));
+        final updateFuture = repository.updateMemo(
+          memoId,
+          '編集1',
+          '本文1',
+          testUserId,
+        );
+        await uploadStarted.future;
+
+        currentClock = currentClock.add(const Duration(seconds: 1));
+        await offlineRepo.updateMemo(memoId, '編集2', '本文2', testUserId);
+
+        uploadGate.complete();
+        await updateFuture;
+
+        final current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.title).equals('編集2');
+        check(current.content).equals('本文2');
+        check(current.isSynced).isFalse();
+      });
+
+      test('addMemoとupdateMemoの送信待機中に別ユーザーへ切り替わった場合、'
+          'isSyncedをtrueに更新しないこと', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+
+        var uploadStarted = Completer<void>();
+        var uploadGate = Completer<void>();
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: any(named: 'id'),
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: any(named: 'isDeleted'),
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) {
+          uploadStarted.complete();
+          return uploadGate.future;
+        });
+
+        final repository = container.read(memoRepositoryProvider);
+
+        final addFuture = repository.addMemo('ユーザー切替追加', '内容', testUserId);
+        await uploadStarted.future;
+        container.read(_testUserIdProvider.notifier).userId = otherUserId;
+        uploadGate.complete();
+        await addFuture;
+
+        final memoId = (await database.memosDao.getAllMemos(
+          testUserId,
+        )).first.id;
+        final afterAdd = await database.memosDao.getMemoById(
+          memoId,
+          testUserId,
+        );
+        check(afterAdd.isSynced).isFalse();
+
+        // 元のユーザーに戻して updateMemo 中に再度ユーザー切替
+        container.read(_testUserIdProvider.notifier).userId = testUserId;
+        uploadStarted = Completer<void>();
+        uploadGate = Completer<void>();
+
+        final updateFuture = repository.updateMemo(
+          memoId,
+          'ユーザー切替編集',
+          '更新内容',
+          testUserId,
+        );
+        await uploadStarted.future;
+        container.read(_testUserIdProvider.notifier).userId = otherUserId;
+        uploadGate.complete();
+        await updateFuture;
+
+        final afterUpdate = await database.memosDao.getMemoById(
+          memoId,
+          testUserId,
+        );
+        check(afterUpdate.title).equals('ユーザー切替編集');
+        check(afterUpdate.isSynced).isFalse();
+      });
     });
   });
 }
