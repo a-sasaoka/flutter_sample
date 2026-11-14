@@ -278,12 +278,14 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
         memos,
       )..where((t) => t.userId.equals(userId))).get();
       final allMemosMap = {for (final m in allMemos) m.id: m};
+      // ループ内でリスト照合を繰り返さないよう、事前にSetへ変換する
+      final orderedIdSet = orderedIds.toSet();
 
       // 並び替え対象外のメモ、または「DB上で削除済みのメモ」の位置を
       // 予約席として保持し、番号を変更しない
       final reservedOrders = <int>{};
       for (final memo in allMemos) {
-        if (!orderedIds.contains(memo.id) || memo.isDeleted) {
+        if (!orderedIdSet.contains(memo.id) || memo.isDeleted) {
           reservedOrders.add(memo.sortOrder);
         }
       }
