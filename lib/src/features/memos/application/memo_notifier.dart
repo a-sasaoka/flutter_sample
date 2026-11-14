@@ -108,13 +108,19 @@ class MemoNotifier extends _$MemoNotifier {
 
   /// ロールバック時の並び順を構築する
   ///
-  /// 既存の確定メモは並び替え前の順序（[confirmed]）を維持し、
-  /// 保存待機中に追加・復元された新規メモは最新のDB順（[latest]）上の位置を保ちます。
+  /// [sortOrder] が [MemoSortOrder.custom] の場合は、既存の確定メモの
+  /// 相対順（[confirmed]）を維持し、保存待機中に追加・復元された新規メモは
+  /// 最新のDB順（[latest]）上の位置を保ちます。
   /// また、[latest] に存在しない削除済みメモは除外して復活を防ぎます。
+  /// それ以外のソート条件では確定順へ戻さず、[latest] の順を維持します。
   List<MemoModel> _mergeRollbackMemos({
     required List<MemoModel> confirmed,
     required List<MemoModel> latest,
+    required MemoSortOrder sortOrder,
   }) {
+    if (sortOrder != MemoSortOrder.custom) {
+      return [...latest];
+    }
     final latestById = {for (final memo in latest) memo.id: memo};
     final confirmedIdSet = <String>{};
     final orderedConfirmed = <MemoModel>[];
@@ -291,11 +297,18 @@ class MemoNotifier extends _$MemoNotifier {
         final currentFilter = ref.read(memoFilterProvider);
         if (currentFilter == initialFilter && !currentFilter.hasActiveFilter) {
           final confirmed = _lastConfirmedMemos ?? currentMemos;
+          final fallbackLatest = state.asData?.value ?? currentMemos;
           final latest = latestDbMemos != null
               ? _sortMemos(latestDbMemos, currentFilter.sortOrder)
-              : (state.asData?.value ?? currentMemos);
+              : (currentFilter.sortOrder == MemoSortOrder.custom
+                    ? fallbackLatest
+                    : _sortMemos(fallbackLatest, currentFilter.sortOrder));
           state = AsyncData(
-            _mergeRollbackMemos(confirmed: confirmed, latest: latest),
+            _mergeRollbackMemos(
+              confirmed: confirmed,
+              latest: latest,
+              sortOrder: currentFilter.sortOrder,
+            ),
           );
         }
       }

@@ -965,6 +965,93 @@ void main() {
         ).deepEquals(['4', '2', '1', '3']);
       });
 
+      test('reorderMemos: custom以外のソート時は最新順を維持すること', () async {
+        final streamController = StreamController<List<MemoModel>>.broadcast();
+        final completer = Completer<void>();
+        addTearDown(streamController.close);
+
+        when(
+          () => mockMemoRepository.watchAllMemos(any()),
+        ).thenAnswer((_) => streamController.stream);
+        when(
+          () => mockMemoRepository.updateSortOrders(any(), any()),
+        ).thenAnswer((_) => completer.future);
+
+        final updatedMemo = mockMemos[0].copyWith(title: 'Zebra');
+        when(
+          () => mockMemoRepository.getLocalMemos(any()),
+        ).thenAnswer((_) async => [updatedMemo, mockMemos[1], mockMemos[2]]);
+
+        container
+            .read(memoFilterProvider.notifier)
+            .setSortOrder(MemoSortOrder.titleAsc);
+
+        final memoSub = container.listen(memoProvider, (_, _) {});
+        addTearDown(memoSub.close);
+        streamController.add(mockMemos);
+        await container.read(memoProvider.future);
+
+        final reorderFuture = container
+            .read(memoProvider.notifier)
+            .reorderMemos(0, 1);
+
+        // 楽観的更新中は ['2', '1', '3'] であることを確認
+        check(
+          container.read(memoProvider).value!.map((m) => m.id).toList(),
+        ).deepEquals(['2', '1', '3']);
+
+        completer.completeError(Exception('Write Error'));
+        await check(reorderFuture).throws<Exception>();
+
+        // タイトル更新により最新ソート順が変わった場合、確定順(['1','2','3'])や
+        // 楽観的順序(['2','1','3'])ではなく latest の順序(['2','3','1'])と最新モデルの内容が維持されること
+        final rolledBack = container.read(memoProvider).value!;
+        check(rolledBack.map((m) => m.id).toList()).deepEquals(['2', '3', '1']);
+        check(rolledBack.last.title).equals('Zebra');
+      });
+
+      test('reorderMemos: custom時のDB取得失敗でも確定順へ戻すこと', () async {
+        final streamController = StreamController<List<MemoModel>>.broadcast();
+        final completer = Completer<void>();
+        addTearDown(streamController.close);
+
+        when(
+          () => mockMemoRepository.watchAllMemos(any()),
+        ).thenAnswer((_) => streamController.stream);
+        when(
+          () => mockMemoRepository.updateSortOrders(any(), any()),
+        ).thenAnswer((_) => completer.future);
+        when(
+          () => mockMemoRepository.getLocalMemos(any()),
+        ).thenThrow(Exception('DB Read Error'));
+
+        container
+            .read(memoFilterProvider.notifier)
+            .setSortOrder(MemoSortOrder.custom);
+
+        final memoSub = container.listen(memoProvider, (_, _) {});
+        addTearDown(memoSub.close);
+        streamController.add(mockMemos);
+        await container.read(memoProvider.future);
+
+        final reorderFuture = container
+            .read(memoProvider.notifier)
+            .reorderMemos(0, 2);
+
+        // 楽観的更新中は ['3', '1', '2'] に並んでいることを確認
+        check(
+          container.read(memoProvider).value!.map((m) => m.id).toList(),
+        ).deepEquals(['3', '1', '2']);
+
+        completer.completeError(Exception('Write Error'));
+        await check(reorderFuture).throws<Exception>();
+
+        // DB取得失敗時も custom の場合は確定済みの相対順 ['2', '3', '1'] へ復元されること
+        check(
+          container.read(memoProvider).value!.map((m) => m.id).toList(),
+        ).deepEquals(['2', '3', '1']);
+      });
+
       test(
         'reorderMemos: ロールバック時のgetLocalMemos待機中に検索条件が変更された場合、検索結果を上書きしないこと',
         () async {
