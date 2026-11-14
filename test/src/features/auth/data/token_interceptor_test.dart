@@ -1,5 +1,7 @@
 // ignore_for_file: document_ignores
 
+import 'dart:async';
+
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
@@ -55,6 +57,7 @@ void main() {
     mockStorage = MockTokenStorage();
     mockBaseDio = MockDio();
     mockRefreshToken = MockTokenRefreshCallback();
+    when(() => mockStorage.getUserId()).thenAnswer((_) async => null);
 
     container = ProviderContainer(
       overrides: [
@@ -509,6 +512,160 @@ void main() {
       check(authPin.authorizationHeader).equals('Bearer new-token-a');
       verify(() => mockBaseDio.fetch<dynamic>(options)).called(1);
       verify(() => handler.resolve(mockResponse)).called(1);
+    });
+
+    test('onError: 同一セッションでpin有無を問わず現在のuserIdでリフレッシュを共有すること', () async {
+      final refreshStarted = Completer<void>();
+      final refreshGate = Completer<bool>();
+
+      when(() => mockStorage.getUserId()).thenAnswer((_) async => 'user-a');
+      when(() => mockRefreshToken.call()).thenAnswer((_) {
+        refreshStarted.complete();
+        return refreshGate.future;
+      });
+      when(
+        () => mockStorage.getAccessToken(),
+      ).thenAnswer((_) async => 'new-token-a');
+      when(() => mockBaseDio.fetch<dynamic>(any())).thenAnswer(
+        (invocation) async => Response<dynamic>(
+          requestOptions:
+              invocation.positionalArguments.single as RequestOptions,
+          statusCode: 200,
+        ),
+      );
+
+      final interceptor = container.read(tokenInterceptorProvider);
+      final pinnedHandler = MockErrorInterceptorHandler();
+      final unpinnedHandler = MockErrorInterceptorHandler();
+
+      final authPin = RequestAuthPin(expectedUserId: 'user-a')
+        ..authorizationHeader = 'Bearer expired-token-a';
+      final pinnedOptions = RequestOptions(
+        path: '/memos/memo-1',
+        headers: {'Authorization': 'Bearer expired-token-a'},
+        extra: {RequestAuthPin.extraKey: authPin},
+      );
+      final unpinnedOptions = RequestOptions(
+        path: '/memos',
+        headers: {'Authorization': 'Bearer expired-token-a'},
+      );
+
+      final pinnedError401 = DioException(
+        requestOptions: pinnedOptions,
+        response: Response<dynamic>(
+          requestOptions: pinnedOptions,
+          statusCode: 401,
+        ),
+      );
+      final unpinnedError401 = DioException(
+        requestOptions: unpinnedOptions,
+        response: Response<dynamic>(
+          requestOptions: unpinnedOptions,
+          statusCode: 401,
+        ),
+      );
+
+      final pinnedFuture =
+          (interceptor as dynamic).onError(pinnedError401, pinnedHandler)
+              as Future<void>;
+      await refreshStarted.future;
+
+      final unpinnedFuture =
+          (interceptor as dynamic).onError(unpinnedError401, unpinnedHandler)
+              as Future<void>;
+      await Future<void>.delayed(Duration.zero);
+
+      refreshGate.complete(true);
+      await Future.wait<void>([pinnedFuture, unpinnedFuture]);
+
+      verify(() => mockRefreshToken.call()).called(1);
+      check(
+        pinnedOptions.headers['Authorization'],
+      ).equals('Bearer new-token-a');
+      check(authPin.authorizationHeader).equals('Bearer new-token-a');
+      check(
+        unpinnedOptions.headers['Authorization'],
+      ).equals('Bearer new-token-a');
+      verify(() => mockBaseDio.fetch<dynamic>(pinnedOptions)).called(1);
+      verify(() => mockBaseDio.fetch<dynamic>(unpinnedOptions)).called(1);
+      verify(() => pinnedHandler.resolve(any())).called(1);
+      verify(() => unpinnedHandler.resolve(any())).called(1);
+    });
+
+    test('onError: pinなしが先に401リフレッシュを開始しpinありが後続した場合も共有すること', () async {
+      final refreshStarted = Completer<void>();
+      final refreshGate = Completer<bool>();
+
+      when(() => mockStorage.getUserId()).thenAnswer((_) async => 'user-a');
+      when(() => mockRefreshToken.call()).thenAnswer((_) {
+        refreshStarted.complete();
+        return refreshGate.future;
+      });
+      when(
+        () => mockStorage.getAccessToken(),
+      ).thenAnswer((_) async => 'new-token-a');
+      when(() => mockBaseDio.fetch<dynamic>(any())).thenAnswer(
+        (invocation) async => Response<dynamic>(
+          requestOptions:
+              invocation.positionalArguments.single as RequestOptions,
+          statusCode: 200,
+        ),
+      );
+
+      final interceptor = container.read(tokenInterceptorProvider);
+      final unpinnedHandler = MockErrorInterceptorHandler();
+      final pinnedHandler = MockErrorInterceptorHandler();
+
+      final unpinnedOptions = RequestOptions(
+        path: '/memos',
+        headers: {'Authorization': 'Bearer expired-token-a'},
+      );
+      final authPin = RequestAuthPin(expectedUserId: 'user-a')
+        ..authorizationHeader = 'Bearer expired-token-a';
+      final pinnedOptions = RequestOptions(
+        path: '/memos/memo-1',
+        headers: {'Authorization': 'Bearer expired-token-a'},
+        extra: {RequestAuthPin.extraKey: authPin},
+      );
+
+      final unpinnedError401 = DioException(
+        requestOptions: unpinnedOptions,
+        response: Response<dynamic>(
+          requestOptions: unpinnedOptions,
+          statusCode: 401,
+        ),
+      );
+      final pinnedError401 = DioException(
+        requestOptions: pinnedOptions,
+        response: Response<dynamic>(
+          requestOptions: pinnedOptions,
+          statusCode: 401,
+        ),
+      );
+
+      final unpinnedFuture =
+          (interceptor as dynamic).onError(unpinnedError401, unpinnedHandler)
+              as Future<void>;
+      await refreshStarted.future;
+
+      final pinnedFuture =
+          (interceptor as dynamic).onError(pinnedError401, pinnedHandler)
+              as Future<void>;
+      await Future<void>.delayed(Duration.zero);
+
+      refreshGate.complete(true);
+      await Future.wait<void>([unpinnedFuture, pinnedFuture]);
+
+      verify(() => mockRefreshToken.call()).called(1);
+      check(
+        unpinnedOptions.headers['Authorization'],
+      ).equals('Bearer new-token-a');
+      check(
+        pinnedOptions.headers['Authorization'],
+      ).equals('Bearer new-token-a');
+      check(authPin.authorizationHeader).equals('Bearer new-token-a');
+      verify(() => unpinnedHandler.resolve(any())).called(1);
+      verify(() => pinnedHandler.resolve(any())).called(1);
     });
   });
 }

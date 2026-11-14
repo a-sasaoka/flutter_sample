@@ -139,15 +139,13 @@ class _TokenInterceptor extends Interceptor {
     if (err.response?.statusCode == 401) {
       final authPin =
           err.requestOptions.extra[RequestAuthPin.extraKey] as RequestAuthPin?;
-      if (authPin != null) {
-        final currentUserId = await _storage.getUserId();
-        if (currentUserId != authPin.expectedUserId) {
-          handler.next(err);
-          return;
-        }
+      final currentUserId = await _storage.getUserId();
+      if (authPin != null && currentUserId != authPin.expectedUserId) {
+        handler.next(err);
+        return;
       }
 
-      final success = await _refreshTokens(authPin?.expectedUserId);
+      final success = await _refreshTokens(currentUserId);
 
       if (success) {
         final newToken = authPin != null
@@ -185,20 +183,20 @@ class _TokenInterceptor extends Interceptor {
   }
 
   /// トークンのリフレッシュを実行する（同一ユーザーの同時呼び出し時は1つに統合）
-  Future<bool> _refreshTokens(String? expectedUserId) async {
+  Future<bool> _refreshTokens(String? userId) async {
     // すでに同一ユーザー向けの他リクエストがリフレッシュ中なら、その完了を待つ
-    if (_refreshFutures[expectedUserId] case final future?) {
+    if (_refreshFutures[userId] case final future?) {
       return await future;
     }
 
     // 新規にリフレッシュ処理を開始
     final future = _executeRefresh();
-    _refreshFutures[expectedUserId] = future;
+    _refreshFutures[userId] = future;
     try {
       return await future;
     } finally {
-      if (identical(_refreshFutures[expectedUserId], future)) {
-        unawaited(_refreshFutures.remove(expectedUserId));
+      if (identical(_refreshFutures[userId], future)) {
+        unawaited(_refreshFutures.remove(userId));
       }
     }
   }
