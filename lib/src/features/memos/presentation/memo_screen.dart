@@ -404,7 +404,7 @@ class _MemoFilterChipsBar extends ConsumerWidget {
 }
 
 /// メモ一覧を表示するウィジェット
-class _MemoListView extends ConsumerWidget {
+class _MemoListView extends HookConsumerWidget {
   const _MemoListView();
 
   /// メモ画面が現在アクティブ（表示中）かどうかを判定する
@@ -418,14 +418,28 @@ class _MemoListView extends ConsumerWidget {
     // 📱 メモ画面そのものの寿命を表すコンテキスト（カードが破棄されても画面にいる間はmounted）
     final screenContext = context;
     final l10n = screenContext.l10n;
+    final isScreenActive = _isScreenActive(screenContext);
+    final wasScreenActive = usePrevious(isScreenActive);
+    final messenger = ScaffoldMessenger.of(screenContext);
     final memosAsyncValue = ref.watch(memoProvider);
     final filter = ref.watch(memoFilterProvider);
     final canReorder = !filter.hasActiveFilter;
 
+    // タブ切り替えなどでメモ画面が非アクティブになった時点で、表示中のSnackBarを閉じる
+    useEffect(() {
+      if (wasScreenActive == true && !isScreenActive) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (screenContext.mounted && !_isScreenActive(screenContext)) {
+            messenger.clearSnackBars();
+          }
+        });
+      }
+      return null;
+    }, [isScreenActive, messenger]);
+
     // スワイプ削除の処理（ローカル削除完了時点でUndoを提供し、画面の有効性に応じて通知を管理）
     Future<bool> handleDismissMemo(MemoModel memo) async {
       unawaited(HapticFeedback.mediumImpact());
-      final messenger = ScaffoldMessenger.of(screenContext);
       final memoNotifier = ref.read(memoProvider.notifier);
       try {
         await memoNotifier.deleteMemo(memo.id);

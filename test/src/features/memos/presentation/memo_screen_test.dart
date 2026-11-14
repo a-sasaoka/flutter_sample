@@ -144,6 +144,77 @@ void main() {
     await tester.pump();
   }
 
+  /// StatefulShellRoute によるタブ切り替え構成のセットアップヘルパー
+  Future<void> setupShellWidget(WidgetTester tester) async {
+    final router = GoRouter(
+      initialLocation: '/memos',
+      routes: [
+        StatefulShellRoute.indexedStack(
+          builder: (context, state, navigationShell) {
+            return Scaffold(
+              body: navigationShell,
+              bottomNavigationBar: NavigationBar(
+                selectedIndex: navigationShell.currentIndex,
+                onDestinationSelected: (index) {
+                  navigationShell.goBranch(index);
+                },
+                destinations: const [
+                  NavigationDestination(
+                    icon: Icon(Icons.edit_note),
+                    label: 'メモ',
+                  ),
+                  NavigationDestination(icon: Icon(Icons.home), label: 'ホーム'),
+                ],
+              ),
+            );
+          },
+          branches: [
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/memos',
+                  builder: (context, state) => const MemoScreen(),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/home',
+                  builder: (context, state) =>
+                      const Scaffold(body: Text('ホーム画面')),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          currentUserIdProvider.overrideWithValue('test_user_id'),
+          memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+          isOnlineProvider.overrideWithValue(true),
+          loggerProvider.overrideWithValue(mockTalker),
+          isAppUnlockedProvider.overrideWithValue(true),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: [
+            MockLocalizationsDelegate(mockL10n),
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+        ),
+      ),
+    );
+    await tester.pump();
+  }
+
   group('MemoScreen', () {
     testWidgets('ローディング状態が正しく表示されること', (tester) async {
       final completer = Completer<List<MemoModel>>();
@@ -562,72 +633,7 @@ void main() {
       ).thenAnswer((_) => deleteCompleter.future);
 
       // StatefulShellRoute を使った実際のタブ切り替え構成
-      final router = GoRouter(
-        initialLocation: '/memos',
-        routes: [
-          StatefulShellRoute.indexedStack(
-            builder: (context, state, navigationShell) {
-              return Scaffold(
-                body: navigationShell,
-                bottomNavigationBar: NavigationBar(
-                  selectedIndex: navigationShell.currentIndex,
-                  onDestinationSelected: (index) {
-                    navigationShell.goBranch(index);
-                  },
-                  destinations: const [
-                    NavigationDestination(
-                      icon: Icon(Icons.edit_note),
-                      label: 'メモ',
-                    ),
-                    NavigationDestination(icon: Icon(Icons.home), label: 'ホーム'),
-                  ],
-                ),
-              );
-            },
-            branches: [
-              StatefulShellBranch(
-                routes: [
-                  GoRoute(
-                    path: '/memos',
-                    builder: (context, state) => const MemoScreen(),
-                  ),
-                ],
-              ),
-              StatefulShellBranch(
-                routes: [
-                  GoRoute(
-                    path: '/home',
-                    builder: (context, state) =>
-                        const Scaffold(body: Text('ホーム画面')),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
-      );
-      addTearDown(router.dispose);
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            currentUserIdProvider.overrideWithValue('test_user_id'),
-            memoRepositoryProvider.overrideWithValue(mockMemoRepository),
-            isOnlineProvider.overrideWithValue(true),
-            loggerProvider.overrideWithValue(mockTalker),
-            isAppUnlockedProvider.overrideWithValue(true),
-          ],
-          child: MaterialApp.router(
-            routerConfig: router,
-            localizationsDelegates: [
-              MockLocalizationsDelegate(mockL10n),
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-          ),
-        ),
-      );
+      await setupShellWidget(tester);
       await tester.pumpAndSettle();
 
       check(find.text('削除中メモ')).findsOne();
@@ -657,6 +663,63 @@ void main() {
       await tester.pumpAndSettle();
 
       // ホーム画面で Undo 通知が表示されないこと
+      check(find.text('メモを削除しました')).findsNothing();
+      check(find.text('元に戻す')).findsNothing();
+    });
+
+    testWidgets('Undo通知の表示中にStatefulShellRouteでタブを切り替えた場合、Undo通知が閉じられること', (
+      tester,
+    ) async {
+      final now = DateTime.now();
+      final memo = MemoModel(
+        id: '1',
+        userId: 'test_user_id',
+        title: '削除対象メモ',
+        content: '内容',
+        createdAt: now,
+        updatedAt: now,
+      );
+      final streamController = StreamController<List<MemoModel>>.broadcast();
+      addTearDown(streamController.close);
+
+      when(
+        () => mockMemoRepository.watchAllMemos(any()),
+      ).thenAnswer((_) => streamController.stream);
+      when(
+        () => mockMemoRepository.deleteMemo(
+          any(),
+          any(),
+          waitForRemoteSync: any(named: 'waitForRemoteSync'),
+        ),
+      ).thenAnswer((_) async {
+        streamController.add(<MemoModel>[]);
+      });
+
+      await setupShellWidget(tester);
+      streamController.add([memo]);
+      await tester.pumpAndSettle();
+
+      check(find.text('削除対象メモ')).findsOne();
+
+      // スワイプ削除を実行して Undo 通知を表示させる
+      await tester.drag(find.byType(Dismissible), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+
+      check(find.text('メモを削除しました')).findsOne();
+      check(find.text('元に戻す')).findsOne();
+
+      // 「ホーム」タブへ切り替えると、メモ画面の非アクティブ化に伴い Undo 通知が閉じられること
+      await tester.tap(find.text('ホーム'));
+      await tester.pumpAndSettle();
+
+      check(find.text('ホーム画面')).findsOne();
+      check(find.text('メモを削除しました')).findsNothing();
+      check(find.text('元に戻す')).findsNothing();
+
+      // 「メモ」タブへ戻っても閉じた Undo 通知が再表示されないこと
+      await tester.tap(find.text('メモ'));
+      await tester.pumpAndSettle();
+
       check(find.text('メモを削除しました')).findsNothing();
       check(find.text('元に戻す')).findsNothing();
     });
