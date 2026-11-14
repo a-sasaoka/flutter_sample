@@ -11,7 +11,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'token_interceptor.g.dart';
 
 /// トークンのリフレッシュを実行し、成功したかどうかを返す関数の型
-typedef TokenRefreshCallback = Future<bool> Function();
+typedef TokenRefreshCallback = Future<bool> Function(String? expectedUserId);
 
 /// [TokenRefreshCallback] を提供するプロバイダ
 ///
@@ -190,7 +190,7 @@ class _TokenInterceptor extends Interceptor {
     }
 
     // 新規にリフレッシュ処理を開始
-    final future = _executeRefresh();
+    final future = _executeRefresh(userId);
     _refreshFutures[userId] = future;
     try {
       return await future;
@@ -201,9 +201,9 @@ class _TokenInterceptor extends Interceptor {
     }
   }
 
-  Future<bool> _executeRefresh() async {
+  Future<bool> _executeRefresh(String? expectedUserId) async {
     try {
-      return await _refreshCallback();
+      return await _refreshCallback(expectedUserId);
     } on Exception catch (_) {
       // リフレッシュ自体が例外（タイムアウト等）で失敗した場合は false を返す
       // これにより、元の 401 エラーが handler.next(err) へ渡される

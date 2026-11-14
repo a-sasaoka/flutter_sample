@@ -1,4 +1,5 @@
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/data/auth_session_lock.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -17,8 +18,15 @@ class AuthStateNotifier extends _$AuthStateNotifier {
   Future<void> login(String accessToken, String refreshToken) async {
     try {
       await ref
-          .read(tokenStorageProvider)
-          .saveTokens(accessToken: accessToken, refreshToken: refreshToken);
+          .read(authSessionLockProvider)
+          .synchronized(
+            () => ref
+                .read(tokenStorageProvider)
+                .saveTokens(
+                  accessToken: accessToken,
+                  refreshToken: refreshToken,
+                ),
+          );
       state = const AsyncData(true);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -45,7 +53,9 @@ class AuthStateNotifier extends _$AuthStateNotifier {
   /// ログアウト状態にする
   Future<void> logout() async {
     try {
-      await ref.read(tokenStorageProvider).clear();
+      await ref
+          .read(authSessionLockProvider)
+          .synchronized(() => ref.read(tokenStorageProvider).clear());
       state = const AsyncData(false);
     } catch (e, st) {
       state = AsyncError(e, st);

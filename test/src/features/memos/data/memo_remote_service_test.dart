@@ -419,7 +419,7 @@ void main() {
     (MemoRemoteService, ProviderContainer) createWiredService({
       required List<(String method, String path, String? authHeader)> sentLog,
       required Future<ResponseBody> Function(RequestOptions options) onFetch,
-      Future<bool> Function()? refreshCallback,
+      Future<bool> Function(String? expectedUserId)? refreshCallback,
     }) {
       final adapter = _RecordingHttpClientAdapter((options) async {
         sentLog.add((
@@ -439,7 +439,7 @@ void main() {
           tokenStorageInternalProvider.overrideWithValue(mockStorage),
           baseDioProvider.overrideWithValue(baseDio),
           tokenRefreshCallbackProvider.overrideWithValue(
-            refreshCallback ?? () async => false,
+            refreshCallback ?? (_) async => false,
           ),
         ],
       );
@@ -545,7 +545,7 @@ void main() {
         final blockedLog = <(String, String, String?)>[];
         final (blockedService, blockedContainer) = createWiredService(
           sentLog: blockedLog,
-          refreshCallback: () async {
+          refreshCallback: (_) async {
             refreshCalls++;
             return true;
           },
@@ -582,7 +582,7 @@ void main() {
         final refreshedLog = <(String, String, String?)>[];
         final (refreshedService, refreshedContainer) = createWiredService(
           sentLog: refreshedLog,
-          refreshCallback: () async {
+          refreshCallback: (_) async {
             refreshCalls++;
             currentToken = 'new-token-a';
             return true;
@@ -661,7 +661,7 @@ void main() {
         final unauthorizedLog = <(String, String, String?)>[];
         final (unauthorizedService, unauthorizedContainer) = createWiredService(
           sentLog: unauthorizedLog,
-          refreshCallback: () async {
+          refreshCallback: (_) async {
             refreshCalls++;
             return true;
           },

@@ -27,7 +27,7 @@ class MockErrorInterceptorHandler extends Mock
 
 // 関数をモック化するための抽象クラスを定義
 abstract class _MockTokenRefreshCallable {
-  Future<bool> call();
+  Future<bool> call(String? expectedUserId);
 }
 
 class MockTokenRefreshCallback extends Mock
@@ -99,7 +99,7 @@ void main() {
       );
 
       // モック関数の振る舞いを定義
-      when(() => mockRefreshToken.call()).thenAnswer((_) async => true);
+      when(() => mockRefreshToken.call(any())).thenAnswer((_) async => true);
 
       when(
         () => mockStorage.getAccessToken(),
@@ -130,7 +130,7 @@ void main() {
       );
 
       // モック関数が false を返すように設定
-      when(() => mockRefreshToken.call()).thenAnswer((_) async => false);
+      when(() => mockRefreshToken.call(any())).thenAnswer((_) async => false);
 
       await (interceptor as dynamic).onError(error401, handler);
 
@@ -148,7 +148,7 @@ void main() {
 
       // リフレッシュ処理で例外を投げるように設定
       when(
-        () => mockRefreshToken.call(),
+        () => mockRefreshToken.call(any()),
       ).thenThrow(Exception('Network unstable'));
 
       await (interceptor as dynamic).onError(error401, handler);
@@ -169,7 +169,7 @@ void main() {
       );
 
       // 1回目の呼び出しで少し待たせるように設定
-      when(() => mockRefreshToken.call()).thenAnswer((_) async {
+      when(() => mockRefreshToken.call(any())).thenAnswer((_) async {
         await Future<void>.delayed(const Duration(milliseconds: 100));
         return true;
       });
@@ -187,7 +187,7 @@ void main() {
       ]);
 
       // リフレッシュ関数は「1回だけ」しか呼ばれていないことを検証
-      verify(() => mockRefreshToken.call()).called(1);
+      verify(() => mockRefreshToken.call(null)).called(1);
       verify(() => handler1.resolve(any())).called(1);
       verify(() => handler2.resolve(any())).called(1);
     });
@@ -218,7 +218,7 @@ void main() {
     await (interceptor as dynamic).onError(error500, handler);
 
     // リフレッシュ関数が一度も呼ばれていないことを検証
-    verifyNever(() => mockRefreshToken.call());
+    verifyNever(() => mockRefreshToken.call(any()));
     verify(() => handler.next(error500)).called(1);
   });
 
@@ -231,7 +231,7 @@ void main() {
       response: Response(requestOptions: options, statusCode: 401),
     );
 
-    when(() => mockRefreshToken.call()).thenAnswer((_) async => true);
+    when(() => mockRefreshToken.call(any())).thenAnswer((_) async => true);
     when(
       () => mockStorage.getAccessToken(),
     ).thenAnswer((_) async => 'new_token');
@@ -424,7 +424,7 @@ void main() {
 
         await (interceptor as dynamic).onError(error401, handler);
 
-        verifyNever(() => mockRefreshToken.call());
+        verifyNever(() => mockRefreshToken.call(any()));
         verifyNever(() => mockStorage.getAccessToken());
         verifyNever(() => mockBaseDio.fetch<dynamic>(any()));
         check(
@@ -445,7 +445,7 @@ void main() {
         when(
           () => mockStorage.getAccessToken(),
         ).thenAnswer((_) async => currentToken);
-        when(() => mockRefreshToken.call()).thenAnswer((_) async {
+        when(() => mockRefreshToken.call('user-a')).thenAnswer((_) async {
           // リフレッシュ中にアカウントBへ切り替わる
           currentUserId = 'user-b';
           currentToken = 'token-b';
@@ -468,7 +468,7 @@ void main() {
 
         await (interceptor as dynamic).onError(error401, handler);
 
-        verify(() => mockRefreshToken.call()).called(1);
+        verify(() => mockRefreshToken.call('user-a')).called(1);
         verifyNever(() => mockBaseDio.fetch<dynamic>(any()));
         check(
           options.headers['Authorization'],
@@ -480,7 +480,7 @@ void main() {
 
     test('onError: 401リフレッシュ中も同一ユーザーのままであれば新トークンを固定更新して再試行すること', () async {
       when(() => mockStorage.getUserId()).thenAnswer((_) async => 'user-a');
-      when(() => mockRefreshToken.call()).thenAnswer((_) async => true);
+      when(() => mockRefreshToken.call('user-a')).thenAnswer((_) async => true);
       when(
         () => mockStorage.getAccessToken(),
       ).thenAnswer((_) async => 'new-token-a');
@@ -519,7 +519,7 @@ void main() {
       final refreshGate = Completer<bool>();
 
       when(() => mockStorage.getUserId()).thenAnswer((_) async => 'user-a');
-      when(() => mockRefreshToken.call()).thenAnswer((_) {
+      when(() => mockRefreshToken.call('user-a')).thenAnswer((_) {
         refreshStarted.complete();
         return refreshGate.future;
       });
@@ -578,7 +578,7 @@ void main() {
       refreshGate.complete(true);
       await Future.wait<void>([pinnedFuture, unpinnedFuture]);
 
-      verify(() => mockRefreshToken.call()).called(1);
+      verify(() => mockRefreshToken.call('user-a')).called(1);
       check(
         pinnedOptions.headers['Authorization'],
       ).equals('Bearer new-token-a');
@@ -597,7 +597,7 @@ void main() {
       final refreshGate = Completer<bool>();
 
       when(() => mockStorage.getUserId()).thenAnswer((_) async => 'user-a');
-      when(() => mockRefreshToken.call()).thenAnswer((_) {
+      when(() => mockRefreshToken.call('user-a')).thenAnswer((_) {
         refreshStarted.complete();
         return refreshGate.future;
       });
@@ -656,7 +656,7 @@ void main() {
       refreshGate.complete(true);
       await Future.wait<void>([unpinnedFuture, pinnedFuture]);
 
-      verify(() => mockRefreshToken.call()).called(1);
+      verify(() => mockRefreshToken.call('user-a')).called(1);
       check(
         unpinnedOptions.headers['Authorization'],
       ).equals('Bearer new-token-a');

@@ -2131,7 +2131,7 @@ void main() {
             ),
             tokenStorageInternalProvider.overrideWithValue(mockStorage),
             baseDioProvider.overrideWithValue(baseDio),
-            tokenRefreshCallbackProvider.overrideWithValue(() async => false),
+            tokenRefreshCallbackProvider.overrideWithValue((_) async => false),
           ],
         );
         addTearDown(container.dispose);
@@ -2943,7 +2943,7 @@ void main() {
             ),
             tokenStorageInternalProvider.overrideWithValue(mockStorage),
             baseDioProvider.overrideWithValue(baseDio),
-            tokenRefreshCallbackProvider.overrideWithValue(() async => false),
+            tokenRefreshCallbackProvider.overrideWithValue((_) async => false),
           ],
         );
         addTearDown(container.dispose);

@@ -124,7 +124,7 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<bool> refreshToken() async {
+  Future<bool> refreshToken(String? expectedUserId) async {
     return true;
   }
 }

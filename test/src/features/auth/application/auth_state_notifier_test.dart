@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:checks/checks.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/data/auth_session_lock.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -280,5 +281,40 @@ void main() {
         container.read(authStateProvider).hasError,
       ).equals(true); // state が AsyncError か
     });
+
+    test(
+      'login と logout は authSessionLockProvider の完了を待ってからストレージ操作を行うこと',
+      () async {
+        final fakeStorage = FakeTokenStorage();
+        final container = createContainer(fakeStorage: fakeStorage);
+        await container.read(authStateProvider.future);
+        final notifier = container.read(authStateProvider.notifier);
+        final lock = container.read(authSessionLockProvider);
+
+        // login が既存ロックを待つことを検証
+        final loginLockGate = Completer<void>();
+        final loginLockHolder = lock.synchronized(() => loginLockGate.future);
+
+        final loginFuture = notifier.login('access', 'refresh');
+        await Future<void>.delayed(Duration.zero);
+        check(fakeStorage.isSaveTokensCalled).equals(false);
+
+        loginLockGate.complete();
+        await Future.wait<void>([loginLockHolder, loginFuture]);
+        check(fakeStorage.isSaveTokensCalled).equals(true);
+
+        // logout も既存ロックを待つことを検証
+        final logoutLockGate = Completer<void>();
+        final logoutLockHolder = lock.synchronized(() => logoutLockGate.future);
+
+        final logoutFuture = notifier.logout();
+        await Future<void>.delayed(Duration.zero);
+        check(fakeStorage.isClearCalled).equals(false);
+
+        logoutLockGate.complete();
+        await Future.wait<void>([logoutLockHolder, logoutFuture]);
+        check(fakeStorage.isClearCalled).equals(true);
+      },
+    );
   });
 }
