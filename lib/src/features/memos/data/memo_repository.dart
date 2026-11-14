@@ -7,6 +7,7 @@ import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_remote_service.dart';
 import 'package:flutter_sample/src/features/memos/data/memos_dao.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_category.dart';
@@ -64,13 +65,15 @@ class MemoRepository {
     required bool isOnline,
     required Uuid uuid,
     required MemoSyncQueue syncQueue,
+    required String? Function() currentUserId,
   }) : _dao = dao,
        _remote = remote,
        _clock = clock,
        _talker = talker,
        _isOnline = isOnline,
        _uuid = uuid,
-       _syncQueue = syncQueue;
+       _syncQueue = syncQueue,
+       _currentUserId = currentUserId;
 
   final MemosDao _dao;
   final MemoRemoteService _remote;
@@ -79,6 +82,7 @@ class MemoRepository {
   final bool _isOnline;
   final Uuid _uuid;
   final MemoSyncQueue _syncQueue;
+  final String? Function() _currentUserId;
 
   /// 新しいメモをデータベースに追加する
   Future<void> addMemo(
@@ -202,9 +206,10 @@ class MemoRepository {
         isDeleted: isDeleted,
       );
 
-      // 送信待機中に新しいローカル操作（Undoや編集等）が行われた場合は
-      // 古い通信の成功で isSynced を誤って true に上書きしない
-      if (_syncQueue.currentToken(memo.userId, memo.id) == expectedToken) {
+      // 送信待機中に新しいローカル操作（Undoや編集等）が行われた場合や、
+      // 認証ユーザーが切り替わった場合は古い通信結果で isSynced を true に上書きしない
+      if (_currentUserId() == memo.userId &&
+          _syncQueue.currentToken(memo.userId, memo.id) == expectedToken) {
         await _dao.markAsSyncedIfUnchanged(
           id: memo.id,
           userId: memo.userId,
@@ -222,6 +227,23 @@ class MemoRepository {
     }
   }
 
+  /// 現在の認証ユーザーが [userId] と一致する場合のみ、直列キュー上で同期タスクを実行する
+  ///
+  /// 待機中にログアウトや別ユーザーへの切り替えが発生した場合はリモート送信を省略し、
+  /// isSynced = false のまま保つことで他人の認証情報での誤送信を防ぐ。
+  Future<void> _enqueueIfAuthenticatedUser(
+    String userId,
+    String id,
+    Future<void> Function() task,
+  ) {
+    return _syncQueue.enqueue(userId, id, () async {
+      if (_currentUserId() != userId) {
+        return;
+      }
+      await task();
+    });
+  }
+
   /// 削除・復元のローカル変更に対応するリモート送信を直列キュー経由で実行する
   Future<void> _syncMemoDeletionState({
     required String id,
@@ -237,7 +259,7 @@ class MemoRepository {
       return;
     }
 
-    final syncFuture = _syncQueue.enqueue(userId, id, () async {
+    final syncFuture = _enqueueIfAuthenticatedUser(userId, id, () async {
       final memo = await _dao.getMemoById(id, userId);
       await _uploadMemoAndMarkSyncedIfUnchanged(
         memo: memo,
@@ -328,7 +350,7 @@ class MemoRepository {
 
     // 見つかった未送信のメモを、メモごとの直列キューを通して順番にサーバーに送る
     for (final memo in unsentMemos) {
-      await _syncQueue.enqueue(userId, memo.id, () async {
+      await _enqueueIfAuthenticatedUser(userId, memo.id, () async {
         final latestMemo = (await _dao.getMemosByIds([
           memo.id,
         ], userId)).firstOrNull;
@@ -438,6 +460,15 @@ class MemoRepository {
 @Riverpod(keepAlive: true)
 MemoSyncQueue memoSyncQueue(Ref ref) => MemoSyncQueue();
 
+/// 現在認証中のユーザーIDを常に最新値として取得する関数プロバイダー
+///
+/// [memoRepositoryProvider] が破棄・再生成された後も、キュー内の待機タスクが
+/// 破棄済み Ref を参照せずに最新の認証ユーザーIDを参照できるよう keepAlive にしています。
+@Riverpod(keepAlive: true)
+String? Function() memoAuthUserIdReader(Ref ref) {
+  return () => ref.mounted ? ref.read(currentUserIdProvider) : null;
+}
+
 /// アプリ全体で[MemoRepository]を使えるようにするためのプロバイダー
 @riverpod
 MemoRepository memoRepository(Ref ref) {
@@ -451,5 +482,6 @@ MemoRepository memoRepository(Ref ref) {
     isOnline: ref.watch(isOnlineProvider),
     uuid: ref.watch(uuidProvider),
     syncQueue: ref.watch(memoSyncQueueProvider),
+    currentUserId: ref.watch(memoAuthUserIdReaderProvider),
   );
 }
