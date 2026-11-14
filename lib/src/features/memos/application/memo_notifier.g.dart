@@ -36,7 +36,7 @@ final class MemoNotifierProvider
   MemoNotifier create() => MemoNotifier();
 }
 
-String _$memoNotifierHash() => r'41868711f40d4a3a7e65fe1dea43ef4a02c55cc4';
+String _$memoNotifierHash() => r'8fe03ce560058bc8ed7dc5549687c49240d89553';
 
 /// メモ一覧のデータ（状態）を管理するためのクラス
 

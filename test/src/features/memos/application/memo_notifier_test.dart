@@ -48,6 +48,9 @@ void main() {
         () => mockMemoRepository.fetchAndMergeRemoteMemos(any()),
       ).thenAnswer((_) async {});
       when(
+        () => mockMemoRepository.getLocalMemos(any()),
+      ).thenAnswer((_) async => <MemoModel>[]);
+      when(
         () => mockMemoRepository.watchFilteredMemos(
           any(),
           query: any(named: 'query'),
@@ -438,6 +441,9 @@ void main() {
           () => mockMemoRepository.watchAllMemos(any()),
         ).thenAnswer((_) => Stream.value(mockMemos));
         when(
+          () => mockMemoRepository.getLocalMemos(any()),
+        ).thenAnswer((_) async => mockMemos);
+        when(
           () => mockMemoRepository.watchFilteredMemos(
             any(),
             query: any(named: 'query'),
@@ -740,7 +746,11 @@ void main() {
               .reorderMemos(0, 1);
 
           // 保存待機中に、別の操作でメモ '3' が削除されたストリームが流れる
-          streamController.add([mockMemos[0], mockMemos[1]]); // '1' と '2' のみ
+          final remainingMemos = [mockMemos[0], mockMemos[1]]; // '1' と '2' のみ
+          when(
+            () => mockMemoRepository.getLocalMemos(any()),
+          ).thenAnswer((_) async => remainingMemos);
+          streamController.add(remainingMemos);
           await pumpEventQueue();
 
           // 並び替え保存がエラーで失敗する
@@ -757,6 +767,252 @@ void main() {
 
           memoSub.close();
           await streamController.close();
+        },
+      );
+
+      test('reorderMemos: '
+          '保存待機中に新規メモが追加されStreamが反映された状態で失敗した場合、'
+          '新規メモがDB位置を維持し末尾に移動しないこと', () async {
+        final streamController = StreamController<List<MemoModel>>.broadcast();
+        final completer = Completer<void>();
+        addTearDown(streamController.close);
+
+        final initialCustomMemos = [
+          mockMemos[1].copyWith(sortOrder: 0), // '2'
+          mockMemos[2].copyWith(sortOrder: 1), // '3'
+          mockMemos[0].copyWith(sortOrder: 2), // '1'
+        ];
+        when(
+          () => mockMemoRepository.watchAllMemos(any()),
+        ).thenAnswer((_) => streamController.stream);
+        when(
+          () => mockMemoRepository.getLocalMemos(any()),
+        ).thenAnswer((_) async => initialCustomMemos);
+        when(
+          () => mockMemoRepository.updateSortOrders(any(), any()),
+        ).thenAnswer((_) => completer.future);
+
+        container
+            .read(memoFilterProvider.notifier)
+            .setSortOrder(MemoSortOrder.custom);
+
+        final memoSub = container.listen(memoProvider, (_, _) {});
+        addTearDown(memoSub.close);
+        streamController.add(initialCustomMemos);
+        await container.read(memoProvider.future);
+
+        // 初期順序（custom）: ['2', '3', '1']
+        check(
+          container.read(memoProvider).value!.map((m) => m.id).toList(),
+        ).deepEquals(['2', '3', '1']);
+
+        // 並び替えを開始（待機中は _activeReorderCount > 0 のため確定リストが更新されない）
+        final reorderFuture = container
+            .read(memoProvider.notifier)
+            .reorderMemos(0, 2);
+
+        // 保存待機中に新規メモ '4' が先頭（sortOrder: 0）に追加され、既存メモがシフトされる
+        final newHeadMemo = MemoModel(
+          id: '4',
+          userId: 'test_user_id',
+          title: 'New Head Memo',
+          content: 'Inserted while reordering',
+          createdAt: DateTime(2026, 5, 30),
+          updatedAt: DateTime(2026, 5, 30),
+        );
+        final dbAfterInsert = [
+          newHeadMemo,
+          mockMemos[1].copyWith(sortOrder: 1),
+          mockMemos[2].copyWith(sortOrder: 2),
+          mockMemos[0].copyWith(sortOrder: 3),
+        ];
+        when(
+          () => mockMemoRepository.getLocalMemos(any()),
+        ).thenAnswer((_) async => dbAfterInsert);
+        streamController.add(dbAfterInsert);
+        await pumpEventQueue();
+
+        // 保存が失敗してロールバックされる
+        completer.completeError(Exception('Reorder failed'));
+        await check(reorderFuture).throws<Exception>();
+
+        // '4' が 999999 扱いで末尾に移動せず先頭（index 0）に維持され、既存メモも確定順のまま戻ること
+        check(
+          container.read(memoProvider).value!.map((m) => m.id).toList(),
+        ).deepEquals(['4', '2', '3', '1']);
+      });
+
+      test('reorderMemos: '
+          '保存待機中の新規・復元メモ追加がStream未反映のまま失敗しても、'
+          '最新DB順を取得して正しい位置に配置されること', () async {
+        final streamController = StreamController<List<MemoModel>>.broadcast();
+        final completer = Completer<void>();
+        addTearDown(streamController.close);
+
+        final initialCustomMemos = [
+          mockMemos[1].copyWith(sortOrder: 0), // '2'
+          mockMemos[0].copyWith(sortOrder: 1), // '1'
+          mockMemos[2].copyWith(sortOrder: 2), // '3'
+        ];
+        when(
+          () => mockMemoRepository.watchAllMemos(any()),
+        ).thenAnswer((_) => streamController.stream);
+        when(
+          () => mockMemoRepository.getLocalMemos(any()),
+        ).thenAnswer((_) async => initialCustomMemos);
+        when(
+          () => mockMemoRepository.updateSortOrders(any(), any()),
+        ).thenAnswer((_) => completer.future);
+
+        container
+            .read(memoFilterProvider.notifier)
+            .setSortOrder(MemoSortOrder.custom);
+
+        final memoSub = container.listen(memoProvider, (_, _) {});
+        addTearDown(memoSub.close);
+        streamController.add(initialCustomMemos);
+        await container.read(memoProvider.future);
+
+        // 並び替えを開始
+        final reorderFuture = container
+            .read(memoProvider.notifier)
+            .reorderMemos(0, 2);
+
+        // DBには先頭新規メモ '4'（sortOrder: 0）と中間復元メモ '5'（sortOrder: 2）が存在するが、
+        // Stream通知がまだUI状態に反映されていない状態を模擬（さらにDB返却順も未ソートで検証）
+        final newHeadMemo = MemoModel(
+          id: '4',
+          userId: 'test_user_id',
+          title: 'New Head Memo',
+          content: 'Head content',
+          createdAt: DateTime(2026, 5, 30),
+          updatedAt: DateTime(2026, 5, 30),
+        );
+        final restoredMidMemo = MemoModel(
+          id: '5',
+          userId: 'test_user_id',
+          title: 'Restored Middle Memo',
+          content: 'Middle content',
+          createdAt: DateTime(2026, 5),
+          updatedAt: DateTime(2026, 5),
+          sortOrder: 2,
+        );
+        when(() => mockMemoRepository.getLocalMemos(any())).thenAnswer(
+          (_) async => [
+            mockMemos[2].copyWith(sortOrder: 4), // '3'
+            restoredMidMemo, // sortOrder: 2
+            mockMemos[0].copyWith(sortOrder: 3), // '1'
+            newHeadMemo, // sortOrder: 0
+            mockMemos[1].copyWith(sortOrder: 1), // '2'
+          ],
+        );
+
+        // Stream未反映のまま並び替え保存が失敗する
+        completer.completeError(Exception('Reorder failed'));
+        await check(reorderFuture).throws<Exception>();
+
+        // 既存メモ ['2', '1', '3'] のロールバックを保ちつつ、
+        // 先頭追加 '4' は先頭、中間復元 '5' は中間に配置されること
+        check(
+          container.read(memoProvider).value!.map((m) => m.id).toList(),
+        ).deepEquals(['4', '2', '5', '1', '3']);
+      });
+
+      test('reorderMemos: '
+          'ロールバック時のgetLocalMemos取得自体が失敗しても'
+          'メモリ上の状態からフォールバック復元し元の例外を再スローすること', () async {
+        final streamController = StreamController<List<MemoModel>>.broadcast();
+        final completer = Completer<void>();
+        addTearDown(streamController.close);
+
+        when(
+          () => mockMemoRepository.watchAllMemos(any()),
+        ).thenAnswer((_) => streamController.stream);
+        when(
+          () => mockMemoRepository.updateSortOrders(any(), any()),
+        ).thenAnswer((_) => completer.future);
+        when(
+          () => mockMemoRepository.getLocalMemos(any()),
+        ).thenThrow(Exception('DB Read Error'));
+
+        final memoSub = container.listen(memoProvider, (_, _) {});
+        addTearDown(memoSub.close);
+        streamController.add(mockMemos);
+        await container.read(memoProvider.future);
+
+        final reorderFuture = container
+            .read(memoProvider.notifier)
+            .reorderMemos(0, 1);
+
+        final newHeadMemo = MemoModel(
+          id: '4',
+          userId: 'test_user_id',
+          title: 'New Head Memo',
+          content: 'Head content',
+          createdAt: DateTime(2026, 5, 30),
+          updatedAt: DateTime(2026, 5, 30),
+        );
+        streamController.add([newHeadMemo, ...mockMemos]);
+        await pumpEventQueue();
+
+        final writeException = Exception('Write Error');
+        completer.completeError(writeException);
+        await check(reorderFuture).throws<Exception>();
+
+        // getLocalMemos が失敗してもクラッシュせず、現在のstateをもとにロールバックされること
+        check(
+          container.read(memoProvider).value!.map((m) => m.id).toList(),
+        ).deepEquals(['4', '2', '1', '3']);
+      });
+
+      test(
+        'reorderMemos: ロールバック時のgetLocalMemos待機中に検索条件が変更された場合、検索結果を上書きしないこと',
+        () async {
+          final updateCompleter = Completer<void>();
+          final fetchCompleter = Completer<List<MemoModel>>();
+
+          when(
+            () => mockMemoRepository.updateSortOrders(any(), any()),
+          ).thenAnswer((_) => updateCompleter.future);
+          when(
+            () => mockMemoRepository.getLocalMemos(any()),
+          ).thenAnswer((_) => fetchCompleter.future);
+
+          final memoSub = container.listen(memoProvider, (_, _) {});
+          addTearDown(memoSub.close);
+          await container.read(memoProvider.future);
+
+          final reorderFuture = container
+              .read(memoProvider.notifier)
+              .reorderMemos(0, 1);
+
+          // updateSortOrders を失敗させ、getLocalMemos の待機状態に入れる
+          updateCompleter.completeError(Exception('Write Error'));
+          await pumpEventQueue();
+
+          // getLocalMemos の完了を待つ間に検索フィルタを設定
+          when(
+            () => mockMemoRepository.watchFilteredMemos(
+              any(),
+              query: '2',
+              category: any(named: 'category'),
+              unsyncedOnly: any(named: 'unsyncedOnly'),
+            ),
+          ).thenAnswer((_) => Stream.value([mockMemos[1]]));
+          container.read(memoFilterProvider.notifier).setQuery('2');
+          await pumpEventQueue();
+
+          check(
+            container.read(memoProvider).value!.map((m) => m.id).toList(),
+          ).deepEquals(['2']);
+
+          fetchCompleter.complete(mockMemos);
+          await check(reorderFuture).throws<Exception>();
+
+          // 検索結果 ['2'] がロールバックで上書きされないこと
+          check(
+            container.read(memoProvider).value!.map((m) => m.id).toList(),
+          ).deepEquals(['2']);
         },
       );
 
@@ -826,6 +1082,9 @@ void main() {
             mockMemos[1],
             mockMemos[2].copyWith(createdAt: DateTime(2026, 5, 20)),
           ];
+          when(
+            () => mockMemoRepository.getLocalMemos(any()),
+          ).thenAnswer((_) async => updatedStreamMemos);
           streamController.add(updatedStreamMemos);
           await pumpEventQueue();
 
@@ -1052,6 +1311,72 @@ void main() {
             // UnmountedRefException や再スローが起きず安全に完了すること
             await reorderFuture;
           }
+        },
+      );
+
+      test(
+        'reorderMemos: ロールバック時のgetLocalMemos待機中に別ユーザー切替やプロバイダ破棄が起きても安全に破棄されること',
+        () async {
+          final updateCompleter = Completer<void>();
+          final fetchCompleter = Completer<List<MemoModel>>();
+          final userAController = StreamController<List<MemoModel>>.broadcast();
+          final userBController = StreamController<List<MemoModel>>.broadcast();
+          addTearDown(() async {
+            await userAController.close();
+            await userBController.close();
+          });
+
+          when(
+            () => mockMemoRepository.watchAllMemos('user_a'),
+          ).thenAnswer((_) => userAController.stream);
+          when(
+            () => mockMemoRepository.watchAllMemos('user_b'),
+          ).thenAnswer((_) => userBController.stream);
+          when(
+            () => mockMemoRepository.updateSortOrders(any(), 'user_a'),
+          ).thenAnswer((_) => updateCompleter.future);
+          when(
+            () => mockMemoRepository.getLocalMemos('user_a'),
+          ).thenAnswer((_) => fetchCompleter.future);
+
+          final authContainer = createAuthContainer();
+          final memoSub = authContainer.listen(memoProvider, (_, _) {});
+          addTearDown(memoSub.close);
+
+          userAController.add(userAMemos);
+          await authContainer.read(memoProvider.future);
+
+          final reorderFuture = authContainer
+              .read(memoProvider.notifier)
+              .reorderMemos(0, 1);
+
+          updateCompleter.completeError(Exception('User A DB Error'));
+          await pumpEventQueue();
+
+          // getLocalMemos の待機中に user_b へ切り替え
+          authContainer.read(_testUserIdProvider.notifier).userId = 'user_b';
+          await pumpEventQueue();
+
+          final userBMemos = [
+            MemoModel(
+              id: 'b1',
+              userId: 'user_b',
+              title: 'B1',
+              content: 'C1',
+              createdAt: DateTime(2026, 5, 3),
+              updatedAt: DateTime(2026, 5, 3),
+            ),
+          ];
+          userBController.add(userBMemos);
+          await pumpEventQueue();
+
+          fetchCompleter.complete(userAMemos);
+          await reorderFuture;
+
+          // user_b の表示が user_a のロールバックで上書きされていないこと
+          check(
+            authContainer.read(memoProvider).value!.map((m) => m.id).toList(),
+          ).deepEquals(['b1']);
         },
       );
 

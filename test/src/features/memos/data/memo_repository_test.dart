@@ -721,6 +721,57 @@ void main() {
       },
     );
 
+    test('getLocalMemos: オンラインでもリモート取得を行わずローカルの未削除メモのみを返すこと', () async {
+      final container = createContainer();
+      final repository = container.read(memoRepositoryProvider);
+      await database
+          .into(database.memos)
+          .insert(
+            MemosCompanion.insert(
+              id: 'local-1',
+              userId: testUserId,
+              title: 'Local 1',
+              content: 'Content 1',
+              createdAt: now,
+              updatedAt: now,
+              isDeleted: const drift.Value(false),
+            ),
+          );
+      await database
+          .into(database.memos)
+          .insert(
+            MemosCompanion.insert(
+              id: 'local-deleted',
+              userId: testUserId,
+              title: 'Deleted',
+              content: 'Deleted Content',
+              createdAt: now,
+              updatedAt: now,
+              isDeleted: const drift.Value(true),
+            ),
+          );
+      await database
+          .into(database.memos)
+          .insert(
+            MemosCompanion.insert(
+              id: 'other-user-memo',
+              userId: 'other_user',
+              title: 'Other',
+              content: 'Other Content',
+              createdAt: now,
+              updatedAt: now,
+              isDeleted: const drift.Value(false),
+            ),
+          );
+
+      final memos = await repository.getLocalMemos(testUserId);
+
+      check(memos.length).equals(1);
+      check(memos.first.id).equals('local-1');
+      check(memos.first.userId).equals(testUserId);
+      verifyNever(() => mockRemoteService.fetchMemos());
+    });
+
     test('memoRepositoryProvider が正しいインスタンスを提供すること', () {
       final container = createContainer();
       final repo = container.read(memoRepositoryProvider);

@@ -357,9 +357,12 @@ class MemoRepository {
   }) async {
     await fetchAndMergeRemoteMemos(userId, syncUnsent: syncUnsent);
 
-    // データベースから「削除されていない」データを取り出す
-    final driftMemos = await _dao.getAllMemos(userId);
+    return await getLocalMemos(userId);
+  }
 
+  /// ローカルDBから「削除されていない」メモ一覧を取得する（リモート同期は行わない）
+  Future<List<MemoModel>> getLocalMemos(String userId) async {
+    final driftMemos = await _dao.getAllMemos(userId);
     return driftMemos.map(_mapToMemoModel).toList();
   }
 

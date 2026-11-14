@@ -69,26 +69,7 @@ class MemoNotifier extends _$MemoNotifier {
         : repository.watchAllMemos(userId);
 
     return memosStream.map((filteredMemos) {
-      // 破壊的変更を避けるためにリストをコピーしてソート
-      final sortedMemos = [...filteredMemos];
-
-      final comparator = switch (filter.sortOrder) {
-        MemoSortOrder.createdAtDesc =>
-          (MemoModel a, MemoModel b) => b.createdAt.compareTo(a.createdAt),
-        MemoSortOrder.createdAtAsc =>
-          (MemoModel a, MemoModel b) => a.createdAt.compareTo(b.createdAt),
-        MemoSortOrder.updatedAtDesc =>
-          (MemoModel a, MemoModel b) => b.updatedAt.compareTo(a.updatedAt),
-        MemoSortOrder.updatedAtAsc =>
-          (MemoModel a, MemoModel b) => a.updatedAt.compareTo(b.updatedAt),
-        MemoSortOrder.titleAsc =>
-          (MemoModel a, MemoModel b) => a.title.compareTo(b.title),
-        MemoSortOrder.titleDesc =>
-          (MemoModel a, MemoModel b) => b.title.compareTo(a.title),
-        MemoSortOrder.custom =>
-          (MemoModel a, MemoModel b) => a.sortOrder.compareTo(b.sortOrder),
-      };
-      sortedMemos.sort(comparator);
+      final sortedMemos = _sortMemos(filteredMemos, filter.sortOrder);
 
       // 並び替え処理が実行中でなければ、確定した最新順序として記録
       if (_activeReorderCount == 0) {
@@ -97,6 +78,68 @@ class MemoNotifier extends _$MemoNotifier {
 
       return sortedMemos;
     });
+  }
+
+  /// メモ一覧を指定されたソート順で並べ替えた新しいリストを返す
+  List<MemoModel> _sortMemos(List<MemoModel> memos, MemoSortOrder sortOrder) {
+    // 破壊的変更を避けるためにリストをコピーしてソート
+    final sortedMemos = [...memos];
+
+    final comparator = switch (sortOrder) {
+      MemoSortOrder.createdAtDesc =>
+        (MemoModel a, MemoModel b) => b.createdAt.compareTo(a.createdAt),
+      MemoSortOrder.createdAtAsc =>
+        (MemoModel a, MemoModel b) => a.createdAt.compareTo(b.createdAt),
+      MemoSortOrder.updatedAtDesc =>
+        (MemoModel a, MemoModel b) => b.updatedAt.compareTo(a.updatedAt),
+      MemoSortOrder.updatedAtAsc =>
+        (MemoModel a, MemoModel b) => a.updatedAt.compareTo(b.updatedAt),
+      MemoSortOrder.titleAsc => (MemoModel a, MemoModel b) => a.title.compareTo(
+        b.title,
+      ),
+      MemoSortOrder.titleDesc =>
+        (MemoModel a, MemoModel b) => b.title.compareTo(a.title),
+      MemoSortOrder.custom =>
+        (MemoModel a, MemoModel b) => a.sortOrder.compareTo(b.sortOrder),
+    };
+    sortedMemos.sort(comparator);
+    return sortedMemos;
+  }
+
+  /// ロールバック時の並び順を構築する
+  ///
+  /// 既存の確定メモは並び替え前の順序（[confirmed]）を維持し、
+  /// 保存待機中に追加・復元された新規メモは最新のDB順（[latest]）上の位置を保ちます。
+  /// また、[latest] に存在しない削除済みメモは除外して復活を防ぎます。
+  List<MemoModel> _mergeRollbackMemos({
+    required List<MemoModel> confirmed,
+    required List<MemoModel> latest,
+  }) {
+    final latestById = {for (final memo in latest) memo.id: memo};
+    final confirmedIdSet = <String>{};
+    final orderedConfirmed = <MemoModel>[];
+
+    // 確定済みメモの相対順を保ちつつ、削除されたメモは除外し、最新モデルへ差し替える
+    for (final memo in confirmed) {
+      if (confirmedIdSet.add(memo.id)) {
+        final latestMemo = latestById[memo.id];
+        if (latestMemo != null) {
+          orderedConfirmed.add(latestMemo);
+        }
+      }
+    }
+
+    // 最新一覧の中で「既存メモの枠」には確定順のメモを順に当てはめ、
+    // 新規メモはDB上の位置をそのまま維持する
+    var confirmedIndex = 0;
+    return [
+      for (final memo in latest)
+        if (confirmedIdSet.contains(memo.id) &&
+            confirmedIndex < orderedConfirmed.length)
+          orderedConfirmed[confirmedIndex++]
+        else
+          memo,
+    ];
   }
 
   /// 非同期でサーバーとのデータ同期およびマージを実行する
@@ -229,23 +272,32 @@ class MemoNotifier extends _$MemoNotifier {
       // 失敗した場合は、最後に保存が確認された順序にロールバック
       // ただし、待機中に検索・フィルタ条件が変更されている場合は、
       // 検索結果の表示を壊さないようロールバック（stateの上書き）をスキップする
-      final currentFilter = ref.read(memoFilterProvider);
-      if (currentFilter == initialFilter && !currentFilter.hasActiveFilter) {
-        final confirmed = _lastConfirmedMemos ?? currentMemos;
-        final current = state.asData?.value ?? currentMemos;
-        // 確定順序（並び替え前の位置）の背番号マップを作成
-        final confirmedOrderMap = {
-          for (var i = 0; i < confirmed.length; i++) confirmed[i].id: i,
-        };
-        // 現在画面に存在するメモだけを、並び替え前の確定順に従ってソートし直す
-        // ※ これにより、並び替え待機中に削除されたメモが復活するのを防ぐ
-        final rolledBackMemos = [...current]
-          ..sort((a, b) {
-            final orderA = confirmedOrderMap[a.id] ?? 999999;
-            final orderB = confirmedOrderMap[b.id] ?? 999999;
-            return orderA.compareTo(orderB);
-          });
-        state = AsyncData(rolledBackMemos);
+      final filterBeforeFetch = ref.read(memoFilterProvider);
+      if (filterBeforeFetch == initialFilter &&
+          !filterBeforeFetch.hasActiveFilter) {
+        // 待機中に追加・削除されたメモがストリームから未反映でも正しいDB位置を保つため、
+        // 最新のローカルDB一覧を取得してソート済みの基準順序を作る
+        List<MemoModel>? latestDbMemos;
+        try {
+          latestDbMemos = await repository.getLocalMemos(userId);
+        } on Object catch (fetchError, fetchSt) {
+          logger.handle(fetchError, fetchSt, 'ロールバック用の最新メモ取得に失敗しました');
+        }
+
+        if (!ref.mounted || initialAuthGeneration != _authGeneration) {
+          return;
+        }
+
+        final currentFilter = ref.read(memoFilterProvider);
+        if (currentFilter == initialFilter && !currentFilter.hasActiveFilter) {
+          final confirmed = _lastConfirmedMemos ?? currentMemos;
+          final latest = latestDbMemos != null
+              ? _sortMemos(latestDbMemos, currentFilter.sortOrder)
+              : (state.asData?.value ?? currentMemos);
+          state = AsyncData(
+            _mergeRollbackMemos(confirmed: confirmed, latest: latest),
+          );
+        }
       }
       rethrow;
     } finally {

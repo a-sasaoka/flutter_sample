@@ -112,6 +112,9 @@ void main() {
       () => mockMemoRepository.watchAllMemos(any()),
     ).thenAnswer((_) => Stream.value([]));
     when(
+      () => mockMemoRepository.getLocalMemos(any()),
+    ).thenAnswer((_) async => []);
+    when(
       () => mockMemoRepository.watchFilteredMemos(
         any(),
         query: any(named: 'query'),
@@ -2199,6 +2202,9 @@ void main() {
         () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value(memoList));
       when(
+        () => mockMemoRepository.getLocalMemos(any()),
+      ).thenAnswer((_) async => memoList);
+      when(
         () => mockMemoRepository.updateSortOrders(any(), any()),
       ).thenThrow(Exception('並び替え保存失敗'));
 
@@ -2242,6 +2248,9 @@ void main() {
       when(
         () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value(memoList));
+      when(
+        () => mockMemoRepository.getLocalMemos(any()),
+      ).thenAnswer((_) async => memoList);
       when(
         () => mockMemoRepository.updateSortOrders(any(), any()),
       ).thenAnswer((_) => reorderCompleter.future);
