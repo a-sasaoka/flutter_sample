@@ -16,6 +16,18 @@ import 'package:talker_flutter/talker_flutter.dart';
 
 class MockMemoRepository extends Mock implements MemoRepository {}
 
+class _TestUserIdNotifier extends Notifier<String?> {
+  @override
+  String? build() => 'user_a';
+
+  String? get userId => state;
+  set userId(String? id) => state = id;
+}
+
+final _testUserIdProvider = NotifierProvider<_TestUserIdNotifier, String?>(
+  _TestUserIdNotifier.new,
+);
+
 void main() {
   group('MemoNotifier', () {
     late MockMemoRepository mockMemoRepository;
@@ -829,6 +841,209 @@ void main() {
 
           memoSub.close();
           await streamController.close();
+        },
+      );
+
+      ProviderContainer createAuthContainer() {
+        final authContainer = ProviderContainer(
+          overrides: [
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+            memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+            isOnlineProvider.overrideWithValue(false),
+            loggerProvider.overrideWithValue(Talker()),
+          ],
+        );
+        addTearDown(authContainer.dispose);
+        return authContainer;
+      }
+
+      final userAMemos = [
+        MemoModel(
+          id: 'a1',
+          userId: 'user_a',
+          title: 'A1',
+          content: 'C1',
+          createdAt: DateTime(2026, 5, 2),
+          updatedAt: DateTime(2026, 5, 2),
+        ),
+        MemoModel(
+          id: 'a2',
+          userId: 'user_a',
+          title: 'A2',
+          content: 'C2',
+          createdAt: DateTime(2026, 5),
+          updatedAt: DateTime(2026, 5),
+        ),
+      ];
+
+      test(
+        'reorderMemos: 保存待機中に別ユーザーへ切り替わって失敗した場合、旧ユーザーのメモで状態が復元されないこと',
+        () async {
+          final completerA1 = Completer<void>();
+          final completerA2 = Completer<void>();
+          var callCount = 0;
+          final userAController = StreamController<List<MemoModel>>.broadcast();
+          final userBController = StreamController<List<MemoModel>>.broadcast();
+          addTearDown(() async {
+            await userAController.close();
+            await userBController.close();
+          });
+
+          when(
+            () => mockMemoRepository.watchAllMemos('user_a'),
+          ).thenAnswer((_) => userAController.stream);
+          when(
+            () => mockMemoRepository.watchAllMemos('user_b'),
+          ).thenAnswer((_) => userBController.stream);
+          when(
+            () => mockMemoRepository.updateSortOrders(any(), 'user_a'),
+          ).thenAnswer((_) {
+            callCount++;
+            return callCount == 1 ? completerA1.future : completerA2.future;
+          });
+
+          final authContainer = createAuthContainer();
+          final memoSub = authContainer.listen(memoProvider, (_, _) {});
+          addTearDown(memoSub.close);
+
+          userAController.add(userAMemos);
+          await authContainer.read(memoProvider.future);
+
+          // user_a で2件の並び替えを開始（保存待機中）
+          final reorderFuture1 = authContainer
+              .read(memoProvider.notifier)
+              .reorderMemos(0, 1);
+          final reorderFuture2 = authContainer
+              .read(memoProvider.notifier)
+              .reorderMemos(0, 1);
+
+          // 待機中に別アカウント（user_b）へ切り替え（user_b はまだロード中）
+          authContainer.read(_testUserIdProvider.notifier).userId = 'user_b';
+          await pumpEventQueue();
+
+          // 1. user_b ロード中に旧ユーザーAの1つ目が失敗しても、
+          //    AsyncLoading のまま（AsyncData に復元されないこと）
+          completerA1.completeError(Exception('User A DB Error 1'));
+          await reorderFuture1;
+          check(
+            authContainer.read(memoProvider),
+          ).isA<AsyncLoading<List<MemoModel>>>();
+
+          // user_b のデータが届けば正常に表示されること
+          final userBMemos = [
+            MemoModel(
+              id: 'b1',
+              userId: 'user_b',
+              title: 'B1',
+              content: 'C1',
+              createdAt: DateTime(2026, 5, 3),
+              updatedAt: DateTime(2026, 5, 3),
+            ),
+          ];
+          userBController.add(userBMemos);
+          await pumpEventQueue();
+          check(
+            authContainer.read(memoProvider).value!.map((m) => m.id).toList(),
+          ).deepEquals(['b1']);
+
+          // 2. user_b 表示後に旧ユーザーAの2つ目が失敗 → user_b の表示がそのまま維持されること
+          completerA2.completeError(Exception('User A DB Error 2'));
+          await reorderFuture2;
+          check(
+            authContainer.read(memoProvider).value!.map((m) => m.id).toList(),
+          ).deepEquals(['b1']);
+        },
+      );
+
+      test(
+        'reorderMemos: 保存待機中にログアウト→同一ユーザーで再ログインした場合、成功時も旧結果が破棄されること',
+        () async {
+          final completer1 = Completer<void>();
+          final streamController =
+              StreamController<List<MemoModel>>.broadcast();
+          addTearDown(streamController.close);
+
+          when(
+            () => mockMemoRepository.watchAllMemos('user_a'),
+          ).thenAnswer((_) => streamController.stream);
+          when(
+            () => mockMemoRepository.updateSortOrders(any(), 'user_a'),
+          ).thenAnswer((_) => completer1.future);
+
+          final authContainer = createAuthContainer();
+          final memoSub = authContainer.listen(memoProvider, (_, _) {});
+          addTearDown(memoSub.close);
+
+          streamController.add(userAMemos);
+          await authContainer.read(memoProvider.future);
+
+          // 旧セッション（user_a）で並び替えを開始
+          final reorderFuture = authContainer
+              .read(memoProvider.notifier)
+              .reorderMemos(0, 1);
+
+          // 待機中にログアウト → 同じ user_a で再ログイン（認証世代だけが進む）
+          authContainer.read(_testUserIdProvider.notifier).userId = null;
+          await pumpEventQueue();
+          authContainer.read(_testUserIdProvider.notifier).userId = 'user_a';
+          await pumpEventQueue();
+          streamController.add(userAMemos);
+          await authContainer.read(memoProvider.future);
+
+          // 旧セッションの並び替え保存が完了
+          completer1.complete();
+          await reorderFuture;
+
+          // 旧セッションの完了結果で新セッションのソート順が勝手に custom へ変更されていないこと
+          check(
+            authContainer.read(memoFilterProvider).sortOrder,
+          ).equals(MemoSortOrder.createdAtDesc);
+        },
+      );
+
+      test(
+        'reorderMemos: 保存待機中にプロバイダが破棄（dispose）された場合、成功・失敗いずれも安全に破棄されること',
+        () async {
+          for (final shouldFail in [false, true]) {
+            final completer = Completer<void>();
+            when(
+              () => mockMemoRepository.watchAllMemos(any()),
+            ).thenAnswer((_) => Stream.value(mockMemos));
+            when(
+              () => mockMemoRepository.updateSortOrders(any(), any()),
+            ).thenAnswer((_) => completer.future);
+
+            final disposableContainer = ProviderContainer(
+              overrides: [
+                currentUserIdProvider.overrideWithValue('test_user_id'),
+                memoRepositoryProvider.overrideWithValue(mockMemoRepository),
+                isOnlineProvider.overrideWithValue(false),
+                loggerProvider.overrideWithValue(Talker()),
+              ],
+            );
+
+            final sub = disposableContainer.listen(memoProvider, (_, _) {});
+            await disposableContainer.read(memoProvider.future);
+
+            final reorderFuture = disposableContainer
+                .read(memoProvider.notifier)
+                .reorderMemos(0, 1);
+
+            // 待機中にコンテナを破棄（ref.mounted == false）
+            sub.close();
+            disposableContainer.dispose();
+
+            if (shouldFail) {
+              completer.completeError(Exception('Disposed DB Error'));
+            } else {
+              completer.complete();
+            }
+
+            // UnmountedRefException や再スローが起きず安全に完了すること
+            await reorderFuture;
+          }
         },
       );
 

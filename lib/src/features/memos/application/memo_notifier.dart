@@ -20,16 +20,30 @@ class MemoNotifier extends _$MemoNotifier {
   bool _hasSyncedOnInitialOnline = false;
   List<MemoModel>? _lastConfirmedMemos;
   int _activeReorderCount = 0;
+  int _authGeneration = 0;
+
+  void _resetSessionState() {
+    _hasSyncedOnInitialOnline = false;
+    _lastConfirmedMemos = null;
+    _activeReorderCount = 0;
+  }
 
   @override
   Stream<List<MemoModel>> build() {
+    // 認証ユーザーの変化（ログアウト・再ログイン・アカウント切り替え）を検知し、
+    // 世代番号を進めて古い非同期処理の結果を破棄できるようにする
+    ref.listen<String?>(currentUserIdProvider, (previous, next) {
+      if (previous != next) {
+        _authGeneration++;
+        _resetSessionState();
+      }
+    });
+
     final userId = ref.watch(currentUserIdProvider);
 
     // 未ログイン時は空リストを返し、初期同期フラグもリセット
     if (userId == null) {
-      _hasSyncedOnInitialOnline = false;
-      _lastConfirmedMemos = null;
-      _activeReorderCount = 0;
+      _resetSessionState();
       return Stream.value([]);
     }
 
@@ -157,6 +171,8 @@ class MemoNotifier extends _$MemoNotifier {
       return;
     }
 
+    final initialAuthGeneration = _authGeneration;
+
     // 進行中の並び替えがなければ、現在の状態を「最後に保存が確認された順序」として保持
     if (_activeReorderCount == 0) {
       _lastConfirmedMemos = currentMemos;
@@ -170,10 +186,17 @@ class MemoNotifier extends _$MemoNotifier {
     state = AsyncData(updatedMemos);
 
     final repository = ref.read(memoRepositoryProvider);
+    final logger = ref.read(loggerProvider);
     final orderedIds = updatedMemos.map((m) => m.id).toList();
 
     try {
       await repository.updateSortOrders(orderedIds, userId);
+
+      // 待機中にプロバイダ破棄または認証世代が変化した場合は、
+      // 旧ユーザーの保存結果で新ユーザーの確定順序やフィルタを上書きしないよう破棄する
+      if (!ref.mounted || initialAuthGeneration != _authGeneration) {
+        return;
+      }
 
       // 保存に成功した順序を確定順序として記録
       _lastConfirmedMemos = updatedMemos;
@@ -188,6 +211,14 @@ class MemoNotifier extends _$MemoNotifier {
             .setSortOrder(MemoSortOrder.custom);
       }
     } on Exception catch (e, st) {
+      logger.handle(e, st, 'メモの並び替え保存に失敗しました');
+
+      // 待機中にプロバイダ破棄または認証世代が変化した場合は、
+      // 旧ユーザーの結果を破棄し、旧データでの状態復元および新画面へのエラー再スローを行わない
+      if (!ref.mounted || initialAuthGeneration != _authGeneration) {
+        return;
+      }
+
       // 失敗した場合は、最後に保存が確認された順序にロールバック
       // ただし、待機中に検索・フィルタ条件が変更されている場合は、
       // 検索結果の表示を壊さないようロールバック（stateの上書き）をスキップする
@@ -209,12 +240,13 @@ class MemoNotifier extends _$MemoNotifier {
           });
         state = AsyncData(rolledBackMemos);
       }
-      ref.read(loggerProvider).handle(e, st, 'メモの並び替え保存に失敗しました');
       rethrow;
     } finally {
-      _activeReorderCount--;
-      if (_activeReorderCount <= 0) {
-        _activeReorderCount = 0;
+      if (ref.mounted && initialAuthGeneration == _authGeneration) {
+        _activeReorderCount--;
+        if (_activeReorderCount <= 0) {
+          _activeReorderCount = 0;
+        }
       }
     }
   }
