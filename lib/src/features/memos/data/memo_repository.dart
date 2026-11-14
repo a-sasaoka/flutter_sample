@@ -268,6 +268,17 @@ class MemoRepository {
     });
   }
 
+  Future<void> _captureAsyncSyncError(
+    Future<void> syncFuture,
+    String errorLog,
+  ) async {
+    try {
+      await syncFuture;
+    } on Object catch (e, st) {
+      _talker.handle(e, st, errorLog);
+    }
+  }
+
   /// 削除・復元のローカル変更に対応するリモート送信を直列キュー経由で実行する
   Future<void> _syncMemoDeletionState({
     required String id,
@@ -301,7 +312,7 @@ class MemoRepository {
     if (waitForRemoteSync) {
       await syncFuture;
     } else {
-      unawaited(syncFuture);
+      unawaited(_captureAsyncSyncError(syncFuture, errorLog));
     }
   }
 

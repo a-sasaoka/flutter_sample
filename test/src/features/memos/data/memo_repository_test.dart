@@ -2517,6 +2517,103 @@ void main() {
         check(current.isDeleted).isTrue();
         check(current.isSynced).isTrue();
       });
+
+      test('waitForRemoteSyncがfalseのときsyncFutureの拒否が未処理エラーにならず'
+          'Talkerへ記録されること', () async {
+        final unhandledErrors = <Object>[];
+
+        await runZonedGuarded(
+          () async {
+            final container = ProviderContainer(
+              overrides: [
+                appDatabaseProvider.overrideWithValue(database),
+                memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+                isOnlineProvider.overrideWithValue(true),
+                loggerProvider.overrideWithValue(spyTalker),
+                currentUserIdProvider.overrideWith(
+                  (ref) => ref.watch(_testUserIdProvider),
+                ),
+              ],
+            );
+            addTearDown(container.dispose);
+
+            when(
+              () => mockRemoteService.uploadMemo(
+                id: any(named: 'id'),
+                title: any(named: 'title'),
+                content: any(named: 'content'),
+                createdAt: any(named: 'createdAt'),
+                updatedAt: any(named: 'updatedAt'),
+                isDeleted: any(named: 'isDeleted'),
+                expectedUserId: testUserId,
+              ),
+            ).thenAnswer((_) async {});
+
+            var failMode = 0;
+            final hookedDao = _HookedMemosDao(
+              database,
+              onBeforeGetMemoById: () async {
+                if (failMode == 1) {
+                  throw StateError('db state error');
+                }
+                if (failMode == 2) {
+                  throw Exception('db exception');
+                }
+              },
+            );
+            final repository = MemoRepository(
+              dao: hookedDao,
+              remote: mockRemoteService,
+              clock: container.read(clockProvider),
+              talker: spyTalker,
+              isOnline: true,
+              uuid: container.read(uuidProvider),
+              syncQueue: container.read(memoSyncQueueProvider),
+              currentUserId: container.read(memoAuthUserIdReaderProvider),
+            );
+
+            await repository.addMemo('非同期拒否テスト', '内容', testUserId);
+            final memoId = (await database.memosDao.getAllMemos(
+              testUserId,
+            )).first.id;
+
+            // 1. deleteMemo(waitForRemoteSync: false) で syncFuture が Error 拒否
+            failMode = 1;
+            await repository.deleteMemo(
+              memoId,
+              testUserId,
+              waitForRemoteSync: false,
+            );
+            await Future<void>.delayed(Duration.zero);
+
+            check(unhandledErrors).isEmpty();
+            check(spyTalker.handleCalls.length).equals(1);
+            check(spyTalker.handleCalls.last.exception).isA<StateError>();
+            check(
+              spyTalker.handleCalls.last.message,
+            ).equals('Failed to delete data on the server');
+
+            // 2. restoreMemo(waitForRemoteSync: false) での Exception 拒否
+            failMode = 2;
+            await repository.restoreMemo(
+              memoId,
+              testUserId,
+              waitForRemoteSync: false,
+            );
+            await Future<void>.delayed(Duration.zero);
+
+            check(unhandledErrors).isEmpty();
+            check(spyTalker.handleCalls.length).equals(2);
+            check(spyTalker.handleCalls.last.exception).isA<Exception>();
+            check(
+              spyTalker.handleCalls.last.message,
+            ).equals('Failed to restore data on the server');
+          },
+          (error, _) {
+            unhandledErrors.add(error);
+          },
+        );
+      });
     });
   });
 }
