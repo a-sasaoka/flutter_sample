@@ -963,6 +963,81 @@ void main() {
         final sortOrders = allMemos.map((m) => m.sortOrder).toSet();
         check(sortOrders.length).equals(3);
       });
+
+      test('【正常系】mergeRemoteMemosで非文字列ID（null・数値・キー欠損）が混在しても'
+          'エラーにならず有効なメモのみ取り込まれること', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        // 既存メモ m1 を登録
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'm1',
+            userId: testUserId,
+            title: 'M1旧',
+            content: 'C1旧',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+        );
+
+        // 非文字列ID（null, int, キー欠損）と有効なメモ（m1更新, m2新規）を混在させてマージ
+        await dao.mergeRemoteMemos(testUserId, [
+          {
+            'id': null,
+            'title': '不正null',
+            'content': 'C',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+          {
+            'id': 12345,
+            'title': '不正int',
+            'content': 'C',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+          {
+            'title': 'IDキーなし',
+            'content': 'C',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+          {
+            'id': 'm1',
+            'title': 'M1更新',
+            'content': 'C1更新',
+            'createdAt': now,
+            'updatedAt': now.add(const Duration(minutes: 5)),
+            'isDeleted': false,
+          },
+          {
+            'id': 'm2',
+            'title': 'M2新規',
+            'content': 'C2新規',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+        ]);
+
+        // 全件非文字列IDの場合もエラーにならず安全に終了すること
+        await dao.mergeRemoteMemos(testUserId, [
+          {'id': 999, 'title': '無効のみ'},
+        ]);
+
+        final allMemos = await dao.getAllMemos(testUserId);
+        check(allMemos.length).equals(2);
+
+        final m1 = await dao.getMemoById('m1', testUserId);
+        final m2 = await dao.getMemoById('m2', testUserId);
+        check(m1.title).equals('M1更新');
+        check(m1.sortOrder).equals(1);
+        check(m2.title).equals('M2新規');
+        check(m2.sortOrder).equals(0);
+      });
     });
   });
 }

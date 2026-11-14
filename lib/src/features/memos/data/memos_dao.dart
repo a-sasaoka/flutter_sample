@@ -149,7 +149,11 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
     List<Map<String, dynamic>> remoteData,
   ) async {
     await transaction(() async {
-      final ids = remoteData.map((e) => e['id'] as String).toList();
+      // 文字列以外のID（nullや数値など）でキャストエラーにならないよう、有効なString型のIDのみ抽出する
+      final ids = [
+        for (final remoteMemo in remoteData)
+          if (remoteMemo case {'id': final String id}) id,
+      ];
       final localMemos = await getMemosByIds(ids, userId);
       final localMemosMap = {for (final m in localMemos) m.id: m};
       final companionsToUpsert = <MemosCompanion>[];
