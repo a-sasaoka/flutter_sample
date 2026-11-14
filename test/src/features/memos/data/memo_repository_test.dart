@@ -1,16 +1,25 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
+import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
 import 'package:flutter_sample/src/app/database/app_database.dart';
 import 'package:flutter_sample/src/core/database/database_provider.dart';
+import 'package:flutter_sample/src/core/network/api_client.dart';
+import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
+import 'package:flutter_sample/src/core/network/dio_provider.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
+import 'package:flutter_sample/src/features/auth/data/token_interceptor.dart';
+import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_remote_service.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
+import 'package:flutter_sample/src/features/memos/data/memos_dao.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_category.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,6 +28,49 @@ import 'package:mocktail/mocktail.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 class MockMemoRemoteService extends Mock implements MemoRemoteService {}
+
+class MockTokenStorage extends Mock implements TokenStorage {}
+
+class _RecordingHttpClientAdapter implements HttpClientAdapter {
+  _RecordingHttpClientAdapter(this._onFetch);
+
+  final Future<ResponseBody> Function(RequestOptions options) _onFetch;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) {
+    return _onFetch(options);
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+class _HookedMemosDao extends MemosDao {
+  _HookedMemosDao(
+    super.attachedDatabase, {
+    this.onBeforeGetMemoById,
+    this.onBeforeGetMemosByIds,
+  });
+
+  final Future<void> Function()? onBeforeGetMemoById;
+  final Future<void> Function()? onBeforeGetMemosByIds;
+
+  @override
+  Future<Memo> getMemoById(String id, String userId) async {
+    await onBeforeGetMemoById?.call();
+    return await super.getMemoById(id, userId);
+  }
+
+  @override
+  Future<List<Memo>> getMemosByIds(List<String> ids, String userId) async {
+    await onBeforeGetMemosByIds?.call();
+    return await super.getMemosByIds(ids, userId);
+  }
+}
 
 class _TestUserIdNotifier extends Notifier<String?> {
   @override
@@ -83,6 +135,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
+          expectedUserId: any(named: 'expectedUserId'),
         ),
       ).thenAnswer((_) async {});
     });
@@ -125,6 +178,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
+          expectedUserId: any(named: 'expectedUserId'),
         ),
       );
     });
@@ -148,6 +202,7 @@ void main() {
           createdAt: now,
           updatedAt: now,
           isDeleted: false,
+          expectedUserId: testUserId,
         ),
       ).called(1);
     });
@@ -164,6 +219,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
+          expectedUserId: any(named: 'expectedUserId'),
         ),
       ).thenThrow(uploadError);
 
@@ -217,6 +273,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
+          expectedUserId: any(named: 'expectedUserId'),
         ),
       );
     });
@@ -256,6 +313,7 @@ void main() {
           createdAt: now,
           updatedAt: now,
           isDeleted: false,
+          expectedUserId: testUserId,
         ),
       ).called(1);
     });
@@ -284,6 +342,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
+          expectedUserId: any(named: 'expectedUserId'),
         ),
       ).thenThrow(uploadError);
 
@@ -338,6 +397,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
+          expectedUserId: any(named: 'expectedUserId'),
         ),
       );
     });
@@ -394,6 +454,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
+          expectedUserId: any(named: 'expectedUserId'),
         ),
       ).thenThrow(uploadError);
 
@@ -424,6 +485,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
+          expectedUserId: any(named: 'expectedUserId'),
         ),
       );
     });
@@ -472,6 +534,7 @@ void main() {
           createdAt: now,
           updatedAt: now,
           isDeleted: false,
+          expectedUserId: testUserId,
         ),
       ).called(1);
     });
@@ -514,6 +577,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
+          expectedUserId: any(named: 'expectedUserId'),
         ),
       ).thenThrow(syncError);
 
@@ -530,6 +594,7 @@ void main() {
           createdAt: now,
           updatedAt: now,
           isDeleted: false,
+          expectedUserId: testUserId,
         ),
       ).called(1);
       check(spyTalker.handleCalls).length.equals(1);
@@ -731,6 +796,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: any(named: 'isDeleted'),
+            expectedUserId: any(named: 'expectedUserId'),
           ),
         );
         // リモートからの取得自体は行われること
@@ -1160,6 +1226,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: false,
+          expectedUserId: testUserId,
         ),
       ).called(2); // addMemo時とrestoreMemo時
     });
@@ -1182,6 +1249,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: false,
+          expectedUserId: testUserId,
         ),
       ).thenThrow(Exception('Server error on restore'));
 
@@ -1222,6 +1290,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: true,
+            expectedUserId: testUserId,
           ),
         ).thenAnswer((_) {
           uploadSequence.add(true);
@@ -1235,6 +1304,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: false,
+            expectedUserId: testUserId,
           ),
         ).thenAnswer((_) {
           uploadSequence.add(false);
@@ -1302,6 +1372,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: true,
+            expectedUserId: testUserId,
           ),
         ).thenAnswer((_) => deleteUploadCompleter.future);
 
@@ -1333,6 +1404,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: false,
+            expectedUserId: testUserId,
           ),
         ).called(2); // addMemo と restoreMemo
       });
@@ -1357,6 +1429,7 @@ void main() {
               createdAt: any(named: 'createdAt'),
               updatedAt: any(named: 'updatedAt'),
               isDeleted: true,
+              expectedUserId: testUserId,
             ),
           ).thenAnswer((_) {
             uploadSequence.add(true);
@@ -1370,6 +1443,7 @@ void main() {
               createdAt: any(named: 'createdAt'),
               updatedAt: any(named: 'updatedAt'),
               isDeleted: false,
+              expectedUserId: testUserId,
             ),
           ).thenAnswer((_) async {
             uploadSequence.add(false);
@@ -1413,6 +1487,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: true,
+            expectedUserId: testUserId,
           ),
         ).thenAnswer((_) {
           uploadSequence.add(true);
@@ -1442,6 +1517,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: false,
+            expectedUserId: testUserId,
           ),
         ).thenAnswer((_) async {
           uploadSequence.add(false);
@@ -1468,6 +1544,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: true,
+            expectedUserId: testUserId,
           ),
         ).called(1);
 
@@ -1504,6 +1581,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: true,
+            expectedUserId: testUserId,
           ),
         ).thenAnswer((_) => syncCompleter.future);
 
@@ -1515,6 +1593,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: false,
+            expectedUserId: testUserId,
           ),
         ).thenThrow(Exception('restore error'));
 
@@ -1551,6 +1630,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: false,
+            expectedUserId: testUserId,
           ),
         ).thenAnswer((_) async {});
         await repository.syncUnsentMemos(testUserId);
@@ -1580,6 +1660,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: true,
+            expectedUserId: testUserId,
           ),
         ).thenAnswer((_) => deleteCompleter.future);
 
@@ -1604,6 +1685,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: true,
+            expectedUserId: testUserId,
           ),
         ).called(1);
         final current = await database.memosDao.getMemoById(memoId, testUserId);
@@ -1629,6 +1711,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: true,
+            expectedUserId: testUserId,
           ),
         ).thenAnswer((_) => deleteCompleter.future);
 
@@ -1666,6 +1749,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: false,
+            expectedUserId: testUserId,
           ),
         ).called(1);
 
@@ -1691,6 +1775,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: false,
+            expectedUserId: testUserId,
           ),
         ).called(1);
       });
@@ -1712,6 +1797,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: true,
+            expectedUserId: testUserId,
           ),
         ).thenAnswer((_) => firstDeleteCompleter.future);
 
@@ -1733,6 +1819,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: false,
+            expectedUserId: testUserId,
           ),
         ).thenAnswer((_) => restoreCompleter.future);
 
@@ -1762,6 +1849,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: true,
+            expectedUserId: testUserId,
           ),
         ).called(1);
         verify(
@@ -1772,11 +1860,296 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: false,
+            expectedUserId: testUserId,
           ),
         ).called(1); // addMemo 時の 1 回のみ
         final current = await database.memosDao.getMemoById(memoId, testUserId);
         check(current.isDeleted).isTrue();
         check(current.isSynced).isFalse();
+      });
+
+      test('DB取得中（getMemoById）に別ユーザーへ切り替わった場合、'
+          'deleteMemoのリモート送信を省略してisSynced=falseを保ち本人再ログイン後に再送できること', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final dbCompleter = Completer<void>();
+        var shouldDelayDb = false;
+        final hookedDao = _HookedMemosDao(
+          database,
+          onBeforeGetMemoById: () async {
+            if (shouldDelayDb) {
+              await dbCompleter.future;
+            }
+          },
+        );
+        final repository = MemoRepository(
+          dao: hookedDao,
+          remote: mockRemoteService,
+          clock: container.read(clockProvider),
+          talker: spyTalker,
+          isOnline: true,
+          uuid: container.read(uuidProvider),
+          syncQueue: container.read(memoSyncQueueProvider),
+          currentUserId: container.read(memoAuthUserIdReaderProvider),
+        );
+
+        await repository.addMemo('DB待機削除テスト', '内容', testUserId);
+        final memoId = (await repository.getAllMemos(testUserId)).first.id;
+
+        shouldDelayDb = true;
+        final deleteFuture = repository.deleteMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        // getMemoById 待機中に別ユーザーへ切り替える
+        container.read(_testUserIdProvider.notifier).userId = otherUserId;
+        dbCompleter.complete();
+        await deleteFuture;
+        await Future<void>.delayed(Duration.zero);
+
+        verifyNever(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: true,
+            expectedUserId: any(named: 'expectedUserId'),
+          ),
+        );
+        var current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isTrue();
+        check(current.isSynced).isFalse();
+
+        // 元のユーザーが再ログインして同期すれば安全に再送される
+        shouldDelayDb = false;
+        container.read(_testUserIdProvider.notifier).userId = testUserId;
+        await repository.syncUnsentMemos(testUserId);
+
+        current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isSynced).isTrue();
+      });
+
+      test('DB取得中（getMemosByIds）に別ユーザーへ切り替わった場合、'
+          'syncUnsentMemosのリモート送信を省略してisSynced=falseを保つこと', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final dbCompleter = Completer<void>();
+        final hookedDao = _HookedMemosDao(
+          database,
+          onBeforeGetMemosByIds: () => dbCompleter.future,
+        );
+        final repository = MemoRepository(
+          dao: hookedDao,
+          remote: mockRemoteService,
+          clock: container.read(clockProvider),
+          talker: spyTalker,
+          isOnline: true,
+          uuid: container.read(uuidProvider),
+          syncQueue: container.read(memoSyncQueueProvider),
+          currentUserId: container.read(memoAuthUserIdReaderProvider),
+        );
+
+        await database.memosDao.insertMemo(
+          MemosCompanion.insert(
+            id: 'unsent-db-switch',
+            userId: testUserId,
+            title: '未送信',
+            content: '内容',
+            createdAt: now,
+            updatedAt: now,
+            isSynced: const drift.Value(false),
+          ),
+        );
+
+        final syncFuture = repository.syncUnsentMemos(testUserId);
+        await Future<void>.delayed(Duration.zero);
+
+        // getMemosByIds 待機中に別ユーザーへ切り替える
+        container.read(_testUserIdProvider.notifier).userId = otherUserId;
+        dbCompleter.complete();
+        await syncFuture;
+
+        verifyNever(
+          () => mockRemoteService.uploadMemo(
+            id: 'unsent-db-switch',
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: any(named: 'isDeleted'),
+            expectedUserId: any(named: 'expectedUserId'),
+          ),
+        );
+        final current = await database.memosDao.getMemoById(
+          'unsent-db-switch',
+          testUserId,
+        );
+        check(current.isSynced).isFalse();
+      });
+
+      test('DB取得中（getMemoById）に別ユーザーへ切り替わった場合、'
+          'updateMemoのリモート送信を省略してisSynced=falseを保つこと', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final dbCompleter = Completer<void>();
+        var shouldDelayDb = false;
+        final hookedDao = _HookedMemosDao(
+          database,
+          onBeforeGetMemoById: () async {
+            if (shouldDelayDb) {
+              await dbCompleter.future;
+            }
+          },
+        );
+        final repository = MemoRepository(
+          dao: hookedDao,
+          remote: mockRemoteService,
+          clock: container.read(clockProvider),
+          talker: spyTalker,
+          isOnline: true,
+          uuid: container.read(uuidProvider),
+          syncQueue: container.read(memoSyncQueueProvider),
+          currentUserId: container.read(memoAuthUserIdReaderProvider),
+        );
+
+        await repository.addMemo('更新DBテスト', '旧内容', testUserId);
+        final memoId = (await repository.getAllMemos(testUserId)).first.id;
+
+        shouldDelayDb = true;
+        final updateFuture = repository.updateMemo(
+          memoId,
+          '新タイトル',
+          '新内容',
+          testUserId,
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        container.read(_testUserIdProvider.notifier).userId = otherUserId;
+        dbCompleter.complete();
+        await updateFuture;
+
+        verify(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: '更新DBテスト',
+            content: '旧内容',
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: false,
+            expectedUserId: testUserId,
+          ),
+        ).called(1); // addMemo のみで updateMemo の送信はされない
+        final current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.title).equals('新タイトル');
+        check(current.isSynced).isFalse();
+      });
+
+      test('認証情報取得前（TokenInterceptor実行直前）に別ユーザーへ切り替わった場合、'
+          'HTTP送信を行わずisSynced=falseを保ち本人再ログイン後に送信できること', () async {
+        var storageUserId = testUserId;
+        var storageToken = 'token-a';
+        var switchBeforeTokenInterceptor = false;
+        final sentRequests = <(String method, String path, String? auth)>[];
+
+        final mockStorage = MockTokenStorage();
+        when(mockStorage.getUserId).thenAnswer((_) async => storageUserId);
+        when(mockStorage.getAccessToken).thenAnswer((_) async => storageToken);
+
+        final adapter = _RecordingHttpClientAdapter((options) async {
+          sentRequests.add((
+            options.method,
+            options.path,
+            options.headers['Authorization'] as String?,
+          ));
+          return ResponseBody.fromString('', 200);
+        });
+
+        final baseDio = Dio(BaseOptions(baseUrl: 'https://example.com'))
+          ..httpClientAdapter = adapter;
+        final container = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            clockProvider.overrideWithValue(() => now),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+            tokenStorageInternalProvider.overrideWithValue(mockStorage),
+            baseDioProvider.overrideWithValue(baseDio),
+            tokenRefreshCallbackProvider.overrideWithValue(() async => false),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final mainDio = Dio(BaseOptions(baseUrl: 'https://example.com'))
+          ..httpClientAdapter = adapter
+          ..interceptors.addAll([
+            InterceptorsWrapper(
+              onRequest: (options, handler) {
+                if (switchBeforeTokenInterceptor) {
+                  // DB取得完了後、TokenInterceptorの認証情報取得直前に別ユーザーへ切り替え
+                  container.read(_testUserIdProvider.notifier).userId =
+                      otherUserId;
+                  storageUserId = otherUserId;
+                  storageToken = 'token-b';
+                }
+                handler.next(options);
+              },
+            ),
+            container.read(tokenInterceptorProvider),
+            container.read(dioInterceptorProvider),
+          ]);
+
+        final repository = MemoRepository(
+          dao: database.memosDao,
+          remote: MemoRemoteService(DioApiClient(mainDio)),
+          clock: container.read(clockProvider),
+          talker: spyTalker,
+          isOnline: true,
+          uuid: container.read(uuidProvider),
+          syncQueue: container.read(memoSyncQueueProvider),
+          currentUserId: container.read(memoAuthUserIdReaderProvider),
+        );
+
+        await repository.addMemo('認証直前切替', '内容', testUserId);
+        final memoId = (await database.memosDao.getAllMemos(
+          testUserId,
+        )).first.id;
+        check(sentRequests.length).equals(1);
+        check(sentRequests.single.$3).equals('Bearer token-a');
+
+        switchBeforeTokenInterceptor = true;
+        await repository.deleteMemo(memoId, testUserId);
+
+        // TokenInterceptor の getUserId() 確認で拒否されるため、
+        // getAccessToken()・追加の HTTP 送信・token-b 参照は一切起きない
+        check(sentRequests.length).equals(1);
+        verify(mockStorage.getUserId).called(greaterThanOrEqualTo(3));
+        verify(mockStorage.getAccessToken).called(1); // addMemo 時のみ
+        check(spyTalker.handleCalls).isEmpty();
+        var current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isTrue();
+        check(current.isSynced).isFalse();
+
+        // 元のユーザー再ログイン後に同期すると Bearer token-a で安全に再送される
+        switchBeforeTokenInterceptor = false;
+        container.read(_testUserIdProvider.notifier).userId = testUserId;
+        storageUserId = testUserId;
+        storageToken = 'token-a';
+        await repository.syncUnsentMemos(testUserId);
+
+        check(sentRequests.length).equals(2);
+        check(
+          sentRequests.last,
+        ).equals(('PUT', '/memos/$memoId', 'Bearer token-a'));
+        current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isSynced).isTrue();
       });
     });
   });

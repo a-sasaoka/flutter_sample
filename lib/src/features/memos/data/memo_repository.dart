@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter_sample/src/app/database/app_database.dart';
 import 'package:flutter_sample/src/core/database/database_provider.dart';
+import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
@@ -111,7 +113,7 @@ class MemoRepository {
       ),
     );
 
-    if (_isOnline) {
+    if (_isOnline && _currentUserId() == userId) {
       // オンラインの時はサーバに保存を試みる
       try {
         await _remote.uploadMemo(
@@ -121,18 +123,21 @@ class MemoRepository {
           createdAt: now,
           updatedAt: now,
           isDeleted: false,
+          expectedUserId: userId,
         );
 
-        // 保存に成功したら「送信済み (true)」に更新
-        await _dao.updateMemo(
-          generatedId,
-          userId,
-          const MemosCompanion(isSynced: drift.Value(true)),
-        );
+        if (_currentUserId() == userId) {
+          // 保存に成功したら「送信済み (true)」に更新
+          await _dao.updateMemo(
+            generatedId,
+            userId,
+            const MemosCompanion(isSynced: drift.Value(true)),
+          );
+        }
 
         _talker.debug('The data has been saved to the server.');
       } on Exception catch (e, st) {
-        _talker.handle(e, st, 'Failed to save data to the server');
+        _handleUploadError(e, st, 'Failed to save data to the server');
       }
     }
   }
@@ -164,6 +169,9 @@ class MemoRepository {
       // オンラインの時はサーバに保存を試みる
       try {
         final memo = await _dao.getMemoById(id, userId);
+        if (_currentUserId() != userId) {
+          return;
+        }
         await _remote.uploadMemo(
           id: id,
           title: title,
@@ -171,20 +179,33 @@ class MemoRepository {
           createdAt: memo.createdAt,
           updatedAt: now,
           isDeleted: false,
+          expectedUserId: memo.userId,
         );
 
-        // 保存に成功したら「送信済み (true)」に更新
-        await _dao.updateMemo(
-          id,
-          userId,
-          const MemosCompanion(isSynced: drift.Value(true)),
-        );
+        if (_currentUserId() == userId) {
+          // 保存に成功したら「送信済み (true)」に更新
+          await _dao.updateMemo(
+            id,
+            userId,
+            const MemosCompanion(isSynced: drift.Value(true)),
+          );
+        }
 
         _talker.debug('The updated data has been saved to the server.');
       } on Exception catch (e, st) {
-        _talker.handle(e, st, 'Failed to update data to the server');
+        _handleUploadError(e, st, 'Failed to update data to the server');
       }
     }
+  }
+
+  void _handleUploadError(Exception e, StackTrace st, String errorLog) {
+    if (e is DioException &&
+        (e.type == DioExceptionType.cancel ||
+            e.error == const AppException.cancel())) {
+      _talker.debug('$errorLog (cancelled due to auth switch)');
+      return;
+    }
+    _talker.handle(e, st, errorLog);
   }
 
   /// メモをリモート送信し、送信状態が最新のローカル状態・トークンと一致する場合のみ同期済みに更新する
@@ -204,6 +225,7 @@ class MemoRepository {
         createdAt: memo.createdAt,
         updatedAt: updatedAt,
         isDeleted: isDeleted,
+        expectedUserId: memo.userId,
       );
 
       // 送信待機中に新しいローカル操作（Undoや編集等）が行われた場合や、
@@ -223,7 +245,7 @@ class MemoRepository {
 
       _talker.debug(successLog);
     } on Exception catch (e, st) {
-      _talker.handle(e, st, errorLog);
+      _handleUploadError(e, st, errorLog);
     }
   }
 
@@ -261,6 +283,9 @@ class MemoRepository {
 
     final syncFuture = _enqueueIfAuthenticatedUser(userId, id, () async {
       final memo = await _dao.getMemoById(id, userId);
+      if (_currentUserId() != userId) {
+        return;
+      }
       await _uploadMemoAndMarkSyncedIfUnchanged(
         memo: memo,
         updatedAt: updatedAt,
@@ -354,7 +379,9 @@ class MemoRepository {
         final latestMemo = (await _dao.getMemosByIds([
           memo.id,
         ], userId)).firstOrNull;
-        if (latestMemo == null || latestMemo.isSynced) {
+        if (_currentUserId() != userId ||
+            latestMemo == null ||
+            latestMemo.isSynced) {
           return;
         }
 

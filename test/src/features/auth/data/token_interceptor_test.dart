@@ -3,6 +3,7 @@
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
+import 'package:flutter_sample/src/core/network/request_auth_pin.dart';
 import 'package:flutter_sample/src/features/auth/data/token_interceptor.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -265,4 +266,249 @@ void main() {
       emptyContainer.dispose();
     },
   );
+
+  group('RequestAuthPin による送信元ユーザー固定', () {
+    test(
+      'onRequest: 認証情報取得前に別ユーザーへ切り替わった場合、getAccessTokenを呼ばずキャンセルとして拒否すること',
+      () async {
+        when(() => mockStorage.getUserId()).thenAnswer((_) async => 'user-b');
+        final interceptor = container.read(tokenInterceptorProvider);
+        final handler = MockRequestInterceptorHandler();
+        final authPin = RequestAuthPin(expectedUserId: 'user-a');
+        final options = RequestOptions(
+          path: '/memos/memo-1',
+          extra: {RequestAuthPin.extraKey: authPin},
+        );
+
+        await (interceptor as dynamic).onRequest(options, handler);
+
+        verifyNever(() => mockStorage.getAccessToken());
+        verifyNever(() => handler.next(any()));
+        final captured = verify(() => handler.reject(captureAny())).captured;
+        check(captured.length).equals(1);
+        final rejected = captured.single as DioException;
+        check(rejected.type).equals(DioExceptionType.cancel);
+        check(options.headers.containsKey('Authorization')).isFalse();
+        check(authPin.authorizationHeader).isNull();
+      },
+    );
+
+    test(
+      'onRequest: getAccessToken待機中に別ユーザーへ切り替わった場合、Authorizationを設定せず拒否すること',
+      () async {
+        var currentUserId = 'user-a';
+        when(
+          () => mockStorage.getUserId(),
+        ).thenAnswer((_) async => currentUserId);
+        when(() => mockStorage.getAccessToken()).thenAnswer((_) async {
+          // getAccessToken 完了前に別ユーザーへ切り替わった状況を再現
+          currentUserId = 'user-b';
+          return 'token-b';
+        });
+
+        final interceptor = container.read(tokenInterceptorProvider);
+        final handler = MockRequestInterceptorHandler();
+        final authPin = RequestAuthPin(expectedUserId: 'user-a');
+        final options = RequestOptions(
+          path: '/memos/memo-1',
+          extra: {RequestAuthPin.extraKey: authPin},
+        );
+
+        await (interceptor as dynamic).onRequest(options, handler);
+
+        verifyNever(() => handler.next(any()));
+        final captured = verify(() => handler.reject(captureAny())).captured;
+        check(
+          (captured.single as DioException).type,
+        ).equals(DioExceptionType.cancel);
+        check(options.headers.containsKey('Authorization')).isFalse();
+        check(authPin.authorizationHeader).isNull();
+      },
+    );
+
+    test('onRequest: expectedUserId 一致時にアクセストークンが null の場合は拒否すること', () async {
+      when(() => mockStorage.getUserId()).thenAnswer((_) async => 'user-a');
+      when(() => mockStorage.getAccessToken()).thenAnswer((_) async => null);
+
+      final interceptor = container.read(tokenInterceptorProvider);
+      final handler = MockRequestInterceptorHandler();
+      final options = RequestOptions(
+        path: '/memos/memo-1',
+        extra: {
+          RequestAuthPin.extraKey: RequestAuthPin(expectedUserId: 'user-a'),
+        },
+      );
+
+      await (interceptor as dynamic).onRequest(options, handler);
+
+      verifyNever(() => handler.next(any()));
+      final captured = verify(() => handler.reject(captureAny())).captured;
+      check(
+        (captured.single as DioException).type,
+      ).equals(DioExceptionType.cancel);
+    });
+
+    test('onRequest: JWT内のsubがexpectedUserIdと異なる場合は拒否すること', () async {
+      // sub = user-b のJWT
+      const jwtForUserB =
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'
+          'eyJzdWIiOiJ1c2VyLWIifQ.'
+          'signature';
+      when(() => mockStorage.getUserId()).thenAnswer((_) async => 'user-a');
+      when(
+        () => mockStorage.getAccessToken(),
+      ).thenAnswer((_) async => jwtForUserB);
+
+      final interceptor = container.read(tokenInterceptorProvider);
+      final handler = MockRequestInterceptorHandler();
+      final options = RequestOptions(
+        path: '/memos/memo-1',
+        extra: {
+          RequestAuthPin.extraKey: RequestAuthPin(expectedUserId: 'user-a'),
+        },
+      );
+
+      await (interceptor as dynamic).onRequest(options, handler);
+
+      verifyNever(() => handler.next(any()));
+      verify(() => handler.reject(any())).called(1);
+      check(options.headers.containsKey('Authorization')).isFalse();
+    });
+
+    test(
+      'onRequest: 既にauthorizationHeaderが固定済みの場合はストレージを再参照せず維持すること',
+      () async {
+        when(() => mockStorage.getUserId()).thenAnswer((_) async => 'user-b');
+        when(
+          () => mockStorage.getAccessToken(),
+        ).thenAnswer((_) async => 'token-b');
+
+        final interceptor = container.read(tokenInterceptorProvider);
+        final handler = MockRequestInterceptorHandler();
+        final authPin = RequestAuthPin(expectedUserId: 'user-a')
+          ..authorizationHeader = 'Bearer token-a';
+        final options = RequestOptions(
+          path: '/memos',
+          extra: {RequestAuthPin.extraKey: authPin},
+        );
+
+        await (interceptor as dynamic).onRequest(options, handler);
+
+        verifyNever(() => mockStorage.getUserId());
+        verifyNever(() => mockStorage.getAccessToken());
+        check(options.headers['Authorization']).equals('Bearer token-a');
+        verify(() => handler.next(options)).called(1);
+      },
+    );
+
+    test(
+      'onError: 401リフレッシュ前に別ユーザーへ切り替わっていた場合はリフレッシュも再試行も行わずエラーを流すこと',
+      () async {
+        when(() => mockStorage.getUserId()).thenAnswer((_) async => 'user-b');
+        final interceptor = container.read(tokenInterceptorProvider);
+        final handler = MockErrorInterceptorHandler();
+        final authPin = RequestAuthPin(expectedUserId: 'user-a')
+          ..authorizationHeader = 'Bearer expired-token-a';
+        final options = RequestOptions(
+          path: '/memos/memo-1',
+          headers: {'Authorization': 'Bearer expired-token-a'},
+          extra: {RequestAuthPin.extraKey: authPin},
+        );
+        final error401 = DioException(
+          requestOptions: options,
+          response: Response(requestOptions: options, statusCode: 401),
+        );
+
+        await (interceptor as dynamic).onError(error401, handler);
+
+        verifyNever(() => mockRefreshToken.call());
+        verifyNever(() => mockStorage.getAccessToken());
+        verifyNever(() => mockBaseDio.fetch<dynamic>(any()));
+        check(
+          options.headers['Authorization'],
+        ).equals('Bearer expired-token-a');
+        verify(() => handler.next(error401)).called(1);
+      },
+    );
+
+    test(
+      'onError: 401リフレッシュ実行中に別ユーザーへ切り替わった場合は別ユーザーのトークンへ書き換えず再試行しないこと',
+      () async {
+        var currentUserId = 'user-a';
+        var currentToken = 'expired-token-a';
+        when(
+          () => mockStorage.getUserId(),
+        ).thenAnswer((_) async => currentUserId);
+        when(
+          () => mockStorage.getAccessToken(),
+        ).thenAnswer((_) async => currentToken);
+        when(() => mockRefreshToken.call()).thenAnswer((_) async {
+          // リフレッシュ中にアカウントBへ切り替わる
+          currentUserId = 'user-b';
+          currentToken = 'token-b';
+          return true;
+        });
+
+        final interceptor = container.read(tokenInterceptorProvider);
+        final handler = MockErrorInterceptorHandler();
+        final authPin = RequestAuthPin(expectedUserId: 'user-a')
+          ..authorizationHeader = 'Bearer expired-token-a';
+        final options = RequestOptions(
+          path: '/memos/memo-1',
+          headers: {'Authorization': 'Bearer expired-token-a'},
+          extra: {RequestAuthPin.extraKey: authPin},
+        );
+        final error401 = DioException(
+          requestOptions: options,
+          response: Response(requestOptions: options, statusCode: 401),
+        );
+
+        await (interceptor as dynamic).onError(error401, handler);
+
+        verify(() => mockRefreshToken.call()).called(1);
+        verifyNever(() => mockBaseDio.fetch<dynamic>(any()));
+        check(
+          options.headers['Authorization'],
+        ).equals('Bearer expired-token-a');
+        check(authPin.authorizationHeader).equals('Bearer expired-token-a');
+        verify(() => handler.next(error401)).called(1);
+      },
+    );
+
+    test('onError: 401リフレッシュ中も同一ユーザーのままであれば新トークンを固定更新して再試行すること', () async {
+      when(() => mockStorage.getUserId()).thenAnswer((_) async => 'user-a');
+      when(() => mockRefreshToken.call()).thenAnswer((_) async => true);
+      when(
+        () => mockStorage.getAccessToken(),
+      ).thenAnswer((_) async => 'new-token-a');
+
+      final interceptor = container.read(tokenInterceptorProvider);
+      final handler = MockErrorInterceptorHandler();
+      final authPin = RequestAuthPin(expectedUserId: 'user-a')
+        ..authorizationHeader = 'Bearer expired-token-a';
+      final options = RequestOptions(
+        path: '/memos/memo-1',
+        headers: {'Authorization': 'Bearer expired-token-a'},
+        extra: {RequestAuthPin.extraKey: authPin},
+      );
+      final error401 = DioException(
+        requestOptions: options,
+        response: Response(requestOptions: options, statusCode: 401),
+      );
+      final mockResponse = Response<dynamic>(
+        requestOptions: options,
+        statusCode: 200,
+      );
+      when(
+        () => mockBaseDio.fetch<dynamic>(any()),
+      ).thenAnswer((_) async => mockResponse);
+
+      await (interceptor as dynamic).onError(error401, handler);
+
+      check(options.headers['Authorization']).equals('Bearer new-token-a');
+      check(authPin.authorizationHeader).equals('Bearer new-token-a');
+      verify(() => mockBaseDio.fetch<dynamic>(options)).called(1);
+      verify(() => handler.resolve(mockResponse)).called(1);
+    });
+  });
 }

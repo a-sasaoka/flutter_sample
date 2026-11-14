@@ -1,5 +1,10 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
+import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
+import 'package:flutter_sample/src/core/network/request_auth_pin.dart';
+import 'package:flutter_sample/src/core/utils/jwt_utils.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -53,14 +58,70 @@ class _TokenInterceptor extends Interceptor {
   final Dio _baseDio;
   final TokenRefreshCallback _refreshCallback;
 
-  /// 同時実行されるリフレッシュ処理を1つにまとめるための Future
-  Future<bool>? _refreshFuture;
+  /// 同一ユーザーで同時実行されるリフレッシュ処理を1つにまとめるための Future マップ
+  final Map<String?, Future<bool>> _refreshFutures = {};
+
+  /// 現在の認証ユーザーが [expectedUserId] と一致していることを検証してトークンを返す
+  Future<String?> _resolveVerifiedTokenForUser(String expectedUserId) async {
+    final userIdBefore = await _storage.getUserId();
+    if (userIdBefore != expectedUserId) {
+      return null;
+    }
+
+    final token = await _storage.getAccessToken();
+    if (token == null) {
+      return null;
+    }
+
+    final userIdAfter = await _storage.getUserId();
+    if (userIdAfter != expectedUserId) {
+      return null;
+    }
+
+    final tokenUserId = JwtUtils.getUserId(token);
+    if (tokenUserId != null && tokenUserId != expectedUserId) {
+      return null;
+    }
+
+    return token;
+  }
 
   @override
   Future<void> onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    final authPin = options.extra[RequestAuthPin.extraKey] as RequestAuthPin?;
+    if (authPin != null) {
+      // 既に送信元ユーザーの認証ヘッダーが固定済み（404後のPOST等）なら再取得せず維持する
+      if (authPin.authorizationHeader case final pinnedHeader?) {
+        options.headers['Authorization'] = pinnedHeader;
+        handler.next(options);
+        return;
+      }
+
+      final token = await _resolveVerifiedTokenForUser(authPin.expectedUserId);
+      if (token == null) {
+        handler.reject(
+          DioException(
+            requestOptions: options,
+            type: DioExceptionType.cancel,
+            error: StateError(
+              'Authenticated user mismatch for expected user: '
+              '${authPin.expectedUserId}',
+            ),
+          ),
+        );
+        return;
+      }
+
+      final pinnedHeader = 'Bearer $token';
+      authPin.authorizationHeader = pinnedHeader;
+      options.headers['Authorization'] = pinnedHeader;
+      handler.next(options);
+      return;
+    }
+
     final token = await _storage.getAccessToken();
 
     if (token != null) {
@@ -76,12 +137,33 @@ class _TokenInterceptor extends Interceptor {
   ) async {
     // 401 Unauthorized (認証切れ) の場合にリフレッシュを試みる
     if (err.response?.statusCode == 401) {
-      final success = await _refreshTokens();
+      final authPin =
+          err.requestOptions.extra[RequestAuthPin.extraKey] as RequestAuthPin?;
+      if (authPin != null) {
+        final currentUserId = await _storage.getUserId();
+        if (currentUserId != authPin.expectedUserId) {
+          handler.next(err);
+          return;
+        }
+      }
+
+      final success = await _refreshTokens(authPin?.expectedUserId);
 
       if (success) {
-        // 新しいトークンを取得してヘッダーを更新
-        final newToken = await _storage.getAccessToken();
-        err.requestOptions.headers['Authorization'] = 'Bearer $newToken';
+        final newToken = authPin != null
+            ? await _resolveVerifiedTokenForUser(authPin.expectedUserId)
+            : await _storage.getAccessToken();
+        if (authPin != null && newToken == null) {
+          handler.next(err);
+          return;
+        }
+
+        // 新しいトークンを取得してヘッダー（および共有コンテキスト）を更新
+        final newAuthHeader = 'Bearer $newToken';
+        if (authPin != null) {
+          authPin.authorizationHeader = newAuthHeader;
+        }
+        err.requestOptions.headers['Authorization'] = newAuthHeader;
 
         // リトライ用のDioでリクエストを再実行
         try {
@@ -90,6 +172,10 @@ class _TokenInterceptor extends Interceptor {
           );
           return handler.resolve(retryResponse);
         } on DioException catch (retryError) {
+          if (retryError.error is AppException) {
+            // baseDioのDioInterceptorが変換済みのAppExceptionは再ラップさせずそのまま拒否する
+            return handler.reject(retryError);
+          }
           return handler.next(retryError);
         }
       }
@@ -98,25 +184,32 @@ class _TokenInterceptor extends Interceptor {
     handler.next(err);
   }
 
-  /// トークンのリフレッシュを実行する（同時呼び出し時は1つに統合）
-  Future<bool> _refreshTokens() async {
-    // すでに他のリクエストがリフレッシュ中なら、その完了を待つ
-    if (_refreshFuture case final Future<bool> future) {
+  /// トークンのリフレッシュを実行する（同一ユーザーの同時呼び出し時は1つに統合）
+  Future<bool> _refreshTokens(String? expectedUserId) async {
+    // すでに同一ユーザー向けの他リクエストがリフレッシュ中なら、その完了を待つ
+    if (_refreshFutures[expectedUserId] case final future?) {
       return await future;
     }
 
+    // 新規にリフレッシュ処理を開始
+    final future = _executeRefresh();
+    _refreshFutures[expectedUserId] = future;
     try {
-      // 新規にリフレッシュ処理を開始
-      final future = _refreshCallback();
-      _refreshFuture = future;
       return await future;
+    } finally {
+      if (identical(_refreshFutures[expectedUserId], future)) {
+        unawaited(_refreshFutures.remove(expectedUserId));
+      }
+    }
+  }
+
+  Future<bool> _executeRefresh() async {
+    try {
+      return await _refreshCallback();
     } on Exception catch (_) {
       // リフレッシュ自体が例外（タイムアウト等）で失敗した場合は false を返す
       // これにより、元の 401 エラーが handler.next(err) へ渡される
       return false;
-    } finally {
-      // 完了（成功・失敗問わず）したらリセット
-      _refreshFuture = null;
     }
   }
 }

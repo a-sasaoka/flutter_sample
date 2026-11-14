@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
+import 'package:flutter_sample/src/core/network/request_auth_pin.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'memo_remote_service.g.dart';
@@ -46,6 +47,7 @@ class MemoRemoteService {
     required DateTime createdAt,
     required DateTime updatedAt,
     required bool isDeleted,
+    String? expectedUserId,
   }) async {
     // サーバーに送信するためのMap形式データを作ります。日付は文字列に変換します。
     final memoData = {
@@ -57,9 +59,24 @@ class MemoRemoteService {
       'isDeleted': isDeleted,
     };
 
+    // PUT〜404後のPOST〜401再試行まで送信元ユーザーと認証ヘッダーを共有固定する
+    final requestOptions = expectedUserId != null
+        ? Options(
+            extra: {
+              RequestAuthPin.extraKey: RequestAuthPin(
+                expectedUserId: expectedUserId,
+              ),
+            },
+          )
+        : null;
+
     try {
       // まずはPUTリクエストで既存メモの更新を試みます
-      await _api.put<void>('/memos/${Uri.encodeComponent(id)}', data: memoData);
+      await _api.put<void>(
+        '/memos/${Uri.encodeComponent(id)}',
+        data: memoData,
+        options: requestOptions,
+      );
     } on DioException catch (e) {
       // サーバーからの直接の返事、または共通処理で包み直された独自エラーからステータスコードを取り出します（二重チェック）
       final error = e.error;
@@ -69,7 +86,11 @@ class MemoRemoteService {
 
       // 404 (データが見つからない) エラーの場合のみ、POSTリクエストで新規登録を行います
       if (statusCode == 404) {
-        await _api.post<void>('/memos', data: memoData);
+        await _api.post<void>(
+          '/memos',
+          data: memoData,
+          options: requestOptions,
+        );
       } else {
         rethrow;
       }

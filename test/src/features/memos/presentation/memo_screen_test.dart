@@ -1036,6 +1036,7 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: any(named: 'isDeleted'),
+            expectedUserId: any(named: 'expectedUserId'),
           ),
         ).thenAnswer((invocation) async {
           final isDeleted = invocation.namedArguments[#isDeleted] as bool;
@@ -1290,6 +1291,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
+          expectedUserId: any(named: 'expectedUserId'),
         ),
       ).thenAnswer((invocation) async {
         final isDeleted = invocation.namedArguments[#isDeleted] as bool;
