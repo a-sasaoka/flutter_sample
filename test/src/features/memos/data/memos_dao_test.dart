@@ -1038,6 +1038,92 @@ void main() {
         check(m2.title).equals('M2新規');
         check(m2.sortOrder).equals(0);
       });
+
+      test('【正常系】mergeRemoteMemosで無効な日付のリモートメモや再取得があっても'
+          '既存メモのsortOrderがシフトされないこと', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        // 既存メモ m1(0), m2(1) を登録
+        await dao.upsertMemos([
+          MemosCompanion.insert(
+            id: 'm1',
+            userId: testUserId,
+            title: 'M1',
+            content: 'C1',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+          MemosCompanion.insert(
+            id: 'm2',
+            userId: testUserId,
+            title: 'M2',
+            content: 'C2',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(1),
+          ),
+        ]);
+
+        final invalidDateMemos = <Map<String, dynamic>>[
+          {
+            'id': 'bad-created',
+            'title': '作成日不正',
+            'content': 'C',
+            'createdAt': 'invalid-date',
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+          {
+            'id': 'bad-updated',
+            'title': '更新日null',
+            'content': 'C',
+            'createdAt': now,
+            'updatedAt': null,
+            'isDeleted': false,
+          },
+          {
+            'id': 'missing-date',
+            'title': '日付キー欠損',
+            'content': 'C',
+            'isDeleted': false,
+          },
+        ];
+
+        // 無効な日付のメモのみを複数回受信（再取得を再現）してもシフトされないこと
+        await dao.mergeRemoteMemos(testUserId, invalidDateMemos);
+        await dao.mergeRemoteMemos(testUserId, invalidDateMemos);
+
+        var m1 = await dao.getMemoById('m1', testUserId);
+        var m2 = await dao.getMemoById('m2', testUserId);
+        check(m1.sortOrder).equals(0);
+        check(m2.sortOrder).equals(1);
+        check((await dao.getAllMemos(testUserId)).length).equals(2);
+
+        // 無効なメモと有効な新規メモ(m3)が混在する場合、有効な1件分だけシフトされること
+        final mixedPayload = <Map<String, dynamic>>[
+          ...invalidDateMemos,
+          {
+            'id': 'm3',
+            'title': 'M3新規',
+            'content': 'C3新規',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+        ];
+        await dao.mergeRemoteMemos(testUserId, mixedPayload);
+
+        // 同じペイロードを再取得しても追加シフトされないこと
+        await dao.mergeRemoteMemos(testUserId, mixedPayload);
+
+        m1 = await dao.getMemoById('m1', testUserId);
+        m2 = await dao.getMemoById('m2', testUserId);
+        final m3 = await dao.getMemoById('m3', testUserId);
+        check(m3.sortOrder).equals(0);
+        check(m1.sortOrder).equals(1);
+        check(m2.sortOrder).equals(2);
+        check((await dao.getAllMemos(testUserId)).length).equals(3);
+      });
     });
   });
 }

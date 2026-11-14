@@ -149,24 +149,39 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
     List<Map<String, dynamic>> remoteData,
   ) async {
     await transaction(() async {
-      // 文字列以外のID（nullや数値など）でキャストエラーにならないよう、有効なString型のIDのみ抽出する
-      final ids = [
+      // 挿入処理と同じ型・日付検証を通過したメモのみを抽出し、不正データによるカウントずれを防ぐ
+      final validRemoteMemos = [
         for (final remoteMemo in remoteData)
-          if (remoteMemo case {'id': final String id}) id,
+          if (remoteMemo case {
+            'id': final String id,
+            'title': final String title,
+            'content': final String content,
+            'createdAt': final DateTime createdAt,
+            'updatedAt': final DateTime updatedAt,
+            'isDeleted': final bool isDeleted,
+          })
+            (
+              id: id,
+              title: title,
+              content: content,
+              createdAt: createdAt,
+              updatedAt: updatedAt,
+              isDeleted: isDeleted,
+            ),
       ];
+      if (validRemoteMemos.isEmpty) {
+        return;
+      }
+
+      final ids = [for (final memo in validRemoteMemos) memo.id];
       final localMemos = await getMemosByIds(ids, userId);
       final localMemosMap = {for (final m in localMemos) m.id: m};
       final companionsToUpsert = <MemosCompanion>[];
 
-      // リモートデータのうち、ローカルに存在しない新規メモの件数をカウント
-      var newMemoCount = 0;
-      for (final remoteMemo in remoteData) {
-        if (remoteMemo case {'id': final String id}) {
-          if (!localMemosMap.containsKey(id)) {
-            newMemoCount++;
-          }
-        }
-      }
+      // 挿入可能な新規メモ（日付など全必須項目の検証を通過し、ローカルに未存在）のみをカウント
+      final newMemoCount = validRemoteMemos
+          .where((memo) => !localMemosMap.containsKey(memo.id))
+          .length;
 
       // 新規リモートメモが存在する場合、既存メモ（削除済み含む）を新規件数分シフト
       if (newMemoCount > 0) {
@@ -175,46 +190,37 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
 
       var newMemoIndex = 0;
 
-      for (final remoteMemo in remoteData) {
-        if (remoteMemo case {
-          'id': final String id,
-          'title': final String title,
-          'content': final String content,
-          'createdAt': final DateTime createdAt,
-          'updatedAt': final DateTime updatedAt,
-          'isDeleted': final bool isDeleted,
-        }) {
-          final localMemo = localMemosMap[id];
+      for (final memo in validRemoteMemos) {
+        final localMemo = localMemosMap[memo.id];
 
-          // サーバーのデータが新しい場合、またはローカルに存在しない場合に更新/挿入対象とする
-          if (localMemo == null || updatedAt.isAfter(localMemo.updatedAt)) {
-            final int sortOrder;
-            if (localMemo != null) {
-              // 既存メモは shiftSortOrders でシフトされた後の値を維持する
-              sortOrder = newMemoCount > 0
-                  ? localMemo.sortOrder + newMemoCount
-                  : localMemo.sortOrder;
-            } else {
-              // 新規リモートメモは先頭（0, 1, ..., newMemoCount - 1）に配置
-              sortOrder = newMemoIndex;
-              newMemoIndex++;
-            }
-
-            companionsToUpsert.add(
-              MemosCompanion.insert(
-                id: id,
-                userId: userId,
-                title: title,
-                content: content,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                isDeleted: Value(isDeleted),
-                isSynced: const Value(true),
-                category: Value(localMemo?.category),
-                sortOrder: Value(sortOrder),
-              ),
-            );
+        // サーバーのデータが新しい場合、またはローカルに存在しない場合に更新/挿入対象とする
+        if (localMemo == null || memo.updatedAt.isAfter(localMemo.updatedAt)) {
+          final int sortOrder;
+          if (localMemo != null) {
+            // 既存メモは shiftSortOrders でシフトされた後の値を維持する
+            sortOrder = newMemoCount > 0
+                ? localMemo.sortOrder + newMemoCount
+                : localMemo.sortOrder;
+          } else {
+            // 新規リモートメモは先頭（0, 1, ..., newMemoCount - 1）に配置
+            sortOrder = newMemoIndex;
+            newMemoIndex++;
           }
+
+          companionsToUpsert.add(
+            MemosCompanion.insert(
+              id: memo.id,
+              userId: userId,
+              title: memo.title,
+              content: memo.content,
+              createdAt: memo.createdAt,
+              updatedAt: memo.updatedAt,
+              isDeleted: Value(memo.isDeleted),
+              isSynced: const Value(true),
+              category: Value(localMemo?.category),
+              sortOrder: Value(sortOrder),
+            ),
+          );
         }
       }
 
