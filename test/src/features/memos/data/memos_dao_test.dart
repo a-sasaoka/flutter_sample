@@ -1124,6 +1124,104 @@ void main() {
         check(m2.sortOrder).equals(2);
         check((await dao.getAllMemos(testUserId)).length).equals(3);
       });
+
+      test('【正常系】mergeRemoteMemosで重複IDがある場合updatedAtが最新の版のみ残り'
+          '古い版による上書きやsortOrderの重複シフトが起きないこと', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        // 既存メモ m1(0), m2(1) を登録
+        await dao.upsertMemos([
+          MemosCompanion.insert(
+            id: 'm1',
+            userId: testUserId,
+            title: 'M1初期',
+            content: 'C1初期',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+          MemosCompanion.insert(
+            id: 'm2',
+            userId: testUserId,
+            title: 'M2初期',
+            content: 'C2初期',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(1),
+          ),
+        ]);
+
+        await dao.mergeRemoteMemos(testUserId, [
+          // 既存m1: 最新版(削除済み)の後ろに古い版(未削除・ローカルよりは新しい)が続く
+          {
+            'id': 'm1',
+            'title': 'M1最新',
+            'content': 'C1最新',
+            'createdAt': now,
+            'updatedAt': now.add(const Duration(minutes: 10)),
+            'isDeleted': true,
+          },
+          {
+            'id': 'm1',
+            'title': 'M1古い',
+            'content': 'C1古い',
+            'createdAt': now,
+            'updatedAt': now.add(const Duration(minutes: 5)),
+            'isDeleted': false,
+          },
+          // 既存m2: 古い版の後ろに最新版が続く
+          {
+            'id': 'm2',
+            'title': 'M2古い',
+            'content': 'C2古い',
+            'createdAt': now,
+            'updatedAt': now.add(const Duration(minutes: 2)),
+            'isDeleted': false,
+          },
+          {
+            'id': 'm2',
+            'title': 'M2最新',
+            'content': 'C2最新',
+            'createdAt': now,
+            'updatedAt': now.add(const Duration(minutes: 8)),
+            'isDeleted': false,
+          },
+          // 新規m3: 重複して含まれていても1件としてカウントされること
+          {
+            'id': 'm3',
+            'title': 'M3最新',
+            'content': 'C3最新',
+            'createdAt': now,
+            'updatedAt': now.add(const Duration(minutes: 10)),
+            'isDeleted': false,
+          },
+          {
+            'id': 'm3',
+            'title': 'M3古い',
+            'content': 'C3古い',
+            'createdAt': now,
+            'updatedAt': now.add(const Duration(minutes: 5)),
+            'isDeleted': true,
+          },
+        ]);
+
+        final m1 = await dao.getMemoById('m1', testUserId);
+        final m2 = await dao.getMemoById('m2', testUserId);
+        final m3 = await dao.getMemoById('m3', testUserId);
+
+        // 各IDについてupdatedAtが最も新しい版の内容・削除状態が維持されていること
+        check(m1.title).equals('M1最新');
+        check(m1.content).equals('C1最新');
+        check(m1.isDeleted).equals(true);
+        check(m2.title).equals('M2最新');
+        check(m3.title).equals('M3最新');
+        check(m3.isDeleted).equals(false);
+
+        // 重複した新規IDは1件として数えられ、既存メモは1つ分だけシフトされること
+        check(m3.sortOrder).equals(0);
+        check(m1.sortOrder).equals(1);
+        check(m2.sortOrder).equals(2);
+        check((await dao.getAllMemos(testUserId)).length).equals(2);
+      });
     });
   });
 }

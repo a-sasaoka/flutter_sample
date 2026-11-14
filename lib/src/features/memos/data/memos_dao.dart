@@ -7,6 +7,15 @@ import 'package:flutter_sample/src/features/memos/domain/memo_category.dart';
 
 part 'memos_dao.g.dart';
 
+typedef _ValidatedRemoteMemo = ({
+  String id,
+  String title,
+  String content,
+  DateTime createdAt,
+  DateTime updatedAt,
+  bool isDeleted,
+});
+
 /// メモに関するデータ操作を担当するクラス
 @DriftAccessor(tables: [Memos])
 class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
@@ -149,37 +158,41 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
     List<Map<String, dynamic>> remoteData,
   ) async {
     await transaction(() async {
-      // 挿入処理と同じ型・日付検証を通過したメモのみを抽出し、不正データによるカウントずれを防ぐ
-      final validRemoteMemos = [
-        for (final remoteMemo in remoteData)
-          if (remoteMemo case {
-            'id': final String id,
-            'title': final String title,
-            'content': final String content,
-            'createdAt': final DateTime createdAt,
-            'updatedAt': final DateTime updatedAt,
-            'isDeleted': final bool isDeleted,
-          })
-            (
+      // 型・日付検証を通過したメモをIDごとに統合し、重複IDは updatedAt が最新の版のみ残す
+      final latestRemoteMemosById = <String, _ValidatedRemoteMemo>{};
+      for (final remoteMemo in remoteData) {
+        if (remoteMemo case {
+          'id': final String id,
+          'title': final String title,
+          'content': final String content,
+          'createdAt': final DateTime createdAt,
+          'updatedAt': final DateTime updatedAt,
+          'isDeleted': final bool isDeleted,
+        }) {
+          final existing = latestRemoteMemosById[id];
+          if (existing == null || updatedAt.isAfter(existing.updatedAt)) {
+            latestRemoteMemosById[id] = (
               id: id,
               title: title,
               content: content,
               createdAt: createdAt,
               updatedAt: updatedAt,
               isDeleted: isDeleted,
-            ),
-      ];
-      if (validRemoteMemos.isEmpty) {
+            );
+          }
+        }
+      }
+      if (latestRemoteMemosById.isEmpty) {
         return;
       }
 
-      final ids = [for (final memo in validRemoteMemos) memo.id];
+      final ids = latestRemoteMemosById.keys.toList();
       final localMemos = await getMemosByIds(ids, userId);
       final localMemosMap = {for (final m in localMemos) m.id: m};
       final companionsToUpsert = <MemosCompanion>[];
 
-      // 挿入可能な新規メモ（日付など全必須項目の検証を通過し、ローカルに未存在）のみをカウント
-      final newMemoCount = validRemoteMemos
+      // 重複排除済みデータのうち、ローカルに存在しない新規メモのみをカウント
+      final newMemoCount = latestRemoteMemosById.values
           .where((memo) => !localMemosMap.containsKey(memo.id))
           .length;
 
@@ -190,7 +203,7 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
 
       var newMemoIndex = 0;
 
-      for (final memo in validRemoteMemos) {
+      for (final memo in latestRemoteMemosById.values) {
         final localMemo = localMemosMap[memo.id];
 
         // サーバーのデータが新しい場合、またはローカルに存在しない場合に更新/挿入対象とする
