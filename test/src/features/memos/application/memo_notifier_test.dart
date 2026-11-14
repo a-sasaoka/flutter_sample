@@ -6,6 +6,7 @@ import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
+import 'package:flutter_sample/src/features/memos/domain/memo_category.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_sort_order.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,6 +34,14 @@ void main() {
       when(
         () => mockMemoRepository.fetchAndMergeRemoteMemos(any()),
       ).thenAnswer((_) async {});
+      when(
+        () => mockMemoRepository.watchFilteredMemos(
+          any(),
+          query: any(named: 'query'),
+          category: any(named: 'category'),
+          unsyncedOnly: any(named: 'unsyncedOnly'),
+        ),
+      ).thenAnswer((_) => Stream.value(<MemoModel>[]));
     });
 
     tearDown(() {
@@ -245,6 +254,14 @@ void main() {
             () => mockMemoRepository.watchAllMemos(any()),
           ).thenAnswer((_) => Stream.value(<MemoModel>[]));
           when(
+            () => mockMemoRepository.watchFilteredMemos(
+              any(),
+              query: any(named: 'query'),
+              category: any(named: 'category'),
+              unsyncedOnly: any(named: 'unsyncedOnly'),
+            ),
+          ).thenAnswer((_) => Stream.value(<MemoModel>[]));
+          when(
             () => mockMemoRepository.fetchAndMergeRemoteMemos(any()),
           ).thenAnswer((_) async {});
 
@@ -396,6 +413,38 @@ void main() {
         when(
           () => mockMemoRepository.watchAllMemos(any()),
         ).thenAnswer((_) => Stream.value(mockMemos));
+        when(
+          () => mockMemoRepository.watchFilteredMemos(
+            any(),
+            query: any(named: 'query'),
+            category: any(named: 'category'),
+            unsyncedOnly: any(named: 'unsyncedOnly'),
+          ),
+        ).thenAnswer((invocation) {
+          final query = invocation.namedArguments[#query] as String?;
+          final category =
+              invocation.namedArguments[#category] as MemoCategory?;
+          final unsyncedOnly =
+              invocation.namedArguments[#unsyncedOnly] as bool?;
+          var result = mockMemos;
+          if (query != null && query.trim().isNotEmpty) {
+            final q = query.trim().toLowerCase();
+            result = result
+                .where(
+                  (m) =>
+                      m.title.toLowerCase().contains(q) ||
+                      m.content.toLowerCase().contains(q),
+                )
+                .toList();
+          }
+          if (category != null) {
+            result = result.where((m) => m.category == category).toList();
+          }
+          if (unsyncedOnly == true) {
+            result = result.where((m) => !m.isSynced).toList();
+          }
+          return Stream.value(result);
+        });
       });
 
       test('検索キーワードによる絞り込みができること', () async {

@@ -1,5 +1,6 @@
 // coverage:ignore-file
 import 'package:drift/drift.dart';
+import 'package:flutter_sample/src/features/memos/domain/memo_category.dart';
 
 /// メモのテーブル
 class Memos extends Table {
@@ -26,6 +27,9 @@ class Memos extends Table {
 
   /// サーバーへ保存（同期）されたかどうかのフラグ
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
+
+  /// メモのカテゴリ（enumで型安全に管理。未設定はnull）
+  TextColumn get category => textEnum<MemoCategory>().nullable()();
 
   @override
   Set<Column> get primaryKey => {id}; // idを主キー（メインの目印）にする

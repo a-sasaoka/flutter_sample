@@ -20,6 +20,7 @@
 | ⚡️ パフォーマンス | 画像キャッシュ戦略、アプリサイズの軽量化、Firebase Performance Monitoring を用いた実環境の監視、再ビルド最適化の検証 (✅ 完了) |
 | ♿️ アクセシビリティ | Semantics を活用したスクリーンリーダー対応（一部達成）、アプリ全体への Semantics 適用とダイナミックタイプ対応 |
 | 🎨 UX / デザイン | Lottie を用いたリッチなアニメーションの導入 (✅ 完了) |
+| 🔍 検索・絞り込み UX | 入力待ち400msデバウンス検索（`Debouncer`）、複数タグ・カテゴリ絞り込み（`FilterChip`）、検索語ハイライト表示（`HighlightedText`）、0件時クリア機能の導入 (✅ 完了) |
 | 🏗️ アーキテクチャ | Melosを用いたマルチパッケージ（Monorepo）構成の構築 |
 | 📡 リアルタイム通信 | WebSocket や Server-Sent Events (SSE) を用いた完全な双方向リアルタイム通信の実装 |
 

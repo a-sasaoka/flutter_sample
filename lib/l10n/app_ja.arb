@@ -167,6 +167,14 @@
   "memoSortUpdatedAtAsc": "更新日時：古い順",
   "memoSortTitleAsc": "タイトル：昇順",
   "memoSortTitleDesc": "タイトル：降順",
+  "memoCategoryAll": "すべて",
+  "memoCategoryWork": "仕事",
+  "memoCategoryPersonal": "個人",
+  "memoCategoryIdea": "アイデア",
+  "memoCategorySelect": "カテゴリ",
+  "memoFilterUnsyncedOnly": "未同期のみ",
+  "memoSearchEmpty": "検索条件に一致するメモがありません",
+  "memoClearFilter": "検索条件をクリア",
   "widgetMemoEmptyTitle": "メモがありません",
   "widgetMemoEmptyContent": "＋ボタンから最初のメモを作成しましょう！",
 
@@ -209,6 +217,9 @@
     }
   },
   "userListEmpty": "ユーザーが見つかりませんでした。",
+  "userSearchHint": "名前やメールアドレスで検索...",
+  "userSearchEmpty": "検索条件に一致するユーザーがいません",
+  "userClearFilter": "検索条件をクリア",
   "userListFetchError": "ユーザー一覧の取得に失敗しました。下へスクロールして更新してください。",
 
   "@_NOT_FOUND": {},

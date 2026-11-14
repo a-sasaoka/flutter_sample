@@ -3,34 +3,16 @@ import 'dart:async';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
+import 'package:flutter_sample/src/features/memos/application/memo_filter_notifier.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
+import 'package:flutter_sample/src/features/memos/domain/memo_category.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_sort_order.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+export 'package:flutter_sample/src/features/memos/application/memo_filter_notifier.dart';
+
 part 'memo_notifier.g.dart';
-
-/// 検索クエリ（キーワード）を管理するためのプロバイダー（状態管理）
-@riverpod
-class MemoSearchQuery extends _$MemoSearchQuery {
-  @override
-  String build() => '';
-
-  /// キーワードを更新します
-  // ignore: use_setters_to_change_properties
-  void setQuery(String query) => state = query;
-}
-
-/// 並び替え（ソート）ルールを管理するためのプロバイダー（状態管理）
-@riverpod
-class MemoSortOrderState extends _$MemoSortOrderState {
-  @override
-  MemoSortOrder build() => MemoSortOrder.createdAtDesc;
-
-  /// ルールを更新します
-  // ignore: use_setters_to_change_properties
-  void setSortOrder(MemoSortOrder sortOrder) => state = sortOrder;
-}
 
 /// メモ一覧のデータ（状態）を管理するためのクラス
 @riverpod
@@ -55,29 +37,24 @@ class MemoNotifier extends _$MemoNotifier {
       unawaited(_syncAndFetch(repository, userId));
     }
 
-    // データベースから現在のユーザーのメモを取得する（変更を監視）
-    final allMemosStream = repository.watchAllMemos(userId);
+    // 検索・絞り込み条件を監視します
+    final filter = ref.watch(memoFilterProvider);
 
-    // 検索クエリとソートの現在の状態を監視（watch）します
-    final searchQuery = ref.watch(memoSearchQueryProvider).trim().toLowerCase();
-    final sortOrder = ref.watch(memoSortOrderStateProvider);
+    // データベースから条件に合致するメモをストリームで監視します
+    final memosStream = filter.hasActiveFilter
+        ? repository.watchFilteredMemos(
+            userId,
+            query: filter.query,
+            category: filter.category,
+            unsyncedOnly: filter.unsyncedOnly ? true : null,
+          )
+        : repository.watchAllMemos(userId);
 
-    return allMemosStream.map((allMemos) {
-      // 1. 検索キーワードによる絞り込み（部分一致）
-      var filteredMemos = allMemos;
-      if (searchQuery.isNotEmpty) {
-        filteredMemos = allMemos.where((memo) {
-          final title = memo.title.toLowerCase();
-          final content = memo.content.toLowerCase();
-          return title.contains(searchQuery) || content.contains(searchQuery);
-        }).toList();
-      } else {
-        // 破壊的変更（sort）を避けるためにリストをコピーする
-        filteredMemos = [...allMemos];
-      }
+    return memosStream.map((filteredMemos) {
+      // 破壊的変更を避けるためにリストをコピーしてソート
+      final sortedMemos = [...filteredMemos];
 
-      // 2. 指定されたルールに基づいて並び替える
-      final comparator = switch (sortOrder) {
+      final comparator = switch (filter.sortOrder) {
         MemoSortOrder.createdAtDesc =>
           (MemoModel a, MemoModel b) => b.createdAt.compareTo(a.createdAt),
         MemoSortOrder.createdAtAsc =>
@@ -91,9 +68,9 @@ class MemoNotifier extends _$MemoNotifier {
         MemoSortOrder.titleDesc =>
           (MemoModel a, MemoModel b) => b.title.compareTo(a.title),
       };
-      filteredMemos.sort(comparator);
+      sortedMemos.sort(comparator);
 
-      return filteredMemos;
+      return sortedMemos;
     });
   }
 
@@ -107,13 +84,17 @@ class MemoNotifier extends _$MemoNotifier {
   }
 
   /// 新しいメモを追加する
-  Future<void> addMemo(String title, String content) async {
+  Future<void> addMemo(
+    String title,
+    String content, {
+    MemoCategory? category,
+  }) async {
     final userId = ref.read(currentUserIdProvider);
     if (userId == null) {
       return;
     }
     final repository = ref.read(memoRepositoryProvider);
-    await repository.addMemo(title, content, userId);
+    await repository.addMemo(title, content, userId, category: category);
   }
 
   /// メモを削除する

@@ -31,6 +31,9 @@ void main() {
     when(() => mockL10n.userListFetchError).thenReturn('Pull to refresh');
     when(() => mockL10n.retry).thenReturn('Retry');
     when(() => mockL10n.close).thenReturn('Close');
+    when(() => mockL10n.userSearchHint).thenReturn('Search users...');
+    when(() => mockL10n.userSearchEmpty).thenReturn('No matching users.');
+    when(() => mockL10n.userClearFilter).thenReturn('Clear filter');
 
     mockRepository = MockUserRepository();
   });
@@ -75,8 +78,11 @@ void main() {
 
   group('UserListScreen Test', () {
     test('コンストラクタのテスト', () {
-      const screen = UserListScreen(key: ValueKey<String>('test'));
+      // カバレッジ計測でコンストラクタのコードを確実に実行させてカバーするため、あえて非constでインスタンス化します。
+      // ignore: prefer_const_constructors
+      final screen = UserListScreen(key: const ValueKey<String>('test'));
       check(screen.key).isA<ValueKey<String>>();
+      check(screen).isA<UserListScreen>();
     });
     testWidgets('【状態系】Loading状態の時にインジケータが表示されること', (tester) async {
       final completer = Completer<(List<UserModel>, DateTime)>();
@@ -251,6 +257,108 @@ void main() {
         ),
       ).findsNothing();
       check(find.byType(SnackBar)).findsNothing();
+    });
+
+    testWidgets('【検索機能】400ms デバウンス検索およびクリアボタンが正しく動作すること', (tester) async {
+      final dummyUsers = [
+        createDummyUser(1), // Test User 1 (test1@example.com)
+        createDummyUser(2), // Test User 2 (test2@example.com)
+      ];
+      when(
+        () => mockRepository.fetchUsers(),
+      ).thenAnswer((_) async => (dummyUsers, dummyTimestamp));
+
+      await pumpUserListScreen(tester);
+      await tester.pumpAndSettle();
+
+      // 最初は2件表示
+      check(find.text('Test User 1')).findsOne();
+      check(find.text('Test User 2')).findsOne();
+
+      // 検索バーに「User 2」と入力
+      await tester.enterText(find.byType(TextField), 'User 2');
+      await tester.pump();
+      // 300ms 経過時点ではまだデバウンス前なので絞り込まれない
+      await tester.pump(const Duration(milliseconds: 300));
+      check(find.text('Test User 1')).findsOne();
+
+      // 400ms 経過でデバウンスが発火し、絞り込まれる
+      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pumpAndSettle();
+      check(find.text('Test User 1')).findsNothing();
+      check(find.text('Test User 2')).findsOne();
+
+      // クリアボタンを押すと即座に全件に戻る
+      await tester.tap(find.byIcon(Icons.clear));
+      await tester.pumpAndSettle();
+      check(find.text('Test User 1')).findsOne();
+      check(find.text('Test User 2')).findsOne();
+    });
+
+    testWidgets('【検索機能】検索結果が0件のときクリアボタンが表示され、タップでクリアされること', (tester) async {
+      final dummyUsers = [createDummyUser(1)];
+      when(
+        () => mockRepository.fetchUsers(),
+      ).thenAnswer((_) async => (dummyUsers, dummyTimestamp));
+
+      await pumpUserListScreen(tester);
+      await tester.pumpAndSettle();
+
+      // 存在しないユーザー名を入力
+      await tester.enterText(find.byType(TextField), 'Unknown User');
+      await tester.pump(const Duration(milliseconds: 450));
+      await tester.pumpAndSettle();
+
+      // 0件時の表示とクリアボタンの確認
+      check(find.text('No matching users.')).findsOne();
+      check(find.widgetWithText(FilledButton, 'Clear filter')).findsOne();
+
+      // クリアボタンをタップ
+      await tester.tap(find.widgetWithText(FilledButton, 'Clear filter'));
+      await tester.pumpAndSettle();
+
+      // 再び元のリストが表示されること
+      check(find.text('Test User 1')).findsOne();
+
+      // 【再入力直後のクリア検証】0件状態で再入力し、400ms待たずにクリアボタンを押しても遅延発火しないこと
+      await tester.enterText(find.byType(TextField), 'Unknown User');
+      await tester.pump(const Duration(milliseconds: 450));
+      await tester.pumpAndSettle();
+
+      // 0件状態で新しい文字を入力
+      await tester.enterText(find.byType(TextField), 'Another Query');
+      await tester.pump();
+      // 400ms待たずに「Clear filter」をタップ
+      await tester.tap(find.widgetWithText(FilledButton, 'Clear filter'));
+      await tester.pumpAndSettle();
+
+      // 400ms以上経過しても保留中だった「Another Query」で上書きされず全件表示が維持されること
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+      check(find.text('Test User 1')).findsOne();
+    });
+
+    testWidgets('【UIテスト】画面外タップでキーボードのフォーカスが外れること', (tester) async {
+      final dummyUsers = [createDummyUser(1)];
+      when(
+        () => mockRepository.fetchUsers(),
+      ).thenAnswer((_) async => (dummyUsers, dummyTimestamp));
+
+      await pumpUserListScreen(tester);
+      await tester.pumpAndSettle();
+
+      // 検索バーをタップしてフォーカスを当てる
+      await tester.tap(find.byType(TextField));
+      await tester.pump();
+      final focusNode = tester
+          .widget<EditableText>(find.byType(EditableText))
+          .focusNode;
+      check(focusNode.hasFocus).equals(true);
+
+      // 画面のAppBarやリスト領域をタップしてフォーカス解除
+      await tester.tapAt(const Offset(10, 300));
+      await tester.pump();
+      check(focusNode.hasFocus).equals(false);
     });
   });
 }

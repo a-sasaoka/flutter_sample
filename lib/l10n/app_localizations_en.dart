@@ -385,6 +385,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memoSortTitleDesc => 'Title: Z-A';
 
   @override
+  String get memoCategoryAll => 'All';
+
+  @override
+  String get memoCategoryWork => 'Work';
+
+  @override
+  String get memoCategoryPersonal => 'Personal';
+
+  @override
+  String get memoCategoryIdea => 'Idea';
+
+  @override
+  String get memoCategorySelect => 'Category';
+
+  @override
+  String get memoFilterUnsyncedOnly => 'Unsynced only';
+
+  @override
+  String get memoSearchEmpty => 'No memos match your search criteria';
+
+  @override
+  String get memoClearFilter => 'Clear filters';
+
+  @override
   String get widgetMemoEmptyTitle => 'No memos yet';
 
   @override
@@ -459,6 +483,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get userListEmpty => 'No users found.';
+
+  @override
+  String get userSearchHint => 'Search by name or email...';
+
+  @override
+  String get userSearchEmpty => 'No users match your search criteria';
+
+  @override
+  String get userClearFilter => 'Clear search';
 
   @override
   String get userListFetchError =>

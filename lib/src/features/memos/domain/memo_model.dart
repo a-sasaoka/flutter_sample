@@ -1,3 +1,4 @@
+import 'package:flutter_sample/src/features/memos/domain/memo_category.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'memo_model.freezed.dart';
@@ -14,5 +15,6 @@ sealed class MemoModel with _$MemoModel {
     required DateTime updatedAt,
     @Default(false) bool isDeleted,
     @Default(false) bool isSynced,
+    MemoCategory? category,
   }) = _MemoModel;
 }

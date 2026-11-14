@@ -4,7 +4,10 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/src/core/config/app_theme.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
+import 'package:flutter_sample/src/features/memos/application/memo_filter_notifier.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
+import 'package:flutter_sample/src/features/memos/domain/memo_category.dart';
+import 'package:flutter_sample/src/features/memos/domain/memo_filter_state.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_sample/src/features/memos/presentation/memo_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +15,14 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'memo_screen_test.dart';
+
+class _TestMemoFilterNotifier extends MemoFilterNotifier {
+  _TestMemoFilterNotifier(this._initialState);
+  final MemoFilterState _initialState;
+
+  @override
+  MemoFilterState build() => _initialState;
+}
 
 void main() {
   group('MemoScreen Golden Tests', () {
@@ -40,11 +51,20 @@ void main() {
       when(() => mockL10n.memoSortUpdatedAtAsc).thenReturn('更新：古い順');
       when(() => mockL10n.memoSortTitleAsc).thenReturn('タイトル：昇順');
       when(() => mockL10n.memoSortTitleDesc).thenReturn('タイトル：降順');
+      when(() => mockL10n.memoCategorySelect).thenReturn('カテゴリ選択');
+      when(() => mockL10n.memoCategoryAll).thenReturn('すべて');
+      when(() => mockL10n.memoCategoryWork).thenReturn('仕事');
+      when(() => mockL10n.memoCategoryPersonal).thenReturn('プライベート');
+      when(() => mockL10n.memoCategoryIdea).thenReturn('アイデア');
+      when(() => mockL10n.memoFilterUnsyncedOnly).thenReturn('未同期のみ');
+      when(() => mockL10n.memoSearchEmpty).thenReturn('条件に一致するメモが見つかりません');
+      when(() => mockL10n.memoClearFilter).thenReturn('条件をクリア');
     });
 
     Widget buildMemoForGolden({
       required List<MemoModel> memos,
       required ThemeMode themeMode,
+      MemoFilterState? initialFilter,
     }) {
       // 💡 各シナリオ間でモックの設定（stub）が競合して上書きされるのを防ぐため、
       // シナリオごとに新しく MockMemoRepository をインスタンス化します。
@@ -58,6 +78,15 @@ void main() {
         () => repository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value(memos));
 
+      when(
+        () => repository.watchFilteredMemos(
+          any(),
+          query: any(named: 'query'),
+          category: any(named: 'category'),
+          unsyncedOnly: any(named: 'unsyncedOnly'),
+        ),
+      ).thenAnswer((_) => Stream.value(memos));
+
       final isDark = themeMode == ThemeMode.dark;
 
       return ProviderScope(
@@ -65,6 +94,10 @@ void main() {
           currentUserIdProvider.overrideWithValue('test_user_id'),
           memoRepositoryProvider.overrideWithValue(repository),
           isOnlineProvider.overrideWithValue(true),
+          if (initialFilter != null)
+            memoFilterProvider.overrideWith(
+              () => _TestMemoFilterNotifier(initialFilter),
+            ),
         ],
         child: MaterialApp(
           theme: isDark
@@ -125,6 +158,7 @@ void main() {
                     userId: 'test_user_id',
                     title: '買物リスト',
                     content: '牛乳、卵、りんごを買う。',
+                    category: MemoCategory.personal,
                     createdAt: DateTime(2026, 6, 6, 10),
                     updatedAt: DateTime(2026, 6, 6, 10),
                     isSynced: true,
@@ -134,6 +168,7 @@ void main() {
                     userId: 'test_user_id',
                     title: 'アイデア',
                     content: 'Flutterのゴールデンテストを導入する。',
+                    category: MemoCategory.idea,
                     createdAt: DateTime(2026, 6, 5, 15, 30),
                     updatedAt: DateTime(2026, 6, 5, 15, 30),
                   ),
@@ -154,6 +189,7 @@ void main() {
                     userId: 'test_user_id',
                     title: '買物リスト',
                     content: '牛乳、卵、りんごを買う。',
+                    category: MemoCategory.personal,
                     createdAt: DateTime(2026, 6, 6, 10),
                     updatedAt: DateTime(2026, 6, 6, 10),
                     isSynced: true,
@@ -163,11 +199,71 @@ void main() {
                     userId: 'test_user_id',
                     title: 'アイデア',
                     content: 'Flutterのゴールデンテストを導入する。',
+                    category: MemoCategory.idea,
                     createdAt: DateTime(2026, 6, 5, 15, 30),
                     updatedAt: DateTime(2026, 6, 5, 15, 30),
                   ),
                 ],
                 themeMode: ThemeMode.dark,
+              ),
+            ),
+          ),
+          GoldenTestScenario(
+            name: 'With Memos (Search & Highlight) - Light Mode',
+            child: SizedBox(
+              width: 390,
+              height: 844,
+              child: buildMemoForGolden(
+                memos: [
+                  MemoModel(
+                    id: '1',
+                    userId: 'test_user_id',
+                    title: '買物リスト',
+                    content: '牛乳、卵、りんごを買う。',
+                    category: MemoCategory.personal,
+                    createdAt: DateTime(2026, 6, 6, 10),
+                    updatedAt: DateTime(2026, 6, 6, 10),
+                    isSynced: true,
+                  ),
+                ],
+                themeMode: ThemeMode.light,
+                initialFilter: const MemoFilterState(query: '買物'),
+              ),
+            ),
+          ),
+          GoldenTestScenario(
+            name: 'With Memos (Category Filtered) - Light Mode',
+            child: SizedBox(
+              width: 390,
+              height: 844,
+              child: buildMemoForGolden(
+                memos: [
+                  MemoModel(
+                    id: '2',
+                    userId: 'test_user_id',
+                    title: 'アイデアメモ',
+                    content: 'Flutterのゴールデンテストを導入する。',
+                    category: MemoCategory.idea,
+                    createdAt: DateTime(2026, 6, 5, 15, 30),
+                    updatedAt: DateTime(2026, 6, 5, 15, 30),
+                  ),
+                ],
+                themeMode: ThemeMode.light,
+                initialFilter: const MemoFilterState(
+                  category: MemoCategory.idea,
+                ),
+              ),
+            ),
+          ),
+          GoldenTestScenario(
+            name: 'Empty Filtered State - Light Mode',
+            child: SizedBox(
+              width: 390,
+              height: 844,
+              child: buildMemoForGolden(
+                memos: [],
+                themeMode: ThemeMode.light,
+                initialFilter: const MemoFilterState(query: '存在しないメモ'),
               ),
             ),
           ),

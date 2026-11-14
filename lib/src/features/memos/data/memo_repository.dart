@@ -7,6 +7,7 @@ import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_remote_service.dart';
 import 'package:flutter_sample/src/features/memos/data/memos_dao.dart';
+import 'package:flutter_sample/src/features/memos/domain/memo_category.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:talker_flutter/talker_flutter.dart';
@@ -39,7 +40,12 @@ class MemoRepository {
   final Uuid _uuid;
 
   /// 新しいメモをデータベースに追加する
-  Future<void> addMemo(String title, String content, String userId) async {
+  Future<void> addMemo(
+    String title,
+    String content,
+    String userId, {
+    MemoCategory? category,
+  }) async {
     final now = _clock();
 
     // UUIDを作る
@@ -54,6 +60,7 @@ class MemoRepository {
         content: content,
         createdAt: now,
         updatedAt: now,
+        category: drift.Value(category),
       ),
     );
 
@@ -88,8 +95,9 @@ class MemoRepository {
     String id,
     String title,
     String content,
-    String userId,
-  ) async {
+    String userId, {
+    drift.Value<MemoCategory?> category = const drift.Value.absent(),
+  }) async {
     final now = _clock();
 
     // まずはスマホ側のデータを更新し、未送信状態に戻す
@@ -101,6 +109,7 @@ class MemoRepository {
         content: drift.Value(content),
         updatedAt: drift.Value(now),
         isSynced: const drift.Value(false),
+        category: category,
       ),
     );
 
@@ -230,6 +239,25 @@ class MemoRepository {
     });
   }
 
+  /// 検索条件やカテゴリ、未同期フラグを指定してメモの変更を監視するストリーム
+  Stream<List<MemoModel>> watchFilteredMemos(
+    String userId, {
+    String? query,
+    MemoCategory? category,
+    bool? unsyncedOnly,
+  }) {
+    return _dao
+        .watchFilteredMemos(
+          userId,
+          query: query,
+          category: category,
+          unsyncedOnly: unsyncedOnly,
+        )
+        .map((driftMemos) {
+          return driftMemos.map(_mapToMemoModel).toList();
+        });
+  }
+
   /// DriftのMemoデータをドメイン層のMemoModelへ変換するヘルパーメソッド
   MemoModel _mapToMemoModel(Memo memo) {
     return MemoModel(
@@ -241,6 +269,7 @@ class MemoRepository {
       updatedAt: memo.updatedAt,
       isDeleted: memo.isDeleted,
       isSynced: memo.isSynced,
+      category: memo.category,
     );
   }
 
@@ -289,6 +318,7 @@ class MemoRepository {
                   updatedAt: updatedAt,
                   isDeleted: drift.Value(isDeleted),
                   isSynced: const drift.Value(true),
+                  category: drift.Value(localMemo?.category),
                 ),
               );
             }
