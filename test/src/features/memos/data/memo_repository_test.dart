@@ -1325,6 +1325,223 @@ void main() {
           check(uploadSequence).deepEquals([true, false]);
         },
       );
+
+      test('削除通信中にsyncUnsentMemosとrestoreMemoを行い復元通信が失敗した場合、'
+          '古い削除状態は送信されずisSynced=falseのまま維持されること', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final repository = container.read(memoRepositoryProvider);
+
+        await repository.addMemo('手動同期競合テスト', '内容', testUserId);
+        final memoId = (await repository.getAllMemos(testUserId)).first.id;
+
+        final deleteCompleter = Completer<void>();
+        final uploadSequence = <bool>[];
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: true,
+          ),
+        ).thenAnswer((_) {
+          uploadSequence.add(true);
+          return deleteCompleter.future;
+        });
+
+        // 削除通信を開始（HTTP待機中）
+        await repository.deleteMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+        await Future<void>.delayed(Duration.zero);
+        check(uploadSequence).deepEquals([true]);
+
+        // 削除通信の待機中に手動同期を開始（キューで待機する）
+        final syncFuture = repository.syncUnsentMemos(testUserId);
+        await Future<void>.delayed(Duration.zero);
+        check(uploadSequence).deepEquals([true]);
+
+        // その後 Undo を行い、復元通信は失敗するよう設定する
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: false,
+          ),
+        ).thenAnswer((_) async {
+          uploadSequence.add(false);
+          throw Exception('restore error');
+        });
+        await repository.restoreMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+        await Future<void>.delayed(Duration.zero);
+        check(uploadSequence).deepEquals([true]);
+
+        // 先行する削除通信が完了したあと、古い削除状態の再送は起きないこと
+        deleteCompleter.complete();
+        await syncFuture;
+        await Future<void>.delayed(Duration.zero);
+
+        verify(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: true,
+          ),
+        ).called(1);
+
+        final current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isFalse();
+      });
+
+      test('syncUnsentMemosの削除状態送信中にrestoreMemoを実行し、'
+          '手動同期成功・復元通信失敗となった場合もisSynced=falseが保たれ再送できること', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final repository = container.read(memoRepositoryProvider);
+
+        await database.memosDao.insertMemo(
+          MemosCompanion.insert(
+            id: 'unsent-del-1',
+            userId: testUserId,
+            title: '未送信削除メモ',
+            content: '内容',
+            createdAt: now,
+            updatedAt: now,
+            isDeleted: const drift.Value(true),
+            isSynced: const drift.Value(false),
+          ),
+        );
+
+        final syncCompleter = Completer<void>();
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: 'unsent-del-1',
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: true,
+          ),
+        ).thenAnswer((_) => syncCompleter.future);
+
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: 'unsent-del-1',
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: false,
+          ),
+        ).thenThrow(Exception('restore error'));
+
+        // 手動同期で isDeleted=true を送信開始（待機中）
+        final syncFuture = repository.syncUnsentMemos(testUserId);
+        await Future<void>.delayed(Duration.zero);
+
+        // 送信待機中に Undo 復元を実行
+        await repository.restoreMemo(
+          'unsent-del-1',
+          testUserId,
+          waitForRemoteSync: false,
+        );
+
+        // 手動同期（古い削除状態）が成功し、続く復元通信は失敗する
+        syncCompleter.complete();
+        await syncFuture;
+        await Future<void>.delayed(Duration.zero);
+
+        // 古い削除状態の送信成功で isSynced=true に上書きされていないこと
+        var current = await database.memosDao.getMemoById(
+          'unsent-del-1',
+          testUserId,
+        );
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isFalse();
+
+        // 次回の手動同期が成功すれば未同期のまま残っていた復元状態を再送できること
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: 'unsent-del-1',
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: false,
+          ),
+        ).thenAnswer((_) async {});
+        await repository.syncUnsentMemos(testUserId);
+
+        current = await database.memosDao.getMemoById(
+          'unsent-del-1',
+          testUserId,
+        );
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isTrue();
+      });
+
+      test('削除通信待機中にsyncUnsentMemosが呼ばれても、先行削除が成功した場合は重複送信をスキップすること', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final repository = container.read(memoRepositoryProvider);
+
+        await repository.addMemo('重複スキップテスト', '内容', testUserId);
+        final memoId = (await repository.getAllMemos(testUserId)).first.id;
+
+        final deleteCompleter = Completer<void>();
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: true,
+          ),
+        ).thenAnswer((_) => deleteCompleter.future);
+
+        await repository.deleteMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        final syncFuture = repository.syncUnsentMemos(testUserId);
+        await Future<void>.delayed(Duration.zero);
+
+        deleteCompleter.complete();
+        await syncFuture;
+
+        verify(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: true,
+          ),
+        ).called(1);
+        final current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isTrue();
+        check(current.isSynced).isTrue();
+      });
     });
   });
 }

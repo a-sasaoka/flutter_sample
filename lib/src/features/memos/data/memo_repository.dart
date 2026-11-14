@@ -30,9 +30,8 @@ class MemoSyncQueue {
     return token;
   }
 
-  /// 指定トークンがそのメモに対する最新変更かどうかを返す
-  bool isLatestToken(String userId, String id, int token) =>
-      _latestTokens[(userId, id)] == token;
+  /// 指定メモに対する現在の変更トークンを返す（未キュー時は null）
+  int? currentToken(String userId, String id) => _latestTokens[(userId, id)];
 
   /// 同一メモの同期処理を先行タスクの完了後に直列実行する
   Future<void> enqueue(String userId, String id, Future<void> Function() task) {
@@ -184,6 +183,45 @@ class MemoRepository {
     }
   }
 
+  /// メモをリモート送信し、送信状態が最新のローカル状態・トークンと一致する場合のみ同期済みに更新する
+  Future<void> _uploadMemoAndMarkSyncedIfUnchanged({
+    required Memo memo,
+    required DateTime updatedAt,
+    required bool isDeleted,
+    required int? expectedToken,
+    required String successLog,
+    required String errorLog,
+  }) async {
+    try {
+      await _remote.uploadMemo(
+        id: memo.id,
+        title: memo.title,
+        content: memo.content,
+        createdAt: memo.createdAt,
+        updatedAt: updatedAt,
+        isDeleted: isDeleted,
+      );
+
+      // 送信待機中に新しいローカル操作（Undoや編集等）が行われた場合は
+      // 古い通信の成功で isSynced を誤って true に上書きしない
+      if (_syncQueue.currentToken(memo.userId, memo.id) == expectedToken) {
+        await _dao.markAsSyncedIfUnchanged(
+          id: memo.id,
+          userId: memo.userId,
+          title: memo.title,
+          content: memo.content,
+          createdAt: memo.createdAt,
+          updatedAt: updatedAt,
+          isDeleted: isDeleted,
+        );
+      }
+
+      _talker.debug(successLog);
+    } on Exception catch (e, st) {
+      _talker.handle(e, st, errorLog);
+    }
+  }
+
   /// 削除・復元のローカル変更に対応するリモート送信を直列キュー経由で実行する
   Future<void> _syncMemoDeletionState({
     required String id,
@@ -200,31 +238,15 @@ class MemoRepository {
     }
 
     final syncFuture = _syncQueue.enqueue(userId, id, () async {
-      try {
-        final memo = await _dao.getMemoById(id, userId);
-        await _remote.uploadMemo(
-          id: id,
-          title: memo.title,
-          content: memo.content,
-          createdAt: memo.createdAt,
-          updatedAt: updatedAt,
-          isDeleted: isDeleted,
-        );
-
-        // 先行通信の待機中に新しいローカル操作（Undo等）が行われた場合は
-        // 古い通信の成功で isSynced を誤って true に上書きしない
-        if (_syncQueue.isLatestToken(userId, id, token)) {
-          await _dao.updateMemo(
-            id,
-            userId,
-            const MemosCompanion(isSynced: drift.Value(true)),
-          );
-        }
-
-        _talker.debug(successLog);
-      } on Exception catch (e, st) {
-        _talker.handle(e, st, errorLog);
-      }
+      final memo = await _dao.getMemoById(id, userId);
+      await _uploadMemoAndMarkSyncedIfUnchanged(
+        memo: memo,
+        updatedAt: updatedAt,
+        isDeleted: isDeleted,
+        expectedToken: token,
+        successLog: successLog,
+        errorLog: errorLog,
+      );
     });
 
     if (waitForRemoteSync) {
@@ -304,28 +326,25 @@ class MemoRepository {
       return;
     }
 
-    // 見つかった未送信のメモを、順番にサーバーに送る
-    final syncedIds = <String>[];
+    // 見つかった未送信のメモを、メモごとの直列キューを通して順番にサーバーに送る
     for (final memo in unsentMemos) {
-      try {
-        await _remote.uploadMemo(
-          id: memo.id,
-          title: memo.title,
-          content: memo.content,
-          createdAt: memo.createdAt,
-          updatedAt: memo.updatedAt,
-          isDeleted: memo.isDeleted,
-        );
-        syncedIds.add(memo.id);
-        _talker.debug('Synced unsent memo to server. id: ${memo.id}');
-      } on Exception catch (e, st) {
-        _talker.handle(e, st, 'Failed to sync memo (id: ${memo.id}) to server');
-      }
-    }
+      await _syncQueue.enqueue(userId, memo.id, () async {
+        final latestMemo = (await _dao.getMemosByIds([
+          memo.id,
+        ], userId)).firstOrNull;
+        if (latestMemo == null || latestMemo.isSynced) {
+          return;
+        }
 
-    // 成功したものをまとめてDB更新
-    if (syncedIds.isNotEmpty) {
-      await _dao.updateSyncStatus(syncedIds, userId, isSynced: true);
+        await _uploadMemoAndMarkSyncedIfUnchanged(
+          memo: latestMemo,
+          updatedAt: latestMemo.updatedAt,
+          isDeleted: latestMemo.isDeleted,
+          expectedToken: _syncQueue.currentToken(userId, memo.id),
+          successLog: 'Synced unsent memo to server. id: ${memo.id}',
+          errorLog: 'Failed to sync memo (id: ${memo.id}) to server',
+        );
+      });
     }
   }
 

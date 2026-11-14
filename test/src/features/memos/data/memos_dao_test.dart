@@ -1222,6 +1222,51 @@ void main() {
         check(m2.sortOrder).equals(2);
         check((await dao.getAllMemos(testUserId)).length).equals(2);
       });
+
+      test('【正常系】markAsSyncedIfUnchangedは状態一致時のみisSyncedをtrueにし、'
+          '不一致時は更新しないこと', () async {
+        final now = DateTime(2026, 10, 26, 12);
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'memo-cond',
+            userId: testUserId,
+            title: 'タイトル',
+            content: '本文',
+            createdAt: now,
+            updatedAt: now,
+            isDeleted: const Value(true),
+            isSynced: const Value(false),
+          ),
+        );
+
+        // 状態が一致しない（isDeleted: false）場合は更新されないこと
+        await dao.markAsSyncedIfUnchanged(
+          id: 'memo-cond',
+          userId: testUserId,
+          title: 'タイトル',
+          content: '本文',
+          createdAt: now,
+          updatedAt: now,
+          isDeleted: false,
+        );
+        check(
+          (await dao.getMemoById('memo-cond', testUserId)).isSynced,
+        ).isFalse();
+
+        // 状態が一致する場合は isSynced = true に更新されること
+        await dao.markAsSyncedIfUnchanged(
+          id: 'memo-cond',
+          userId: testUserId,
+          title: 'タイトル',
+          content: '本文',
+          createdAt: now,
+          updatedAt: now,
+          isDeleted: true,
+        );
+        check(
+          (await dao.getMemoById('memo-cond', testUserId)).isSynced,
+        ).isTrue();
+      });
     });
   });
 }

@@ -332,4 +332,26 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
           isSynced: const Value(false),
         ),
       );
+
+  /// 送信した内容と現在のローカルレコードが一致する場合のみ isSynced を true に更新する
+  Future<void> markAsSyncedIfUnchanged({
+    required String id,
+    required String userId,
+    required String title,
+    required String content,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    required bool isDeleted,
+  }) =>
+      (update(memos)..where(
+            (t) =>
+                t.id.equals(id) &
+                t.userId.equals(userId) &
+                t.title.equals(title) &
+                t.content.equals(content) &
+                t.createdAt.equals(createdAt) &
+                t.updatedAt.equals(updatedAt) &
+                t.isDeleted.equals(isDeleted),
+          ))
+          .write(const MemosCompanion(isSynced: Value(true)));
 }
