@@ -6,6 +6,7 @@ import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_session_lock.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
@@ -53,7 +54,18 @@ class FakeTokenStorage extends Mock implements TokenStorage {
   }
 
   @override
+  Future<String?> getAccessToken() async => savedAccessToken;
+
+  @override
   Future<String?> getRefreshToken() async => currentRefreshToken;
+
+  @override
+  Future<void> clear() async {
+    currentUserId = null;
+    currentRefreshToken = null;
+    savedAccessToken = null;
+    savedRefreshToken = null;
+  }
 
   @override
   Future<void> saveTokens({
@@ -508,8 +520,9 @@ void main() {
         });
 
         final refreshFuture = repo.refreshToken('user-a');
+        var refreshCompleted = false;
+        unawaited(refreshFuture.then((_) => refreshCompleted = true));
         await refreshStarted.future;
-        check(fakeStorage.getUserIdCalls).equals(1);
 
         final loginFuture = repo.login('b@example.com', 'password-b');
         await bSaveStarted.future;
@@ -517,18 +530,159 @@ void main() {
         refreshGate.complete({'access_token': 'new_access_a'});
         await Future<void>.delayed(Duration.zero);
 
-        // BのsaveTokensがロック解放するまで、リフレッシュ側の保存前ユーザー照合は待機すること
-        check(fakeStorage.getUserIdCalls).equals(1);
+        // BのsaveTokensがロック解放するまで、リフレッシュ側のロック後チェックも完了しないこと
+        check(refreshCompleted).equals(false);
 
         bSaveGate.complete();
         await loginFuture;
         final refreshed = await refreshFuture;
 
         check(refreshed).equals(false);
-        check(fakeStorage.getUserIdCalls).equals(2);
         check(fakeStorage.savedAccessToken).equals('access-b');
         check(fakeStorage.savedRefreshToken).equals('refresh-b');
         check(fakeStorage.currentUserId).equals('user-b');
+      });
+
+      test(
+        'ID未取得(null)トークン同士でサインアウト後に別ユーザーBがログインした場合、Bのトークンを上書きせず false を返すこと',
+        () async {
+          final fakeStorage = FakeTokenStorage(
+            initialRefreshToken: 'refresh-a',
+          );
+          final container = createContainer(fakeStorage);
+          final repo = container.read(authRepositoryProvider);
+
+          final refreshStarted = Completer<void>();
+          final refreshGate = Completer<Map<String, dynamic>>();
+          when(
+            () => mockApi.post<Map<String, dynamic>>(
+              '/auth/refresh',
+              data: any<dynamic>(named: 'data'),
+            ),
+          ).thenAnswer((_) async {
+            refreshStarted.complete();
+            final response = MockResponse();
+            final data = await refreshGate.future;
+            when(() => response.data).thenReturn(data);
+            return response;
+          });
+          when(
+            () => mockApi.post<Map<String, dynamic>>(
+              '/auth/login',
+              data: any<dynamic>(named: 'data'),
+            ),
+          ).thenAnswer((_) async {
+            final response = MockResponse();
+            when(() => response.data).thenReturn({
+              'access_token': 'opaque-access-b',
+              'refresh_token': 'refresh-b',
+            });
+            return response;
+          });
+
+          final refreshFuture = repo.refreshToken(null);
+          await refreshStarted.future;
+
+          await container.read(authStateProvider.notifier).logout();
+          await repo.login('b@example.com', 'password-b');
+
+          refreshGate.complete({'access_token': 'new_opaque_access_a'});
+
+          check(await refreshFuture).equals(false);
+          check(fakeStorage.savedAccessToken).equals('opaque-access-b');
+          check(fakeStorage.savedRefreshToken).equals('refresh-b');
+          check(fakeStorage.currentUserId).isNull();
+        },
+      );
+
+      test('同一ユーザーがサインアウト後に再ログインした場合、新旧セッションを区別し旧リフレッシュ結果を保存しないこと', () async {
+        late FakeTokenStorage fakeStorage;
+        fakeStorage = FakeTokenStorage(
+          initialRefreshToken: 'refresh-a-old',
+          currentUserId: 'user-a',
+          onSaveTokens: (accessToken, _) async {
+            if (accessToken == 'access-a-new') {
+              fakeStorage.currentUserId = 'user-a';
+            }
+          },
+        );
+        final container = createContainer(fakeStorage);
+        final repo = container.read(authRepositoryProvider);
+
+        final refreshStarted = Completer<void>();
+        final refreshGate = Completer<Map<String, dynamic>>();
+        when(
+          () => mockApi.post<Map<String, dynamic>>(
+            '/auth/refresh',
+            data: any<dynamic>(named: 'data'),
+          ),
+        ).thenAnswer((_) async {
+          refreshStarted.complete();
+          final response = MockResponse();
+          final data = await refreshGate.future;
+          when(() => response.data).thenReturn(data);
+          return response;
+        });
+        when(
+          () => mockApi.post<Map<String, dynamic>>(
+            '/auth/login',
+            data: any<dynamic>(named: 'data'),
+          ),
+        ).thenAnswer((_) async {
+          final response = MockResponse();
+          when(() => response.data).thenReturn({
+            'access_token': 'access-a-new',
+            // リフレッシュトークンが同一値であってもセッション世代で区別できることを検証
+            'refresh_token': 'refresh-a-old',
+          });
+          return response;
+        });
+
+        final refreshFuture = repo.refreshToken('user-a');
+        await refreshStarted.future;
+
+        await container.read(authStateProvider.notifier).logout();
+        await repo.login('a@example.com', 'password-a');
+
+        refreshGate.complete({'access_token': 'stale_refreshed_access_a'});
+
+        check(await refreshFuture).equals(false);
+        check(fakeStorage.savedAccessToken).equals('access-a-new');
+        check(fakeStorage.savedRefreshToken).equals('refresh-a-old');
+        check(fakeStorage.currentUserId).equals('user-a');
+      });
+
+      test('セッション世代が変わらずリフレッシュトークンのみ別値に変化していた場合も、保存せず false を返すこと', () async {
+        final fakeStorage = FakeTokenStorage(initialRefreshToken: 'refresh-a');
+        final container = createContainer(fakeStorage);
+        final repo = container.read(authRepositoryProvider);
+
+        final refreshStarted = Completer<void>();
+        final refreshGate = Completer<Map<String, dynamic>>();
+        when(
+          () => mockApi.post<Map<String, dynamic>>(
+            '/auth/refresh',
+            data: any<dynamic>(named: 'data'),
+          ),
+        ).thenAnswer((_) async {
+          refreshStarted.complete();
+          final response = MockResponse();
+          final data = await refreshGate.future;
+          when(() => response.data).thenReturn(data);
+          return response;
+        });
+
+        final refreshFuture = repo.refreshToken(null);
+        await refreshStarted.future;
+
+        await container.read(authSessionLockProvider).synchronized(() async {
+          fakeStorage.currentRefreshToken = 'refresh-b';
+        });
+
+        refreshGate.complete({'access_token': 'new_access_a'});
+
+        check(await refreshFuture).equals(false);
+        check(fakeStorage.savedAccessToken).isNull();
       });
 
       test('sessionLockを省略して生成した場合でも、デフォルトロックでrefreshTokenを実行できること', () async {

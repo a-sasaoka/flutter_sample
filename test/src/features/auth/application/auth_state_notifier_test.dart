@@ -302,18 +302,21 @@ void main() {
         loginLockGate.complete();
         await Future.wait<void>([loginLockHolder, loginFuture]);
         check(fakeStorage.isSaveTokensCalled).equals(true);
+        check(lock.sessionEpoch).equals(1);
 
-        // logout も既存ロックを待つことを検証
+        // logout も既存ロックを待ち、セッション世代を更新することを検証
         final logoutLockGate = Completer<void>();
         final logoutLockHolder = lock.synchronized(() => logoutLockGate.future);
 
         final logoutFuture = notifier.logout();
         await Future<void>.delayed(Duration.zero);
         check(fakeStorage.isClearCalled).equals(false);
+        check(lock.sessionEpoch).equals(1);
 
         logoutLockGate.complete();
         await Future.wait<void>([logoutLockHolder, logoutFuture]);
         check(fakeStorage.isClearCalled).equals(true);
+        check(lock.sessionEpoch).equals(2);
       },
     );
   });

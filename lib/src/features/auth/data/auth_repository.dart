@@ -58,7 +58,7 @@ class AuthRepository {
       'access_token': final String access,
       'refresh_token': final String refresh,
     }) {
-      await _sessionLock.synchronized(
+      await _sessionLock.runSessionTransition(
         () =>
             tokenStorage.saveTokens(accessToken: access, refreshToken: refresh),
       );
@@ -72,47 +72,44 @@ class AuthRepository {
     }
   }
 
-  /// リフレッシュトークンAPIを呼び出し、開始時のユーザー [expectedUserId] と一致する場合のみ保存する
+  /// リフレッシュトークンAPIを呼び出し、開始時と同一セッションである場合のみ保存する
   Future<bool> refreshToken(String? expectedUserId) async {
-    final refresh = await _withUserMatchLock<String?>(
-      expectedUserId: expectedUserId,
-      onMismatch: null,
-      action: tokenStorage.getRefreshToken,
-    );
-    if (refresh == null) return false;
+    final startState = await _sessionLock.synchronized(() async {
+      final currentUserId = await tokenStorage.getUserId();
+      if (currentUserId != expectedUserId) return null;
+
+      final refresh = await tokenStorage.getRefreshToken();
+      if (refresh == null) return null;
+
+      return (refreshToken: refresh, sessionEpoch: _sessionLock.sessionEpoch);
+    });
+    if (startState == null) return false;
 
     final response = await api.post<Map<String, dynamic>>(
       '/auth/refresh',
-      data: {'refresh_token': refresh},
+      data: {'refresh_token': startState.refreshToken},
     );
 
     final access = response.data?['access_token'] as String?;
     if (access == null) return false;
 
-    return await _withUserMatchLock<bool>(
-      expectedUserId: expectedUserId,
-      onMismatch: false,
-      action: () async {
-        await tokenStorage.saveTokens(
-          accessToken: access,
-          refreshToken: refresh,
-        );
-        return true;
-      },
-    );
-  }
+    return await _sessionLock.synchronized(() async {
+      // ID未取得(null)トークン同士の切替や同一ユーザーの再ログインも区別するため、
+      // ロック内でセッション世代・ユーザーID・リフレッシュトークンをすべて照合する
+      if (_sessionLock.sessionEpoch != startState.sessionEpoch) return false;
 
-  Future<T> _withUserMatchLock<T>({
-    required String? expectedUserId,
-    required T onMismatch,
-    required Future<T> Function() action,
-  }) {
-    return _sessionLock.synchronized(() async {
-      // 確認後に別アカウントへ切り替わる競合を防ぐため、同一ロック内でユーザーを照合してからストレージ操作を行う
       final currentUserId = await tokenStorage.getUserId();
-      if (currentUserId != expectedUserId) return onMismatch;
+      final currentRefreshToken = await tokenStorage.getRefreshToken();
+      if (currentUserId != expectedUserId ||
+          currentRefreshToken != startState.refreshToken) {
+        return false;
+      }
 
-      return await action();
+      await tokenStorage.saveTokens(
+        accessToken: access,
+        refreshToken: startState.refreshToken,
+      );
+      return true;
     });
   }
 }

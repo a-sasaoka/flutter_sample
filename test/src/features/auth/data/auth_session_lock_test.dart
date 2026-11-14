@@ -72,5 +72,19 @@ void main() {
       check(await secondFuture).equals(42);
       check(events).deepEquals(['first:start', 'second:executed']);
     });
+
+    test('runSessionTransition: セッション世代が進み、synchronizedでは進まないこと', () async {
+      final lock = AuthSessionLock();
+      check(lock.sessionEpoch).equals(0);
+
+      await lock.synchronized(() async {});
+      check(lock.sessionEpoch).equals(0);
+
+      final result = await lock.runSessionTransition(
+        () async => 'transitioned',
+      );
+      check(result).equals('transitioned');
+      check(lock.sessionEpoch).equals(1);
+    });
   });
 }

@@ -19,7 +19,7 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     try {
       await ref
           .read(authSessionLockProvider)
-          .synchronized(
+          .runSessionTransition(
             () => ref
                 .read(tokenStorageProvider)
                 .saveTokens(
@@ -55,7 +55,7 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     try {
       await ref
           .read(authSessionLockProvider)
-          .synchronized(() => ref.read(tokenStorageProvider).clear());
+          .runSessionTransition(() => ref.read(tokenStorageProvider).clear());
       state = const AsyncData(false);
     } catch (e, st) {
       state = AsyncError(e, st);
