@@ -6,7 +6,6 @@ import 'package:flutter_sample/src/app/database/app_database.dart';
 import 'package:flutter_sample/src/core/database/database_provider.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
-import 'package:flutter_sample/src/core/utils/date_time_extension.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
@@ -94,7 +93,7 @@ class MemoRepository {
     String userId, {
     MemoCategory? category,
   }) async {
-    final now = _clock().truncateToSeconds();
+    final now = _clock();
 
     // UUIDを作る
     final generatedId = _uuid.v4();
@@ -109,6 +108,7 @@ class MemoRepository {
         content: content,
         createdAt: now,
         updatedAt: now,
+        updatedAtMicros: drift.Value(now.microsecondsSinceEpoch),
         category: drift.Value(category),
         sortOrder: const drift.Value(0),
       ),
@@ -151,7 +151,7 @@ class MemoRepository {
     String userId, {
     drift.Value<MemoCategory?> category = const drift.Value.absent(),
   }) async {
-    final now = _clock().truncateToSeconds();
+    final now = _clock();
 
     // まずはスマホ側のデータを更新し、未送信状態に戻す
     await _dao.updateMemo(
@@ -161,6 +161,7 @@ class MemoRepository {
         title: drift.Value(title),
         content: drift.Value(content),
         updatedAt: drift.Value(now),
+        updatedAtMicros: drift.Value(now.microsecondsSinceEpoch),
         isSynced: const drift.Value(false),
         category: category,
       ),
@@ -310,7 +311,7 @@ class MemoRepository {
     String userId, {
     bool waitForRemoteSync = true,
   }) async {
-    final now = _clock().truncateToSeconds();
+    final now = _clock();
 
     // スマホ側で論理削除マークをつける
     await _dao.updateMemo(
@@ -318,6 +319,7 @@ class MemoRepository {
       userId,
       MemosCompanion(
         updatedAt: drift.Value(now),
+        updatedAtMicros: drift.Value(now.microsecondsSinceEpoch),
         isDeleted: const drift.Value(true),
         isSynced: const drift.Value(false),
       ),
@@ -342,7 +344,7 @@ class MemoRepository {
     String userId, {
     bool waitForRemoteSync = true,
   }) async {
-    final now = _clock().truncateToSeconds();
+    final now = _clock();
 
     // スマホ側で論理削除を解除し、未同期状態に戻す
     await _dao.restoreMemo(id, userId, now);
@@ -388,7 +390,7 @@ class MemoRepository {
 
         await _uploadMemoAndMarkSyncedIfUnchanged(
           memo: latestMemo,
-          updatedAt: latestMemo.updatedAt,
+          updatedAt: _effectiveUpdatedAt(latestMemo),
           isDeleted: latestMemo.isDeleted,
           expectedToken: _syncQueue.currentToken(userId, memo.id),
           successLog: 'Synced unsent memo to server. id: ${memo.id}',
@@ -442,6 +444,10 @@ class MemoRepository {
         });
   }
 
+  DateTime _effectiveUpdatedAt(Memo memo) => memo.updatedAtMicros != null
+      ? DateTime.fromMicrosecondsSinceEpoch(memo.updatedAtMicros!)
+      : memo.updatedAt;
+
   /// DriftのMemoデータをドメイン層のMemoModelへ変換するヘルパーメソッド
   MemoModel _mapToMemoModel(Memo memo) {
     return MemoModel(
@@ -450,7 +456,7 @@ class MemoRepository {
       title: memo.title,
       content: memo.content,
       createdAt: memo.createdAt,
-      updatedAt: memo.updatedAt,
+      updatedAt: _effectiveUpdatedAt(memo),
       isDeleted: memo.isDeleted,
       isSynced: memo.isSynced,
       category: memo.category,

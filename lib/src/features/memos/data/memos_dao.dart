@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:flutter_sample/src/app/database/app_database.dart';
-import 'package:flutter_sample/src/core/utils/date_time_extension.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_table.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_category.dart';
 
@@ -119,14 +118,26 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
     memos,
   )..where((t) => t.id.equals(id) & t.userId.equals(userId))).getSingle();
 
+  MemosCompanion _withUpdatedAtMicros(MemosCompanion memo) {
+    if (memo.updatedAtMicros.present || !memo.updatedAt.present) {
+      return memo;
+    }
+    return memo.copyWith(
+      updatedAtMicros: Value(memo.updatedAt.value.microsecondsSinceEpoch),
+    );
+  }
+
+  int _localUpdatedAtMicros(Memo memo) =>
+      memo.updatedAtMicros ?? memo.updatedAt.microsecondsSinceEpoch;
+
   /// メモを追加する
-  Future<void> insertMemo(MemosCompanion memo) => into(memos).insert(memo);
+  Future<void> insertMemo(MemosCompanion memo) =>
+      into(memos).insert(_withUpdatedAtMicros(memo));
 
   /// メモを更新する（所有ユーザーのもののみ）
   Future<void> updateMemo(String id, String userId, MemosCompanion memo) =>
-      (update(
-        memos,
-      )..where((t) => t.id.equals(id) & t.userId.equals(userId))).write(memo);
+      (update(memos)..where((t) => t.id.equals(id) & t.userId.equals(userId)))
+          .write(_withUpdatedAtMicros(memo));
 
   /// 指定したユーザーの同期が必要なメモ（isSynced = false）を取得する
   Future<List<Memo>> getUnsyncedMemos(String userId) => (select(
@@ -149,7 +160,11 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
   /// 複数のメモを一括で挿入または更新する
   Future<void> upsertMemos(List<MemosCompanion> companions) async {
     await batch((batch) {
-      batch.insertAll(memos, companions, mode: InsertMode.insertOrReplace);
+      batch.insertAll(
+        memos,
+        companions.map(_withUpdatedAtMicros).toList(),
+        mode: InsertMode.insertOrReplace,
+      );
     });
   }
 
@@ -206,13 +221,26 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
 
       for (final memo in latestRemoteMemosById.values) {
         final localMemo = localMemosMap[memo.id];
-        final remoteUpdatedAt = memo.updatedAt.truncateToSeconds();
+        final remoteMicros = memo.updatedAt.microsecondsSinceEpoch;
 
-        // サーバーのデータが新しい場合、またはローカルに存在しない場合に更新/挿入対象とする
-        // ローカルDBはUnix秒精度で保存されるため、同じ秒精度で比較して
-        // 同秒内の古い削除データによる未同期復元の誤上書きを防ぐ
-        if (localMemo == null ||
-            remoteUpdatedAt.isAfter(localMemo.updatedAt.truncateToSeconds())) {
+        final bool shouldUpsert;
+        if (localMemo == null) {
+          shouldUpsert = true;
+        } else {
+          final localMicros = _localUpdatedAtMicros(localMemo);
+          final hasDiff =
+              localMemo.isDeleted != memo.isDeleted ||
+              localMemo.title != memo.title ||
+              localMemo.content != memo.content;
+          // サーバーのデータが新しい場合（マイクロ秒比較）に更新対象とする。
+          // 同一タイムスタンプの場合は同期済みレコードかつ内容・削除状態に差分があるときのみ取り込み、
+          // 未同期のローカル変更（復元・編集等）を保護する。
+          shouldUpsert =
+              remoteMicros > localMicros ||
+              (remoteMicros == localMicros && localMemo.isSynced && hasDiff);
+        }
+
+        if (shouldUpsert) {
           final int sortOrder;
           if (localMemo != null) {
             // 既存メモは shiftSortOrders でシフトされた後の値を維持する
@@ -231,8 +259,9 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
               userId: userId,
               title: memo.title,
               content: memo.content,
-              createdAt: memo.createdAt.truncateToSeconds(),
-              updatedAt: remoteUpdatedAt,
+              createdAt: memo.createdAt,
+              updatedAt: memo.updatedAt,
+              updatedAtMicros: Value(remoteMicros),
               isDeleted: Value(memo.isDeleted),
               isSynced: const Value(true),
               category: Value(localMemo?.category),
@@ -334,6 +363,7 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
         MemosCompanion(
           isDeleted: const Value(false),
           updatedAt: Value(updatedAt),
+          updatedAtMicros: Value(updatedAt.microsecondsSinceEpoch),
           isSynced: const Value(false),
         ),
       );
@@ -356,6 +386,8 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
                 t.content.equals(content) &
                 t.createdAt.equals(createdAt) &
                 t.updatedAt.equals(updatedAt) &
+                (t.updatedAtMicros.equals(updatedAt.microsecondsSinceEpoch) |
+                    t.updatedAtMicros.isNull()) &
                 t.isDeleted.equals(isDeleted),
           ))
           .write(const MemosCompanion(isSynced: Value(true)));

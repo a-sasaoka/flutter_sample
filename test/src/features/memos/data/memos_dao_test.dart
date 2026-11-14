@@ -1287,7 +1287,7 @@ void main() {
           ),
         );
 
-        // 同一秒内のサブ秒で復元（DB上は秒切り捨ての 10:00:00.000 で保存される）
+        // 同一秒内のサブ秒で復元（DB上には updatedAtMicros でマイクロ秒精度も保存される）
         await dao.restoreMemo(
           'memo-restore-subsec',
           testUserId,
@@ -1295,7 +1295,7 @@ void main() {
         );
 
         // サーバー側に同一秒の古い削除日時（.200）が残っていても、
-        // 秒精度比較により古い削除を採用せず未同期の復元を保持すること
+        // マイクロ秒精度比較により古い削除を採用せず未同期の復元を保持すること
         await dao.mergeRemoteMemos(testUserId, [
           {
             'id': 'memo-restore-subsec',
@@ -1314,6 +1314,151 @@ void main() {
         check(current.isDeleted).isFalse();
         check(current.isSynced).isFalse();
         check(current.updatedAt).equals(baseTime);
+        check(
+          current.updatedAtMicros,
+        ).equals(restoreSubSecTime.microsecondsSinceEpoch);
+      });
+
+      test('【正常系】mergeRemoteMemosで別端末の削除（同期済み）を取得後、'
+          '同秒内のサブ秒復元および同一updatedAtの復元を取得した際に復元が反映されること', () async {
+        final baseTime = DateTime(2026, 11, 14, 10);
+        final deleteSubSecTime = DateTime(2026, 11, 14, 10, 0, 0, 200);
+        final restoreSubSecTime = DateTime(2026, 11, 14, 10, 0, 0, 700);
+
+        // 1. 端末Bで端末Aによる削除をそれぞれ取得（同期済み）
+        // - memo-subsec: 同秒内の後続時刻（.200 -> .700）で復元されるケース
+        // - memo-same-ts: 同一 updatedAt（.700 -> .700）で復元されるケース
+        // - memo-unsynced-same: 未同期のローカル復元（.700）が同一時刻削除から保護されるケース
+        await dao.mergeRemoteMemos(testUserId, [
+          {
+            'id': 'memo-subsec',
+            'title': 'サブ秒後続復元',
+            'content': '本文1',
+            'createdAt': baseTime,
+            'updatedAt': deleteSubSecTime,
+            'isDeleted': true,
+          },
+          {
+            'id': 'memo-same-ts',
+            'title': '同一時刻復元',
+            'content': '本文2',
+            'createdAt': baseTime,
+            'updatedAt': restoreSubSecTime,
+            'isDeleted': true,
+          },
+          {
+            'id': 'memo-unsynced-same',
+            'title': '未同期保護',
+            'content': '本文3',
+            'createdAt': baseTime,
+            'updatedAt': deleteSubSecTime,
+            'isDeleted': true,
+          },
+        ]);
+
+        await dao.restoreMemo(
+          'memo-unsynced-same',
+          testUserId,
+          restoreSubSecTime,
+        );
+
+        // 2. 同秒内に端末A側で復元されたリモートデータを取得
+        await dao.mergeRemoteMemos(testUserId, [
+          {
+            'id': 'memo-subsec',
+            'title': 'サブ秒後続復元',
+            'content': '本文1',
+            'createdAt': baseTime,
+            'updatedAt': restoreSubSecTime,
+            'isDeleted': false,
+          },
+          {
+            'id': 'memo-same-ts',
+            'title': '同一時刻復元',
+            'content': '本文2',
+            'createdAt': baseTime,
+            'updatedAt': restoreSubSecTime,
+            'isDeleted': false,
+          },
+          {
+            'id': 'memo-unsynced-same',
+            'title': '未同期保護',
+            'content': '本文3',
+            'createdAt': baseTime,
+            'updatedAt': restoreSubSecTime,
+            'isDeleted': true,
+          },
+        ]);
+
+        final subSecMemo = await dao.getMemoById('memo-subsec', testUserId);
+        check(subSecMemo.isDeleted).isFalse();
+        check(subSecMemo.isSynced).isTrue();
+        check(
+          subSecMemo.updatedAtMicros,
+        ).equals(restoreSubSecTime.microsecondsSinceEpoch);
+
+        final sameTsMemo = await dao.getMemoById('memo-same-ts', testUserId);
+        check(sameTsMemo.isDeleted).isFalse();
+        check(sameTsMemo.isSynced).isTrue();
+        check(
+          sameTsMemo.updatedAtMicros,
+        ).equals(restoreSubSecTime.microsecondsSinceEpoch);
+
+        // 未同期のローカル復元は同一 updatedAt のリモート削除で上書きされない
+        final unsyncedMemo = await dao.getMemoById(
+          'memo-unsynced-same',
+          testUserId,
+        );
+        check(unsyncedMemo.isDeleted).isFalse();
+        check(unsyncedMemo.isSynced).isFalse();
+      });
+
+      test('【正常系】updatedAtMicrosがNULL（v5移行直後）のレコードでも'
+          'mergeRemoteMemosとmarkAsSyncedIfUnchangedが正しく動作すること', () async {
+        final baseTime = DateTime(2026, 11, 14, 10);
+        final subSecSameSecond = DateTime(2026, 11, 14, 10, 0, 0, 500);
+
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'memo-v5-legacy',
+            userId: testUserId,
+            title: '移行データ',
+            content: '本文',
+            createdAt: baseTime,
+            updatedAt: baseTime,
+            updatedAtMicros: const Value(null),
+          ),
+        );
+
+        await dao.markAsSyncedIfUnchanged(
+          id: 'memo-v5-legacy',
+          userId: testUserId,
+          title: '移行データ',
+          content: '本文',
+          createdAt: baseTime,
+          updatedAt: baseTime,
+          isDeleted: false,
+        );
+        var current = await dao.getMemoById('memo-v5-legacy', testUserId);
+        check(current.isSynced).isTrue();
+
+        // NULL フォールバック（baseTime のマイクロ秒 = .000）より新しい .500 が反映される
+        await dao.mergeRemoteMemos(testUserId, [
+          {
+            'id': 'memo-v5-legacy',
+            'title': '移行データ更新',
+            'content': '更新本文',
+            'createdAt': baseTime,
+            'updatedAt': subSecSameSecond,
+            'isDeleted': false,
+          },
+        ]);
+
+        current = await dao.getMemoById('memo-v5-legacy', testUserId);
+        check(current.title).equals('移行データ更新');
+        check(
+          current.updatedAtMicros,
+        ).equals(subSecSameSecond.microsecondsSinceEpoch);
       });
     });
   });

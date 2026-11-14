@@ -19,7 +19,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -79,6 +79,17 @@ class AppDatabase extends _$AppDatabase {
             MemosCompanion(sortOrder: Value(count)),
           );
           userSortCount[memo.userId] = count + 1;
+        }
+      }
+      if (from < 6) {
+        // メモ更新日時のマイクロ秒精度保持対応:
+        // 冪等性確保: updated_at_micros カラムが存在しない場合のみ追加
+        final columns = await customSelect('PRAGMA table_info(memos);').get();
+        final hasUpdatedAtMicros = columns.any(
+          (row) => row.read<String>('name') == 'updated_at_micros',
+        );
+        if (!hasUpdatedAtMicros) {
+          await m.addColumn(memos, memos.updatedAtMicros);
         }
       }
     },

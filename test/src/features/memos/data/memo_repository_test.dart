@@ -2153,7 +2153,7 @@ void main() {
       });
 
       test('同一秒内でサブ秒を含む削除成功・復元失敗の後にmergeRemoteMemosが実行されても、'
-          '削除・復元の保存値と送信値が秒精度に揃い未同期の復元が保持・再送されること', () async {
+          'サブ秒精度で比較され未同期の復元が保持・再送されること', () async {
         final createdTime = DateTime(2026, 11, 14, 9, 59, 0, 450);
         final deleteClockTime = DateTime(2026, 11, 14, 10, 0, 0, 200);
         final restoreClockTime = DateTime(2026, 11, 14, 10, 0, 0, 800);
@@ -2209,7 +2209,7 @@ void main() {
           testUserId,
         )).first.id;
 
-        // 1. 削除をサブ秒（10:00:00.200）で実行し、送信値・DB保存値ともに秒精度に揃うこと
+        // 1. 削除をサブ秒（10:00:00.200）で実行し、サブ秒精度のまま送信・保存されること
         currentClock = deleteClockTime;
         await repository.deleteMemo(memoId, testUserId);
 
@@ -2217,10 +2217,11 @@ void main() {
           memoId,
           testUserId,
         );
-        final expectedSecondTime = DateTime(2026, 11, 14, 10);
-        check(deletedLocal.updatedAt).equals(expectedSecondTime);
+        check(
+          deletedLocal.updatedAtMicros,
+        ).equals(deleteClockTime.microsecondsSinceEpoch);
         check(uploadedRecords.last.isDeleted).isTrue();
-        check(uploadedRecords.last.updatedAt).equals(expectedSecondTime);
+        check(uploadedRecords.last.updatedAt).equals(deleteClockTime);
 
         // 2. 同じ秒（10:00:00.800）で復元を実行し、リモート送信だけ失敗させる
         currentClock = restoreClockTime;
@@ -2233,9 +2234,11 @@ void main() {
         );
         check(restoredLocal.isDeleted).isFalse();
         check(restoredLocal.isSynced).isFalse();
-        check(restoredLocal.updatedAt).equals(expectedSecondTime);
+        check(
+          restoredLocal.updatedAtMicros,
+        ).equals(restoreClockTime.microsecondsSinceEpoch);
 
-        // 3. リモートが削除時のデータ（サブ秒あり想定も含む）を返しても未同期の復元を維持すること
+        // 3. リモートが削除時のデータ（10:00:00.200）を返しても未同期の復元を維持すること
         when(() => mockRemoteService.fetchMemos()).thenAnswer(
           (_) async => [
             {
@@ -2254,9 +2257,13 @@ void main() {
         restoredLocal = await database.memosDao.getMemoById(memoId, testUserId);
         check(restoredLocal.isDeleted).isFalse();
         check(restoredLocal.isSynced).isFalse();
-        check(restoredLocal.updatedAt).equals(expectedSecondTime);
+        check(
+          restoredLocal.updatedAtMicros,
+        ).equals(restoreClockTime.microsecondsSinceEpoch);
+        final localModels = await repository.getLocalMemos(testUserId);
+        check(localModels.single.updatedAt).equals(restoreClockTime);
 
-        // 4. 通信回復後の同期で未同期の復元が再送され、同期済みになること
+        // 4. 通信回復後の同期で未同期の復元がサブ秒精度で再送され、同期済みになること
         shouldFailRestore = false;
         await repository.syncUnsentMemos(testUserId);
 
@@ -2264,7 +2271,150 @@ void main() {
         check(restoredLocal.isDeleted).isFalse();
         check(restoredLocal.isSynced).isTrue();
         check(uploadedRecords.last.isDeleted).isFalse();
-        check(uploadedRecords.last.updatedAt).equals(expectedSecondTime);
+        check(uploadedRecords.last.updatedAt).equals(restoreClockTime);
+      });
+
+      test('別端末で削除（同期済み）を取得した後、同秒内の復元（サブ秒更新および同一updatedAt更新）を'
+          '取得するとローカルに復元が反映されること', () async {
+        final createdTime = DateTime(2026, 11, 14, 9, 59);
+        final deleteSubSecTime = DateTime(2026, 11, 14, 10, 0, 0, 200);
+        final restoreSubSecTime = DateTime(2026, 11, 14, 10, 0, 0, 700);
+        final sameTimestampTime = DateTime(2026, 11, 14, 10, 0, 0, 500);
+
+        final container = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final repository = container.read(memoRepositoryProvider);
+
+        // 1. 端末Bで他端末による削除（サブ秒 / 同一秒同値）を取得する
+        when(() => mockRemoteService.fetchMemos()).thenAnswer(
+          (_) async => [
+            {
+              'id': 'remote-memo-subsec',
+              'title': '別端末メモ1',
+              'content': '本文1',
+              'createdAt': createdTime,
+              'updatedAt': deleteSubSecTime,
+              'isDeleted': true,
+            },
+            {
+              'id': 'remote-memo-same-ts',
+              'title': '別端末メモ2',
+              'content': '本文2',
+              'createdAt': createdTime,
+              'updatedAt': sameTimestampTime,
+              'isDeleted': true,
+            },
+          ],
+        );
+
+        var activeMemos = await repository.getAllMemos(testUserId);
+        check(activeMemos).isEmpty();
+
+        // 2. 同秒内に他端末で復元されたデータを受信する
+        when(() => mockRemoteService.fetchMemos()).thenAnswer(
+          (_) async => [
+            {
+              'id': 'remote-memo-subsec',
+              'title': '別端末メモ1',
+              'content': '本文1',
+              'createdAt': createdTime,
+              'updatedAt': restoreSubSecTime,
+              'isDeleted': false,
+            },
+            {
+              'id': 'remote-memo-same-ts',
+              'title': '別端末メモ2',
+              'content': '本文2',
+              'createdAt': createdTime,
+              'updatedAt': sameTimestampTime,
+              'isDeleted': false,
+            },
+          ],
+        );
+
+        activeMemos = await repository.getAllMemos(testUserId);
+        check(activeMemos.length).equals(2);
+        final byId = {for (final memo in activeMemos) memo.id: memo};
+        check(byId['remote-memo-subsec']!.isDeleted).isFalse();
+        check(byId['remote-memo-subsec']!.isSynced).isTrue();
+        check(byId['remote-memo-subsec']!.updatedAt).equals(restoreSubSecTime);
+        check(byId['remote-memo-same-ts']!.isDeleted).isFalse();
+        check(byId['remote-memo-same-ts']!.isSynced).isTrue();
+        check(byId['remote-memo-same-ts']!.updatedAt).equals(sameTimestampTime);
+      });
+
+      test('updatedAtMicrosがNULL（v5移行直後）の未同期メモに対して'
+          'getLocalMemosとsyncUnsentMemosがupdatedAtへフォールバックすること', () async {
+        final fallbackTime = DateTime(2026, 11, 14, 10);
+        final container = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await database.memosDao.insertMemo(
+          MemosCompanion.insert(
+            id: 'memo-legacy-null-micros',
+            userId: testUserId,
+            title: 'レガシー',
+            content: '本文',
+            createdAt: fallbackTime,
+            updatedAt: fallbackTime,
+            updatedAtMicros: const drift.Value(null),
+          ),
+        );
+
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: 'memo-legacy-null-micros',
+            title: 'レガシー',
+            content: '本文',
+            createdAt: fallbackTime,
+            updatedAt: fallbackTime,
+            isDeleted: false,
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) async {});
+
+        final repository = container.read(memoRepositoryProvider);
+        final local = await repository.getLocalMemos(testUserId);
+        check(local.single.updatedAt).equals(fallbackTime);
+
+        await repository.syncUnsentMemos(testUserId);
+        verify(
+          () => mockRemoteService.uploadMemo(
+            id: 'memo-legacy-null-micros',
+            title: 'レガシー',
+            content: '本文',
+            createdAt: fallbackTime,
+            updatedAt: fallbackTime,
+            isDeleted: false,
+            expectedUserId: testUserId,
+          ),
+        ).called(1);
+        final synced = await database.memosDao.getMemoById(
+          'memo-legacy-null-micros',
+          testUserId,
+        );
+        check(synced.isSynced).isTrue();
       });
     });
   });

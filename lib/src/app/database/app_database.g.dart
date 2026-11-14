@@ -68,6 +68,17 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _updatedAtMicrosMeta = const VerificationMeta(
+    'updatedAtMicros',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAtMicros = GeneratedColumn<int>(
+    'updated_at_micros',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _isDeletedMeta = const VerificationMeta(
     'isDeleted',
   );
@@ -127,6 +138,7 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
     content,
     createdAt,
     updatedAt,
+    updatedAtMicros,
     isDeleted,
     isSynced,
     category,
@@ -189,6 +201,15 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('updated_at_micros')) {
+      context.handle(
+        _updatedAtMicrosMeta,
+        updatedAtMicros.isAcceptableOrUnknown(
+          data['updated_at_micros']!,
+          _updatedAtMicrosMeta,
+        ),
+      );
+    }
     if (data.containsKey('is_deleted')) {
       context.handle(
         _isDeletedMeta,
@@ -240,6 +261,10 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      updatedAtMicros: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at_micros'],
+      ),
       isDeleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_deleted'],
@@ -291,6 +316,9 @@ class Memo extends DataClass implements Insertable<Memo> {
   /// 最後に更新した日時（複数の端末で同時に編集された時、新しい方を優先するため）
   final DateTime updatedAt;
 
+  /// 最終更新日時のマイクロ秒タイムスタンプ（同秒内のリモート更新比較・未同期保護用）
+  final int? updatedAtMicros;
+
   /// 削除フラグ
   final bool isDeleted;
 
@@ -309,6 +337,7 @@ class Memo extends DataClass implements Insertable<Memo> {
     required this.content,
     required this.createdAt,
     required this.updatedAt,
+    this.updatedAtMicros,
     required this.isDeleted,
     required this.isSynced,
     this.category,
@@ -323,6 +352,9 @@ class Memo extends DataClass implements Insertable<Memo> {
     map['content'] = Variable<String>(content);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || updatedAtMicros != null) {
+      map['updated_at_micros'] = Variable<int>(updatedAtMicros);
+    }
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['is_synced'] = Variable<bool>(isSynced);
     if (!nullToAbsent || category != null) {
@@ -342,6 +374,9 @@ class Memo extends DataClass implements Insertable<Memo> {
       content: Value(content),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      updatedAtMicros: updatedAtMicros == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAtMicros),
       isDeleted: Value(isDeleted),
       isSynced: Value(isSynced),
       category: category == null && nullToAbsent
@@ -363,6 +398,7 @@ class Memo extends DataClass implements Insertable<Memo> {
       content: serializer.fromJson<String>(json['content']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      updatedAtMicros: serializer.fromJson<int?>(json['updatedAtMicros']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
       category: $MemosTable.$convertercategoryn.fromJson(
@@ -381,6 +417,7 @@ class Memo extends DataClass implements Insertable<Memo> {
       'content': serializer.toJson<String>(content),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'updatedAtMicros': serializer.toJson<int?>(updatedAtMicros),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'isSynced': serializer.toJson<bool>(isSynced),
       'category': serializer.toJson<String?>(
@@ -397,6 +434,7 @@ class Memo extends DataClass implements Insertable<Memo> {
     String? content,
     DateTime? createdAt,
     DateTime? updatedAt,
+    Value<int?> updatedAtMicros = const Value.absent(),
     bool? isDeleted,
     bool? isSynced,
     Value<MemoCategory?> category = const Value.absent(),
@@ -408,6 +446,9 @@ class Memo extends DataClass implements Insertable<Memo> {
     content: content ?? this.content,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    updatedAtMicros: updatedAtMicros.present
+        ? updatedAtMicros.value
+        : this.updatedAtMicros,
     isDeleted: isDeleted ?? this.isDeleted,
     isSynced: isSynced ?? this.isSynced,
     category: category.present ? category.value : this.category,
@@ -421,6 +462,9 @@ class Memo extends DataClass implements Insertable<Memo> {
       content: data.content.present ? data.content.value : this.content,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      updatedAtMicros: data.updatedAtMicros.present
+          ? data.updatedAtMicros.value
+          : this.updatedAtMicros,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
       category: data.category.present ? data.category.value : this.category,
@@ -437,6 +481,7 @@ class Memo extends DataClass implements Insertable<Memo> {
           ..write('content: $content, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('updatedAtMicros: $updatedAtMicros, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('isSynced: $isSynced, ')
           ..write('category: $category, ')
@@ -453,6 +498,7 @@ class Memo extends DataClass implements Insertable<Memo> {
     content,
     createdAt,
     updatedAt,
+    updatedAtMicros,
     isDeleted,
     isSynced,
     category,
@@ -468,6 +514,7 @@ class Memo extends DataClass implements Insertable<Memo> {
           other.content == this.content &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.updatedAtMicros == this.updatedAtMicros &&
           other.isDeleted == this.isDeleted &&
           other.isSynced == this.isSynced &&
           other.category == this.category &&
@@ -481,6 +528,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
   final Value<String> content;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<int?> updatedAtMicros;
   final Value<bool> isDeleted;
   final Value<bool> isSynced;
   final Value<MemoCategory?> category;
@@ -493,6 +541,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     this.content = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.updatedAtMicros = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.category = const Value.absent(),
@@ -506,6 +555,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     required String content,
     required DateTime createdAt,
     required DateTime updatedAt,
+    this.updatedAtMicros = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.category = const Value.absent(),
@@ -524,6 +574,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     Expression<String>? content,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<int>? updatedAtMicros,
     Expression<bool>? isDeleted,
     Expression<bool>? isSynced,
     Expression<String>? category,
@@ -537,6 +588,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
       if (content != null) 'content': content,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (updatedAtMicros != null) 'updated_at_micros': updatedAtMicros,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (isSynced != null) 'is_synced': isSynced,
       if (category != null) 'category': category,
@@ -552,6 +604,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     Value<String>? content,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<int?>? updatedAtMicros,
     Value<bool>? isDeleted,
     Value<bool>? isSynced,
     Value<MemoCategory?>? category,
@@ -565,6 +618,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      updatedAtMicros: updatedAtMicros ?? this.updatedAtMicros,
       isDeleted: isDeleted ?? this.isDeleted,
       isSynced: isSynced ?? this.isSynced,
       category: category ?? this.category,
@@ -593,6 +647,9 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (updatedAtMicros.present) {
+      map['updated_at_micros'] = Variable<int>(updatedAtMicros.value);
     }
     if (isDeleted.present) {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
@@ -623,6 +680,7 @@ class MemosCompanion extends UpdateCompanion<Memo> {
           ..write('content: $content, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('updatedAtMicros: $updatedAtMicros, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('isSynced: $isSynced, ')
           ..write('category: $category, ')
@@ -916,6 +974,7 @@ typedef $$MemosTableCreateCompanionBuilder =
       required String content,
       required DateTime createdAt,
       required DateTime updatedAt,
+      Value<int?> updatedAtMicros,
       Value<bool> isDeleted,
       Value<bool> isSynced,
       Value<MemoCategory?> category,
@@ -930,6 +989,7 @@ typedef $$MemosTableUpdateCompanionBuilder =
       Value<String> content,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<int?> updatedAtMicros,
       Value<bool> isDeleted,
       Value<bool> isSynced,
       Value<MemoCategory?> category,
@@ -972,6 +1032,11 @@ class $$MemosTableFilterComposer extends Composer<_$AppDatabase, $MemosTable> {
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAtMicros => $composableBuilder(
+    column: $table.updatedAtMicros,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1036,6 +1101,11 @@ class $$MemosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get updatedAtMicros => $composableBuilder(
+    column: $table.updatedAtMicros,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
     column: $table.isDeleted,
     builder: (column) => ColumnOrderings(column),
@@ -1084,6 +1154,11 @@ class $$MemosTableAnnotationComposer
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
+  GeneratedColumn<int> get updatedAtMicros => $composableBuilder(
+    column: $table.updatedAtMicros,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
 
@@ -1131,6 +1206,7 @@ class $$MemosTableTableManager
                 Value<String> content = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<int?> updatedAtMicros = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
                 Value<MemoCategory?> category = const Value.absent(),
@@ -1143,6 +1219,7 @@ class $$MemosTableTableManager
                 content: content,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                updatedAtMicros: updatedAtMicros,
                 isDeleted: isDeleted,
                 isSynced: isSynced,
                 category: category,
@@ -1157,6 +1234,7 @@ class $$MemosTableTableManager
                 required String content,
                 required DateTime createdAt,
                 required DateTime updatedAt,
+                Value<int?> updatedAtMicros = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
                 Value<MemoCategory?> category = const Value.absent(),
@@ -1169,6 +1247,7 @@ class $$MemosTableTableManager
                 content: content,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                updatedAtMicros: updatedAtMicros,
                 isDeleted: isDeleted,
                 isSynced: isSynced,
                 category: category,
