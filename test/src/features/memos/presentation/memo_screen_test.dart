@@ -1090,6 +1090,87 @@ void main() {
       check(find.text('元に戻す')).findsNothing();
     });
 
+    testWidgets('Undo閉鎖アニメーション完了前にタブを往復しても保持され、メモタブ復帰で復元できること', (tester) async {
+      final now = DateTime.now();
+      final memo = MemoModel(
+        id: '1',
+        userId: 'test_user_id',
+        title: '高速往復メモ',
+        content: '内容',
+        createdAt: now,
+        updatedAt: now,
+      );
+      final streamController = StreamController<List<MemoModel>>.broadcast();
+      addTearDown(streamController.close);
+
+      when(
+        () => mockMemoRepository.watchAllMemos(any()),
+      ).thenAnswer((_) => streamController.stream);
+      when(
+        () => mockMemoRepository.deleteMemo(
+          any(),
+          any(),
+          waitForRemoteSync: any(named: 'waitForRemoteSync'),
+        ),
+      ).thenAnswer((_) async {
+        streamController.add(<MemoModel>[]);
+      });
+      when(
+        () => mockMemoRepository.restoreMemo(
+          any(),
+          any(),
+          waitForRemoteSync: any(named: 'waitForRemoteSync'),
+        ),
+      ).thenAnswer((_) async {
+        streamController.add([memo]);
+      });
+
+      await setupShellWidget(tester);
+      streamController.add([memo]);
+      await tester.pumpAndSettle();
+
+      // スワイプ削除して Undo 通知を表示
+      await tester.drag(find.byType(Dismissible), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+      check(find.text('メモを削除しました')).findsOne();
+
+      // 別タブへ切り替え（閉鎖アニメーション完了前の 50ms 時点で止める）
+      await tester.tap(find.text('ホーム'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // 閉鎖完了を待たずにメモタブへ戻る（再び 50ms のみ経過）
+      await tester.tap(find.text('メモ'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // 再び別タブへ切り替え、今度は全アニメーション完了まで待機
+      await tester.tap(find.text('ホーム'));
+      await tester.pumpAndSettle();
+      check(find.text('ホーム画面')).findsOne();
+      check(find.text('メモを削除しました')).findsNothing();
+      check(find.text('元に戻す')).findsNothing();
+
+      // メモタブへ戻った際、Undo 通知が失われずに再表示され復元できること
+      await tester.tap(find.text('メモ'));
+      await tester.pumpAndSettle();
+
+      check(find.text('メモを削除しました')).findsOne();
+      check(find.text('元に戻す')).findsOne();
+
+      await tester.tap(find.text('元に戻す'));
+      await tester.pumpAndSettle();
+
+      verify(
+        () => mockMemoRepository.restoreMemo(
+          '1',
+          'test_user_id',
+          waitForRemoteSync: false,
+        ),
+      ).called(1);
+      check(find.text('高速往復メモ')).findsOne();
+    });
+
     testWidgets('リモート削除の完了前でもローカル削除成功時点でUndoでき、画面遷移後も削除・復元の順序が保たれること', (
       tester,
     ) async {

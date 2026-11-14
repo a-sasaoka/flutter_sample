@@ -443,9 +443,9 @@ class _MemoListView extends HookConsumerWidget {
         useRef<ScaffoldFeatureController<SnackBar, SnackBarClosedReason>?>(
           null,
         );
-    final suppressedControllerRef =
-        useRef<ScaffoldFeatureController<SnackBar, SnackBarClosedReason>?>(
-          null,
+    final suppressedControllersRef =
+        useRef<Set<ScaffoldFeatureController<SnackBar, SnackBarClosedReason>>>(
+          {},
         );
 
     void presentPendingUndo() {
@@ -459,7 +459,9 @@ class _MemoListView extends HookConsumerWidget {
       }
       // 通知表示中に画面遷移しても「元に戻す」が機能するようNotifierを一時保持する
       final releaseKeepAlive = ref.read(memoProvider.notifier).retainForUndo();
-      messenger.clearSnackBars();
+      messenger
+        ..clearSnackBars()
+        ..removeCurrentSnackBar();
       final controller = messenger.showSnackBar(
         SnackBar(
           content: Text(pending.buildMessage(screenContext)),
@@ -479,8 +481,7 @@ class _MemoListView extends HookConsumerWidget {
           if (activeUndoControllerRef.value == controller) {
             activeUndoControllerRef.value = null;
           }
-          if (suppressedControllerRef.value == controller) {
-            suppressedControllerRef.value = null;
+          if (suppressedControllersRef.value.remove(controller)) {
             return;
           }
           if (pendingUndoRef.value == pending) {
@@ -496,7 +497,10 @@ class _MemoListView extends HookConsumerWidget {
       if (wasScreenActive == true && !isScreenActive) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (screenContext.mounted && !_isScreenActive(screenContext)) {
-            suppressedControllerRef.value = activeUndoControllerRef.value;
+            final activeController = activeUndoControllerRef.value;
+            if (activeController != null) {
+              suppressedControllersRef.value.add(activeController);
+            }
             messenger.clearSnackBars();
           }
         });
