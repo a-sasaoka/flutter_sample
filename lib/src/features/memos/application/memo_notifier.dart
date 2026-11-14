@@ -147,7 +147,13 @@ class MemoNotifier extends _$MemoNotifier {
     }
 
     final targetIndex = newIndex;
-    if (oldIndex == targetIndex) {
+    final itemCount = currentMemos.length;
+    // カウンターや確定済み順序を変更する前に、oldIndex・targetIndex がリスト範囲内かつ異なる位置か検証する
+    if (oldIndex < 0 ||
+        oldIndex >= itemCount ||
+        targetIndex < 0 ||
+        targetIndex >= itemCount ||
+        oldIndex == targetIndex) {
       return;
     }
 

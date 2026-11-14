@@ -768,6 +768,70 @@ void main() {
         memoSub.close();
       });
 
+      test(
+        'reorderMemos: 範囲外のoldIndex/targetIndexは無視され、状態やカウンターが汚染されないこと',
+        () async {
+          final streamController =
+              StreamController<List<MemoModel>>.broadcast();
+          when(
+            () => mockMemoRepository.watchAllMemos(any()),
+          ).thenAnswer((_) => streamController.stream);
+
+          final memoSub = container.listen(memoProvider, (_, _) {});
+          streamController.add(mockMemos);
+          await container.read(memoProvider.future);
+
+          // 初期順序: ['2', '1', '3']
+          check(
+            container.read(memoProvider).value!.map((m) => m.id).toList(),
+          ).deepEquals(['2', '1', '3']);
+
+          // 範囲外の各種パターン（負数・リスト長以上）を実行しても例外にならず中断すること
+          await container.read(memoProvider.notifier).reorderMemos(-1, 0);
+          await container.read(memoProvider.notifier).reorderMemos(3, 0);
+          await container.read(memoProvider.notifier).reorderMemos(0, -1);
+          await container.read(memoProvider.notifier).reorderMemos(0, 3);
+
+          // 保存処理は一度も呼ばれないこと
+          verifyNever(() => mockMemoRepository.updateSortOrders(any(), any()));
+          // 表示中の並び順が維持されていること
+          check(
+            container.read(memoProvider).value!.map((m) => m.id).toList(),
+          ).deepEquals(['2', '1', '3']);
+
+          // カウンター（_activeReorderCount）が増えていないことを確認するため、
+          // 順序が変わった新しい一覧（'3' を最新にした ['3', '2', '1']）をストリームで流す
+          final updatedStreamMemos = [
+            mockMemos[0],
+            mockMemos[1],
+            mockMemos[2].copyWith(createdAt: DateTime(2026, 5, 20)),
+          ];
+          streamController.add(updatedStreamMemos);
+          await pumpEventQueue();
+
+          check(
+            container.read(memoProvider).value!.map((m) => m.id).toList(),
+          ).deepEquals(['3', '2', '1']);
+
+          // 正常な並び替えをわざと失敗させ、直前の確定順 ['3', '2', '1'] へ正しくロールバックされること
+          // （カウンターが壊れていれば古い ['2', '1', '3'] に戻ってしまう）
+          when(
+            () => mockMemoRepository.updateSortOrders(any(), any()),
+          ).thenThrow(Exception('DB Error'));
+
+          await check(
+            container.read(memoProvider.notifier).reorderMemos(0, 1),
+          ).throws<Exception>();
+
+          check(
+            container.read(memoProvider).value!.map((m) => m.id).toList(),
+          ).deepEquals(['3', '2', '1']);
+
+          memoSub.close();
+          await streamController.close();
+        },
+      );
+
       test('restoreMemo: ログイン時にリポジトリのrestoreMemoが呼ばれ、未ログイン時は何もしないこと', () async {
         when(
           () => mockMemoRepository.restoreMemo(any(), any()),
