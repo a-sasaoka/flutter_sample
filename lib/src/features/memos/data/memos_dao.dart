@@ -22,6 +22,25 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
   /// コンストラクタ
   MemosDao(super.attachedDatabase);
 
+  var _mutationSeq = 0;
+  final Map<(String, String), int> _memoMutationSeqs = {};
+
+  /// ローカルDB書き込みごとに単調増加する現在の変更シーケンスを返す
+  int get currentMutationSeq => _mutationSeq;
+
+  void _markMemoMutated(String userId, String id) {
+    _memoMutationSeqs[(userId, id)] = ++_mutationSeq;
+  }
+
+  void _markCompanionMutated(MemosCompanion memo) {
+    if (memo.id.present) {
+      _markMemoMutated(
+        memo.userId.present ? memo.userId.value : '',
+        memo.id.value,
+      );
+    }
+  }
+
   /// 指定したユーザーのすべてのメモを取得する（削除されていないもの）
   Future<List<Memo>> getAllMemos(String userId) => (select(
     memos,
@@ -131,13 +150,18 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
       memo.updatedAtMicros ?? memo.updatedAt.microsecondsSinceEpoch;
 
   /// メモを追加する
-  Future<void> insertMemo(MemosCompanion memo) =>
-      into(memos).insert(_withUpdatedAtMicros(memo));
+  Future<void> insertMemo(MemosCompanion memo) async {
+    await into(memos).insert(_withUpdatedAtMicros(memo));
+    _markCompanionMutated(memo);
+  }
 
   /// メモを更新する（所有ユーザーのもののみ）
-  Future<void> updateMemo(String id, String userId, MemosCompanion memo) =>
-      (update(memos)..where((t) => t.id.equals(id) & t.userId.equals(userId)))
-          .write(_withUpdatedAtMicros(memo));
+  Future<void> updateMemo(String id, String userId, MemosCompanion memo) async {
+    await (update(memos)
+          ..where((t) => t.id.equals(id) & t.userId.equals(userId)))
+        .write(_withUpdatedAtMicros(memo));
+    _markMemoMutated(userId, id);
+  }
 
   /// 指定したユーザーの同期が必要なメモ（isSynced = false）を取得する
   Future<List<Memo>> getUnsyncedMemos(String userId) => (select(
@@ -154,8 +178,14 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
     List<String> ids,
     String userId, {
     required bool isSynced,
-  }) => (update(memos)..where((t) => t.id.isIn(ids) & t.userId.equals(userId)))
-      .write(MemosCompanion(isSynced: Value(isSynced)));
+  }) async {
+    await (update(memos)
+          ..where((t) => t.id.isIn(ids) & t.userId.equals(userId)))
+        .write(MemosCompanion(isSynced: Value(isSynced)));
+    for (final id in ids) {
+      _markMemoMutated(userId, id);
+    }
+  }
 
   /// 複数のメモを一括で挿入または更新する
   Future<void> upsertMemos(List<MemosCompanion> companions) async {
@@ -166,13 +196,15 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
         mode: InsertMode.insertOrReplace,
       );
     });
+    companions.forEach(_markCompanionMutated);
   }
 
   /// リモートデータをローカルDBにマージする（読み取りから書き込みまでをトランザクションで直列化・原子化）
   Future<void> mergeRemoteMemos(
     String userId,
-    List<Map<String, dynamic>> remoteData,
-  ) async {
+    List<Map<String, dynamic>> remoteData, {
+    int? fetchedBeforeSeq,
+  }) async {
     await transaction(() async {
       // 型・日付検証を通過したメモをIDごとに統合し、重複IDは updatedAt が最新の版のみ残す
       final latestRemoteMemosById = <String, _ValidatedRemoteMemo>{};
@@ -232,12 +264,18 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
               localMemo.isDeleted != memo.isDeleted ||
               localMemo.title != memo.title ||
               localMemo.content != memo.content;
+          final modifiedDuringFetch =
+              fetchedBeforeSeq != null &&
+              (_memoMutationSeqs[(userId, memo.id)] ?? 0) > fetchedBeforeSeq;
           // サーバーのデータが新しい場合（マイクロ秒比較）に更新対象とする。
-          // 同一タイムスタンプの場合は同期済みレコードかつ内容・削除状態に差分があるときのみ取り込み、
-          // 未同期のローカル変更（復元・編集等）を保護する。
+          // 同一タイムスタンプの場合は同期済みかつ内容・削除状態に差分があり、
+          // かつ取得開始後にローカル変更・同期完了が発生していない場合のみ取り込む。
           shouldUpsert =
               remoteMicros > localMicros ||
-              (remoteMicros == localMicros && localMemo.isSynced && hasDiff);
+              (remoteMicros == localMicros &&
+                  localMemo.isSynced &&
+                  hasDiff &&
+                  !modifiedDuringFetch);
         }
 
         if (shouldUpsert) {
@@ -279,6 +317,9 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
             mode: InsertMode.insertOrReplace,
           );
         });
+        for (final companion in companionsToUpsert) {
+          _markMemoMutated(userId, companion.id.value);
+        }
       }
     });
   }
@@ -356,17 +397,19 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
   }
 
   /// 削除されたメモを復元する（論理削除フラグを解除して未同期状態にする）
-  Future<void> restoreMemo(String id, String userId, DateTime updatedAt) =>
-      (update(
-        memos,
-      )..where((t) => t.id.equals(id) & t.userId.equals(userId))).write(
-        MemosCompanion(
-          isDeleted: const Value(false),
-          updatedAt: Value(updatedAt),
-          updatedAtMicros: Value(updatedAt.microsecondsSinceEpoch),
-          isSynced: const Value(false),
-        ),
-      );
+  Future<void> restoreMemo(String id, String userId, DateTime updatedAt) async {
+    await (update(
+      memos,
+    )..where((t) => t.id.equals(id) & t.userId.equals(userId))).write(
+      MemosCompanion(
+        isDeleted: const Value(false),
+        updatedAt: Value(updatedAt),
+        updatedAtMicros: Value(updatedAt.microsecondsSinceEpoch),
+        isSynced: const Value(false),
+      ),
+    );
+    _markMemoMutated(userId, id);
+  }
 
   /// 送信した内容と現在のローカルレコードが一致する場合のみ isSynced を true に更新する
   Future<void> markAsSyncedIfUnchanged({
@@ -377,18 +420,23 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
     required DateTime createdAt,
     required DateTime updatedAt,
     required bool isDeleted,
-  }) =>
-      (update(memos)..where(
-            (t) =>
-                t.id.equals(id) &
-                t.userId.equals(userId) &
-                t.title.equals(title) &
-                t.content.equals(content) &
-                t.createdAt.equals(createdAt) &
-                t.updatedAt.equals(updatedAt) &
-                (t.updatedAtMicros.equals(updatedAt.microsecondsSinceEpoch) |
-                    t.updatedAtMicros.isNull()) &
-                t.isDeleted.equals(isDeleted),
-          ))
-          .write(const MemosCompanion(isSynced: Value(true)));
+  }) async {
+    final updatedRows =
+        await (update(memos)..where(
+              (t) =>
+                  t.id.equals(id) &
+                  t.userId.equals(userId) &
+                  t.title.equals(title) &
+                  t.content.equals(content) &
+                  t.createdAt.equals(createdAt) &
+                  t.updatedAt.equals(updatedAt) &
+                  (t.updatedAtMicros.equals(updatedAt.microsecondsSinceEpoch) |
+                      t.updatedAtMicros.isNull()) &
+                  t.isDeleted.equals(isDeleted),
+            ))
+            .write(const MemosCompanion(isSynced: Value(true)));
+    if (updatedRows > 0) {
+      _markMemoMutated(userId, id);
+    }
+  }
 }

@@ -1460,6 +1460,84 @@ void main() {
           current.updatedAtMicros,
         ).equals(subSecSameSecond.microsecondsSinceEpoch);
       });
+
+      test('【正常系】fetchedBeforeSeq以降に同一updatedAtで復元・同期完了したメモは'
+          '古い取得結果で上書きされず、変更のない他メモの同一時刻更新のみ反映されること', () async {
+        final baseTime = DateTime(2026, 11, 14, 10);
+        final sameTime = DateTime(2026, 11, 14, 10, 0, 0, 500);
+
+        await dao.upsertMemos([
+          MemosCompanion.insert(
+            id: 'memo-raced',
+            userId: testUserId,
+            title: '競合メモ',
+            content: '本文1',
+            createdAt: baseTime,
+            updatedAt: sameTime,
+            isDeleted: const Value(true),
+            isSynced: const Value(true),
+          ),
+          MemosCompanion.insert(
+            id: 'memo-untouched',
+            userId: testUserId,
+            title: '未変更メモ',
+            content: '本文2',
+            createdAt: baseTime,
+            updatedAt: sameTime,
+            isDeleted: const Value(true),
+            isSynced: const Value(true),
+          ),
+        ]);
+
+        // fetchMemos 開始時点の変更シーケンスを記録
+        final fetchedBeforeSeq = dao.currentMutationSeq;
+
+        // 取得待機中に同一 updatedAt でローカル復元および同期完了（isSynced = true）が発生
+        await dao.restoreMemo('memo-raced', testUserId, sameTime);
+        await dao.markAsSyncedIfUnchanged(
+          id: 'memo-raced',
+          userId: testUserId,
+          title: '競合メモ',
+          content: '本文1',
+          createdAt: baseTime,
+          updatedAt: sameTime,
+          isDeleted: false,
+        );
+
+        // 取得開始前の古い削除済みスナップショット（memo-raced）と、
+        // 他端末が同一時刻に復元した未変更メモ（memo-untouched）が遅延到着
+        await dao.mergeRemoteMemos(testUserId, [
+          {
+            'id': 'memo-raced',
+            'title': '競合メモ',
+            'content': '本文1',
+            'createdAt': baseTime,
+            'updatedAt': sameTime,
+            'isDeleted': true,
+          },
+          {
+            'id': 'memo-untouched',
+            'title': '未変更メモ',
+            'content': '本文2',
+            'createdAt': baseTime,
+            'updatedAt': sameTime,
+            'isDeleted': false,
+          },
+        ], fetchedBeforeSeq: fetchedBeforeSeq);
+
+        // fetchedBeforeSeq 以降に変更されたメモは古い削除スナップショットで上書きされない
+        final racedMemo = await dao.getMemoById('memo-raced', testUserId);
+        check(racedMemo.isDeleted).isFalse();
+        check(racedMemo.isSynced).isTrue();
+
+        // 取得中にローカル変更がなかった同期済みメモは同一時刻のリモート復元を取り込む
+        final untouchedMemo = await dao.getMemoById(
+          'memo-untouched',
+          testUserId,
+        );
+        check(untouchedMemo.isDeleted).isFalse();
+        check(untouchedMemo.isSynced).isTrue();
+      });
     });
   });
 }

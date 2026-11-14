@@ -2416,6 +2416,107 @@ void main() {
         );
         check(synced.isSynced).isTrue();
       });
+
+      test('fetchMemos待機中に同一updatedAtでローカル復元とリモート送信が完了した場合、'
+          '遅延した古い削除取得結果で復元が取り消されないこと', () async {
+        final createdTime = DateTime(2026, 11, 14, 9, 59);
+        final sameTime = DateTime(2026, 11, 14, 10, 0, 0, 500);
+        var currentClock = createdTime;
+
+        final container = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            clockProvider.overrideWithValue(() => currentClock),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: any(named: 'id'),
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: any(named: 'isDeleted'),
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) async {});
+
+        final repository = container.read(memoRepositoryProvider);
+        await repository.addMemo('競合レーステスト', '本文', testUserId);
+        final memoId = (await database.memosDao.getAllMemos(
+          testUserId,
+        )).first.id;
+
+        // 1. sameTime で削除済み・同期済みの状態を作成
+        currentClock = sameTime;
+        await repository.deleteMemo(memoId, testUserId);
+        var current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isTrue();
+        check(current.isSynced).isTrue();
+
+        // 2. fetchMemos を待機状態にし、その間に同一 updatedAt (sameTime) で復元・送信を完了
+        final fetchStarted = Completer<void>();
+        final fetchResponseGate = Completer<List<Map<String, dynamic>>>();
+        when(() => mockRemoteService.fetchMemos()).thenAnswer((_) {
+          fetchStarted.complete();
+          return fetchResponseGate.future;
+        });
+
+        final fetchFuture = repository.fetchAndMergeRemoteMemos(testUserId);
+        await fetchStarted.future;
+
+        await repository.restoreMemo(memoId, testUserId);
+        current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isTrue();
+        check(current.updatedAtMicros).equals(sameTime.microsecondsSinceEpoch);
+
+        // 3. 取得開始時点でサーバーにあった古い削除済みスナップショット（同一 updatedAt）が遅延到着
+        fetchResponseGate.complete([
+          {
+            'id': memoId,
+            'title': '競合レーステスト',
+            'content': '本文',
+            'createdAt': createdTime,
+            'updatedAt': sameTime,
+            'isDeleted': true,
+          },
+        ]);
+        await fetchFuture;
+
+        // 復元状態（isDeleted: false, isSynced: true）が取り消されず維持されること
+        current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isTrue();
+        check((await repository.getLocalMemos(testUserId)).length).equals(1);
+
+        // 4. 次回以降の取得（待機中のローカル変更なし）では同一時刻のサーバー変更も通常通り反映されること
+        when(() => mockRemoteService.fetchMemos()).thenAnswer(
+          (_) async => [
+            {
+              'id': memoId,
+              'title': '競合レーステスト',
+              'content': '本文',
+              'createdAt': createdTime,
+              'updatedAt': sameTime,
+              'isDeleted': true,
+            },
+          ],
+        );
+        await repository.fetchAndMergeRemoteMemos(testUserId);
+
+        current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isTrue();
+        check(current.isSynced).isTrue();
+      });
     });
   });
 }

@@ -38,7 +38,7 @@ memos/
 `MemoRepository` がデータの「番人」となり、以下のロジックで整合性を保ちます。
 
 - **保存**: 常にローカル DB へ即座に書き込み、オンラインならバックグラウンドでリモートへ送信。成否を `isSynced` フラグで管理。
-- **取得**: リモートから最新データを取得し、`updatedAt`（最終更新日時）を比較して、より新しいデータをローカルへマージ。
+- **取得**: リモートから最新データを取得し、`updatedAt`（最終更新日時）およびサブ秒情報（`updatedAtMicros`）を比較して、より新しいデータをローカルへマージ。取得待機中にローカルで同一時刻の更新・同期完了が発生した場合は変更シーケンス比較により古い取得結果での上書きを防止。
 - **論理削除**: データを物理的に消さず `isDeleted` フラグで管理することで、マルチデバイス間の削除同期を確実に行います。
 
 ### 2. コンストラクタ注入による DI の徹底
@@ -82,7 +82,7 @@ memos/
 
 同一端末で複数アカウントが利用されるシナリオにおいて、ユーザー間のメモ混同やプライバシー漏洩を根本防止するため、データベースからUI層まで完全なマルチユーザー分離を実現しています。
 
-- **テーブル定義とマイグレーション**: [memo_table.dart](../lib/src/features/memos/data/memo_table.dart) に `userId` カラム（NOT NULL）を追加（v3）、さらに `category` カラム（Nullable TextColumn）を追加（v4）、そして並び順永続化用の `sortOrder` カラム（integer、デフォルト 0）を追加（v5）。[app_database.dart](../lib/src/app/database/app_database.dart) のスキーマバージョンを段階的に安全にアップデートしています。
+- **テーブル定義とマイグレーション**: [memo_table.dart](../lib/src/features/memos/data/memo_table.dart) に `userId` カラム（NOT NULL）を追加（v3）、さらに `category` カラム（Nullable TextColumn）を追加（v4）、並び順永続化用の `sortOrder` カラム（integer、デフォルト 0）を追加（v5）、同秒内更新比較・保護用の `updatedAtMicros` カラム（Nullable IntColumn）を追加（v6）。[app_database.dart](../lib/src/app/database/app_database.dart) のスキーマバージョンを段階的に安全にアップデートしています。
 - **DAO & Repository のユーザー制限**: [memos_dao.dart](../lib/src/features/memos/data/memos_dao.dart) および [memo_repository.dart](../lib/src/features/memos/data/memo_repository.dart) のすべてのクエリ（一覧取得・カテゴリ絞り込み・作成・更新・削除・並び順更新・未同期メモ抽出）に `userId` を必須指定とし、他ユーザーのメモを一切参照・変更できない構造を担保。
 - **Notifier の認証連動**: [memo_notifier.dart](../lib/src/features/memos/application/memo_notifier.dart) は [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の `currentUserIdProvider` をリアクティブに監視。未ログイン時は即座に空リスト（`[]`）を返却し、ログイン（またはアカウント切り替え）時に現在ログインしているユーザーのメモのみを即時提供します。
 
@@ -108,7 +108,7 @@ AIチャット画面からの自然言語指示に基づき、AIエージェン�
 本機能は、データ層から UI 層まで 100% のテストカバレッジを実現しています。
 
 - **Unit Test**:
-  - `AppDatabase`: スキーマバージョン 3, 4, および 5 への安全なマイグレーション検証（`app_database_test.dart`）。
+  - `AppDatabase`: スキーマバージョン 3, 4, 5, および 6 への安全なマイグレーション検証（`app_database_test.dart`）。
   - `MemosDao`: カテゴリ・未同期絞り込み、新規追加時の順序シフト（`shiftSortOrders`）、一括並び替え（`updateSortOrders`）、削除復元（`restoreMemo`）の正確性検証（`memos_dao_test.dart`）。
   - `MemoRepository`: オフライン保存、エラー時のリトライフラグ、リモートデータとのマージロジック、新規メモ先頭採番、並び替え一括保存、Undo復元、および複数ユーザー間での完全データ分離の検証（`memo_repository_test.dart`）。
   - `MemoFilterNotifier`: 検索クエリ、カテゴリ選択、未同期フラグ、カスタム順を含むソート順の更新・リセットおよびアクティブフィルタ判定の検証（`memo_filter_notifier_test.dart`）。

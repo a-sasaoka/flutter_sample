@@ -477,11 +477,16 @@ class MemoRepository {
     }
 
     try {
+      final fetchedBeforeSeq = _dao.currentMutationSeq;
       final remoteData = await _remote.fetchMemos();
 
       // サーバーから取得したデータを効率的にマージする
       if (remoteData.isNotEmpty) {
-        await _dao.mergeRemoteMemos(userId, remoteData);
+        await _dao.mergeRemoteMemos(
+          userId,
+          remoteData,
+          fetchedBeforeSeq: fetchedBeforeSeq,
+        );
       }
       _talker.debug('Merged remote memos into local database.');
     } on Exception catch (e, st) {
