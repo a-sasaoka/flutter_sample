@@ -68,6 +68,17 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _updatedAtMicrosMeta = const VerificationMeta(
+    'updatedAtMicros',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAtMicros = GeneratedColumn<int>(
+    'updated_at_micros',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _isDeletedMeta = const VerificationMeta(
     'isDeleted',
   );
@@ -107,6 +118,18 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       ).withConverter<MemoCategory?>($MemosTable.$convertercategoryn);
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -115,9 +138,11 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
     content,
     createdAt,
     updatedAt,
+    updatedAtMicros,
     isDeleted,
     isSynced,
     category,
+    sortOrder,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -176,6 +201,15 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('updated_at_micros')) {
+      context.handle(
+        _updatedAtMicrosMeta,
+        updatedAtMicros.isAcceptableOrUnknown(
+          data['updated_at_micros']!,
+          _updatedAtMicrosMeta,
+        ),
+      );
+    }
     if (data.containsKey('is_deleted')) {
       context.handle(
         _isDeletedMeta,
@@ -186,6 +220,12 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
       context.handle(
         _isSyncedMeta,
         isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
       );
     }
     return context;
@@ -221,6 +261,10 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      updatedAtMicros: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at_micros'],
+      ),
       isDeleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_deleted'],
@@ -235,6 +279,10 @@ class $MemosTable extends Memos with TableInfo<$MemosTable, Memo> {
           data['${effectivePrefix}category'],
         ),
       ),
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
     );
   }
 
@@ -268,6 +316,9 @@ class Memo extends DataClass implements Insertable<Memo> {
   /// 最後に更新した日時（複数の端末で同時に編集された時、新しい方を優先するため）
   final DateTime updatedAt;
 
+  /// 最終更新日時のマイクロ秒タイムスタンプ（同秒内のリモート更新比較・未同期保護用）
+  final int? updatedAtMicros;
+
   /// 削除フラグ
   final bool isDeleted;
 
@@ -276,6 +327,9 @@ class Memo extends DataClass implements Insertable<Memo> {
 
   /// メモのカテゴリ（enumで型安全に管理。未設定はnull）
   final MemoCategory? category;
+
+  /// メモの並び順（0が一番上。昇順でソートする）
+  final int sortOrder;
   const Memo({
     required this.id,
     required this.userId,
@@ -283,9 +337,11 @@ class Memo extends DataClass implements Insertable<Memo> {
     required this.content,
     required this.createdAt,
     required this.updatedAt,
+    this.updatedAtMicros,
     required this.isDeleted,
     required this.isSynced,
     this.category,
+    required this.sortOrder,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -296,6 +352,9 @@ class Memo extends DataClass implements Insertable<Memo> {
     map['content'] = Variable<String>(content);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || updatedAtMicros != null) {
+      map['updated_at_micros'] = Variable<int>(updatedAtMicros);
+    }
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['is_synced'] = Variable<bool>(isSynced);
     if (!nullToAbsent || category != null) {
@@ -303,6 +362,7 @@ class Memo extends DataClass implements Insertable<Memo> {
         $MemosTable.$convertercategoryn.toSql(category),
       );
     }
+    map['sort_order'] = Variable<int>(sortOrder);
     return map;
   }
 
@@ -314,11 +374,15 @@ class Memo extends DataClass implements Insertable<Memo> {
       content: Value(content),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      updatedAtMicros: updatedAtMicros == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAtMicros),
       isDeleted: Value(isDeleted),
       isSynced: Value(isSynced),
       category: category == null && nullToAbsent
           ? const Value.absent()
           : Value(category),
+      sortOrder: Value(sortOrder),
     );
   }
 
@@ -334,11 +398,13 @@ class Memo extends DataClass implements Insertable<Memo> {
       content: serializer.fromJson<String>(json['content']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      updatedAtMicros: serializer.fromJson<int?>(json['updatedAtMicros']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
       category: $MemosTable.$convertercategoryn.fromJson(
         serializer.fromJson<String?>(json['category']),
       ),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
     );
   }
   @override
@@ -351,11 +417,13 @@ class Memo extends DataClass implements Insertable<Memo> {
       'content': serializer.toJson<String>(content),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'updatedAtMicros': serializer.toJson<int?>(updatedAtMicros),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'isSynced': serializer.toJson<bool>(isSynced),
       'category': serializer.toJson<String?>(
         $MemosTable.$convertercategoryn.toJson(category),
       ),
+      'sortOrder': serializer.toJson<int>(sortOrder),
     };
   }
 
@@ -366,9 +434,11 @@ class Memo extends DataClass implements Insertable<Memo> {
     String? content,
     DateTime? createdAt,
     DateTime? updatedAt,
+    Value<int?> updatedAtMicros = const Value.absent(),
     bool? isDeleted,
     bool? isSynced,
     Value<MemoCategory?> category = const Value.absent(),
+    int? sortOrder,
   }) => Memo(
     id: id ?? this.id,
     userId: userId ?? this.userId,
@@ -376,9 +446,13 @@ class Memo extends DataClass implements Insertable<Memo> {
     content: content ?? this.content,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    updatedAtMicros: updatedAtMicros.present
+        ? updatedAtMicros.value
+        : this.updatedAtMicros,
     isDeleted: isDeleted ?? this.isDeleted,
     isSynced: isSynced ?? this.isSynced,
     category: category.present ? category.value : this.category,
+    sortOrder: sortOrder ?? this.sortOrder,
   );
   Memo copyWithCompanion(MemosCompanion data) {
     return Memo(
@@ -388,9 +462,13 @@ class Memo extends DataClass implements Insertable<Memo> {
       content: data.content.present ? data.content.value : this.content,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      updatedAtMicros: data.updatedAtMicros.present
+          ? data.updatedAtMicros.value
+          : this.updatedAtMicros,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
       category: data.category.present ? data.category.value : this.category,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
     );
   }
 
@@ -403,9 +481,11 @@ class Memo extends DataClass implements Insertable<Memo> {
           ..write('content: $content, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('updatedAtMicros: $updatedAtMicros, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('isSynced: $isSynced, ')
-          ..write('category: $category')
+          ..write('category: $category, ')
+          ..write('sortOrder: $sortOrder')
           ..write(')'))
         .toString();
   }
@@ -418,9 +498,11 @@ class Memo extends DataClass implements Insertable<Memo> {
     content,
     createdAt,
     updatedAt,
+    updatedAtMicros,
     isDeleted,
     isSynced,
     category,
+    sortOrder,
   );
   @override
   bool operator ==(Object other) =>
@@ -432,9 +514,11 @@ class Memo extends DataClass implements Insertable<Memo> {
           other.content == this.content &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.updatedAtMicros == this.updatedAtMicros &&
           other.isDeleted == this.isDeleted &&
           other.isSynced == this.isSynced &&
-          other.category == this.category);
+          other.category == this.category &&
+          other.sortOrder == this.sortOrder);
 }
 
 class MemosCompanion extends UpdateCompanion<Memo> {
@@ -444,9 +528,11 @@ class MemosCompanion extends UpdateCompanion<Memo> {
   final Value<String> content;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<int?> updatedAtMicros;
   final Value<bool> isDeleted;
   final Value<bool> isSynced;
   final Value<MemoCategory?> category;
+  final Value<int> sortOrder;
   final Value<int> rowid;
   const MemosCompanion({
     this.id = const Value.absent(),
@@ -455,9 +541,11 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     this.content = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.updatedAtMicros = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.category = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   MemosCompanion.insert({
@@ -467,9 +555,11 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     required String content,
     required DateTime createdAt,
     required DateTime updatedAt,
+    this.updatedAtMicros = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.category = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        userId = Value(userId),
@@ -484,9 +574,11 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     Expression<String>? content,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<int>? updatedAtMicros,
     Expression<bool>? isDeleted,
     Expression<bool>? isSynced,
     Expression<String>? category,
+    Expression<int>? sortOrder,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -496,9 +588,11 @@ class MemosCompanion extends UpdateCompanion<Memo> {
       if (content != null) 'content': content,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (updatedAtMicros != null) 'updated_at_micros': updatedAtMicros,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (isSynced != null) 'is_synced': isSynced,
       if (category != null) 'category': category,
+      if (sortOrder != null) 'sort_order': sortOrder,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -510,9 +604,11 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     Value<String>? content,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<int?>? updatedAtMicros,
     Value<bool>? isDeleted,
     Value<bool>? isSynced,
     Value<MemoCategory?>? category,
+    Value<int>? sortOrder,
     Value<int>? rowid,
   }) {
     return MemosCompanion(
@@ -522,9 +618,11 @@ class MemosCompanion extends UpdateCompanion<Memo> {
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      updatedAtMicros: updatedAtMicros ?? this.updatedAtMicros,
       isDeleted: isDeleted ?? this.isDeleted,
       isSynced: isSynced ?? this.isSynced,
       category: category ?? this.category,
+      sortOrder: sortOrder ?? this.sortOrder,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -550,6 +648,9 @@ class MemosCompanion extends UpdateCompanion<Memo> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (updatedAtMicros.present) {
+      map['updated_at_micros'] = Variable<int>(updatedAtMicros.value);
+    }
     if (isDeleted.present) {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
     }
@@ -560,6 +661,9 @@ class MemosCompanion extends UpdateCompanion<Memo> {
       map['category'] = Variable<String>(
         $MemosTable.$convertercategoryn.toSql(category.value),
       );
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -576,9 +680,11 @@ class MemosCompanion extends UpdateCompanion<Memo> {
           ..write('content: $content, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('updatedAtMicros: $updatedAtMicros, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('isSynced: $isSynced, ')
           ..write('category: $category, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -868,9 +974,11 @@ typedef $$MemosTableCreateCompanionBuilder =
       required String content,
       required DateTime createdAt,
       required DateTime updatedAt,
+      Value<int?> updatedAtMicros,
       Value<bool> isDeleted,
       Value<bool> isSynced,
       Value<MemoCategory?> category,
+      Value<int> sortOrder,
       Value<int> rowid,
     });
 typedef $$MemosTableUpdateCompanionBuilder =
@@ -881,9 +989,11 @@ typedef $$MemosTableUpdateCompanionBuilder =
       Value<String> content,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<int?> updatedAtMicros,
       Value<bool> isDeleted,
       Value<bool> isSynced,
       Value<MemoCategory?> category,
+      Value<int> sortOrder,
       Value<int> rowid,
     });
 
@@ -925,6 +1035,11 @@ class $$MemosTableFilterComposer extends Composer<_$AppDatabase, $MemosTable> {
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get updatedAtMicros => $composableBuilder(
+    column: $table.updatedAtMicros,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<bool> get isDeleted => $composableBuilder(
     column: $table.isDeleted,
     builder: (column) => ColumnFilters(column),
@@ -939,6 +1054,11 @@ class $$MemosTableFilterComposer extends Composer<_$AppDatabase, $MemosTable> {
   get category => $composableBuilder(
     column: $table.category,
     builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
   );
 }
 
@@ -981,6 +1101,11 @@ class $$MemosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get updatedAtMicros => $composableBuilder(
+    column: $table.updatedAtMicros,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
     column: $table.isDeleted,
     builder: (column) => ColumnOrderings(column),
@@ -993,6 +1118,11 @@ class $$MemosTableOrderingComposer
 
   ColumnOrderings<String> get category => $composableBuilder(
     column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
   );
 }
@@ -1024,6 +1154,11 @@ class $$MemosTableAnnotationComposer
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
+  GeneratedColumn<int> get updatedAtMicros => $composableBuilder(
+    column: $table.updatedAtMicros,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
 
@@ -1032,6 +1167,9 @@ class $$MemosTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<MemoCategory?, String> get category =>
       $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
 }
 
 class $$MemosTableTableManager
@@ -1068,9 +1206,11 @@ class $$MemosTableTableManager
                 Value<String> content = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<int?> updatedAtMicros = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
                 Value<MemoCategory?> category = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => MemosCompanion(
                 id: id,
@@ -1079,9 +1219,11 @@ class $$MemosTableTableManager
                 content: content,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                updatedAtMicros: updatedAtMicros,
                 isDeleted: isDeleted,
                 isSynced: isSynced,
                 category: category,
+                sortOrder: sortOrder,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -1092,9 +1234,11 @@ class $$MemosTableTableManager
                 required String content,
                 required DateTime createdAt,
                 required DateTime updatedAt,
+                Value<int?> updatedAtMicros = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
                 Value<MemoCategory?> category = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => MemosCompanion.insert(
                 id: id,
@@ -1103,9 +1247,11 @@ class $$MemosTableTableManager
                 content: content,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                updatedAtMicros: updatedAtMicros,
                 isDeleted: isDeleted,
                 isSynced: isSynced,
                 category: category,
+                sortOrder: sortOrder,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

@@ -389,5 +389,1155 @@ void main() {
         check(streamResults).isEmpty();
       });
     });
+
+    group('並び替え・復元機能のDAOテスト', () {
+      test(
+        '【正常系】shiftSortOrdersで指定ユーザーの全メモ（削除済み・復元対象含む）のsortOrderがシフトされること',
+        () async {
+          final now = DateTime(2026, 10, 25, 10);
+          await dao.upsertMemos([
+            MemosCompanion.insert(
+              id: 'm1',
+              userId: testUserId,
+              title: 'M1',
+              content: 'C1',
+              createdAt: now,
+              updatedAt: now,
+              sortOrder: const Value(0),
+            ),
+            MemosCompanion.insert(
+              id: 'm2',
+              userId: testUserId,
+              title: 'M2',
+              content: 'C2',
+              createdAt: now,
+              updatedAt: now,
+              sortOrder: const Value(1),
+            ),
+            MemosCompanion.insert(
+              id: 'm-deleted',
+              userId: testUserId,
+              title: '削除済',
+              content: 'C',
+              createdAt: now,
+              updatedAt: now,
+              isDeleted: const Value(true),
+              sortOrder: const Value(5),
+            ),
+            MemosCompanion.insert(
+              id: 'm-other',
+              userId: otherUserId,
+              title: '他ユーザー',
+              content: 'C',
+              createdAt: now,
+              updatedAt: now,
+              sortOrder: const Value(0),
+            ),
+          ]);
+
+          await dao.shiftSortOrders(testUserId);
+
+          final m1 = await dao.getMemoById('m1', testUserId);
+          final m2 = await dao.getMemoById('m2', testUserId);
+          final mDeleted = await dao.getMemoById('m-deleted', testUserId);
+          final mOther = await dao.getMemoById('m-other', otherUserId);
+
+          check(m1.sortOrder).equals(1);
+          check(m2.sortOrder).equals(2);
+          check(mDeleted.sortOrder).equals(6); // 削除済み・Undo復元対象メモもシフトされる
+          check(mOther.sortOrder).equals(0); // 他ユーザーはシフトされない
+        },
+      );
+
+      test('【正常系】updateSortOrdersで複数のメモのsortOrderが一括更新されること', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        await dao.upsertMemos([
+          MemosCompanion.insert(
+            id: 'm1',
+            userId: testUserId,
+            title: 'M1',
+            content: 'C1',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+          MemosCompanion.insert(
+            id: 'm2',
+            userId: testUserId,
+            title: 'M2',
+            content: 'C2',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(1),
+          ),
+        ]);
+
+        await dao.updateSortOrders(['m2', 'm1'], testUserId);
+
+        final m1 = await dao.getMemoById('m1', testUserId);
+        final m2 = await dao.getMemoById('m2', testUserId);
+        check(m1.sortOrder).equals(1);
+        check(m2.sortOrder).equals(0);
+      });
+
+      test(
+        '【正常系】insertMemoWithShiftで既存メモがシフトされ先頭（sortOrder: 0）に挿入されること',
+        () async {
+          final now = DateTime(2026, 10, 25, 10);
+          await dao.insertMemo(
+            MemosCompanion.insert(
+              id: 'm1',
+              userId: testUserId,
+              title: 'M1',
+              content: 'C1',
+              createdAt: now,
+              updatedAt: now,
+              sortOrder: const Value(0),
+            ),
+          );
+
+          await dao.insertMemoWithShift(
+            testUserId,
+            MemosCompanion.insert(
+              id: 'm2',
+              userId: testUserId,
+              title: 'M2',
+              content: 'C2',
+              createdAt: now,
+              updatedAt: now,
+              // DAOが必ず先頭（0）に上書きすることを検証するため、あえて非ゼロ値を指定
+              sortOrder: const Value(99),
+            ),
+          );
+
+          final m1 = await dao.getMemoById('m1', testUserId);
+          final m2 = await dao.getMemoById('m2', testUserId);
+          check(m1.sortOrder).equals(1);
+          check(m2.sortOrder).equals(0);
+        },
+      );
+
+      test('【正常系】削除後に新規追加しUndoしてもsortOrderが重複せず順序が保たれること', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        // 初期状態: m1(0), m2(1)
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'm1',
+            userId: testUserId,
+            title: 'M1',
+            content: 'C1',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+        );
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'm2',
+            userId: testUserId,
+            title: 'M2',
+            content: 'C2',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(1),
+          ),
+        );
+
+        // 1. m1 を論理削除（スワイプ削除相当）
+        await dao.updateMemo(
+          'm1',
+          testUserId,
+          const MemosCompanion(isDeleted: Value(true)),
+        );
+
+        // 2. 新規メモ m3 を追加（全メモがシフトされ、m3が0で挿入される）
+        await dao.insertMemoWithShift(
+          testUserId,
+          MemosCompanion.insert(
+            id: 'm3',
+            userId: testUserId,
+            title: 'M3',
+            content: 'C3',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+        );
+
+        // 3. m1 を復元（Undo相当）
+        await dao.restoreMemo(
+          'm1',
+          testUserId,
+          now.add(const Duration(minutes: 1)),
+        );
+
+        final allMemos = await dao.getAllMemos(testUserId);
+        check(allMemos.length).equals(3);
+
+        final m3 = allMemos.firstWhere((m) => m.id == 'm3');
+        final m1 = allMemos.firstWhere((m) => m.id == 'm1');
+        final m2 = allMemos.firstWhere((m) => m.id == 'm2');
+
+        // m3が先頭(0)、復元されたm1が(1)、m2が(2)となり、重複が一切ないこと
+        check(m3.sortOrder).equals(0);
+        check(m1.sortOrder).equals(1);
+        check(m2.sortOrder).equals(2);
+
+        // 重複がないことをSetでも検証
+        final sortOrders = allMemos.map((m) => m.sortOrder).toSet();
+        check(sortOrders.length).equals(3);
+      });
+
+      test('【正常系】restoreMemoで論理削除フラグが解除され未同期状態になること', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'm-restore',
+            userId: testUserId,
+            title: '復元対象',
+            content: '内容',
+            createdAt: now,
+            updatedAt: now,
+            isDeleted: const Value(true),
+            isSynced: const Value(true),
+          ),
+        );
+
+        final restoreTime = now.add(const Duration(minutes: 10));
+        await dao.restoreMemo('m-restore', testUserId, restoreTime);
+
+        final restored = await dao.getMemoById('m-restore', testUserId);
+        check(restored.isDeleted).isFalse();
+        check(restored.isSynced).isFalse();
+        check(restored.updatedAt).equals(restoreTime);
+      });
+
+      test('【正常系】mergeRemoteMemosで既存メモの順序を維持しつつ新規メモを先頭にマージすること', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'm1',
+            userId: testUserId,
+            title: 'M1',
+            content: 'C1',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+        );
+
+        await dao.mergeRemoteMemos(testUserId, [
+          {
+            'id': 'm1',
+            'title': 'M1更新',
+            'content': 'C1更新',
+            'createdAt': now,
+            'updatedAt': now.add(const Duration(minutes: 5)),
+            'isDeleted': false,
+          },
+          {
+            'id': 'm2',
+            'title': 'M2新規',
+            'content': 'C2新規',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+        ]);
+
+        final m1 = await dao.getMemoById('m1', testUserId);
+        final m2 = await dao.getMemoById('m2', testUserId);
+        check(m1.title).equals('M1更新');
+        check(m1.sortOrder).equals(1);
+        check(m2.title).equals('M2新規');
+        check(m2.sortOrder).equals(0);
+      });
+
+      test('【正常系】既存メモの更新を含むmergeRemoteMemosとupdateSortOrdersを並行実行しても'
+          '最新の並び順と更新内容が正しく反映されること', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'm1',
+            userId: testUserId,
+            title: 'M1',
+            content: 'C1',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+        );
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'm2',
+            userId: testUserId,
+            title: 'M2',
+            content: 'C2',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(1),
+          ),
+        );
+
+        // 既存メモm1の更新（リモートマージ）と、ローカルでの並び替えを同時に実行
+        await Future.wait([
+          dao.mergeRemoteMemos(testUserId, [
+            {
+              'id': 'm1',
+              'title': 'M1リモート更新',
+              'content': 'C1リモート更新',
+              'createdAt': now,
+              'updatedAt': now.add(const Duration(minutes: 5)),
+              'isDeleted': false,
+            },
+          ]),
+          dao.updateSortOrders(['m2', 'm1'], testUserId),
+        ]);
+
+        final m1 = await dao.getMemoById('m1', testUserId);
+        final m2 = await dao.getMemoById('m2', testUserId);
+
+        // m1のリモート更新内容（タイトル）が正しく反映されていること
+        check(m1.title).equals('M1リモート更新');
+        // 並び替えの結果（m2が0、m1が1）が保持されていること
+        check(m2.sortOrder).equals(0);
+        check(m1.sortOrder).equals(1);
+      });
+
+      test(
+        '【正常系】削除後に残りのメモを並び替えてからUndoした際、元の位置（sortOrder）で復元され重複しないこと',
+        () async {
+          final now = DateTime(2026, 10, 25, 10);
+          // 初期状態: A(0), B(1), C(2)
+          await dao.upsertMemos([
+            MemosCompanion.insert(
+              id: 'A',
+              userId: testUserId,
+              title: 'A',
+              content: 'A',
+              createdAt: now,
+              updatedAt: now,
+              sortOrder: const Value(0),
+            ),
+            MemosCompanion.insert(
+              id: 'B',
+              userId: testUserId,
+              title: 'B',
+              content: 'B',
+              createdAt: now,
+              updatedAt: now,
+              sortOrder: const Value(1),
+            ),
+            MemosCompanion.insert(
+              id: 'C',
+              userId: testUserId,
+              title: 'C',
+              content: 'C',
+              createdAt: now,
+              updatedAt: now,
+              sortOrder: const Value(2),
+            ),
+          ]);
+
+          // 1. A を論理削除（sortOrder: 0 をキープ）
+          await dao.updateMemo(
+            'A',
+            testUserId,
+            const MemosCompanion(isDeleted: Value(true)),
+          );
+
+          // 2. 残りのメモ [C, B] を並び替え（Aの0を避けて C: 1, B: 2 が割り当てられる）
+          await dao.updateSortOrders(['C', 'B'], testUserId);
+
+          // 3. A を Undo 復元
+          await dao.restoreMemo(
+            'A',
+            testUserId,
+            now.add(const Duration(minutes: 1)),
+          );
+
+          final allMemos = await dao.getAllMemos(testUserId);
+          check(allMemos.length).equals(3);
+
+          final memoA = allMemos.firstWhere((m) => m.id == 'A');
+          final memoC = allMemos.firstWhere((m) => m.id == 'C');
+          final memoB = allMemos.firstWhere((m) => m.id == 'B');
+
+          // Aは元の先頭位置（0）で復元され、並び替えたCが1、Bが2となり重複が一切ないこと
+          check(memoA.sortOrder).equals(0);
+          check(memoC.sortOrder).equals(1);
+          check(memoB.sortOrder).equals(2);
+
+          final sortOrders = allMemos.map((m) => m.sortOrder).toSet();
+          check(sortOrders.length).equals(3);
+        },
+      );
+
+      test('【正常系】中間のメモ削除後に残りを並び替えてからUndoした際も元の位置で復元され重複しないこと', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        // 初期状態: A(0), B(1), C(2)
+        await dao.upsertMemos([
+          MemosCompanion.insert(
+            id: 'A',
+            userId: testUserId,
+            title: 'A',
+            content: 'A',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+          MemosCompanion.insert(
+            id: 'B',
+            userId: testUserId,
+            title: 'B',
+            content: 'B',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(1),
+          ),
+          MemosCompanion.insert(
+            id: 'C',
+            userId: testUserId,
+            title: 'C',
+            content: 'C',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(2),
+          ),
+        ]);
+
+        // 1. 中間の B を論理削除（sortOrder: 1 をキープ）
+        await dao.updateMemo(
+          'B',
+          testUserId,
+          const MemosCompanion(isDeleted: Value(true)),
+        );
+
+        // 2. 残りのメモ [C, A] を並び替え（Bの1を避けて C: 0, A: 2 が割り当てられる）
+        await dao.updateSortOrders(['C', 'A'], testUserId);
+
+        // 3. B を Undo 復元
+        await dao.restoreMemo(
+          'B',
+          testUserId,
+          now.add(const Duration(minutes: 1)),
+        );
+
+        final allMemos = await dao.getAllMemos(testUserId);
+        check(allMemos.length).equals(3);
+
+        final memoC = allMemos.firstWhere((m) => m.id == 'C');
+        final memoB = allMemos.firstWhere((m) => m.id == 'B');
+        final memoA = allMemos.firstWhere((m) => m.id == 'A');
+
+        // Cが0、復元されたBが元の位置(1)、Aが2となり、重複が一切ないこと
+        check(memoC.sortOrder).equals(0);
+        check(memoB.sortOrder).equals(1);
+        check(memoA.sortOrder).equals(2);
+
+        final sortOrders = allMemos.map((m) => m.sortOrder).toSet();
+        check(sortOrders.length).equals(3);
+      });
+
+      test('【正常系】並び替え対象取得後に新規リモートメモが先行マージされても'
+          'sortOrderが重複せず順序が保たれること', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        // 初期状態: A(0), B(1)
+        await dao.upsertMemos([
+          MemosCompanion.insert(
+            id: 'A',
+            userId: testUserId,
+            title: 'A',
+            content: 'A',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+          MemosCompanion.insert(
+            id: 'B',
+            userId: testUserId,
+            title: 'B',
+            content: 'B',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(1),
+          ),
+        ]);
+
+        // 並び替え処理が古い一覧 ['B', 'A'] を保持している状態で、
+        // 先に新規リモートメモ C のマージが完了する
+        await dao.mergeRemoteMemos(testUserId, [
+          {
+            'id': 'C',
+            'title': 'C新規',
+            'content': 'C新規',
+            'createdAt': now.add(const Duration(minutes: 1)),
+            'updatedAt': now.add(const Duration(minutes: 1)),
+            'isDeleted': false,
+          },
+        ]);
+
+        // その後、取得済みの古い一覧 ['B', 'A'] による並び替えを実行
+        await dao.updateSortOrders(['B', 'A'], testUserId);
+
+        final allMemos = await dao.getAllMemos(testUserId);
+        check(allMemos.length).equals(3);
+
+        final memoC = allMemos.firstWhere((m) => m.id == 'C');
+        final memoB = allMemos.firstWhere((m) => m.id == 'B');
+        final memoA = allMemos.firstWhere((m) => m.id == 'A');
+
+        // 新規メモCが先頭(0)、並び替えられたBが(1)、Aが(2)となり、重複が一切ないこと
+        check(memoC.sortOrder).equals(0);
+        check(memoB.sortOrder).equals(1);
+        check(memoA.sortOrder).equals(2);
+
+        final sortOrders = allMemos.map((m) => m.sortOrder).toSet();
+        check(sortOrders.length).equals(3);
+      });
+
+      test('【正常系】並び替え一覧取得後に削除が先行反映されても、'
+          '削除済みメモの位置が予約され元位置でUndoできること', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        // 初期状態: A(0), B(1), C(2)
+        await dao.upsertMemos([
+          MemosCompanion.insert(
+            id: 'A',
+            userId: testUserId,
+            title: 'A',
+            content: 'A',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+          MemosCompanion.insert(
+            id: 'B',
+            userId: testUserId,
+            title: 'B',
+            content: 'B',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(1),
+          ),
+          MemosCompanion.insert(
+            id: 'C',
+            userId: testUserId,
+            title: 'C',
+            content: 'C',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(2),
+          ),
+        ]);
+
+        // 並び替え処理が古い一覧 ['B', 'A', 'C'] を保持している状態で、
+        // 先に A の削除が DB に反映される
+        await dao.updateMemo(
+          'A',
+          testUserId,
+          const MemosCompanion(isDeleted: Value(true)),
+        );
+
+        // その後、取得済みの古い一覧 ['B', 'A', 'C'] による並び替えを実行
+        await dao.updateSortOrders(['B', 'A', 'C'], testUserId);
+
+        // A を Undo 復元
+        await dao.restoreMemo(
+          'A',
+          testUserId,
+          now.add(const Duration(minutes: 1)),
+        );
+
+        final allMemos = await dao.getAllMemos(testUserId);
+        check(allMemos.length).equals(3);
+
+        final memoA = allMemos.firstWhere((m) => m.id == 'A');
+        final memoB = allMemos.firstWhere((m) => m.id == 'B');
+        final memoC = allMemos.firstWhere((m) => m.id == 'C');
+
+        // Aは再採番されず元の位置(0)を維持し、Bが1、Cが2となり重複が一切ないこと
+        check(memoA.sortOrder).equals(0);
+        check(memoB.sortOrder).equals(1);
+        check(memoC.sortOrder).equals(2);
+
+        final sortOrders = allMemos.map((m) => m.sortOrder).toSet();
+        check(sortOrders.length).equals(3);
+      });
+
+      test('【正常系】mergeRemoteMemosで非文字列ID（null・数値・キー欠損）が混在しても'
+          'エラーにならず有効なメモのみ取り込まれること', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        // 既存メモ m1 を登録
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'm1',
+            userId: testUserId,
+            title: 'M1旧',
+            content: 'C1旧',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+        );
+
+        // 非文字列ID（null, int, キー欠損）と有効なメモ（m1更新, m2新規）を混在させてマージ
+        await dao.mergeRemoteMemos(testUserId, [
+          {
+            'id': null,
+            'title': '不正null',
+            'content': 'C',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+          {
+            'id': 12345,
+            'title': '不正int',
+            'content': 'C',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+          {
+            'title': 'IDキーなし',
+            'content': 'C',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+          {
+            'id': 'm1',
+            'title': 'M1更新',
+            'content': 'C1更新',
+            'createdAt': now,
+            'updatedAt': now.add(const Duration(minutes: 5)),
+            'isDeleted': false,
+          },
+          {
+            'id': 'm2',
+            'title': 'M2新規',
+            'content': 'C2新規',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+        ]);
+
+        // 全件非文字列IDの場合もエラーにならず安全に終了すること
+        await dao.mergeRemoteMemos(testUserId, [
+          {'id': 999, 'title': '無効のみ'},
+        ]);
+
+        final allMemos = await dao.getAllMemos(testUserId);
+        check(allMemos.length).equals(2);
+
+        final m1 = await dao.getMemoById('m1', testUserId);
+        final m2 = await dao.getMemoById('m2', testUserId);
+        check(m1.title).equals('M1更新');
+        check(m1.sortOrder).equals(1);
+        check(m2.title).equals('M2新規');
+        check(m2.sortOrder).equals(0);
+      });
+
+      test('【正常系】mergeRemoteMemosで無効な日付のリモートメモや再取得があっても'
+          '既存メモのsortOrderがシフトされないこと', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        // 既存メモ m1(0), m2(1) を登録
+        await dao.upsertMemos([
+          MemosCompanion.insert(
+            id: 'm1',
+            userId: testUserId,
+            title: 'M1',
+            content: 'C1',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+          MemosCompanion.insert(
+            id: 'm2',
+            userId: testUserId,
+            title: 'M2',
+            content: 'C2',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(1),
+          ),
+        ]);
+
+        final invalidDateMemos = <Map<String, dynamic>>[
+          {
+            'id': 'bad-created',
+            'title': '作成日不正',
+            'content': 'C',
+            'createdAt': 'invalid-date',
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+          {
+            'id': 'bad-updated',
+            'title': '更新日null',
+            'content': 'C',
+            'createdAt': now,
+            'updatedAt': null,
+            'isDeleted': false,
+          },
+          {
+            'id': 'missing-date',
+            'title': '日付キー欠損',
+            'content': 'C',
+            'isDeleted': false,
+          },
+        ];
+
+        // 無効な日付のメモのみを複数回受信（再取得を再現）してもシフトされないこと
+        await dao.mergeRemoteMemos(testUserId, invalidDateMemos);
+        await dao.mergeRemoteMemos(testUserId, invalidDateMemos);
+
+        var m1 = await dao.getMemoById('m1', testUserId);
+        var m2 = await dao.getMemoById('m2', testUserId);
+        check(m1.sortOrder).equals(0);
+        check(m2.sortOrder).equals(1);
+        check((await dao.getAllMemos(testUserId)).length).equals(2);
+
+        // 無効なメモと有効な新規メモ(m3)が混在する場合、有効な1件分だけシフトされること
+        final mixedPayload = <Map<String, dynamic>>[
+          ...invalidDateMemos,
+          {
+            'id': 'm3',
+            'title': 'M3新規',
+            'content': 'C3新規',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+        ];
+        await dao.mergeRemoteMemos(testUserId, mixedPayload);
+
+        // 同じペイロードを再取得しても追加シフトされないこと
+        await dao.mergeRemoteMemos(testUserId, mixedPayload);
+
+        m1 = await dao.getMemoById('m1', testUserId);
+        m2 = await dao.getMemoById('m2', testUserId);
+        final m3 = await dao.getMemoById('m3', testUserId);
+        check(m3.sortOrder).equals(0);
+        check(m1.sortOrder).equals(1);
+        check(m2.sortOrder).equals(2);
+        check((await dao.getAllMemos(testUserId)).length).equals(3);
+      });
+
+      test('【正常系】mergeRemoteMemosで重複IDがある場合updatedAtが最新の版のみ残り'
+          '古い版による上書きやsortOrderの重複シフトが起きないこと', () async {
+        final now = DateTime(2026, 10, 25, 10);
+        // 既存メモ m1(0), m2(1) を登録
+        await dao.upsertMemos([
+          MemosCompanion.insert(
+            id: 'm1',
+            userId: testUserId,
+            title: 'M1初期',
+            content: 'C1初期',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+          MemosCompanion.insert(
+            id: 'm2',
+            userId: testUserId,
+            title: 'M2初期',
+            content: 'C2初期',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(1),
+          ),
+        ]);
+
+        await dao.mergeRemoteMemos(testUserId, [
+          // 既存m1: 最新版(削除済み)の後ろに古い版(未削除・ローカルよりは新しい)が続く
+          {
+            'id': 'm1',
+            'title': 'M1最新',
+            'content': 'C1最新',
+            'createdAt': now,
+            'updatedAt': now.add(const Duration(minutes: 10)),
+            'isDeleted': true,
+          },
+          {
+            'id': 'm1',
+            'title': 'M1古い',
+            'content': 'C1古い',
+            'createdAt': now,
+            'updatedAt': now.add(const Duration(minutes: 5)),
+            'isDeleted': false,
+          },
+          // 既存m2: 古い版の後ろに最新版が続く
+          {
+            'id': 'm2',
+            'title': 'M2古い',
+            'content': 'C2古い',
+            'createdAt': now,
+            'updatedAt': now.add(const Duration(minutes: 2)),
+            'isDeleted': false,
+          },
+          {
+            'id': 'm2',
+            'title': 'M2最新',
+            'content': 'C2最新',
+            'createdAt': now,
+            'updatedAt': now.add(const Duration(minutes: 8)),
+            'isDeleted': false,
+          },
+          // 新規m3: 重複して含まれていても1件としてカウントされること
+          {
+            'id': 'm3',
+            'title': 'M3最新',
+            'content': 'C3最新',
+            'createdAt': now,
+            'updatedAt': now.add(const Duration(minutes: 10)),
+            'isDeleted': false,
+          },
+          {
+            'id': 'm3',
+            'title': 'M3古い',
+            'content': 'C3古い',
+            'createdAt': now,
+            'updatedAt': now.add(const Duration(minutes: 5)),
+            'isDeleted': true,
+          },
+        ]);
+
+        final m1 = await dao.getMemoById('m1', testUserId);
+        final m2 = await dao.getMemoById('m2', testUserId);
+        final m3 = await dao.getMemoById('m3', testUserId);
+
+        // 各IDについてupdatedAtが最も新しい版の内容・削除状態が維持されていること
+        check(m1.title).equals('M1最新');
+        check(m1.content).equals('C1最新');
+        check(m1.isDeleted).equals(true);
+        check(m2.title).equals('M2最新');
+        check(m3.title).equals('M3最新');
+        check(m3.isDeleted).equals(false);
+
+        // 重複した新規IDは1件として数えられ、既存メモは1つ分だけシフトされること
+        check(m3.sortOrder).equals(0);
+        check(m1.sortOrder).equals(1);
+        check(m2.sortOrder).equals(2);
+        check((await dao.getAllMemos(testUserId)).length).equals(2);
+      });
+
+      test('【正常系】markAsSyncedIfUnchangedは状態一致時のみisSyncedをtrueにし、'
+          '不一致時は更新しないこと', () async {
+        final now = DateTime(2026, 10, 26, 12);
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'memo-cond',
+            userId: testUserId,
+            title: 'タイトル',
+            content: '本文',
+            createdAt: now,
+            updatedAt: now,
+            isDeleted: const Value(true),
+            isSynced: const Value(false),
+          ),
+        );
+
+        // 状態が一致しない（isDeleted: false）場合は更新されないこと
+        await dao.markAsSyncedIfUnchanged(
+          id: 'memo-cond',
+          userId: testUserId,
+          title: 'タイトル',
+          content: '本文',
+          createdAt: now,
+          updatedAt: now,
+          isDeleted: false,
+        );
+        check(
+          (await dao.getMemoById('memo-cond', testUserId)).isSynced,
+        ).isFalse();
+
+        // 状態が一致する場合は isSynced = true に更新されること
+        await dao.markAsSyncedIfUnchanged(
+          id: 'memo-cond',
+          userId: testUserId,
+          title: 'タイトル',
+          content: '本文',
+          createdAt: now,
+          updatedAt: now,
+          isDeleted: true,
+        );
+        check(
+          (await dao.getMemoById('memo-cond', testUserId)).isSynced,
+        ).isTrue();
+      });
+
+      test('【正常系】mergeRemoteMemosで同一秒内のサブ秒のみを持つ古い削除データを受信しても'
+          '未同期の復元が上書きされず未同期のまま保持されること', () async {
+        final baseTime = DateTime(2026, 11, 14, 10);
+        final deleteSubSecTime = DateTime(2026, 11, 14, 10, 0, 0, 200);
+        final restoreSubSecTime = DateTime(2026, 11, 14, 10, 0, 0, 800);
+
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'memo-restore-subsec',
+            userId: testUserId,
+            title: 'サブ秒復元テスト',
+            content: '本文',
+            createdAt: baseTime,
+            updatedAt: deleteSubSecTime,
+            isDeleted: const Value(true),
+            isSynced: const Value(true),
+          ),
+        );
+
+        // 同一秒内のサブ秒で復元（DB上には updatedAtMicros でマイクロ秒精度も保存される）
+        await dao.restoreMemo(
+          'memo-restore-subsec',
+          testUserId,
+          restoreSubSecTime,
+        );
+
+        // サーバー側に同一秒の古い削除日時（.200）が残っていても、
+        // マイクロ秒精度比較により古い削除を採用せず未同期の復元を保持すること
+        await dao.mergeRemoteMemos(testUserId, [
+          {
+            'id': 'memo-restore-subsec',
+            'title': 'サブ秒復元テスト',
+            'content': '本文',
+            'createdAt': baseTime,
+            'updatedAt': deleteSubSecTime,
+            'isDeleted': true,
+          },
+        ]);
+
+        final current = await dao.getMemoById(
+          'memo-restore-subsec',
+          testUserId,
+        );
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isFalse();
+        check(current.updatedAt).equals(baseTime);
+        check(
+          current.updatedAtMicros,
+        ).equals(restoreSubSecTime.microsecondsSinceEpoch);
+      });
+
+      test('【正常系】mergeRemoteMemosで別端末の削除（同期済み）を取得後、'
+          '同秒内のサブ秒復元および同一updatedAtの復元を取得した際に復元が反映されること', () async {
+        final baseTime = DateTime(2026, 11, 14, 10);
+        final deleteSubSecTime = DateTime(2026, 11, 14, 10, 0, 0, 200);
+        final restoreSubSecTime = DateTime(2026, 11, 14, 10, 0, 0, 700);
+
+        // 1. 端末Bで端末Aによる削除をそれぞれ取得（同期済み）
+        // - memo-subsec: 同秒内の後続時刻（.200 -> .700）で復元されるケース
+        // - memo-same-ts: 同一 updatedAt（.700 -> .700）で復元されるケース
+        // - memo-unsynced-same: 未同期のローカル復元（.700）が同一時刻削除から保護されるケース
+        await dao.mergeRemoteMemos(testUserId, [
+          {
+            'id': 'memo-subsec',
+            'title': 'サブ秒後続復元',
+            'content': '本文1',
+            'createdAt': baseTime,
+            'updatedAt': deleteSubSecTime,
+            'isDeleted': true,
+          },
+          {
+            'id': 'memo-same-ts',
+            'title': '同一時刻復元',
+            'content': '本文2',
+            'createdAt': baseTime,
+            'updatedAt': restoreSubSecTime,
+            'isDeleted': true,
+          },
+          {
+            'id': 'memo-unsynced-same',
+            'title': '未同期保護',
+            'content': '本文3',
+            'createdAt': baseTime,
+            'updatedAt': deleteSubSecTime,
+            'isDeleted': true,
+          },
+        ]);
+
+        await dao.restoreMemo(
+          'memo-unsynced-same',
+          testUserId,
+          restoreSubSecTime,
+        );
+
+        // 2. 同秒内に端末A側で復元されたリモートデータを取得
+        await dao.mergeRemoteMemos(testUserId, [
+          {
+            'id': 'memo-subsec',
+            'title': 'サブ秒後続復元',
+            'content': '本文1',
+            'createdAt': baseTime,
+            'updatedAt': restoreSubSecTime,
+            'isDeleted': false,
+          },
+          {
+            'id': 'memo-same-ts',
+            'title': '同一時刻復元',
+            'content': '本文2',
+            'createdAt': baseTime,
+            'updatedAt': restoreSubSecTime,
+            'isDeleted': false,
+          },
+          {
+            'id': 'memo-unsynced-same',
+            'title': '未同期保護',
+            'content': '本文3',
+            'createdAt': baseTime,
+            'updatedAt': restoreSubSecTime,
+            'isDeleted': true,
+          },
+        ]);
+
+        final subSecMemo = await dao.getMemoById('memo-subsec', testUserId);
+        check(subSecMemo.isDeleted).isFalse();
+        check(subSecMemo.isSynced).isTrue();
+        check(
+          subSecMemo.updatedAtMicros,
+        ).equals(restoreSubSecTime.microsecondsSinceEpoch);
+
+        final sameTsMemo = await dao.getMemoById('memo-same-ts', testUserId);
+        check(sameTsMemo.isDeleted).isFalse();
+        check(sameTsMemo.isSynced).isTrue();
+        check(
+          sameTsMemo.updatedAtMicros,
+        ).equals(restoreSubSecTime.microsecondsSinceEpoch);
+
+        // 未同期のローカル復元は同一 updatedAt のリモート削除で上書きされない
+        final unsyncedMemo = await dao.getMemoById(
+          'memo-unsynced-same',
+          testUserId,
+        );
+        check(unsyncedMemo.isDeleted).isFalse();
+        check(unsyncedMemo.isSynced).isFalse();
+      });
+
+      test('【正常系】updatedAtMicrosがNULL（v5移行直後）のレコードでも'
+          'mergeRemoteMemosとmarkAsSyncedIfUnchangedが正しく動作すること', () async {
+        final baseTime = DateTime(2026, 11, 14, 10);
+        final subSecSameSecond = DateTime(2026, 11, 14, 10, 0, 0, 500);
+
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'memo-v5-legacy',
+            userId: testUserId,
+            title: '移行データ',
+            content: '本文',
+            createdAt: baseTime,
+            updatedAt: baseTime,
+            updatedAtMicros: const Value(null),
+          ),
+        );
+
+        await dao.markAsSyncedIfUnchanged(
+          id: 'memo-v5-legacy',
+          userId: testUserId,
+          title: '移行データ',
+          content: '本文',
+          createdAt: baseTime,
+          updatedAt: baseTime,
+          isDeleted: false,
+        );
+        var current = await dao.getMemoById('memo-v5-legacy', testUserId);
+        check(current.isSynced).isTrue();
+
+        // NULL フォールバック（baseTime のマイクロ秒 = .000）より新しい .500 が反映される
+        await dao.mergeRemoteMemos(testUserId, [
+          {
+            'id': 'memo-v5-legacy',
+            'title': '移行データ更新',
+            'content': '更新本文',
+            'createdAt': baseTime,
+            'updatedAt': subSecSameSecond,
+            'isDeleted': false,
+          },
+        ]);
+
+        current = await dao.getMemoById('memo-v5-legacy', testUserId);
+        check(current.title).equals('移行データ更新');
+        check(
+          current.updatedAtMicros,
+        ).equals(subSecSameSecond.microsecondsSinceEpoch);
+      });
+
+      test('【正常系】fetchedBeforeSeq以降に同一updatedAtで復元・同期完了したメモは'
+          '古い取得結果で上書きされず、変更のない他メモの同一時刻更新のみ反映されること', () async {
+        final baseTime = DateTime(2026, 11, 14, 10);
+        final sameTime = DateTime(2026, 11, 14, 10, 0, 0, 500);
+
+        await dao.upsertMemos([
+          MemosCompanion.insert(
+            id: 'memo-raced',
+            userId: testUserId,
+            title: '競合メモ',
+            content: '本文1',
+            createdAt: baseTime,
+            updatedAt: sameTime,
+            isDeleted: const Value(true),
+            isSynced: const Value(true),
+          ),
+          MemosCompanion.insert(
+            id: 'memo-untouched',
+            userId: testUserId,
+            title: '未変更メモ',
+            content: '本文2',
+            createdAt: baseTime,
+            updatedAt: sameTime,
+            isDeleted: const Value(true),
+            isSynced: const Value(true),
+          ),
+        ]);
+
+        // fetchMemos 開始時点の変更シーケンスを記録
+        final fetchedBeforeSeq = dao.currentMutationSeq;
+
+        // 取得待機中に同一 updatedAt でローカル復元および同期完了（isSynced = true）が発生
+        await dao.restoreMemo('memo-raced', testUserId, sameTime);
+        await dao.markAsSyncedIfUnchanged(
+          id: 'memo-raced',
+          userId: testUserId,
+          title: '競合メモ',
+          content: '本文1',
+          createdAt: baseTime,
+          updatedAt: sameTime,
+          isDeleted: false,
+        );
+
+        // 取得開始前の古い削除済みスナップショット（memo-raced）と、
+        // 他端末が同一時刻に復元した未変更メモ（memo-untouched）が遅延到着
+        await dao.mergeRemoteMemos(testUserId, [
+          {
+            'id': 'memo-raced',
+            'title': '競合メモ',
+            'content': '本文1',
+            'createdAt': baseTime,
+            'updatedAt': sameTime,
+            'isDeleted': true,
+          },
+          {
+            'id': 'memo-untouched',
+            'title': '未変更メモ',
+            'content': '本文2',
+            'createdAt': baseTime,
+            'updatedAt': sameTime,
+            'isDeleted': false,
+          },
+        ], fetchedBeforeSeq: fetchedBeforeSeq);
+
+        // fetchedBeforeSeq 以降に変更されたメモは古い削除スナップショットで上書きされない
+        final racedMemo = await dao.getMemoById('memo-raced', testUserId);
+        check(racedMemo.isDeleted).isFalse();
+        check(racedMemo.isSynced).isTrue();
+
+        // 取得中にローカル変更がなかった同期済みメモは同一時刻のリモート復元を取り込む
+        final untouchedMemo = await dao.getMemoById(
+          'memo-untouched',
+          testUserId,
+        );
+        check(untouchedMemo.isDeleted).isFalse();
+        check(untouchedMemo.isSynced).isTrue();
+      });
+    });
   });
 }

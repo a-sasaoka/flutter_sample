@@ -22,8 +22,8 @@ void main() {
       await database.close();
     });
 
-    test('schemaVersion returns 4', () {
-      check(database.schemaVersion).equals(4);
+    test('schemaVersion returns 6', () {
+      check(database.schemaVersion).equals(6);
     });
 
     test('onUpgrade migration strategy executes without error', () async {
@@ -32,7 +32,7 @@ void main() {
 
       // 実際には Migrator インスタンスが必要だが、モックやダミーで呼び出しだけ確認
       // ここでは、onUpgrade が例外なく実行されることをテストし、カバレッジを通す
-      await strategy.onUpgrade(database.createMigrator(), 1, 4);
+      await strategy.onUpgrade(database.createMigrator(), 1, 6);
 
       // 前後のフックもカバレッジのために実行
       // onCreate は AppDatabase インスタンス作成時に暗黙的に呼ばれているが、明示的にも呼ぶ
@@ -145,6 +145,121 @@ void main() {
       check(memo.category).isNull();
       check(memo.isSynced).isTrue();
     });
+
+    test(
+      'onUpgrade (from 4 to 5): sort_order カラム追加時に既存データが保持され連番が振られること',
+      () async {
+        // memos テーブルを一度削除し、sort_order カラム無しのスキーマ（v4）で作成
+        await database.customStatement('DROP TABLE IF EXISTS memos;');
+        await database.customStatement('''
+        CREATE TABLE memos (
+          id TEXT NOT NULL PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          title TEXT NOT NULL,
+          content TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          is_deleted INTEGER NOT NULL,
+          is_synced INTEGER NOT NULL,
+          category TEXT
+        );
+      ''');
+
+        // 移行前のv4テーブルにテスト用の複数メモデータを投入（作成日時に差をつける）
+        await database.customStatement('''
+        INSERT INTO memos (id, user_id, title, content, created_at, updated_at, is_deleted, is_synced, category)
+        VALUES
+          ('memo-1', 'user-1', 'メモ1', '古い', 1000, 1000, 0, 1, 'work'),
+          ('memo-2', 'user-1', 'メモ2', '新しい', 2000, 2000, 0, 1, 'personal'),
+          ('memo-3', 'user-2', '他ユーザーメモ', '別ユーザー', 1500, 1500, 0, 1, NULL);
+      ''');
+
+        // マイグレーション実行 (from 4 to 5)
+        await database.migration.onUpgrade(database.createMigrator(), 4, 5);
+
+        // sort_order カラムが追加されたことを確認
+        final columns = await database
+            .customSelect('PRAGMA table_info(memos);')
+            .get();
+        final hasSortOrder = columns.any(
+          (row) => row.read<String>('name') == 'sort_order',
+        );
+        check(hasSortOrder).isTrue();
+
+        // 既存行が保持され、作成日時の新しい順に連番（0, 1...）が振られていることを確認
+        final memosUser1 =
+            await (database.select(database.memos)
+                  ..where((t) => t.userId.equals('user-1'))
+                  ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
+                .get();
+        check(memosUser1.length).equals(2);
+        // 作成日時が新しい memo-2 が sortOrder: 0
+        check(memosUser1[0].id).equals('memo-2');
+        check(memosUser1[0].sortOrder).equals(0);
+        // 作成日時が古い memo-1 が sortOrder: 1
+        check(memosUser1[1].id).equals('memo-1');
+        check(memosUser1[1].sortOrder).equals(1);
+
+        // user-2 のメモも単独で sortOrder: 0
+        final memosUser2 = await (database.select(
+          database.memos,
+        )..where((t) => t.userId.equals('user-2'))).get();
+        check(memosUser2.length).equals(1);
+        check(memosUser2[0].sortOrder).equals(0);
+
+        // 冪等性の確認: 既に sort_order が存在する場合に再実行してもエラーにならないこと
+        await database.migration.onUpgrade(database.createMigrator(), 4, 5);
+      },
+    );
+
+    test(
+      'onUpgrade (from 5 to 6): updated_at_micros カラムが追加され既存行が保持されること',
+      () async {
+        // v5 状態の memos テーブルを再現する
+        await database.customStatement('DROP TABLE memos;');
+        await database.customStatement('''
+        CREATE TABLE memos (
+          id TEXT NOT NULL PRIMARY KEY,
+          user_id TEXT NOT NULL DEFAULT '',
+          title TEXT NOT NULL,
+          content TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          is_deleted INTEGER NOT NULL DEFAULT 0,
+          is_synced INTEGER NOT NULL DEFAULT 0,
+          category TEXT NULL,
+          sort_order INTEGER NOT NULL DEFAULT 0
+        );
+      ''');
+
+        await database.customStatement('''
+        INSERT INTO memos (id, user_id, title, content, created_at, updated_at, is_deleted, is_synced, category, sort_order)
+        VALUES ('memo-1', 'user-1', 'メモ1', '内容', 1000, 2000, 0, 1, 'work', 0);
+      ''');
+
+        // マイグレーション実行 (from 5 to 6)
+        await database.migration.onUpgrade(database.createMigrator(), 5, 6);
+
+        final columns = await database
+            .customSelect('PRAGMA table_info(memos);')
+            .get();
+        final hasUpdatedAtMicros = columns.any(
+          (row) => row.read<String>('name') == 'updated_at_micros',
+        );
+        check(hasUpdatedAtMicros).isTrue();
+
+        final memos = await database.select(database.memos).get();
+        check(memos.length).equals(1);
+        check(memos.first.id).equals('memo-1');
+        check(memos.first.updatedAtMicros).isNull();
+        check(
+          memos.first.updatedAt,
+        ).equals(DateTime.fromMillisecondsSinceEpoch(2000 * 1000));
+
+        // 冪等性の確認: 既に updated_at_micros が存在する場合に再実行してもエラーにならないこと
+        await database.migration.onUpgrade(database.createMigrator(), 5, 6);
+      },
+    );
 
     test('テーブル操作の基本テスト (CRUD)', () async {
       // Create

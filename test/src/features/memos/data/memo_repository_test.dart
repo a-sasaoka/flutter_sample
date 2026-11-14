@@ -1,13 +1,26 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:checks/checks.dart';
+import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
 import 'package:flutter_sample/src/app/database/app_database.dart';
 import 'package:flutter_sample/src/core/database/database_provider.dart';
+import 'package:flutter_sample/src/core/network/api_client.dart';
+import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
+import 'package:flutter_sample/src/core/network/dio_provider.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
 import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/core/utils/uuid_provider.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
+import 'package:flutter_sample/src/features/auth/data/token_interceptor.dart';
+import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_remote_service.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
+import 'package:flutter_sample/src/features/memos/data/memos_dao.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_category.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,6 +29,62 @@ import 'package:mocktail/mocktail.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 class MockMemoRemoteService extends Mock implements MemoRemoteService {}
+
+class MockTokenStorage extends Mock implements TokenStorage {}
+
+class _RecordingHttpClientAdapter implements HttpClientAdapter {
+  _RecordingHttpClientAdapter(this._onFetch);
+
+  final Future<ResponseBody> Function(RequestOptions options) _onFetch;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) {
+    return _onFetch(options);
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+class _HookedMemosDao extends MemosDao {
+  _HookedMemosDao(
+    super.attachedDatabase, {
+    this.onBeforeGetMemoById,
+    this.onBeforeGetMemosByIds,
+  });
+
+  final Future<void> Function()? onBeforeGetMemoById;
+  final Future<void> Function()? onBeforeGetMemosByIds;
+
+  @override
+  Future<Memo> getMemoById(String id, String userId) async {
+    await onBeforeGetMemoById?.call();
+    return await super.getMemoById(id, userId);
+  }
+
+  @override
+  Future<List<Memo>> getMemosByIds(List<String> ids, String userId) async {
+    await onBeforeGetMemosByIds?.call();
+    return await super.getMemosByIds(ids, userId);
+  }
+}
+
+class _TestUserIdNotifier extends Notifier<String?> {
+  @override
+  String? build() => 'test-user-id';
+
+  String? get userId => state;
+
+  set userId(String? id) => state = id;
+}
+
+final _testUserIdProvider = NotifierProvider<_TestUserIdNotifier, String?>(
+  _TestUserIdNotifier.new,
+);
 
 class HandleCall {
   const HandleCall({required this.exception, this.stackTrace, this.message});
@@ -58,7 +127,11 @@ void main() {
       spyTalker = SpyTalker();
 
       // デフォルトの振る舞い（Future<void>などのエラーを防ぐため）
-      when(() => mockRemoteService.fetchMemos()).thenAnswer((_) async => []);
+      when(
+        () => mockRemoteService.fetchMemos(
+          expectedUserId: any(named: 'expectedUserId'),
+        ),
+      ).thenAnswer((_) async => []);
       when(
         () => mockRemoteService.uploadMemo(
           id: any(named: 'id'),
@@ -67,6 +140,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
+          expectedUserId: any(named: 'expectedUserId'),
         ),
       ).thenAnswer((_) async {});
     });
@@ -83,6 +157,9 @@ void main() {
           clockProvider.overrideWithValue(() => now),
           isOnlineProvider.overrideWithValue(isOnline),
           loggerProvider.overrideWithValue(spyTalker),
+          currentUserIdProvider.overrideWith(
+            (ref) => ref.watch(_testUserIdProvider),
+          ),
         ],
       );
     }
@@ -106,6 +183,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
+          expectedUserId: any(named: 'expectedUserId'),
         ),
       );
     });
@@ -129,6 +207,7 @@ void main() {
           createdAt: now,
           updatedAt: now,
           isDeleted: false,
+          expectedUserId: testUserId,
         ),
       ).called(1);
     });
@@ -145,6 +224,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
+          expectedUserId: any(named: 'expectedUserId'),
         ),
       ).thenThrow(uploadError);
 
@@ -198,6 +278,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
+          expectedUserId: any(named: 'expectedUserId'),
         ),
       );
     });
@@ -237,6 +318,7 @@ void main() {
           createdAt: now,
           updatedAt: now,
           isDeleted: false,
+          expectedUserId: testUserId,
         ),
       ).called(1);
     });
@@ -265,6 +347,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
+          expectedUserId: any(named: 'expectedUserId'),
         ),
       ).thenThrow(uploadError);
 
@@ -319,6 +402,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
+          expectedUserId: any(named: 'expectedUserId'),
         ),
       );
     });
@@ -375,6 +459,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
+          expectedUserId: any(named: 'expectedUserId'),
         ),
       ).thenThrow(uploadError);
 
@@ -405,6 +490,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
+          expectedUserId: any(named: 'expectedUserId'),
         ),
       );
     });
@@ -453,6 +539,7 @@ void main() {
           createdAt: now,
           updatedAt: now,
           isDeleted: false,
+          expectedUserId: testUserId,
         ),
       ).called(1);
     });
@@ -495,6 +582,7 @@ void main() {
           createdAt: any(named: 'createdAt'),
           updatedAt: any(named: 'updatedAt'),
           isDeleted: any(named: 'isDeleted'),
+          expectedUserId: any(named: 'expectedUserId'),
         ),
       ).thenThrow(syncError);
 
@@ -511,6 +599,7 @@ void main() {
           createdAt: now,
           updatedAt: now,
           isDeleted: false,
+          expectedUserId: testUserId,
         ),
       ).called(1);
       check(spyTalker.handleCalls).length.equals(1);
@@ -557,13 +646,21 @@ void main() {
       check(memos.first.id).equals('1');
       check(memos.first.userId).equals(testUserId);
       // オフラインでも fetchMemos は呼ばれる実装になっている
-      verify(() => mockRemoteService.fetchMemos()).called(1);
+      verify(
+        () => mockRemoteService.fetchMemos(
+          expectedUserId: any(named: 'expectedUserId'),
+        ),
+      ).called(1);
     });
 
     test('getAllMemos: オンラインの場合、リモートから取得して新しいメモをマージすること', () async {
       final container = createContainer();
       final repository = container.read(memoRepositoryProvider);
-      when(() => mockRemoteService.fetchMemos()).thenAnswer(
+      when(
+        () => mockRemoteService.fetchMemos(
+          expectedUserId: any(named: 'expectedUserId'),
+        ),
+      ).thenAnswer(
         (_) async => [
           {
             'id': 'remote1',
@@ -603,7 +700,11 @@ void main() {
             );
 
         final newerTime = now.add(const Duration(minutes: 1));
-        when(() => mockRemoteService.fetchMemos()).thenAnswer(
+        when(
+          () => mockRemoteService.fetchMemos(
+            expectedUserId: any(named: 'expectedUserId'),
+          ),
+        ).thenAnswer(
           (_) async => [
             {
               'id': '1',
@@ -642,7 +743,11 @@ void main() {
               ),
             );
 
-        when(() => mockRemoteService.fetchMemos()).thenAnswer(
+        when(
+          () => mockRemoteService.fetchMemos(
+            expectedUserId: any(named: 'expectedUserId'),
+          ),
+        ).thenAnswer(
           (_) async => [
             {
               'id': '1',
@@ -666,7 +771,11 @@ void main() {
       final container = createContainer();
       final repository = container.read(memoRepositoryProvider);
       final fetchError = Exception('fetch error');
-      when(() => mockRemoteService.fetchMemos()).thenThrow(fetchError);
+      when(
+        () => mockRemoteService.fetchMemos(
+          expectedUserId: any(named: 'expectedUserId'),
+        ),
+      ).thenThrow(fetchError);
 
       final memos = await repository.getAllMemos(testUserId);
 
@@ -712,12 +821,72 @@ void main() {
             createdAt: any(named: 'createdAt'),
             updatedAt: any(named: 'updatedAt'),
             isDeleted: any(named: 'isDeleted'),
+            expectedUserId: any(named: 'expectedUserId'),
           ),
         );
         // リモートからの取得自体は行われること
-        verify(() => mockRemoteService.fetchMemos()).called(1);
+        verify(
+          () => mockRemoteService.fetchMemos(
+            expectedUserId: any(named: 'expectedUserId'),
+          ),
+        ).called(1);
       },
     );
+
+    test('getLocalMemos: オンラインでもリモート取得を行わずローカルの未削除メモのみを返すこと', () async {
+      final container = createContainer();
+      final repository = container.read(memoRepositoryProvider);
+      await database
+          .into(database.memos)
+          .insert(
+            MemosCompanion.insert(
+              id: 'local-1',
+              userId: testUserId,
+              title: 'Local 1',
+              content: 'Content 1',
+              createdAt: now,
+              updatedAt: now,
+              isDeleted: const drift.Value(false),
+            ),
+          );
+      await database
+          .into(database.memos)
+          .insert(
+            MemosCompanion.insert(
+              id: 'local-deleted',
+              userId: testUserId,
+              title: 'Deleted',
+              content: 'Deleted Content',
+              createdAt: now,
+              updatedAt: now,
+              isDeleted: const drift.Value(true),
+            ),
+          );
+      await database
+          .into(database.memos)
+          .insert(
+            MemosCompanion.insert(
+              id: 'other-user-memo',
+              userId: 'other_user',
+              title: 'Other',
+              content: 'Other Content',
+              createdAt: now,
+              updatedAt: now,
+              isDeleted: const drift.Value(false),
+            ),
+          );
+
+      final memos = await repository.getLocalMemos(testUserId);
+
+      check(memos.length).equals(1);
+      check(memos.first.id).equals('local-1');
+      check(memos.first.userId).equals(testUserId);
+      verifyNever(
+        () => mockRemoteService.fetchMemos(
+          expectedUserId: any(named: 'expectedUserId'),
+        ),
+      );
+    });
 
     test('memoRepositoryProvider が正しいインスタンスを提供すること', () {
       final container = createContainer();
@@ -816,7 +985,11 @@ void main() {
     test('fetchAndMergeRemoteMemos: オンラインの場合、リモートから取得してマージすること', () async {
       final container = createContainer();
       final repository = container.read(memoRepositoryProvider);
-      when(() => mockRemoteService.fetchMemos()).thenAnswer(
+      when(
+        () => mockRemoteService.fetchMemos(
+          expectedUserId: any(named: 'expectedUserId'),
+        ),
+      ).thenAnswer(
         (_) async => [
           {
             'id': 'remote_fetch',
@@ -854,7 +1027,11 @@ void main() {
 
       // リモートから更新（より新しい updatedAt）を受信
       final remoteUpdatedAt = now.add(const Duration(minutes: 5));
-      when(() => mockRemoteService.fetchMemos()).thenAnswer(
+      when(
+        () => mockRemoteService.fetchMemos(
+          expectedUserId: any(named: 'expectedUserId'),
+        ),
+      ).thenAnswer(
         (_) async => [
           {
             'id': memoId,
@@ -875,6 +1052,59 @@ void main() {
       check(mergedMemos.first.title).equals('リモート更新タイトル');
       // ローカルで設定していたカテゴリが保持されていること
       check(mergedMemos.first.category).equals(MemoCategory.work);
+    });
+
+    test('fetchAndMergeRemoteMemos: '
+        '既存メモがある場合、リモート新規メモは重複せず先頭になるsortOrderが割り当てられること', () async {
+      final container = createContainer();
+      final repository = container.read(memoRepositoryProvider);
+
+      // 事前にローカルにメモを作成（sortOrder: 0）
+      await repository.addMemo('既存メモ', '既存内容', testUserId);
+      final initialLocalMemos = await database.select(database.memos).get();
+      check(initialLocalMemos.first.sortOrder).equals(0);
+
+      // リモートから新規メモが2件届く
+      when(
+        () => mockRemoteService.fetchMemos(
+          expectedUserId: any(named: 'expectedUserId'),
+        ),
+      ).thenAnswer(
+        (_) async => [
+          {
+            'id': 'remote_new_1',
+            'title': 'リモート新規1',
+            'content': '本文1',
+            'createdAt': now.add(const Duration(minutes: 1)),
+            'updatedAt': now.add(const Duration(minutes: 1)),
+            'isDeleted': false,
+          },
+          {
+            'id': 'remote_new_2',
+            'title': 'リモート新規2',
+            'content': '本文2',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+        ],
+      );
+
+      await repository.fetchAndMergeRemoteMemos(testUserId);
+
+      final mergedMemos = await database.select(database.memos).get();
+      check(mergedMemos.length).equals(3);
+
+      final newMemo1 = mergedMemos.firstWhere((m) => m.id == 'remote_new_1');
+      final newMemo2 = mergedMemos.firstWhere((m) => m.id == 'remote_new_2');
+      final existingMemo = mergedMemos.firstWhere(
+        (m) => m.id == initialLocalMemos.first.id,
+      );
+
+      // 既存メモは新規件数分シフトされ、新規メモは0, 1に配置されること
+      check(existingMemo.sortOrder).equals(2);
+      check(newMemo1.sortOrder).equals(0);
+      check(newMemo2.sortOrder).equals(1);
     });
 
     test('マルチユーザー分離: 異なるユーザーIDのメモは互いに取得・更新・削除されないこと', () async {
@@ -911,6 +1141,1866 @@ void main() {
       await repository.deleteMemo(userBMemos.first.id, testUserId);
       final userBMemosAfterDelete = await repository.getAllMemos(otherUserId);
       check(userBMemosAfterDelete.length).equals(1);
+    });
+
+    test('addMemo: 先頭（sortOrder: 0）に追加され、既存メモが後ろにシフトされること', () async {
+      final container = createContainer(isOnline: false);
+      final repository = container.read(memoRepositoryProvider);
+
+      await repository.addMemo('1つ目のメモ', '内容1', testUserId);
+      await repository.addMemo('2つ目のメモ', '内容2', testUserId);
+
+      final memos = await repository.getAllMemos(testUserId);
+      check(memos.length).equals(2);
+
+      final secondAdded = memos.firstWhere((m) => m.title == '2つ目のメモ');
+      final firstAdded = memos.firstWhere((m) => m.title == '1つ目のメモ');
+
+      // 2つ目（最新）が0、1つ目が1にシフトされていること
+      check(secondAdded.sortOrder).equals(0);
+      check(firstAdded.sortOrder).equals(1);
+    });
+
+    test('fetchAndMergeRemoteMemos後にaddMemoを実行した際、'
+        '新規ローカルメモが先頭（0）になり既存メモがシフトされ重複しないこと', () async {
+      final container = createContainer();
+      final repository = container.read(memoRepositoryProvider);
+
+      // 1. リモートからメモを2件取り込む（sortOrder: 0, 1）
+      when(
+        () => mockRemoteService.fetchMemos(
+          expectedUserId: any(named: 'expectedUserId'),
+        ),
+      ).thenAnswer(
+        (_) async => [
+          {
+            'id': 'remote_1',
+            'title': 'リモート1',
+            'content': '内容1',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+          {
+            'id': 'remote_2',
+            'title': 'リモート2',
+            'content': '内容2',
+            'createdAt': now.add(const Duration(minutes: 1)),
+            'updatedAt': now.add(const Duration(minutes: 1)),
+            'isDeleted': false,
+          },
+        ],
+      );
+
+      await repository.fetchAndMergeRemoteMemos(testUserId);
+      final remoteMemos = await database.select(database.memos).get();
+      check(remoteMemos.length).equals(2);
+
+      // 2. その後、ローカルで新規メモを追加
+      await repository.addMemo('ローカルメモ', 'ローカル内容', testUserId);
+
+      final allMemos = await database.select(database.memos).get();
+      check(allMemos.length).equals(3);
+
+      final localMemo = allMemos.firstWhere((m) => m.title == 'ローカルメモ');
+      final remote1 = allMemos.firstWhere((m) => m.id == 'remote_1');
+      final remote2 = allMemos.firstWhere((m) => m.id == 'remote_2');
+
+      // 新規ローカルメモが先頭（0）であり、リモートメモが1, 2にシフトされること
+      check(localMemo.sortOrder).equals(0);
+      check(remote1.sortOrder).equals(1);
+      check(remote2.sortOrder).equals(2);
+
+      // すべてのメモのsortOrderが一意（重複なし）であること
+      final sortOrders = allMemos.map((m) => m.sortOrder).toSet();
+      check(sortOrders.length).equals(3);
+    });
+
+    test('updateSortOrders: 渡されたID順にsortOrderが一括更新されること', () async {
+      final container = createContainer(isOnline: false);
+      final repository = container.read(memoRepositoryProvider);
+
+      await repository.addMemo('A', 'CA', testUserId);
+      await repository.addMemo('B', 'CB', testUserId);
+
+      final memos = await repository.getAllMemos(testUserId);
+      final idB = memos.firstWhere((m) => m.title == 'B').id;
+      final idA = memos.firstWhere((m) => m.title == 'A').id;
+
+      // 順序を反転（Aを先頭、Bを2番目）
+      await repository.updateSortOrders([idA, idB], testUserId);
+
+      final reordered = await repository.getAllMemos(testUserId);
+      check(reordered.firstWhere((m) => m.id == idA).sortOrder).equals(0);
+      check(reordered.firstWhere((m) => m.id == idB).sortOrder).equals(1);
+    });
+
+    test('restoreMemo: オフライン時、論理削除されたメモがisDeleted=falseに復元されること', () async {
+      final container = createContainer(isOnline: false);
+      final repository = container.read(memoRepositoryProvider);
+
+      await repository.addMemo('削除予定', '内容', testUserId);
+      final memos = await repository.getAllMemos(testUserId);
+      final memoId = memos.first.id;
+
+      await repository.deleteMemo(memoId, testUserId);
+      check((await repository.getAllMemos(testUserId)).isEmpty).isTrue();
+
+      await repository.restoreMemo(memoId, testUserId);
+      final restoredMemos = await repository.getAllMemos(testUserId);
+      check(restoredMemos.length).equals(1);
+      check(restoredMemos.first.id).equals(memoId);
+      check(restoredMemos.first.isDeleted).isFalse();
+      check(restoredMemos.first.isSynced).isFalse();
+    });
+
+    test('restoreMemo: オンライン時、サーバーに復元が送信されisSynced=trueになること', () async {
+      final container = createContainer();
+      final repository = container.read(memoRepositoryProvider);
+
+      await repository.addMemo('復元オンライン', '内容', testUserId);
+      final memos = await repository.getAllMemos(testUserId);
+      final memoId = memos.first.id;
+
+      await repository.deleteMemo(memoId, testUserId);
+      await repository.restoreMemo(memoId, testUserId);
+
+      final restored = (await repository.getAllMemos(testUserId)).first;
+      check(restored.isSynced).isTrue();
+      verify(
+        () => mockRemoteService.uploadMemo(
+          id: memoId,
+          title: '復元オンライン',
+          content: '内容',
+          createdAt: any(named: 'createdAt'),
+          updatedAt: any(named: 'updatedAt'),
+          isDeleted: false,
+          expectedUserId: testUserId,
+        ),
+      ).called(2); // addMemo時とrestoreMemo時
+    });
+
+    test('restoreMemo: オンライン時、サーバー同期が例外を投げた場合にTalkerで捕捉されること', () async {
+      final container = createContainer();
+      final repository = container.read(memoRepositoryProvider);
+
+      await repository.addMemo('エラーテスト', '内容', testUserId);
+      final memos = await repository.getAllMemos(testUserId);
+      final memoId = memos.first.id;
+
+      await repository.deleteMemo(memoId, testUserId);
+
+      when(
+        () => mockRemoteService.uploadMemo(
+          id: memoId,
+          title: any(named: 'title'),
+          content: any(named: 'content'),
+          createdAt: any(named: 'createdAt'),
+          updatedAt: any(named: 'updatedAt'),
+          isDeleted: false,
+          expectedUserId: testUserId,
+        ),
+      ).thenThrow(Exception('Server error on restore'));
+
+      await repository.restoreMemo(memoId, testUserId);
+
+      // ローカルでは復元されているがisSyncedはfalse
+      final restored = (await repository.getAllMemos(
+        testUserId,
+        syncUnsent: false,
+      )).first;
+      check(restored.isDeleted).isFalse();
+      check(restored.isSynced).isFalse();
+      check(spyTalker.handleCalls.length).equals(1);
+      check(
+        spyTalker.handleCalls.first.message,
+      ).equals('Failed to restore data on the server');
+    });
+
+    group('deleteMemo / restoreMemo のバックグラウンド同期と順序保証', () {
+      test('waitForRemoteSync=false時はローカル削除完了後に即返却され、'
+          '削除通信中にrestoreMemoしても削除→復元の順で送信されisSyncedが正しく保たれること', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final repository = container.read(memoRepositoryProvider);
+
+        await repository.addMemo('順序テスト', '内容', testUserId);
+        final memoId = (await repository.getAllMemos(testUserId)).first.id;
+
+        final deleteUploadCompleter = Completer<void>();
+        final restoreUploadCompleter = Completer<void>();
+        final uploadSequence = <bool>[];
+
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: true,
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) {
+          uploadSequence.add(true);
+          return deleteUploadCompleter.future;
+        });
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: false,
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) {
+          uploadSequence.add(false);
+          return restoreUploadCompleter.future;
+        });
+
+        // リモート通信完了を待たずにローカル削除の完了時点で戻る
+        await repository.deleteMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        var current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isTrue();
+        check(current.isSynced).isFalse();
+        check(uploadSequence).deepEquals([true]);
+
+        // 削除通信が未完了のまま Undo 復元を実行
+        await repository.restoreMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isFalse();
+        // 先行する削除通信が完了するまで、復元通信はまだ開始されない
+        check(uploadSequence).deepEquals([true]);
+
+        // 削除通信が完了しても後続の復元トークンがあるため isSynced は true にならない
+        deleteUploadCompleter.complete();
+        await Future<void>.delayed(Duration.zero);
+
+        check(uploadSequence).deepEquals([true, false]);
+        current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isSynced).isFalse();
+
+        // 復元通信が完了した時点で初めて isSynced=true になる
+        restoreUploadCompleter.complete();
+        await Future<void>.delayed(Duration.zero);
+
+        current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isTrue();
+      });
+
+      test('削除通信が失敗しても、後続のrestoreMemoの通信は遮断されず実行されること', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final repository = container.read(memoRepositoryProvider);
+
+        await repository.addMemo('失敗継続テスト', '内容', testUserId);
+        final memoId = (await repository.getAllMemos(testUserId)).first.id;
+
+        final deleteUploadCompleter = Completer<void>();
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: true,
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) => deleteUploadCompleter.future);
+
+        await repository.deleteMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+        await repository.restoreMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+
+        deleteUploadCompleter.completeError(Exception('delete error'));
+        await Future<void>.delayed(Duration.zero);
+
+        final current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isTrue();
+        check(
+          spyTalker.handleCalls.first.message,
+        ).equals('Failed to delete data on the server');
+        verify(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: false,
+            expectedUserId: testUserId,
+          ),
+        ).called(2); // addMemo と restoreMemo
+      });
+
+      test(
+        'memoRepositoryProviderが再生成されてもmemoSyncQueueProviderにより順序が保証されること',
+        () async {
+          final container = createContainer();
+          addTearDown(container.dispose);
+          final repo1 = container.read(memoRepositoryProvider);
+
+          await repo1.addMemo('再生成テスト', '内容', testUserId);
+          final memoId = (await repo1.getAllMemos(testUserId)).first.id;
+
+          final deleteCompleter = Completer<void>();
+          final uploadSequence = <bool>[];
+          when(
+            () => mockRemoteService.uploadMemo(
+              id: memoId,
+              title: any(named: 'title'),
+              content: any(named: 'content'),
+              createdAt: any(named: 'createdAt'),
+              updatedAt: any(named: 'updatedAt'),
+              isDeleted: true,
+              expectedUserId: testUserId,
+            ),
+          ).thenAnswer((_) {
+            uploadSequence.add(true);
+            return deleteCompleter.future;
+          });
+          when(
+            () => mockRemoteService.uploadMemo(
+              id: memoId,
+              title: any(named: 'title'),
+              content: any(named: 'content'),
+              createdAt: any(named: 'createdAt'),
+              updatedAt: any(named: 'updatedAt'),
+              isDeleted: false,
+              expectedUserId: testUserId,
+            ),
+          ).thenAnswer((_) async {
+            uploadSequence.add(false);
+          });
+
+          await repo1.deleteMemo(memoId, testUserId, waitForRemoteSync: false);
+          await Future<void>.delayed(Duration.zero);
+
+          // Repository が再生成されて別のインスタンスになっても同一キューが共有される
+          container.invalidate(memoRepositoryProvider);
+          final repo2 = container.read(memoRepositoryProvider);
+
+          await repo2.restoreMemo(memoId, testUserId, waitForRemoteSync: false);
+          await Future<void>.delayed(Duration.zero);
+
+          // まだ削除通信完了前のため復元通信は開始されない
+          check(uploadSequence).deepEquals([true]);
+
+          deleteCompleter.complete();
+          await Future<void>.delayed(Duration.zero);
+          check(uploadSequence).deepEquals([true, false]);
+        },
+      );
+
+      test('削除通信中にsyncUnsentMemosとrestoreMemoを行い復元通信が失敗した場合、'
+          '古い削除状態は送信されずisSynced=falseのまま維持されること', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final repository = container.read(memoRepositoryProvider);
+
+        await repository.addMemo('手動同期競合テスト', '内容', testUserId);
+        final memoId = (await repository.getAllMemos(testUserId)).first.id;
+
+        final deleteCompleter = Completer<void>();
+        final uploadSequence = <bool>[];
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: true,
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) {
+          uploadSequence.add(true);
+          return deleteCompleter.future;
+        });
+
+        // 削除通信を開始（HTTP待機中）
+        await repository.deleteMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+        await Future<void>.delayed(Duration.zero);
+        check(uploadSequence).deepEquals([true]);
+
+        // 削除通信の待機中に手動同期を開始（キューで待機する）
+        final syncFuture = repository.syncUnsentMemos(testUserId);
+        await Future<void>.delayed(Duration.zero);
+        check(uploadSequence).deepEquals([true]);
+
+        // その後 Undo を行い、復元通信は失敗するよう設定する
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: false,
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) async {
+          uploadSequence.add(false);
+          throw Exception('restore error');
+        });
+        await repository.restoreMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+        await Future<void>.delayed(Duration.zero);
+        check(uploadSequence).deepEquals([true]);
+
+        // 先行する削除通信が完了したあと、古い削除状態の再送は起きないこと
+        deleteCompleter.complete();
+        await syncFuture;
+        await Future<void>.delayed(Duration.zero);
+
+        verify(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: true,
+            expectedUserId: testUserId,
+          ),
+        ).called(1);
+
+        final current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isFalse();
+      });
+
+      test('syncUnsentMemosの削除状態送信中にrestoreMemoを実行し、'
+          '手動同期成功・復元通信失敗となった場合もisSynced=falseが保たれ再送できること', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final repository = container.read(memoRepositoryProvider);
+
+        await database.memosDao.insertMemo(
+          MemosCompanion.insert(
+            id: 'unsent-del-1',
+            userId: testUserId,
+            title: '未送信削除メモ',
+            content: '内容',
+            createdAt: now,
+            updatedAt: now,
+            isDeleted: const drift.Value(true),
+            isSynced: const drift.Value(false),
+          ),
+        );
+
+        final syncCompleter = Completer<void>();
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: 'unsent-del-1',
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: true,
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) => syncCompleter.future);
+
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: 'unsent-del-1',
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: false,
+            expectedUserId: testUserId,
+          ),
+        ).thenThrow(Exception('restore error'));
+
+        // 手動同期で isDeleted=true を送信開始（待機中）
+        final syncFuture = repository.syncUnsentMemos(testUserId);
+        await Future<void>.delayed(Duration.zero);
+
+        // 送信待機中に Undo 復元を実行
+        await repository.restoreMemo(
+          'unsent-del-1',
+          testUserId,
+          waitForRemoteSync: false,
+        );
+
+        // 手動同期（古い削除状態）が成功し、続く復元通信は失敗する
+        syncCompleter.complete();
+        await syncFuture;
+        await Future<void>.delayed(Duration.zero);
+
+        // 古い削除状態の送信成功で isSynced=true に上書きされていないこと
+        var current = await database.memosDao.getMemoById(
+          'unsent-del-1',
+          testUserId,
+        );
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isFalse();
+
+        // 次回の手動同期が成功すれば未同期のまま残っていた復元状態を再送できること
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: 'unsent-del-1',
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: false,
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) async {});
+        await repository.syncUnsentMemos(testUserId);
+
+        current = await database.memosDao.getMemoById(
+          'unsent-del-1',
+          testUserId,
+        );
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isTrue();
+      });
+
+      test('削除通信待機中にsyncUnsentMemosが呼ばれても、先行削除が成功した場合は重複送信をスキップすること', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final repository = container.read(memoRepositoryProvider);
+
+        await repository.addMemo('重複スキップテスト', '内容', testUserId);
+        final memoId = (await repository.getAllMemos(testUserId)).first.id;
+
+        final deleteCompleter = Completer<void>();
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: true,
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) => deleteCompleter.future);
+
+        await repository.deleteMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        final syncFuture = repository.syncUnsentMemos(testUserId);
+        await Future<void>.delayed(Duration.zero);
+
+        deleteCompleter.complete();
+        await syncFuture;
+
+        verify(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: true,
+            expectedUserId: testUserId,
+          ),
+        ).called(1);
+        final current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isTrue();
+        check(current.isSynced).isTrue();
+      });
+
+      test('削除通信待機中に別ユーザーへ切り替わった場合、後続のrestoreMemoタスクは送信されず'
+          'isSynced=falseのまま保たれ本人再ログイン後に再送できること', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final repository = container.read(memoRepositoryProvider);
+
+        await repository.addMemo('切替テスト', '内容', testUserId);
+        final memoId = (await repository.getAllMemos(testUserId)).first.id;
+
+        final deleteCompleter = Completer<void>();
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: true,
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) => deleteCompleter.future);
+
+        // 削除通信を開始（HTTP待機中）
+        await repository.deleteMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        // 削除通信待機中に Undo 復元をキューへ登録
+        await repository.restoreMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+
+        // ログアウト → 別ユーザーへ切り替え
+        container.read(_testUserIdProvider.notifier).userId = null;
+        container.read(_testUserIdProvider.notifier).userId = otherUserId;
+        // 再構築後も同一キュー・最新認証状態が参照されること
+        container.invalidate(memoRepositoryProvider);
+
+        // 先行していた削除通信が完了する
+        deleteCompleter.complete();
+        await Future<void>.delayed(Duration.zero);
+
+        // addMemo 時の 1 回以外、別ユーザー権限での restore 送信は行われていないこと
+        verify(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: false,
+            expectedUserId: testUserId,
+          ),
+        ).called(1);
+
+        // 別ユーザー切り替え中に通信が行われず、isSynced=false のまま保たれていること
+        var current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isFalse();
+
+        // 元のユーザーが再ログインして手動同期すると安全に再送されること
+        container.read(_testUserIdProvider.notifier).userId = testUserId;
+        await container
+            .read(memoRepositoryProvider)
+            .syncUnsentMemos(testUserId);
+
+        current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isTrue();
+        verify(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: false,
+            expectedUserId: testUserId,
+          ),
+        ).called(1);
+      });
+
+      test('キュー待機中にProviderContainerが破棄されても破棄済みRef例外を起こさず'
+          '後続の削除リモート送信を省略すること', () async {
+        final container = createContainer();
+        final repository = container.read(memoRepositoryProvider);
+
+        await repository.addMemo('破棄テスト', '内容', testUserId);
+        final memoId = (await repository.getAllMemos(testUserId)).first.id;
+
+        final firstDeleteCompleter = Completer<void>();
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: true,
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) => firstDeleteCompleter.future);
+
+        // 1つ目の削除通信を待機中にする
+        await repository.deleteMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        // 復元後に再削除をキューへ積み、後続削除タスクがキュー待ちになる状態を作る
+        final restoreCompleter = Completer<void>();
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: false,
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) => restoreCompleter.future);
+
+        await repository.restoreMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+        await repository.deleteMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+
+        // 先行タスクをエラーで終わらせる前にコンテナを破棄（!ref.mounted）
+        container.dispose();
+        firstDeleteCompleter.complete();
+        restoreCompleter.complete();
+        await Future<void>.delayed(Duration.zero);
+
+        // 破棄後は後続の restore / delete 送信が呼ばれないこと
+        verify(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: true,
+            expectedUserId: testUserId,
+          ),
+        ).called(1);
+        verify(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: false,
+            expectedUserId: testUserId,
+          ),
+        ).called(1); // addMemo 時の 1 回のみ
+        final current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isTrue();
+        check(current.isSynced).isFalse();
+      });
+
+      test('DB取得中（getMemoById）に別ユーザーへ切り替わった場合、'
+          'deleteMemoのリモート送信を省略してisSynced=falseを保ち本人再ログイン後に再送できること', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final dbCompleter = Completer<void>();
+        var shouldDelayDb = false;
+        final hookedDao = _HookedMemosDao(
+          database,
+          onBeforeGetMemoById: () async {
+            if (shouldDelayDb) {
+              await dbCompleter.future;
+            }
+          },
+        );
+        final repository = MemoRepository(
+          dao: hookedDao,
+          remote: mockRemoteService,
+          clock: container.read(clockProvider),
+          talker: spyTalker,
+          isOnline: true,
+          uuid: container.read(uuidProvider),
+          syncQueue: container.read(memoSyncQueueProvider),
+          currentUserId: container.read(memoAuthUserIdReaderProvider),
+        );
+
+        await repository.addMemo('DB待機削除テスト', '内容', testUserId);
+        final memoId = (await repository.getAllMemos(testUserId)).first.id;
+
+        shouldDelayDb = true;
+        final deleteFuture = repository.deleteMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        // getMemoById 待機中に別ユーザーへ切り替える
+        container.read(_testUserIdProvider.notifier).userId = otherUserId;
+        dbCompleter.complete();
+        await deleteFuture;
+        await Future<void>.delayed(Duration.zero);
+
+        verifyNever(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: true,
+            expectedUserId: any(named: 'expectedUserId'),
+          ),
+        );
+        var current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isTrue();
+        check(current.isSynced).isFalse();
+
+        // 元のユーザーが再ログインして同期すれば安全に再送される
+        shouldDelayDb = false;
+        container.read(_testUserIdProvider.notifier).userId = testUserId;
+        await repository.syncUnsentMemos(testUserId);
+
+        current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isSynced).isTrue();
+      });
+
+      test('DB取得中（getMemosByIds）に別ユーザーへ切り替わった場合、'
+          'syncUnsentMemosのリモート送信を省略してisSynced=falseを保つこと', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final dbCompleter = Completer<void>();
+        final hookedDao = _HookedMemosDao(
+          database,
+          onBeforeGetMemosByIds: () => dbCompleter.future,
+        );
+        final repository = MemoRepository(
+          dao: hookedDao,
+          remote: mockRemoteService,
+          clock: container.read(clockProvider),
+          talker: spyTalker,
+          isOnline: true,
+          uuid: container.read(uuidProvider),
+          syncQueue: container.read(memoSyncQueueProvider),
+          currentUserId: container.read(memoAuthUserIdReaderProvider),
+        );
+
+        await database.memosDao.insertMemo(
+          MemosCompanion.insert(
+            id: 'unsent-db-switch',
+            userId: testUserId,
+            title: '未送信',
+            content: '内容',
+            createdAt: now,
+            updatedAt: now,
+            isSynced: const drift.Value(false),
+          ),
+        );
+
+        final syncFuture = repository.syncUnsentMemos(testUserId);
+        await Future<void>.delayed(Duration.zero);
+
+        // getMemosByIds 待機中に別ユーザーへ切り替える
+        container.read(_testUserIdProvider.notifier).userId = otherUserId;
+        dbCompleter.complete();
+        await syncFuture;
+
+        verifyNever(
+          () => mockRemoteService.uploadMemo(
+            id: 'unsent-db-switch',
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: any(named: 'isDeleted'),
+            expectedUserId: any(named: 'expectedUserId'),
+          ),
+        );
+        final current = await database.memosDao.getMemoById(
+          'unsent-db-switch',
+          testUserId,
+        );
+        check(current.isSynced).isFalse();
+      });
+
+      test('DB取得中（getMemoById）に別ユーザーへ切り替わった場合、'
+          'updateMemoのリモート送信を省略してisSynced=falseを保つこと', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final dbCompleter = Completer<void>();
+        var shouldDelayDb = false;
+        final hookedDao = _HookedMemosDao(
+          database,
+          onBeforeGetMemoById: () async {
+            if (shouldDelayDb) {
+              await dbCompleter.future;
+            }
+          },
+        );
+        final repository = MemoRepository(
+          dao: hookedDao,
+          remote: mockRemoteService,
+          clock: container.read(clockProvider),
+          talker: spyTalker,
+          isOnline: true,
+          uuid: container.read(uuidProvider),
+          syncQueue: container.read(memoSyncQueueProvider),
+          currentUserId: container.read(memoAuthUserIdReaderProvider),
+        );
+
+        await repository.addMemo('更新DBテスト', '旧内容', testUserId);
+        final memoId = (await repository.getAllMemos(testUserId)).first.id;
+
+        shouldDelayDb = true;
+        final updateFuture = repository.updateMemo(
+          memoId,
+          '新タイトル',
+          '新内容',
+          testUserId,
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        container.read(_testUserIdProvider.notifier).userId = otherUserId;
+        dbCompleter.complete();
+        await updateFuture;
+
+        verify(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: '更新DBテスト',
+            content: '旧内容',
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: false,
+            expectedUserId: testUserId,
+          ),
+        ).called(1); // addMemo のみで updateMemo の送信はされない
+        final current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.title).equals('新タイトル');
+        check(current.isSynced).isFalse();
+      });
+
+      test('認証情報取得前（TokenInterceptor実行直前）に別ユーザーへ切り替わった場合、'
+          'HTTP送信を行わずisSynced=falseを保ち本人再ログイン後に送信できること', () async {
+        var storageUserId = testUserId;
+        var storageToken = 'token-a';
+        var switchBeforeTokenInterceptor = false;
+        final sentRequests = <(String method, String path, String? auth)>[];
+
+        final mockStorage = MockTokenStorage();
+        when(mockStorage.getUserId).thenAnswer((_) async => storageUserId);
+        when(mockStorage.getAccessToken).thenAnswer((_) async => storageToken);
+
+        final adapter = _RecordingHttpClientAdapter((options) async {
+          sentRequests.add((
+            options.method,
+            options.path,
+            options.headers['Authorization'] as String?,
+          ));
+          return ResponseBody.fromString('', 200);
+        });
+
+        final baseDio = Dio(BaseOptions(baseUrl: 'https://example.com'))
+          ..httpClientAdapter = adapter;
+        final container = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            clockProvider.overrideWithValue(() => now),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+            tokenStorageInternalProvider.overrideWithValue(mockStorage),
+            baseDioProvider.overrideWithValue(baseDio),
+            tokenRefreshCallbackProvider.overrideWithValue(() async => false),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final mainDio = Dio(BaseOptions(baseUrl: 'https://example.com'))
+          ..httpClientAdapter = adapter
+          ..interceptors.addAll([
+            InterceptorsWrapper(
+              onRequest: (options, handler) {
+                if (switchBeforeTokenInterceptor) {
+                  // DB取得完了後、TokenInterceptorの認証情報取得直前に別ユーザーへ切り替え
+                  container.read(_testUserIdProvider.notifier).userId =
+                      otherUserId;
+                  storageUserId = otherUserId;
+                  storageToken = 'token-b';
+                }
+                handler.next(options);
+              },
+            ),
+            container.read(tokenInterceptorProvider),
+            container.read(dioInterceptorProvider),
+          ]);
+
+        final repository = MemoRepository(
+          dao: database.memosDao,
+          remote: MemoRemoteService(DioApiClient(mainDio)),
+          clock: container.read(clockProvider),
+          talker: spyTalker,
+          isOnline: true,
+          uuid: container.read(uuidProvider),
+          syncQueue: container.read(memoSyncQueueProvider),
+          currentUserId: container.read(memoAuthUserIdReaderProvider),
+        );
+
+        await repository.addMemo('認証直前切替', '内容', testUserId);
+        final memoId = (await database.memosDao.getAllMemos(
+          testUserId,
+        )).first.id;
+        check(sentRequests.length).equals(1);
+        check(sentRequests.single.$3).equals('Bearer token-a');
+
+        switchBeforeTokenInterceptor = true;
+        await repository.deleteMemo(memoId, testUserId);
+
+        // TokenInterceptor の getUserId() 確認で拒否されるため、
+        // getAccessToken()・追加の HTTP 送信・token-b 参照は一切起きない
+        check(sentRequests.length).equals(1);
+        verify(mockStorage.getUserId).called(greaterThanOrEqualTo(3));
+        verify(mockStorage.getAccessToken).called(1); // addMemo 時のみ
+        check(spyTalker.handleCalls).isEmpty();
+        var current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isTrue();
+        check(current.isSynced).isFalse();
+
+        // 元のユーザー再ログイン後に同期すると Bearer token-a で安全に再送される
+        switchBeforeTokenInterceptor = false;
+        container.read(_testUserIdProvider.notifier).userId = testUserId;
+        storageUserId = testUserId;
+        storageToken = 'token-a';
+        await repository.syncUnsentMemos(testUserId);
+
+        check(sentRequests.length).equals(2);
+        check(
+          sentRequests.last,
+        ).equals(('PUT', '/memos/$memoId', 'Bearer token-a'));
+        current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isSynced).isTrue();
+      });
+
+      test('同一秒内でサブ秒を含む削除成功・復元失敗の後にmergeRemoteMemosが実行されても、'
+          'サブ秒精度で比較され未同期の復元が保持・再送されること', () async {
+        final createdTime = DateTime(2026, 11, 14, 9, 59, 0, 450);
+        final deleteClockTime = DateTime(2026, 11, 14, 10, 0, 0, 200);
+        final restoreClockTime = DateTime(2026, 11, 14, 10, 0, 0, 800);
+        var currentClock = createdTime;
+
+        final container = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            clockProvider.overrideWithValue(() => currentClock),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final uploadedRecords =
+            <({bool isDeleted, DateTime createdAt, DateTime updatedAt})>[];
+        var shouldFailRestore = false;
+
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: any(named: 'id'),
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: any(named: 'isDeleted'),
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((invocation) async {
+          final isDeleted = invocation.namedArguments[#isDeleted] as bool;
+          final uploadedCreatedAt =
+              invocation.namedArguments[#createdAt] as DateTime;
+          final uploadedUpdatedAt =
+              invocation.namedArguments[#updatedAt] as DateTime;
+          if (!isDeleted && shouldFailRestore) {
+            throw Exception('restore upload failed');
+          }
+          uploadedRecords.add((
+            isDeleted: isDeleted,
+            createdAt: uploadedCreatedAt,
+            updatedAt: uploadedUpdatedAt,
+          ));
+        });
+
+        final repository = container.read(memoRepositoryProvider);
+        await repository.addMemo('サブ秒テスト', '本文', testUserId);
+        final memoId = (await database.memosDao.getAllMemos(
+          testUserId,
+        )).first.id;
+
+        // 1. 削除をサブ秒（10:00:00.200）で実行し、サブ秒精度のまま送信・保存されること
+        currentClock = deleteClockTime;
+        await repository.deleteMemo(memoId, testUserId);
+
+        final deletedLocal = await database.memosDao.getMemoById(
+          memoId,
+          testUserId,
+        );
+        check(
+          deletedLocal.updatedAtMicros,
+        ).equals(deleteClockTime.microsecondsSinceEpoch);
+        check(uploadedRecords.last.isDeleted).isTrue();
+        check(uploadedRecords.last.updatedAt).equals(deleteClockTime);
+
+        // 2. 同じ秒（10:00:00.800）で復元を実行し、リモート送信だけ失敗させる
+        currentClock = restoreClockTime;
+        shouldFailRestore = true;
+        await repository.restoreMemo(memoId, testUserId);
+
+        var restoredLocal = await database.memosDao.getMemoById(
+          memoId,
+          testUserId,
+        );
+        check(restoredLocal.isDeleted).isFalse();
+        check(restoredLocal.isSynced).isFalse();
+        check(
+          restoredLocal.updatedAtMicros,
+        ).equals(restoreClockTime.microsecondsSinceEpoch);
+
+        // 3. リモートが削除時のデータ（10:00:00.200）を返しても未同期の復元を維持すること
+        when(
+          () => mockRemoteService.fetchMemos(
+            expectedUserId: any(named: 'expectedUserId'),
+          ),
+        ).thenAnswer(
+          (_) async => [
+            {
+              'id': memoId,
+              'title': 'サブ秒テスト',
+              'content': '本文',
+              'createdAt': DateTime(2026, 11, 14, 9, 59),
+              'updatedAt': deleteClockTime,
+              'isDeleted': true,
+            },
+          ],
+        );
+
+        await repository.fetchAndMergeRemoteMemos(testUserId);
+
+        restoredLocal = await database.memosDao.getMemoById(memoId, testUserId);
+        check(restoredLocal.isDeleted).isFalse();
+        check(restoredLocal.isSynced).isFalse();
+        check(
+          restoredLocal.updatedAtMicros,
+        ).equals(restoreClockTime.microsecondsSinceEpoch);
+        final localModels = await repository.getLocalMemos(testUserId);
+        check(localModels.single.updatedAt).equals(restoreClockTime);
+
+        // 4. 通信回復後の同期で未同期の復元がサブ秒精度で再送され、同期済みになること
+        shouldFailRestore = false;
+        await repository.syncUnsentMemos(testUserId);
+
+        restoredLocal = await database.memosDao.getMemoById(memoId, testUserId);
+        check(restoredLocal.isDeleted).isFalse();
+        check(restoredLocal.isSynced).isTrue();
+        check(uploadedRecords.last.isDeleted).isFalse();
+        check(uploadedRecords.last.updatedAt).equals(restoreClockTime);
+      });
+
+      test('別端末で削除（同期済み）を取得した後、同秒内の復元（サブ秒更新および同一updatedAt更新）を'
+          '取得するとローカルに復元が反映されること', () async {
+        final createdTime = DateTime(2026, 11, 14, 9, 59);
+        final deleteSubSecTime = DateTime(2026, 11, 14, 10, 0, 0, 200);
+        final restoreSubSecTime = DateTime(2026, 11, 14, 10, 0, 0, 700);
+        final sameTimestampTime = DateTime(2026, 11, 14, 10, 0, 0, 500);
+
+        final container = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final repository = container.read(memoRepositoryProvider);
+
+        // 1. 端末Bで他端末による削除（サブ秒 / 同一秒同値）を取得する
+        when(
+          () => mockRemoteService.fetchMemos(
+            expectedUserId: any(named: 'expectedUserId'),
+          ),
+        ).thenAnswer(
+          (_) async => [
+            {
+              'id': 'remote-memo-subsec',
+              'title': '別端末メモ1',
+              'content': '本文1',
+              'createdAt': createdTime,
+              'updatedAt': deleteSubSecTime,
+              'isDeleted': true,
+            },
+            {
+              'id': 'remote-memo-same-ts',
+              'title': '別端末メモ2',
+              'content': '本文2',
+              'createdAt': createdTime,
+              'updatedAt': sameTimestampTime,
+              'isDeleted': true,
+            },
+          ],
+        );
+
+        var activeMemos = await repository.getAllMemos(testUserId);
+        check(activeMemos).isEmpty();
+
+        // 2. 同秒内に他端末で復元されたデータを受信する
+        when(
+          () => mockRemoteService.fetchMemos(
+            expectedUserId: any(named: 'expectedUserId'),
+          ),
+        ).thenAnswer(
+          (_) async => [
+            {
+              'id': 'remote-memo-subsec',
+              'title': '別端末メモ1',
+              'content': '本文1',
+              'createdAt': createdTime,
+              'updatedAt': restoreSubSecTime,
+              'isDeleted': false,
+            },
+            {
+              'id': 'remote-memo-same-ts',
+              'title': '別端末メモ2',
+              'content': '本文2',
+              'createdAt': createdTime,
+              'updatedAt': sameTimestampTime,
+              'isDeleted': false,
+            },
+          ],
+        );
+
+        activeMemos = await repository.getAllMemos(testUserId);
+        check(activeMemos.length).equals(2);
+        final byId = {for (final memo in activeMemos) memo.id: memo};
+        check(byId['remote-memo-subsec']!.isDeleted).isFalse();
+        check(byId['remote-memo-subsec']!.isSynced).isTrue();
+        check(byId['remote-memo-subsec']!.updatedAt).equals(restoreSubSecTime);
+        check(byId['remote-memo-same-ts']!.isDeleted).isFalse();
+        check(byId['remote-memo-same-ts']!.isSynced).isTrue();
+        check(byId['remote-memo-same-ts']!.updatedAt).equals(sameTimestampTime);
+      });
+
+      test('updatedAtMicrosがNULL（v5移行直後）の未同期メモに対して'
+          'getLocalMemosとsyncUnsentMemosがupdatedAtへフォールバックすること', () async {
+        final fallbackTime = DateTime(2026, 11, 14, 10);
+        final container = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await database.memosDao.insertMemo(
+          MemosCompanion.insert(
+            id: 'memo-legacy-null-micros',
+            userId: testUserId,
+            title: 'レガシー',
+            content: '本文',
+            createdAt: fallbackTime,
+            updatedAt: fallbackTime,
+            updatedAtMicros: const drift.Value(null),
+          ),
+        );
+
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: 'memo-legacy-null-micros',
+            title: 'レガシー',
+            content: '本文',
+            createdAt: fallbackTime,
+            updatedAt: fallbackTime,
+            isDeleted: false,
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) async {});
+
+        final repository = container.read(memoRepositoryProvider);
+        final local = await repository.getLocalMemos(testUserId);
+        check(local.single.updatedAt).equals(fallbackTime);
+
+        await repository.syncUnsentMemos(testUserId);
+        verify(
+          () => mockRemoteService.uploadMemo(
+            id: 'memo-legacy-null-micros',
+            title: 'レガシー',
+            content: '本文',
+            createdAt: fallbackTime,
+            updatedAt: fallbackTime,
+            isDeleted: false,
+            expectedUserId: testUserId,
+          ),
+        ).called(1);
+        final synced = await database.memosDao.getMemoById(
+          'memo-legacy-null-micros',
+          testUserId,
+        );
+        check(synced.isSynced).isTrue();
+      });
+
+      test('fetchMemos待機中に同一updatedAtでローカル復元とリモート送信が完了した場合、'
+          '遅延した古い削除取得結果で復元が取り消されないこと', () async {
+        final createdTime = DateTime(2026, 11, 14, 9, 59);
+        final sameTime = DateTime(2026, 11, 14, 10, 0, 0, 500);
+        var currentClock = createdTime;
+
+        final container = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            clockProvider.overrideWithValue(() => currentClock),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: any(named: 'id'),
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: any(named: 'isDeleted'),
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) async {});
+
+        final repository = container.read(memoRepositoryProvider);
+        await repository.addMemo('競合レーステスト', '本文', testUserId);
+        final memoId = (await database.memosDao.getAllMemos(
+          testUserId,
+        )).first.id;
+
+        // 1. sameTime で削除済み・同期済みの状態を作成
+        currentClock = sameTime;
+        await repository.deleteMemo(memoId, testUserId);
+        var current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isTrue();
+        check(current.isSynced).isTrue();
+
+        // 2. fetchMemos を待機状態にし、その間に同一 updatedAt (sameTime) で復元・送信を完了
+        final fetchStarted = Completer<void>();
+        final fetchResponseGate = Completer<List<Map<String, dynamic>>>();
+        when(
+          () => mockRemoteService.fetchMemos(
+            expectedUserId: any(named: 'expectedUserId'),
+          ),
+        ).thenAnswer((_) {
+          fetchStarted.complete();
+          return fetchResponseGate.future;
+        });
+
+        final fetchFuture = repository.fetchAndMergeRemoteMemos(testUserId);
+        await fetchStarted.future;
+
+        await repository.restoreMemo(memoId, testUserId);
+        current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isTrue();
+        check(current.updatedAtMicros).equals(sameTime.microsecondsSinceEpoch);
+
+        // 3. 取得開始時点でサーバーにあった古い削除済みスナップショット（同一 updatedAt）が遅延到着
+        fetchResponseGate.complete([
+          {
+            'id': memoId,
+            'title': '競合レーステスト',
+            'content': '本文',
+            'createdAt': createdTime,
+            'updatedAt': sameTime,
+            'isDeleted': true,
+          },
+        ]);
+        await fetchFuture;
+
+        // 復元状態（isDeleted: false, isSynced: true）が取り消されず維持されること
+        current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isTrue();
+        check((await repository.getLocalMemos(testUserId)).length).equals(1);
+
+        // 4. 次回以降の取得（待機中のローカル変更なし）では同一時刻のサーバー変更も通常通り反映されること
+        when(
+          () => mockRemoteService.fetchMemos(
+            expectedUserId: any(named: 'expectedUserId'),
+          ),
+        ).thenAnswer(
+          (_) async => [
+            {
+              'id': memoId,
+              'title': '競合レーステスト',
+              'content': '本文',
+              'createdAt': createdTime,
+              'updatedAt': sameTime,
+              'isDeleted': true,
+            },
+          ],
+        );
+        await repository.fetchAndMergeRemoteMemos(testUserId);
+
+        current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isTrue();
+        check(current.isSynced).isTrue();
+      });
+
+      test('waitForRemoteSyncがfalseのときsyncFutureの拒否が未処理エラーにならず'
+          'Talkerへ記録されること', () async {
+        final unhandledErrors = <Object>[];
+
+        await runZonedGuarded(
+          () async {
+            final container = ProviderContainer(
+              overrides: [
+                appDatabaseProvider.overrideWithValue(database),
+                memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+                isOnlineProvider.overrideWithValue(true),
+                loggerProvider.overrideWithValue(spyTalker),
+                currentUserIdProvider.overrideWith(
+                  (ref) => ref.watch(_testUserIdProvider),
+                ),
+              ],
+            );
+            addTearDown(container.dispose);
+
+            when(
+              () => mockRemoteService.uploadMemo(
+                id: any(named: 'id'),
+                title: any(named: 'title'),
+                content: any(named: 'content'),
+                createdAt: any(named: 'createdAt'),
+                updatedAt: any(named: 'updatedAt'),
+                isDeleted: any(named: 'isDeleted'),
+                expectedUserId: testUserId,
+              ),
+            ).thenAnswer((_) async {});
+
+            var failMode = 0;
+            final hookedDao = _HookedMemosDao(
+              database,
+              onBeforeGetMemoById: () async {
+                if (failMode == 1) {
+                  throw StateError('db state error');
+                }
+                if (failMode == 2) {
+                  throw Exception('db exception');
+                }
+              },
+            );
+            final repository = MemoRepository(
+              dao: hookedDao,
+              remote: mockRemoteService,
+              clock: container.read(clockProvider),
+              talker: spyTalker,
+              isOnline: true,
+              uuid: container.read(uuidProvider),
+              syncQueue: container.read(memoSyncQueueProvider),
+              currentUserId: container.read(memoAuthUserIdReaderProvider),
+            );
+
+            await repository.addMemo('非同期拒否テスト', '内容', testUserId);
+            final memoId = (await database.memosDao.getAllMemos(
+              testUserId,
+            )).first.id;
+
+            // 1. deleteMemo(waitForRemoteSync: false) で syncFuture が Error 拒否
+            failMode = 1;
+            await repository.deleteMemo(
+              memoId,
+              testUserId,
+              waitForRemoteSync: false,
+            );
+            await Future<void>.delayed(Duration.zero);
+
+            check(unhandledErrors).isEmpty();
+            check(spyTalker.handleCalls.length).equals(1);
+            check(spyTalker.handleCalls.last.exception).isA<StateError>();
+            check(
+              spyTalker.handleCalls.last.message,
+            ).equals('Failed to delete data on the server');
+
+            // 2. restoreMemo(waitForRemoteSync: false) での Exception 拒否
+            failMode = 2;
+            await repository.restoreMemo(
+              memoId,
+              testUserId,
+              waitForRemoteSync: false,
+            );
+            await Future<void>.delayed(Duration.zero);
+
+            check(unhandledErrors).isEmpty();
+            check(spyTalker.handleCalls.length).equals(2);
+            check(spyTalker.handleCalls.last.exception).isA<Exception>();
+            check(
+              spyTalker.handleCalls.last.message,
+            ).equals('Failed to restore data on the server');
+          },
+          (error, _) {
+            unhandledErrors.add(error);
+          },
+        );
+      });
+
+      test('addMemoの送信待機中に新しい編集が保存された場合、'
+          '送信完了後も最新のローカル内容とisSynced=falseを保つこと', () async {
+        var currentClock = DateTime(2026, 11, 14, 10);
+        final onlineContainer = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            clockProvider.overrideWithValue(() => currentClock),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+          ],
+        );
+        final offlineContainer = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            clockProvider.overrideWithValue(() => currentClock),
+            isOnlineProvider.overrideWithValue(false),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+          ],
+        );
+        addTearDown(() {
+          onlineContainer.dispose();
+          offlineContainer.dispose();
+        });
+
+        final uploadStarted = Completer<void>();
+        final uploadGate = Completer<void>();
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: any(named: 'id'),
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: any(named: 'isDeleted'),
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) {
+          uploadStarted.complete();
+          return uploadGate.future;
+        });
+
+        final repository = onlineContainer.read(memoRepositoryProvider);
+        final offlineRepo = offlineContainer.read(memoRepositoryProvider);
+
+        final addFuture = repository.addMemo('追加時タイトル', '追加時内容', testUserId);
+        await uploadStarted.future;
+
+        final memoId = (await database.memosDao.getAllMemos(
+          testUserId,
+        )).first.id;
+        currentClock = currentClock.add(const Duration(seconds: 1));
+        await offlineRepo.updateMemo(memoId, '送信中編集', '最新内容', testUserId);
+
+        uploadGate.complete();
+        await addFuture;
+
+        final current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.title).equals('送信中編集');
+        check(current.content).equals('最新内容');
+        check(current.isSynced).isFalse();
+      });
+
+      test('updateMemoの送信待機中に新しい編集が保存された場合、'
+          '送信完了後も最新のローカル内容とisSynced=falseを保つこと', () async {
+        var currentClock = DateTime(2026, 11, 14, 10);
+        final onlineContainer = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            clockProvider.overrideWithValue(() => currentClock),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+          ],
+        );
+        final offlineContainer = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            clockProvider.overrideWithValue(() => currentClock),
+            isOnlineProvider.overrideWithValue(false),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+          ],
+        );
+        addTearDown(() {
+          onlineContainer.dispose();
+          offlineContainer.dispose();
+        });
+
+        final repository = onlineContainer.read(memoRepositoryProvider);
+        final offlineRepo = offlineContainer.read(memoRepositoryProvider);
+
+        await repository.addMemo('初期タイトル', '初期内容', testUserId);
+        final memoId = (await database.memosDao.getAllMemos(
+          testUserId,
+        )).first.id;
+
+        final uploadStarted = Completer<void>();
+        final uploadGate = Completer<void>();
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: any(named: 'id'),
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: any(named: 'isDeleted'),
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) {
+          uploadStarted.complete();
+          return uploadGate.future;
+        });
+
+        currentClock = currentClock.add(const Duration(seconds: 1));
+        final updateFuture = repository.updateMemo(
+          memoId,
+          '編集1',
+          '本文1',
+          testUserId,
+        );
+        await uploadStarted.future;
+
+        currentClock = currentClock.add(const Duration(seconds: 1));
+        await offlineRepo.updateMemo(memoId, '編集2', '本文2', testUserId);
+
+        uploadGate.complete();
+        await updateFuture;
+
+        final current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.title).equals('編集2');
+        check(current.content).equals('本文2');
+        check(current.isSynced).isFalse();
+      });
+
+      test('addMemoとupdateMemoの送信待機中に別ユーザーへ切り替わった場合、'
+          'isSyncedをtrueに更新しないこと', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+
+        var uploadStarted = Completer<void>();
+        var uploadGate = Completer<void>();
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: any(named: 'id'),
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: any(named: 'isDeleted'),
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) {
+          uploadStarted.complete();
+          return uploadGate.future;
+        });
+
+        final repository = container.read(memoRepositoryProvider);
+
+        final addFuture = repository.addMemo('ユーザー切替追加', '内容', testUserId);
+        await uploadStarted.future;
+        container.read(_testUserIdProvider.notifier).userId = otherUserId;
+        uploadGate.complete();
+        await addFuture;
+
+        final memoId = (await database.memosDao.getAllMemos(
+          testUserId,
+        )).first.id;
+        final afterAdd = await database.memosDao.getMemoById(
+          memoId,
+          testUserId,
+        );
+        check(afterAdd.isSynced).isFalse();
+
+        // 元のユーザーに戻して updateMemo 中に再度ユーザー切替
+        container.read(_testUserIdProvider.notifier).userId = testUserId;
+        uploadStarted = Completer<void>();
+        uploadGate = Completer<void>();
+
+        final updateFuture = repository.updateMemo(
+          memoId,
+          'ユーザー切替編集',
+          '更新内容',
+          testUserId,
+        );
+        await uploadStarted.future;
+        container.read(_testUserIdProvider.notifier).userId = otherUserId;
+        uploadGate.complete();
+        await updateFuture;
+
+        final afterUpdate = await database.memosDao.getMemoById(
+          memoId,
+          testUserId,
+        );
+        check(afterUpdate.title).equals('ユーザー切替編集');
+        check(afterUpdate.isSynced).isFalse();
+      });
+
+      test('fetchAndMergeRemoteMemos実行中に別ユーザーへ切り替わった場合、'
+          'RequestAuthPinによりGET送信と他ユーザーデータの誤マージを防ぎ、既存のcatchで処理されること', () async {
+        var storageUserId = testUserId;
+        var storageToken = 'token-a';
+        var switchBeforeGetRequest = true;
+        final sentRequests = <(String method, String path, String? auth)>[];
+
+        final mockStorage = MockTokenStorage();
+        when(mockStorage.getUserId).thenAnswer((_) async => storageUserId);
+        when(mockStorage.getAccessToken).thenAnswer((_) async => storageToken);
+
+        final adapter = _RecordingHttpClientAdapter((options) async {
+          sentRequests.add((
+            options.method,
+            options.path,
+            options.headers['Authorization'] as String?,
+          ));
+          return ResponseBody.fromString(
+            jsonEncode([
+              {
+                'id': 'remote-$storageUserId',
+                'title': 'ユーザー別メモ',
+                'content': '内容',
+                'createdAt': now.toIso8601String(),
+                'updatedAt': now.toIso8601String(),
+                'isDeleted': false,
+              },
+            ]),
+            200,
+            headers: {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          );
+        });
+
+        final baseDio = Dio(BaseOptions(baseUrl: 'https://example.com'))
+          ..httpClientAdapter = adapter;
+        final container = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            clockProvider.overrideWithValue(() => now),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+            tokenStorageInternalProvider.overrideWithValue(mockStorage),
+            baseDioProvider.overrideWithValue(baseDio),
+            tokenRefreshCallbackProvider.overrideWithValue(() async => false),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final mainDio = Dio(BaseOptions(baseUrl: 'https://example.com'))
+          ..httpClientAdapter = adapter
+          ..interceptors.addAll([
+            InterceptorsWrapper(
+              onRequest: (options, handler) {
+                if (switchBeforeGetRequest) {
+                  container.read(_testUserIdProvider.notifier).userId =
+                      otherUserId;
+                  storageUserId = otherUserId;
+                  storageToken = 'token-b';
+                }
+                handler.next(options);
+              },
+            ),
+            container.read(tokenInterceptorProvider),
+            container.read(dioInterceptorProvider),
+          ]);
+
+        final repository = MemoRepository(
+          dao: database.memosDao,
+          remote: MemoRemoteService(DioApiClient(mainDio)),
+          clock: container.read(clockProvider),
+          talker: spyTalker,
+          isOnline: true,
+          uuid: container.read(uuidProvider),
+          syncQueue: container.read(memoSyncQueueProvider),
+          currentUserId: container.read(memoAuthUserIdReaderProvider),
+        );
+
+        // 1. GET直前に別ユーザーへ切り替わった場合は送信されず、catchで記録されマージもされないこと
+        await repository.fetchAndMergeRemoteMemos(testUserId);
+
+        check(sentRequests).isEmpty();
+        check(spyTalker.handleCalls.length).equals(1);
+        check(
+          spyTalker.handleCalls.single.message,
+        ).equals('Failed to fetch data from the server');
+        check(await repository.getLocalMemos(testUserId)).isEmpty();
+
+        // 2. 認証ユーザーが一致していれば期待ユーザーのトークンで取得してマージされること
+        switchBeforeGetRequest = false;
+        container.read(_testUserIdProvider.notifier).userId = testUserId;
+        storageUserId = testUserId;
+        storageToken = 'token-a';
+
+        await repository.fetchAndMergeRemoteMemos(testUserId);
+
+        check(sentRequests).deepEquals([('GET', '/memos', 'Bearer token-a')]);
+        final merged = await repository.getLocalMemos(testUserId);
+        check(merged.length).equals(1);
+        check(merged.single.id).equals('remote-$testUserId');
+        check(merged.single.userId).equals(testUserId);
+      });
     });
   });
 }

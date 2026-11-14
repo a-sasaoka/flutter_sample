@@ -59,6 +59,9 @@ void main() {
       when(() => mockL10n.memoFilterUnsyncedOnly).thenReturn('未同期のみ');
       when(() => mockL10n.memoSearchEmpty).thenReturn('条件に一致するメモが見つかりません');
       when(() => mockL10n.memoClearFilter).thenReturn('条件をクリア');
+      when(() => mockL10n.memoSortCustom).thenReturn('カスタム順');
+      when(() => mockL10n.memoDeleted).thenReturn('メモを削除しました');
+      when(() => mockL10n.memoUndo).thenReturn('元に戻す');
     });
 
     Widget buildMemoForGolden({
@@ -87,7 +90,9 @@ void main() {
         ),
       ).thenAnswer((_) => Stream.value(memos));
 
-      final isDark = themeMode == ThemeMode.dark;
+      final baseTheme = themeMode == ThemeMode.dark
+          ? AppTheme.dark()
+          : AppTheme.light();
 
       return ProviderScope(
         overrides: [
@@ -100,17 +105,24 @@ void main() {
             ),
         ],
         child: MaterialApp(
-          theme: isDark
-              ? AppTheme.dark().copyWith(
-                  textTheme: AppTheme.dark().textTheme.apply(
+          theme: baseTheme.copyWith(
+            textTheme: baseTheme.textTheme.apply(fontFamily: 'NotoSansJP'),
+            primaryTextTheme: baseTheme.primaryTextTheme.apply(
+              fontFamily: 'NotoSansJP',
+            ),
+            chipTheme: baseTheme.chipTheme.copyWith(
+              labelStyle:
+                  baseTheme.chipTheme.labelStyle?.copyWith(
                     fontFamily: 'NotoSansJP',
-                  ),
-                )
-              : AppTheme.light().copyWith(
-                  textTheme: AppTheme.light().textTheme.apply(
+                  ) ??
+                  const TextStyle(fontFamily: 'NotoSansJP'),
+              secondaryLabelStyle:
+                  baseTheme.chipTheme.secondaryLabelStyle?.copyWith(
                     fontFamily: 'NotoSansJP',
-                  ),
-                ),
+                  ) ??
+                  const TextStyle(fontFamily: 'NotoSansJP'),
+            ),
+          ),
           themeMode: themeMode,
           localizationsDelegates: [
             MockLocalizationsDelegate(mockL10n),
