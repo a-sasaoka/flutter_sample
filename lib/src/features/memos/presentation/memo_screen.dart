@@ -592,9 +592,9 @@ class _MemoListView extends HookConsumerWidget {
                 .read(memoProvider.notifier)
                 .reorderMemos(oldIndex, newIndex);
           } on Exception catch (e) {
-            // 保存に失敗し、画面が有効（mounted）な場合にエラー通知を表示
-            if (context.mounted) {
-              ErrorHandler.showSnackBar(context, e);
+            // 保存に失敗し、画面が有効かつアクティブな場合のみエラー通知を表示
+            if (screenContext.mounted && _isScreenActive(screenContext)) {
+              ErrorHandler.showSnackBar(screenContext, e);
             }
           }
         },

@@ -2053,5 +2053,58 @@ void main() {
       check(find.byType(SnackBar)).findsOne();
       check(find.text('エラーが発生しました')).findsOne();
     });
+
+    testWidgets('並び替え保存の待機中にタブを切り替えた場合、失敗してもエラーSnackBarが表示されないこと', (
+      tester,
+    ) async {
+      final memoList = [
+        MemoModel(
+          id: '1',
+          userId: 'test_user_id',
+          title: 'メモ1',
+          content: '内容1',
+          createdAt: DateTime(2026, 10, 25),
+          updatedAt: DateTime(2026, 10, 25),
+        ),
+        MemoModel(
+          id: '2',
+          userId: 'test_user_id',
+          title: 'メモ2',
+          content: '内容2',
+          createdAt: DateTime(2026, 10, 25),
+          updatedAt: DateTime(2026, 10, 25),
+          sortOrder: 1,
+        ),
+      ];
+      final reorderCompleter = Completer<void>();
+      when(
+        () => mockMemoRepository.watchAllMemos(any()),
+      ).thenAnswer((_) => Stream.value(memoList));
+      when(
+        () => mockMemoRepository.updateSortOrders(any(), any()),
+      ).thenAnswer((_) => reorderCompleter.future);
+
+      await setupShellWidget(tester);
+      await tester.pumpAndSettle();
+
+      final reorderableListView = tester.widget<ReorderableListView>(
+        find.byType(ReorderableListView),
+      );
+      reorderableListView.onReorderItem!(0, 1);
+      await tester.pump();
+
+      // 保存完了前に別タブへ切り替える
+      await tester.tap(find.text('ホーム'));
+      await tester.pumpAndSettle();
+      check(find.text('ホーム画面')).findsOne();
+
+      // 別タブ表示中に並び替え保存が失敗
+      reorderCompleter.completeError(Exception('並び替え保存失敗'));
+      await tester.pumpAndSettle();
+
+      // 別タブ上にエラーSnackBarが表示されないこと
+      check(find.byType(SnackBar)).findsNothing();
+      check(find.text('エラーが発生しました')).findsNothing();
+    });
   });
 }
