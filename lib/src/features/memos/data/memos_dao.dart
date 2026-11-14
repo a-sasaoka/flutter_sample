@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:flutter_sample/src/app/database/app_database.dart';
+import 'package:flutter_sample/src/core/utils/date_time_extension.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_table.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_category.dart';
 
@@ -205,9 +206,13 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
 
       for (final memo in latestRemoteMemosById.values) {
         final localMemo = localMemosMap[memo.id];
+        final remoteUpdatedAt = memo.updatedAt.truncateToSeconds();
 
         // サーバーのデータが新しい場合、またはローカルに存在しない場合に更新/挿入対象とする
-        if (localMemo == null || memo.updatedAt.isAfter(localMemo.updatedAt)) {
+        // ローカルDBはUnix秒精度で保存されるため、同じ秒精度で比較して
+        // 同秒内の古い削除データによる未同期復元の誤上書きを防ぐ
+        if (localMemo == null ||
+            remoteUpdatedAt.isAfter(localMemo.updatedAt.truncateToSeconds())) {
           final int sortOrder;
           if (localMemo != null) {
             // 既存メモは shiftSortOrders でシフトされた後の値を維持する
@@ -226,8 +231,8 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
               userId: userId,
               title: memo.title,
               content: memo.content,
-              createdAt: memo.createdAt,
-              updatedAt: memo.updatedAt,
+              createdAt: memo.createdAt.truncateToSeconds(),
+              updatedAt: remoteUpdatedAt,
               isDeleted: Value(memo.isDeleted),
               isSynced: const Value(true),
               category: Value(localMemo?.category),

@@ -141,6 +141,12 @@ AI プロンプト等で、端末 OS から自動取得したタイムゾーン�
 
 時差指定がない文字列を AI（LLM）が UTC と誤認識して現地日付が 1 日ずれる不具合を防ぐために利用します。
 
+### ⏱️ 秒精度への切り捨て（truncateToSeconds）
+
+ローカルDB（Drift の Unix 秒保存）とサーバー送信・マージ比較の間で日時の精度を揃えるための拡張関数です。実装詳細は [date_time_extension.dart](../lib/src/core/utils/date_time_extension.dart) を参照してください。
+
+`DateTime` のミリ秒・マイクロ秒を切り捨て（`isUtc` 属性は維持）、SQLite に保存された日時と API 送受信・マージ判定で用いる日時がサブ秒の差で逆転するのを防ぐために利用します（利用例: [memo_repository.dart](../lib/src/features/memos/data/memo_repository.dart)、[memos_dao.dart](../lib/src/features/memos/data/memos_dao.dart)）。
+
 ---
 
 ## 📡 7. グローバル・オフラインバナー (OfflineBanner)

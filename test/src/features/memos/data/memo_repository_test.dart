@@ -2151,6 +2151,121 @@ void main() {
         current = await database.memosDao.getMemoById(memoId, testUserId);
         check(current.isSynced).isTrue();
       });
+
+      test('同一秒内でサブ秒を含む削除成功・復元失敗の後にmergeRemoteMemosが実行されても、'
+          '削除・復元の保存値と送信値が秒精度に揃い未同期の復元が保持・再送されること', () async {
+        final createdTime = DateTime(2026, 11, 14, 9, 59, 0, 450);
+        final deleteClockTime = DateTime(2026, 11, 14, 10, 0, 0, 200);
+        final restoreClockTime = DateTime(2026, 11, 14, 10, 0, 0, 800);
+        var currentClock = createdTime;
+
+        final container = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            clockProvider.overrideWithValue(() => currentClock),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final uploadedRecords =
+            <({bool isDeleted, DateTime createdAt, DateTime updatedAt})>[];
+        var shouldFailRestore = false;
+
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: any(named: 'id'),
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: any(named: 'isDeleted'),
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((invocation) async {
+          final isDeleted = invocation.namedArguments[#isDeleted] as bool;
+          final uploadedCreatedAt =
+              invocation.namedArguments[#createdAt] as DateTime;
+          final uploadedUpdatedAt =
+              invocation.namedArguments[#updatedAt] as DateTime;
+          if (!isDeleted && shouldFailRestore) {
+            throw Exception('restore upload failed');
+          }
+          uploadedRecords.add((
+            isDeleted: isDeleted,
+            createdAt: uploadedCreatedAt,
+            updatedAt: uploadedUpdatedAt,
+          ));
+        });
+
+        final repository = container.read(memoRepositoryProvider);
+        await repository.addMemo('サブ秒テスト', '本文', testUserId);
+        final memoId = (await database.memosDao.getAllMemos(
+          testUserId,
+        )).first.id;
+
+        // 1. 削除をサブ秒（10:00:00.200）で実行し、送信値・DB保存値ともに秒精度に揃うこと
+        currentClock = deleteClockTime;
+        await repository.deleteMemo(memoId, testUserId);
+
+        final deletedLocal = await database.memosDao.getMemoById(
+          memoId,
+          testUserId,
+        );
+        final expectedSecondTime = DateTime(2026, 11, 14, 10);
+        check(deletedLocal.updatedAt).equals(expectedSecondTime);
+        check(uploadedRecords.last.isDeleted).isTrue();
+        check(uploadedRecords.last.updatedAt).equals(expectedSecondTime);
+
+        // 2. 同じ秒（10:00:00.800）で復元を実行し、リモート送信だけ失敗させる
+        currentClock = restoreClockTime;
+        shouldFailRestore = true;
+        await repository.restoreMemo(memoId, testUserId);
+
+        var restoredLocal = await database.memosDao.getMemoById(
+          memoId,
+          testUserId,
+        );
+        check(restoredLocal.isDeleted).isFalse();
+        check(restoredLocal.isSynced).isFalse();
+        check(restoredLocal.updatedAt).equals(expectedSecondTime);
+
+        // 3. リモートが削除時のデータ（サブ秒あり想定も含む）を返しても未同期の復元を維持すること
+        when(() => mockRemoteService.fetchMemos()).thenAnswer(
+          (_) async => [
+            {
+              'id': memoId,
+              'title': 'サブ秒テスト',
+              'content': '本文',
+              'createdAt': DateTime(2026, 11, 14, 9, 59),
+              'updatedAt': deleteClockTime,
+              'isDeleted': true,
+            },
+          ],
+        );
+
+        await repository.fetchAndMergeRemoteMemos(testUserId);
+
+        restoredLocal = await database.memosDao.getMemoById(memoId, testUserId);
+        check(restoredLocal.isDeleted).isFalse();
+        check(restoredLocal.isSynced).isFalse();
+        check(restoredLocal.updatedAt).equals(expectedSecondTime);
+
+        // 4. 通信回復後の同期で未同期の復元が再送され、同期済みになること
+        shouldFailRestore = false;
+        await repository.syncUnsentMemos(testUserId);
+
+        restoredLocal = await database.memosDao.getMemoById(memoId, testUserId);
+        check(restoredLocal.isDeleted).isFalse();
+        check(restoredLocal.isSynced).isTrue();
+        check(uploadedRecords.last.isDeleted).isFalse();
+        check(uploadedRecords.last.updatedAt).equals(expectedSecondTime);
+      });
     });
   });
 }

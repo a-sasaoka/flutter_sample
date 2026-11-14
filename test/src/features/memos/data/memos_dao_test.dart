@@ -1267,6 +1267,54 @@ void main() {
           (await dao.getMemoById('memo-cond', testUserId)).isSynced,
         ).isTrue();
       });
+
+      test('【正常系】mergeRemoteMemosで同一秒内のサブ秒のみを持つ古い削除データを受信しても'
+          '未同期の復元が上書きされず未同期のまま保持されること', () async {
+        final baseTime = DateTime(2026, 11, 14, 10);
+        final deleteSubSecTime = DateTime(2026, 11, 14, 10, 0, 0, 200);
+        final restoreSubSecTime = DateTime(2026, 11, 14, 10, 0, 0, 800);
+
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'memo-restore-subsec',
+            userId: testUserId,
+            title: 'サブ秒復元テスト',
+            content: '本文',
+            createdAt: baseTime,
+            updatedAt: deleteSubSecTime,
+            isDeleted: const Value(true),
+            isSynced: const Value(true),
+          ),
+        );
+
+        // 同一秒内のサブ秒で復元（DB上は秒切り捨ての 10:00:00.000 で保存される）
+        await dao.restoreMemo(
+          'memo-restore-subsec',
+          testUserId,
+          restoreSubSecTime,
+        );
+
+        // サーバー側に同一秒の古い削除日時（.200）が残っていても、
+        // 秒精度比較により古い削除を採用せず未同期の復元を保持すること
+        await dao.mergeRemoteMemos(testUserId, [
+          {
+            'id': 'memo-restore-subsec',
+            'title': 'サブ秒復元テスト',
+            'content': '本文',
+            'createdAt': baseTime,
+            'updatedAt': deleteSubSecTime,
+            'isDeleted': true,
+          },
+        ]);
+
+        final current = await dao.getMemoById(
+          'memo-restore-subsec',
+          testUserId,
+        );
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isFalse();
+        check(current.updatedAt).equals(baseTime);
+      });
     });
   });
 }

@@ -51,5 +51,17 @@ void main() {
       final formatted = shortYearDate.toFormattedStringWithTimezone();
       check(formatted).contains('0099-01-02 03:04');
     });
+
+    test('【正常系】truncateToSeconds() でローカル・UTCともサブ秒が秒単位へ切り捨てられること', () {
+      final localWithSubSec = DateTime(2026, 11, 14, 16, 51, 2, 345, 678);
+      final localTruncated = localWithSubSec.truncateToSeconds();
+      check(localTruncated).equals(DateTime(2026, 11, 14, 16, 51, 2));
+      check(localTruncated.isUtc).isFalse();
+
+      final utcWithSubSec = DateTime.utc(2026, 11, 14, 7, 51, 2, 999, 999);
+      final utcTruncated = utcWithSubSec.truncateToSeconds();
+      check(utcTruncated).equals(DateTime.utc(2026, 11, 14, 7, 51, 2));
+      check(utcTruncated.isUtc).isTrue();
+    });
   });
 }
