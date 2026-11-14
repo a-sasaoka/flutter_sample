@@ -146,7 +146,12 @@ void main() {
   }
 
   /// StatefulShellRoute によるタブ切り替え構成のセットアップヘルパー
-  Future<void> setupShellWidget(WidgetTester tester) async {
+  Future<void> setupShellWidget(
+    WidgetTester tester, {
+    List<dynamic>? overrides,
+    List<LocalizationsDelegate<dynamic>>? localizationsDelegates,
+    Locale? locale,
+  }) async {
     final router = GoRouter(
       initialLocation: '/memos',
       routes: [
@@ -195,21 +200,30 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          currentUserIdProvider.overrideWithValue('test_user_id'),
-          memoRepositoryProvider.overrideWithValue(mockMemoRepository),
-          isOnlineProvider.overrideWithValue(true),
-          loggerProvider.overrideWithValue(mockTalker),
-          isAppUnlockedProvider.overrideWithValue(true),
-        ],
+        overrides:
+            (overrides ??
+                    [
+                      currentUserIdProvider.overrideWithValue('test_user_id'),
+                      memoRepositoryProvider.overrideWithValue(
+                        mockMemoRepository,
+                      ),
+                      isOnlineProvider.overrideWithValue(true),
+                      loggerProvider.overrideWithValue(mockTalker),
+                      isAppUnlockedProvider.overrideWithValue(true),
+                    ])
+                .cast(),
         child: MaterialApp.router(
           routerConfig: router,
-          localizationsDelegates: [
-            MockLocalizationsDelegate(mockL10n),
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
+          localizationsDelegates:
+              localizationsDelegates ??
+              [
+                MockLocalizationsDelegate(mockL10n),
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: locale,
         ),
       ),
     );
@@ -825,7 +839,7 @@ void main() {
       check(find.text('元に戻す')).findsNothing();
     });
 
-    testWidgets('Undo通知の表示中にStatefulShellRouteでタブを切り替えた場合、Undo通知が閉じられること', (
+    testWidgets('Undo通知表示中にタブ切り替えすると別タブでは閉じられ、メモタブ復帰で再表示・復元できること', (
       tester,
     ) async {
       final now = DateTime.now();
@@ -852,6 +866,15 @@ void main() {
       ).thenAnswer((_) async {
         streamController.add(<MemoModel>[]);
       });
+      when(
+        () => mockMemoRepository.restoreMemo(
+          any(),
+          any(),
+          waitForRemoteSync: any(named: 'waitForRemoteSync'),
+        ),
+      ).thenAnswer((_) async {
+        streamController.add([memo]);
+      });
 
       await setupShellWidget(tester);
       streamController.add([memo]);
@@ -866,7 +889,7 @@ void main() {
       check(find.text('メモを削除しました')).findsOne();
       check(find.text('元に戻す')).findsOne();
 
-      // 「ホーム」タブへ切り替えると、メモ画面の非アクティブ化に伴い Undo 通知が閉じられること
+      // 「ホーム」タブへ切り替えると、別タブでは Undo 通知が閉じられること
       await tester.tap(find.text('ホーム'));
       await tester.pumpAndSettle();
 
@@ -874,7 +897,192 @@ void main() {
       check(find.text('メモを削除しました')).findsNothing();
       check(find.text('元に戻す')).findsNothing();
 
-      // 「メモ」タブへ戻っても閉じた Undo 通知が再表示されないこと
+      // 「メモ」タブへ戻ると Undo 通知が再表示され、タップで復元できること
+      await tester.tap(find.text('メモ'));
+      await tester.pumpAndSettle();
+
+      check(find.text('メモを削除しました')).findsOne();
+      check(find.text('元に戻す')).findsOne();
+
+      await tester.tap(find.text('元に戻す'));
+      await tester.pumpAndSettle();
+
+      verify(
+        () => mockMemoRepository.restoreMemo(
+          '1',
+          'test_user_id',
+          waitForRemoteSync: false,
+        ),
+      ).called(1);
+      check(find.text('削除対象メモ')).findsOne();
+    });
+
+    testWidgets(
+      '削除通信中にStatefulShellRouteでタブを切り替えて復帰した場合もUndoを再表示し、削除・復元の順序を保って復元できること',
+      (tester) async {
+        registerFallbackValue(DateTime(2026));
+        final db = AppDatabase(NativeDatabase.memory());
+        addTearDown(db.close);
+
+        const userId = 'test_user_id';
+        final now = DateTime(2026, 4, 1, 10);
+        await db.memosDao.insertMemo(
+          MemosCompanion.insert(
+            id: 'memo-1',
+            userId: userId,
+            title: '通信中タブ切替メモ',
+            content: '本文',
+            createdAt: now,
+            updatedAt: now,
+            isSynced: const Value(true),
+          ),
+        );
+
+        final mockRemoteService = _MockMemoRemoteService();
+        when(mockRemoteService.fetchMemos).thenAnswer((_) async => []);
+        final deleteRemoteCompleter = Completer<void>();
+        final uploadOrder = <bool>[];
+        var currentTime = now;
+
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: 'memo-1',
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: any(named: 'isDeleted'),
+          ),
+        ).thenAnswer((invocation) async {
+          final isDeleted = invocation.namedArguments[#isDeleted] as bool;
+          uploadOrder.add(isDeleted);
+          if (isDeleted) {
+            await deleteRemoteCompleter.future;
+          }
+        });
+
+        final talker = Talker(settings: TalkerSettings(useConsoleLogs: false));
+
+        await setupShellWidget(
+          tester,
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            currentUserIdProvider.overrideWithValue(userId),
+            isOnlineProvider.overrideWithValue(true),
+            isAppUnlockedProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(talker),
+            clockProvider.overrideWithValue(
+              () => currentTime = currentTime.add(const Duration(seconds: 1)),
+            ),
+          ],
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          locale: const Locale('ja'),
+        );
+        await tester.pumpAndSettle();
+
+        check(find.text('通信中タブ切替メモ')).findsOne();
+
+        // 左スワイプで削除（リモート削除通信は未完了のままローカル削除完了）
+        await tester.drag(find.text('通信中タブ切替メモ'), const Offset(-500, 0));
+        await tester.pumpAndSettle();
+
+        check(deleteRemoteCompleter.isCompleted).isFalse();
+        check(uploadOrder).deepEquals([true]);
+        check(find.text('メモを削除しました')).findsOne();
+        check(find.text('元に戻す')).findsOne();
+
+        // 削除通信の待機中に「ホーム」タブへ切り替え（別タブ上では通知が閉じられる）
+        await tester.tap(find.text('ホーム'));
+        await tester.pumpAndSettle();
+
+        check(find.text('ホーム画面')).findsOne();
+        check(find.text('メモを削除しました')).findsNothing();
+        check(find.text('元に戻す')).findsNothing();
+        check(deleteRemoteCompleter.isCompleted).isFalse();
+
+        // 「メモ」タブへ戻ると Undo 通知が再表示され、復元を実行できる
+        await tester.tap(find.text('メモ'));
+        await tester.pumpAndSettle();
+
+        check(find.text('メモを削除しました')).findsOne();
+        check(find.text('元に戻す')).findsOne();
+
+        await tester.tap(find.text('元に戻す'));
+        await tester.pump();
+
+        // 復元通信は先行する削除通信の完了を待ってから順番に実行される
+        check(uploadOrder).deepEquals([true]);
+
+        deleteRemoteCompleter.complete();
+        await tester.pumpAndSettle();
+
+        check(uploadOrder).deepEquals([true, false]);
+        check(find.text('通信中タブ切替メモ')).findsOne();
+
+        final restoredMemo = await db.memosDao.getMemoById('memo-1', userId);
+        check(restoredMemo.isDeleted).isFalse();
+        check(restoredMemo.isSynced).isTrue();
+
+        // Drift の StreamQueryStore クローズ用ゼロ秒タイマーをテスト終了前に消化させる
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump(const Duration(milliseconds: 1));
+      },
+    );
+
+    testWidgets('Undo通知をスワイプで閉じた後にタブを切り替えて復帰しても再表示されないこと', (tester) async {
+      final now = DateTime.now();
+      final memo = MemoModel(
+        id: '1',
+        userId: 'test_user_id',
+        title: '閉じられるメモ',
+        content: '内容',
+        createdAt: now,
+        updatedAt: now,
+      );
+      final streamController = StreamController<List<MemoModel>>.broadcast();
+      addTearDown(streamController.close);
+
+      when(
+        () => mockMemoRepository.watchAllMemos(any()),
+      ).thenAnswer((_) => streamController.stream);
+      when(
+        () => mockMemoRepository.deleteMemo(
+          any(),
+          any(),
+          waitForRemoteSync: any(named: 'waitForRemoteSync'),
+        ),
+      ).thenAnswer((_) async {
+        streamController.add(<MemoModel>[]);
+      });
+
+      await setupShellWidget(tester);
+      streamController.add([memo]);
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.byType(Dismissible), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+
+      check(find.text('メモを削除しました')).findsOne();
+      check(find.text('元に戻す')).findsOne();
+
+      // ユーザーが Undo 通知をスワイプで閉じる
+      await tester.fling(find.byType(SnackBar), const Offset(0, 200), 1000);
+      await tester.pumpAndSettle();
+
+      check(find.text('メモを削除しました')).findsNothing();
+      check(find.text('元に戻す')).findsNothing();
+
+      // タブを切り替えて戻っても再表示されないこと
+      await tester.tap(find.text('ホーム'));
+      await tester.pumpAndSettle();
+      check(find.text('ホーム画面')).findsOne();
+
       await tester.tap(find.text('メモ'));
       await tester.pumpAndSettle();
 

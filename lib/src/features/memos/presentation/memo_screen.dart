@@ -403,6 +403,19 @@ class _MemoFilterChipsBar extends ConsumerWidget {
   }
 }
 
+/// タブ非アクティブ中も再表示できるよう保持する Undo / 再試行通知情報
+class _PendingUndo {
+  const _PendingUndo({
+    required this.buildMessage,
+    required this.actionLabel,
+    required this.onPressed,
+  });
+
+  final String Function(BuildContext context) buildMessage;
+  final String actionLabel;
+  final Future<void> Function() onPressed;
+}
+
 /// メモ一覧を表示するウィジェット
 class _MemoListView extends HookConsumerWidget {
   const _MemoListView();
@@ -424,14 +437,74 @@ class _MemoListView extends HookConsumerWidget {
     final memosAsyncValue = ref.watch(memoProvider);
     final filter = ref.watch(memoFilterProvider);
     final canReorder = !filter.hasActiveFilter;
+    // 別タブ切り替えに伴う一時クローズ後も復元手段を保てるよう Undo 通知状態を保持
+    final pendingUndoRef = useRef<_PendingUndo?>(null);
+    final activeUndoControllerRef =
+        useRef<ScaffoldFeatureController<SnackBar, SnackBarClosedReason>?>(
+          null,
+        );
+    final suppressedControllerRef =
+        useRef<ScaffoldFeatureController<SnackBar, SnackBarClosedReason>?>(
+          null,
+        );
 
-    // タブ切り替えなどでメモ画面が非アクティブになった時点で、表示中のSnackBarを閉じる
+    void presentPendingUndo() {
+      final pending = pendingUndoRef.value;
+      // メモ画面が有効かつ「現在選択中（表示中）」の場合のみ通知を表示
+      // （別タブ選択中、ログアウト、別画面遷移時は表示しない）
+      if (pending == null ||
+          !screenContext.mounted ||
+          !_isScreenActive(screenContext)) {
+        return;
+      }
+      // 通知表示中に画面遷移しても「元に戻す」が機能するようNotifierを一時保持する
+      final releaseKeepAlive = ref.read(memoProvider.notifier).retainForUndo();
+      messenger.clearSnackBars();
+      final controller = messenger.showSnackBar(
+        SnackBar(
+          content: Text(pending.buildMessage(screenContext)),
+          action: SnackBarAction(
+            label: pending.actionLabel,
+            onPressed: () {
+              pendingUndoRef.value = null;
+              unawaited(pending.onPressed());
+            },
+          ),
+        ),
+      );
+      activeUndoControllerRef.value = controller;
+      unawaited(
+        controller.closed.then((_) {
+          releaseKeepAlive();
+          if (activeUndoControllerRef.value == controller) {
+            activeUndoControllerRef.value = null;
+          }
+          if (suppressedControllerRef.value == controller) {
+            suppressedControllerRef.value = null;
+            return;
+          }
+          if (pendingUndoRef.value == pending) {
+            pendingUndoRef.value = null;
+          }
+        }),
+      );
+    }
+
+    // タブ切り替えでメモ画面が非アクティブになった際は表示中のSnackBarを一時的に閉じ、
+    // 保留中のUndoが残っていればメモタブへ戻った際に再表示する
     useEffect(() {
       if (wasScreenActive == true && !isScreenActive) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (screenContext.mounted && !_isScreenActive(screenContext)) {
+            suppressedControllerRef.value = activeUndoControllerRef.value;
             messenger.clearSnackBars();
           }
+        });
+      } else if (wasScreenActive == false &&
+          isScreenActive &&
+          pendingUndoRef.value != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          presentPendingUndo();
         });
       }
       return null;
@@ -448,24 +521,15 @@ class _MemoListView extends HookConsumerWidget {
         required String Function(BuildContext context) buildMessage,
         required String actionLabel,
       }) {
-        // メモ画面が有効かつ「現在選択中（表示中）」の場合のみ通知を表示
-        // （別タブ選択中、ログアウト、別画面遷移時は表示しない）
-        if (!screenContext.mounted || !_isScreenActive(screenContext)) {
+        if (!screenContext.mounted) {
           return;
         }
-        // 通知表示中に画面遷移しても「元に戻す」が機能するようNotifierを一時保持する
-        final releaseKeepAlive = memoNotifier.retainForUndo();
-        messenger.clearSnackBars();
-        final controller = messenger.showSnackBar(
-          SnackBar(
-            content: Text(buildMessage(screenContext)),
-            action: SnackBarAction(
-              label: actionLabel,
-              onPressed: () => unawaited(handleRestoreMemo()),
-            ),
-          ),
+        pendingUndoRef.value = _PendingUndo(
+          buildMessage: buildMessage,
+          actionLabel: actionLabel,
+          onPressed: handleRestoreMemo,
         );
-        unawaited(controller.closed.whenComplete(releaseKeepAlive));
+        presentPendingUndo();
       }
 
       handleRestoreMemo = () async {
