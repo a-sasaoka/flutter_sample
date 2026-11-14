@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter_sample/src/app/database/app_database.dart';
 import 'package:flutter_sample/src/core/database/database_provider.dart';
@@ -15,22 +17,61 @@ import 'package:uuid/uuid.dart';
 
 part 'memo_repository.g.dart';
 
+/// メモIDごとの削除・復元リモート同期をFIFO順で直列化するキュー
+class MemoSyncQueue {
+  final Map<(String, String), Future<void>> _queues = {};
+  final Map<(String, String), int> _latestTokens = {};
+  var _tokenCounter = 0;
+
+  /// 指定メモに対する新しい変更トークンを発行・記録する
+  int nextToken(String userId, String id) {
+    final token = ++_tokenCounter;
+    _latestTokens[(userId, id)] = token;
+    return token;
+  }
+
+  /// 指定トークンがそのメモに対する最新変更かどうかを返す
+  bool isLatestToken(String userId, String id, int token) =>
+      _latestTokens[(userId, id)] == token;
+
+  /// 同一メモの同期処理を先行タスクの完了後に直列実行する
+  Future<void> enqueue(String userId, String id, Future<void> Function() task) {
+    final key = (userId, id);
+    final previous = _queues[key] ?? Future<void>.value();
+    late final Future<void> current;
+    current = previous.whenComplete(() async {
+      try {
+        await task();
+      } finally {
+        if (identical(_queues[key], current)) {
+          unawaited(_queues.remove(key));
+          _latestTokens.remove(key);
+        }
+      }
+    });
+    _queues[key] = current;
+    return current;
+  }
+}
+
 /// メモ（Memo）のデータをデータベースに保存したり、取り出したりするためのリポジトリ
 class MemoRepository {
   /// コンストラクタ
-  const MemoRepository({
+  MemoRepository({
     required MemosDao dao,
     required MemoRemoteService remote,
     required DateTime Function() clock,
     required Talker talker,
     required bool isOnline,
     required Uuid uuid,
+    required MemoSyncQueue syncQueue,
   }) : _dao = dao,
        _remote = remote,
        _clock = clock,
        _talker = talker,
        _isOnline = isOnline,
-       _uuid = uuid;
+       _uuid = uuid,
+       _syncQueue = syncQueue;
 
   final MemosDao _dao;
   final MemoRemoteService _remote;
@@ -38,6 +79,7 @@ class MemoRepository {
   final Talker _talker;
   final bool _isOnline;
   final Uuid _uuid;
+  final MemoSyncQueue _syncQueue;
 
   /// 新しいメモをデータベースに追加する
   Future<void> addMemo(
@@ -142,8 +184,62 @@ class MemoRepository {
     }
   }
 
+  /// 削除・復元のローカル変更に対応するリモート送信を直列キュー経由で実行する
+  Future<void> _syncMemoDeletionState({
+    required String id,
+    required String userId,
+    required DateTime updatedAt,
+    required bool isDeleted,
+    required int token,
+    required bool waitForRemoteSync,
+    required String successLog,
+    required String errorLog,
+  }) async {
+    if (!_isOnline) {
+      return;
+    }
+
+    final syncFuture = _syncQueue.enqueue(userId, id, () async {
+      try {
+        final memo = await _dao.getMemoById(id, userId);
+        await _remote.uploadMemo(
+          id: id,
+          title: memo.title,
+          content: memo.content,
+          createdAt: memo.createdAt,
+          updatedAt: updatedAt,
+          isDeleted: isDeleted,
+        );
+
+        // 先行通信の待機中に新しいローカル操作（Undo等）が行われた場合は
+        // 古い通信の成功で isSynced を誤って true に上書きしない
+        if (_syncQueue.isLatestToken(userId, id, token)) {
+          await _dao.updateMemo(
+            id,
+            userId,
+            const MemosCompanion(isSynced: drift.Value(true)),
+          );
+        }
+
+        _talker.debug(successLog);
+      } on Exception catch (e, st) {
+        _talker.handle(e, st, errorLog);
+      }
+    });
+
+    if (waitForRemoteSync) {
+      await syncFuture;
+    } else {
+      unawaited(syncFuture);
+    }
+  }
+
   /// メモを削除（論理削除）する
-  Future<void> deleteMemo(String id, String userId) async {
+  Future<void> deleteMemo(
+    String id,
+    String userId, {
+    bool waitForRemoteSync = true,
+  }) async {
     final now = _clock();
 
     // スマホ側で論理削除マークをつける
@@ -156,67 +252,42 @@ class MemoRepository {
         isSynced: const drift.Value(false),
       ),
     );
+    final token = _syncQueue.nextToken(userId, id);
 
-    if (_isOnline) {
-      // オンラインの時はサーバに保存を試みる
-      try {
-        final memo = await _dao.getMemoById(id, userId);
-        // サーバーにも「削除済み」として送る
-        await _remote.uploadMemo(
-          id: id,
-          title: memo.title,
-          content: memo.content,
-          createdAt: memo.createdAt,
-          updatedAt: now,
-          isDeleted: true,
-        );
-
-        // 保存に成功したら「送信済み (true)」に更新
-        await _dao.updateMemo(
-          id,
-          userId,
-          const MemosCompanion(isSynced: drift.Value(true)),
-        );
-
-        _talker.debug('The deleted status has been sent to the server.');
-      } on Exception catch (e, st) {
-        _talker.handle(e, st, 'Failed to delete data on the server');
-      }
-    }
+    await _syncMemoDeletionState(
+      id: id,
+      userId: userId,
+      updatedAt: now,
+      isDeleted: true,
+      token: token,
+      waitForRemoteSync: waitForRemoteSync,
+      successLog: 'The deleted status has been sent to the server.',
+      errorLog: 'Failed to delete data on the server',
+    );
   }
 
   /// 削除されたメモを復元（論理削除を解除）する
-  Future<void> restoreMemo(String id, String userId) async {
+  Future<void> restoreMemo(
+    String id,
+    String userId, {
+    bool waitForRemoteSync = true,
+  }) async {
     final now = _clock();
 
     // スマホ側で論理削除を解除し、未同期状態に戻す
     await _dao.restoreMemo(id, userId, now);
+    final token = _syncQueue.nextToken(userId, id);
 
-    if (_isOnline) {
-      // オンラインの時はサーバーに復元状態（isDeleted: false）を送信
-      try {
-        final memo = await _dao.getMemoById(id, userId);
-        await _remote.uploadMemo(
-          id: id,
-          title: memo.title,
-          content: memo.content,
-          createdAt: memo.createdAt,
-          updatedAt: now,
-          isDeleted: false,
-        );
-
-        // 送信に成功したら「送信済み (true)」に更新
-        await _dao.updateMemo(
-          id,
-          userId,
-          const MemosCompanion(isSynced: drift.Value(true)),
-        );
-
-        _talker.debug('The restored status has been sent to the server.');
-      } on Exception catch (e, st) {
-        _talker.handle(e, st, 'Failed to restore data on the server');
-      }
-    }
+    await _syncMemoDeletionState(
+      id: id,
+      userId: userId,
+      updatedAt: now,
+      isDeleted: false,
+      token: token,
+      waitForRemoteSync: waitForRemoteSync,
+      successLog: 'The restored status has been sent to the server.',
+      errorLog: 'Failed to restore data on the server',
+    );
   }
 
   /// メモの並び順（ドラッグ＆ドロップ後）を一括更新する
@@ -341,6 +412,10 @@ class MemoRepository {
   }
 }
 
+/// [MemoSyncQueue] をアプリ（ProviderContainer）全体で共有するプロバイダー
+@Riverpod(keepAlive: true)
+MemoSyncQueue memoSyncQueue(Ref ref) => MemoSyncQueue();
+
 /// アプリ全体で[MemoRepository]を使えるようにするためのプロバイダー
 @riverpod
 MemoRepository memoRepository(Ref ref) {
@@ -353,5 +428,6 @@ MemoRepository memoRepository(Ref ref) {
     talker: ref.watch(loggerProvider),
     isOnline: ref.watch(isOnlineProvider),
     uuid: ref.watch(uuidProvider),
+    syncQueue: ref.watch(memoSyncQueueProvider),
   );
 }

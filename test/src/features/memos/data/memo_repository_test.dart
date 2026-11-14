@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:checks/checks.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
@@ -1128,6 +1130,201 @@ void main() {
       check(
         spyTalker.handleCalls.first.message,
       ).equals('Failed to restore data on the server');
+    });
+
+    group('deleteMemo / restoreMemo のバックグラウンド同期と順序保証', () {
+      test('waitForRemoteSync=false時はローカル削除完了後に即返却され、'
+          '削除通信中にrestoreMemoしても削除→復元の順で送信されisSyncedが正しく保たれること', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final repository = container.read(memoRepositoryProvider);
+
+        await repository.addMemo('順序テスト', '内容', testUserId);
+        final memoId = (await repository.getAllMemos(testUserId)).first.id;
+
+        final deleteUploadCompleter = Completer<void>();
+        final restoreUploadCompleter = Completer<void>();
+        final uploadSequence = <bool>[];
+
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: true,
+          ),
+        ).thenAnswer((_) {
+          uploadSequence.add(true);
+          return deleteUploadCompleter.future;
+        });
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: false,
+          ),
+        ).thenAnswer((_) {
+          uploadSequence.add(false);
+          return restoreUploadCompleter.future;
+        });
+
+        // リモート通信完了を待たずにローカル削除の完了時点で戻る
+        await repository.deleteMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        var current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isTrue();
+        check(current.isSynced).isFalse();
+        check(uploadSequence).deepEquals([true]);
+
+        // 削除通信が未完了のまま Undo 復元を実行
+        await repository.restoreMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isFalse();
+        // 先行する削除通信が完了するまで、復元通信はまだ開始されない
+        check(uploadSequence).deepEquals([true]);
+
+        // 削除通信が完了しても後続の復元トークンがあるため isSynced は true にならない
+        deleteUploadCompleter.complete();
+        await Future<void>.delayed(Duration.zero);
+
+        check(uploadSequence).deepEquals([true, false]);
+        current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isSynced).isFalse();
+
+        // 復元通信が完了した時点で初めて isSynced=true になる
+        restoreUploadCompleter.complete();
+        await Future<void>.delayed(Duration.zero);
+
+        current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isTrue();
+      });
+
+      test('削除通信が失敗しても、後続のrestoreMemoの通信は遮断されず実行されること', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final repository = container.read(memoRepositoryProvider);
+
+        await repository.addMemo('失敗継続テスト', '内容', testUserId);
+        final memoId = (await repository.getAllMemos(testUserId)).first.id;
+
+        final deleteUploadCompleter = Completer<void>();
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: true,
+          ),
+        ).thenAnswer((_) => deleteUploadCompleter.future);
+
+        await repository.deleteMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+        await repository.restoreMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+
+        deleteUploadCompleter.completeError(Exception('delete error'));
+        await Future<void>.delayed(Duration.zero);
+
+        final current = await database.memosDao.getMemoById(memoId, testUserId);
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isTrue();
+        check(
+          spyTalker.handleCalls.first.message,
+        ).equals('Failed to delete data on the server');
+        verify(
+          () => mockRemoteService.uploadMemo(
+            id: memoId,
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: false,
+          ),
+        ).called(2); // addMemo と restoreMemo
+      });
+
+      test(
+        'memoRepositoryProviderが再生成されてもmemoSyncQueueProviderにより順序が保証されること',
+        () async {
+          final container = createContainer();
+          addTearDown(container.dispose);
+          final repo1 = container.read(memoRepositoryProvider);
+
+          await repo1.addMemo('再生成テスト', '内容', testUserId);
+          final memoId = (await repo1.getAllMemos(testUserId)).first.id;
+
+          final deleteCompleter = Completer<void>();
+          final uploadSequence = <bool>[];
+          when(
+            () => mockRemoteService.uploadMemo(
+              id: memoId,
+              title: any(named: 'title'),
+              content: any(named: 'content'),
+              createdAt: any(named: 'createdAt'),
+              updatedAt: any(named: 'updatedAt'),
+              isDeleted: true,
+            ),
+          ).thenAnswer((_) {
+            uploadSequence.add(true);
+            return deleteCompleter.future;
+          });
+          when(
+            () => mockRemoteService.uploadMemo(
+              id: memoId,
+              title: any(named: 'title'),
+              content: any(named: 'content'),
+              createdAt: any(named: 'createdAt'),
+              updatedAt: any(named: 'updatedAt'),
+              isDeleted: false,
+            ),
+          ).thenAnswer((_) async {
+            uploadSequence.add(false);
+          });
+
+          await repo1.deleteMemo(memoId, testUserId, waitForRemoteSync: false);
+          await Future<void>.delayed(Duration.zero);
+
+          // Repository が再生成されて別のインスタンスになっても同一キューが共有される
+          container.invalidate(memoRepositoryProvider);
+          final repo2 = container.read(memoRepositoryProvider);
+
+          await repo2.restoreMemo(memoId, testUserId, waitForRemoteSync: false);
+          await Future<void>.delayed(Duration.zero);
+
+          // まだ削除通信完了前のため復元通信は開始されない
+          check(uploadSequence).deepEquals([true]);
+
+          deleteCompleter.complete();
+          await Future<void>.delayed(Duration.zero);
+          check(uploadSequence).deepEquals([true, false]);
+        },
+      );
     });
   });
 }

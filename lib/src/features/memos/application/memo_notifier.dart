@@ -122,24 +122,31 @@ class MemoNotifier extends _$MemoNotifier {
     await repository.addMemo(title, content, userId, category: category);
   }
 
-  /// メモを削除する
+  /// Undo通知の表示中などに画面遷移しても復元できるよう、Notifierを一時保持する
+  void Function() retainForUndo() {
+    final link = ref.keepAlive();
+    return link.close;
+  }
+
+  /// メモを削除する（ローカル削除のみ待機し、リモート同期はバックグラウンドで順序保証実行）
   Future<void> deleteMemo(String id) async {
     final userId = ref.read(currentUserIdProvider);
     if (userId == null) {
       return;
     }
     final repository = ref.read(memoRepositoryProvider);
-    await repository.deleteMemo(id, userId);
+    await repository.deleteMemo(id, userId, waitForRemoteSync: false);
   }
 
   /// 削除されたメモを復元（Undo）する
-  Future<void> restoreMemo(String id) async {
+  Future<void> restoreMemo(String id, {String? expectedUserId}) async {
     final userId = ref.read(currentUserIdProvider);
-    if (userId == null) {
+    if (userId == null ||
+        (expectedUserId != null && userId != expectedUserId)) {
       return;
     }
     final repository = ref.read(memoRepositoryProvider);
-    await repository.restoreMemo(id, userId);
+    await repository.restoreMemo(id, userId, waitForRemoteSync: false);
   }
 
   /// メモの並び順（ドラッグ＆ドロップ）を更新する（Optimistic UI対応）

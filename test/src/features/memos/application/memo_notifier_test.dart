@@ -141,7 +141,11 @@ void main() {
         () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => controller.stream);
       when(
-        () => mockMemoRepository.deleteMemo(any(), any()),
+        () => mockMemoRepository.deleteMemo(
+          any(),
+          any(),
+          waitForRemoteSync: any(named: 'waitForRemoteSync'),
+        ),
       ).thenAnswer((_) async {});
 
       final subscription = container.listen(memoProvider, (_, _) {});
@@ -152,7 +156,11 @@ void main() {
       await container.read(memoProvider.notifier).deleteMemo('id1');
 
       verify(
-        () => mockMemoRepository.deleteMemo('id1', 'test_user_id'),
+        () => mockMemoRepository.deleteMemo(
+          'id1',
+          'test_user_id',
+          waitForRemoteSync: false,
+        ),
       ).called(1);
 
       subscription.close();
@@ -1049,14 +1057,34 @@ void main() {
 
       test('restoreMemo: ログイン時にリポジトリのrestoreMemoが呼ばれ、未ログイン時は何もしないこと', () async {
         when(
-          () => mockMemoRepository.restoreMemo(any(), any()),
+          () => mockMemoRepository.restoreMemo(
+            any(),
+            any(),
+            waitForRemoteSync: any(named: 'waitForRemoteSync'),
+          ),
         ).thenAnswer((_) async {});
 
         // ログイン時
         await container.read(memoProvider.notifier).restoreMemo('memo-1');
         verify(
-          () => mockMemoRepository.restoreMemo('memo-1', 'test_user_id'),
+          () => mockMemoRepository.restoreMemo(
+            'memo-1',
+            'test_user_id',
+            waitForRemoteSync: false,
+          ),
         ).called(1);
+
+        // expectedUserId が現在ユーザーと不一致の場合は何もしない
+        await container
+            .read(memoProvider.notifier)
+            .restoreMemo('memo-1', expectedUserId: 'other_user_id');
+        verifyNever(
+          () => mockMemoRepository.restoreMemo(
+            'memo-1',
+            any(),
+            waitForRemoteSync: any(named: 'waitForRemoteSync'),
+          ),
+        );
 
         // 未ログイン時
         final loggedOutContainer = ProviderContainer(
@@ -1070,7 +1098,44 @@ void main() {
         await loggedOutContainer
             .read(memoProvider.notifier)
             .restoreMemo('memo-1');
-        verifyNever(() => mockMemoRepository.restoreMemo('memo-1', any()));
+        verifyNever(
+          () => mockMemoRepository.restoreMemo(
+            'memo-1',
+            any(),
+            waitForRemoteSync: any(named: 'waitForRemoteSync'),
+          ),
+        );
+      });
+
+      test('retainForUndo: 解放クロージャを呼ぶまでNotifierが保持され、解放後に破棄されること', () async {
+        when(
+          () => mockMemoRepository.restoreMemo(
+            any(),
+            any(),
+            waitForRemoteSync: any(named: 'waitForRemoteSync'),
+          ),
+        ).thenAnswer((_) async {});
+
+        final sub = container.listen(memoProvider, (_, _) {});
+        final notifier = container.read(memoProvider.notifier);
+        final release = notifier.retainForUndo();
+
+        // 監視を解除しても retain 中は ref が有効で restoreMemo が動作する
+        sub.close();
+        await container.pump();
+
+        await notifier.restoreMemo('memo-retained');
+        verify(
+          () => mockMemoRepository.restoreMemo(
+            'memo-retained',
+            'test_user_id',
+            waitForRemoteSync: false,
+          ),
+        ).called(1);
+
+        // 保持を解放すると次のポンプで自動破棄される
+        release();
+        await container.pump();
       });
     });
   });

@@ -2,16 +2,22 @@
 import 'dart:async';
 
 import 'package:checks/checks.dart';
+import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/app/database/app_database.dart';
+import 'package:flutter_sample/src/core/database/database_provider.dart';
 import 'package:flutter_sample/src/core/services/app_lock_state_provider.dart';
 import 'package:flutter_sample/src/core/utils/connectivity_provider.dart';
+import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/core/widgets/empty_state_widget.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
 import 'package:flutter_sample/src/features/memos/application/memo_notifier.dart';
+import 'package:flutter_sample/src/features/memos/data/memo_remote_service.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_category.dart';
 import 'package:flutter_sample/src/features/memos/domain/memo_model.dart';
@@ -22,6 +28,8 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:talker_flutter/talker_flutter.dart';
+
+class _MockMemoRemoteService extends Mock implements MemoRemoteService {}
 
 // --- モッククラスの定義 ---
 
@@ -250,16 +258,24 @@ void main() {
       ).thenAnswer((_) => streamController.stream);
 
       // 削除処理が呼ばれた際、対象メモが除外された一覧（空リスト）を流す
-      when(() => mockMemoRepository.deleteMemo(any(), any())).thenAnswer((
-        _,
-      ) async {
+      when(
+        () => mockMemoRepository.deleteMemo(
+          any(),
+          any(),
+          waitForRemoteSync: any(named: 'waitForRemoteSync'),
+        ),
+      ).thenAnswer((_) async {
         streamController.add(<MemoModel>[]);
       });
 
       // 復元処理が呼ばれた際、メモが再追加された一覧を流す
-      when(() => mockMemoRepository.restoreMemo(any(), any())).thenAnswer((
-        _,
-      ) async {
+      when(
+        () => mockMemoRepository.restoreMemo(
+          any(),
+          any(),
+          waitForRemoteSync: any(named: 'waitForRemoteSync'),
+        ),
+      ).thenAnswer((_) async {
         streamController.add([memo]);
       });
 
@@ -277,7 +293,11 @@ void main() {
 
       // deleteMemo が呼ばれたことを確認
       verify(
-        () => mockMemoRepository.deleteMemo('1', 'test_user_id'),
+        () => mockMemoRepository.deleteMemo(
+          '1',
+          'test_user_id',
+          waitForRemoteSync: false,
+        ),
       ).called(1);
 
       // 削除によって対象カードが画面から消失していること（空状態になっていること）
@@ -294,7 +314,11 @@ void main() {
 
       // restoreMemo が呼ばれたことを確認
       verify(
-        () => mockMemoRepository.restoreMemo('1', 'test_user_id'),
+        () => mockMemoRepository.restoreMemo(
+          '1',
+          'test_user_id',
+          waitForRemoteSync: false,
+        ),
       ).called(1);
 
       // 復元後の一覧でカードが画面に再表示されること
@@ -316,7 +340,11 @@ void main() {
         () => mockMemoRepository.watchAllMemos(any()),
       ).thenAnswer((_) => Stream.value([memo]));
       when(
-        () => mockMemoRepository.deleteMemo(any(), any()),
+        () => mockMemoRepository.deleteMemo(
+          any(),
+          any(),
+          waitForRemoteSync: any(named: 'waitForRemoteSync'),
+        ),
       ).thenThrow(Exception('削除エラー'));
 
       await setupWidget(tester);
@@ -357,14 +385,24 @@ void main() {
       ).thenAnswer((_) => streamController.stream);
 
       final deleteCompleter = Completer<void>();
-      when(() => mockMemoRepository.deleteMemo(any(), any())).thenAnswer((_) {
+      when(
+        () => mockMemoRepository.deleteMemo(
+          any(),
+          any(),
+          waitForRemoteSync: any(named: 'waitForRemoteSync'),
+        ),
+      ).thenAnswer((_) {
         // DB更新によりストリームから空リストが流れる（カードが破棄される）
         streamController.add(<MemoModel>[]);
-        // リモート送信などに時間がかかっている状態をシミュレート
+        // ローカル削除処理の完了に時間がかかっている状態をシミュレート
         return deleteCompleter.future;
       });
       when(
-        () => mockMemoRepository.restoreMemo(any(), any()),
+        () => mockMemoRepository.restoreMemo(
+          any(),
+          any(),
+          waitForRemoteSync: any(named: 'waitForRemoteSync'),
+        ),
       ).thenAnswer((_) async {});
 
       // 初期データを流す
@@ -381,14 +419,18 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
       verify(
-        () => mockMemoRepository.deleteMemo('1', 'test_user_id'),
+        () => mockMemoRepository.deleteMemo(
+          '1',
+          'test_user_id',
+          waitForRemoteSync: false,
+        ),
       ).called(1);
 
       // カードが破棄され、空状態（EmptyStateWidget）が表示されていること
       check(find.text('最後のメモ')).findsNothing();
       check(find.byType(EmptyStateWidget)).findsOne();
 
-      // まだ削除処理（リモート送信）が完了していないため、Undo通知は表示されていないこと
+      // まだローカル削除処理が完了していないため、Undo通知は表示されていないこと
       check(find.text('メモを削除しました')).findsNothing();
 
       // 削除処理が完了
@@ -404,7 +446,11 @@ void main() {
       await tester.pumpAndSettle();
 
       verify(
-        () => mockMemoRepository.restoreMemo('1', 'test_user_id'),
+        () => mockMemoRepository.restoreMemo(
+          '1',
+          'test_user_id',
+          waitForRemoteSync: false,
+        ),
       ).called(1);
     });
 
@@ -424,7 +470,11 @@ void main() {
 
       final deleteCompleter = Completer<void>();
       when(
-        () => mockMemoRepository.deleteMemo(any(), any()),
+        () => mockMemoRepository.deleteMemo(
+          any(),
+          any(),
+          waitForRemoteSync: any(named: 'waitForRemoteSync'),
+        ),
       ).thenAnswer((_) => deleteCompleter.future);
 
       // 同一 MaterialApp 内で画面遷移をシミュレートする ValueNotifier
@@ -463,7 +513,11 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
       verify(
-        () => mockMemoRepository.deleteMemo('1', 'test_user_id'),
+        () => mockMemoRepository.deleteMemo(
+          '1',
+          'test_user_id',
+          waitForRemoteSync: false,
+        ),
       ).called(1);
 
       // 削除処理の完了前に画面遷移（MemoScreenがアンマウントされ、別画面に切り替わる）
@@ -500,7 +554,11 @@ void main() {
 
       final deleteCompleter = Completer<void>();
       when(
-        () => mockMemoRepository.deleteMemo(any(), any()),
+        () => mockMemoRepository.deleteMemo(
+          any(),
+          any(),
+          waitForRemoteSync: any(named: 'waitForRemoteSync'),
+        ),
       ).thenAnswer((_) => deleteCompleter.future);
 
       // StatefulShellRoute を使った実際のタブ切り替え構成
@@ -580,7 +638,11 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
       verify(
-        () => mockMemoRepository.deleteMemo('1', 'test_user_id'),
+        () => mockMemoRepository.deleteMemo(
+          '1',
+          'test_user_id',
+          waitForRemoteSync: false,
+        ),
       ).called(1);
 
       // 削除処理の完了前に「ホーム」タブをタップして切り替える
@@ -597,6 +659,122 @@ void main() {
       // ホーム画面で Undo 通知が表示されないこと
       check(find.text('メモを削除しました')).findsNothing();
       check(find.text('元に戻す')).findsNothing();
+    });
+
+    testWidgets('リモート削除の完了前でもローカル削除成功時点でUndoでき、画面遷移後も削除・復元の順序が保たれること', (
+      tester,
+    ) async {
+      registerFallbackValue(DateTime(2026));
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+
+      const userId = 'test_user_id';
+      final now = DateTime(2026, 4, 1, 10);
+      await db.memosDao.insertMemo(
+        MemosCompanion.insert(
+          id: 'memo-1',
+          userId: userId,
+          title: 'テストメモ',
+          content: '本文',
+          createdAt: now,
+          updatedAt: now,
+          isSynced: const Value(true),
+        ),
+      );
+
+      final mockRemoteService = _MockMemoRemoteService();
+      when(mockRemoteService.fetchMemos).thenAnswer((_) async => []);
+      final deleteRemoteCompleter = Completer<void>();
+      final uploadOrder = <bool>[];
+      var currentTime = now;
+
+      when(
+        () => mockRemoteService.uploadMemo(
+          id: 'memo-1',
+          title: any(named: 'title'),
+          content: any(named: 'content'),
+          createdAt: any(named: 'createdAt'),
+          updatedAt: any(named: 'updatedAt'),
+          isDeleted: any(named: 'isDeleted'),
+        ),
+      ).thenAnswer((invocation) async {
+        final isDeleted = invocation.namedArguments[#isDeleted] as bool;
+        uploadOrder.add(isDeleted);
+        if (isDeleted) {
+          await deleteRemoteCompleter.future;
+        }
+      });
+
+      final talker = Talker(settings: TalkerSettings(useConsoleLogs: false));
+      final screenNotifier = ValueNotifier<Widget>(const MemoScreen());
+      addTearDown(screenNotifier.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            currentUserIdProvider.overrideWithValue(userId),
+            isOnlineProvider.overrideWithValue(true),
+            isAppUnlockedProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(talker),
+            clockProvider.overrideWithValue(
+              () => currentTime = currentTime.add(const Duration(seconds: 1)),
+            ),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('ja'),
+            home: ValueListenableBuilder<Widget>(
+              valueListenable: screenNotifier,
+              builder: (context, child, _) => child,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // メモが表示されていることを確認
+      check(find.text('テストメモ')).findsOne();
+
+      // 左スワイプして削除を実行
+      await tester.drag(find.text('テストメモ'), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+
+      // リモート削除通信は完了していないが、ローカル削除成功により即座に Undo 通知が表示される
+      check(deleteRemoteCompleter.isCompleted).isFalse();
+      check(uploadOrder).deepEquals([true]);
+      check(find.text('メモを削除しました')).findsOne();
+      check(find.text('元に戻す')).findsOne();
+
+      // 通信完了を待つ間に別画面へ遷移しても、復元手段（SnackBarとProvider状態）が保たれる
+      screenNotifier.value = const Scaffold(body: Text('別画面'));
+      await tester.pumpAndSettle();
+      check(find.text('別画面')).findsOne();
+      check(find.text('元に戻す')).findsOne();
+
+      // 別画面上で「元に戻す」をタップして復元を実行
+      await tester.tap(find.text('元に戻す'));
+      await tester.pump();
+
+      // 復元用の通信は削除通信の完了を待ってから順番に送信される
+      check(uploadOrder).deepEquals([true]);
+
+      // 先行の削除通信が完了したあと、復元通信が続いて実行される
+      deleteRemoteCompleter.complete();
+      await tester.pumpAndSettle();
+
+      check(uploadOrder).deepEquals([true, false]);
+
+      final restoredMemo = await db.memosDao.getMemoById('memo-1', userId);
+      check(restoredMemo.isDeleted).isFalse();
+      check(restoredMemo.isSynced).isTrue();
     });
 
     testWidgets('同期ボタンを押すと同期処理が呼ばれること', (tester) async {
