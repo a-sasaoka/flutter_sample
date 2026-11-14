@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
@@ -115,6 +116,33 @@ void main() {
       check(result.first['createdAt']).equals('invalid-date-string');
       check(result.first['updatedAt']).equals('invalid-date-string');
     });
+
+    test(
+      'fetchMemos: expectedUserId指定時はRequestAuthPin付きOptionsが渡されること',
+      () async {
+        Options? capturedOptions;
+        when(
+          () => mockApiClient.get<List<dynamic>>(
+            '/memos',
+            options: any(named: 'options'),
+          ),
+        ).thenAnswer((invocation) async {
+          capturedOptions = invocation.namedArguments[#options] as Options?;
+          return Response(
+            data: const <dynamic>[],
+            requestOptions: RequestOptions(path: '/memos'),
+          );
+        });
+
+        final result = await service.fetchMemos(expectedUserId: 'user-a');
+
+        check(result).isEmpty();
+        final pin =
+            capturedOptions?.extra?[RequestAuthPin.extraKey] as RequestAuthPin?;
+        check(pin).isNotNull();
+        check(pin?.expectedUserId).equals('user-a');
+      },
+    );
 
     test('uploadMemo: PUTが成功した場合、POSTは呼ばれないこと', () async {
       final now = DateTime(2026, 5, 2);
@@ -591,6 +619,97 @@ void main() {
           ('PUT', '/memos/memo1', 'Bearer new-token-a'),
           ('POST', '/memos', 'Bearer new-token-a'),
         ]);
+      },
+    );
+
+    test(
+      'fetchMemos: expectedUserId指定時は認証不一致でのGET送信・401再試行を行わず一致時のみ取得できること',
+      () async {
+        var currentUserId = 'user-b';
+        var currentToken = 'token-b';
+        var refreshCalls = 0;
+        when(
+          () => mockStorage.getUserId(),
+        ).thenAnswer((_) async => currentUserId);
+        when(
+          () => mockStorage.getAccessToken(),
+        ).thenAnswer((_) async => currentToken);
+
+        // 1. リクエスト前に別ユーザーへ切り替わっていた場合 → GET未送信で拒否
+        final blockedLog = <(String, String, String?)>[];
+        final (blockedService, blockedContainer) = createWiredService(
+          sentLog: blockedLog,
+          onFetch: (_) async => ResponseBody.fromString(
+            jsonEncode(const <dynamic>[]),
+            200,
+            headers: {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          ),
+        );
+        addTearDown(blockedContainer.dispose);
+
+        await check(
+          blockedService.fetchMemos(expectedUserId: 'user-a'),
+        ).throws<DioException>();
+        check(blockedLog).isEmpty();
+        verifyNever(() => mockStorage.getAccessToken());
+
+        // 2. 401発生時に別ユーザーへ切り替わった場合 → リフレッシュ・再試行されない
+        currentUserId = 'user-a';
+        currentToken = 'expired-token-a';
+        final unauthorizedLog = <(String, String, String?)>[];
+        final (unauthorizedService, unauthorizedContainer) = createWiredService(
+          sentLog: unauthorizedLog,
+          refreshCallback: () async {
+            refreshCalls++;
+            return true;
+          },
+          onFetch: (_) async {
+            currentUserId = 'user-b';
+            currentToken = 'token-b';
+            return ResponseBody.fromString('', 401);
+          },
+        );
+        addTearDown(unauthorizedContainer.dispose);
+
+        await check(
+          unauthorizedService.fetchMemos(expectedUserId: 'user-a'),
+        ).throws<DioException>();
+        check(
+          unauthorizedLog,
+        ).deepEquals([('GET', '/memos', 'Bearer expired-token-a')]);
+        check(refreshCalls).equals(0);
+
+        // 3. 同一ユーザーのままなら一致するトークンで正常取得できること
+        currentUserId = 'user-a';
+        currentToken = 'token-a';
+        final successLog = <(String, String, String?)>[];
+        final (successService, successContainer) = createWiredService(
+          sentLog: successLog,
+          onFetch: (_) async => ResponseBody.fromString(
+            jsonEncode([
+              {
+                'id': 'memo-a',
+                'title': 'メモA',
+                'content': '本文A',
+                'createdAt': '2026-05-02T00:00:00.000',
+                'updatedAt': '2026-05-02T00:00:00.000',
+                'isDeleted': false,
+              },
+            ]),
+            200,
+            headers: {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          ),
+        );
+        addTearDown(successContainer.dispose);
+
+        final memos = await successService.fetchMemos(expectedUserId: 'user-a');
+        check(memos.length).equals(1);
+        check(memos.first['id']).equals('memo-a');
+        check(successLog).deepEquals([('GET', '/memos', 'Bearer token-a')]);
       },
     );
   });

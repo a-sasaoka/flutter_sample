@@ -13,10 +13,26 @@ class MemoRemoteService {
 
   final ApiClient _api;
 
+  Options? _buildPinnedAuthOptions(String? expectedUserId) {
+    if (expectedUserId == null) {
+      return null;
+    }
+    return Options(
+      extra: {
+        RequestAuthPin.extraKey: RequestAuthPin(expectedUserId: expectedUserId),
+      },
+    );
+  }
+
   /// サーバーからメモのデータを取得する
-  Future<List<Map<String, dynamic>>> fetchMemos() async {
+  Future<List<Map<String, dynamic>>> fetchMemos({
+    String? expectedUserId,
+  }) async {
     // サーバーの /memos エンドポイントからデータを取得します
-    final response = await _api.get<List<dynamic>>('/memos');
+    final response = await _api.get<List<dynamic>>(
+      '/memos',
+      options: _buildPinnedAuthOptions(expectedUserId),
+    );
     final data = response.data;
     if (data == null) {
       return [];
@@ -60,15 +76,7 @@ class MemoRemoteService {
     };
 
     // PUT〜404後のPOST〜401再試行まで送信元ユーザーと認証ヘッダーを共有固定する
-    final requestOptions = expectedUserId != null
-        ? Options(
-            extra: {
-              RequestAuthPin.extraKey: RequestAuthPin(
-                expectedUserId: expectedUserId,
-              ),
-            },
-          )
-        : null;
+    final requestOptions = _buildPinnedAuthOptions(expectedUserId);
 
     try {
       // まずはPUTリクエストで既存メモの更新を試みます

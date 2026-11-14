@@ -490,7 +490,7 @@ class MemoRepository {
 
     try {
       final fetchedBeforeSeq = _dao.currentMutationSeq;
-      final remoteData = await _remote.fetchMemos();
+      final remoteData = await _remote.fetchMemos(expectedUserId: userId);
 
       // サーバーから取得したデータを効率的にマージする
       if (remoteData.isNotEmpty) {

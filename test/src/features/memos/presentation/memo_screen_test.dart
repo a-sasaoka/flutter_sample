@@ -1023,7 +1023,11 @@ void main() {
         );
 
         final mockRemoteService = _MockMemoRemoteService();
-        when(mockRemoteService.fetchMemos).thenAnswer((_) async => []);
+        when(
+          () => mockRemoteService.fetchMemos(
+            expectedUserId: any(named: 'expectedUserId'),
+          ),
+        ).thenAnswer((_) async => []);
         final deleteRemoteCompleter = Completer<void>();
         final uploadOrder = <bool>[];
         var currentTime = now;
@@ -1278,7 +1282,11 @@ void main() {
       );
 
       final mockRemoteService = _MockMemoRemoteService();
-      when(mockRemoteService.fetchMemos).thenAnswer((_) async => []);
+      when(
+        () => mockRemoteService.fetchMemos(
+          expectedUserId: any(named: 'expectedUserId'),
+        ),
+      ).thenAnswer((_) async => []);
       final deleteRemoteCompleter = Completer<void>();
       final uploadOrder = <bool>[];
       var currentTime = now;
