@@ -1048,6 +1048,7 @@ void main() {
           if (isDeleted) {
             await deleteRemoteCompleter.future;
           }
+          return null;
         });
 
         final talker = Talker(settings: TalkerSettings(useConsoleLogs: false));
@@ -1307,6 +1308,7 @@ void main() {
         if (isDeleted) {
           await deleteRemoteCompleter.future;
         }
+        return null;
       });
 
       final talker = Talker(settings: TalkerSettings(useConsoleLogs: false));

@@ -203,7 +203,7 @@ class MemoRepository {
     bool Function()? canMarkSynced,
   }) async {
     try {
-      await _remote.uploadMemo(
+      final uploadedTimestamps = await _remote.uploadMemo(
         id: id,
         title: title,
         content: content,
@@ -224,6 +224,8 @@ class MemoRepository {
           createdAt: createdAt,
           updatedAt: updatedAt,
           isDeleted: isDeleted,
+          syncedCreatedAt: uploadedTimestamps?.createdAt,
+          syncedUpdatedAt: uploadedTimestamps?.updatedAt,
         );
       }
 

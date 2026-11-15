@@ -528,6 +528,7 @@ void main() {
             content: 'C1',
             createdAt: now,
             updatedAt: now,
+            isSynced: const Value(true),
             sortOrder: const Value(0),
           ),
         );
@@ -622,6 +623,7 @@ void main() {
             content: 'C1',
             createdAt: now,
             updatedAt: now,
+            isSynced: const Value(true),
             sortOrder: const Value(0),
           ),
         );
@@ -664,6 +666,7 @@ void main() {
             content: 'C1',
             createdAt: now,
             updatedAt: now,
+            isSynced: const Value(true),
             sortOrder: const Value(0),
           ),
         );
@@ -976,6 +979,7 @@ void main() {
             content: 'C1旧',
             createdAt: now,
             updatedAt: now,
+            isSynced: const Value(true),
             sortOrder: const Value(0),
           ),
         );
@@ -1137,6 +1141,7 @@ void main() {
             content: 'C1初期',
             createdAt: now,
             updatedAt: now,
+            isSynced: const Value(true),
             sortOrder: const Value(0),
           ),
           MemosCompanion.insert(
@@ -1146,6 +1151,7 @@ void main() {
             content: 'C2初期',
             createdAt: now,
             updatedAt: now,
+            isSynced: const Value(true),
             sortOrder: const Value(1),
           ),
         ]);
@@ -1537,6 +1543,115 @@ void main() {
         );
         check(untouchedMemo.isDeleted).isFalse();
         check(untouchedMemo.isSynced).isTrue();
+      });
+
+      test('【正常系】mergeRemoteMemosで未同期のローカル復元がある場合は、'
+          'remoteMicros > localMicros の削除データを受信しても上書きせず未同期のまま保持すること', () async {
+        final baseTime = DateTime(2026, 11, 14, 10);
+        final deleteClockTime = DateTime(2026, 11, 14, 10, 0, 0, 200);
+        final restoreClockTime = DateTime(2026, 11, 14, 10, 0, 0, 800);
+        final serverDeleteTime = DateTime(2026, 11, 14, 10, 0, 1, 200);
+
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'memo-unsynced-restore',
+            userId: testUserId,
+            title: '未同期復元テスト',
+            content: '本文',
+            createdAt: baseTime,
+            updatedAt: deleteClockTime,
+            isDeleted: const Value(true),
+            isSynced: const Value(false),
+          ),
+        );
+
+        await dao.restoreMemo(
+          'memo-unsynced-restore',
+          testUserId,
+          restoreClockTime,
+        );
+
+        // 遅延到達した削除通信によりサーバー採番時刻が復元時刻より新しくなっていても、
+        // ローカルが未同期（isSynced = false）である限り削除済み・同期済みに上書きしないこと
+        await dao.mergeRemoteMemos(testUserId, [
+          {
+            'id': 'memo-unsynced-restore',
+            'title': '未同期復元テスト',
+            'content': '本文',
+            'createdAt': baseTime,
+            'updatedAt': serverDeleteTime,
+            'isDeleted': true,
+          },
+        ]);
+
+        final current = await dao.getMemoById(
+          'memo-unsynced-restore',
+          testUserId,
+        );
+        check(current.isDeleted).isFalse();
+        check(current.isSynced).isFalse();
+        check(
+          current.updatedAtMicros,
+        ).equals(restoreClockTime.microsecondsSinceEpoch);
+      });
+
+      test('【正常系】markAsSyncedIfUnchangedは状態一致時にサーバー採番の'
+          'createdAt/updatedAt/updatedAtMicrosを反映し、不一致時は変更しないこと', () async {
+        final clientCreated = DateTime(2026, 11, 14, 10, 0, 0, 100);
+        final clientUpdated = DateTime(2026, 11, 14, 10, 0, 0, 200);
+        final serverCreated = DateTime.utc(2026, 11, 14, 1, 0, 1, 300);
+        final serverUpdated = DateTime.utc(2026, 11, 14, 1, 0, 2, 400);
+
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'memo-server-ts',
+            userId: testUserId,
+            title: 'サーバー時刻反映',
+            content: '本文',
+            createdAt: clientCreated,
+            updatedAt: clientUpdated,
+            isSynced: const Value(false),
+          ),
+        );
+
+        // 条件不一致時は isSynced も時刻も更新されない
+        await dao.markAsSyncedIfUnchanged(
+          id: 'memo-server-ts',
+          userId: testUserId,
+          title: '別タイトル',
+          content: '本文',
+          createdAt: clientCreated,
+          updatedAt: clientUpdated,
+          isDeleted: false,
+          syncedCreatedAt: serverCreated,
+          syncedUpdatedAt: serverUpdated,
+        );
+        var current = await dao.getMemoById('memo-server-ts', testUserId);
+        check(current.isSynced).isFalse();
+        check(
+          current.updatedAtMicros,
+        ).equals(clientUpdated.microsecondsSinceEpoch);
+
+        // 条件一致時は isSynced = true とともにサーバー採番時刻へ揃えられる
+        await dao.markAsSyncedIfUnchanged(
+          id: 'memo-server-ts',
+          userId: testUserId,
+          title: 'サーバー時刻反映',
+          content: '本文',
+          createdAt: clientCreated,
+          updatedAt: clientUpdated,
+          isDeleted: false,
+          syncedCreatedAt: serverCreated,
+          syncedUpdatedAt: serverUpdated,
+        );
+        current = await dao.getMemoById('memo-server-ts', testUserId);
+        check(current.isSynced).isTrue();
+        check(
+          current.updatedAtMicros,
+        ).equals(serverUpdated.microsecondsSinceEpoch);
+        check(
+          current.createdAt.millisecondsSinceEpoch ~/ 1000,
+        ).equals(serverCreated.millisecondsSinceEpoch ~/ 1000);
       });
     });
   });

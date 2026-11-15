@@ -142,7 +142,7 @@ void main() {
           isDeleted: any(named: 'isDeleted'),
           expectedUserId: any(named: 'expectedUserId'),
         ),
-      ).thenAnswer((_) async {});
+      ).thenAnswer((_) async => null);
     });
 
     tearDown(() async {
@@ -1327,8 +1327,8 @@ void main() {
         await repository.addMemo('順序テスト', '内容', testUserId);
         final memoId = (await repository.getAllMemos(testUserId)).first.id;
 
-        final deleteUploadCompleter = Completer<void>();
-        final restoreUploadCompleter = Completer<void>();
+        final deleteUploadCompleter = Completer<UploadedMemoTimestamps?>();
+        final restoreUploadCompleter = Completer<UploadedMemoTimestamps?>();
         final uploadSequence = <bool>[];
 
         when(
@@ -1412,7 +1412,7 @@ void main() {
         await repository.addMemo('失敗継続テスト', '内容', testUserId);
         final memoId = (await repository.getAllMemos(testUserId)).first.id;
 
-        final deleteUploadCompleter = Completer<void>();
+        final deleteUploadCompleter = Completer<UploadedMemoTimestamps?>();
         when(
           () => mockRemoteService.uploadMemo(
             id: memoId,
@@ -1468,7 +1468,7 @@ void main() {
           await repo1.addMemo('再生成テスト', '内容', testUserId);
           final memoId = (await repo1.getAllMemos(testUserId)).first.id;
 
-          final deleteCompleter = Completer<void>();
+          final deleteCompleter = Completer<UploadedMemoTimestamps?>();
           final uploadSequence = <bool>[];
           when(
             () => mockRemoteService.uploadMemo(
@@ -1496,6 +1496,7 @@ void main() {
             ),
           ).thenAnswer((_) async {
             uploadSequence.add(false);
+            return null;
           });
 
           await repo1.deleteMemo(memoId, testUserId, waitForRemoteSync: false);
@@ -1526,7 +1527,7 @@ void main() {
         await repository.addMemo('手動同期競合テスト', '内容', testUserId);
         final memoId = (await repository.getAllMemos(testUserId)).first.id;
 
-        final deleteCompleter = Completer<void>();
+        final deleteCompleter = Completer<UploadedMemoTimestamps?>();
         final uploadSequence = <bool>[];
         when(
           () => mockRemoteService.uploadMemo(
@@ -1621,7 +1622,7 @@ void main() {
           ),
         );
 
-        final syncCompleter = Completer<void>();
+        final syncCompleter = Completer<UploadedMemoTimestamps?>();
         when(
           () => mockRemoteService.uploadMemo(
             id: 'unsent-del-1',
@@ -1681,7 +1682,7 @@ void main() {
             isDeleted: false,
             expectedUserId: testUserId,
           ),
-        ).thenAnswer((_) async {});
+        ).thenAnswer((_) async => null);
         await repository.syncUnsentMemos(testUserId);
 
         current = await database.memosDao.getMemoById(
@@ -1700,7 +1701,7 @@ void main() {
         await repository.addMemo('重複スキップテスト', '内容', testUserId);
         final memoId = (await repository.getAllMemos(testUserId)).first.id;
 
-        final deleteCompleter = Completer<void>();
+        final deleteCompleter = Completer<UploadedMemoTimestamps?>();
         when(
           () => mockRemoteService.uploadMemo(
             id: memoId,
@@ -1751,7 +1752,7 @@ void main() {
         await repository.addMemo('切替テスト', '内容', testUserId);
         final memoId = (await repository.getAllMemos(testUserId)).first.id;
 
-        final deleteCompleter = Completer<void>();
+        final deleteCompleter = Completer<UploadedMemoTimestamps?>();
         when(
           () => mockRemoteService.uploadMemo(
             id: memoId,
@@ -1837,7 +1838,7 @@ void main() {
         await repository.addMemo('破棄テスト', '内容', testUserId);
         final memoId = (await repository.getAllMemos(testUserId)).first.id;
 
-        final firstDeleteCompleter = Completer<void>();
+        final firstDeleteCompleter = Completer<UploadedMemoTimestamps?>();
         when(
           () => mockRemoteService.uploadMemo(
             id: memoId,
@@ -1859,7 +1860,7 @@ void main() {
         await Future<void>.delayed(Duration.zero);
 
         // 復元後に再削除をキューへ積み、後続削除タスクがキュー待ちになる状態を作る
-        final restoreCompleter = Completer<void>();
+        final restoreCompleter = Completer<UploadedMemoTimestamps?>();
         when(
           () => mockRemoteService.uploadMemo(
             id: memoId,
@@ -2202,11 +2203,15 @@ void main() {
       });
 
       test('同一秒内でサブ秒を含む削除成功・復元失敗の後にmergeRemoteMemosが実行されても、'
-          'サブ秒精度で比較され未同期の復元が保持・再送されること', () async {
+          'サーバー採番時刻との比較で未同期の復元が保持・再送されること', () async {
         final createdTime = DateTime(2026, 11, 14, 9, 59, 0, 450);
+        final serverCreatedTime = DateTime.utc(2026, 11, 14, 0, 59, 0, 600);
         final deleteClockTime = DateTime(2026, 11, 14, 10, 0, 0, 200);
+        final serverDeleteTime = DateTime.utc(2026, 11, 14, 1, 0, 0, 500);
         final restoreClockTime = DateTime(2026, 11, 14, 10, 0, 0, 800);
+        final serverRestoreTime = DateTime.utc(2026, 11, 14, 1, 0, 1, 100);
         var currentClock = createdTime;
+        var currentServerClock = serverCreatedTime;
 
         final container = ProviderContainer(
           overrides: [
@@ -2222,6 +2227,7 @@ void main() {
         );
         addTearDown(container.dispose);
 
+        final serverMemos = <String, Map<String, dynamic>>{};
         final uploadedRecords =
             <({bool isDeleted, DateTime createdAt, DateTime updatedAt})>[];
         var shouldFailRestore = false;
@@ -2237,6 +2243,9 @@ void main() {
             expectedUserId: testUserId,
           ),
         ).thenAnswer((invocation) async {
+          final id = invocation.namedArguments[#id] as String;
+          final title = invocation.namedArguments[#title] as String;
+          final content = invocation.namedArguments[#content] as String;
           final isDeleted = invocation.namedArguments[#isDeleted] as bool;
           final uploadedCreatedAt =
               invocation.namedArguments[#createdAt] as DateTime;
@@ -2250,7 +2259,34 @@ void main() {
             createdAt: uploadedCreatedAt,
             updatedAt: uploadedUpdatedAt,
           ));
+
+          // 実APIと同じくクライアント時刻ではなくサーバー採番時刻を保存・返却する
+          final existing = serverMemos[id];
+          final assignedCreatedAt = existing != null
+              ? existing['createdAt'] as DateTime
+              : currentServerClock;
+          final assignedUpdatedAt = currentServerClock;
+          serverMemos[id] = {
+            'id': id,
+            'title': title,
+            'content': content,
+            'createdAt': assignedCreatedAt,
+            'updatedAt': assignedUpdatedAt,
+            'isDeleted': isDeleted,
+          };
+          return (createdAt: assignedCreatedAt, updatedAt: assignedUpdatedAt);
         });
+
+        when(
+          () => mockRemoteService.fetchMemos(
+            expectedUserId: any(named: 'expectedUserId'),
+          ),
+        ).thenAnswer(
+          (_) async => [
+            for (final memo in serverMemos.values)
+              Map<String, dynamic>.from(memo),
+          ],
+        );
 
         final repository = container.read(memoRepositoryProvider);
         await repository.addMemo('サブ秒テスト', '本文', testUserId);
@@ -2258,8 +2294,9 @@ void main() {
           testUserId,
         )).first.id;
 
-        // 1. 削除をサブ秒（10:00:00.200）で実行し、サブ秒精度のまま送信・保存されること
+        // 1. 削除をサブ秒（10:00:00.200）で実行し、サーバー採番時刻（.500）がローカルへ反映されること
         currentClock = deleteClockTime;
+        currentServerClock = serverDeleteTime;
         await repository.deleteMemo(memoId, testUserId);
 
         final deletedLocal = await database.memosDao.getMemoById(
@@ -2268,7 +2305,7 @@ void main() {
         );
         check(
           deletedLocal.updatedAtMicros,
-        ).equals(deleteClockTime.microsecondsSinceEpoch);
+        ).equals(serverDeleteTime.microsecondsSinceEpoch);
         check(uploadedRecords.last.isDeleted).isTrue();
         check(uploadedRecords.last.updatedAt).equals(deleteClockTime);
 
@@ -2287,24 +2324,7 @@ void main() {
           restoredLocal.updatedAtMicros,
         ).equals(restoreClockTime.microsecondsSinceEpoch);
 
-        // 3. リモートが削除時のデータ（10:00:00.200）を返しても未同期の復元を維持すること
-        when(
-          () => mockRemoteService.fetchMemos(
-            expectedUserId: any(named: 'expectedUserId'),
-          ),
-        ).thenAnswer(
-          (_) async => [
-            {
-              'id': memoId,
-              'title': 'サブ秒テスト',
-              'content': '本文',
-              'createdAt': DateTime(2026, 11, 14, 9, 59),
-              'updatedAt': deleteClockTime,
-              'isDeleted': true,
-            },
-          ],
-        );
-
+        // 3. リモートがサーバー採番の削除時刻（.500）を返しても未同期の復元を維持すること
         await repository.fetchAndMergeRemoteMemos(testUserId);
 
         restoredLocal = await database.memosDao.getMemoById(memoId, testUserId);
@@ -2316,15 +2336,191 @@ void main() {
         final localModels = await repository.getLocalMemos(testUserId);
         check(localModels.single.updatedAt).equals(restoreClockTime);
 
-        // 4. 通信回復後の同期で未同期の復元がサブ秒精度で再送され、同期済みになること
+        // 4. 通信回復後の同期で未同期の復元が再送され、サーバー採番時刻で同期済みになること
         shouldFailRestore = false;
+        currentServerClock = serverRestoreTime;
         await repository.syncUnsentMemos(testUserId);
 
         restoredLocal = await database.memosDao.getMemoById(memoId, testUserId);
         check(restoredLocal.isDeleted).isFalse();
         check(restoredLocal.isSynced).isTrue();
+        check(
+          restoredLocal.updatedAtMicros,
+        ).equals(serverRestoreTime.microsecondsSinceEpoch);
         check(uploadedRecords.last.isDeleted).isFalse();
         check(uploadedRecords.last.updatedAt).equals(restoreClockTime);
+      });
+
+      test('削除通信を停止した状態でUndoし、サーバーで削除時刻が復元時刻より後に採番され'
+          '復元送信が失敗しても未同期の復元が上書きされず再送できること', () async {
+        final createdTime = DateTime(2026, 11, 14, 9, 59);
+        final serverCreatedTime = DateTime.utc(2026, 11, 14, 0, 59, 1);
+        final deleteClockTime = DateTime(2026, 11, 14, 10, 0, 0, 200);
+        final restoreClockTime = DateTime(2026, 11, 14, 10, 0, 0, 800);
+        // 削除通信が Undo より後にサーバーへ到達したため、サーバー採番時刻が復元時刻より後になる
+        final serverDeleteTime = DateTime.utc(2026, 11, 14, 1, 0, 1, 200);
+        final serverRestoreTime = DateTime.utc(2026, 11, 14, 1, 0, 2, 100);
+        final serverSubsequentDeleteTime = DateTime.utc(
+          2026,
+          11,
+          14,
+          1,
+          0,
+          3,
+          500,
+        );
+
+        var currentClock = createdTime;
+        var currentServerClock = serverCreatedTime;
+        var shouldFailRestore = false;
+        final deleteUploadStarted = Completer<void>();
+        final deleteUploadGate = Completer<void>();
+        final serverMemos = <String, Map<String, dynamic>>{};
+
+        final container = ProviderContainer(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            memoRemoteServiceProvider.overrideWithValue(mockRemoteService),
+            clockProvider.overrideWithValue(() => currentClock),
+            isOnlineProvider.overrideWithValue(true),
+            loggerProvider.overrideWithValue(spyTalker),
+            currentUserIdProvider.overrideWith(
+              (ref) => ref.watch(_testUserIdProvider),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: any(named: 'id'),
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: any(named: 'isDeleted'),
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((invocation) async {
+          final id = invocation.namedArguments[#id] as String;
+          final title = invocation.namedArguments[#title] as String;
+          final content = invocation.namedArguments[#content] as String;
+          final isDeleted = invocation.namedArguments[#isDeleted] as bool;
+
+          if (isDeleted && !deleteUploadGate.isCompleted) {
+            deleteUploadStarted.complete();
+            await deleteUploadGate.future;
+          }
+          if (!isDeleted && shouldFailRestore) {
+            throw Exception('restore upload failed');
+          }
+
+          final existing = serverMemos[id];
+          final assignedCreatedAt = existing != null
+              ? existing['createdAt'] as DateTime
+              : currentServerClock;
+          final assignedUpdatedAt = currentServerClock;
+          serverMemos[id] = {
+            'id': id,
+            'title': title,
+            'content': content,
+            'createdAt': assignedCreatedAt,
+            'updatedAt': assignedUpdatedAt,
+            'isDeleted': isDeleted,
+          };
+          return (createdAt: assignedCreatedAt, updatedAt: assignedUpdatedAt);
+        });
+
+        when(
+          () => mockRemoteService.fetchMemos(
+            expectedUserId: any(named: 'expectedUserId'),
+          ),
+        ).thenAnswer(
+          (_) async => [
+            for (final memo in serverMemos.values)
+              Map<String, dynamic>.from(memo),
+          ],
+        );
+
+        final repository = container.read(memoRepositoryProvider);
+        await repository.addMemo('遅延削除テスト', '本文', testUserId);
+        final memoId = (await database.memosDao.getAllMemos(
+          testUserId,
+        )).first.id;
+
+        // 1. 削除を開始し、削除通信を途中で停止させる
+        currentClock = deleteClockTime;
+        await repository.deleteMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+        await deleteUploadStarted.future;
+
+        // 2. 削除通信が停止している間に Undo（restoreMemo）を実行し、復元送信が失敗する状態にする
+        currentClock = restoreClockTime;
+        shouldFailRestore = true;
+        await repository.restoreMemo(
+          memoId,
+          testUserId,
+          waitForRemoteSync: false,
+        );
+
+        // 3. Undo の後に削除通信が完了し、サーバーが復元時刻より後の時刻で削除を採番。続く復元送信は失敗する
+        currentServerClock = serverDeleteTime;
+        deleteUploadGate.complete();
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+
+        var localMemo = await database.memosDao.getMemoById(memoId, testUserId);
+        check(localMemo.isDeleted).isFalse();
+        check(localMemo.isSynced).isFalse();
+        check(
+          localMemo.updatedAtMicros,
+        ).equals(restoreClockTime.microsecondsSinceEpoch);
+        check(serverMemos[memoId]!['isDeleted']).equals(true);
+        check(serverMemos[memoId]!['updatedAt']).equals(serverDeleteTime);
+
+        // 4. 復元送信が依然失敗する状態でリモート取得・マージしても、未同期の復元は上書きされないこと
+        await repository.fetchAndMergeRemoteMemos(
+          testUserId,
+          syncUnsent: false,
+        );
+        await repository.fetchAndMergeRemoteMemos(testUserId);
+
+        localMemo = await database.memosDao.getMemoById(memoId, testUserId);
+        check(localMemo.isDeleted).isFalse();
+        check(localMemo.isSynced).isFalse();
+        check(
+          localMemo.updatedAtMicros,
+        ).equals(restoreClockTime.microsecondsSinceEpoch);
+
+        // 5. 通信回復後の再送で復元が成功し、サーバー採番時刻と整合した同期済み状態になること
+        shouldFailRestore = false;
+        currentServerClock = serverRestoreTime;
+        await repository.syncUnsentMemos(testUserId);
+
+        localMemo = await database.memosDao.getMemoById(memoId, testUserId);
+        check(localMemo.isDeleted).isFalse();
+        check(localMemo.isSynced).isTrue();
+        check(
+          localMemo.updatedAtMicros,
+        ).equals(serverRestoreTime.microsecondsSinceEpoch);
+        check(serverMemos[memoId]!['isDeleted']).equals(false);
+
+        // 6. 同期済みとなった後であれば、別端末によるさらに新しいサーバー削除も正常に取り込まれること
+        serverMemos[memoId] = {
+          ...serverMemos[memoId]!,
+          'updatedAt': serverSubsequentDeleteTime,
+          'isDeleted': true,
+        };
+        await repository.fetchAndMergeRemoteMemos(testUserId);
+
+        localMemo = await database.memosDao.getMemoById(memoId, testUserId);
+        check(localMemo.isDeleted).isTrue();
+        check(localMemo.isSynced).isTrue();
+        check(
+          localMemo.updatedAtMicros,
+        ).equals(serverSubsequentDeleteTime.microsecondsSinceEpoch);
       });
 
       test('別端末で削除（同期済み）を取得した後、同秒内の復元（サブ秒更新および同一updatedAt更新）を'
@@ -2453,7 +2649,7 @@ void main() {
             isDeleted: false,
             expectedUserId: testUserId,
           ),
-        ).thenAnswer((_) async {});
+        ).thenAnswer((_) async => null);
 
         final repository = container.read(memoRepositoryProvider);
         final local = await repository.getLocalMemos(testUserId);
@@ -2508,7 +2704,7 @@ void main() {
             isDeleted: any(named: 'isDeleted'),
             expectedUserId: testUserId,
           ),
-        ).thenAnswer((_) async {});
+        ).thenAnswer((_) async => null);
 
         final repository = container.read(memoRepositoryProvider);
         await repository.addMemo('競合レーステスト', '本文', testUserId);
@@ -2616,7 +2812,7 @@ void main() {
                 isDeleted: any(named: 'isDeleted'),
                 expectedUserId: testUserId,
               ),
-            ).thenAnswer((_) async {});
+            ).thenAnswer((_) async => null);
 
             var failMode = 0;
             final hookedDao = _HookedMemosDao(
@@ -2717,7 +2913,7 @@ void main() {
         });
 
         final uploadStarted = Completer<void>();
-        final uploadGate = Completer<void>();
+        final uploadGate = Completer<UploadedMemoTimestamps?>();
         when(
           () => mockRemoteService.uploadMemo(
             id: any(named: 'id'),
@@ -2795,7 +2991,7 @@ void main() {
         )).first.id;
 
         final uploadStarted = Completer<void>();
-        final uploadGate = Completer<void>();
+        final uploadGate = Completer<UploadedMemoTimestamps?>();
         when(
           () => mockRemoteService.uploadMemo(
             id: any(named: 'id'),
@@ -2838,7 +3034,7 @@ void main() {
         addTearDown(container.dispose);
 
         var uploadStarted = Completer<void>();
-        var uploadGate = Completer<void>();
+        var uploadGate = Completer<UploadedMemoTimestamps?>();
         when(
           () => mockRemoteService.uploadMemo(
             id: any(named: 'id'),
@@ -2874,7 +3070,7 @@ void main() {
         // 元のユーザーに戻して updateMemo 中に再度ユーザー切替
         container.read(_testUserIdProvider.notifier).userId = testUserId;
         uploadStarted = Completer<void>();
-        uploadGate = Completer<void>();
+        uploadGate = Completer<UploadedMemoTimestamps?>();
 
         final updateFuture = repository.updateMemo(
           memoId,

@@ -156,13 +156,13 @@ void main() {
       };
 
       when(
-        () => mockApiClient.put<void>('/memos/memo1', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
       ).thenAnswer(
         (_) async =>
             Response(requestOptions: RequestOptions(path: '/memos/memo1')),
       );
 
-      await service.uploadMemo(
+      final result = await service.uploadMemo(
         id: 'memo1',
         title: 'タイトル',
         content: 'コンテンツ',
@@ -171,16 +171,111 @@ void main() {
         isDeleted: false,
       );
 
+      check(result).isNull();
       verify(
-        () => mockApiClient.put<void>('/memos/memo1', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
       ).called(1);
       verifyNever(
-        () => mockApiClient.post<void>(any(), data: any(named: 'data')),
+        () => mockApiClient.post<dynamic>(any(), data: any(named: 'data')),
       );
+    });
+
+    test('uploadMemo: PUTがサーバー採番タイムスタンプを含むJSONを返した場合にパースして返すこと', () async {
+      final now = DateTime(2026, 5, 2);
+      final serverCreatedAt = DateTime.utc(2026, 5, 2, 0, 0, 1, 234);
+      final serverUpdatedAt = DateTime.utc(2026, 5, 2, 0, 0, 5, 678);
+      final memoData = {
+        'id': 'memo1',
+        'title': 'タイトル',
+        'content': 'コンテンツ',
+        'createdAt': now.toIso8601String(),
+        'updatedAt': now.toIso8601String(),
+        'isDeleted': false,
+      };
+
+      when(
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
+      ).thenAnswer(
+        (_) async => Response<dynamic>(
+          data: {
+            'id': 'memo1',
+            'title': 'タイトル',
+            'content': 'コンテンツ',
+            'createdAt': serverCreatedAt.toIso8601String(),
+            'updatedAt': serverUpdatedAt.toIso8601String(),
+            'isDeleted': false,
+          },
+          requestOptions: RequestOptions(path: '/memos/memo1'),
+        ),
+      );
+
+      final result = await service.uploadMemo(
+        id: 'memo1',
+        title: 'タイトル',
+        content: 'コンテンツ',
+        createdAt: now,
+        updatedAt: now,
+        isDeleted: false,
+      );
+
+      check(result).isNotNull();
+      check(result?.createdAt).equals(serverCreatedAt);
+      check(result?.updatedAt).equals(serverUpdatedAt);
+    });
+
+    test('uploadMemo: タイムスタンプを含まないMapや文字列レスポンスの場合はnullを返すこと', () async {
+      final now = DateTime(2026, 5, 2);
+      final memoData = {
+        'id': 'memo1',
+        'title': 'タイトル',
+        'content': 'コンテンツ',
+        'createdAt': now.toIso8601String(),
+        'updatedAt': now.toIso8601String(),
+        'isDeleted': false,
+      };
+
+      when(
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
+      ).thenAnswer(
+        (_) async => Response<dynamic>(
+          data: {'ok': true},
+          requestOptions: RequestOptions(path: '/memos/memo1'),
+        ),
+      );
+      check(
+        await service.uploadMemo(
+          id: 'memo1',
+          title: 'タイトル',
+          content: 'コンテンツ',
+          createdAt: now,
+          updatedAt: now,
+          isDeleted: false,
+        ),
+      ).isNull();
+
+      when(
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
+      ).thenAnswer(
+        (_) async => Response<dynamic>(
+          data: 'OK',
+          requestOptions: RequestOptions(path: '/memos/memo1'),
+        ),
+      );
+      check(
+        await service.uploadMemo(
+          id: 'memo1',
+          title: 'タイトル',
+          content: 'コンテンツ',
+          createdAt: now,
+          updatedAt: now,
+          isDeleted: false,
+        ),
+      ).isNull();
     });
 
     test('uploadMemo: PUTが404エラーの場合、POSTが呼ばれること', () async {
       final now = DateTime(2026, 5, 2);
+      final serverTime = DateTime.utc(2026, 5, 2, 0, 1, 0, 500);
       final memoData = {
         'id': 'memo1',
         'title': 'タイトル',
@@ -192,7 +287,7 @@ void main() {
 
       // PUTの段階で404エラーをスローさせる
       when(
-        () => mockApiClient.put<void>('/memos/memo1', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
       ).thenThrow(
         DioException(
           requestOptions: RequestOptions(path: '/memos/memo1'),
@@ -203,11 +298,23 @@ void main() {
         ),
       );
 
-      when(() => mockApiClient.post<void>('/memos', data: memoData)).thenAnswer(
-        (_) async => Response(requestOptions: RequestOptions(path: '/memos')),
+      when(
+        () => mockApiClient.post<dynamic>('/memos', data: memoData),
+      ).thenAnswer(
+        (_) async => Response<dynamic>(
+          data: {
+            'id': 'memo1',
+            'title': 'タイトル',
+            'content': 'コンテンツ',
+            'createdAt': serverTime.toIso8601String(),
+            'updatedAt': serverTime.toIso8601String(),
+            'isDeleted': false,
+          },
+          requestOptions: RequestOptions(path: '/memos'),
+        ),
       );
 
-      await service.uploadMemo(
+      final result = await service.uploadMemo(
         id: 'memo1',
         title: 'タイトル',
         content: 'コンテンツ',
@@ -216,11 +323,13 @@ void main() {
         isDeleted: false,
       );
 
+      check(result?.createdAt).equals(serverTime);
+      check(result?.updatedAt).equals(serverTime);
       verify(
-        () => mockApiClient.put<void>('/memos/memo1', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
       ).called(1);
       verify(
-        () => mockApiClient.post<void>('/memos', data: memoData),
+        () => mockApiClient.post<dynamic>('/memos', data: memoData),
       ).called(1);
     });
 
@@ -239,7 +348,7 @@ void main() {
       // responseがnullで、errorにAppException.badRequest(statusCode: 404)が
       // 入った状態をシミュレートします
       when(
-        () => mockApiClient.put<void>('/memos/memo1', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
       ).thenThrow(
         DioException(
           requestOptions: RequestOptions(path: '/memos/memo1'),
@@ -247,7 +356,9 @@ void main() {
         ),
       );
 
-      when(() => mockApiClient.post<void>('/memos', data: memoData)).thenAnswer(
+      when(
+        () => mockApiClient.post<dynamic>('/memos', data: memoData),
+      ).thenAnswer(
         (_) async => Response(requestOptions: RequestOptions(path: '/memos')),
       );
 
@@ -261,10 +372,10 @@ void main() {
       );
 
       verify(
-        () => mockApiClient.put<void>('/memos/memo1', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
       ).called(1);
       verify(
-        () => mockApiClient.post<void>(any(), data: any(named: 'data')),
+        () => mockApiClient.post<dynamic>(any(), data: any(named: 'data')),
       ).called(1);
     });
 
@@ -280,7 +391,7 @@ void main() {
       };
 
       when(
-        () => mockApiClient.put<void>('/memos/memo1', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
       ).thenThrow(
         DioException(
           requestOptions: RequestOptions(path: '/memos/memo1'),
@@ -303,10 +414,10 @@ void main() {
       ).throws<DioException>();
 
       verify(
-        () => mockApiClient.put<void>('/memos/memo1', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
       ).called(1);
       verifyNever(
-        () => mockApiClient.post<void>(any(), data: any(named: 'data')),
+        () => mockApiClient.post<dynamic>(any(), data: any(named: 'data')),
       );
     });
 
@@ -322,7 +433,7 @@ void main() {
       };
 
       when(
-        () => mockApiClient.put<void>('/memos/memo%201', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo%201', data: memoData),
       ).thenAnswer(
         (_) async =>
             Response(requestOptions: RequestOptions(path: '/memos/memo%201')),
@@ -338,7 +449,7 @@ void main() {
       );
 
       verify(
-        () => mockApiClient.put<void>('/memos/memo%201', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo%201', data: memoData),
       ).called(1);
     });
 
@@ -358,7 +469,7 @@ void main() {
         Options? postOptions;
 
         when(
-          () => mockApiClient.put<void>(
+          () => mockApiClient.put<dynamic>(
             '/memos/memo1',
             data: memoData,
             options: any(named: 'options'),
@@ -374,7 +485,7 @@ void main() {
           );
         });
         when(
-          () => mockApiClient.post<void>(
+          () => mockApiClient.post<dynamic>(
             '/memos',
             data: memoData,
             options: any(named: 'options'),

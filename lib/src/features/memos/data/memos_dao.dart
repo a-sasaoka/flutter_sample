@@ -268,14 +268,17 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
               fetchedBeforeSeq != null &&
               (_memoMutationSeqs[(userId, memo.id)] ?? 0) > fetchedBeforeSeq;
           // サーバーのデータが新しい場合（マイクロ秒比較）に更新対象とする。
+          // ただしローカルに未同期の変更（追加・編集・削除・Undo復元等）がある場合は、
+          // サーバー採番時刻や端末間の時刻差により remoteMicros > localMicros となっても
+          // ローカル変更を上書きせず、再送対象（isSynced = false）として保持する。
           // 同一タイムスタンプの場合は同期済みかつ内容・削除状態に差分があり、
           // かつ取得開始後にローカル変更・同期完了が発生していない場合のみ取り込む。
           shouldUpsert =
-              remoteMicros > localMicros ||
-              (remoteMicros == localMicros &&
-                  localMemo.isSynced &&
-                  hasDiff &&
-                  !modifiedDuringFetch);
+              localMemo.isSynced &&
+              (remoteMicros > localMicros ||
+                  (remoteMicros == localMicros &&
+                      hasDiff &&
+                      !modifiedDuringFetch));
         }
 
         if (shouldUpsert) {
@@ -411,7 +414,8 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
     _markMemoMutated(userId, id);
   }
 
-  /// 送信した内容と現在のローカルレコードが一致する場合のみ isSynced を true に更新する
+  /// 送信した内容と現在のローカルレコードが一致する場合のみ isSynced を true に更新し、
+  /// サーバー採番のタイムスタンプが返された場合はローカル時刻も揃える
   Future<void> markAsSyncedIfUnchanged({
     required String id,
     required String userId,
@@ -420,6 +424,8 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
     required DateTime createdAt,
     required DateTime updatedAt,
     required bool isDeleted,
+    DateTime? syncedCreatedAt,
+    DateTime? syncedUpdatedAt,
   }) async {
     final updatedRows =
         await (update(memos)..where(
@@ -434,7 +440,20 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
                       t.updatedAtMicros.isNull()) &
                   t.isDeleted.equals(isDeleted),
             ))
-            .write(const MemosCompanion(isSynced: Value(true)));
+            .write(
+              MemosCompanion(
+                isSynced: const Value(true),
+                createdAt: syncedCreatedAt != null
+                    ? Value(syncedCreatedAt)
+                    : const Value.absent(),
+                updatedAt: syncedUpdatedAt != null
+                    ? Value(syncedUpdatedAt)
+                    : const Value.absent(),
+                updatedAtMicros: syncedUpdatedAt != null
+                    ? Value(syncedUpdatedAt.microsecondsSinceEpoch)
+                    : const Value.absent(),
+              ),
+            );
     if (updatedRows > 0) {
       _markMemoMutated(userId, id);
     }
