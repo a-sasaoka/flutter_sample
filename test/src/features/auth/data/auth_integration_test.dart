@@ -90,7 +90,7 @@ void main() {
 
       // --- リフレッシュ処理の検証 ---
       final refreshCallback = container.read(tokenRefreshCallbackProvider);
-      final refreshResult = await refreshCallback();
+      final refreshResult = await refreshCallback(null);
 
       // 強制更新が成功し、FirebaseのAPIが正しく叩かれていること
       check(refreshResult).isTrue();
@@ -105,7 +105,9 @@ void main() {
       when(
         () => mockSecureStorage.read(key: SecureStorageKeys.accessToken),
       ).thenAnswer((_) async => 'mock_access_token');
-      when(mockAuthRepository.refreshToken).thenAnswer((_) async => true);
+      when(
+        () => mockAuthRepository.refreshToken(any()),
+      ).thenAnswer((_) async => true);
 
       // main.dart 相当の上書き設定を持ったコンテナを作成
       final container = ProviderContainer(
@@ -147,11 +149,11 @@ void main() {
 
       // --- リフレッシュ処理の検証 ---
       final refreshCallback = container.read(tokenRefreshCallbackProvider);
-      final refreshResult = await refreshCallback();
+      final refreshResult = await refreshCallback('user-a');
 
-      // 自前のリフレッシュAPIが正しく叩かれていること
+      // 自前のリフレッシュAPIへ期待ユーザーIDが引き継がれて呼ばれていること
       check(refreshResult).isTrue();
-      verify(mockAuthRepository.refreshToken).called(1);
+      verify(() => mockAuthRepository.refreshToken('user-a')).called(1);
     });
 
     test('【useFirebaseAuth: true】 の際、IDトークン更新時に例外が発生した場合に、'
@@ -186,7 +188,7 @@ void main() {
       );
 
       final refreshCallback = container.read(tokenRefreshCallbackProvider);
-      final refreshResult = await refreshCallback();
+      final refreshResult = await refreshCallback(null);
 
       check(refreshResult).isFalse();
     });

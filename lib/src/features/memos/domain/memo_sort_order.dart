@@ -17,4 +17,7 @@ enum MemoSortOrder {
 
   /// タイトル順：降順（逆順）
   titleDesc,
+
+  /// カスタム順（手動ドラッグ＆ドロップ並び替え）
+  custom,
 }

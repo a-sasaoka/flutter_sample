@@ -23,7 +23,7 @@ List<dynamic> getAuthOverrides() {
     tokenRefreshCallbackProvider.overrideWith((ref) {
       final useFirebase = ref.watch(envConfigProvider).useFirebaseAuth;
       if (useFirebase) {
-        return () async {
+        return (String? _) async {
           try {
             final user = ref.read(firebaseAuthProvider).currentUser;
             if (user != null) {

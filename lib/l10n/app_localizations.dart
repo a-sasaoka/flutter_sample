@@ -806,6 +806,24 @@ abstract class AppLocalizations {
   /// **'Title: Z-A'**
   String get memoSortTitleDesc;
 
+  /// No description provided for @memoSortCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get memoSortCustom;
+
+  /// No description provided for @memoDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Memo deleted'**
+  String get memoDeleted;
+
+  /// No description provided for @memoUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get memoUndo;
+
   /// No description provided for @memoCategoryAll.
   ///
   /// In en, this message translates to:

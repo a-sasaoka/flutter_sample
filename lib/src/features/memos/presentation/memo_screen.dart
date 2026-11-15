@@ -329,6 +329,10 @@ class _MemoSearchAndSortBar extends HookConsumerWidget {
                 value: MemoSortOrder.titleDesc,
                 child: Text(l10n.memoSortTitleDesc),
               ),
+              PopupMenuItem(
+                value: MemoSortOrder.custom,
+                child: Text(l10n.memoSortCustom),
+              ),
             ],
           ),
         ],
@@ -399,15 +403,167 @@ class _MemoFilterChipsBar extends ConsumerWidget {
   }
 }
 
+/// タブ非アクティブ中も再表示できるよう保持する Undo / 再試行通知情報
+class _PendingUndo {
+  const _PendingUndo({
+    required this.buildMessage,
+    required this.actionLabel,
+    required this.onPressed,
+  });
+
+  final String Function(BuildContext context) buildMessage;
+  final String actionLabel;
+  final Future<void> Function() onPressed;
+}
+
 /// メモ一覧を表示するウィジェット
-class _MemoListView extends ConsumerWidget {
+class _MemoListView extends HookConsumerWidget {
   const _MemoListView();
+
+  /// メモ画面が現在アクティブ（表示中）かどうかを判定する
+  /// - TickerMode: StatefulShellRoute で非選択タブ（非表示・お休み中）になっていないかを判定
+  static bool _isScreenActive(BuildContext context) {
+    return TickerMode.valuesOf(context).enabled;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
+    // 📱 メモ画面そのものの寿命を表すコンテキスト（カードが破棄されても画面にいる間はmounted）
+    final screenContext = context;
+    final l10n = screenContext.l10n;
+    final isScreenActive = _isScreenActive(screenContext);
+    final wasScreenActive = usePrevious(isScreenActive);
+    final messenger = ScaffoldMessenger.of(screenContext);
     final memosAsyncValue = ref.watch(memoProvider);
     final filter = ref.watch(memoFilterProvider);
+    final canReorder = !filter.hasActiveFilter;
+    // 別タブ切り替えに伴う一時クローズ後も復元手段を保てるよう Undo 通知状態を保持
+    final pendingUndoRef = useRef<_PendingUndo?>(null);
+    final activeUndoControllerRef =
+        useRef<ScaffoldFeatureController<SnackBar, SnackBarClosedReason>?>(
+          null,
+        );
+    final suppressedControllersRef =
+        useRef<Set<ScaffoldFeatureController<SnackBar, SnackBarClosedReason>>>(
+          {},
+        );
+
+    void presentPendingUndo() {
+      final pending = pendingUndoRef.value;
+      // メモ画面が有効かつ「現在選択中（表示中）」の場合のみ通知を表示
+      // （別タブ選択中、ログアウト、別画面遷移時は表示しない）
+      if (pending == null ||
+          !screenContext.mounted ||
+          !_isScreenActive(screenContext)) {
+        return;
+      }
+      // 通知表示中に画面遷移しても「元に戻す」が機能するようNotifierを一時保持する
+      final releaseKeepAlive = ref.read(memoProvider.notifier).retainForUndo();
+      messenger
+        ..clearSnackBars()
+        ..removeCurrentSnackBar();
+      final controller = messenger.showSnackBar(
+        SnackBar(
+          content: Text(pending.buildMessage(screenContext)),
+          action: SnackBarAction(
+            label: pending.actionLabel,
+            onPressed: () {
+              pendingUndoRef.value = null;
+              unawaited(pending.onPressed());
+            },
+          ),
+        ),
+      );
+      activeUndoControllerRef.value = controller;
+      unawaited(
+        controller.closed.then((_) {
+          releaseKeepAlive();
+          if (activeUndoControllerRef.value == controller) {
+            activeUndoControllerRef.value = null;
+          }
+          if (suppressedControllersRef.value.remove(controller)) {
+            return;
+          }
+          if (pendingUndoRef.value == pending) {
+            pendingUndoRef.value = null;
+          }
+        }),
+      );
+    }
+
+    // タブ切り替えでメモ画面が非アクティブになった際は表示中のSnackBarを一時的に閉じ、
+    // 保留中のUndoが残っていればメモタブへ戻った際に再表示する
+    useEffect(() {
+      if (wasScreenActive == true && !isScreenActive) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (screenContext.mounted && !_isScreenActive(screenContext)) {
+            final activeController = activeUndoControllerRef.value;
+            if (activeController != null) {
+              suppressedControllersRef.value.add(activeController);
+            }
+            messenger.clearSnackBars();
+          }
+        });
+      } else if (wasScreenActive == false &&
+          isScreenActive &&
+          pendingUndoRef.value != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          presentPendingUndo();
+        });
+      }
+      return null;
+    }, [isScreenActive, messenger]);
+
+    // スワイプ削除の処理（ローカル削除完了時点でUndoを提供し、画面の有効性に応じて通知を管理）
+    Future<bool> handleDismissMemo(MemoModel memo) async {
+      unawaited(HapticFeedback.mediumImpact());
+      final memoNotifier = ref.read(memoProvider.notifier);
+      final logger = ref.read(loggerProvider);
+      late final Future<void> Function() handleRestoreMemo;
+
+      void showUndoSnackBar({
+        required String Function(BuildContext context) buildMessage,
+        required String actionLabel,
+      }) {
+        if (!screenContext.mounted) {
+          return;
+        }
+        pendingUndoRef.value = _PendingUndo(
+          buildMessage: buildMessage,
+          actionLabel: actionLabel,
+          onPressed: handleRestoreMemo,
+        );
+        presentPendingUndo();
+      }
+
+      handleRestoreMemo = () async {
+        unawaited(HapticFeedback.lightImpact());
+        try {
+          await memoNotifier.restoreMemo(memo.id, expectedUserId: memo.userId);
+        } on Exception catch (e, st) {
+          logger.handle(e, st, 'メモの復元中にエラーが発生しました');
+          showUndoSnackBar(
+            buildMessage: (context) => ErrorHandler.message(context, e),
+            actionLabel: l10n.retry,
+          );
+        }
+      };
+
+      try {
+        await memoNotifier.deleteMemo(memo.id);
+        showUndoSnackBar(
+          buildMessage: (_) => l10n.memoDeleted,
+          actionLabel: l10n.memoUndo,
+        );
+        return true; // 削除成功：消去アニメーションを進める
+      } on Exception catch (e) {
+        // 削除失敗：メモ画面が有効かつ選択中の場合のみエラーSnackBarを表示し、カードを元の位置へ戻す（再操作可能）
+        if (screenContext.mounted && _isScreenActive(screenContext)) {
+          ErrorHandler.showSnackBar(screenContext, e);
+        }
+        return false;
+      }
+    }
 
     return switch (memosAsyncValue) {
       AsyncData(value: final memos) when memos.isEmpty => ListView(
@@ -427,12 +583,34 @@ class _MemoListView extends ConsumerWidget {
             EmptyStateWidget(title: l10n.memoEmpty),
         ],
       ),
-      AsyncData(value: final memos) => ListView.builder(
+      AsyncData(value: final memos) => ReorderableListView.builder(
+        buildDefaultDragHandles: false,
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
         itemCount: memos.length,
-        itemBuilder: (context, index) {
+        onReorderItem: (oldIndex, newIndex) async {
+          // 操作時の触覚フィードバック
+          unawaited(HapticFeedback.mediumImpact());
+          try {
+            // 並び替え処理を実行（DB保存完了まで待機）
+            await ref
+                .read(memoProvider.notifier)
+                .reorderMemos(oldIndex, newIndex);
+          } on Exception catch (e) {
+            // 保存に失敗し、画面が有効かつアクティブな場合のみエラー通知を表示
+            if (screenContext.mounted && _isScreenActive(screenContext)) {
+              ErrorHandler.showSnackBar(screenContext, e);
+            }
+          }
+        },
+        itemBuilder: (_, index) {
           final memo = memos[index];
-          return _MemoCard(key: ValueKey(memo.id), memo: memo);
+          return _MemoCard(
+            key: ValueKey(memo.id),
+            index: index,
+            memo: memo,
+            canReorder: canReorder,
+            onDismiss: () => handleDismissMemo(memo),
+          );
         },
       ),
       AsyncError() => Center(
@@ -451,8 +629,18 @@ class _MemoListView extends ConsumerWidget {
 }
 
 class _MemoCard extends ConsumerWidget {
-  const _MemoCard({required this.memo, super.key});
+  const _MemoCard({
+    required this.index,
+    required this.memo,
+    required this.canReorder,
+    required this.onDismiss,
+    super.key,
+  });
+
+  final int index;
   final MemoModel memo;
+  final bool canReorder;
+  final Future<bool> Function() onDismiss;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -460,122 +648,135 @@ class _MemoCard extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final searchQuery = ref.watch(memoFilterProvider).query;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        contentPadding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-        title: Row(
-          children: [
-            Expanded(
-              child: HighlightedText(
-                text: memo.title,
-                highlight: searchQuery,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            if (memo.category case final MemoCategory cat) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: colorScheme.secondaryContainer,
-                  borderRadius: BorderRadius.circular(12),
+    return Dismissible(
+      key: ValueKey(memo.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: colorScheme.error,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(Icons.delete, color: colorScheme.onError),
+      ),
+      // スワイプ完了前に非同期削除を試行し、画面の生存状態に応じてUndoを表示
+      confirmDismiss: (_) => onDismiss(),
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        child: ListTile(
+          contentPadding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+          title: Row(
+            children: [
+              Expanded(
+                child: HighlightedText(
+                  text: memo.title,
+                  highlight: searchQuery,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      cat.icon,
-                      size: 12,
-                      color: colorScheme.onSecondaryContainer,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      cat.label(l10n),
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+              ),
+              if (memo.category case final MemoCategory cat) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colorScheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        cat.icon,
+                        size: 12,
                         color: colorScheme.onSecondaryContainer,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      Text(
+                        cat.label(l10n),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSecondaryContainer,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ],
-          ],
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            HighlightedText(
-              text: memo.content,
-              highlight: searchQuery,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(
-                  memo.isSynced ? Icons.cloud_done : Icons.cloud_off,
-                  size: 14,
-                  color: memo.isSynced
-                      ? colorScheme.primary
-                      : colorScheme.error,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  memo.isSynced ? l10n.memoSynced : l10n.memoUnsynced,
-                  style: TextStyle(
-                    fontSize: 10,
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 4),
+              HighlightedText(
+                text: memo.content,
+                highlight: searchQuery,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(
+                    memo.isSynced ? Icons.cloud_done : Icons.cloud_off,
+                    size: 14,
                     color: memo.isSynced
                         ? colorScheme.primary
                         : colorScheme.error,
                   ),
-                ),
-                const Spacer(),
-                Text(
-                  '${memo.createdAt.month}/${memo.createdAt.day} ${memo.createdAt.hour.toString().padLeft(2, '0')}:${memo.createdAt.minute.toString().padLeft(2, '0')}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(fontSize: 10),
-                ),
-              ],
-            ),
-          ],
-        ),
-        trailing: IconButton(
-          icon: Icon(Icons.delete_outline, color: colorScheme.error),
-          onPressed: () async {
-            unawaited(HapticFeedback.mediumImpact());
-            final confirmed = await showDialog<bool>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: Text(l10n.memoDeleteConfirm),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: Text(l10n.close),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      unawaited(HapticFeedback.lightImpact());
-                      Navigator.pop(context, true);
-                    },
-                    child: Text(
-                      l10n.delete,
-                      style: TextStyle(color: colorScheme.error),
+                  const SizedBox(width: 4),
+                  Text(
+                    memo.isSynced ? l10n.memoSynced : l10n.memoUnsynced,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: memo.isSynced
+                          ? colorScheme.primary
+                          : colorScheme.error,
                     ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${memo.createdAt.month}/${memo.createdAt.day} ${memo.createdAt.hour.toString().padLeft(2, '0')}:${memo.createdAt.minute.toString().padLeft(2, '0')}',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(fontSize: 10),
                   ),
                 ],
               ),
-            );
-            if (confirmed == true) {
-              unawaited(HapticFeedback.vibrate());
-              await ref.read(memoProvider.notifier).deleteMemo(memo.id);
-            }
-          },
+            ],
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                tooltip: l10n.delete,
+                onPressed: () => unawaited(onDismiss()),
+              ),
+              if (canReorder)
+                ReorderableDragStartListener(
+                  index: index,
+                  child: Icon(
+                    Icons.drag_handle,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                )
+              else
+                Icon(
+                  Icons.drag_handle,
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                ),
+            ],
+          ),
         ),
       ),
     );

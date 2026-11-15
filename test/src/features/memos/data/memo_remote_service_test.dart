@@ -1,13 +1,43 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
+import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
+import 'package:flutter_sample/src/core/network/dio_provider.dart';
+import 'package:flutter_sample/src/core/network/request_auth_pin.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/features/auth/data/token_interceptor.dart';
+import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:flutter_sample/src/features/memos/data/memo_remote_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 class MockApiClient extends Mock implements ApiClient {}
+
+class MockTokenStorage extends Mock implements TokenStorage {}
+
+class _RecordingHttpClientAdapter implements HttpClientAdapter {
+  _RecordingHttpClientAdapter(this._onFetch);
+
+  final Future<ResponseBody> Function(RequestOptions options) _onFetch;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) {
+    return _onFetch(options);
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
 
 void main() {
   group('MemoRemoteService', () {
@@ -87,6 +117,33 @@ void main() {
       check(result.first['updatedAt']).equals('invalid-date-string');
     });
 
+    test(
+      'fetchMemos: expectedUserId指定時はRequestAuthPin付きOptionsが渡されること',
+      () async {
+        Options? capturedOptions;
+        when(
+          () => mockApiClient.get<List<dynamic>>(
+            '/memos',
+            options: any(named: 'options'),
+          ),
+        ).thenAnswer((invocation) async {
+          capturedOptions = invocation.namedArguments[#options] as Options?;
+          return Response(
+            data: const <dynamic>[],
+            requestOptions: RequestOptions(path: '/memos'),
+          );
+        });
+
+        final result = await service.fetchMemos(expectedUserId: 'user-a');
+
+        check(result).isEmpty();
+        final pin =
+            capturedOptions?.extra?[RequestAuthPin.extraKey] as RequestAuthPin?;
+        check(pin).isNotNull();
+        check(pin?.expectedUserId).equals('user-a');
+      },
+    );
+
     test('uploadMemo: PUTが成功した場合、POSTは呼ばれないこと', () async {
       final now = DateTime(2026, 5, 2);
       final memoData = {
@@ -99,13 +156,13 @@ void main() {
       };
 
       when(
-        () => mockApiClient.put<void>('/memos/memo1', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
       ).thenAnswer(
         (_) async =>
             Response(requestOptions: RequestOptions(path: '/memos/memo1')),
       );
 
-      await service.uploadMemo(
+      final result = await service.uploadMemo(
         id: 'memo1',
         title: 'タイトル',
         content: 'コンテンツ',
@@ -114,16 +171,111 @@ void main() {
         isDeleted: false,
       );
 
+      check(result).isNull();
       verify(
-        () => mockApiClient.put<void>('/memos/memo1', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
       ).called(1);
       verifyNever(
-        () => mockApiClient.post<void>(any(), data: any(named: 'data')),
+        () => mockApiClient.post<dynamic>(any(), data: any(named: 'data')),
       );
+    });
+
+    test('uploadMemo: PUTがサーバー採番タイムスタンプを含むJSONを返した場合にパースして返すこと', () async {
+      final now = DateTime(2026, 5, 2);
+      final serverCreatedAt = DateTime.utc(2026, 5, 2, 0, 0, 1, 234);
+      final serverUpdatedAt = DateTime.utc(2026, 5, 2, 0, 0, 5, 678);
+      final memoData = {
+        'id': 'memo1',
+        'title': 'タイトル',
+        'content': 'コンテンツ',
+        'createdAt': now.toIso8601String(),
+        'updatedAt': now.toIso8601String(),
+        'isDeleted': false,
+      };
+
+      when(
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
+      ).thenAnswer(
+        (_) async => Response<dynamic>(
+          data: {
+            'id': 'memo1',
+            'title': 'タイトル',
+            'content': 'コンテンツ',
+            'createdAt': serverCreatedAt.toIso8601String(),
+            'updatedAt': serverUpdatedAt.toIso8601String(),
+            'isDeleted': false,
+          },
+          requestOptions: RequestOptions(path: '/memos/memo1'),
+        ),
+      );
+
+      final result = await service.uploadMemo(
+        id: 'memo1',
+        title: 'タイトル',
+        content: 'コンテンツ',
+        createdAt: now,
+        updatedAt: now,
+        isDeleted: false,
+      );
+
+      check(result).isNotNull();
+      check(result?.createdAt).equals(serverCreatedAt);
+      check(result?.updatedAt).equals(serverUpdatedAt);
+    });
+
+    test('uploadMemo: タイムスタンプを含まないMapや文字列レスポンスの場合はnullを返すこと', () async {
+      final now = DateTime(2026, 5, 2);
+      final memoData = {
+        'id': 'memo1',
+        'title': 'タイトル',
+        'content': 'コンテンツ',
+        'createdAt': now.toIso8601String(),
+        'updatedAt': now.toIso8601String(),
+        'isDeleted': false,
+      };
+
+      when(
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
+      ).thenAnswer(
+        (_) async => Response<dynamic>(
+          data: {'ok': true},
+          requestOptions: RequestOptions(path: '/memos/memo1'),
+        ),
+      );
+      check(
+        await service.uploadMemo(
+          id: 'memo1',
+          title: 'タイトル',
+          content: 'コンテンツ',
+          createdAt: now,
+          updatedAt: now,
+          isDeleted: false,
+        ),
+      ).isNull();
+
+      when(
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
+      ).thenAnswer(
+        (_) async => Response<dynamic>(
+          data: 'OK',
+          requestOptions: RequestOptions(path: '/memos/memo1'),
+        ),
+      );
+      check(
+        await service.uploadMemo(
+          id: 'memo1',
+          title: 'タイトル',
+          content: 'コンテンツ',
+          createdAt: now,
+          updatedAt: now,
+          isDeleted: false,
+        ),
+      ).isNull();
     });
 
     test('uploadMemo: PUTが404エラーの場合、POSTが呼ばれること', () async {
       final now = DateTime(2026, 5, 2);
+      final serverTime = DateTime.utc(2026, 5, 2, 0, 1, 0, 500);
       final memoData = {
         'id': 'memo1',
         'title': 'タイトル',
@@ -135,7 +287,7 @@ void main() {
 
       // PUTの段階で404エラーをスローさせる
       when(
-        () => mockApiClient.put<void>('/memos/memo1', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
       ).thenThrow(
         DioException(
           requestOptions: RequestOptions(path: '/memos/memo1'),
@@ -146,11 +298,23 @@ void main() {
         ),
       );
 
-      when(() => mockApiClient.post<void>('/memos', data: memoData)).thenAnswer(
-        (_) async => Response(requestOptions: RequestOptions(path: '/memos')),
+      when(
+        () => mockApiClient.post<dynamic>('/memos', data: memoData),
+      ).thenAnswer(
+        (_) async => Response<dynamic>(
+          data: {
+            'id': 'memo1',
+            'title': 'タイトル',
+            'content': 'コンテンツ',
+            'createdAt': serverTime.toIso8601String(),
+            'updatedAt': serverTime.toIso8601String(),
+            'isDeleted': false,
+          },
+          requestOptions: RequestOptions(path: '/memos'),
+        ),
       );
 
-      await service.uploadMemo(
+      final result = await service.uploadMemo(
         id: 'memo1',
         title: 'タイトル',
         content: 'コンテンツ',
@@ -159,11 +323,13 @@ void main() {
         isDeleted: false,
       );
 
+      check(result?.createdAt).equals(serverTime);
+      check(result?.updatedAt).equals(serverTime);
       verify(
-        () => mockApiClient.put<void>('/memos/memo1', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
       ).called(1);
       verify(
-        () => mockApiClient.post<void>('/memos', data: memoData),
+        () => mockApiClient.post<dynamic>('/memos', data: memoData),
       ).called(1);
     });
 
@@ -182,7 +348,7 @@ void main() {
       // responseがnullで、errorにAppException.badRequest(statusCode: 404)が
       // 入った状態をシミュレートします
       when(
-        () => mockApiClient.put<void>('/memos/memo1', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
       ).thenThrow(
         DioException(
           requestOptions: RequestOptions(path: '/memos/memo1'),
@@ -190,7 +356,9 @@ void main() {
         ),
       );
 
-      when(() => mockApiClient.post<void>('/memos', data: memoData)).thenAnswer(
+      when(
+        () => mockApiClient.post<dynamic>('/memos', data: memoData),
+      ).thenAnswer(
         (_) async => Response(requestOptions: RequestOptions(path: '/memos')),
       );
 
@@ -204,10 +372,10 @@ void main() {
       );
 
       verify(
-        () => mockApiClient.put<void>('/memos/memo1', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
       ).called(1);
       verify(
-        () => mockApiClient.post<void>(any(), data: any(named: 'data')),
+        () => mockApiClient.post<dynamic>(any(), data: any(named: 'data')),
       ).called(1);
     });
 
@@ -223,7 +391,7 @@ void main() {
       };
 
       when(
-        () => mockApiClient.put<void>('/memos/memo1', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
       ).thenThrow(
         DioException(
           requestOptions: RequestOptions(path: '/memos/memo1'),
@@ -246,10 +414,10 @@ void main() {
       ).throws<DioException>();
 
       verify(
-        () => mockApiClient.put<void>('/memos/memo1', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo1', data: memoData),
       ).called(1);
       verifyNever(
-        () => mockApiClient.post<void>(any(), data: any(named: 'data')),
+        () => mockApiClient.post<dynamic>(any(), data: any(named: 'data')),
       );
     });
 
@@ -265,7 +433,7 @@ void main() {
       };
 
       when(
-        () => mockApiClient.put<void>('/memos/memo%201', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo%201', data: memoData),
       ).thenAnswer(
         (_) async =>
             Response(requestOptions: RequestOptions(path: '/memos/memo%201')),
@@ -281,9 +449,380 @@ void main() {
       );
 
       verify(
-        () => mockApiClient.put<void>('/memos/memo%201', data: memoData),
+        () => mockApiClient.put<dynamic>('/memos/memo%201', data: memoData),
       ).called(1);
     });
+
+    test(
+      'uploadMemo: expectedUserId指定時はPUTと404後POSTで同一のRequestAuthPinが渡されること',
+      () async {
+        final now = DateTime(2026, 5, 2);
+        final memoData = {
+          'id': 'memo1',
+          'title': 'タイトル',
+          'content': 'コンテンツ',
+          'createdAt': now.toIso8601String(),
+          'updatedAt': now.toIso8601String(),
+          'isDeleted': false,
+        };
+        Options? putOptions;
+        Options? postOptions;
+
+        when(
+          () => mockApiClient.put<dynamic>(
+            '/memos/memo1',
+            data: memoData,
+            options: any(named: 'options'),
+          ),
+        ).thenAnswer((invocation) async {
+          putOptions = invocation.namedArguments[#options] as Options?;
+          throw DioException(
+            requestOptions: RequestOptions(path: '/memos/memo1'),
+            response: Response(
+              statusCode: 404,
+              requestOptions: RequestOptions(path: '/memos/memo1'),
+            ),
+          );
+        });
+        when(
+          () => mockApiClient.post<dynamic>(
+            '/memos',
+            data: memoData,
+            options: any(named: 'options'),
+          ),
+        ).thenAnswer((invocation) async {
+          postOptions = invocation.namedArguments[#options] as Options?;
+          return Response(requestOptions: RequestOptions(path: '/memos'));
+        });
+
+        await service.uploadMemo(
+          id: 'memo1',
+          title: 'タイトル',
+          content: 'コンテンツ',
+          createdAt: now,
+          updatedAt: now,
+          isDeleted: false,
+          expectedUserId: 'user-a',
+        );
+
+        final putPin =
+            putOptions?.extra?[RequestAuthPin.extraKey] as RequestAuthPin?;
+        final postPin =
+            postOptions?.extra?[RequestAuthPin.extraKey] as RequestAuthPin?;
+        check(putPin).isNotNull();
+        check(putPin?.expectedUserId).equals('user-a');
+        check(identical(putPin, postPin)).isTrue();
+      },
+    );
+  });
+
+  group('TokenInterceptor連携時の認証情報固定', () {
+    late MockTokenStorage mockStorage;
+    late Talker quietTalker;
+
+    setUp(() {
+      mockStorage = MockTokenStorage();
+      quietTalker = Talker(
+        settings: TalkerSettings(useConsoleLogs: false, useHistory: false),
+      );
+    });
+
+    (MemoRemoteService, ProviderContainer) createWiredService({
+      required List<(String method, String path, String? authHeader)> sentLog,
+      required Future<ResponseBody> Function(RequestOptions options) onFetch,
+      Future<bool> Function(String? expectedUserId)? refreshCallback,
+    }) {
+      final adapter = _RecordingHttpClientAdapter((options) async {
+        sentLog.add((
+          options.method,
+          options.path,
+          options.headers['Authorization'] as String?,
+        ));
+        return await onFetch(options);
+      });
+
+      late ProviderContainer container;
+      final baseDio = Dio(BaseOptions(baseUrl: 'https://example.com'))
+        ..httpClientAdapter = adapter;
+      container = ProviderContainer(
+        overrides: [
+          loggerProvider.overrideWithValue(quietTalker),
+          tokenStorageInternalProvider.overrideWithValue(mockStorage),
+          baseDioProvider.overrideWithValue(baseDio),
+          tokenRefreshCallbackProvider.overrideWithValue(
+            refreshCallback ?? (_) async => false,
+          ),
+        ],
+      );
+      baseDio.interceptors.add(container.read(dioInterceptorProvider));
+
+      final mainDio = Dio(BaseOptions(baseUrl: 'https://example.com'))
+        ..httpClientAdapter = adapter
+        ..interceptors.addAll([
+          container.read(tokenInterceptorProvider),
+          container.read(dioInterceptorProvider),
+        ]);
+      return (MemoRemoteService(DioApiClient(mainDio)), container);
+    }
+
+    test('PUTが404を返した後に別ユーザーへ切り替わっても、後続POSTは元のユーザーの固定トークンで送信されること', () async {
+      var currentUserId = 'user-a';
+      var currentToken = 'token-a';
+      when(
+        () => mockStorage.getUserId(),
+      ).thenAnswer((_) async => currentUserId);
+      when(
+        () => mockStorage.getAccessToken(),
+      ).thenAnswer((_) async => currentToken);
+
+      final sentLog = <(String, String, String?)>[];
+      final (wiredService, container) = createWiredService(
+        sentLog: sentLog,
+        onFetch: (options) async {
+          if (options.method == 'PUT') {
+            // PUT の 404 応答時〜POST 送信前に別ユーザーへ切り替わる
+            currentUserId = 'user-b';
+            currentToken = 'token-b';
+            return ResponseBody.fromString('', 404);
+          }
+          return ResponseBody.fromString('', 200);
+        },
+      );
+      addTearDown(container.dispose);
+
+      final now = DateTime(2026, 5, 2);
+      await wiredService.uploadMemo(
+        id: 'memo1',
+        title: 'タイトル',
+        content: '内容',
+        createdAt: now,
+        updatedAt: now,
+        isDeleted: false,
+        expectedUserId: 'user-a',
+      );
+
+      check(sentLog).deepEquals([
+        ('PUT', '/memos/memo1', 'Bearer token-a'),
+        ('POST', '/memos', 'Bearer token-a'),
+      ]);
+      // POST ではトークンストレージを再参照していないこと
+      verify(() => mockStorage.getAccessToken()).called(1);
+    });
+
+    test('認証情報取得前に別ユーザーへ切り替わっていた場合、HTTP送信を行わず拒否すること', () async {
+      when(() => mockStorage.getUserId()).thenAnswer((_) async => 'user-b');
+      when(
+        () => mockStorage.getAccessToken(),
+      ).thenAnswer((_) async => 'token-b');
+
+      final sentLog = <(String, String, String?)>[];
+      final (wiredService, container) = createWiredService(
+        sentLog: sentLog,
+        onFetch: (_) async => ResponseBody.fromString('', 200),
+      );
+      addTearDown(container.dispose);
+
+      final now = DateTime(2026, 5, 2);
+      await check(
+        wiredService.uploadMemo(
+          id: 'memo1',
+          title: 'タイトル',
+          content: '内容',
+          createdAt: now,
+          updatedAt: now,
+          isDeleted: false,
+          expectedUserId: 'user-a',
+        ),
+      ).throws<DioException>();
+
+      check(sentLog).isEmpty();
+      verifyNever(() => mockStorage.getAccessToken());
+    });
+
+    test(
+      '401発生後に別ユーザーへ切り替わった場合は再試行せず、同一ユーザー時のみ新トークンで404後POSTも継続できること',
+      () async {
+        var currentUserId = 'user-a';
+        var currentToken = 'expired-token-a';
+        var refreshCalls = 0;
+        when(
+          () => mockStorage.getUserId(),
+        ).thenAnswer((_) async => currentUserId);
+        when(
+          () => mockStorage.getAccessToken(),
+        ).thenAnswer((_) async => currentToken);
+
+        // 1. 401応答中に別ユーザーへ切り替わるケース → リフレッシュも再試行もされない
+        final blockedLog = <(String, String, String?)>[];
+        final (blockedService, blockedContainer) = createWiredService(
+          sentLog: blockedLog,
+          refreshCallback: (_) async {
+            refreshCalls++;
+            return true;
+          },
+          onFetch: (_) async {
+            currentUserId = 'user-b';
+            currentToken = 'token-b';
+            return ResponseBody.fromString('', 401);
+          },
+        );
+        addTearDown(blockedContainer.dispose);
+
+        final now = DateTime(2026, 5, 2);
+        await check(
+          blockedService.uploadMemo(
+            id: 'memo1',
+            title: 'タイトル',
+            content: '内容',
+            createdAt: now,
+            updatedAt: now,
+            isDeleted: false,
+            expectedUserId: 'user-a',
+          ),
+        ).throws<DioException>();
+
+        check(
+          blockedLog,
+        ).deepEquals([('PUT', '/memos/memo1', 'Bearer expired-token-a')]);
+        check(refreshCalls).equals(0);
+
+        // 2. 同一ユーザーで401→リフレッシュ成功→PUTリトライ404→別ユーザー切替→POSTが新トークンAを使うケース
+        currentUserId = 'user-a';
+        currentToken = 'expired-token-a';
+        var putAttempts = 0;
+        final refreshedLog = <(String, String, String?)>[];
+        final (refreshedService, refreshedContainer) = createWiredService(
+          sentLog: refreshedLog,
+          refreshCallback: (_) async {
+            refreshCalls++;
+            currentToken = 'new-token-a';
+            return true;
+          },
+          onFetch: (options) async {
+            if (options.method == 'PUT') {
+              putAttempts++;
+              if (putAttempts == 1) {
+                return ResponseBody.fromString('', 401);
+              }
+              // 再試行後のPUTが404を返し、その後別ユーザーへ切り替わる
+              currentUserId = 'user-b';
+              currentToken = 'token-b';
+              return ResponseBody.fromString('', 404);
+            }
+            return ResponseBody.fromString('', 200);
+          },
+        );
+        addTearDown(refreshedContainer.dispose);
+
+        await refreshedService.uploadMemo(
+          id: 'memo1',
+          title: 'タイトル',
+          content: '内容',
+          createdAt: now,
+          updatedAt: now,
+          isDeleted: false,
+          expectedUserId: 'user-a',
+        );
+
+        check(refreshCalls).equals(1);
+        check(refreshedLog).deepEquals([
+          ('PUT', '/memos/memo1', 'Bearer expired-token-a'),
+          ('PUT', '/memos/memo1', 'Bearer new-token-a'),
+          ('POST', '/memos', 'Bearer new-token-a'),
+        ]);
+      },
+    );
+
+    test(
+      'fetchMemos: expectedUserId指定時は認証不一致でのGET送信・401再試行を行わず一致時のみ取得できること',
+      () async {
+        var currentUserId = 'user-b';
+        var currentToken = 'token-b';
+        var refreshCalls = 0;
+        when(
+          () => mockStorage.getUserId(),
+        ).thenAnswer((_) async => currentUserId);
+        when(
+          () => mockStorage.getAccessToken(),
+        ).thenAnswer((_) async => currentToken);
+
+        // 1. リクエスト前に別ユーザーへ切り替わっていた場合 → GET未送信で拒否
+        final blockedLog = <(String, String, String?)>[];
+        final (blockedService, blockedContainer) = createWiredService(
+          sentLog: blockedLog,
+          onFetch: (_) async => ResponseBody.fromString(
+            jsonEncode(const <dynamic>[]),
+            200,
+            headers: {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          ),
+        );
+        addTearDown(blockedContainer.dispose);
+
+        await check(
+          blockedService.fetchMemos(expectedUserId: 'user-a'),
+        ).throws<DioException>();
+        check(blockedLog).isEmpty();
+        verifyNever(() => mockStorage.getAccessToken());
+
+        // 2. 401発生時に別ユーザーへ切り替わった場合 → リフレッシュ・再試行されない
+        currentUserId = 'user-a';
+        currentToken = 'expired-token-a';
+        final unauthorizedLog = <(String, String, String?)>[];
+        final (unauthorizedService, unauthorizedContainer) = createWiredService(
+          sentLog: unauthorizedLog,
+          refreshCallback: (_) async {
+            refreshCalls++;
+            return true;
+          },
+          onFetch: (_) async {
+            currentUserId = 'user-b';
+            currentToken = 'token-b';
+            return ResponseBody.fromString('', 401);
+          },
+        );
+        addTearDown(unauthorizedContainer.dispose);
+
+        await check(
+          unauthorizedService.fetchMemos(expectedUserId: 'user-a'),
+        ).throws<DioException>();
+        check(
+          unauthorizedLog,
+        ).deepEquals([('GET', '/memos', 'Bearer expired-token-a')]);
+        check(refreshCalls).equals(0);
+
+        // 3. 同一ユーザーのままなら一致するトークンで正常取得できること
+        currentUserId = 'user-a';
+        currentToken = 'token-a';
+        final successLog = <(String, String, String?)>[];
+        final (successService, successContainer) = createWiredService(
+          sentLog: successLog,
+          onFetch: (_) async => ResponseBody.fromString(
+            jsonEncode([
+              {
+                'id': 'memo-a',
+                'title': 'メモA',
+                'content': '本文A',
+                'createdAt': '2026-05-02T00:00:00.000',
+                'updatedAt': '2026-05-02T00:00:00.000',
+                'isDeleted': false,
+              },
+            ]),
+            200,
+            headers: {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          ),
+        );
+        addTearDown(successContainer.dispose);
+
+        final memos = await successService.fetchMemos(expectedUserId: 'user-a');
+        check(memos.length).equals(1);
+        check(memos.first['id']).equals('memo-a');
+        check(successLog).deepEquals([('GET', '/memos', 'Bearer token-a')]);
+      },
+    );
   });
 
   group('memoRemoteServiceProvider', () {

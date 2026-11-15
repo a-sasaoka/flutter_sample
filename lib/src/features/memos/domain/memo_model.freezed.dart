@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MemoModel {
 
- String get id; String get userId; String get title; String get content; DateTime get createdAt; DateTime get updatedAt; bool get isDeleted; bool get isSynced; MemoCategory? get category;
+ String get id; String get userId; String get title; String get content; DateTime get createdAt; DateTime get updatedAt; bool get isDeleted; bool get isSynced; MemoCategory? get category; int get sortOrder;
 /// Create a copy of MemoModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $MemoModelCopyWith<MemoModel> get copyWith => _$MemoModelCopyWithImpl<MemoModel>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MemoModel&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.title, title) || other.title == title)&&(identical(other.content, content) || other.content == content)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.isSynced, isSynced) || other.isSynced == isSynced)&&(identical(other.category, category) || other.category == category));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MemoModel&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.title, title) || other.title == title)&&(identical(other.content, content) || other.content == content)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.isSynced, isSynced) || other.isSynced == isSynced)&&(identical(other.category, category) || other.category == category)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,userId,title,content,createdAt,updatedAt,isDeleted,isSynced,category);
+int get hashCode => Object.hash(runtimeType,id,userId,title,content,createdAt,updatedAt,isDeleted,isSynced,category,sortOrder);
 
 @override
 String toString() {
-  return 'MemoModel(id: $id, userId: $userId, title: $title, content: $content, createdAt: $createdAt, updatedAt: $updatedAt, isDeleted: $isDeleted, isSynced: $isSynced, category: $category)';
+  return 'MemoModel(id: $id, userId: $userId, title: $title, content: $content, createdAt: $createdAt, updatedAt: $updatedAt, isDeleted: $isDeleted, isSynced: $isSynced, category: $category, sortOrder: $sortOrder)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $MemoModelCopyWith<$Res>  {
   factory $MemoModelCopyWith(MemoModel value, $Res Function(MemoModel) _then) = _$MemoModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String userId, String title, String content, DateTime createdAt, DateTime updatedAt, bool isDeleted, bool isSynced, MemoCategory? category
+ String id, String userId, String title, String content, DateTime createdAt, DateTime updatedAt, bool isDeleted, bool isSynced, MemoCategory? category, int sortOrder
 });
 
 
@@ -62,7 +62,7 @@ class _$MemoModelCopyWithImpl<$Res>
 
 /// Create a copy of MemoModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? userId = null,Object? title = null,Object? content = null,Object? createdAt = null,Object? updatedAt = null,Object? isDeleted = null,Object? isSynced = null,Object? category = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? userId = null,Object? title = null,Object? content = null,Object? createdAt = null,Object? updatedAt = null,Object? isDeleted = null,Object? isSynced = null,Object? category = freezed,Object? sortOrder = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
@@ -73,7 +73,8 @@ as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore
 as DateTime,isDeleted: null == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
 as bool,isSynced: null == isSynced ? _self.isSynced : isSynced // ignore: cast_nullable_to_non_nullable
 as bool,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
-as MemoCategory?,
+as MemoCategory?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 
@@ -155,10 +156,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String userId,  String title,  String content,  DateTime createdAt,  DateTime updatedAt,  bool isDeleted,  bool isSynced,  MemoCategory? category)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String userId,  String title,  String content,  DateTime createdAt,  DateTime updatedAt,  bool isDeleted,  bool isSynced,  MemoCategory? category,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MemoModel() when $default != null:
-return $default(_that.id,_that.userId,_that.title,_that.content,_that.createdAt,_that.updatedAt,_that.isDeleted,_that.isSynced,_that.category);case _:
+return $default(_that.id,_that.userId,_that.title,_that.content,_that.createdAt,_that.updatedAt,_that.isDeleted,_that.isSynced,_that.category,_that.sortOrder);case _:
   return orElse();
 
 }
@@ -176,10 +177,10 @@ return $default(_that.id,_that.userId,_that.title,_that.content,_that.createdAt,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String userId,  String title,  String content,  DateTime createdAt,  DateTime updatedAt,  bool isDeleted,  bool isSynced,  MemoCategory? category)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String userId,  String title,  String content,  DateTime createdAt,  DateTime updatedAt,  bool isDeleted,  bool isSynced,  MemoCategory? category,  int sortOrder)  $default,) {final _that = this;
 switch (_that) {
 case _MemoModel():
-return $default(_that.id,_that.userId,_that.title,_that.content,_that.createdAt,_that.updatedAt,_that.isDeleted,_that.isSynced,_that.category);}
+return $default(_that.id,_that.userId,_that.title,_that.content,_that.createdAt,_that.updatedAt,_that.isDeleted,_that.isSynced,_that.category,_that.sortOrder);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -193,10 +194,10 @@ return $default(_that.id,_that.userId,_that.title,_that.content,_that.createdAt,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String userId,  String title,  String content,  DateTime createdAt,  DateTime updatedAt,  bool isDeleted,  bool isSynced,  MemoCategory? category)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String userId,  String title,  String content,  DateTime createdAt,  DateTime updatedAt,  bool isDeleted,  bool isSynced,  MemoCategory? category,  int sortOrder)?  $default,) {final _that = this;
 switch (_that) {
 case _MemoModel() when $default != null:
-return $default(_that.id,_that.userId,_that.title,_that.content,_that.createdAt,_that.updatedAt,_that.isDeleted,_that.isSynced,_that.category);case _:
+return $default(_that.id,_that.userId,_that.title,_that.content,_that.createdAt,_that.updatedAt,_that.isDeleted,_that.isSynced,_that.category,_that.sortOrder);case _:
   return null;
 
 }
@@ -208,7 +209,7 @@ return $default(_that.id,_that.userId,_that.title,_that.content,_that.createdAt,
 
 
 class _MemoModel implements MemoModel {
-  const _MemoModel({required this.id, required this.userId, required this.title, required this.content, required this.createdAt, required this.updatedAt, this.isDeleted = false, this.isSynced = false, this.category});
+  const _MemoModel({required this.id, required this.userId, required this.title, required this.content, required this.createdAt, required this.updatedAt, this.isDeleted = false, this.isSynced = false, this.category, this.sortOrder = 0});
   
 
 @override final  String id;
@@ -220,6 +221,7 @@ class _MemoModel implements MemoModel {
 @override@JsonKey() final  bool isDeleted;
 @override@JsonKey() final  bool isSynced;
 @override final  MemoCategory? category;
+@override@JsonKey() final  int sortOrder;
 
 /// Create a copy of MemoModel
 /// with the given fields replaced by the non-null parameter values.
@@ -231,16 +233,16 @@ _$MemoModelCopyWith<_MemoModel> get copyWith => __$MemoModelCopyWithImpl<_MemoMo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MemoModel&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.title, title) || other.title == title)&&(identical(other.content, content) || other.content == content)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.isSynced, isSynced) || other.isSynced == isSynced)&&(identical(other.category, category) || other.category == category));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MemoModel&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.title, title) || other.title == title)&&(identical(other.content, content) || other.content == content)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.isSynced, isSynced) || other.isSynced == isSynced)&&(identical(other.category, category) || other.category == category)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,userId,title,content,createdAt,updatedAt,isDeleted,isSynced,category);
+int get hashCode => Object.hash(runtimeType,id,userId,title,content,createdAt,updatedAt,isDeleted,isSynced,category,sortOrder);
 
 @override
 String toString() {
-  return 'MemoModel(id: $id, userId: $userId, title: $title, content: $content, createdAt: $createdAt, updatedAt: $updatedAt, isDeleted: $isDeleted, isSynced: $isSynced, category: $category)';
+  return 'MemoModel(id: $id, userId: $userId, title: $title, content: $content, createdAt: $createdAt, updatedAt: $updatedAt, isDeleted: $isDeleted, isSynced: $isSynced, category: $category, sortOrder: $sortOrder)';
 }
 
 
@@ -251,7 +253,7 @@ abstract mixin class _$MemoModelCopyWith<$Res> implements $MemoModelCopyWith<$Re
   factory _$MemoModelCopyWith(_MemoModel value, $Res Function(_MemoModel) _then) = __$MemoModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String userId, String title, String content, DateTime createdAt, DateTime updatedAt, bool isDeleted, bool isSynced, MemoCategory? category
+ String id, String userId, String title, String content, DateTime createdAt, DateTime updatedAt, bool isDeleted, bool isSynced, MemoCategory? category, int sortOrder
 });
 
 
@@ -268,7 +270,7 @@ class __$MemoModelCopyWithImpl<$Res>
 
 /// Create a copy of MemoModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? userId = null,Object? title = null,Object? content = null,Object? createdAt = null,Object? updatedAt = null,Object? isDeleted = null,Object? isSynced = null,Object? category = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? userId = null,Object? title = null,Object? content = null,Object? createdAt = null,Object? updatedAt = null,Object? isDeleted = null,Object? isSynced = null,Object? category = freezed,Object? sortOrder = null,}) {
   return _then(_MemoModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
@@ -279,7 +281,8 @@ as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore
 as DateTime,isDeleted: null == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
 as bool,isSynced: null == isSynced ? _self.isSynced : isSynced // ignore: cast_nullable_to_non_nullable
 as bool,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
-as MemoCategory?,
+as MemoCategory?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 

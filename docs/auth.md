@@ -21,6 +21,7 @@ lib/src/features/auth/
  └── data/
       ├── token_storage.dart       # トークンおよびユーザーIDの永続化（SecureStorage利用）
       ├── token_interceptor.dart   # DioのInterceptor（トークン自動付与・排他リフレッシュ制御）
+      ├── auth_session_lock.dart   # 認証セッション読み書き・ユーザー照合の直列化ロック
       ├── auth_repository.dart     # ログイン処理・トークンリフレッシュAPIの呼び出し
       └── auth_overrides.dart      # 認証系プロバイダーの動的切り替え・オーバーライド設定
 ```
@@ -108,7 +109,7 @@ lib/src/features/auth/
 
 - **自前サーバー認証モード (`useFirebaseAuth: false`)**:
   - `tokenStorageProvider` はオーバーライドされて Secure Storage で裏付けされた `TokenStorage` を返し、そこからアクセストークンを取得します。
-  - `tokenRefreshCallbackProvider` は自前の `authRepository.refreshToken()` を実行します。
+  - `tokenRefreshCallbackProvider` はリフレッシュ開始時のユーザーIDを受け取り、`authRepository.refreshToken` を通じてセッション世代・ユーザーID・リフレッシュトークンが開始時と一致する場合のみ新トークンを保存します（[auth_session_lock.dart](../lib/src/features/auth/data/auth_session_lock.dart) によりログイン／ログアウトと直列化）。
 - **Firebase Auth モード (`useFirebaseAuth: true`)**:
   - `tokenStorageProvider` を `FirebaseAuthTokenStorage` に差し替え、Firebase から直接 ID トークンを取得します。
   - `tokenRefreshCallbackProvider` は Firebase の `user.getIdToken(true)` を実行して強制的に更新します。

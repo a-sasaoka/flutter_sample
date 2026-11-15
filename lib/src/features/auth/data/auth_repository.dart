@@ -2,6 +2,7 @@ import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
+import 'package:flutter_sample/src/features/auth/data/auth_session_lock.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:talker_flutter/talker_flutter.dart';
@@ -21,6 +22,7 @@ AuthRepository authRepository(Ref ref) {
     api: ref.watch(authApiClientProvider),
     tokenStorage: ref.watch(tokenStorageProvider),
     talker: ref.watch(loggerProvider),
+    sessionLock: ref.watch(authSessionLockProvider),
   );
 }
 
@@ -31,7 +33,8 @@ class AuthRepository {
     required this.api,
     required this.tokenStorage,
     required this.talker,
-  });
+    AuthSessionLock? sessionLock,
+  }) : _sessionLock = sessionLock ?? AuthSessionLock();
 
   /// APIクライアント
   final ApiClient api;
@@ -41,6 +44,8 @@ class AuthRepository {
 
   /// ロガー
   final Talker talker;
+
+  final AuthSessionLock _sessionLock;
 
   /// ログインAPIを呼び出し、トークンを保存する
   Future<void> login(String email, String password) async {
@@ -53,7 +58,10 @@ class AuthRepository {
       'access_token': final String access,
       'refresh_token': final String refresh,
     }) {
-      await tokenStorage.saveTokens(accessToken: access, refreshToken: refresh);
+      await _sessionLock.runSessionTransition(
+        () =>
+            tokenStorage.saveTokens(accessToken: access, refreshToken: refresh),
+      );
     } else {
       talker.handle(
         const AppException.dataParse(),
@@ -64,20 +72,44 @@ class AuthRepository {
     }
   }
 
-  /// リフレッシュトークンAPIを呼び出し、アクセストークンを更新する
-  Future<bool> refreshToken() async {
-    final refresh = await tokenStorage.getRefreshToken();
-    if (refresh == null) return false;
+  /// リフレッシュトークンAPIを呼び出し、開始時と同一セッションである場合のみ保存する
+  Future<bool> refreshToken(String? expectedUserId) async {
+    final startState = await _sessionLock.synchronized(() async {
+      final currentUserId = await tokenStorage.getUserId();
+      if (currentUserId != expectedUserId) return null;
+
+      final refresh = await tokenStorage.getRefreshToken();
+      if (refresh == null) return null;
+
+      return (refreshToken: refresh, sessionEpoch: _sessionLock.sessionEpoch);
+    });
+    if (startState == null) return false;
 
     final response = await api.post<Map<String, dynamic>>(
       '/auth/refresh',
-      data: {'refresh_token': refresh},
+      data: {'refresh_token': startState.refreshToken},
     );
 
     final access = response.data?['access_token'] as String?;
     if (access == null) return false;
 
-    await tokenStorage.saveTokens(accessToken: access, refreshToken: refresh);
-    return true;
+    return await _sessionLock.synchronized(() async {
+      // ID未取得(null)トークン同士の切替や同一ユーザーの再ログインも区別するため、
+      // ロック内でセッション世代・ユーザーID・リフレッシュトークンをすべて照合する
+      if (_sessionLock.sessionEpoch != startState.sessionEpoch) return false;
+
+      final currentUserId = await tokenStorage.getUserId();
+      final currentRefreshToken = await tokenStorage.getRefreshToken();
+      if (currentUserId != expectedUserId ||
+          currentRefreshToken != startState.refreshToken) {
+        return false;
+      }
+
+      await tokenStorage.saveTokens(
+        accessToken: access,
+        refreshToken: startState.refreshToken,
+      );
+      return true;
+    });
   }
 }

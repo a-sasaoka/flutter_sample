@@ -21,6 +21,7 @@
 | ♿️ アクセシビリティ | Semantics を活用したスクリーンリーダー対応（一部達成）、アプリ全体への Semantics 適用とダイナミックタイプ対応 |
 | 🎨 UX / デザイン | Lottie を用いたリッチなアニメーションの導入 (✅ 完了) |
 | 🔍 検索・絞り込み UX | 入力待ち400msデバウンス検索（`Debouncer`）、複数タグ・カテゴリ絞り込み（`FilterChip`）、検索語ハイライト表示（`HighlightedText`）、0件時クリア機能の導入 (✅ 完了) |
+| 📝 リストUI / メモ機能 | `ReorderableListView` によるドラッグ＆ドロップ並び替え（Drift永続化・Optimistic UI）、`Dismissible` による横スワイプ削除とSnackBarでのUndo復元機能の導入 (✅ 完了) |
 | 🏗️ アーキテクチャ | Melosを用いたマルチパッケージ（Monorepo）構成の構築 |
 | 📡 リアルタイム通信 | WebSocket や Server-Sent Events (SSE) を用いた完全な双方向リアルタイム通信の実装 |
 
