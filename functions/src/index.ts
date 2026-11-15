@@ -294,6 +294,15 @@ export const users = onRequest(async (req, res) => {
           avatarUrl: (savedData.avatarUrl as string) || "",
         };
         res.status(200).json(responseProfile);
+      } else if (req.method === "DELETE") {
+        // ユーザードキュメント配下（memosサブコレクション等）を一括削除
+        await db.recursiveDelete(docRef);
+        // レート制限ドキュメントが存在する場合は併せて削除
+        const rateLimitDocRef = db
+          .collection("rate_limits")
+          .doc(`routes_${uid}`);
+        await rateLimitDocRef.delete();
+        res.status(200).json({message: "Account data deleted"});
       } else {
         res.status(405).send("Method Not Allowed");
       }
