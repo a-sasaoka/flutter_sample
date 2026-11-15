@@ -19,13 +19,10 @@ jobs:
     # クラウド上の最新Ubuntu環境で実行
     runs-on: ubuntu-latest
 
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
     steps:
       # 1. ソースコードを取得
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # 2. .fvmrc から Flutter バージョンを取得
       #    例: "flutter": "3.24.0" から "3.24.0" を抽出します
@@ -120,7 +117,7 @@ jobs:
       # 8. カバレッジ結果の可視化
       #    GitHub Actionsの実行結果画面に、どのファイルがテストされたかの表を表示します
       - name: Report coverage
-        uses: zgosalvez/github-actions-report-lcov@v4
+        uses: zgosalvez/github-actions-report-lcov@v7
         with:
           coverage-files: ./coverage/lcov.info
           github-token: ${{ secrets.GITHUB_TOKEN }}
