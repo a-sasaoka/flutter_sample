@@ -2204,12 +2204,14 @@ void main() {
 
       test('同一秒内でサブ秒を含む削除成功・復元失敗の後にmergeRemoteMemosが実行されても、'
           'サーバー採番時刻との比較で未同期の復元が保持・再送されること', () async {
-        final createdTime = DateTime(2026, 11, 14, 9, 59, 0, 450);
+        final createdTime = DateTime.utc(2026, 11, 14, 0, 59, 0, 450);
         final serverCreatedTime = DateTime.utc(2026, 11, 14, 0, 59, 0, 600);
-        final deleteClockTime = DateTime(2026, 11, 14, 10, 0, 0, 200);
+        final deleteClockTime = DateTime.utc(2026, 11, 14, 1, 0, 0, 200);
         final serverDeleteTime = DateTime.utc(2026, 11, 14, 1, 0, 0, 500);
-        final restoreClockTime = DateTime(2026, 11, 14, 10, 0, 0, 800);
+        final restoreClockTime = DateTime.utc(2026, 11, 14, 1, 0, 0, 800);
         final serverRestoreTime = DateTime.utc(2026, 11, 14, 1, 0, 1, 100);
+        check(serverDeleteTime.isAfter(deleteClockTime)).isTrue();
+        check(restoreClockTime.isAfter(serverDeleteTime)).isTrue();
         var currentClock = createdTime;
         var currentServerClock = serverCreatedTime;
 
@@ -2294,7 +2296,7 @@ void main() {
           testUserId,
         )).first.id;
 
-        // 1. 削除をサブ秒（10:00:00.200）で実行し、サーバー採番時刻（.500）がローカルへ反映されること
+        // 1. 削除をサブ秒（01:00:00.200Z）で実行し、サーバー採番時刻（.500Z）がローカルへ反映されること
         currentClock = deleteClockTime;
         currentServerClock = serverDeleteTime;
         await repository.deleteMemo(memoId, testUserId);
@@ -2309,7 +2311,7 @@ void main() {
         check(uploadedRecords.last.isDeleted).isTrue();
         check(uploadedRecords.last.updatedAt).equals(deleteClockTime);
 
-        // 2. 同じ秒（10:00:00.800）で復元を実行し、リモート送信だけ失敗させる
+        // 2. 同じ秒（01:00:00.800Z）で復元を実行し、リモート送信だけ失敗させる
         currentClock = restoreClockTime;
         shouldFailRestore = true;
         await repository.restoreMemo(memoId, testUserId);
@@ -2334,7 +2336,7 @@ void main() {
           restoredLocal.updatedAtMicros,
         ).equals(restoreClockTime.microsecondsSinceEpoch);
         final localModels = await repository.getLocalMemos(testUserId);
-        check(localModels.single.updatedAt).equals(restoreClockTime);
+        check(localModels.single.updatedAt.toUtc()).equals(restoreClockTime);
 
         // 4. 通信回復後の同期で未同期の復元が再送され、サーバー採番時刻で同期済みになること
         shouldFailRestore = false;
@@ -2348,15 +2350,15 @@ void main() {
           restoredLocal.updatedAtMicros,
         ).equals(serverRestoreTime.microsecondsSinceEpoch);
         check(uploadedRecords.last.isDeleted).isFalse();
-        check(uploadedRecords.last.updatedAt).equals(restoreClockTime);
+        check(uploadedRecords.last.updatedAt.toUtc()).equals(restoreClockTime);
       });
 
       test('削除通信を停止した状態でUndoし、サーバーで削除時刻が復元時刻より後に採番され'
           '復元送信が失敗しても未同期の復元が上書きされず再送できること', () async {
-        final createdTime = DateTime(2026, 11, 14, 9, 59);
+        final createdTime = DateTime.utc(2026, 11, 14, 0, 59);
         final serverCreatedTime = DateTime.utc(2026, 11, 14, 0, 59, 1);
-        final deleteClockTime = DateTime(2026, 11, 14, 10, 0, 0, 200);
-        final restoreClockTime = DateTime(2026, 11, 14, 10, 0, 0, 800);
+        final deleteClockTime = DateTime.utc(2026, 11, 14, 1, 0, 0, 200);
+        final restoreClockTime = DateTime.utc(2026, 11, 14, 1, 0, 0, 800);
         // 削除通信が Undo より後にサーバーへ到達したため、サーバー採番時刻が復元時刻より後になる
         final serverDeleteTime = DateTime.utc(2026, 11, 14, 1, 0, 1, 200);
         final serverRestoreTime = DateTime.utc(2026, 11, 14, 1, 0, 2, 100);
@@ -2369,6 +2371,7 @@ void main() {
           3,
           500,
         );
+        check(serverDeleteTime.isAfter(restoreClockTime)).isTrue();
 
         var currentClock = createdTime;
         var currentServerClock = serverCreatedTime;
