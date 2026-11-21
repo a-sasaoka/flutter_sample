@@ -320,4 +320,44 @@ void main() {
       },
     );
   });
+
+  group('AuthStateNotifier (deleteAccount)', () {
+    test('deleteAccount: API成功時は state が AsyncData(false) になること', () async {
+      final fakeStorage = FakeTokenStorage(mockAccessToken: 'valid_token');
+      final mockRepo = MockAuthRepository();
+      when(mockRepo.deleteAccount).thenAnswer((_) async {});
+
+      final container = createContainer(
+        fakeStorage: fakeStorage,
+        mockAuthRepository: mockRepo,
+      );
+      await container.read(authStateProvider.future);
+      final notifier = container.read(authStateProvider.notifier);
+
+      await notifier.deleteAccount();
+
+      verify(mockRepo.deleteAccount).called(1);
+      check(container.read(authStateProvider).value).equals(false);
+      check(container.read(authStateProvider).hasError).equals(false);
+    });
+
+    test('deleteAccount: API失敗時は例外が再スローされ、ログイン状態(true)を維持すること', () async {
+      final fakeStorage = FakeTokenStorage(mockAccessToken: 'valid_token');
+      final mockRepo = MockAuthRepository();
+      when(mockRepo.deleteAccount).thenThrow(Exception('Delete API failed'));
+
+      final container = createContainer(
+        fakeStorage: fakeStorage,
+        mockAuthRepository: mockRepo,
+      );
+      await container.read(authStateProvider.future);
+      final notifier = container.read(authStateProvider.notifier);
+
+      await check(notifier.deleteAccount()).throws<Exception>();
+
+      verify(mockRepo.deleteAccount).called(1);
+      check(container.read(authStateProvider).value).equals(true);
+      check(container.read(authStateProvider).hasError).equals(false);
+    });
+  });
 }

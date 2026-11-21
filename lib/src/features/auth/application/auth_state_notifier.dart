@@ -62,4 +62,13 @@ class AuthStateNotifier extends _$AuthStateNotifier {
       rethrow;
     }
   }
+
+  /// 認証APIでアカウントを削除し、成功後に未ログイン状態へ移行する
+  ///
+  /// 削除APIが失敗した場合はログイン状態を維持し、UI側で再試行できるようにします。
+  Future<void> deleteAccount() async {
+    await future;
+    await ref.read(authRepositoryProvider).deleteAccount();
+    state = const AsyncData(false);
+  }
 }

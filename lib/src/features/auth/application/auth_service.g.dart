@@ -138,17 +138,17 @@ final class CurrentUserIdProvider
 
 String _$currentUserIdHash() => r'1f94c42d2696bc1ffcab63a92690f48bb928df05';
 
-/// 認証関連の高レベルな操作（ログアウトなど）を提供するサービス
+/// 認証関連の高レベルな操作（ログアウト・再認証・アカウント削除など）を提供するサービス
 
 @ProviderFor(authService)
 final authServiceProvider = AuthServiceProvider._();
 
-/// 認証関連の高レベルな操作（ログアウトなど）を提供するサービス
+/// 認証関連の高レベルな操作（ログアウト・再認証・アカウント削除など）を提供するサービス
 
 final class AuthServiceProvider
     extends $FunctionalProvider<AuthService, AuthService, AuthService>
     with $Provider<AuthService> {
-  /// 認証関連の高レベルな操作（ログアウトなど）を提供するサービス
+  /// 認証関連の高レベルな操作（ログアウト・再認証・アカウント削除など）を提供するサービス
   AuthServiceProvider._()
     : super(
         from: null,
@@ -182,4 +182,4 @@ final class AuthServiceProvider
   }
 }
 
-String _$authServiceHash() => r'beba550f43a94a9aa331c70c1f5e371981d5d83f';
+String _$authServiceHash() => r'4750344e22a07dd9284372c5d206d4f8d8f5fd10';

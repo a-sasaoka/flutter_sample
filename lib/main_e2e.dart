@@ -127,6 +127,20 @@ class MockAuthRepository implements AuthRepository {
   Future<bool> refreshToken(String? expectedUserId) async {
     return true;
   }
+
+  @override
+  Future<String?> getCurrentEmail() async => 'e2e@example.com';
+
+  @override
+  Future<void> reauthenticate({
+    required String email,
+    required String password,
+  }) async {}
+
+  @override
+  Future<void> deleteAccount() async {
+    await tokenStorage.clear();
+  }
 }
 
 /// E2Eテスト用に常に「アップデートなし」を返すモックコントローラ

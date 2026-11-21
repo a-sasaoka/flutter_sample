@@ -1,6 +1,9 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
+import 'package:flutter_sample/src/core/exceptions/reauth_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
+import 'package:flutter_sample/src/core/utils/jwt_utils.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_session_lock.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
@@ -111,5 +114,56 @@ class AuthRepository {
       );
       return true;
     });
+  }
+
+  /// 保存済みアクセストークンから現在のメールアドレスを取得する（未取得時は null）
+  Future<String?> getCurrentEmail() async {
+    final token = await tokenStorage.getAccessToken();
+    if (token == null) {
+      return null;
+    }
+    return JwtUtils.getEmail(token);
+  }
+
+  /// パスワード再認証APIを呼び出す（カスタム認証用）
+  ///
+  /// パスワード誤り等による 401 はユーザー操作ミスとして
+  /// [ReauthWrongPasswordException] へ変換し、`talker.handle` の対象にはしません。
+  Future<void> reauthenticate({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      await api.post<Map<String, dynamic>>(
+        '/auth/reauthenticate',
+        data: {'email': email, 'password': password},
+      );
+    } on DioException catch (e) {
+      if (e.error is UnauthenticatedException) {
+        talker.warning('Custom auth reauthentication failed: invalid password');
+        throw const ReauthWrongPasswordException();
+      }
+      rethrow;
+    } on UnauthenticatedException {
+      talker.warning('Custom auth reauthentication failed: invalid password');
+      throw const ReauthWrongPasswordException();
+    }
+  }
+
+  /// アカウント削除APIを呼び出し、成功後にローカルのトークンを破棄する（カスタム認証用）
+  Future<void> deleteAccount() async {
+    final accessToken = await _sessionLock.synchronized(
+      tokenStorage.getAccessToken,
+    );
+    if (accessToken == null || accessToken.isEmpty) {
+      throw const AppException.unauthenticated();
+    }
+
+    await api.delete<void>(
+      '/auth/account',
+      options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
+    );
+
+    await _sessionLock.runSessionTransition(tokenStorage.clear);
   }
 }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart'; // Responseクラス用
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
+import 'package:flutter_sample/src/core/exceptions/reauth_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
@@ -86,11 +87,13 @@ void main() {
   setUpAll(() {
     registerFallbackValue(const AppException.unknown());
     registerFallbackValue(StackTrace.current);
+    registerFallbackValue(Options());
   });
 
   setUp(() {
     mockApi = MockApiClient();
     mockTalker = MockTalker();
+    when(() => mockTalker.warning(any<dynamic>())).thenReturn(null);
     when(
       () =>
           mockTalker.handle(any<Object>(), any<StackTrace?>(), any<dynamic>()),
@@ -749,5 +752,214 @@ void main() {
         check(repository.tokenStorage).equals(fakeStorage);
       },
     );
+  });
+
+  group('AuthRepository (reauthenticate & deleteAccount)', () {
+    test('getCurrentEmail: 保存済みJWTからemailクレームを取得できること', () async {
+      const jwtWithEmail =
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'
+          'eyJzdWIiOiJ1c2VyXzEyMyIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSJ9.'
+          'sig';
+      const jwtWithoutEmail =
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'
+          'eyJzdWIiOiJ1c2VyXzEyMyJ9.'
+          'sig';
+
+      final fakeStorage = FakeTokenStorage();
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      // トークン未保存時
+      check(await repo.getCurrentEmail()).isNull();
+
+      // email クレームあり
+      fakeStorage.savedAccessToken = jwtWithEmail;
+      check(await repo.getCurrentEmail()).equals('test@example.com');
+
+      // email クレームなし
+      fakeStorage.savedAccessToken = jwtWithoutEmail;
+      check(await repo.getCurrentEmail()).isNull();
+    });
+
+    test('reauthenticate: 成功時に POST /auth/reauthenticate が呼ばれること', () async {
+      final fakeStorage = FakeTokenStorage();
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+      final mockResponse = MockResponse();
+
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/reauthenticate',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockResponse);
+
+      await check(
+        repo.reauthenticate(email: 'test@example.com', password: 'password123'),
+      ).completes();
+
+      verify(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/reauthenticate',
+          data: any<dynamic>(
+            named: 'data',
+            that: equals({
+              'email': 'test@example.com',
+              'password': 'password123',
+            }),
+          ),
+        ),
+      ).called(1);
+    });
+
+    test('reauthenticate: DioException(UnauthenticatedException) の場合、 '
+        'ReauthWrongPasswordException へ変換され talker.handle は呼ばれないこと', () async {
+      final fakeStorage = FakeTokenStorage();
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/reauthenticate',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/auth/reauthenticate'),
+          error: const AppException.unauthenticated(),
+        ),
+      );
+
+      await check(
+        repo.reauthenticate(
+          email: 'test@example.com',
+          password: 'wrong-password',
+        ),
+      ).throws<ReauthWrongPasswordException>();
+
+      verify(() => mockTalker.warning(any<dynamic>())).called(1);
+      verifyNever(
+        () => mockTalker.handle(
+          any<Object>(),
+          any<StackTrace?>(),
+          any<dynamic>(),
+        ),
+      );
+    });
+
+    test('reauthenticate: 直接 UnauthenticatedException が投げられた場合も '
+        'ReauthWrongPasswordException へ変換されること', () async {
+      final fakeStorage = FakeTokenStorage();
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/reauthenticate',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenThrow(const AppException.unauthenticated());
+
+      await check(
+        repo.reauthenticate(
+          email: 'test@example.com',
+          password: 'wrong-password',
+        ),
+      ).throws<ReauthWrongPasswordException>();
+    });
+
+    test('reauthenticate: 401以外の DioException はそのまま再スローされること', () async {
+      final fakeStorage = FakeTokenStorage();
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/reauthenticate',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/auth/reauthenticate'),
+          error: const AppException.server(statusCode: 500),
+        ),
+      );
+
+      await check(
+        repo.reauthenticate(email: 'test@example.com', password: 'password123'),
+      ).throws<DioException>();
+    });
+
+    test('deleteAccount: アクセストークンが無い場合は '
+        'UnauthenticatedException を投げること', () async {
+      final fakeStorage = FakeTokenStorage();
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      await check(repo.deleteAccount()).throws<UnauthenticatedException>();
+
+      verifyNever(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      );
+    });
+
+    test('deleteAccount: 成功時は Bearer ヘッダー付きで削除APIを呼び、 '
+        '完了後にトークンを消去すること', () async {
+      final fakeStorage = FakeTokenStorage(initialRefreshToken: 'refresh-123')
+        ..savedAccessToken = 'access-123'
+        ..savedRefreshToken = 'refresh-123'
+        ..currentUserId = 'user-123';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer(
+        (_) async => Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+
+      await check(repo.deleteAccount()).completes();
+
+      final captured = verify(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: captureAny<Options?>(named: 'options'),
+        ),
+      ).captured;
+      final options = captured.single as Options?;
+      check(options?.headers?['Authorization']).equals('Bearer access-123');
+      check(fakeStorage.savedAccessToken).isNull();
+      check(fakeStorage.savedRefreshToken).isNull();
+      check(fakeStorage.currentUserId).isNull();
+    });
+
+    test('deleteAccount: API失敗時は例外を再スローし、トークンは消去しないこと', () async {
+      final fakeStorage = FakeTokenStorage(initialRefreshToken: 'refresh-123')
+        ..savedAccessToken = 'access-123'
+        ..savedRefreshToken = 'refresh-123';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenThrow(const AppException.server(statusCode: 500));
+
+      await check(repo.deleteAccount()).throws<ServerException>();
+
+      check(fakeStorage.savedAccessToken).equals('access-123');
+      check(fakeStorage.savedRefreshToken).equals('refresh-123');
+    });
   });
 }
