@@ -79,8 +79,64 @@ class StorageService {
     }
   }
 
+  /// 指定されたURLが Firebase Storage の削除対象URLかどうかを判定する
+  ///
+  /// Googleログイン由来の外部プロフィール画像URLやローカルファイルパス等が
+  /// 渡された場合に `refFromURL` で例外が発生するのを防ぐために使用します。
+  static bool isFirebaseStorageUrl(String url) {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) {
+      return false;
+    }
+
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null || uri.host.isEmpty) {
+      return false;
+    }
+
+    // gs://<bucket>/<object> 形式
+    if (uri.scheme == 'gs') {
+      return true;
+    }
+
+    if (uri.scheme != 'http' && uri.scheme != 'https') {
+      return false;
+    }
+
+    final host = uri.host.toLowerCase();
+
+    // 本番 Firebase Storage / Google Cloud Storage URL
+    if (host == 'firebasestorage.googleapis.com' ||
+        host == 'storage.googleapis.com' ||
+        host.endsWith('.firebasestorage.app')) {
+      return true;
+    }
+
+    // Firebase Storage Emulator URL (localhost / 127.0.0.1 / 10.0.2.2)
+    final isLocalEmulatorHost =
+        host == 'localhost' || host == '127.0.0.1' || host == '10.0.2.2';
+    if (isLocalEmulatorHost &&
+        (uri.path.startsWith('/v0/b/') ||
+            uri.path.startsWith('/download/storage/v1/b/'))) {
+      return true;
+    }
+
+    return false;
+  }
+
   /// アバター画像を URL を指定して Firebase Storage から削除する
+  ///
+  /// Firebase Storage 以外のURL（外部プロバイダ画像やローカルパス等）や空文字が渡された場合は
+  /// 例外を発生させず安全にスキップします。
   Future<void> deleteAvatarByUrl({required String avatarUrl}) async {
+    if (!isFirebaseStorageUrl(avatarUrl)) {
+      talker.debug(
+        'Skipped avatar deletion because URL is not Firebase Storage: '
+        '$avatarUrl',
+      );
+      return;
+    }
+
     try {
       talker.debug('Deleting avatar image by URL: $avatarUrl');
       final ref = storage.refFromURL(avatarUrl);

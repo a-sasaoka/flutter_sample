@@ -237,6 +237,66 @@ void main() {
         ).called(1);
       },
     );
+
+    test('deleteAvatarByUrl: 正常系 - '
+        'Firebase Storage以外のURLや空文字はrefFromURLを呼ばずスキップすること', () async {
+      const nonStorageUrls = <String>[
+        '',
+        '   ',
+        '/var/mobile/Containers/Data/avatar.jpg',
+        'https://lh3.googleusercontent.com/a/default-user',
+      ];
+
+      for (final url in nonStorageUrls) {
+        await check(service.deleteAvatarByUrl(avatarUrl: url)).completes();
+      }
+
+      verifyNever(() => mockStorage.refFromURL(any()));
+      verify(
+        () => mockTalker.debug(
+          any<String>(
+            that: contains(
+              'Skipped avatar deletion because URL is not Firebase Storage',
+            ),
+          ),
+        ),
+      ).called(nonStorageUrls.length);
+    });
+  });
+
+  group('StorageService.isFirebaseStorageUrl Tests', () {
+    test('Firebase Storage / Cloud Storage / Emulator のURLは true を返すこと', () {
+      const validUrls = <String>[
+        'gs://my-bucket/avatars/u1.jpg',
+        'https://firebasestorage.googleapis.com/v0/b/demo/o/a.jpg',
+        'https://storage.googleapis.com/demo-bucket/a.jpg',
+        'https://demo-project.firebasestorage.app/avatars/a.jpg',
+        'http://localhost:9199/v0/b/demo/o/a.jpg',
+        'http://127.0.0.1:9199/download/storage/v1/b/demo/o/a.jpg',
+        'http://10.0.2.2:9199/v0/b/demo/o/a.jpg',
+      ];
+
+      for (final url in validUrls) {
+        check(StorageService.isFirebaseStorageUrl(url)).isTrue();
+      }
+    });
+
+    test('空文字・不正URI・ローカルパス・外部画像URL等は false を返すこと', () {
+      const invalidUrls = <String>[
+        '',
+        '   ',
+        ':::invalid',
+        '/var/mobile/avatar.jpg',
+        'ftp://firebasestorage.googleapis.com/a.jpg',
+        'https://lh3.googleusercontent.com/a/photo',
+        'https://evil-firebasestorage.googleapis.com/a.jpg',
+        'http://localhost:3000/avatars/a.jpg',
+      ];
+
+      for (final url in invalidUrls) {
+        check(StorageService.isFirebaseStorageUrl(url)).isFalse();
+      }
+    });
   });
 
   group('storageServiceProvider Tests', () {

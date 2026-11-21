@@ -168,5 +168,28 @@ void main() {
         },
       );
     });
+
+    group('deleteMyAccountData', () {
+      test('DELETE /users/me が成功した際、正常に完了すること', () async {
+        when(() => mockApi.delete<void>('/users/me')).thenAnswer(
+          (_) async => Response(
+            requestOptions: RequestOptions(path: '/users/me'),
+            statusCode: 200,
+          ),
+        );
+
+        await check(repository.deleteMyAccountData()).completes();
+
+        verify(() => mockApi.delete<void>('/users/me')).called(1);
+      });
+
+      test('DELETE /users/me が失敗した際、例外がそのまま再スローされること', () async {
+        when(
+          () => mockApi.delete<void>('/users/me'),
+        ).thenThrow(const AppException.server(statusCode: 500));
+
+        await check(repository.deleteMyAccountData()).throws<ServerException>();
+      });
+    });
   });
 }

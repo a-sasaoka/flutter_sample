@@ -458,4 +458,17 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
       _markMemoMutated(userId, id);
     }
   }
+
+  /// 指定したユーザーのすべてのメモ（論理削除済み含む）を物理削除する
+  ///
+  /// アカウント退会時の完全データ消去用。他ユーザーのメモには影響しません。
+  Future<int> deleteAllMemosByUser(String userId) async {
+    final deletedCount = await (delete(
+      memos,
+    )..where((t) => t.userId.equals(userId))).go();
+    // 削除済みユーザーの変更シーケンスを掃除し、マージ保護用シーケンスを進める
+    _mutationSeq++;
+    _memoMutationSeqs.removeWhere((key, _) => key.$1 == userId);
+    return deletedCount;
+  }
 }

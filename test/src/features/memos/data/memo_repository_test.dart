@@ -3324,5 +3324,63 @@ void main() {
         check(spyTalker.handleCalls.single.exception).isA<StateError>();
       });
     });
+
+    group('deleteAllMemosByUser テスト', () {
+      test('対象ユーザーの全メモ（通常・論理削除済み）が物理削除され、他ユーザーのデータと同期トークンは残ること', () async {
+        final container = createContainer(isOnline: false);
+        addTearDown(container.dispose);
+        final repository = container.read(memoRepositoryProvider);
+        final syncQueue = container.read(memoSyncQueueProvider);
+
+        await database.memosDao.insertMemo(
+          MemosCompanion.insert(
+            id: 'user-active',
+            userId: testUserId,
+            title: '通常メモ',
+            content: '本文1',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+        await database.memosDao.insertMemo(
+          MemosCompanion.insert(
+            id: 'user-deleted',
+            userId: testUserId,
+            title: '論理削除済みメモ',
+            content: '本文2',
+            createdAt: now,
+            updatedAt: now,
+            isDeleted: const drift.Value(true),
+          ),
+        );
+        await database.memosDao.insertMemo(
+          MemosCompanion.insert(
+            id: 'other-user-memo',
+            userId: otherUserId,
+            title: '他ユーザーメモ',
+            content: '他ユーザー本文',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+        syncQueue
+          ..nextToken(testUserId, 'user-active')
+          ..nextToken(otherUserId, 'other-user-memo');
+
+        final deletedCount = await repository.deleteAllMemosByUser(testUserId);
+
+        check(deletedCount).equals(2);
+        check(syncQueue.currentToken(testUserId, 'user-active')).isNull();
+        check(
+          syncQueue.currentToken(otherUserId, 'other-user-memo'),
+        ).isNotNull();
+
+        final remainingRows = await database.select(database.memos).get();
+        check(remainingRows.length).equals(1);
+        check(remainingRows.single.id).equals('other-user-memo');
+        check(remainingRows.single.userId).equals(otherUserId);
+      });
+    });
   });
 }

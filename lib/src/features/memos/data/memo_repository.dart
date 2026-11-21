@@ -36,6 +36,11 @@ class MemoSyncQueue {
   /// 指定メモに対する現在の変更トークンを返す（未キュー時は null）
   int? currentToken(String userId, String id) => _latestTokens[(userId, id)];
 
+  /// 指定ユーザーに紐づく保留中の変更トークンをすべて破棄する
+  void clearUserTokens(String userId) {
+    _latestTokens.removeWhere((key, _) => key.$1 == userId);
+  }
+
   /// 同一メモの同期処理を先行タスクの完了後に直列実行する
   Future<void> enqueue(String userId, String id, Future<void> Function() task) {
     final key = (userId, id);
@@ -511,6 +516,19 @@ class MemoRepository {
     } on Exception catch (e, st) {
       _talker.handle(e, st, 'Failed to fetch data from the server');
     }
+  }
+
+  /// 指定したユーザーのすべてのローカルメモ（論理削除済み含む）を物理削除する
+  ///
+  /// アカウント退会時のクリーンアップ専用です。
+  /// 対象ユーザーの未完了同期トークンも無効化し、退会後の誤った同期反映を防ぎます。
+  Future<int> deleteAllMemosByUser(String userId) async {
+    _syncQueue.clearUserTokens(userId);
+    final deletedCount = await _dao.deleteAllMemosByUser(userId);
+    _talker.info(
+      'Physically deleted $deletedCount local memos for user: $userId',
+    );
+    return deletedCount;
   }
 }
 

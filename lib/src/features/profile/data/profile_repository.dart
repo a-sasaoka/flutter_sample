@@ -54,6 +54,13 @@ class ProfileRepository {
     return updated;
   }
 
+  /// ログイン中ユーザーのアカウントデータ（プロフィール・メモ等）をサーバーから削除する (DELETE /users/me)
+  Future<void> deleteMyAccountData() async {
+    talker.debug('Deleting account data via API...');
+    await api.delete<void>('/users/me');
+    talker.debug('Successfully deleted account data via API.');
+  }
+
   UserProfile _parseProfile(Object? responseData, String errorMessage) {
     if (responseData case final Map<String, dynamic> data) {
       try {

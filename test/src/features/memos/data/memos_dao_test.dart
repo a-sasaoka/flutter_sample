@@ -1654,5 +1654,62 @@ void main() {
         ).equals(serverCreated.millisecondsSinceEpoch ~/ 1000);
       });
     });
+
+    group('deleteAllMemosByUser テスト', () {
+      test('【正常系】対象ユーザーの通常メモ・論理削除済みメモをすべて物理削除し、'
+          '他ユーザーのメモには影響しないこと', () async {
+        final now = DateTime(2026, 11, 22, 9);
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'user-active-memo',
+            userId: testUserId,
+            title: '通常メモ',
+            content: '本文1',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'user-deleted-memo',
+            userId: testUserId,
+            title: '論理削除済みメモ',
+            content: '本文2',
+            createdAt: now,
+            updatedAt: now,
+            isDeleted: const Value(true),
+          ),
+        );
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'other-user-memo',
+            userId: otherUserId,
+            title: '他ユーザーメモ',
+            content: '他ユーザー本文',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+        final beforeSeq = dao.currentMutationSeq;
+        final deletedCount = await dao.deleteAllMemosByUser(testUserId);
+
+        check(deletedCount).equals(2);
+        check(dao.currentMutationSeq > beforeSeq).isTrue();
+
+        final remainingRows = await database.select(database.memos).get();
+        check(remainingRows.length).equals(1);
+        check(remainingRows.single.id).equals('other-user-memo');
+        check(remainingRows.single.userId).equals(otherUserId);
+      });
+
+      test('【正常系】対象ユーザーのメモが存在しない場合は 0 を返すこと', () async {
+        final deletedCount = await dao.deleteAllMemosByUser(
+          'non-existent-user',
+        );
+
+        check(deletedCount).equals(0);
+      });
+    });
   });
 }
