@@ -6,8 +6,8 @@ on:
   pull_request:
     # mainブランチへ向けたPull Requestが対象
     branches: [main]
-    # PR作成時、追記プッシュ時、再オープン時に実行
-    types: [opened, synchronize, reopened]
+    # PR作成時、追記プッシュ時、再オープン時、ドラフト解除時に実行
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: read
@@ -16,6 +16,8 @@ permissions:
 jobs:
   # テストを実行するメインのジョブ
   test:
+    # Draft PR の間はジョブを実行しない（ドラフト解除後に実行）
+    if: github.event.pull_request.draft == false
     # クラウド上の最新Ubuntu環境で実行
     runs-on: ubuntu-latest
 
