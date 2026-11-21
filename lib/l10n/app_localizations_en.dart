@@ -157,6 +157,28 @@ class AppLocalizationsEn extends AppLocalizations {
       'The password is too weak. Please make it more complex.';
 
   @override
+  String get errorRequiresRecentLogin =>
+      'Re-authentication is required to continue. Please verify your account and try again.';
+
+  @override
+  String get errorUserMismatch =>
+      'The selected account does not match the currently signed-in account. Please try again with the same account.';
+
+  @override
+  String get errorWrongPassword => 'The password is incorrect.';
+
+  @override
+  String get errorTooManyRequests =>
+      'Too many attempts. Please wait a while and try again.';
+
+  @override
+  String get errorReauthCancelled => 'Re-authentication was cancelled.';
+
+  @override
+  String get errorMissingEmail =>
+      'No email address is linked to this account. Please try another authentication method.';
+
+  @override
   String get homeTitle => 'Home';
 
   @override

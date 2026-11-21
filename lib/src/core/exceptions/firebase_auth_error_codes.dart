@@ -30,4 +30,15 @@ abstract final class FirebaseAuthErrorCodes {
   /// 新規登録時、指定したパスワードがFirebaseの要件（通常は6文字以上）を
   /// 満たしておらず、弱すぎる場合にスローされます。
   static const weakPassword = 'weak-password';
+
+  /// 再ログインから一定時間が経過しており、重要操作（退会・パスワード変更等）の
+  /// 前に再認証が必要な場合にスローされます。
+  static const requiresRecentLogin = 'requires-recent-login';
+
+  /// 再認証時などに、現在ログイン中のアカウントとは別のアカウント
+  /// （別メールアドレス・別Googleアカウント等）で認証しようとした場合にスローされます。
+  static const userMismatch = 'user-mismatch';
+
+  /// 短時間に試行が集中し、Firebase Auth のレート制限に達した場合にスローされます。
+  static const tooManyRequests = 'too-many-requests';
 }

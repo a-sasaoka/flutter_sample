@@ -4,8 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('AnalyticsEvent テスト', () {
-    test('定義されているAnalyticsイベントの数が正確に5つであること', () {
-      check(AnalyticsEvent.values.length).equals(5);
+    test('定義されているAnalyticsイベントの数が正確に6つであること', () {
+      check(AnalyticsEvent.values.length).equals(6);
     });
 
     test('各enumが正しいイベント名(文字列)を保持していること', () {
@@ -15,6 +15,7 @@ void main() {
       ).equals('home_analytics_button_tapped');
       check(AnalyticsEvent.loginSuccess.name).equals('login_success');
       check(AnalyticsEvent.logout.name).equals('logout');
+      check(AnalyticsEvent.accountDeleted.name).equals('account_deleted');
       check(AnalyticsEvent.errorOccurred.name).equals('error_occurred');
     });
   });

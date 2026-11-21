@@ -52,6 +52,12 @@
   "errorUserDisabled": "このアカウントは無効化されています。",
   "errorEmailAlreadyInUse": "このメールアドレスは既に登録されています。",
   "errorWeakPassword": "パスワードが弱すぎます。もう少し複雑にしてください。",
+  "errorRequiresRecentLogin": "操作を続けるには再認証が必要です。再度認証を行ってからもう一度お試しください。",
+  "errorUserMismatch": "現在ログイン中のアカウントと異なるアカウントが選択されました。ログイン中のアカウントで再度お試しください。",
+  "errorWrongPassword": "パスワードが正しくありません。",
+  "errorTooManyRequests": "試行回数が上限に達しました。しばらく時間をおいてから再度お試しください。",
+  "errorReauthCancelled": "再認証がキャンセルされました。",
+  "errorMissingEmail": "現在のアカウントにメールアドレスが設定されていません。別の認証方法をお試しください。",
 
   "@_HOME": {},
   "homeTitle": "ホーム",

@@ -74,5 +74,39 @@ void main() {
         check(JwtUtils.getUserId('invalid_token')).isNull();
       });
     });
+
+    group('getEmail', () {
+      test('email クレームが存在する場合にメールアドレスを返すこと', () {
+        final token = createTestJwt({'email': 'test@example.com'});
+        final email = JwtUtils.getEmail(token);
+
+        check(email).equals('test@example.com');
+      });
+
+      test('email クレームが存在しない場合は null を返すこと', () {
+        final token = createTestJwt({'sub': 'usr_123'});
+        final email = JwtUtils.getEmail(token);
+
+        check(email).isNull();
+      });
+
+      test('email クレームが空文字の場合は null を返すこと', () {
+        final token = createTestJwt({'email': ''});
+        final email = JwtUtils.getEmail(token);
+
+        check(email).isNull();
+      });
+
+      test('email クレームが文字列型ではない（数値等）の場合は null を返すこと', () {
+        final token = createTestJwt({'email': 12345});
+        final email = JwtUtils.getEmail(token);
+
+        check(email).isNull();
+      });
+
+      test('不正なトークンの場合は null を返すこと', () {
+        check(JwtUtils.getEmail('invalid_token')).isNull();
+      });
+    });
   });
 }

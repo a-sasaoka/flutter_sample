@@ -374,6 +374,42 @@ abstract class AppLocalizations {
   /// **'The password is too weak. Please make it more complex.'**
   String get errorWeakPassword;
 
+  /// No description provided for @errorRequiresRecentLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-authentication is required to continue. Please verify your account and try again.'**
+  String get errorRequiresRecentLogin;
+
+  /// No description provided for @errorUserMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The selected account does not match the currently signed-in account. Please try again with the same account.'**
+  String get errorUserMismatch;
+
+  /// No description provided for @errorWrongPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'The password is incorrect.'**
+  String get errorWrongPassword;
+
+  /// No description provided for @errorTooManyRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please wait a while and try again.'**
+  String get errorTooManyRequests;
+
+  /// No description provided for @errorReauthCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-authentication was cancelled.'**
+  String get errorReauthCancelled;
+
+  /// No description provided for @errorMissingEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'No email address is linked to this account. Please try another authentication method.'**
+  String get errorMissingEmail;
+
   /// No description provided for @homeTitle.
   ///
   /// In en, this message translates to:

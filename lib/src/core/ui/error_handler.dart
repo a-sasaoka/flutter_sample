@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/exceptions/firebase_auth_error_codes.dart';
+import 'package:flutter_sample/src/core/exceptions/reauth_exception.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:go_router/go_router.dart';
@@ -44,6 +45,11 @@ abstract final class ErrorHandler {
       return statusCode != null ? '$baseMessage ($statusCode)' : baseMessage;
     }
 
+    // 再認証・アカウント削除フロー用エラーの処理
+    if (actualError is ReauthException) {
+      return _localizeReauthException(l10n, actualError);
+    }
+
     // Firebase Authentication のエラー処理
     if (actualError is FirebaseAuthException) {
       return _localizeFirebaseAuthException(l10n, actualError);
@@ -51,6 +57,21 @@ abstract final class ErrorHandler {
 
     // それ以外の一般エラー
     return l10n.errorUnknown;
+  }
+
+  /// ReauthExceptionの翻訳
+  static String _localizeReauthException(
+    AppLocalizations l10n,
+    ReauthException error,
+  ) {
+    return switch (error) {
+      ReauthRequiresRecentLoginException() => l10n.errorRequiresRecentLogin,
+      ReauthWrongPasswordException() => l10n.errorWrongPassword,
+      ReauthUserMismatchException() => l10n.errorUserMismatch,
+      ReauthCancelledException() => l10n.errorReauthCancelled,
+      ReauthTooManyRequestsException() => l10n.errorTooManyRequests,
+      ReauthMissingEmailException() => l10n.errorMissingEmail,
+    };
   }
 
   /// FirebaseAuthExceptionの翻訳
@@ -66,6 +87,10 @@ abstract final class ErrorHandler {
       FirebaseAuthErrorCodes.invalidCredential => l10n.errorLoginFailed,
       FirebaseAuthErrorCodes.emailAlreadyInUse => l10n.errorEmailAlreadyInUse,
       FirebaseAuthErrorCodes.weakPassword => l10n.errorWeakPassword,
+      FirebaseAuthErrorCodes.requiresRecentLogin =>
+        l10n.errorRequiresRecentLogin,
+      FirebaseAuthErrorCodes.userMismatch => l10n.errorUserMismatch,
+      FirebaseAuthErrorCodes.tooManyRequests => l10n.errorTooManyRequests,
       _ => l10n.errorUnknown,
     };
   }

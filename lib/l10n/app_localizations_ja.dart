@@ -147,6 +147,26 @@ class AppLocalizationsJa extends AppLocalizations {
   String get errorWeakPassword => 'パスワードが弱すぎます。もう少し複雑にしてください。';
 
   @override
+  String get errorRequiresRecentLogin =>
+      '操作を続けるには再認証が必要です。再度認証を行ってからもう一度お試しください。';
+
+  @override
+  String get errorUserMismatch =>
+      '現在ログイン中のアカウントと異なるアカウントが選択されました。ログイン中のアカウントで再度お試しください。';
+
+  @override
+  String get errorWrongPassword => 'パスワードが正しくありません。';
+
+  @override
+  String get errorTooManyRequests => '試行回数が上限に達しました。しばらく時間をおいてから再度お試しください。';
+
+  @override
+  String get errorReauthCancelled => '再認証がキャンセルされました。';
+
+  @override
+  String get errorMissingEmail => '現在のアカウントにメールアドレスが設定されていません。別の認証方法をお試しください。';
+
+  @override
   String get homeTitle => 'ホーム';
 
   @override
