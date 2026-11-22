@@ -759,24 +759,32 @@ void main() {
           verify(mockUser.delete).called(1);
           verifyNever(mockGoogleSignIn.signOut);
 
-          // 正常削除: user.delete() 完了までは Google signOut() が呼ばれず、
-          // 完了後に初期化済みであることを保証した上で signOut() が呼ばれること
+          // 正常削除: user.delete() 完了までは initialize()/signOut() が呼ばれず、
+          // initialize() の完了を待ってから signOut() が1回だけ呼ばれること
           final deleteCompleter = Completer<void>();
+          final initializeCompleter = Completer<void>();
           when(mockUser.delete).thenAnswer((_) => deleteCompleter.future);
+          when(
+            mockGoogleSignIn.initialize,
+          ).thenAnswer((_) => initializeCompleter.future);
           when(mockGoogleSignIn.signOut).thenAnswer((_) async {});
 
           final deleteFuture = repo.deleteAccount();
           await Future<void>.delayed(Duration.zero);
 
           verify(mockUser.delete).called(1);
+          verifyNever(mockGoogleSignIn.initialize);
           verifyNever(mockGoogleSignIn.signOut);
 
           deleteCompleter.complete();
+          await Future<void>.delayed(Duration.zero);
+
+          verify(mockGoogleSignIn.initialize).called(1);
+          verifyNever(mockGoogleSignIn.signOut);
+
+          initializeCompleter.complete();
           await check(deleteFuture).completes();
-          verifyInOrder([
-            mockGoogleSignIn.initialize,
-            mockGoogleSignIn.signOut,
-          ]);
+          verify(mockGoogleSignIn.signOut).called(1);
 
           // 別リポジトリインスタンスでも同一 GoogleSignIn なら initialize() を再実行しないこと
           final secondRepo = FirebaseAuthRepository(

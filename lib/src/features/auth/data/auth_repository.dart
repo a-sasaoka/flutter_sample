@@ -1,13 +1,16 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_sample/src/app/constants/storage_keys.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/exceptions/reauth_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
+import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
 import 'package:flutter_sample/src/core/utils/jwt_utils.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_session_lock.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 part 'auth_repository.g.dart';
@@ -26,6 +29,7 @@ AuthRepository authRepository(Ref ref) {
     tokenStorage: ref.watch(tokenStorageProvider),
     talker: ref.watch(loggerProvider),
     sessionLock: ref.watch(authSessionLockProvider),
+    prefs: ref.watch(sharedPreferencesProvider),
   );
 }
 
@@ -36,8 +40,10 @@ class AuthRepository {
     required this.api,
     required this.tokenStorage,
     required this.talker,
+    required SharedPreferencesAsync prefs,
     AuthSessionLock? sessionLock,
-  }) : _sessionLock = sessionLock ?? AuthSessionLock();
+  }) : _prefs = prefs,
+       _sessionLock = sessionLock ?? AuthSessionLock();
 
   /// APIクライアント
   final ApiClient api;
@@ -48,6 +54,7 @@ class AuthRepository {
   /// ロガー
   final Talker talker;
 
+  final SharedPreferencesAsync _prefs;
   final AuthSessionLock _sessionLock;
 
   /// ログインAPIを呼び出し、トークンを保存する
@@ -61,10 +68,13 @@ class AuthRepository {
       'access_token': final String access,
       'refresh_token': final String refresh,
     }) {
-      await _sessionLock.runSessionTransition(
-        () =>
-            tokenStorage.saveTokens(accessToken: access, refreshToken: refresh),
-      );
+      await _sessionLock.runSessionTransition(() async {
+        await tokenStorage.saveTokens(
+          accessToken: access,
+          refreshToken: refresh,
+        );
+        await _prefs.remove(SharedPrefKeys.customAuthSessionInvalidated);
+      });
     } else {
       talker.handle(
         const AppException.dataParse(),
@@ -176,7 +186,24 @@ class AuthRepository {
     try {
       await _sessionLock.runSessionTransitionIfCurrent(
         expectedEpoch: startState.sessionEpoch,
-        action: tokenStorage.clear,
+        action: () async {
+          // clear() 失敗時や中断時でも次回起動時に復元されないよう先に無効化状態を記録する
+          await _runInvalidationFlagBestEffort(
+            action: () => _prefs.setBool(
+              SharedPrefKeys.customAuthSessionInvalidated,
+              true,
+            ),
+            errorMessage:
+                'Failed to persist invalidated custom auth session flag',
+          );
+          await tokenStorage.clear();
+          await _runInvalidationFlagBestEffort(
+            action: () =>
+                _prefs.remove(SharedPrefKeys.customAuthSessionInvalidated),
+            errorMessage:
+                'Failed to clear invalidated custom auth session flag',
+          );
+        },
       );
     } on Object catch (e, st) {
       // サーバー側のアカウント削除は既に完了しているため、
@@ -186,6 +213,17 @@ class AuthRepository {
         st,
         'Failed to clear local tokens after account deletion',
       );
+    }
+  }
+
+  Future<void> _runInvalidationFlagBestEffort({
+    required Future<void> Function() action,
+    required String errorMessage,
+  }) async {
+    try {
+      await action();
+    } on Object catch (e, st) {
+      talker.handle(e, st, errorMessage);
     }
   }
 }

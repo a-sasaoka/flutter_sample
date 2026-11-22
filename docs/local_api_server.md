@@ -110,8 +110,8 @@ graph TD
    - Emulator Suite UI（`http://localhost:4000/firestore`）から、保存されたデータをブラウザ上でリアルタイムに閲覧・確認できます。
    - ※アバター画像ファイル自体は、`useFirebaseAuth: true` の場合、クラウドの Firebase Storage（開発プロジェクト）へアップロードされ、そのダウンロードURLがローカルFirestoreに保持されます（Storageエミュレータは未接続のため画像ファイルのみクラウド連携となります。完全ローカル環境 `useFirebaseAuth: false` では端末内のローカルファイルパスが保持されます）。
 4. **退会時のサーバーデータ一括削除 (`DELETE /users/me`)**:
-   - [functions/src/index.ts](../functions/src/index.ts) の `users` 関数（`firstPath === "me"`）では ID トークンを検証してログイン中の UID を特定した上で、`db.recursiveDelete(docRef)` を実行する前に ID トークンの認証時刻（`auth_time`、トークン発行時刻ではなく最終認証時刻）がサーバー時刻から 5 分以内であることを検証し、未達の場合は `403`（`requires-recent-login`）で拒否します。
-   - また、退会処理と並行する書き込みが削除後に残るのを防ぐため、`db.recursiveDelete(docRef)` 開始前に削除対象ツリー外の `account_deletions/{uid}` へ退会状態（`deleting`、削除完了後 `deleted`）を記録します。`POST` / `PUT /memos` および `GET` / `PUT /users/me` は同一の Firestore トランザクション内で `account_deletions/{uid}` を確認して書き込みを拒否（`409`、プロフィール取得は `404`）しつつ、`DELETE /users/me` 自体の再試行は引き続き許可します。基準を満たす同一 UID のリクエストでは、`db.recursiveDelete(docRef)` により `users/{uid}` および配下のサブコレクション（`memos` 等）を再帰削除するとともに、`rate_limits/routes_${uid}` ドキュメントも合わせて削除します。
+   - [functions/src/index.ts](../functions/src/index.ts) の `users` 関数（`firstPath === "me"`）では ID トークンを検証してログイン中の UID を特定した上で、`db.recursiveDelete(docRef)` および `auth_time` 判定を実行する前に ID トークンの失効確認付き再検証を行い、失効済み・無効化済みトークンは `401` で拒否します。有効なトークンについては認証時刻（`auth_time`、トークン発行時刻ではなく最終認証時刻）がサーバー時刻から 5 分以内であることを検証し、未達の場合は `403`（`requires-recent-login`）で拒否します。
+   - また、退会処理と並行する書き込みが削除後に残るのを防ぐため、`db.recursiveDelete(docRef)` 開始前に削除対象ツリー外の `account_deletions/{uid}` へ退会状態（`deleting`、削除完了後 `deleted`）を記録します。`POST` / `PUT /memos`、`GET` / `PUT /users/me`、および `computeRoutesProxy` / `placesSearchProxy` のレート制限更新（`checkRateLimit`）は同一の Firestore トランザクション内で `account_deletions/{uid}` を確認して書き込みや処理続行を拒否（`409`、プロフィール取得は `404`）しつつ、`DELETE /users/me` 自体の再試行は引き続き許可します。基準を満たす同一 UID のリクエストでは、`db.recursiveDelete(docRef)` により `users/{uid}` および配下のサブコレクション（`memos` 等）を再帰削除するとともに、`rate_limits/routes_${uid}` ドキュメントも合わせて削除します。
 
 ---
 

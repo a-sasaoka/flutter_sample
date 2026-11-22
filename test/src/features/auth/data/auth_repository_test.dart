@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart'; // Responseクラス用
+import 'package:flutter_sample/src/app/constants/storage_keys.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/exceptions/reauth_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
+import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
@@ -14,6 +16,7 @@ import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 // --- モックとFakeクラスの定義 ---
@@ -29,6 +32,47 @@ class MockResponse extends Mock implements Response<Map<String, dynamic>> {}
 
 // Talkerのモック
 class MockTalker extends Mock implements Talker {}
+
+class _FakePrefsState {
+  final Map<String, bool> boolValues = <String, bool>{};
+  Exception? setBoolError;
+  Exception? removeError;
+}
+
+// SharedPreferencesAsyncのFake
+class FakeSharedPreferencesAsync extends Mock
+    implements SharedPreferencesAsync {
+  final _FakePrefsState _state = _FakePrefsState();
+
+  Map<String, bool> get boolValues => _state.boolValues;
+
+  Exception? get setBoolError => _state.setBoolError;
+
+  set setBoolError(Exception? error) => _state.setBoolError = error;
+
+  Exception? get removeError => _state.removeError;
+
+  set removeError(Exception? error) => _state.removeError = error;
+
+  @override
+  Future<bool?> getBool(String key) async => _state.boolValues[key];
+
+  @override
+  Future<void> setBool(String key, bool value) async {
+    if (_state.setBoolError != null) {
+      throw _state.setBoolError!;
+    }
+    _state.boolValues[key] = value;
+  }
+
+  @override
+  Future<void> remove(String key) async {
+    if (_state.removeError != null) {
+      throw _state.removeError!;
+    }
+    _state.boolValues.remove(key);
+  }
+}
 
 // TokenStorageのモック
 class FakeTokenStorage extends Mock implements TokenStorage {
@@ -88,6 +132,7 @@ class FakeTokenStorage extends Mock implements TokenStorage {
 void main() {
   late MockApiClient mockApi;
   late MockTalker mockTalker;
+  late FakeSharedPreferencesAsync fakePrefs;
 
   setUpAll(() {
     registerFallbackValue(const AppException.unknown());
@@ -98,6 +143,7 @@ void main() {
   setUp(() {
     mockApi = MockApiClient();
     mockTalker = MockTalker();
+    fakePrefs = FakeSharedPreferencesAsync();
     when(() => mockTalker.warning(any<dynamic>())).thenReturn(null);
     when(
       () =>
@@ -112,6 +158,7 @@ void main() {
         authApiClientProvider.overrideWithValue(mockApi),
         // 💡 修正: tokenStorageProvider は Notifier ではないので (ref) => の形でオーバーライドする
         tokenStorageProvider.overrideWith((ref) => fakeStorage),
+        sharedPreferencesProvider.overrideWithValue(fakePrefs),
         loggerProvider.overrideWithValue(mockTalker),
       ],
     );
@@ -702,6 +749,7 @@ void main() {
           api: mockApi,
           tokenStorage: fakeStorage,
           talker: mockTalker,
+          prefs: fakePrefs,
         );
         final mockResponse = MockResponse();
         when(
@@ -1026,11 +1074,14 @@ void main() {
       check(await fakeStorage.getAccessToken()).equals('access-new');
       check(await fakeStorage.getRefreshToken()).equals('refresh-new');
       check(await fakeStorage.getUserId()).equals('user-new');
+      check(
+        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
+      ).isNull();
       check(lock.sessionEpoch).equals(epochAfterNewLogin);
     });
 
     test('deleteAccount: サーバー削除成功後に tokenStorage.clear() が失敗しても、 '
-        'talker.handle へ記録して正常完了すること', () async {
+        'talker.handle へ記録して無効化フラグを永続化し、次回起動時は未ログインとなること', () async {
       final clearException = Exception('secure storage error');
       final fakeStorage =
           FakeTokenStorage(
@@ -1071,6 +1122,83 @@ void main() {
         ),
       ).called(1);
       check(container.read(authSessionLockProvider).sessionEpoch).equals(1);
+      check(
+        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
+      ).equals(true);
+      check(await fakeStorage.getAccessToken()).equals('access-123');
+
+      // 次回起動相当の新しい ProviderContainer でもログイン状態へ復元されないこと
+      final restartedContainer = createContainer(fakeStorage);
+      final restoredAuthState = await restartedContainer.read(
+        authStateProvider.future,
+      );
+      check(restoredAuthState).equals(false);
+    });
+
+    test('deleteAccount: 無効化フラグの永続化や解除が失敗しても記録のみで削除処理を続行し、 '
+        '再ログイン時はフラグを解除すること', () async {
+      final prefsSetError = Exception('prefs write failed');
+      final prefsRemoveError = Exception('prefs remove failed');
+      final fakeStorage = FakeTokenStorage(initialRefreshToken: 'refresh-123')
+        ..savedAccessToken = 'access-123'
+        ..savedRefreshToken = 'refresh-123';
+      fakePrefs
+        ..setBoolError = prefsSetError
+        ..removeError = prefsRemoveError;
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer(
+        (_) async => Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+
+      await check(repo.deleteAccount()).completes();
+
+      check(fakeStorage.savedAccessToken).isNull();
+      verify(
+        () => mockTalker.handle(
+          prefsSetError,
+          any<StackTrace?>(),
+          'Failed to persist invalidated custom auth session flag',
+        ),
+      ).called(1);
+      verify(
+        () => mockTalker.handle(
+          prefsRemoveError,
+          any<StackTrace?>(),
+          'Failed to clear invalidated custom auth session flag',
+        ),
+      ).called(1);
+
+      // 別のログインではセッション無効化フラグを確実に解除すること
+      fakePrefs
+        ..setBoolError = null
+        ..removeError = null
+        ..boolValues[SharedPrefKeys.customAuthSessionInvalidated] = true;
+      final mockLoginResponse = MockResponse();
+      when(() => mockLoginResponse.data).thenReturn({
+        'access_token': 'new-access',
+        'refresh_token': 'new-refresh',
+      });
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockLoginResponse);
+
+      await repo.login('user@example.com', 'password123');
+      check(
+        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
+      ).isNull();
     });
   });
 }

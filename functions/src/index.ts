@@ -30,10 +30,12 @@ function getAccountDeletionRef(
 /**
  * Express request helper to extract and verify Firebase ID token.
  * @param {object} req Express request with authorization header
+ * @param {boolean} checkRevoked Whether to verify token revocation status
  * @return {Promise<admin.auth.DecodedIdToken | null>} Decoded token or null
  */
 async function getDecodedTokenFromRequest(
-  req: { headers: { authorization?: string } }
+  req: { headers: { authorization?: string } },
+  checkRevoked = false
 ): Promise<admin.auth.DecodedIdToken | null> {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -41,7 +43,7 @@ async function getDecodedTokenFromRequest(
   }
   const idToken = authHeader.split("Bearer ")[1];
   try {
-    return await admin.auth().verifyIdToken(idToken);
+    return await admin.auth().verifyIdToken(idToken, checkRevoked);
   } catch (error) {
     logger.error("Token verification failed: ", error);
     return null;
@@ -422,8 +424,14 @@ export const users = onRequest(async (req, res) => {
           throw error;
         }
       } else if (req.method === "DELETE") {
+        // 失効・無効化済みトークンを拒否するため、失効確認付きで再検証する
+        const verifiedToken = await getDecodedTokenFromRequest(req, true);
+        if (!verifiedToken || verifiedToken.uid !== uid) {
+          res.status(401).send("Unauthorized");
+          return;
+        }
         // 破壊的削除の開始前に ID トークンの auth_time（5分以内）をサーバー側でも検証
-        if (!isRecentlyAuthenticated(decodedToken.auth_time)) {
+        if (!isRecentlyAuthenticated(verifiedToken.auth_time)) {
           res.status(403).json({
             code: "requires-recent-login",
             error: "Forbidden: Recent authentication required",
@@ -605,28 +613,37 @@ export const users = onRequest(async (req, res) => {
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const MAX_REQUESTS_PER_MINUTE = 30;
 
+type RateLimitStatus = "allowed" | "rate_limited" | "account_deleting";
+
 /**
- * Checks whether the specified UID exceeds the rate limit using Firestore.
+ * Checks account deletion state and rate limit for the UID using Firestore.
  *
  * @param {string} uid User ID.
- * @return {Promise<boolean>} True if allowed, false if rate limited.
+ * @return {Promise<RateLimitStatus>} Status of rate limit and deletion state.
  */
-async function checkRateLimit(uid: string): Promise<boolean> {
+async function checkRateLimit(uid: string): Promise<RateLimitStatus> {
   const now = Date.now();
   const docRef = admin
     .firestore()
     .collection("rate_limits")
     .doc(`routes_${uid}`);
+  const deletionStateRef = getAccountDeletionRef(uid);
 
   try {
     return await admin.firestore().runTransaction(async (tx) => {
+      // レート制限文書を書き込む前に退会状態を確認し、障害時フェイルオープンと区別する
+      const deletionSnap = await tx.get(deletionStateRef);
+      if (deletionSnap.exists) {
+        return "account_deleting";
+      }
+
       const snap = await tx.get(docRef);
       if (!snap.exists) {
         tx.set(docRef, {
           count: 1,
           resetAt: now + RATE_LIMIT_WINDOW_MS,
         });
-        return true;
+        return "allowed";
       }
 
       const data = snap.data();
@@ -638,23 +655,56 @@ async function checkRateLimit(uid: string): Promise<boolean> {
           count: 1,
           resetAt: now + RATE_LIMIT_WINDOW_MS,
         });
-        return true;
+        return "allowed";
       }
 
       if (count >= MAX_REQUESTS_PER_MINUTE) {
-        return false;
+        return "rate_limited";
       }
 
       tx.update(docRef, {
         count: count + 1,
       });
-      return true;
+      return "allowed";
     });
   } catch (error) {
     logger.error("Rate limit check failed in Firestore: ", error);
     // 障害時はユーザー操作をブロックしないようフェイルオープン
-    return true;
+    return "allowed";
   }
+}
+
+/**
+ * Verifies deletion state and rate limit, writing an HTTP error on block.
+ *
+ * @param {string} uid Authenticated user ID.
+ * @param {object} res Express response object.
+ * @return {Promise<boolean>} True if request is allowed, false if blocked.
+ */
+async function ensureProxyRequestAllowed(
+  uid: string,
+  res: {
+    status: (
+      code: number
+    ) => { json: (body: Record<string, string>) => unknown };
+  }
+): Promise<boolean> {
+  const rateLimitStatus = await checkRateLimit(uid);
+  if (rateLimitStatus === "account_deleting") {
+    res.status(409).json({
+      error: "Conflict: Account deletion in progress",
+    });
+    return false;
+  }
+  if (rateLimitStatus === "rate_limited") {
+    res.status(429).json({
+      error:
+        "Too Many Requests: リクエストが多すぎます。" +
+        "しばらく待ってから再試行してください。",
+    });
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -676,12 +726,8 @@ export const computeRoutesProxy = onRequest(async (req, res) => {
       return;
     }
 
-    // 2. ユーザーごとのレート制限チェック (Cloud Firestore による全インスタンス共通制御)
-    const isAllowed = await checkRateLimit(uid);
-    if (!isAllowed) {
-      res.status(429).json({
-        error: "Too Many Requests: リクエストが多すぎます。しばらく待ってから再試行してください。",
-      });
+    // 2. 退会状態およびユーザーごとのレート制限チェック (Cloud Firestore による全インスタンス共通制御)
+    if (!(await ensureProxyRequestAllowed(uid, res))) {
       return;
     }
 
@@ -860,14 +906,8 @@ export const placesSearchProxy = onRequest(async (req, res) => {
       return;
     }
 
-    // 2. ユーザーごとのレート制限チェック (Cloud Firestore トランザクション)
-    const isAllowed = await checkRateLimit(uid);
-    if (!isAllowed) {
-      res.status(429).json({
-        error:
-          "Too Many Requests: リクエストが多すぎます。" +
-          "しばらく待ってから再試行してください。",
-      });
+    // 2. 退会状態およびユーザーごとのレート制限チェック (Cloud Firestore トランザクション)
+    if (!(await ensureProxyRequestAllowed(uid, res))) {
       return;
     }
 

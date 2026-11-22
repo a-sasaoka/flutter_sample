@@ -66,7 +66,8 @@ void main() {
 
   void setMobileView(WidgetTester tester) {
     tester.view.physicalSize = const Size(1080, 1920);
-    tester.view.devicePixelRatio = 1.0;
+    // 論理サイズをスマホ相当の 360×640 に合わせる
+    tester.view.devicePixelRatio = 3.0;
     addTearDown(() {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();

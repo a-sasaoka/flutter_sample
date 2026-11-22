@@ -3437,13 +3437,17 @@ void main() {
           'CancelToken 中止と削除世代検証により再挿入されないこと', () async {
         final container = createContainer();
         addTearDown(container.dispose);
-        final repository = container.read(memoRepositoryProvider);
+        final subscription = container.listen(
+          memoRepositoryProvider,
+          (_, _) {},
+        );
+        addTearDown(subscription.close);
+        final repository = subscription.read();
 
-        final testFetchStarted = Completer<void>();
+        final testFetchTokenCompleter = Completer<CancelToken>();
+        final otherFetchTokenCompleter = Completer<CancelToken>();
         final testFetchGate = Completer<List<Map<String, dynamic>>>();
         final otherFetchGate = Completer<List<Map<String, dynamic>>>();
-        CancelToken? capturedTestCancelToken;
-        CancelToken? capturedOtherCancelToken;
 
         when(
           () => mockRemoteService.fetchMemos(
@@ -3454,11 +3458,14 @@ void main() {
           final uid = invocation.namedArguments[#expectedUserId] as String?;
           final token = invocation.namedArguments[#cancelToken] as CancelToken?;
           if (uid == testUserId) {
-            capturedTestCancelToken = token;
-            testFetchStarted.complete();
+            if (token != null && !testFetchTokenCompleter.isCompleted) {
+              testFetchTokenCompleter.complete(token);
+            }
             return testFetchGate.future;
           }
-          capturedOtherCancelToken = token;
+          if (token != null && !otherFetchTokenCompleter.isCompleted) {
+            otherFetchTokenCompleter.complete(token);
+          }
           return otherFetchGate.future;
         });
 
@@ -3475,24 +3482,22 @@ void main() {
 
         // 1. testUserId で取得を開始し、リモート応答待ちのまま停止
         final testFetchFuture = repository.fetchAndMergeRemoteMemos(testUserId);
-        await testFetchStarted.future;
-        check(capturedTestCancelToken).isNotNull();
-        check(capturedTestCancelToken!.isCancelled).isFalse();
+        final testCancelToken = await testFetchTokenCompleter.future;
+        check(testCancelToken.isCancelled).isFalse();
 
         // 別ユーザーの取得も並行開始しておく
         container.read(_testUserIdProvider.notifier).userId = otherUserId;
         final otherFetchFuture = repository.fetchAndMergeRemoteMemos(
           otherUserId,
         );
-        await Future<void>.delayed(Duration.zero);
-        check(capturedOtherCancelToken).isNotNull();
+        final otherCancelToken = await otherFetchTokenCompleter.future;
 
         // 2. 取得完了前に testUserId の退会（一括削除）を実行
         container.read(_testUserIdProvider.notifier).userId = testUserId;
         final deletedCount = await repository.deleteAllMemosByUser(testUserId);
         check(deletedCount).equals(1);
-        check(capturedTestCancelToken!.isCancelled).isTrue();
-        check(capturedOtherCancelToken!.isCancelled).isFalse();
+        check(testCancelToken.isCancelled).isTrue();
+        check(otherCancelToken.isCancelled).isFalse();
 
         // 3. CancelToken 中止前に受信済みだった古い応答が遅れて返っても破棄されること
         testFetchGate.complete([
@@ -3536,7 +3541,12 @@ void main() {
           'DioException(cancel) が投げられた場合、Crashlytics へ報告せず安全に終了すること', () async {
         final container = createContainer();
         addTearDown(container.dispose);
-        final repository = container.read(memoRepositoryProvider);
+        final subscription = container.listen(
+          memoRepositoryProvider,
+          (_, _) {},
+        );
+        addTearDown(subscription.close);
+        final repository = subscription.read();
 
         final fetchStarted = Completer<void>();
         when(
@@ -3573,7 +3583,12 @@ void main() {
           'または syncUnsentMemos 中に削除・取得中にユーザー切替が起きた場合はマージしないこと', () async {
         final container = createContainer();
         addTearDown(container.dispose);
-        final repository = container.read(memoRepositoryProvider);
+        final subscription = container.listen(
+          memoRepositoryProvider,
+          (_, _) {},
+        );
+        addTearDown(subscription.close);
+        final repository = subscription.read();
 
         // 1. 開始時点で未ログイン（null）なら fetchMemos を呼ばず終了
         container.read(_testUserIdProvider.notifier).userId = null;

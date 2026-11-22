@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:checks/checks.dart';
+import 'package:flutter_sample/src/app/constants/storage_keys.dart';
+import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_session_lock.dart';
@@ -8,8 +11,36 @@ import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
+
+class MockTalker extends Mock implements Talker {}
+
+class FakeSharedPreferencesAsync extends Mock
+    implements SharedPreferencesAsync {
+  FakeSharedPreferencesAsync({bool initialInvalidated = false}) {
+    if (initialInvalidated) {
+      boolValues[SharedPrefKeys.customAuthSessionInvalidated] = true;
+    }
+  }
+
+  final Map<String, bool> boolValues = <String, bool>{};
+
+  @override
+  Future<bool?> getBool(String key) async => boolValues[key];
+
+  @override
+  Future<void> setBool(String key, bool value) async {
+    boolValues[key] = value;
+  }
+
+  @override
+  Future<void> remove(String key) async {
+    boolValues.remove(key);
+  }
+}
 
 class FakeTokenStorage extends Mock implements TokenStorage {
   FakeTokenStorage({
@@ -19,10 +50,10 @@ class FakeTokenStorage extends Mock implements TokenStorage {
     this.shouldThrowOnClear = false,
   });
 
-  final String? mockAccessToken;
+  String? mockAccessToken;
   final Future<String?>? mockAccessTokenFuture;
   final bool shouldThrowOnSave;
-  final bool shouldThrowOnClear;
+  bool shouldThrowOnClear;
 
   // 呼び出し確認用のフラグ
   bool isSaveTokensCalled = false;
@@ -42,6 +73,7 @@ class FakeTokenStorage extends Mock implements TokenStorage {
     if (shouldThrowOnSave) {
       throw Exception('Failed to save tokens');
     }
+    mockAccessToken = accessToken;
   }
 
   @override
@@ -50,20 +82,39 @@ class FakeTokenStorage extends Mock implements TokenStorage {
     if (shouldThrowOnClear) {
       throw Exception('Failed to clear tokens');
     }
+    mockAccessToken = null;
   }
 }
 
 void main() {
+  late MockTalker mockTalker;
+
+  setUpAll(() {
+    registerFallbackValue(StackTrace.current);
+  });
+
+  setUp(() {
+    mockTalker = MockTalker();
+    when(
+      () =>
+          mockTalker.handle(any<Object>(), any<StackTrace?>(), any<dynamic>()),
+    ).thenReturn(null);
+  });
+
   /// テストごとにクリーンな ProviderContainer を作成するヘルパー
   ProviderContainer createContainer({
     FakeTokenStorage? fakeStorage,
+    FakeSharedPreferencesAsync? fakePrefs,
     MockAuthRepository? mockAuthRepository,
   }) {
     final storage = fakeStorage ?? FakeTokenStorage();
+    final prefs = fakePrefs ?? FakeSharedPreferencesAsync();
     final container = ProviderContainer(
       overrides: [
         // tokenStorageProvider を Fake クラスに差し替える
         tokenStorageProvider.overrideWith((ref) => storage),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        loggerProvider.overrideWithValue(mockTalker),
         // authRepositoryProvider を Mock クラスに差し替える
         if (mockAuthRepository != null)
           authRepositoryProvider.overrideWith((ref) => mockAuthRepository),
@@ -96,6 +147,53 @@ void main() {
 
       // Assert
       check(authState).equals(false);
+    });
+
+    test('初期化: セッション無効化フラグが立っている場合、残留トークンがあっても未ログイン(false)となり '
+        '再消去に成功すればフラグを解除すること', () async {
+      final fakeStorage = FakeTokenStorage(mockAccessToken: 'stale_token');
+      final fakePrefs = FakeSharedPreferencesAsync(initialInvalidated: true);
+      final container = createContainer(
+        fakeStorage: fakeStorage,
+        fakePrefs: fakePrefs,
+      );
+
+      final authState = await container.read(authStateProvider.future);
+
+      check(authState).equals(false);
+      check(fakeStorage.isClearCalled).equals(true);
+      check(fakeStorage.mockAccessToken).isNull();
+      check(
+        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
+      ).isNull();
+    });
+
+    test('初期化: セッション無効化フラグが立っており再消去にも失敗した場合、 '
+        'エラーを記録してフラグを保持したまま未ログイン(false)となること', () async {
+      final fakeStorage = FakeTokenStorage(
+        mockAccessToken: 'stale_token',
+        shouldThrowOnClear: true,
+      );
+      final fakePrefs = FakeSharedPreferencesAsync(initialInvalidated: true);
+      final container = createContainer(
+        fakeStorage: fakeStorage,
+        fakePrefs: fakePrefs,
+      );
+
+      final authState = await container.read(authStateProvider.future);
+
+      check(authState).equals(false);
+      check(fakeStorage.isClearCalled).equals(true);
+      check(
+        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
+      ).equals(true);
+      verify(
+        () => mockTalker.handle(
+          any<Object>(),
+          any<StackTrace?>(),
+          'Failed to clear invalidated custom auth tokens on startup',
+        ),
+      ).called(1);
     });
   });
 
@@ -358,6 +456,31 @@ void main() {
       verify(mockRepo.deleteAccount).called(1);
       check(container.read(authStateProvider).value).equals(true);
       check(container.read(authStateProvider).hasError).equals(false);
+    });
+
+    test('login / logout 実行時はセッション無効化フラグを解除すること', () async {
+      final fakeStorage = FakeTokenStorage(mockAccessToken: 'stale_token');
+      final fakePrefs = FakeSharedPreferencesAsync(initialInvalidated: true);
+      final container = createContainer(
+        fakeStorage: fakeStorage,
+        fakePrefs: fakePrefs,
+      );
+      await container.read(authStateProvider.future);
+      final notifier = container.read(authStateProvider.notifier);
+
+      fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated] = true;
+      await notifier.login('new_access', 'new_refresh');
+      check(
+        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
+      ).isNull();
+      check(container.read(authStateProvider).value).equals(true);
+
+      fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated] = true;
+      await notifier.logout();
+      check(
+        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
+      ).isNull();
+      check(container.read(authStateProvider).value).equals(false);
     });
   });
 }
