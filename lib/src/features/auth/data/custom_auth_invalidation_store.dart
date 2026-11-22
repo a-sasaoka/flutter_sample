@@ -10,9 +10,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'custom_auth_invalidation_store.g.dart';
 
-/// SQLite の [QueryExecutor] を生成するファクトリ関数型
-typedef QueryExecutorFactory = QueryExecutor Function(File databaseFile);
-
 class _StoreQueryExecutorUser implements QueryExecutorUser {
   const _StoreQueryExecutorUser();
 
@@ -56,12 +53,9 @@ class CustomAuthInvalidationStore {
   /// [CustomAuthInvalidationStore] を生成する
   CustomAuthInvalidationStore({
     required Future<Directory> Function() getDirectory,
-    @visibleForTesting QueryExecutorFactory? createExecutor,
-  }) : _getDirectory = getDirectory,
-       _createExecutor = createExecutor ?? createDurableDatabase;
+  }) : _getDirectory = getDirectory;
 
   final Future<Directory> Function() _getDirectory;
-  final QueryExecutorFactory _createExecutor;
 
   /// 永続化に使用する専用 SQLite データベースファイル名
   @visibleForTesting
@@ -141,7 +135,7 @@ class CustomAuthInvalidationStore {
     File dbFile,
     Future<T> Function(QueryExecutor executor) action,
   ) async {
-    final executor = _createExecutor(dbFile);
+    final executor = createDurableDatabase(dbFile);
     try {
       await executor.ensureOpen(const _StoreQueryExecutorUser());
       return await action(executor);

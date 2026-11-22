@@ -1,11 +1,26 @@
 import 'dart:io';
 
 import 'package:checks/checks.dart';
+import 'package:drift/backends.dart';
+import 'package:drift/drift.dart' show OpeningDetails;
 import 'package:drift/native.dart';
 import 'package:flutter_sample/src/features/auth/data/custom_auth_invalidation_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:path/path.dart' as p;
+
+class _TestQueryExecutorUser implements QueryExecutorUser {
+  const _TestQueryExecutorUser();
+
+  @override
+  int get schemaVersion => 1;
+
+  @override
+  Future<void> beforeOpen(
+    QueryExecutor executor,
+    OpeningDetails details,
+  ) async {}
+}
 
 void main() {
   late Directory tempRoot;
@@ -40,55 +55,51 @@ void main() {
       check(dbFile.existsSync()).equals(false);
     });
 
-    test('markInvalidated は耐久 PRAGMA を有効にした専用 SQLite DB へ書き込み、 '
-        '再インスタンス化後も true を返すこと', () async {
-      late String journalMode;
-      late int synchronousLevel;
-      late int fullFsyncFlag;
-
+    test('本番用 SQLite 接続に耐久 PRAGMA が設定され、markInvalidated 後に '
+        '再インスタンス化しても true を返すこと', () async {
       final store = CustomAuthInvalidationStore(
         getDirectory: () async => supportDir,
-        createExecutor: (file) {
-          return NativeDatabase(
-            file,
-            enableMigrations: false,
-            setup: (database) {
-              // 既定生成関数と同一構成を作成したうえで接続 PRAGMA 値を実測する
-              database
-                ..execute('PRAGMA busy_timeout = 5000;')
-                ..execute('PRAGMA journal_mode = DELETE;')
-                ..execute('PRAGMA synchronous = EXTRA;')
-                ..execute('PRAGMA fullfsync = ON;')
-                ..execute('''
-                  CREATE TABLE IF NOT EXISTS custom_auth_invalidation (
-                    id INTEGER PRIMARY KEY CHECK (id = 1),
-                    invalidated INTEGER NOT NULL
-                  );
-                ''');
-              journalMode =
-                  database.select('PRAGMA journal_mode;').single.columnAt(0)
-                      as String;
-              synchronousLevel =
-                  database.select('PRAGMA synchronous;').single.columnAt(0)
-                      as int;
-              fullFsyncFlag =
-                  database.select('PRAGMA fullfsync;').single.columnAt(0)
-                      as int;
-            },
-          );
-        },
       );
 
       await store.markInvalidated();
-
-      check(journalMode.toLowerCase()).equals('delete');
-      check(synchronousLevel).equals(3); // EXTRA
-      check(fullFsyncFlag).equals(1); // ON
 
       final dbFile = File(
         p.join(supportDir.path, CustomAuthInvalidationStore.databaseFileName),
       );
       check(dbFile.existsSync()).equals(true);
+
+      // 本番用の接続設定メソッド自身を開いて PRAGMA 実測値を検証する
+      final executor = CustomAuthInvalidationStore.createDurableDatabase(
+        dbFile,
+      );
+      try {
+        await executor.ensureOpen(const _TestQueryExecutorUser());
+        final journalRows = await executor.runSelect(
+          'PRAGMA journal_mode;',
+          const [],
+        );
+        final syncRows = await executor.runSelect(
+          'PRAGMA synchronous;',
+          const [],
+        );
+        final fullFsyncRows = await executor.runSelect(
+          'PRAGMA fullfsync;',
+          const [],
+        );
+        final busyTimeoutRows = await executor.runSelect(
+          'PRAGMA busy_timeout;',
+          const [],
+        );
+
+        check(
+          (journalRows.single.values.single! as String).toLowerCase(),
+        ).equals('delete');
+        check(syncRows.single.values.single).equals(3); // EXTRA
+        check(fullFsyncRows.single.values.single).equals(1); // ON
+        check(busyTimeoutRows.single.values.single).equals(5000);
+      } finally {
+        await executor.close();
+      }
 
       // 別インスタンスで再読み込みしても永続化状態が維持されていること
       final restartedStore = CustomAuthInvalidationStore(
