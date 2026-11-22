@@ -1161,6 +1161,39 @@ void main() {
       check(invalidationMarkerFile().existsSync()).equals(false);
     });
 
+    test('deleteAccount: マーカーリネーム後の親ディレクトリ同期に失敗した場合、 '
+        '削除要求を送らず例外を投げトークンが維持されること', () async {
+      final fakeStorage = FakeTokenStorage(initialRefreshToken: 'refresh-123')
+        ..savedAccessToken = 'access-123'
+        ..savedRefreshToken = 'refresh-123';
+      final container = ProviderContainer(
+        overrides: [
+          authApiClientProvider.overrideWithValue(mockApi),
+          tokenStorageProvider.overrideWith((ref) => fakeStorage),
+          appSupportDirectoryReaderProvider.overrideWithValue(
+            () async => tempDir,
+          ),
+          directorySyncerProvider.overrideWithValue(
+            (dir) async =>
+                throw FileSystemException('dir sync failed', dir.path),
+          ),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container.dispose);
+      final repo = container.read(authRepositoryProvider);
+
+      await check(repo.deleteAccount()).throws<FileSystemException>();
+
+      verifyNever(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      );
+      check(await fakeStorage.getAccessToken()).equals('access-123');
+    });
+
     test('deleteAccount: 削除処理中（API応答待ち）にアプリが終了しても、 '
         '次回起動時はログイン状態へ復元されず残留トークンが消去されること', () async {
       final fakeStorage = FakeTokenStorage(initialRefreshToken: 'refresh-123')
