@@ -1387,4 +1387,72 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get uiEffectsSubmitSuccess => 'データの送信が完了しました！';
+
+  @override
+  String get accountDeletionButton => 'アカウントを削除（退会）';
+
+  @override
+  String get accountDeletionStep1Title => 'アカウント削除の確認';
+
+  @override
+  String get accountDeletionStep1Description =>
+      'アカウントを削除すると、以下のデータが完全に消去され、元に戻すことはできません。';
+
+  @override
+  String get accountDeletionItemAccount => '・アカウントおよびログイン情報';
+
+  @override
+  String get accountDeletionItemProfile => '・プロフィール情報およびアバター画像';
+
+  @override
+  String get accountDeletionItemMemos => '・クラウドおよび端末内のすべてのメモ';
+
+  @override
+  String get accountDeletionItemHistory => '・QRスキャン履歴・キャッシュ・アプリロック設定';
+
+  @override
+  String get accountDeletionStep1Continue => '退会手続きへ進む';
+
+  @override
+  String get accountDeletionStep2Title => '最終確認';
+
+  @override
+  String get accountDeletionStep2Description =>
+      '本当によろしいですか？\nこの操作は取り消せません。アカウントと関連する全データが完全に削除されます。';
+
+  @override
+  String get accountDeletionStep2Confirm => 'アカウントを完全に削除する';
+
+  @override
+  String get accountDeletionProcessing => 'アカウントとデータを削除しています...';
+
+  @override
+  String get accountDeletionCompleted => 'アカウントを削除しました';
+
+  @override
+  String get reauthDialogTitle => '本人確認（再認証）';
+
+  @override
+  String get reauthDialogDescription => '安全のため、退会を完了する前にもう一度本人確認を行ってください。';
+
+  @override
+  String reauthTargetEmailLabel(String email) {
+    return '対象アカウント: $email';
+  }
+
+  @override
+  String get reauthPasswordTab => 'パスワード';
+
+  @override
+  String get reauthGoogleTab => 'Google';
+
+  @override
+  String get reauthPasswordSubmit => 'パスワードで確認して続行';
+
+  @override
+  String get reauthGoogleSubmit => 'Googleアカウントで再認証';
+
+  @override
+  String get reauthUnavailableProvider =>
+      '再認証に利用できる認証方法が見つかりませんでした。一度ログアウトして再度ログイン後にお試しください。';
 }

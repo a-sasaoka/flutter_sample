@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
 import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
+import 'package:flutter_sample/src/features/auth/application/account_deletion_notice_notifier.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/presentation/login_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -65,6 +66,7 @@ void main() {
     when(() => mockL10n.loginPasswordLabel).thenReturn('パスワード');
     when(() => mockL10n.loginButton).thenReturn('ログインする');
     when(() => mockL10n.loginSuccess).thenReturn('ログイン成功！');
+    when(() => mockL10n.accountDeletionCompleted).thenReturn('アカウントを削除しました');
 
     when(() => mockL10n.errorDialogTitle).thenReturn('エラーが発生しました');
     when(() => mockL10n.errorUnknown).thenReturn('予期しないエラーが発生しました');
@@ -286,6 +288,45 @@ void main() {
       await tester.pumpAndSettle();
 
       check(FocusScope.of(context).focusedChild).isNull();
+    });
+
+    testWidgets('退会完了フラグが ON の場合、画面表示後に完了SnackBarが表示されフラグが消費されること', (
+      tester,
+    ) async {
+      final router = GoRouter(
+        initialLocation: '/login',
+        routes: [
+          GoRoute(path: '/login', builder: (context, state) => LoginScreen()),
+        ],
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          authStateProvider.overrideWith(
+            () =>
+                FakeAuthStateNotifier(onLogin: (a, b) => mockLoginAction(a, b)),
+          ),
+          analyticsServiceProvider.overrideWithValue(mockAnalyticsService),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.read(accountDeletionNoticeProvider.notifier).markCompleted();
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: [MockLocalizationsDelegate(mockL10n)],
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      check(find.byType(SnackBar)).findsOne();
+      check(find.text('アカウントを削除しました')).findsOne();
+      check(container.read(accountDeletionNoticeProvider)).isFalse();
     });
   });
 }

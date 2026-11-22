@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/features/auth/application/account_deletion_notice_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_login_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -50,6 +51,7 @@ void main() {
     when(() => mockL10n.errorLoginFailed).thenReturn('ログインに失敗しました');
     when(() => mockL10n.errorUnknown).thenReturn('予期しないエラーが発生しました');
     when(() => mockL10n.close).thenReturn('閉じる');
+    when(() => mockL10n.accountDeletionCompleted).thenReturn('アカウントを削除しました');
   });
 
   /// テスト用のWidgetを構築するヘルパー
@@ -301,6 +303,44 @@ void main() {
       await tester.pumpAndSettle();
 
       check(FocusScope.of(context).focusedChild).isNull();
+    });
+
+    testWidgets('退会完了フラグが ON の場合、画面表示後に完了SnackBarが表示されフラグが消費されること', (
+      tester,
+    ) async {
+      final router = GoRouter(
+        initialLocation: '/login',
+        routes: [
+          GoRoute(
+            path: '/login',
+            builder: (context, state) => FirebaseLoginScreen(),
+          ),
+        ],
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.read(accountDeletionNoticeProvider.notifier).markCompleted();
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: [MockLocalizationsDelegate(mockL10n)],
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      check(find.byType(SnackBar)).findsOne();
+      check(find.text('アカウントを削除しました')).findsOne();
+      check(container.read(accountDeletionNoticeProvider)).isFalse();
     });
   });
 }

@@ -1427,4 +1427,74 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get uiEffectsSubmitSuccess => 'Data submission completed!';
+
+  @override
+  String get accountDeletionButton => 'Delete Account';
+
+  @override
+  String get accountDeletionStep1Title => 'Delete Account';
+
+  @override
+  String get accountDeletionStep1Description =>
+      'Deleting your account will permanently remove the following data and cannot be undone.';
+
+  @override
+  String get accountDeletionItemAccount => '• Account and sign-in credentials';
+
+  @override
+  String get accountDeletionItemProfile => '• Profile details and avatar image';
+
+  @override
+  String get accountDeletionItemMemos => '• All cloud and local memos';
+
+  @override
+  String get accountDeletionItemHistory =>
+      '• QR scan history, cache, and app lock settings';
+
+  @override
+  String get accountDeletionStep1Continue => 'Continue';
+
+  @override
+  String get accountDeletionStep2Title => 'Final Confirmation';
+
+  @override
+  String get accountDeletionStep2Description =>
+      'Are you sure?\nThis action cannot be reversed and all associated data will be permanently deleted.';
+
+  @override
+  String get accountDeletionStep2Confirm => 'Permanently Delete Account';
+
+  @override
+  String get accountDeletionProcessing => 'Deleting account and data...';
+
+  @override
+  String get accountDeletionCompleted => 'Your account has been deleted.';
+
+  @override
+  String get reauthDialogTitle => 'Verify Your Identity';
+
+  @override
+  String get reauthDialogDescription =>
+      'For your security, please verify your identity before deleting your account.';
+
+  @override
+  String reauthTargetEmailLabel(String email) {
+    return 'Account: $email';
+  }
+
+  @override
+  String get reauthPasswordTab => 'Password';
+
+  @override
+  String get reauthGoogleTab => 'Google';
+
+  @override
+  String get reauthPasswordSubmit => 'Verify and Continue';
+
+  @override
+  String get reauthGoogleSubmit => 'Re-authenticate with Google';
+
+  @override
+  String get reauthUnavailableProvider =>
+      'No supported re-authentication method was found. Please sign out, sign in again, and try again.';
 }

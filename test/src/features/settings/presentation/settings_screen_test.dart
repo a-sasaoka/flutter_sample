@@ -11,7 +11,10 @@ import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/config/text_scale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_scheme_provider.dart';
+import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
+import 'package:flutter_sample/src/core/exceptions/reauth_exception.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
+import 'package:flutter_sample/src/features/auth/domain/account_deletion_precheck.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -174,7 +177,51 @@ void main() {
     // エラーハンドラー経由で表示される翻訳キー
     when(() => mockL10n.errorUnknown).thenReturn('不明なエラー');
     when(() => mockL10n.errorOccurred).thenReturn('エラーが発生しました');
+    when(() => mockL10n.errorServer).thenReturn('サーバーエラー');
+    when(() => mockL10n.errorRequiresRecentLogin).thenReturn('再認証が必要です');
+    when(() => mockL10n.errorWrongPassword).thenReturn('パスワードが正しくありません');
+    when(() => mockL10n.errorUserMismatch).thenReturn('アカウントが一致しません');
+    when(() => mockL10n.errorReauthCancelled).thenReturn('再認証がキャンセルされました');
     when(() => mockL10n.settingsPreview).thenReturn('プレビュー');
+
+    // アカウント削除・再認証関連の翻訳キー
+    when(() => mockL10n.cancel).thenReturn('キャンセル');
+    when(() => mockL10n.accountDeletionButton).thenReturn('アカウントを削除（退会）');
+    when(() => mockL10n.accountDeletionStep1Title).thenReturn('アカウント削除の確認');
+    when(
+      () => mockL10n.accountDeletionStep1Description,
+    ).thenReturn('以下のデータが完全に消去されます。');
+    when(() => mockL10n.accountDeletionItemAccount).thenReturn('・アカウント情報');
+    when(() => mockL10n.accountDeletionItemProfile).thenReturn('・プロフィール');
+    when(() => mockL10n.accountDeletionItemMemos).thenReturn('・メモ');
+    when(() => mockL10n.accountDeletionItemHistory).thenReturn('・履歴');
+    when(() => mockL10n.accountDeletionStep1Continue).thenReturn('退会手続きへ進む');
+    when(() => mockL10n.accountDeletionStep2Title).thenReturn('最終確認');
+    when(
+      () => mockL10n.accountDeletionStep2Description,
+    ).thenReturn('本当によろしいですか？');
+    when(
+      () => mockL10n.accountDeletionStep2Confirm,
+    ).thenReturn('アカウントを完全に削除する');
+    when(
+      () => mockL10n.accountDeletionProcessing,
+    ).thenReturn('アカウントとデータを削除しています...');
+    when(() => mockL10n.reauthDialogTitle).thenReturn('本人確認（再認証）');
+    when(() => mockL10n.reauthDialogDescription).thenReturn('再認証を行ってください。');
+    when(
+      () => mockL10n.reauthTargetEmailLabel(any()),
+    ).thenAnswer((invocation) => '対象: ${invocation.positionalArguments[0]}');
+    when(() => mockL10n.reauthPasswordTab).thenReturn('パスワード');
+    when(() => mockL10n.reauthGoogleTab).thenReturn('Google');
+    when(() => mockL10n.reauthPasswordSubmit).thenReturn('パスワードで確認して続行');
+    when(() => mockL10n.reauthGoogleSubmit).thenReturn('Googleアカウントで再認証');
+    when(() => mockL10n.reauthUnavailableProvider).thenReturn('認証手段なし');
+    when(() => mockL10n.loginEmailLabel).thenReturn('メールアドレス');
+    when(() => mockL10n.loginPasswordLabel).thenReturn('パスワード入力');
+    when(() => mockL10n.validationEmailRequired).thenReturn('メール必須');
+    when(() => mockL10n.validationEmailInvalid).thenReturn('メール不正');
+    when(() => mockL10n.validationPasswordRequired).thenReturn('パスワード必須');
+    when(() => mockL10n.validationNotOnlyWhitespace).thenReturn('空白のみ禁止');
 
     // 認証サービスメソッドのスタブ
     when(() => mockAuthService.signOut()).thenAnswer((_) async {});
@@ -536,6 +583,358 @@ void main() {
         await tester.pumpAndSettle();
 
         check(find.textContaining('Navigated to /privacy')).findsOne();
+      });
+
+      group('アカウント削除', () {
+        Future<void> openStep1(WidgetTester tester) async {
+          final deleteButton = find.byKey(const Key('delete_account_button'));
+          await tester.dragUntilVisible(
+            deleteButton,
+            find.byType(ListView),
+            const Offset(0, -300),
+          );
+          await tester.tap(deleteButton);
+          await tester.pumpAndSettle();
+        }
+
+        Future<void> proceedToStep2(WidgetTester tester) async {
+          await openStep1(tester);
+          await tester.tap(
+            find.byKey(const Key('account_deletion_step1_continue')),
+          );
+          await tester.pumpAndSettle();
+        }
+
+        testWidgets('未認証時はアカウント削除ボタンが表示されないこと', (tester) async {
+          await tester.pumpWidget(createTestWidget(isAuthed: false));
+          await tester.pumpAndSettle();
+
+          await tester.drag(find.byType(ListView), const Offset(0, -600));
+          await tester.pumpAndSettle();
+
+          check(find.byKey(const Key('delete_account_button'))).findsNothing();
+        });
+
+        testWidgets('認証済み時はスクロール後にアカウント削除ボタンが表示されること', (tester) async {
+          await tester.pumpWidget(createTestWidget());
+          await tester.pumpAndSettle();
+
+          final deleteButton = find.byKey(const Key('delete_account_button'));
+          await tester.dragUntilVisible(
+            deleteButton,
+            find.byType(ListView),
+            const Offset(0, -300),
+          );
+
+          check(deleteButton).findsOne();
+          check(find.text('アカウントを削除（退会）')).findsOne();
+        });
+
+        testWidgets('Step 1 ダイアログでキャンセルした場合、Step 2 や削除処理に進まないこと', (
+          tester,
+        ) async {
+          await tester.pumpWidget(createTestWidget());
+          await tester.pumpAndSettle();
+
+          await openStep1(tester);
+          await tester.tap(
+            find.byKey(const Key('account_deletion_step1_cancel')),
+          );
+          await tester.pumpAndSettle();
+
+          check(
+            find.byKey(const Key('account_deletion_step2_confirm')),
+          ).findsNothing();
+          verifyNever(() => mockAuthService.checkReauthRequirement());
+          verifyNever(() => mockAuthService.deleteAccount());
+        });
+
+        testWidgets('Step 2 ダイアログでキャンセルした場合、事前チェックや削除処理に進まないこと', (
+          tester,
+        ) async {
+          await tester.pumpWidget(createTestWidget());
+          await tester.pumpAndSettle();
+
+          await proceedToStep2(tester);
+          await tester.tap(
+            find.byKey(const Key('account_deletion_step2_cancel')),
+          );
+          await tester.pumpAndSettle();
+
+          verifyNever(() => mockAuthService.checkReauthRequirement());
+          verifyNever(() => mockAuthService.deleteAccount());
+        });
+
+        testWidgets('事前チェック（checkReauthRequirement）失敗時、エラーSnackBarを表示すること', (
+          tester,
+        ) async {
+          when(
+            () => mockAuthService.checkReauthRequirement(),
+          ).thenThrow(const AppException.server(statusCode: 500));
+
+          await tester.pumpWidget(createTestWidget());
+          await tester.pumpAndSettle();
+
+          await proceedToStep2(tester);
+          await tester.tap(
+            find.byKey(const Key('account_deletion_step2_confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          check(find.textContaining('サーバーエラー')).findsOne();
+          verifyNever(() => mockAuthService.deleteAccount());
+        });
+
+        testWidgets('直近ログインが新鮮な場合、再認証なしで処理中ダイアログ表示後に deleteAccount が完了すること', (
+          tester,
+        ) async {
+          final deleteCompleter = Completer<void>();
+          when(() => mockAuthService.checkReauthRequirement()).thenAnswer(
+            (_) async => const AccountDeletionPrecheck(
+              requiresReauthentication: false,
+              availableMethods: {ReauthMethod.password},
+              email: 'user@example.com',
+            ),
+          );
+          when(
+            () => mockAuthService.deleteAccount(),
+          ).thenAnswer((_) => deleteCompleter.future);
+
+          await tester.pumpWidget(createTestWidget());
+          await tester.pumpAndSettle();
+
+          await proceedToStep2(tester);
+          await tester.tap(
+            find.byKey(const Key('account_deletion_step2_confirm')),
+          );
+          await tester.pump();
+          await tester.pump();
+
+          check(
+            find.byKey(const Key('account_deletion_processing_dialog')),
+          ).findsOne();
+
+          deleteCompleter.complete();
+          await tester.pumpAndSettle();
+
+          check(
+            find.byKey(const Key('account_deletion_processing_dialog')),
+          ).findsNothing();
+          verify(() => mockAuthService.deleteAccount()).called(1);
+        });
+
+        testWidgets('事前再認証モーダルでキャンセルした場合、deleteAccount は呼ばれないこと', (
+          tester,
+        ) async {
+          when(() => mockAuthService.checkReauthRequirement()).thenAnswer(
+            (_) async => const AccountDeletionPrecheck(
+              requiresReauthentication: true,
+              availableMethods: {ReauthMethod.password},
+              email: 'user@example.com',
+            ),
+          );
+
+          await tester.pumpWidget(createTestWidget());
+          await tester.pumpAndSettle();
+
+          await proceedToStep2(tester);
+          await tester.tap(
+            find.byKey(const Key('account_deletion_step2_confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          check(find.text('本人確認（再認証）')).findsOne();
+          await tester.tap(find.byKey(const Key('reauth_cancel_button')));
+          await tester.pumpAndSettle();
+
+          verifyNever(() => mockAuthService.deleteAccount());
+        });
+
+        testWidgets('事前再認証（パスワード）成功後に deleteAccount が実行されること', (tester) async {
+          when(() => mockAuthService.checkReauthRequirement()).thenAnswer(
+            (_) async => const AccountDeletionPrecheck(
+              requiresReauthentication: true,
+              availableMethods: {ReauthMethod.password},
+              email: 'user@example.com',
+            ),
+          );
+          when(
+            () => mockAuthService.reauthenticateWithPassword(
+              password: 'secret-password',
+              email: 'user@example.com',
+            ),
+          ).thenAnswer((_) async {});
+          when(() => mockAuthService.deleteAccount()).thenAnswer((_) async {});
+
+          await tester.pumpWidget(createTestWidget());
+          await tester.pumpAndSettle();
+
+          await proceedToStep2(tester);
+          await tester.tap(
+            find.byKey(const Key('account_deletion_step2_confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          await tester.enterText(
+            find.byKey(const Key('reauth_password_field')),
+            'secret-password',
+          );
+          await tester.tap(
+            find.byKey(const Key('reauth_password_submit_button')),
+          );
+          await tester.pumpAndSettle();
+
+          verify(
+            () => mockAuthService.reauthenticateWithPassword(
+              password: 'secret-password',
+              email: 'user@example.com',
+            ),
+          ).called(1);
+          verify(() => mockAuthService.deleteAccount()).called(1);
+        });
+
+        testWidgets('事前再認証（Google）成功後に deleteAccount が実行されること', (tester) async {
+          when(() => mockAuthService.checkReauthRequirement()).thenAnswer(
+            (_) async => const AccountDeletionPrecheck(
+              requiresReauthentication: true,
+              availableMethods: {ReauthMethod.google},
+            ),
+          );
+          when(
+            () => mockAuthService.reauthenticateWithGoogle(),
+          ).thenAnswer((_) async {});
+          when(() => mockAuthService.deleteAccount()).thenAnswer((_) async {});
+
+          await tester.pumpWidget(createTestWidget());
+          await tester.pumpAndSettle();
+
+          await proceedToStep2(tester);
+          await tester.tap(
+            find.byKey(const Key('account_deletion_step2_confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          await tester.tap(
+            find.byKey(const Key('reauth_google_submit_button')),
+          );
+          await tester.pumpAndSettle();
+
+          verify(() => mockAuthService.reauthenticateWithGoogle()).called(1);
+          verify(() => mockAuthService.deleteAccount()).called(1);
+        });
+
+        testWidgets(
+          '事後 ReauthRequiresRecentLoginException 時に再認証モーダル経由で再試行し完了すること',
+          (tester) async {
+            var deleteAttempt = 0;
+            when(() => mockAuthService.checkReauthRequirement()).thenAnswer(
+              (_) async => const AccountDeletionPrecheck(
+                requiresReauthentication: false,
+                availableMethods: {ReauthMethod.password},
+                email: 'user@example.com',
+              ),
+            );
+            when(() => mockAuthService.deleteAccount()).thenAnswer((_) async {
+              deleteAttempt++;
+              if (deleteAttempt == 1) {
+                throw const ReauthRequiresRecentLoginException();
+              }
+            });
+            when(
+              () => mockAuthService.reauthenticateWithPassword(
+                password: 'retry-password',
+                email: 'user@example.com',
+              ),
+            ).thenAnswer((_) async {});
+
+            await tester.pumpWidget(createTestWidget());
+            await tester.pumpAndSettle();
+
+            await proceedToStep2(tester);
+            await tester.tap(
+              find.byKey(const Key('account_deletion_step2_confirm')),
+            );
+            await tester.pumpAndSettle();
+
+            // フォールバック再認証モーダルが表示されること
+            check(find.text('本人確認（再認証）')).findsOne();
+            await tester.enterText(
+              find.byKey(const Key('reauth_password_field')),
+              'retry-password',
+            );
+            await tester.tap(
+              find.byKey(const Key('reauth_password_submit_button')),
+            );
+            await tester.pumpAndSettle();
+
+            check(deleteAttempt).equals(2);
+            verify(() => mockAuthService.deleteAccount()).called(2);
+          },
+        );
+
+        testWidgets(
+          '再試行後も ReauthRequiresRecentLoginException が続く場合はエラーSnackBarを表示すること',
+          (tester) async {
+            when(() => mockAuthService.checkReauthRequirement()).thenAnswer(
+              (_) async => const AccountDeletionPrecheck(
+                requiresReauthentication: false,
+                availableMethods: {ReauthMethod.google},
+              ),
+            );
+            when(
+              () => mockAuthService.deleteAccount(),
+            ).thenThrow(const ReauthRequiresRecentLoginException());
+            when(
+              () => mockAuthService.reauthenticateWithGoogle(),
+            ).thenAnswer((_) async {});
+
+            await tester.pumpWidget(createTestWidget());
+            await tester.pumpAndSettle();
+
+            await proceedToStep2(tester);
+            await tester.tap(
+              find.byKey(const Key('account_deletion_step2_confirm')),
+            );
+            await tester.pumpAndSettle();
+
+            await tester.tap(
+              find.byKey(const Key('reauth_google_submit_button')),
+            );
+            await tester.pumpAndSettle();
+
+            verify(() => mockAuthService.deleteAccount()).called(2);
+            check(find.text('再認証が必要です')).findsOne();
+          },
+        );
+
+        testWidgets(
+          'deleteAccount が一般例外を投げた場合、処理中ダイアログを閉じてエラーSnackBarを表示すること',
+          (tester) async {
+            when(() => mockAuthService.checkReauthRequirement()).thenAnswer(
+              (_) async => const AccountDeletionPrecheck(
+                requiresReauthentication: false,
+                availableMethods: {ReauthMethod.password},
+              ),
+            );
+            when(
+              () => mockAuthService.deleteAccount(),
+            ).thenThrow(const AppException.server(statusCode: 500));
+
+            await tester.pumpWidget(createTestWidget());
+            await tester.pumpAndSettle();
+
+            await proceedToStep2(tester);
+            await tester.tap(
+              find.byKey(const Key('account_deletion_step2_confirm')),
+            );
+            await tester.pumpAndSettle();
+
+            check(
+              find.byKey(const Key('account_deletion_processing_dialog')),
+            ).findsNothing();
+            check(find.textContaining('サーバーエラー')).findsOne();
+          },
+        );
       });
     });
   });

@@ -2731,6 +2731,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Data submission completed!'**
   String get uiEffectsSubmitSuccess;
+
+  /// No description provided for @accountDeletionButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get accountDeletionButton;
+
+  /// No description provided for @accountDeletionStep1Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get accountDeletionStep1Title;
+
+  /// No description provided for @accountDeletionStep1Description.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting your account will permanently remove the following data and cannot be undone.'**
+  String get accountDeletionStep1Description;
+
+  /// No description provided for @accountDeletionItemAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'• Account and sign-in credentials'**
+  String get accountDeletionItemAccount;
+
+  /// No description provided for @accountDeletionItemProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'• Profile details and avatar image'**
+  String get accountDeletionItemProfile;
+
+  /// No description provided for @accountDeletionItemMemos.
+  ///
+  /// In en, this message translates to:
+  /// **'• All cloud and local memos'**
+  String get accountDeletionItemMemos;
+
+  /// No description provided for @accountDeletionItemHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'• QR scan history, cache, and app lock settings'**
+  String get accountDeletionItemHistory;
+
+  /// No description provided for @accountDeletionStep1Continue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get accountDeletionStep1Continue;
+
+  /// No description provided for @accountDeletionStep2Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Final Confirmation'**
+  String get accountDeletionStep2Title;
+
+  /// No description provided for @accountDeletionStep2Description.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure?\nThis action cannot be reversed and all associated data will be permanently deleted.'**
+  String get accountDeletionStep2Description;
+
+  /// No description provided for @accountDeletionStep2Confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently Delete Account'**
+  String get accountDeletionStep2Confirm;
+
+  /// No description provided for @accountDeletionProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting account and data...'**
+  String get accountDeletionProcessing;
+
+  /// No description provided for @accountDeletionCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account has been deleted.'**
+  String get accountDeletionCompleted;
+
+  /// No description provided for @reauthDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Your Identity'**
+  String get reauthDialogTitle;
+
+  /// No description provided for @reauthDialogDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'For your security, please verify your identity before deleting your account.'**
+  String get reauthDialogDescription;
+
+  /// No description provided for @reauthTargetEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Account: {email}'**
+  String reauthTargetEmailLabel(String email);
+
+  /// No description provided for @reauthPasswordTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get reauthPasswordTab;
+
+  /// No description provided for @reauthGoogleTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Google'**
+  String get reauthGoogleTab;
+
+  /// No description provided for @reauthPasswordSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify and Continue'**
+  String get reauthPasswordSubmit;
+
+  /// No description provided for @reauthGoogleSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-authenticate with Google'**
+  String get reauthGoogleSubmit;
+
+  /// No description provided for @reauthUnavailableProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'No supported re-authentication method was found. Please sign out, sign in again, and try again.'**
+  String get reauthUnavailableProvider;
 }
 
 class _AppLocalizationsDelegate

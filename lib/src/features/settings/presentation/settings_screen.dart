@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sample/src/app/router/app_router.dart';
@@ -5,9 +7,13 @@ import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/config/text_scale_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_scheme_provider.dart';
+import 'package:flutter_sample/src/core/exceptions/reauth_exception.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
+import 'package:flutter_sample/src/features/auth/domain/account_deletion_precheck.dart';
+import 'package:flutter_sample/src/features/settings/presentation/widgets/account_deletion_dialogs.dart';
+import 'package:flutter_sample/src/features/settings/presentation/widgets/reauthenticate_dialog.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// 設定画面ウィジェット
@@ -93,6 +99,9 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 48),
             // ログアウトボタン
             const _LogoutButton(),
+            const SizedBox(height: 16),
+            // アカウント削除（退会）ボタン
+            const _DeleteAccountButton(),
           ],
         ],
       ),
@@ -359,6 +368,131 @@ class _LogoutButton extends ConsumerWidget {
         foregroundColor: Theme.of(context).colorScheme.onError,
       ),
       onPressed: () => _handleLogout(context, ref),
+    );
+  }
+}
+
+/// アカウント削除（退会）ボタン
+class _DeleteAccountButton extends ConsumerWidget {
+  const _DeleteAccountButton();
+
+  Future<AccountDeletionPrecheck?> _loadPrecheck(
+    BuildContext context,
+    AuthService authService,
+  ) async {
+    try {
+      return await authService.checkReauthRequirement();
+    } on Exception catch (e) {
+      if (context.mounted) {
+        ErrorHandler.showSnackBar(context, e);
+      }
+      return null;
+    }
+  }
+
+  Future<bool> _confirmAndReauthenticate(
+    BuildContext context,
+    AuthService authService,
+    AccountDeletionPrecheck precheck,
+  ) async {
+    return await ReauthenticateDialog.show(
+      context,
+      availableMethods: precheck.availableMethods,
+      email: precheck.email,
+      onPasswordSubmit: (password, email) => authService
+          .reauthenticateWithPassword(password: password, email: email),
+      onGoogleSubmit: authService.reauthenticateWithGoogle,
+    );
+  }
+
+  Future<void> _handleDeleteAccount(BuildContext context, WidgetRef ref) async {
+    final step1Confirmed = await AccountDeletionStep1Dialog.show(context);
+    if (!step1Confirmed || !context.mounted) return;
+
+    final step2Confirmed = await AccountDeletionStep2Dialog.show(context);
+    if (!step2Confirmed || !context.mounted) return;
+
+    final authService = ref.read(authServiceProvider);
+    final precheck = await _loadPrecheck(context, authService);
+    if (precheck == null || !context.mounted) return;
+
+    if (precheck.requiresReauthentication) {
+      final reauthenticated = await _confirmAndReauthenticate(
+        context,
+        authService,
+        precheck,
+      );
+      if (!reauthenticated || !context.mounted) return;
+    }
+
+    const maxAttempts = 2;
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      if (!context.mounted) return;
+      final rootNavigator = Navigator.of(context, rootNavigator: true);
+      var isProcessingDialogOpen = true;
+
+      void closeProcessingDialog() {
+        if (isProcessingDialogOpen && rootNavigator.mounted) {
+          isProcessingDialogOpen = false;
+          rootNavigator.pop();
+        }
+      }
+
+      unawaited(
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const AccountDeletionProcessingDialogContent(),
+        ).whenComplete(() {
+          isProcessingDialogOpen = false;
+        }),
+      );
+
+      try {
+        await authService.deleteAccount();
+        return;
+      } on ReauthRequiresRecentLoginException catch (e) {
+        closeProcessingDialog();
+        if (attempt >= maxAttempts - 1 || !context.mounted) {
+          if (context.mounted) {
+            ErrorHandler.showSnackBar(context, e);
+          }
+          return;
+        }
+        final retryPrecheck = await _loadPrecheck(context, authService);
+        if (retryPrecheck == null || !context.mounted) return;
+        final reauthenticated = await _confirmAndReauthenticate(
+          context,
+          authService,
+          retryPrecheck,
+        );
+        if (!reauthenticated || !context.mounted) return;
+      } on Exception catch (e) {
+        closeProcessingDialog();
+        if (context.mounted) {
+          ErrorHandler.showSnackBar(context, e);
+        }
+        return;
+      } finally {
+        closeProcessingDialog();
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return OutlinedButton.icon(
+      key: const Key('delete_account_button'),
+      icon: const Icon(Icons.delete_forever_outlined),
+      label: Text(l10n.accountDeletionButton),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: colorScheme.error,
+        side: BorderSide(color: colorScheme.error.withValues(alpha: 0.6)),
+      ),
+      onPressed: () => _handleDeleteAccount(context, ref),
     );
   }
 }
