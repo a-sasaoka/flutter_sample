@@ -166,7 +166,7 @@ void main() {
   group('AccountDeletionProcessingDialogContent', () {
     testWidgets('ローディング表示と PopScope(canPop: false) が設定されていること', (tester) async {
       await tester.pumpWidget(
-        buildApp(const AccountDeletionProcessingDialogContent()),
+        buildApp(AccountDeletionProcessingDialogContent(key: UniqueKey())),
       );
       await tester.pump();
 
