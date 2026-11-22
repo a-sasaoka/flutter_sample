@@ -315,10 +315,34 @@ Drift（SQLite）を使用したローカルメモ帳画面です。
   - テーマ設定（システム、ライト、ダーク）のボタンが選択したテーマに応じてアクティブに切り替わっているか。
   - テーマカラー設定（インディゴ、ティール、オレンジ、ピンク）のチップが表示され、選択状態が分かりやすいか。
   - 文字サイズ設定（小、標準、大）のボタンと、プレビューテキスト（「文字サイズのプレビュー表示です」）が正しく配置されているか。
-  - 言語設定（システム依存、日本語、英語）、法的情報（利用規約、プライバシーポリシー）、およびログアウトボタンが表示されているか。
+  - 言語設定（システム依存、日本語、英語）、法的情報（利用規約、プライバシーポリシー）、ログアウトボタン、およびアカウント削除（退会）ボタンが表示されているか。
   - ダークモード時にもスイッチや設定項目が正しく視認できるか。
-  - 全カードが途切れずに確認できるよう、縦幅（1400px）が十分に確保されているか。
+  - 全カードが途切れずに確認できるよう、縦幅（1460px）が十分に確保されているか。
 - **画像リンク**: [📷 画像を表示する (settings_screen.png)](../test/src/features/settings/presentation/goldens/macos/settings_screen.png)
+
+#### アカウント削除確認ダイアログ群 (AccountDeletionDialogs)
+
+アカウント退会操作時に段階的に表示される確認ダイアログ・処理中ダイアログです（定義元: [account_deletion_dialogs_golden_test.dart](../test/src/features/settings/presentation/widgets/account_deletion_dialogs_golden_test.dart)）。
+
+- **テスト対象**:
+  - **Step 1（影響範囲説明）**: [📷 画像を表示 (account_deletion_step1_dialog.png)](../test/src/features/settings/presentation/widgets/goldens/macos/account_deletion_step1_dialog.png)（ライト/ダークモード）
+  - **Step 2（最終確認）**: [📷 画像を表示 (account_deletion_step2_dialog.png)](../test/src/features/settings/presentation/widgets/goldens/macos/account_deletion_step2_dialog.png)（ライト/ダークモード）
+  - **処理中ローディング**: [📷 画像を表示 (account_deletion_processing_dialog.png)](../test/src/features/settings/presentation/widgets/goldens/macos/account_deletion_processing_dialog.png)（ライト/ダークモード）
+- **チェックポイント**:
+  - Step 1 で警告アイコン、赤系ハイライトボックス内の削除項目一覧、および「キャンセル」「退会手続きへ進む」ボタンが正しく表示されているか。
+  - Step 2 で最終確認の赤い破壊的アクションボタン（「アカウントを完全に削除する」）がライト/ダーク双方で視認できるか。
+  - 処理中ダイアログでインジケータと処理中メッセージが枠内に綺麗に収まっているか。
+
+#### 本人確認（再認証）ダイアログ (ReauthenticateDialog)
+
+アカウント退会前の本人確認および `requires-recent-login` 発生時に表示される再認証モーダルです（定義元: [reauthenticate_dialog_golden_test.dart](../test/src/features/settings/presentation/widgets/reauthenticate_dialog_golden_test.dart)）。
+
+- **テスト対象**:
+  - **パスワードのみ・エラーバナー表示**: [📷 画像を表示 (reauthenticate_dialog_password.png)](../test/src/features/settings/presentation/widgets/goldens/macos/reauthenticate_dialog_password.png)（計4状態: 通常 ライト/ダーク、エラー表示 ライト/ダーク）
+  - **Googleのみ・両方連携タブ**: [📷 画像を表示 (reauthenticate_dialog_providers.png)](../test/src/features/settings/presentation/widgets/goldens/macos/reauthenticate_dialog_providers.png)（計4状態: Googleのみ ライト/ダーク、両方連携 ライト/ダーク）
+- **チェックポイント**:
+  - 対象メールアドレス表示、パスワード入力欄と表示切替アイコン、エラーバナー（`errorContainer` 背景）の文字コントラストが適切に保たれているか。
+  - Google のみ連携時は Google 再認証ボタンのみが表示され、両方連携時は `SegmentedButton`（「パスワード」「Google」）が折り返しやクリップなく整列しているか。
 
 #### 起動画面 (SplashScreen)
 

@@ -22,7 +22,7 @@
 ```plaintext
 functions/
  ├── src/
- │    └── index.ts     # APIのエントリポイント（memos、users/me、users、computeRoutesProxy、placesSearchProxyを実装）
+ │    └── index.ts     # APIのエントリポイント（memos、users/me (GET/PUT/DELETE)、users、computeRoutesProxy、placesSearchProxyを実装）
  ├── package.json      # Node.jsの依存関係パッケージとビルドスクリプトの定義
  └── tsconfig.json     # TypeScript of コンパイル設定
 ```
@@ -109,6 +109,8 @@ graph TD
    - 特定した UID を元に、ローカルの Firestore エミュレータ（`users/{uid}` のプロフィール情報・`avatarUrl` や `users/{uid}/memos`、`rate_limits` など）にテキスト・メタデータを安全に保存します。ローカル完結のため、クラウドの本番・開発DBを汚すことなく自由にテスト・デバッグが可能です。
    - Emulator Suite UI（`http://localhost:4000/firestore`）から、保存されたデータをブラウザ上でリアルタイムに閲覧・確認できます。
    - ※アバター画像ファイル自体は、`useFirebaseAuth: true` の場合、クラウドの Firebase Storage（開発プロジェクト）へアップロードされ、そのダウンロードURLがローカルFirestoreに保持されます（Storageエミュレータは未接続のため画像ファイルのみクラウド連携となります。完全ローカル環境 `useFirebaseAuth: false` では端末内のローカルファイルパスが保持されます）。
+4. **退会時のサーバーデータ一括削除 (`DELETE /users/me`)**:
+   - [functions/src/index.ts](../functions/src/index.ts) の `users` 関数（`firstPath === "me"`）では ID トークンを検証してログイン中の UID を特定し、`db.recursiveDelete(docRef)` により `users/{uid}` および配下のサブコレクション（`memos` 等）を再帰削除するとともに、`rate_limits/routes_${uid}` ドキュメントも合わせて削除します。
 
 ---
 

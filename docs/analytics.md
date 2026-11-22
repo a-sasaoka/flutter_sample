@@ -43,6 +43,7 @@ UI層から FirebaseAnalytics を直接操作するのではなく、**`Analytic
 - **イベントの送信（UI層から）**: `ref.read(analyticsServiceProvider).logEvent(event: AnalyticsEvent.xxx, parameters: ...)` を呼び出すことで、型安全にイベントが送信されます。具体的な呼び出し例は [home_screen.dart](../lib/src/features/home/presentation/home_screen.dart) などを参照してください。
 - **ユーザー識別と属性設定**: `setUserId()` や `setUserProperty()` を使用してログインユーザーの追跡やセグメント分析を行います。実装詳細は [analytics_service.dart](../lib/src/core/analytics/analytics_service.dart) および [analytics_service_test.dart](../test/src/core/analytics/analytics_service_test.dart) を参照してください。
 - **サインアウト・アカウント変更時の自動連動**: [analytics_service.dart](../lib/src/core/analytics/analytics_service.dart) の `analyticsServiceProvider` 内で [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の `currentUserIdProvider` をリアクティブに監視（`ref.listen`）しています。独自認証環境でもJWTの `sub` クレームから抽出された `customUserId` が提供されるため、Firebase認証と同様にログイン時は自動的にユーザーIDがセット（`setUserId(customUserId)`）され、サインアウト時やアカウント切り替え時は自動的にクリア（`setUserId(null)`）されるため、UI側で意識することなく分析データ上でのユーザー混同を防止します（Issue #314）。
+- **アカウント退会完了イベントの記録**: [analytics_event.dart](../lib/src/core/analytics/analytics_event.dart) に `AnalyticsEvent.accountDeleted`（`account_deleted`）を定義しており、[auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の退会処理において認証状態の解除（`setUserId(null)`）が行われる前にイベントを記録します。
 
 ---
 

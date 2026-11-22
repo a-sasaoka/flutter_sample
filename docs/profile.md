@@ -54,6 +54,8 @@
   - 共通ウィジェット [`AppCachedImage.circle`](../lib/src/core/widgets/app_cached_image.dart) を使用し、ネットワークから読み込んだ画像はディスクおよびメモリに自動キャッシュされ、通信量と描画パフォーマンスを最適化します。
 - **ローカルモック環境 (`useFirebaseAuth: false`) への配慮**:
   - Firebase を利用しない環境では外部 Storage との通信を自動スキップし、自前サーバーの更新のみを正常に行う安全設計となっています。
+- **退会時のアバター削除ガードとプロフィール一括削除 (Issue #324)**:
+  - [profile_repository.dart](../lib/src/features/profile/data/profile_repository.dart) の `deleteMyAccountData()`（`DELETE /users/me`）によりサーバー側のプロフィール・関連データを削除する前段として、[storage_service.dart](../lib/src/features/profile/data/storage_service.dart) の `StorageService.isFirebaseStorageUrl()` で Firebase Storage 以外の URL（Google アバター URL やローカルファイルパス・空文字）を安全にスキップし、`object-not-found` も正常扱いとすることで退会処理の中断を防いでいます。
 
 ---
 

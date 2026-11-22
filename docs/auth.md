@@ -10,20 +10,26 @@
 トークン認証に関わるファイルは、責務ごとに適切なレイヤー（基盤層・機能層）に美しく分離されています。
 
 ```plaintext
-lib/src/core/utils/
- └── jwt_utils.dart                # JWTペイロードデコード（subクレーム抽出）
+lib/src/core/
+ ├── exceptions/
+ │    └── reauth_exception.dart                    # 再認証・退会フロー制御用の例外クラス (Freezed + sealed class)
+ └── utils/
+      └── jwt_utils.dart                           # JWTペイロードデコード（sub / emailクレーム抽出）
 lib/src/app/constants/
- └── storage_keys.dart             # customUserId等のセキュアストレージキー定義
+ └── storage_keys.dart                             # customUserId等のセキュアストレージキー定義
 lib/src/features/auth/
+ ├── domain/
+ │    └── account_deletion_precheck.dart           # 退会前の再認証要否・利用可能手段モデル (Freezed + sealed class)
  ├── application/
- │    ├── auth_service.dart        # 共通ログアウト・認証状態判定・ユーザーID提供・プロフィール更新
- │    └── auth_state_notifier.dart # トークン認証状態の管理
+ │    ├── account_deletion_notice_notifier.dart    # 退会完了後の遷移先画面向けワンショット通知フラグ
+ │    ├── auth_service.dart                        # 共通ログアウト・認証状態判定・ユーザーID提供・プロフィール更新・アカウント完全退会
+ │    └── auth_state_notifier.dart                 # トークン認証状態の管理
  └── data/
-      ├── token_storage.dart       # トークンおよびユーザーIDの永続化（SecureStorage利用）
-      ├── token_interceptor.dart   # DioのInterceptor（トークン自動付与・排他リフレッシュ制御）
-      ├── auth_session_lock.dart   # 認証セッション読み書き・ユーザー照合の直列化ロック
-      ├── auth_repository.dart     # ログイン処理・トークンリフレッシュAPIの呼び出し
-      └── auth_overrides.dart      # 認証系プロバイダーの動的切り替え・オーバーライド設定
+      ├── token_storage.dart                       # トークンおよびユーザーIDの永続化（SecureStorage利用）
+      ├── token_interceptor.dart                   # DioのInterceptor（トークン自動付与・排他リフレッシュ制御）
+      ├── auth_session_lock.dart                   # 認証セッション読み書き・ユーザー照合の直列化ロック
+      ├── auth_repository.dart                     # ログイン・トークンリフレッシュ・再認証・アカウント削除APIの呼び出し
+      └── auth_overrides.dart                      # 認証系プロバイダーの動的切り替え・オーバーライド設定
 ```
 
 ---
@@ -156,6 +162,16 @@ lib/src/features/auth/
 | **ホーム画面ウィジェット** | `HomeWidgetSyncCoordinator` | OS共有ストレージ（App Groups等）のデータを空状態に更新し、ウィジェット再描画を要求 | [ウィジェット仕様](home_widget.md) |
 | **プッシュ通知** | `NotificationNotifier` | FCMトークン破棄、端末通知全消去、状態リセットを実行。再ログイン時に新トークンを自動再取得 | [プッシュ通知仕様](notification.md) |
 | **メモ機能** | `MemoNotifier` | 未ログイン時は空リストを返却し、ログイン時に当該ユーザー（`userId`）のメモのみをリアクティブに再読み込み | [メモ仕様](memos.md) |
+
+### アカウント完全退会（4段階クリーンアップ＆再認証オーケストレーション） (Issue #324)
+
+`AuthService`（[auth_service.dart](../lib/src/features/auth/application/auth_service.dart)）では、Firebase Auth とカスタム認証（`useFirebaseAuth: false`）のいずれにおいても統一されたフローでアカウント完全退会を実行できるよう、`checkReauthRequirement()`・`reauthenticateWithPassword()`・`reauthenticateWithGoogle()`・`deleteAccount()` を提供しています。
+
+- **4段階の安全な実行順序**: 削除開始前に `targetUserId` とアバター URL 候補を退避した上で、**① Firebase Storage アバター削除**（[storage_service.dart](../lib/src/features/profile/data/storage_service.dart)、非 Storage URL や `object-not-found` は安全にスキップ）➔ **② サーバー DB 削除（`DELETE /users/me`）**（[profile_repository.dart](../lib/src/features/profile/data/profile_repository.dart)）➔ **③ Auth アカウント削除**（[firebase_auth_repository.dart](../lib/src/features/auth/data/firebase_auth_repository.dart) / [auth_repository.dart](../lib/src/features/auth/data/auth_repository.dart) ＋ [auth_state_notifier.dart](../lib/src/features/auth/application/auth_state_notifier.dart)）➔ **④ ローカル一括クリーンアップ** の順で実行します。
+- **ローカル一括消去と端末設定の保持**: ④ではサインアウト連動の自律破棄に加え、該当ユーザーのメモ物理削除（[memos_dao.dart](../lib/src/features/memos/data/memos_dao.dart) / [memo_repository.dart](../lib/src/features/memos/data/memo_repository.dart)）、QR スキャン履歴全削除（[qr_scan_histories_dao.dart](../lib/src/features/qr_scanner/data/qr_scan_histories_dao.dart)）、ユーザー一覧キャッシュ削除（`CacheManager.clear('users')`）を実行し、端末設定（テーマ・文字サイズ・ロケール・オンボーディング完了状態）のみ保持します。
+- **途中失敗時の補償と再認証フォールバック**: ①・②の段階で失敗した場合は③へ進まず中断し、システム例外を `talker.handle()` 経由で Crashlytics へ送信しつつリトライ可能エラーを表示します。③で `requires-recent-login` が返された場合もローカルデータ削除前のためデータを失わずに再認証フローへ復帰でき、③成功後の④で失敗した場合は Crashlytics へ記録しつつ強制的にサインアウト完了状態へ移行します。
+- **カスタム認証（非Firebase）の再認証・退会 API**: [jwt_utils.dart](../lib/src/core/utils/jwt_utils.dart) の `getEmail()` でアクセストークンの `email` クレームを取得し、[auth_repository.dart](../lib/src/features/auth/data/auth_repository.dart) で `POST /auth/reauthenticate` および `DELETE /auth/account`（`TokenInterceptor` ループ回避のため認証用 `ApiClient` と明示的 Bearer ヘッダーを利用）を実行します。
+- **型安全な再認証モデル・例外・完了通知**: 再認証要否と利用可能手段は [account_deletion_precheck.dart](../lib/src/features/auth/domain/account_deletion_precheck.dart)、フロー制御用エラーは [reauth_exception.dart](../lib/src/core/exceptions/reauth_exception.dart) で定義しています。また GoRouter リダイレクト時に `SnackBarNavigationObserver` が SnackBar を消去するのを防ぐため、[account_deletion_notice_notifier.dart](../lib/src/features/auth/application/account_deletion_notice_notifier.dart) のワンショット通知フラグを遷移後の [login_screen.dart](../lib/src/features/auth/presentation/login_screen.dart) / [firebase_login_screen.dart](../lib/src/features/auth/presentation/firebase_login_screen.dart) の `useEffect` ＋ `addPostFrameCallback` で消費して完了 SnackBar を表示します。
 
 ---
 
