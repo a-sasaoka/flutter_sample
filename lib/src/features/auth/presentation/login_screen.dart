@@ -57,9 +57,14 @@ class LoginScreen extends HookConsumerWidget {
       isLoading.value = true;
       try {
         // 認証リポジトリ経由でログイン処理を実行
-        await ref
+        final loggedIn = await ref
             .read(authStateProvider.notifier)
             .loginWithCredentials(email: email, password: password);
+
+        if (!loggedIn) {
+          // 削除完了後などに古いログイン応答が破棄された場合は /login に留め、成功通知も送らない
+          return;
+        }
 
         if (context.mounted) {
           context.showSuccessSnackBar(l10n.loginSuccess);

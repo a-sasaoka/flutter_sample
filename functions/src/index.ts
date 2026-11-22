@@ -613,25 +613,20 @@ export const users = onRequest(async (req, res) => {
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const MAX_REQUESTS_PER_MINUTE = 30;
 
-type RateLimitStatus = "allowed" | "rate_limited";
+type RateLimitStatus =
+  | "allowed"
+  | "rate_limited"
+  | "account_deleting"
+  | "deletion_check_failed";
+
+type DeletionCheckState = "unverified" | "deleting" | "not_deleting";
 
 /**
- * Checks account deletion state for the UID in Firestore.
- * Throws when deletion state cannot be read so callers fail closed.
+ * Checks account deletion state (fail-closed) and per-UID rate limit counter
+ * (fail-open) atomically within the same Firestore transaction.
  *
  * @param {string} uid User ID.
- * @return {Promise<boolean>} True when deletion marker exists.
- */
-async function isAccountDeleting(uid: string): Promise<boolean> {
-  const deletionSnap = await getAccountDeletionRef(uid).get();
-  return deletionSnap.exists;
-}
-
-/**
- * Checks and updates the per-UID rate limit counter using Firestore.
- *
- * @param {string} uid User ID.
- * @return {Promise<RateLimitStatus>} Status of rate limit check.
+ * @return {Promise<RateLimitStatus>} Status of deletion and rate limit checks.
  */
 async function checkRateLimit(uid: string): Promise<RateLimitStatus> {
   const now = Date.now();
@@ -639,40 +634,70 @@ async function checkRateLimit(uid: string): Promise<RateLimitStatus> {
     .firestore()
     .collection("rate_limits")
     .doc(`routes_${uid}`);
+  const deletionStateRef = getAccountDeletionRef(uid);
+  const deletionCheck: {state: DeletionCheckState} = {state: "unverified"};
 
   try {
     return await admin.firestore().runTransaction(async (tx) => {
-      const snap = await tx.get(docRef);
-      if (!snap.exists) {
-        tx.set(docRef, {
-          count: 1,
-          resetAt: now + RATE_LIMIT_WINDOW_MS,
+      deletionCheck.state = "unverified";
+      // 退会状態とレート制限を同一トランザクションで確認し、退会中の新規作成・更新を防ぐ
+      const deletionSnap = await tx.get(deletionStateRef);
+      if (deletionSnap.exists) {
+        deletionCheck.state = "deleting";
+        return "account_deleting";
+      }
+      deletionCheck.state = "not_deleting";
+
+      try {
+        const snap = await tx.get(docRef);
+        if (!snap.exists) {
+          tx.set(docRef, {
+            count: 1,
+            resetAt: now + RATE_LIMIT_WINDOW_MS,
+          });
+          return "allowed";
+        }
+
+        const data = snap.data();
+        const resetAt = data?.resetAt || 0;
+        const count = data?.count || 0;
+
+        if (now > resetAt) {
+          tx.set(docRef, {
+            count: 1,
+            resetAt: now + RATE_LIMIT_WINDOW_MS,
+          });
+          return "allowed";
+        }
+
+        if (count >= MAX_REQUESTS_PER_MINUTE) {
+          return "rate_limited";
+        }
+
+        tx.update(docRef, {
+          count: count + 1,
         });
         return "allowed";
-      }
-
-      const data = snap.data();
-      const resetAt = data?.resetAt || 0;
-      const count = data?.count || 0;
-
-      if (now > resetAt) {
-        tx.set(docRef, {
-          count: 1,
-          resetAt: now + RATE_LIMIT_WINDOW_MS,
-        });
+      } catch (rateLimitError) {
+        logger.error(
+          "Rate limit check failed in Firestore: ",
+          rateLimitError
+        );
+        // 退会中でないことを確認できた後のレート制限側障害はフェイルオープン
         return "allowed";
       }
-
-      if (count >= MAX_REQUESTS_PER_MINUTE) {
-        return "rate_limited";
-      }
-
-      tx.update(docRef, {
-        count: count + 1,
-      });
-      return "allowed";
     });
   } catch (error) {
+    if (deletionCheck.state === "deleting") {
+      return "account_deleting";
+    }
+    if (deletionCheck.state === "unverified") {
+      logger.error(
+        "Failed to check account deletion state in Firestore: ",
+        error
+      );
+      return "deletion_check_failed";
+    }
     logger.error("Rate limit check failed in Firestore: ", error);
     // 障害時はユーザー操作をブロックしないようフェイルオープン
     return "allowed";
@@ -695,26 +720,17 @@ async function ensureProxyRequestAllowed(
     ) => { json: (body: Record<string, string>) => unknown };
   }
 ): Promise<boolean> {
-  let deleting: boolean;
-  try {
-    deleting = await isAccountDeleting(uid);
-  } catch (error) {
-    logger.error(
-      "Failed to check account deletion state in Firestore: ",
-      error
-    );
+  const rateLimitStatus = await checkRateLimit(uid);
+  if (rateLimitStatus === "deletion_check_failed") {
     res.status(500).json({error: "Internal Server Error"});
     return false;
   }
-
-  if (deleting) {
+  if (rateLimitStatus === "account_deleting") {
     res.status(409).json({
       error: "Conflict: Account deletion in progress",
     });
     return false;
   }
-
-  const rateLimitStatus = await checkRateLimit(uid);
   if (rateLimitStatus === "rate_limited") {
     res.status(429).json({
       error:

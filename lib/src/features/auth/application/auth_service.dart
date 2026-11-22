@@ -297,11 +297,12 @@ class AuthService {
     // 認証解除直後に GoRouter が即座に /login へ遷移する競合を防ぐため、直前に通知フラグを立て、
     // 失敗時は即座に clear() する
     _accountDeletionNoticeNotifier.markCompleted();
+    var shouldTerminateSession = true;
     try {
       if (_useFirebaseAuth) {
         await _firebaseAuthRepository.deleteAccount();
       } else {
-        await _authStateNotifier.deleteAccount();
+        shouldTerminateSession = await _authStateNotifier.deleteAccount();
       }
     } on ReauthException {
       _accountDeletionNoticeNotifier.clear();
@@ -312,6 +313,12 @@ class AuthService {
       rethrow;
     }
 
+    if (!shouldTerminateSession) {
+      // 削除待機中に別アカウントへ切り替わった場合は通知予約を取り消し、
+      // 新セッションで使う共有データ（QR履歴・ユーザー一覧キャッシュ）は保持する
+      _accountDeletionNoticeNotifier.clear();
+    }
+
     // ④ ローカルデータ一括クリーンアップ
     // 既にサーバー側のAuth削除は完了しているため、失敗時はCrashlyticsへ記録しつつ
     // 残りの削除とサインアウト完了を継続する
@@ -319,14 +326,16 @@ class AuthService {
       label: 'local memos',
       action: () => _memoRepository.deleteAllMemosByUser(targetUserId),
     );
-    await _runLocalCleanupBestEffort(
-      label: 'QR scan histories',
-      action: _qrScanHistoriesDao.deleteAllHistories,
-    );
-    await _runLocalCleanupBestEffort(
-      label: 'users cache',
-      action: () => _cacheManager.clear(UserRepository.cacheKey),
-    );
+    if (shouldTerminateSession) {
+      await _runLocalCleanupBestEffort(
+        label: 'QR scan histories',
+        action: _qrScanHistoriesDao.deleteAllHistories,
+      );
+      await _runLocalCleanupBestEffort(
+        label: 'users cache',
+        action: () => _cacheManager.clear(UserRepository.cacheKey),
+      );
+    }
 
     // 退会完了イベント記録（Auth削除およびローカル削除完了後。送信失敗で退会自体は止めない）
     try {

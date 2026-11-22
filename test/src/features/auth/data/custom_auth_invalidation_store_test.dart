@@ -204,8 +204,8 @@ void main() {
       ).equals(false);
     });
 
-    test('clearIfAllowedForLogin: 同一アカウントまたは削除中未識別時は保持し、 '
-        '別アカウント時は解除すること', () async {
+    test('clearIfAllowedForLogin: 退会進行中および同一アカウント時は保持し、 '
+        '退会進行中でない別アカウント時は解除すること', () async {
       final store = CustomAuthInvalidationStore(
         getDirectory: () async => supportDir,
       );
@@ -233,17 +233,27 @@ void main() {
       ).equals(false);
       check(await store.isInvalidated()).equals(true);
 
-      // 別アカウントなら解除
+      // 別アカウントでも退会処理進行中なら退会側が所有するレコードは削除しない
       check(
         await store.clearIfAllowedForLogin(
           userId: 'user-b',
           email: 'b@example.com',
           isDeletionInProgress: true,
         ),
+      ).equals(false);
+      check(await store.isInvalidated()).equals(true);
+
+      // 退会進行中でない状態なら別アカウントログインで解除される
+      check(
+        await store.clearIfAllowedForLogin(
+          userId: 'user-b',
+          email: 'b@example.com',
+          isDeletionInProgress: false,
+        ),
       ).equals(true);
       check(await store.isInvalidated()).equals(false);
 
-      // 識別不能かつ削除進行中は安全側で保持、削除進行外なら解除
+      // 識別不能かつ削除進行中は保持、削除進行外なら解除
       await store.markInvalidated();
       check(
         await store.clearIfAllowedForLogin(
@@ -261,6 +271,39 @@ void main() {
           isDeletionInProgress: false,
         ),
       ).equals(true);
+      check(await store.isInvalidated()).equals(false);
+    });
+
+    test('clearInvalidatedIfMatches: 対象アカウントが一致する場合のみレコードを解除すること', () async {
+      final store = CustomAuthInvalidationStore(
+        getDirectory: () async => supportDir,
+      );
+
+      // 未無効化時は何もしない
+      await store.clearInvalidatedIfMatches(
+        targetUserId: 'user-a',
+        targetEmail: 'a@example.com',
+      );
+      check(await store.isInvalidated()).equals(false);
+
+      // 別アカウント所有のレコードは解除しない
+      await store.markInvalidated(
+        targetUserId: 'user-b',
+        targetEmail: 'b@example.com',
+      );
+      await store.clearInvalidatedIfMatches(
+        targetUserId: 'user-a',
+        targetEmail: 'a@example.com',
+      );
+      final afterMismatch = await store.getInvalidationState();
+      check(afterMismatch.isInvalidated).equals(true);
+      check(afterMismatch.targetUserId).equals('user-b');
+
+      // 一致するレコードは解除する
+      await store.clearInvalidatedIfMatches(
+        targetUserId: 'user-b',
+        targetEmail: ' B@EXAMPLE.COM ',
+      );
       check(await store.isInvalidated()).equals(false);
     });
 

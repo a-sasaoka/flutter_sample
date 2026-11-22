@@ -29,7 +29,8 @@ void main() {
     const testAccessToken = 'test_access_token';
     const testRefreshToken = 'test_refresh_token';
 
-    test('saveTokens: アクセストークンとリフレッシュトークンを正しいキーで保存すること', () async {
+    test('saveTokens: アクセストークンとリフレッシュトークンを正しいキーで保存し、 '
+        'subが無い場合は保存済み customUserId を削除すること', () async {
       // Arrange
       when(
         () => mockStorage.write(
@@ -37,6 +38,9 @@ void main() {
           value: any(named: 'value'),
         ),
       ).thenAnswer((_) async => {});
+      when(
+        () => mockStorage.delete(key: SecureStorageKeys.customUserId),
+      ).thenAnswer((_) async {});
       final storage = container.read(tokenStorageProvider);
 
       // Act
@@ -57,6 +61,9 @@ void main() {
           key: SecureStorageKeys.refreshToken,
           value: testRefreshToken,
         ),
+      ).called(1);
+      verify(
+        () => mockStorage.delete(key: SecureStorageKeys.customUserId),
       ).called(1);
     });
 
@@ -255,6 +262,140 @@ void main() {
           key: SecureStorageKeys.customUserId,
           value: 'recovered_user',
         ),
+      ).called(1);
+    });
+
+    test(
+      'saveTokens: refreshToken の書込失敗時は書込済みの accessToken を削除して再スローすること',
+      () async {
+        final writeError = Exception('refresh write failed');
+        when(
+          () => mockStorage.write(
+            key: SecureStorageKeys.accessToken,
+            value: testAccessToken,
+          ),
+        ).thenAnswer((_) async {});
+        when(
+          () => mockStorage.write(
+            key: SecureStorageKeys.refreshToken,
+            value: testRefreshToken,
+          ),
+        ).thenThrow(writeError);
+        when(
+          () => mockStorage.delete(key: SecureStorageKeys.accessToken),
+        ).thenAnswer((_) async {});
+        final storage = container.read(tokenStorageProvider);
+
+        await check(
+          storage.saveTokens(
+            accessToken: testAccessToken,
+            refreshToken: testRefreshToken,
+          ),
+        ).throws<Exception>((it) => it.equals(writeError));
+
+        verify(
+          () => mockStorage.delete(key: SecureStorageKeys.accessToken),
+        ).called(1);
+        verifyNever(
+          () => mockStorage.delete(key: SecureStorageKeys.refreshToken),
+        );
+        verifyNever(
+          () => mockStorage.delete(key: SecureStorageKeys.customUserId),
+        );
+      },
+    );
+
+    test(
+      'saveTokens: customUserId 書込失敗時は既書込キーの削除を試行し削除エラーがあっても元例外を再スローすること',
+      () async {
+        const validJwt =
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'
+            'eyJzdWIiOiJ1c2VyX2FiYzEyMyJ9.'
+            'dummy_signature';
+        final writeError = Exception('userId write failed');
+        when(
+          () => mockStorage.write(
+            key: SecureStorageKeys.accessToken,
+            value: validJwt,
+          ),
+        ).thenAnswer((_) async {});
+        when(
+          () => mockStorage.write(
+            key: SecureStorageKeys.refreshToken,
+            value: testRefreshToken,
+          ),
+        ).thenAnswer((_) async {});
+        when(
+          () => mockStorage.write(
+            key: SecureStorageKeys.customUserId,
+            value: 'user_abc123',
+          ),
+        ).thenThrow(writeError);
+        when(
+          () => mockStorage.delete(key: SecureStorageKeys.accessToken),
+        ).thenThrow(Exception('rollback delete failed'));
+        when(
+          () => mockStorage.delete(key: SecureStorageKeys.refreshToken),
+        ).thenAnswer((_) async {});
+        final storage = container.read(tokenStorageProvider);
+
+        await check(
+          storage.saveTokens(
+            accessToken: validJwt,
+            refreshToken: testRefreshToken,
+          ),
+        ).throws<Exception>((it) => it.equals(writeError));
+
+        verify(
+          () => mockStorage.delete(key: SecureStorageKeys.accessToken),
+        ).called(1);
+        verify(
+          () => mockStorage.delete(key: SecureStorageKeys.refreshToken),
+        ).called(1);
+        verifyNever(
+          () => mockStorage.delete(key: SecureStorageKeys.customUserId),
+        );
+      },
+    );
+
+    test('saveTokens: sub無しトークン保存時に古い customUserId の削除に失敗した場合は '
+        '既書込の accessToken / refreshToken を削除して再スローすること', () async {
+      final deleteError = Exception('delete customUserId failed');
+      when(
+        () => mockStorage.write(
+          key: SecureStorageKeys.accessToken,
+          value: testAccessToken,
+        ),
+      ).thenAnswer((_) async {});
+      when(
+        () => mockStorage.write(
+          key: SecureStorageKeys.refreshToken,
+          value: testRefreshToken,
+        ),
+      ).thenAnswer((_) async {});
+      when(
+        () => mockStorage.delete(key: SecureStorageKeys.customUserId),
+      ).thenThrow(deleteError);
+      when(
+        () => mockStorage.delete(key: SecureStorageKeys.accessToken),
+      ).thenAnswer((_) async {});
+      when(
+        () => mockStorage.delete(key: SecureStorageKeys.refreshToken),
+      ).thenAnswer((_) async {});
+      final storage = container.read(tokenStorageProvider);
+
+      await check(
+        storage.saveTokens(
+          accessToken: testAccessToken,
+          refreshToken: testRefreshToken,
+        ),
+      ).throws<Exception>((it) => it.equals(deleteError));
+
+      verify(
+        () => mockStorage.delete(key: SecureStorageKeys.accessToken),
+      ).called(1);
+      verify(
+        () => mockStorage.delete(key: SecureStorageKeys.refreshToken),
       ).called(1);
     });
   });

@@ -55,8 +55,18 @@ class AuthRepository {
   final CustomAuthInvalidationStore _invalidationStore;
   final AuthSessionLock _sessionLock;
 
-  /// ログインAPIを呼び出し、トークンを保存する
-  Future<void> login(String email, String password) async {
+  /// ログインAPIを呼び出し、古い応答を破棄した上でトークンを保存する
+  ///
+  /// 要求開始時と応答後のセッション世代・削除世代が一致する場合のみトークンを保存して `true` を返します。
+  /// 待機中にアカウント削除完了や別セッション遷移が起きた場合は保存せずに応答を破棄し、`false` を返します。
+  Future<bool> login(String email, String password) async {
+    final startState = await _sessionLock.synchronized(
+      () async => (
+        sessionEpoch: _sessionLock.sessionEpoch,
+        deletionEpoch: _sessionLock.deletionEpoch,
+      ),
+    );
+
     final response = await api.post<Map<String, dynamic>>(
       '/auth/login',
       data: {'email': email, 'password': password},
@@ -66,19 +76,20 @@ class AuthRepository {
       'access_token': final String access,
       'refresh_token': final String refresh,
     }) {
-      await _sessionLock.runSessionTransition(() async {
-        await tokenStorage.saveTokens(
+      return await _sessionLock.runSessionTransitionIf(
+        shouldTransition: () async =>
+            _sessionLock.deletionEpoch == startState.deletionEpoch &&
+            _sessionLock.sessionEpoch == startState.sessionEpoch,
+        action: () => commitValidatedLoginCredentials(
+          tokenStorage: tokenStorage,
+          invalidationStore: _invalidationStore,
+          sessionLock: _sessionLock,
+          talker: talker,
           accessToken: access,
           refreshToken: refresh,
-        );
-        final savedUserId = await tokenStorage.getUserId();
-        final savedEmail = JwtUtils.getEmail(access) ?? email;
-        await _invalidationStore.clearIfAllowedForLogin(
-          userId: savedUserId,
-          email: savedEmail,
-          isDeletionInProgress: _sessionLock.isDeletionInProgress,
-        );
-      });
+          fallbackEmail: email,
+        ),
+      );
     } else {
       talker.handle(
         const AppException.dataParse(),
@@ -86,6 +97,47 @@ class AuthRepository {
         'Failed to parse login response: Missing or invalid tokens',
       );
       throw const AppException.dataParse();
+    }
+  }
+
+  /// 無効化状態の解除確認後にトークンを保存し、失敗時は部分保存された資格情報を消去する
+  ///
+  /// `AuthStateNotifier.login` と [login] の双方から同一の確定・ロールバック経路を
+  /// 利用することで、失敗時に保存済みトークンが残らない挙動を揃えます。
+  static Future<void> commitValidatedLoginCredentials({
+    required TokenStorage tokenStorage,
+    required CustomAuthInvalidationStore invalidationStore,
+    required AuthSessionLock sessionLock,
+    required Talker talker,
+    required String accessToken,
+    required String refreshToken,
+    String? fallbackEmail,
+  }) async {
+    final candidateUserId = JwtUtils.getUserId(accessToken);
+    final candidateEmail = JwtUtils.getEmail(accessToken) ?? fallbackEmail;
+    // DB 確認・解除が失敗した場合に新しい資格情報を残さないため、保存前に実行する
+    await invalidationStore.clearIfAllowedForLogin(
+      userId: candidateUserId,
+      email: candidateEmail,
+      isDeletionInProgress: sessionLock.isDeletionInProgress,
+    );
+    try {
+      await tokenStorage.saveTokens(
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+      );
+    } on Object {
+      // 途中まで書き込まれた新しい資格情報が残らないようロールバックを試みる
+      try {
+        await tokenStorage.clear();
+      } on Object catch (clearError, clearSt) {
+        talker.handle(
+          clearError,
+          clearSt,
+          'Failed to clear partial login tokens after saveTokens error',
+        );
+      }
+      rethrow;
     }
   }
 
@@ -164,15 +216,16 @@ class AuthRepository {
     }
   }
 
-  /// アカウント削除APIを呼び出し、成功後にローカルのトークンを破棄する（カスタム認証用）
+  /// アカウント削除APIを呼び出し、成功後に削除対象セッションを終了すべきかを返す（カスタム認証用）
   ///
   /// サーバーへ削除要求を送る前に削除対象アカウント識別子付きでセッション無効化状態を
   /// ディスクへ永続化し、保存に失敗した場合は削除要求を送信しません。API待機中に
   /// 同じアカウントで再ログインが行われた場合も削除完了後・再起動後の復元を防ぎ、
-  /// 別アカウントへの切り替えのみ保護します。サーバー側の削除が成功した後は、端末側の
-  /// トークン消去に失敗しても Crashlytics へ記録して処理を続行し、未ログイン遷移および
-  /// ローカル削除を妨げません。
-  Future<void> deleteAccount() async {
+  /// 削除対象セッションを終了する意図で `true` を返します。別アカウントへの切り替え時のみ
+  /// 新セッションを保護し、呼出元でもセッション終了を行わないよう `false` を返します。
+  /// サーバー側の削除が成功した後は、端末側のトークン消去や無効化解除に失敗しても
+  /// Crashlytics へ記録して処理を続行し、未ログイン遷移およびローカル削除を妨げません。
+  Future<bool> deleteAccount() async {
     final startState = await _sessionLock.synchronized(() async {
       final token = await tokenStorage.getAccessToken();
       if (token == null || token.isEmpty) {
@@ -206,12 +259,22 @@ class AuthRepository {
         ),
       );
 
+      var shouldTerminateSession = false;
       try {
         await _sessionLock.runSessionTransitionIf(
-          shouldTransition: () => _shouldClearSessionAfterDeletion(startState),
+          shouldTransition: () async {
+            _sessionLock.markDeletionCompleted();
+            final outcome = await _resolveDeletionSessionOutcome(startState);
+            shouldTerminateSession = outcome.shouldTerminateSession;
+            if (!outcome.shouldClearTokens) {
+              // 別アカウントへ切り替わった場合も、この退会処理が所有していたレコードのみ後片付けする
+              await _clearInvalidationFlagBestEffort(startState);
+            }
+            return outcome.shouldClearTokens;
+          },
           action: () async {
             await tokenStorage.clear();
-            await _clearInvalidationFlagBestEffort();
+            await _clearInvalidationFlagBestEffort(startState);
           },
         );
       } on Object catch (e, st) {
@@ -223,36 +286,49 @@ class AuthRepository {
           'Failed to clear local tokens after account deletion',
         );
       }
+      return shouldTerminateSession;
     } finally {
       _sessionLock.endDeletion();
     }
   }
 
-  Future<bool> _shouldClearSessionAfterDeletion(
+  Future<({bool shouldClearTokens, bool shouldTerminateSession})>
+  _resolveDeletionSessionOutcome(
     ({String accessToken, int sessionEpoch, String? userId, String? email})
     startState,
   ) async {
     if (_sessionLock.sessionEpoch == startState.sessionEpoch) {
-      return true;
+      return (shouldClearTokens: true, shouldTerminateSession: true);
     }
     final currentToken = await tokenStorage.getAccessToken();
     if (currentToken == null || currentToken.isEmpty) {
-      return false;
+      // 既に別操作でサインアウト済みの場合は余計なトークン消去や世代更新をせず終了扱いとする
+      return (shouldClearTokens: false, shouldTerminateSession: true);
     }
     final currentUserId = await tokenStorage.getUserId();
     final currentEmail = JwtUtils.getEmail(currentToken);
-    return CustomAuthInvalidationStore.matchesAccount(
+    final isTargetAccount = CustomAuthInvalidationStore.matchesAccount(
       targetUserId: startState.userId,
       targetEmail: startState.email,
       candidateUserId: currentUserId,
       candidateEmail: currentEmail,
       defaultWhenUnidentifiable: false,
     );
+    return (
+      shouldClearTokens: isTargetAccount,
+      shouldTerminateSession: isTargetAccount,
+    );
   }
 
-  Future<void> _clearInvalidationFlagBestEffort() async {
+  Future<void> _clearInvalidationFlagBestEffort(
+    ({String accessToken, int sessionEpoch, String? userId, String? email})
+    startState,
+  ) async {
     try {
-      await _invalidationStore.clearInvalidated();
+      await _invalidationStore.clearInvalidatedIfMatches(
+        targetUserId: startState.userId,
+        targetEmail: startState.email,
+      );
     } on Object catch (e, st) {
       talker.handle(
         e,

@@ -15,10 +15,14 @@ AuthSessionLock authSessionLock(Ref ref) {
 class AuthSessionLock {
   Future<void> _tail = Future<void>.value();
   int _sessionEpoch = 0;
+  int _deletionEpoch = 0;
   int _activeDeletionCount = 0;
 
   /// 現在の認証セッション世代（ログイン・ログアウト時に更新される）
   int get sessionEpoch => _sessionEpoch;
+
+  /// 完了済みアカウント削除の世代（削除完了の確定時に更新される）
+  int get deletionEpoch => _deletionEpoch;
 
   /// 現在アカウント削除処理が進行中かどうか
   bool get isDeletionInProgress => _activeDeletionCount > 0;
@@ -26,6 +30,11 @@ class AuthSessionLock {
   /// アカウント削除処理の開始を記録する
   void beginDeletion() {
     _activeDeletionCount++;
+  }
+
+  /// アカウント削除の完了を記録する（セッションロック内で呼び出す）
+  void markDeletionCompleted() {
+    _deletionEpoch++;
   }
 
   /// アカウント削除処理の終了を記録する

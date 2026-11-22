@@ -134,5 +134,16 @@ void main() {
         check(lock.sessionEpoch).equals(1);
       },
     );
+
+    test('deletionEpoch / markDeletionCompleted: 削除完了世代のみを独立して進められること', () {
+      final lock = AuthSessionLock();
+      check(lock.deletionEpoch).equals(0);
+      check(lock.sessionEpoch).equals(0);
+
+      lock.markDeletionCompleted();
+
+      check(lock.deletionEpoch).equals(1);
+      check(lock.sessionEpoch).equals(0);
+    });
   });
 }

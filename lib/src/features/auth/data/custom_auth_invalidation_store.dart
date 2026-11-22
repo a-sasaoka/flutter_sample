@@ -188,10 +188,10 @@ class CustomAuthInvalidationStore {
     });
   }
 
-  /// ログイン完了時に、削除中・削除済みの同一アカウントでなければ無効化レコードを解除する
+  /// ログイン完了時に、進行中の退会処理が無い状態で別アカウントがログインした場合のみ無効化レコードを解除する
   ///
-  /// 解除した（または元々無効化されていない）場合は `true`、同一アカウントまたは
-  /// 削除進行中に別アカウントと判別できず保持した場合は `false` を返します。
+  /// 進行中の退会処理が存在する場合や、同一アカウント時はレコードを保持して `false` を返し、
+  /// 退会処理が進行中でない別アカウント（または元々未無効化）だった場合のみ解除して `true` を返します。
   Future<bool> clearIfAllowedForLogin({
     required String? userId,
     required String? email,
@@ -202,12 +202,17 @@ class CustomAuthInvalidationStore {
       return true;
     }
 
+    if (isDeletionInProgress) {
+      // 進行中の退会処理が所有している無効化レコードは別アカウントのログイン時でも削除しない
+      return false;
+    }
+
     final blockedBySameAccount = matchesAccount(
       targetUserId: state.targetUserId,
       targetEmail: state.targetEmail,
       candidateUserId: userId,
       candidateEmail: email,
-      defaultWhenUnidentifiable: isDeletionInProgress,
+      defaultWhenUnidentifiable: false,
     );
     if (blockedBySameAccount) {
       return false;
@@ -215,6 +220,23 @@ class CustomAuthInvalidationStore {
 
     await clearInvalidated();
     return true;
+  }
+
+  /// 保存済みの無効化レコードが指定アカウント（[targetUserId] / [targetEmail]）の
+  /// ものと一致する場合のみ解除する
+  Future<void> clearInvalidatedIfMatches({
+    required String? targetUserId,
+    required String? targetEmail,
+  }) async {
+    final state = await getInvalidationState();
+    if (!state.isInvalidated) {
+      return;
+    }
+    if (state.targetUserId != targetUserId ||
+        state.targetEmail != _normalizeEmail(targetEmail)) {
+      return;
+    }
+    await clearInvalidated();
   }
 
   /// SQLite 上のセッション無効化レコードを削除して確定保存する

@@ -127,12 +127,13 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> login(String email, String password) async {
+  Future<bool> login(String email, String password) async {
     // どんなIDとパスワードでも、sub / email クレームを含むダミーJWTを保存してログイン成功とする
     await tokenStorage.saveTokens(
       accessToken: _buildDummyAccessToken(),
       refreshToken: 'dummy_refresh_token',
     );
+    return true;
   }
 
   @override
@@ -150,8 +151,9 @@ class MockAuthRepository implements AuthRepository {
   }) async {}
 
   @override
-  Future<void> deleteAccount() async {
+  Future<bool> deleteAccount() async {
     await tokenStorage.clear();
+    return true;
   }
 }
 

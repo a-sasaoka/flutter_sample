@@ -76,20 +76,18 @@ class AuthStateNotifier extends _$AuthStateNotifier {
       final sessionLock = ref.read(authSessionLockProvider);
       final tokenStorage = ref.read(tokenStorageProvider);
       final invalidationStore = ref.read(customAuthInvalidationStoreProvider);
+      final talker = ref.read(loggerProvider);
 
-      await sessionLock.runSessionTransition(() async {
-        await tokenStorage.saveTokens(
+      await sessionLock.runSessionTransition(
+        () => AuthRepository.commitValidatedLoginCredentials(
+          tokenStorage: tokenStorage,
+          invalidationStore: invalidationStore,
+          sessionLock: sessionLock,
+          talker: talker,
           accessToken: accessToken,
           refreshToken: refreshToken,
-        );
-        final savedUserId = await tokenStorage.getUserId();
-        final savedEmail = JwtUtils.getEmail(accessToken);
-        await invalidationStore.clearIfAllowedForLogin(
-          userId: savedUserId,
-          email: savedEmail,
-          isDeletionInProgress: sessionLock.isDeletionInProgress,
-        );
-      });
+        ),
+      );
       state = const AsyncData(true);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -98,15 +96,23 @@ class AuthStateNotifier extends _$AuthStateNotifier {
   }
 
   /// メールアドレスとパスワードで認証APIを呼び出してログイン状態にする
-  Future<void> loginWithCredentials({
+  ///
+  /// 古いログイン応答が削除完了後などに届いて破棄された場合は `false` を返し、
+  /// 現在の認証状態（未ログインまたは他セッション）を上書きしません。
+  Future<bool> loginWithCredentials({
     required String email,
     required String password,
   }) async {
     try {
       // 初期化（build）の完了を待機して、初期化結果による状態の上書きを防ぐ
       await future;
-      await ref.read(authRepositoryProvider).login(email, password);
-      state = const AsyncData(true);
+      final isLoggedIn = await ref
+          .read(authRepositoryProvider)
+          .login(email, password);
+      if (isLoggedIn) {
+        state = const AsyncData(true);
+      }
+      return isLoggedIn;
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
@@ -127,30 +133,19 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     }
   }
 
-  /// 認証APIでアカウントを削除し、成功後に未ログイン状態へ移行する
+  /// 認証APIでアカウントを削除し、対象セッションを終了すべき場合は未ログイン状態へ移行する
   ///
-  /// 削除APIが失敗した場合はログイン状態を維持し、UI側で再試行できるようにします。
-  Future<void> deleteAccount() async {
+  /// 対象セッションを終了した場合は `true`、処理中に別アカウントへ切り替わり
+  /// そのセッションを保持した場合は `false` を返します。削除APIが失敗した場合は
+  /// 例外を再スローしてログイン状態を維持し、UI側で再試行できるようにします。
+  Future<bool> deleteAccount() async {
     await future;
-    final sessionLock = ref.read(authSessionLockProvider);
-    final tokenStorage = ref.read(tokenStorageProvider);
-    final invalidationStore = ref.read(customAuthInvalidationStoreProvider);
-    final startEpoch = sessionLock.sessionEpoch;
-
-    await ref.read(authRepositoryProvider).deleteAccount();
-
-    final shouldMarkSignedOut = await sessionLock.synchronized(() async {
-      if (sessionLock.sessionEpoch == startEpoch) {
-        return true;
-      }
-      final token = await tokenStorage.getAccessToken();
-      if (token == null || token.isEmpty) {
-        return true;
-      }
-      return await invalidationStore.isInvalidated();
-    });
-    if (shouldMarkSignedOut) {
+    final shouldTerminateSession = await ref
+        .read(authRepositoryProvider)
+        .deleteAccount();
+    if (shouldTerminateSession) {
       state = const AsyncData(false);
     }
+    return shouldTerminateSession;
   }
 }

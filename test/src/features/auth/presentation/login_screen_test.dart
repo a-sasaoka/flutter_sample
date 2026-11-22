@@ -16,8 +16,12 @@ import '../../../core/widgets/widgets_test_helper.dart';
 // --- モック＆Fakeクラスの定義 ---
 
 class FakeAuthStateNotifier extends AuthStateNotifier {
-  FakeAuthStateNotifier({required this.onLogin});
+  FakeAuthStateNotifier({required this.onLogin, this.loginResult = true});
   final Future<void> Function(String, String) onLogin;
+  final bool loginResult;
+
+  @override
+  Future<bool> build() async => false;
 
   @override
   Future<void> login(String accessToken, String refreshToken) async {
@@ -25,11 +29,15 @@ class FakeAuthStateNotifier extends AuthStateNotifier {
   }
 
   @override
-  Future<void> loginWithCredentials({
+  Future<bool> loginWithCredentials({
     required String email,
     required String password,
   }) async {
     await onLogin(email, password);
+    if (loginResult) {
+      state = const AsyncData(true);
+    }
+    return loginResult;
   }
 }
 
@@ -42,6 +50,7 @@ void main() {
   // FakeNotifierの挙動をテストごとにコントロールするための変数
   late Future<void> Function(String, String) mockLoginAction;
   late int loginCallCount;
+  late bool mockLoginResult;
 
   setUpAll(() {
     registerFallbackValue(AnalyticsEvent.loginSuccess);
@@ -53,6 +62,7 @@ void main() {
 
     // 毎テストの初期化
     loginCallCount = 0;
+    mockLoginResult = true;
     mockLoginAction = (a, b) async {
       loginCallCount++;
     };
@@ -105,7 +115,10 @@ void main() {
       overrides: [
         // Fakeクラスに、テストごとに変えられる処理(mockLoginAction)を渡す
         authStateProvider.overrideWith(
-          () => FakeAuthStateNotifier(onLogin: (a, b) => mockLoginAction(a, b)),
+          () => FakeAuthStateNotifier(
+            onLogin: (a, b) => mockLoginAction(a, b),
+            loginResult: mockLoginResult,
+          ),
         ),
         analyticsServiceProvider.overrideWithValue(mockAnalyticsService),
       ],
@@ -240,6 +253,75 @@ void main() {
       check(find.text('ログイン成功！')).findsAny();
 
       await tester.pumpAndSettle();
+    });
+
+    testWidgets('古いログイン応答が破棄(false)された場合、ホーム遷移・成功通知・エラー表示を行わずログイン画面に留まること', (
+      tester,
+    ) async {
+      mockLoginResult = false;
+      final container = ProviderContainer(
+        overrides: [
+          authStateProvider.overrideWith(
+            () => FakeAuthStateNotifier(
+              onLogin: (a, b) => mockLoginAction(a, b),
+              loginResult: mockLoginResult,
+            ),
+          ),
+          analyticsServiceProvider.overrideWithValue(mockAnalyticsService),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final routerListenable = ValueNotifier<bool>(false);
+      addTearDown(routerListenable.dispose);
+      container.listen(
+        authStateProvider,
+        (_, _) => routerListenable.value = !routerListenable.value,
+      );
+
+      final router = GoRouter(
+        initialLocation: '/login',
+        refreshListenable: routerListenable,
+        redirect: (context, state) {
+          final isLoggedIn = container.read(authStateProvider).value ?? false;
+          if (isLoggedIn && state.uri.path == '/login') {
+            return '/home';
+          }
+          return null;
+        },
+        routes: [
+          GoRoute(path: '/login', builder: (context, state) => LoginScreen()),
+          GoRoute(
+            path: '/home',
+            builder: (context, state) => const Scaffold(body: Text('Home')),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: [MockLocalizationsDelegate(mockL10n)],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).at(0), 'test@example.com');
+      await tester.enterText(find.byType(TextField).at(1), 'password123');
+      await tester.tap(find.text('ログインする'));
+      await tester.pumpAndSettle();
+
+      check(loginCallCount).equals(1);
+      check(container.read(authStateProvider).value).equals(false);
+      check(find.text('Home')).findsNothing();
+      check(find.text('ログインする')).findsOne();
+      check(find.byType(CircularProgressIndicator)).findsNothing();
+      check(find.byType(SnackBar)).findsNothing();
+      check(find.byType(AlertDialog)).findsNothing();
+      verifyZeroInteractions(mockAnalyticsService);
     });
 
     testWidgets('ログイン失敗時(Exception発生時)、エラーダイアログが表示されること', (tester) async {

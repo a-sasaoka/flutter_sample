@@ -22,26 +22,47 @@ class TokenStorage {
   final FlutterSecureStorage _secureStorage;
 
   /// トークンを保存する
+  ///
+  /// 途中で書き込みに失敗した場合は、この呼び出しで書き込んだキーを削除して
+  /// 中途半端な資格情報が残らないようにした上で例外を再スローします。
   Future<void> saveTokens({
     required String accessToken,
     required String refreshToken,
   }) async {
-    await _secureStorage.write(
-      key: SecureStorageKeys.accessToken,
-      value: accessToken,
-    );
-    await _secureStorage.write(
-      key: SecureStorageKeys.refreshToken,
-      value: refreshToken,
-    );
-
-    // JWTからユーザーIDを抽出して暗号化保存
-    final userId = JwtUtils.getUserId(accessToken);
-    if (userId != null) {
+    final writtenKeys = <String>[];
+    try {
       await _secureStorage.write(
-        key: SecureStorageKeys.customUserId,
-        value: userId,
+        key: SecureStorageKeys.accessToken,
+        value: accessToken,
       );
+      writtenKeys.add(SecureStorageKeys.accessToken);
+
+      await _secureStorage.write(
+        key: SecureStorageKeys.refreshToken,
+        value: refreshToken,
+      );
+      writtenKeys.add(SecureStorageKeys.refreshToken);
+
+      // JWTからユーザーIDを抽出して暗号化保存（sub が無い場合は古い ID の残留を防ぐため削除する）
+      final userId = JwtUtils.getUserId(accessToken);
+      if (userId != null) {
+        await _secureStorage.write(
+          key: SecureStorageKeys.customUserId,
+          value: userId,
+        );
+        writtenKeys.add(SecureStorageKeys.customUserId);
+      } else {
+        await _secureStorage.delete(key: SecureStorageKeys.customUserId);
+      }
+    } on Object {
+      for (final key in writtenKeys) {
+        try {
+          await _secureStorage.delete(key: key);
+        } on Object catch (_) {
+          // 元の書き込み例外を優先して伝播させるため、ロールバック時の削除失敗は無視する
+        }
+      }
+      rethrow;
     }
   }
 

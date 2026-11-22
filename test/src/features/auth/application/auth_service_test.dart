@@ -69,6 +69,7 @@ class FakeAuthStateNotifier extends AuthStateNotifier {
   final bool initial;
   bool isLogoutCalled = false;
   bool isDeleteAccountCalled = false;
+  bool deleteAccountResult = true;
   Exception? deleteAccountError;
   VoidCallback? onDeleteAccount;
 
@@ -82,13 +83,16 @@ class FakeAuthStateNotifier extends AuthStateNotifier {
   }
 
   @override
-  Future<void> deleteAccount() async {
+  Future<bool> deleteAccount() async {
     onDeleteAccount?.call();
     if (deleteAccountError != null) {
       throw deleteAccountError!;
     }
     isDeleteAccountCalled = true;
-    state = const AsyncData(false);
+    if (deleteAccountResult) {
+      state = const AsyncData(false);
+    }
+    return deleteAccountResult;
   }
 }
 
@@ -868,6 +872,37 @@ void main() {
         check(container.read(accountDeletionNoticeProvider)).isTrue();
       },
     );
+
+    test('カスタム認証版: 別アカウントへ切り替わり対象セッションを終了しない(false)場合、 '
+        '完了通知を取り消し共有QR履歴・ユーザーキャッシュを消去せず対象ユーザーのメモのみ削除すること', () async {
+      final fakeAuthNotifier = FakeAuthStateNotifier()
+        ..deleteAccountResult = false;
+
+      when(
+        () => mockTokenStorage.getUserId(),
+      ).thenAnswer((_) async => 'custom-uid-1');
+      when(
+        () => mockProfileRepo.deleteMyAccountData(),
+      ).thenAnswer((_) async {});
+      stubHappyLocalCleanups();
+
+      final container = createContainer(
+        useFirebaseAuth: false,
+        fakeAuthNotifier: fakeAuthNotifier,
+      );
+      await container.read(authServiceProvider).deleteAccount();
+
+      check(fakeAuthNotifier.isDeleteAccountCalled).isTrue();
+      check(container.read(authStateProvider).value).equals(true);
+      check(container.read(accountDeletionNoticeProvider)).isFalse();
+      verify(() => mockMemoRepo.deleteAllMemosByUser('custom-uid-1')).called(1);
+      verify(
+        () =>
+            mockAnalyticsService.logEvent(event: AnalyticsEvent.accountDeleted),
+      ).called(1);
+      verifyNever(() => mockQrDao.deleteAllHistories());
+      verifyNever(() => mockCacheManager.clear(UserRepository.cacheKey));
+    });
 
     test('② deleteMyAccountData が ReauthRequiresRecentLoginException を投げた場合、 '
         'Crashlytics へ記録せず再スローし、再認証後の再試行で完了すること', () async {
