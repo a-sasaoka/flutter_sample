@@ -83,8 +83,8 @@ class PosixDirectorySyncBindings {
 
   /// 対象ディレクトリのディレクトリエントリをディスクへ永続化する
   ///
-  /// iOS / macOS では `F_FULLFSYNC`（未対応時のみ `fsync` へフォールバック）を実行し、
-  /// Android / Linux では `fsync` を実行します。失敗時は [FileSystemException] を送出します。
+  /// iOS / macOS では `F_FULLFSYNC` を実行し、Android / Linux では `fsync` を
+  /// 実行します。失敗時は [FileSystemException] を送出します。
   Future<void> syncDirectory(Directory directory) async {
     final encodedPath = utf8.encode(directory.path);
     final pathPtr = allocateBytes(encodedPath.length + 1);
@@ -112,9 +112,13 @@ class PosixDirectorySyncBindings {
 
       if (isApplePlatform()) {
         const fFullfsync = 51;
-        if (fcntlFd(fd, fFullfsync) == 0) {
-          return;
+        if (fcntlFd(fd, fFullfsync) != 0) {
+          throw FileSystemException(
+            'Failed to fully synchronize directory entries to disk',
+            directory.path,
+          );
         }
+        return;
       }
 
       if (fsyncFd(fd) != 0) {

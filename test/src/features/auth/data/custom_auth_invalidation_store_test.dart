@@ -180,12 +180,11 @@ void main() {
       check(calls).deepEquals(['open:0', 'fcntl:42:51', 'close:42']);
     });
 
-    test('Apple環境で F_FULLFSYNC が失敗時は fsync へフォールバックし、 '
-        'fsync も失敗した場合は fd を閉じて例外を投げること', () async {
+    test('Apple環境で F_FULLFSYNC が失敗した場合は fsync へフォールバックせず '
+        'fd を閉じて例外を投げること', () async {
       supportDir.createSync(recursive: true);
       final native = PosixDirectorySyncBindings.native();
       final calls = <String>[];
-      var fsyncResult = 0;
       final bindings = PosixDirectorySyncBindings(
         allocateBytes: native.allocateBytes,
         freeBytes: native.freeBytes,
@@ -196,7 +195,7 @@ void main() {
         },
         fsyncFd: (fd) {
           calls.add('fsync:$fd');
-          return fsyncResult;
+          return 0;
         },
         closeFd: (fd) {
           calls.add('close:$fd');
@@ -205,15 +204,10 @@ void main() {
         isApplePlatform: () => true,
       );
 
-      await bindings.syncDirectory(supportDir);
-      check(calls).deepEquals(['fcntl:7:51', 'fsync:7', 'close:7']);
-
-      calls.clear();
-      fsyncResult = -1;
       await check(
         bindings.syncDirectory(supportDir),
       ).throws<FileSystemException>();
-      check(calls).deepEquals(['fcntl:7:51', 'fsync:7', 'close:7']);
+      check(calls).deepEquals(['fcntl:7:51', 'close:7']);
     });
 
     test('Android / Linux 環境では fsync を直接実行し、失敗時は fd を閉じて例外を投げること', () async {
