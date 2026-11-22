@@ -20,6 +20,54 @@ void main() {
       }
     });
 
+    test('名前付きファクトリコンストラクタから各具象クラスが生成できること', () {
+      const requiresRecentLogin = ReauthException.requiresRecentLogin();
+      const wrongPassword = ReauthException.wrongPassword();
+      const userMismatch = ReauthException.userMismatch();
+      const cancelled = ReauthException.cancelled();
+      const tooManyRequests = ReauthException.tooManyRequests();
+      const missingEmail = ReauthException.missingEmail();
+
+      check(requiresRecentLogin).isA<ReauthRequiresRecentLoginException>();
+      check(wrongPassword).isA<ReauthWrongPasswordException>();
+      check(userMismatch).isA<ReauthUserMismatchException>();
+      check(cancelled).isA<ReauthCancelledException>();
+      check(tooManyRequests).isA<ReauthTooManyRequestsException>();
+      check(missingEmail).isA<ReauthMissingEmailException>();
+
+      for (final exception in const <ReauthException>[
+        requiresRecentLogin,
+        wrongPassword,
+        userMismatch,
+        cancelled,
+        tooManyRequests,
+        missingEmail,
+      ]) {
+        check(exception).isA<ReauthException>();
+        check(exception).isA<Exception>();
+      }
+    });
+
+    test('Freezed による値比較（等価性）が正しく動作すること', () {
+      check(
+        const ReauthException.wrongPassword(),
+      ).equals(const ReauthWrongPasswordException());
+
+      // 値比較 (== / hashCode) を確認するため意図的に非constインスタンスを生成
+      // ignore: prefer_const_constructors
+      final nonConstWrongPassword = ReauthWrongPasswordException();
+      check<ReauthException>(
+        nonConstWrongPassword,
+      ).equals(const ReauthException.wrongPassword());
+      check(
+        nonConstWrongPassword.hashCode,
+      ).equals(const ReauthException.wrongPassword().hashCode);
+
+      check(
+        const ReauthException.wrongPassword(),
+      ).not((it) => it.equals(const ReauthException.cancelled()));
+    });
+
     test('switch式で全6種類を網羅的にパターンマッチできること', () {
       String describe(ReauthException exception) {
         return switch (exception) {
