@@ -151,6 +151,9 @@ class AuthRepository {
   }
 
   /// アカウント削除APIを呼び出し、成功後にローカルのトークンを破棄する（カスタム認証用）
+  ///
+  /// サーバー側の削除が成功した後は、端末側のトークン消去に失敗しても
+  /// Crashlytics へ記録して処理を続行し、未ログイン遷移およびローカル削除を妨げません。
   Future<void> deleteAccount() async {
     final accessToken = await _sessionLock.synchronized(
       tokenStorage.getAccessToken,
@@ -164,6 +167,16 @@ class AuthRepository {
       options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
     );
 
-    await _sessionLock.runSessionTransition(tokenStorage.clear);
+    try {
+      await _sessionLock.runSessionTransition(tokenStorage.clear);
+    } on Object catch (e, st) {
+      // サーバー側のアカウント削除は既に完了しているため、
+      // ローカルトークン消去失敗は Crashlytics へ記録しつつサインアウト・ローカル削除を続行する
+      talker.handle(
+        e,
+        st,
+        'Failed to clear local tokens after account deletion',
+      );
+    }
   }
 }

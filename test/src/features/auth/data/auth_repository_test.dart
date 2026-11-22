@@ -36,12 +36,14 @@ class FakeTokenStorage extends Mock implements TokenStorage {
     this.initialRefreshToken,
     this.currentUserId,
     this.onSaveTokens,
+    this.clearError,
   }) : currentRefreshToken = initialRefreshToken;
 
   final String? initialRefreshToken;
   String? currentUserId;
   String? currentRefreshToken;
   Future<void> Function(String accessToken, String refreshToken)? onSaveTokens;
+  final Exception? clearError;
   int getUserIdCalls = 0;
 
   // 保存された値を検証するためのプロパティ
@@ -62,6 +64,9 @@ class FakeTokenStorage extends Mock implements TokenStorage {
 
   @override
   Future<void> clear() async {
+    if (clearError != null) {
+      throw clearError!;
+    }
     currentUserId = null;
     currentRefreshToken = null;
     savedAccessToken = null;
@@ -960,6 +965,50 @@ void main() {
 
       check(fakeStorage.savedAccessToken).equals('access-123');
       check(fakeStorage.savedRefreshToken).equals('refresh-123');
+    });
+
+    test('deleteAccount: サーバー削除成功後に tokenStorage.clear() が失敗しても、 '
+        'talker.handle へ記録して正常完了すること', () async {
+      final clearException = Exception('secure storage error');
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-123',
+              clearError: clearException,
+            )
+            ..savedAccessToken = 'access-123'
+            ..savedRefreshToken = 'refresh-123'
+            ..currentUserId = 'user-123';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer(
+        (_) async => Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+
+      await check(repo.deleteAccount()).completes();
+
+      verify(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).called(1);
+      verify(
+        () => mockTalker.handle(
+          clearException,
+          any<StackTrace?>(),
+          'Failed to clear local tokens after account deletion',
+        ),
+      ).called(1);
+      check(container.read(authSessionLockProvider).sessionEpoch).equals(1);
     });
   });
 }

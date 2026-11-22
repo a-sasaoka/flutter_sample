@@ -80,9 +80,31 @@ class TokenStorage {
   }
 
   /// トークンおよびユーザーIDを削除する
+  ///
+  /// 3件のうち途中で失敗しても残りのキーの削除を最後まで試行し、
+  /// 一部トークンの残留を防いだ上で最初に発生したエラーを再スローします。
   Future<void> clear() async {
-    await _secureStorage.delete(key: SecureStorageKeys.accessToken);
-    await _secureStorage.delete(key: SecureStorageKeys.refreshToken);
-    await _secureStorage.delete(key: SecureStorageKeys.customUserId);
+    Object? firstError;
+    StackTrace? firstStackTrace;
+
+    const keys = [
+      SecureStorageKeys.accessToken,
+      SecureStorageKeys.refreshToken,
+      SecureStorageKeys.customUserId,
+    ];
+
+    for (final key in keys) {
+      try {
+        await _secureStorage.delete(key: key);
+      } on Object catch (e, st) {
+        // 途中で失敗しても残りのキーをすべて削除試行するため、最初のエラーだけ控える
+        firstError ??= e;
+        firstStackTrace ??= st;
+      }
+    }
+
+    if (firstError != null) {
+      Error.throwWithStackTrace(firstError, firstStackTrace!);
+    }
   }
 }

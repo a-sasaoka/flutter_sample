@@ -116,6 +116,38 @@ void main() {
       ).called(1);
     });
 
+    test('clear: 途中で削除に失敗しても全3キーの削除を試行し、最初のエラーを再スローすること', () async {
+      final firstError = Exception('access delete failed');
+      final secondError = Exception('refresh delete failed');
+      when(
+        () => mockStorage.delete(key: SecureStorageKeys.accessToken),
+      ).thenThrow(firstError);
+      when(
+        () => mockStorage.delete(key: SecureStorageKeys.refreshToken),
+      ).thenThrow(secondError);
+      when(
+        () => mockStorage.delete(key: SecureStorageKeys.customUserId),
+      ).thenAnswer((_) async => {});
+      final storage = container.read(tokenStorageProvider);
+
+      try {
+        await storage.clear();
+        fail('Exception not thrown');
+      } on Exception catch (e) {
+        check(e).equals(firstError);
+      }
+
+      verify(
+        () => mockStorage.delete(key: SecureStorageKeys.accessToken),
+      ).called(1);
+      verify(
+        () => mockStorage.delete(key: SecureStorageKeys.refreshToken),
+      ).called(1);
+      verify(
+        () => mockStorage.delete(key: SecureStorageKeys.customUserId),
+      ).called(1);
+    });
+
     test('トークンが保存されていない場合、get メソッドが null を返すこと', () async {
       // Arrange
       when(
