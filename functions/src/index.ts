@@ -10,6 +10,44 @@ const db = admin.firestore();
 
 setGlobalOptions({maxInstances: 10});
 
+const RECENT_AUTH_MAX_AGE_SECONDS = 5 * 60;
+const ACCOUNT_DELETIONS_COLLECTION = "account_deletions";
+const ACCOUNT_DELETING_ERROR = "ACCOUNT_DELETING";
+const MEMO_CONFLICT_ERROR = "MEMO_CONFLICT";
+const NOT_FOUND_ERROR = "NOT_FOUND";
+
+/**
+ * Returns the deletion-state document reference outside users/{uid}.
+ * @param {string} uid Firebase Auth UID
+ * @return {admin.firestore.DocumentReference} Deletion state doc reference
+ */
+function getAccountDeletionRef(
+  uid: string
+): admin.firestore.DocumentReference {
+  return db.collection(ACCOUNT_DELETIONS_COLLECTION).doc(uid);
+}
+
+/**
+ * Express request helper to extract and verify Firebase ID token.
+ * @param {object} req Express request with authorization header
+ * @return {Promise<admin.auth.DecodedIdToken | null>} Decoded token or null
+ */
+async function getDecodedTokenFromRequest(
+  req: { headers: { authorization?: string } }
+): Promise<admin.auth.DecodedIdToken | null> {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return null;
+  }
+  const idToken = authHeader.split("Bearer ")[1];
+  try {
+    return await admin.auth().verifyIdToken(idToken);
+  } catch (error) {
+    logger.error("Token verification failed: ", error);
+    return null;
+  }
+}
+
 /**
  * Express request helper to extract and verify ID token.
  * @param {object} req Express request with authorization header
@@ -18,18 +56,28 @@ setGlobalOptions({maxInstances: 10});
 async function getUidFromRequest(
   req: { headers: { authorization?: string } }
 ): Promise<string | null> {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return null;
+  const decodedToken = await getDecodedTokenFromRequest(req);
+  return decodedToken ? decodedToken.uid : null;
+}
+
+/**
+ * Checks whether auth_time is within the recent authentication window (5 min).
+ * @param {unknown} authTimeSeconds Unix timestamp (seconds) from ID token
+ * @param {number} nowSeconds Current server Unix timestamp (seconds)
+ * @return {boolean} True when auth_time satisfies recent-auth criteria
+ */
+function isRecentlyAuthenticated(
+  authTimeSeconds: unknown,
+  nowSeconds: number = Math.floor(Date.now() / 1000)
+): boolean {
+  if (
+    typeof authTimeSeconds !== "number" ||
+    !Number.isFinite(authTimeSeconds) ||
+    authTimeSeconds <= 0
+  ) {
+    return false;
   }
-  const idToken = authHeader.split("Bearer ")[1];
-  try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    return decodedToken.uid;
-  } catch (error) {
-    logger.error("Token verification failed: ", error);
-    return null;
-  }
+  return nowSeconds - authTimeSeconds <= RECENT_AUTH_MAX_AGE_SECONDS;
 }
 
 /**
@@ -102,6 +150,7 @@ export const memos = onRequest(async (req, res) => {
   const memoId = pathParts.length > 0 ? pathParts[0] : null;
 
   const userMemosRef = db.collection("users").doc(uid).collection("memos");
+  const deletionStateRef = getAccountDeletionRef(uid);
 
   try {
     if (req.method === "GET") {
@@ -137,26 +186,38 @@ export const memos = onRequest(async (req, res) => {
       };
 
       const id = req.body.id;
-      if (id) {
-        if (typeof id !== "string") {
-          res.status(400).send("Bad Request: id must be a string");
+      if (id && typeof id !== "string") {
+        res.status(400).send("Bad Request: id must be a string");
+        return;
+      }
+
+      const docRef = id ? userMemosRef.doc(id) : userMemosRef.doc();
+      try {
+        await db.runTransaction(async (tx) => {
+          const deletionSnap = await tx.get(deletionStateRef);
+          if (deletionSnap.exists) {
+            throw new Error(ACCOUNT_DELETING_ERROR);
+          }
+          if (id) {
+            const existingMemo = await tx.get(docRef);
+            if (existingMemo.exists) {
+              throw new Error(MEMO_CONFLICT_ERROR);
+            }
+          }
+          tx.create(docRef, memoData);
+        });
+        res.status(201).json({id: docRef.id, ...memoData});
+      } catch (error) {
+        const err = error as { code?: number; message?: string };
+        if (err.message === ACCOUNT_DELETING_ERROR) {
+          res.status(409).send("Conflict: Account deletion in progress");
           return;
         }
-        const docRef = userMemosRef.doc(id);
-        try {
-          await docRef.create(memoData);
-          res.status(201).json({id, ...memoData});
-        } catch (error) {
-          const err = error as { code?: number };
-          if (err.code === 6) {
-            res.status(409).send("Conflict: Memo with this ID already exists");
-            return;
-          }
-          throw error;
+        if (err.message === MEMO_CONFLICT_ERROR || err.code === 6) {
+          res.status(409).send("Conflict: Memo with this ID already exists");
+          return;
         }
-      } else {
-        const docRef = await userMemosRef.add(memoData);
-        res.status(201).json({id: docRef.id, ...memoData});
+        throw error;
       }
     } else if (req.method === "PUT") {
       if (!memoId) {
@@ -175,39 +236,58 @@ export const memos = onRequest(async (req, res) => {
       const now = new Date().toISOString();
 
       const docRef = userMemosRef.doc(memoId);
-      const doc = await docRef.get();
-      if (!doc.exists) {
-        res.status(404).send("Not Found");
-        return;
-      }
+      try {
+        const responseMemo = await db.runTransaction(async (tx) => {
+          const deletionSnap = await tx.get(deletionStateRef);
+          if (deletionSnap.exists) {
+            throw new Error(ACCOUNT_DELETING_ERROR);
+          }
+          const doc = await tx.get(docRef);
+          if (!doc.exists) {
+            throw new Error(NOT_FOUND_ERROR);
+          }
 
-      const existingData = doc.data() ?? {};
-      const resolvedCreatedAt =
-        typeof existingData.createdAt === "string" ?
-          existingData.createdAt :
-          now;
-      const resolvedIsDeleted =
-        isDeleted !== undefined ?
-          isDeleted :
-          Boolean(existingData.isDeleted);
-      const updateData: Record<string, unknown> = {
-        title,
-        content: content || "",
-        updatedAt: now,
-      };
-      if (isDeleted !== undefined) {
-        updateData.isDeleted = isDeleted;
-      }
+          const existingData = doc.data() ?? {};
+          const resolvedCreatedAt =
+            typeof existingData.createdAt === "string" ?
+              existingData.createdAt :
+              now;
+          const resolvedIsDeleted =
+            isDeleted !== undefined ?
+              isDeleted :
+              Boolean(existingData.isDeleted);
+          const updateData: Record<string, unknown> = {
+            title,
+            content: content || "",
+            updatedAt: now,
+          };
+          if (isDeleted !== undefined) {
+            updateData.isDeleted = isDeleted;
+          }
 
-      await docRef.update(updateData);
-      res.status(200).json({
-        id: memoId,
-        title,
-        content: content || "",
-        createdAt: resolvedCreatedAt,
-        updatedAt: now,
-        isDeleted: resolvedIsDeleted,
-      });
+          tx.update(docRef, updateData);
+          return {
+            id: memoId,
+            title,
+            content: content || "",
+            createdAt: resolvedCreatedAt,
+            updatedAt: now,
+            isDeleted: resolvedIsDeleted,
+          };
+        });
+        res.status(200).json(responseMemo);
+      } catch (error) {
+        const err = error as { message?: string };
+        if (err.message === ACCOUNT_DELETING_ERROR) {
+          res.status(409).send("Conflict: Account deletion in progress");
+          return;
+        }
+        if (err.message === NOT_FOUND_ERROR) {
+          res.status(404).send("Not Found");
+          return;
+        }
+        throw error;
+      }
     } else {
       res.status(405).send("Method Not Allowed");
     }
@@ -224,11 +304,12 @@ export const memos = onRequest(async (req, res) => {
  * @return {Promise<void>}
  */
 export const users = onRequest(async (req, res) => {
-  const uid = await getUidFromRequest(req);
-  if (!uid) {
+  const decodedToken = await getDecodedTokenFromRequest(req);
+  if (!decodedToken) {
     res.status(401).send("Unauthorized");
     return;
   }
+  const uid = decodedToken.uid;
 
   const pathParts = req.path.split("/").filter((p) => p !== "");
   const firstPath = pathParts.length > 0 ? pathParts[0] : null;
@@ -236,9 +317,17 @@ export const users = onRequest(async (req, res) => {
   try {
     if (firstPath === "me") {
       const docRef = db.collection("users").doc(uid);
+      const deletionStateRef = getAccountDeletionRef(uid);
 
       if (req.method === "GET") {
-        const doc = await docRef.get();
+        const [deletionSnap, doc] = await Promise.all([
+          deletionStateRef.get(),
+          docRef.get(),
+        ]);
+        if (deletionSnap.exists) {
+          res.status(404).send("Not Found");
+          return;
+        }
         if (!doc.exists) {
           const userRecord = await admin.auth().getUser(uid);
           const initialProfile = {
@@ -248,8 +337,28 @@ export const users = onRequest(async (req, res) => {
             phone: userRecord.phoneNumber || "",
             avatarUrl: userRecord.photoURL || "",
           };
-          await docRef.set(initialProfile);
-          res.status(200).json(initialProfile);
+          try {
+            const resolvedProfile = await db.runTransaction(async (tx) => {
+              const txDeletionSnap = await tx.get(deletionStateRef);
+              if (txDeletionSnap.exists) {
+                throw new Error(ACCOUNT_DELETING_ERROR);
+              }
+              const existingDoc = await tx.get(docRef);
+              if (existingDoc.exists) {
+                return existingDoc.data();
+              }
+              tx.set(docRef, initialProfile);
+              return initialProfile;
+            });
+            res.status(200).json(resolvedProfile);
+          } catch (error) {
+            const err = error as { message?: string };
+            if (err.message === ACCOUNT_DELETING_ERROR) {
+              res.status(404).send("Not Found");
+              return;
+            }
+            throw error;
+          }
         } else {
           res.status(200).json(doc.data());
         }
@@ -283,18 +392,52 @@ export const users = onRequest(async (req, res) => {
           updateData.avatarUrl = avatarUrl;
         }
 
-        await docRef.set(updateData, {merge: true});
-        const savedDoc = await docRef.get();
-        const savedData = savedDoc.data() || {};
-        const responseProfile = {
-          name: (savedData.name as string) || "",
-          displayName: (savedData.displayName as string) || "",
-          phone: (savedData.phone as string) || "",
-          email: (savedData.email as string) || "",
-          avatarUrl: (savedData.avatarUrl as string) || "",
-        };
-        res.status(200).json(responseProfile);
+        try {
+          const responseProfile = await db.runTransaction(async (tx) => {
+            const deletionSnap = await tx.get(deletionStateRef);
+            if (deletionSnap.exists) {
+              throw new Error(ACCOUNT_DELETING_ERROR);
+            }
+            const existingDoc = await tx.get(docRef);
+            tx.set(docRef, updateData, {merge: true});
+            const savedData: Record<string, unknown> = {
+              ...(existingDoc.data() || {}),
+              ...updateData,
+            };
+            return {
+              name: (savedData.name as string) || "",
+              displayName: (savedData.displayName as string) || "",
+              phone: (savedData.phone as string) || "",
+              email: (savedData.email as string) || "",
+              avatarUrl: (savedData.avatarUrl as string) || "",
+            };
+          });
+          res.status(200).json(responseProfile);
+        } catch (error) {
+          const err = error as { message?: string };
+          if (err.message === ACCOUNT_DELETING_ERROR) {
+            res.status(409).send("Conflict: Account deletion in progress");
+            return;
+          }
+          throw error;
+        }
       } else if (req.method === "DELETE") {
+        // 破壊的削除の開始前に ID トークンの auth_time（5分以内）をサーバー側でも検証
+        if (!isRecentlyAuthenticated(decodedToken.auth_time)) {
+          res.status(403).json({
+            code: "requires-recent-login",
+            error: "Forbidden: Recent authentication required",
+          });
+          return;
+        }
+        // 削除対象ツリー外に退会状態を記録し、並行する書き込みを拒否（再試行は許可）
+        await deletionStateRef.set(
+          {
+            status: "deleting",
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          {merge: true}
+        );
         // ユーザードキュメント配下（memosサブコレクション等）を一括削除
         await db.recursiveDelete(docRef);
         // レート制限ドキュメントが存在する場合は併せて削除
@@ -302,6 +445,13 @@ export const users = onRequest(async (req, res) => {
           .collection("rate_limits")
           .doc(`routes_${uid}`);
         await rateLimitDocRef.delete();
+        await deletionStateRef.set(
+          {
+            status: "deleted",
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          {merge: true}
+        );
         res.status(200).json({message: "Account data deleted"});
       } else {
         res.status(405).send("Method Not Allowed");
