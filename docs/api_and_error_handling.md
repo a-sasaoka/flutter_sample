@@ -35,15 +35,15 @@ lib/src/core/
   │   └── firebase_performance_dio_interceptor.dart     # 通信パフォーマンスの自動計測 (HttpMetric)
 ```
 
-| 項目                   | 内容                                                                                        |
-| ---------------------- | ------------------------------------------------------------------------------------------- |
-| 抽象化の徹底           | `ApiClient` をインターフェース化。通信ライブラリ(Dio)への直接依存を排除                     |
-| 認証の疎結合化         | `authInterceptorsProvider` を通じて、`features/auth` の `TokenInterceptor` を動的に注入     |
-| 二重更新防止           | 複数の401エラーが同時に発生しても、リフレッシュAPIの呼び出しを1回に集約                     |
-| 環境別設定             | `envConfigProvider` (JSON) より、環境に応じた `BASE_URL` やタイムアウトを適用               |
-| パフォーマンス自動計測 | Firebase Performance により全リクエストの通信時間・データサイズを自動計測                   |
-| エラーの一元化         | `AppException` に変換することで、UI層でのエラー分岐をシンプル化                             |
-| 自動リトライ＆べき等性 | `RetryInterceptor` による一時障害（瞬断・502/503/504等）の自動再送と `Idempotency-Key` 付与 |
+| 項目                   | 内容                                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------- |
+| 抽象化の徹底           | `ApiClient` をインターフェース化。通信ライブラリ(Dio)への直接依存を排除                            |
+| 認証の疎結合化         | `authInterceptorsProvider` を通じて、`features/auth` の `TokenInterceptor` を動的に注入            |
+| 二重更新防止           | 複数の401エラーが同時に発生しても、リフレッシュAPIの呼び出しを1回に集約                            |
+| 環境別設定             | `envConfigProvider` (JSON) より、環境に応じた `BASE_URL` やタイムアウトを適用                      |
+| パフォーマンス自動計測 | Firebase Performance により全リクエストの通信時間・データサイズを自動計測                          |
+| エラーの一元化         | `AppException` に変換しつつ元の `response` / `type` を保持し、UI・Repository層での分岐をシンプル化 |
+| 自動リトライ＆べき等性 | `RetryInterceptor` による一時障害（瞬断・502/503/504等）の自動再送と `Idempotency-Key` 付与        |
 
 ---
 

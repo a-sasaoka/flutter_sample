@@ -1,11 +1,16 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
+import 'package:dio/dio.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/core/analytics/analytics_event.dart';
+import 'package:flutter_sample/src/core/analytics/analytics_service.dart';
 import 'package:flutter_sample/src/core/config/env_config.dart';
 import 'package:flutter_sample/src/core/config/locale_provider.dart';
 import 'package:flutter_sample/src/core/config/text_scale_provider.dart';
@@ -13,17 +18,70 @@ import 'package:flutter_sample/src/core/config/theme_mode_provider.dart';
 import 'package:flutter_sample/src/core/config/theme_scheme_provider.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/exceptions/reauth_exception.dart';
+import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
+import 'package:flutter_sample/src/core/network/dio_provider.dart';
+import 'package:flutter_sample/src/core/services/lock_suppression_handler.dart';
+import 'package:flutter_sample/src/core/storage/cache_manager.dart';
+import 'package:flutter_sample/src/core/utils/date_time_provider.dart';
+import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_service.dart';
+import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
+import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:flutter_sample/src/features/auth/domain/account_deletion_precheck.dart';
+import 'package:flutter_sample/src/features/memos/data/memo_repository.dart';
+import 'package:flutter_sample/src/features/profile/data/storage_service.dart';
+import 'package:flutter_sample/src/features/qr_scanner/data/qr_scan_histories_dao.dart';
 import 'package:flutter_sample/src/features/settings/presentation/settings_screen.dart';
+import 'package:flutter_sample/src/features/user/data/user_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 // --- モックとFakeクラスの定義 ---
 
 class MockAuthService extends Mock implements AuthService {}
+
+class MockFirebaseAuthRepository extends Mock
+    implements FirebaseAuthRepository {}
+
+class MockAuthRepository extends Mock implements AuthRepository {}
+
+class MockTokenStorage extends Mock implements TokenStorage {}
+
+class MockStorageService extends Mock implements StorageService {}
+
+class MockMemoRepository extends Mock implements MemoRepository {}
+
+class MockQrScanHistoriesDao extends Mock implements QrScanHistoriesDao {}
+
+class MockCacheManager extends Mock implements CacheManager {}
+
+class MockAnalyticsService extends Mock implements AnalyticsService {}
+
+class _FakeDeletionAuthStateNotifier extends AuthStateNotifier {
+  @override
+  Future<bool> build() async => true;
+}
+
+class _StubHttpClientAdapter implements HttpClientAdapter {
+  _StubHttpClientAdapter(this._onFetch);
+
+  final Future<ResponseBody> Function(RequestOptions options) _onFetch;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) => _onFetch(options);
+
+  @override
+  void close({bool force = false}) {}
+}
 
 class MockAppLocalizations extends Mock implements AppLocalizations {}
 
@@ -178,6 +236,7 @@ void main() {
     when(() => mockL10n.errorUnknown).thenReturn('不明なエラー');
     when(() => mockL10n.errorOccurred).thenReturn('エラーが発生しました');
     when(() => mockL10n.errorServer).thenReturn('サーバーエラー');
+    when(() => mockL10n.errorUnauthorized).thenReturn('権限エラー');
     when(() => mockL10n.errorRequiresRecentLogin).thenReturn('再認証が必要です');
     when(() => mockL10n.errorWrongPassword).thenReturn('パスワードが正しくありません');
     when(() => mockL10n.errorUserMismatch).thenReturn('アカウントが一致しません');
@@ -935,6 +994,274 @@ void main() {
             check(find.textContaining('サーバーエラー')).findsOne();
           },
         );
+
+        Widget createWiredDeletionWidget({
+          required HttpClientAdapter adapter,
+          required MockFirebaseAuthRepository mockFirebaseRepo,
+          required MockMemoRepository mockMemoRepo,
+          MockQrScanHistoriesDao? mockQrDao,
+          MockCacheManager? mockCacheManager,
+          MockAnalyticsService? mockAnalytics,
+        }) {
+          final quietTalker = Talker(
+            settings: TalkerSettings(useConsoleLogs: false),
+          );
+          final router = GoRouter(
+            initialLocation: '/settings',
+            routes: [
+              GoRoute(
+                path: '/settings',
+                builder: (_, _) => const SettingsScreen(),
+              ),
+            ],
+          );
+
+          return ProviderScope(
+            overrides: [
+              envConfigProvider.overrideWithValue(
+                const EnvConfigState(
+                  baseUrl: 'https://test.example.com',
+                  imageBaseUrl: defaultImageBaseUrl,
+                  aiModel: 'test-model',
+                  connectTimeout: 10,
+                  receiveTimeout: 15,
+                  sendTimeout: 10,
+                  useFirebaseAuth: true,
+                  useAgentPlatform: true,
+                ),
+              ),
+              isAuthenticatedProvider.overrideWithValue(true),
+              loggerProvider.overrideWithValue(quietTalker),
+              dioProvider.overrideWith((ref) {
+                final dio = Dio(
+                  BaseOptions(baseUrl: 'https://test.example.com'),
+                )..httpClientAdapter = adapter;
+                dio.interceptors.add(ref.watch(dioInterceptorProvider));
+                return dio;
+              }),
+              firebaseAuthRepositoryProvider.overrideWithValue(
+                mockFirebaseRepo,
+              ),
+              authRepositoryProvider.overrideWithValue(MockAuthRepository()),
+              authStateProvider.overrideWith(
+                _FakeDeletionAuthStateNotifier.new,
+              ),
+              tokenStorageProvider.overrideWithValue(MockTokenStorage()),
+              storageServiceProvider.overrideWithValue(MockStorageService()),
+              memoRepositoryProvider.overrideWithValue(mockMemoRepo),
+              qrScanHistoriesDaoProvider.overrideWithValue(
+                mockQrDao ?? MockQrScanHistoriesDao(),
+              ),
+              cacheManagerProvider.overrideWithValue(
+                mockCacheManager ?? MockCacheManager(),
+              ),
+              analyticsServiceProvider.overrideWithValue(
+                mockAnalytics ?? MockAnalyticsService(),
+              ),
+              clockProvider.overrideWithValue(
+                () => DateTime.utc(2026, 11, 22, 9),
+              ),
+              lockSuppressionRunnerProvider.overrideWithValue(
+                <T>(action, {isSuccess}) => action(),
+              ),
+              themeSchemeProvider.overrideWith(() => fakeThemeSchemeNotifier),
+              textScaleProvider.overrideWith(() => fakeTextScaleNotifier),
+              themeModeProvider.overrideWith(() => fakeThemeModeNotifier),
+              localeProvider.overrideWith(() => fakeLocaleNotifier),
+            ],
+            child: MaterialApp.router(
+              routerConfig: router,
+              localizationsDelegates: [
+                MockLocalizationsDelegate(mockL10n),
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+            ),
+          );
+        }
+
+        testWidgets('実Dio+ProfileRepository連携: DELETE /users/me の 403 '
+            '(requires-recent-login) で再認証後に再試行し退会完了すること', (tester) async {
+          registerFallbackValue(AnalyticsEvent.accountDeleted);
+
+          final mockFirebaseRepo = MockFirebaseAuthRepository();
+          final mockMemoRepo = MockMemoRepository();
+          final mockQrDao = MockQrScanHistoriesDao();
+          final mockCacheManager = MockCacheManager();
+          final mockAnalytics = MockAnalyticsService();
+
+          var deleteRequests = 0;
+          final adapter = _StubHttpClientAdapter((options) async {
+            if (options.method == 'GET' && options.path == '/users/me') {
+              return ResponseBody.fromString(
+                jsonEncode(const {
+                  'name': '太郎',
+                  'email': 'user@example.com',
+                  'avatarUrl': '',
+                }),
+                200,
+                headers: {
+                  Headers.contentTypeHeader: [Headers.jsonContentType],
+                },
+              );
+            }
+            if (options.method == 'DELETE' && options.path == '/users/me') {
+              deleteRequests++;
+              if (deleteRequests == 1) {
+                return ResponseBody.fromString(
+                  jsonEncode(const {'code': 'requires-recent-login'}),
+                  403,
+                  headers: {
+                    Headers.contentTypeHeader: [Headers.jsonContentType],
+                  },
+                );
+              }
+              return ResponseBody.fromString(
+                jsonEncode(const {'message': 'Account data deleted'}),
+                200,
+                headers: {
+                  Headers.contentTypeHeader: [Headers.jsonContentType],
+                },
+              );
+            }
+            return ResponseBody.fromString('', 404);
+          });
+
+          when(() => mockFirebaseRepo.currentUserId).thenReturn('uid-wired');
+          when(() => mockFirebaseRepo.currentUserPhotoUrl).thenReturn(null);
+          when(
+            () => mockFirebaseRepo.needsRecentLogin(any<DateTime>()),
+          ).thenReturn(false);
+          when(
+            mockFirebaseRepo.getAvailableReauthMethods,
+          ).thenReturn({ReauthMethod.password});
+          when(
+            () => mockFirebaseRepo.currentUserEmail,
+          ).thenReturn('user@example.com');
+          when(
+            () => mockFirebaseRepo.reauthenticateWithPassword(
+              password: 'retry-password',
+            ),
+          ).thenAnswer((_) async {});
+          when(mockFirebaseRepo.deleteAccount).thenAnswer((_) async {});
+          when(
+            () => mockAnalytics.logEvent(
+              event: any(named: 'event'),
+              parameters: any(named: 'parameters'),
+            ),
+          ).thenAnswer((_) async {});
+          when(
+            () => mockMemoRepo.deleteAllMemosByUser('uid-wired'),
+          ).thenAnswer((_) async => 1);
+          when(mockQrDao.deleteAllHistories).thenAnswer((_) async => 0);
+          when(
+            () => mockCacheManager.clear(UserRepository.cacheKey),
+          ).thenAnswer((_) async {});
+
+          await tester.pumpWidget(
+            createWiredDeletionWidget(
+              adapter: adapter,
+              mockFirebaseRepo: mockFirebaseRepo,
+              mockMemoRepo: mockMemoRepo,
+              mockQrDao: mockQrDao,
+              mockCacheManager: mockCacheManager,
+              mockAnalytics: mockAnalytics,
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          await proceedToStep2(tester);
+          await tester.tap(
+            find.byKey(const Key('account_deletion_step2_confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          // 1回目の DELETE 403 (requires-recent-login) により再認証モーダルが表示されること
+          check(find.text('本人確認（再認証）')).findsOne();
+          await tester.enterText(
+            find.byKey(const Key('reauth_password_field')),
+            'retry-password',
+          );
+          await tester.tap(
+            find.byKey(const Key('reauth_password_submit_button')),
+          );
+          await tester.pumpAndSettle();
+
+          check(deleteRequests).equals(2);
+          verify(
+            () => mockFirebaseRepo.reauthenticateWithPassword(
+              password: 'retry-password',
+            ),
+          ).called(1);
+          verify(mockFirebaseRepo.deleteAccount).called(1);
+          verify(
+            () => mockMemoRepo.deleteAllMemosByUser('uid-wired'),
+          ).called(1);
+        });
+
+        testWidgets('実Dio+ProfileRepository連携: DELETE /users/me の通常の 403 は '
+            '再認証モーダルを出さず権限エラーSnackBarを表示すること', (tester) async {
+          final mockFirebaseRepo = MockFirebaseAuthRepository();
+          final mockMemoRepo = MockMemoRepository();
+
+          final adapter = _StubHttpClientAdapter((options) async {
+            if (options.method == 'GET' && options.path == '/users/me') {
+              return ResponseBody.fromString(
+                jsonEncode(const {
+                  'name': '太郎',
+                  'email': 'user@example.com',
+                  'avatarUrl': '',
+                }),
+                200,
+                headers: {
+                  Headers.contentTypeHeader: [Headers.jsonContentType],
+                },
+              );
+            }
+            if (options.method == 'DELETE' && options.path == '/users/me') {
+              return ResponseBody.fromString(
+                jsonEncode(const {'error': 'Forbidden'}),
+                403,
+                headers: {
+                  Headers.contentTypeHeader: [Headers.jsonContentType],
+                },
+              );
+            }
+            return ResponseBody.fromString('', 404);
+          });
+
+          when(() => mockFirebaseRepo.currentUserId).thenReturn('uid-403');
+          when(() => mockFirebaseRepo.currentUserPhotoUrl).thenReturn(null);
+          when(
+            () => mockFirebaseRepo.needsRecentLogin(any<DateTime>()),
+          ).thenReturn(false);
+          when(
+            mockFirebaseRepo.getAvailableReauthMethods,
+          ).thenReturn({ReauthMethod.password});
+          when(
+            () => mockFirebaseRepo.currentUserEmail,
+          ).thenReturn('user@example.com');
+
+          await tester.pumpWidget(
+            createWiredDeletionWidget(
+              adapter: adapter,
+              mockFirebaseRepo: mockFirebaseRepo,
+              mockMemoRepo: mockMemoRepo,
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          await proceedToStep2(tester);
+          await tester.tap(
+            find.byKey(const Key('account_deletion_step2_confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          check(find.text('本人確認（再認証）')).findsNothing();
+          check(find.text('権限エラー')).findsOne();
+          verifyNever(mockFirebaseRepo.deleteAccount);
+        });
       });
     });
   });

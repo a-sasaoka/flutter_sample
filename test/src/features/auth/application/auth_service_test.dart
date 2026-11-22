@@ -51,6 +51,18 @@ class MockUser extends Mock implements User {}
 
 class MockTokenStorage extends Mock implements TokenStorage {}
 
+class _SpyTalker extends Talker {
+  _SpyTalker() : super(settings: TalkerSettings(enabled: false));
+
+  final List<Object> handleExceptions = [];
+
+  @override
+  void handle(Object exception, [StackTrace? stackTrace, dynamic msg]) {
+    handleExceptions.add(exception);
+    super.handle(exception, stackTrace, msg);
+  }
+}
+
 class FakeAuthStateNotifier extends AuthStateNotifier {
   FakeAuthStateNotifier({this.initial = true});
 
@@ -850,5 +862,77 @@ void main() {
         check(container.read(accountDeletionNoticeProvider)).isTrue();
       },
     );
+
+    test('② deleteMyAccountData が ReauthRequiresRecentLoginException を投げた場合、 '
+        'Crashlytics へ記録せず再スローし、再認証後の再試行で完了すること', () async {
+      final spyTalker = _SpyTalker();
+      var attempts = 0;
+
+      when(() => mockAuthRepo.currentUserId).thenReturn('uid-server-reauth');
+      when(() => mockAuthRepo.currentUserPhotoUrl).thenReturn(null);
+      when(() => mockProfileRepo.fetchProfile()).thenAnswer(
+        (_) async => const UserProfile(name: '太郎', email: 'a@example.com'),
+      );
+      when(() => mockProfileRepo.deleteMyAccountData()).thenAnswer((_) async {
+        attempts++;
+        if (attempts == 1) {
+          throw const ReauthRequiresRecentLoginException();
+        }
+      });
+      when(() => mockAuthRepo.deleteAccount()).thenAnswer((_) async {});
+      stubHappyLocalCleanups();
+
+      final container = ProviderContainer(
+        overrides: [
+          envConfigProvider.overrideWithValue(
+            const EnvConfigState(
+              baseUrl: 'https://test.example.com',
+              imageBaseUrl: defaultImageBaseUrl,
+              aiModel: 'test-model',
+              connectTimeout: 10,
+              receiveTimeout: 15,
+              sendTimeout: 10,
+              useFirebaseAuth: true,
+              useAgentPlatform: true,
+            ),
+          ),
+          loggerProvider.overrideWithValue(spyTalker),
+          firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+          authRepositoryProvider.overrideWithValue(mockCustomAuthRepo),
+          profileRepositoryProvider.overrideWithValue(mockProfileRepo),
+          storageServiceProvider.overrideWithValue(mockStorageService),
+          memoRepositoryProvider.overrideWithValue(mockMemoRepo),
+          qrScanHistoriesDaoProvider.overrideWithValue(mockQrDao),
+          cacheManagerProvider.overrideWithValue(mockCacheManager),
+          analyticsServiceProvider.overrideWithValue(mockAnalyticsService),
+          clockProvider.overrideWithValue(() => fixedNow),
+          tokenStorageProvider.overrideWithValue(mockTokenStorage),
+          firebaseAuthStateProvider.overrideWith(
+            () => FakeFirebaseAuthStateNotifier(null),
+          ),
+          authStateProvider.overrideWith(FakeAuthStateNotifier.new),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await check(
+        container.read(authServiceProvider).deleteAccount(),
+      ).throws<ReauthRequiresRecentLoginException>();
+
+      check(spyTalker.handleExceptions).isEmpty();
+      verifyNever(() => mockAuthRepo.deleteAccount());
+      verifyNever(() => mockMemoRepo.deleteAllMemosByUser(any()));
+      check(container.read(accountDeletionNoticeProvider)).isFalse();
+
+      // 再試行時は 2 回目の deleteMyAccountData が成功し、退会が完了すること
+      await check(
+        container.read(authServiceProvider).deleteAccount(),
+      ).completes();
+      verify(() => mockAuthRepo.deleteAccount()).called(1);
+      verify(
+        () => mockMemoRepo.deleteAllMemosByUser('uid-server-reauth'),
+      ).called(1);
+      check(container.read(accountDeletionNoticeProvider)).isTrue();
+    });
   });
 }

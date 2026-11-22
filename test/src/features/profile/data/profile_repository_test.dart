@@ -1,7 +1,12 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
+import 'package:flutter_sample/src/core/exceptions/reauth_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
+import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/profile/data/profile_repository.dart';
 import 'package:flutter_sample/src/features/profile/domain/user_profile.dart';
@@ -13,6 +18,22 @@ import 'package:talker_flutter/talker_flutter.dart';
 class MockApiClient extends Mock implements ApiClient {}
 
 class MockTalker extends Mock implements Talker {}
+
+class _StubHttpClientAdapter implements HttpClientAdapter {
+  _StubHttpClientAdapter(this._onFetch);
+
+  final Future<ResponseBody> Function(RequestOptions options) _onFetch;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) => _onFetch(options);
+
+  @override
+  void close({bool force = false}) {}
+}
 
 void main() {
   setUpAll(() {
@@ -189,6 +210,70 @@ void main() {
         ).thenThrow(const AppException.server(statusCode: 500));
 
         await check(repository.deleteMyAccountData()).throws<ServerException>();
+      });
+
+      test(
+        'DELETE /users/me が 403 (requires-recent-login) を返した場合、 '
+        'DioInterceptor 経由でも ReauthRequiresRecentLoginException を投げること',
+        () async {
+          final adapter = _StubHttpClientAdapter(
+            (_) async => ResponseBody.fromString(
+              jsonEncode(const {'code': 'requires-recent-login'}),
+              403,
+              headers: {
+                Headers.contentTypeHeader: [Headers.jsonContentType],
+              },
+            ),
+          );
+          final container = ProviderContainer(
+            overrides: [loggerProvider.overrideWithValue(mockTalker)],
+          );
+          addTearDown(container.dispose);
+
+          final dio = Dio(BaseOptions(baseUrl: 'https://test.example.com'))
+            ..httpClientAdapter = adapter
+            ..interceptors.add(container.read(dioInterceptorProvider));
+          final wiredRepo = ProfileRepository(
+            api: DioApiClient(dio),
+            talker: mockTalker,
+          );
+
+          await check(
+            wiredRepo.deleteMyAccountData(),
+          ).throws<ReauthRequiresRecentLoginException>();
+          verify(() => mockTalker.warning(any<dynamic>())).called(1);
+        },
+      );
+
+      test('DELETE /users/me が通常の 403 (requires-recent-login 以外) を返した場合、 '
+          'UnauthorizedException のまま再スローされること', () async {
+        final adapter = _StubHttpClientAdapter(
+          (_) async => ResponseBody.fromString(
+            jsonEncode(const {'error': 'Forbidden'}),
+            403,
+            headers: {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          ),
+        );
+        final container = ProviderContainer(
+          overrides: [loggerProvider.overrideWithValue(mockTalker)],
+        );
+        addTearDown(container.dispose);
+
+        final dio = Dio(BaseOptions(baseUrl: 'https://test.example.com'))
+          ..httpClientAdapter = adapter
+          ..interceptors.add(container.read(dioInterceptorProvider));
+        final wiredRepo = ProfileRepository(
+          api: DioApiClient(dio),
+          talker: mockTalker,
+        );
+
+        await check(wiredRepo.deleteMyAccountData()).throws<DioException>(
+          (e) => e
+            ..has((x) => x.error, 'error').isA<UnauthorizedException>()
+            ..has((x) => x.response?.statusCode, 'statusCode').equals(403),
+        );
       });
     });
   });

@@ -286,6 +286,8 @@ class AuthService {
     // ② サーバーDB（プロフィール・メモ・レート制限）削除
     try {
       await _profileRepository.deleteMyAccountData();
+    } on ReauthException {
+      rethrow;
     } on Object catch (e, st) {
       _talker.handle(e, st, '[AuthService] Failed to delete server user data');
       rethrow;

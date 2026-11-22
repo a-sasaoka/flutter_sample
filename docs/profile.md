@@ -55,7 +55,7 @@
 - **ローカルモック環境 (`useFirebaseAuth: false`) への配慮**:
   - Firebase を利用しない環境では外部 Storage との通信を自動スキップし、自前サーバーの更新のみを正常に行う安全設計となっています。
 - **退会時のアバター削除ガードとプロフィール一括削除 (Issue #324)**:
-  - [profile_repository.dart](../lib/src/features/profile/data/profile_repository.dart) の `deleteMyAccountData()`（`DELETE /users/me`）によりサーバー側のプロフィール・関連データを削除する前段として、[storage_service.dart](../lib/src/features/profile/data/storage_service.dart) の `StorageService.isFirebaseStorageUrl()` で Firebase Storage 以外の URL（Google アバター URL やローカルファイルパス・空文字）を安全にスキップし、`object-not-found` も正常扱いとすることで退会処理の中断を防いでいます。
+  - [profile_repository.dart](../lib/src/features/profile/data/profile_repository.dart) の `deleteMyAccountData()`（`DELETE /users/me`）によりサーバー側のプロフィール・関連データを削除する前段として、[storage_service.dart](../lib/src/features/profile/data/storage_service.dart) の `StorageService.isFirebaseStorageUrl()` で Firebase Storage 以外の URL（Google アバター URL やローカルファイルパス・空文字）を安全にスキップし、`object-not-found` も正常扱いとすることで退会処理の中断を防いでいます。また、`DELETE /users/me` が `403`（`code: requires-recent-login`）を返した場合は `ReauthRequiresRecentLoginException` へ変換し、[auth_service.dart](../lib/src/features/auth/application/auth_service.dart) / [settings_screen.dart](../lib/src/features/settings/presentation/settings_screen.dart) 側の再認証・再試行フローへ安全に引き継ぎます（通常の `403` は権限エラーのまま維持）。
 
 ---
 
