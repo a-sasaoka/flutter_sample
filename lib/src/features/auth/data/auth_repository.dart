@@ -71,7 +71,13 @@ class AuthRepository {
           accessToken: access,
           refreshToken: refresh,
         );
-        await _invalidationStore.clearInvalidated();
+        final savedUserId = await tokenStorage.getUserId();
+        final savedEmail = JwtUtils.getEmail(access) ?? email;
+        await _invalidationStore.clearIfAllowedForLogin(
+          userId: savedUserId,
+          email: savedEmail,
+          isDeletionInProgress: _sessionLock.isDeletionInProgress,
+        );
       });
     } else {
       talker.handle(
@@ -160,48 +166,88 @@ class AuthRepository {
 
   /// アカウント削除APIを呼び出し、成功後にローカルのトークンを破棄する（カスタム認証用）
   ///
-  /// サーバーへ削除要求を送る前にセッション無効化状態をディスクへ永続化し、
-  /// 保存に失敗した場合は削除要求を送信しません。サーバー側の削除が成功した後は、
-  /// 端末側のトークン消去に失敗しても Crashlytics へ記録して処理を続行し、
-  /// 未ログイン遷移およびローカル削除を妨げません。
+  /// サーバーへ削除要求を送る前に削除対象アカウント識別子付きでセッション無効化状態を
+  /// ディスクへ永続化し、保存に失敗した場合は削除要求を送信しません。API待機中に
+  /// 同じアカウントで再ログインが行われた場合も削除完了後・再起動後の復元を防ぎ、
+  /// 別アカウントへの切り替えのみ保護します。サーバー側の削除が成功した後は、端末側の
+  /// トークン消去に失敗しても Crashlytics へ記録して処理を続行し、未ログイン遷移および
+  /// ローカル削除を妨げません。
   Future<void> deleteAccount() async {
     final startState = await _sessionLock.synchronized(() async {
       final token = await tokenStorage.getAccessToken();
       if (token == null || token.isEmpty) {
         return null;
       }
-      // サーバー削除要求前に無効化マーカーをディスク永続化し、失敗時は削除要求を送らない
-      await _invalidationStore.markInvalidated();
-      return (accessToken: token, sessionEpoch: _sessionLock.sessionEpoch);
+      final startUserId = await tokenStorage.getUserId();
+      final startEmail = JwtUtils.getEmail(token);
+      // サーバー削除要求前に削除対象アカウント情報つきで無効化状態を永続化し、
+      // 保存に失敗した場合は削除要求を送らない
+      await _invalidationStore.markInvalidated(
+        targetUserId: startUserId,
+        targetEmail: startEmail,
+      );
+      _sessionLock.beginDeletion();
+      return (
+        accessToken: token,
+        sessionEpoch: _sessionLock.sessionEpoch,
+        userId: startUserId,
+        email: startEmail,
+      );
     });
     if (startState == null) {
       throw const AppException.unauthenticated();
     }
 
-    await api.delete<void>(
-      '/auth/account',
-      options: Options(
-        headers: {'Authorization': 'Bearer ${startState.accessToken}'},
-      ),
-    );
-
     try {
-      await _sessionLock.runSessionTransitionIfCurrent(
-        expectedEpoch: startState.sessionEpoch,
-        action: () async {
-          await tokenStorage.clear();
-          await _clearInvalidationFlagBestEffort();
-        },
+      await api.delete<void>(
+        '/auth/account',
+        options: Options(
+          headers: {'Authorization': 'Bearer ${startState.accessToken}'},
+        ),
       );
-    } on Object catch (e, st) {
-      // サーバー側のアカウント削除は既に完了しているため、
-      // ローカルトークン消去失敗は Crashlytics へ記録しつつサインアウト・ローカル削除を続行する
-      talker.handle(
-        e,
-        st,
-        'Failed to clear local tokens after account deletion',
-      );
+
+      try {
+        await _sessionLock.runSessionTransitionIf(
+          shouldTransition: () => _shouldClearSessionAfterDeletion(startState),
+          action: () async {
+            await tokenStorage.clear();
+            await _clearInvalidationFlagBestEffort();
+          },
+        );
+      } on Object catch (e, st) {
+        // サーバー側のアカウント削除は既に完了しているため、
+        // ローカルトークン消去失敗は Crashlytics へ記録しつつサインアウト・ローカル削除を続行する
+        talker.handle(
+          e,
+          st,
+          'Failed to clear local tokens after account deletion',
+        );
+      }
+    } finally {
+      _sessionLock.endDeletion();
     }
+  }
+
+  Future<bool> _shouldClearSessionAfterDeletion(
+    ({String accessToken, int sessionEpoch, String? userId, String? email})
+    startState,
+  ) async {
+    if (_sessionLock.sessionEpoch == startState.sessionEpoch) {
+      return true;
+    }
+    final currentToken = await tokenStorage.getAccessToken();
+    if (currentToken == null || currentToken.isEmpty) {
+      return false;
+    }
+    final currentUserId = await tokenStorage.getUserId();
+    final currentEmail = JwtUtils.getEmail(currentToken);
+    return CustomAuthInvalidationStore.matchesAccount(
+      targetUserId: startState.userId,
+      targetEmail: startState.email,
+      candidateUserId: currentUserId,
+      candidateEmail: currentEmail,
+      defaultWhenUnidentifiable: false,
+    );
   }
 
   Future<void> _clearInvalidationFlagBestEffort() async {

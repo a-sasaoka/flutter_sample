@@ -1,3 +1,4 @@
+import 'package:flutter_sample/src/core/utils/jwt_utils.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_session_lock.dart';
@@ -18,9 +19,38 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     final talker = ref.watch(loggerProvider);
 
     return await sessionLock.synchronized(() async {
-      final isInvalidated = await invalidationStore.isInvalidated();
-      if (isInvalidated) {
-        // 退会時のトークン消去失敗で残留したセッションを復元せず、再消去を試みる
+      final invalidationState = await invalidationStore.getInvalidationState();
+      if (invalidationState.isInvalidated) {
+        final token = await tokenStorage.getAccessToken();
+        if (token != null && token.isNotEmpty) {
+          final currentUserId = await tokenStorage.getUserId();
+          final currentEmail = JwtUtils.getEmail(token);
+          final isDifferentAccount =
+              !CustomAuthInvalidationStore.matchesAccount(
+                targetUserId: invalidationState.targetUserId,
+                targetEmail: invalidationState.targetEmail,
+                candidateUserId: currentUserId,
+                candidateEmail: currentEmail,
+                defaultWhenUnidentifiable: true,
+              );
+          if (isDifferentAccount) {
+            // 別アカウントの新規セッションが既に保存済みなら、そのトークンは維持して
+            // 古いアカウントの無効化レコードのみ片付ける
+            try {
+              await invalidationStore.clearInvalidated();
+            } on Object catch (e, st) {
+              talker.handle(
+                e,
+                st,
+                'Failed to clear obsolete custom auth invalidation flag '
+                'on startup',
+              );
+            }
+            return true;
+          }
+        }
+
+        // 退会時のトークン消去失敗や削除完了前の終了で残留したセッションを復元せず、再消去を試みる
         try {
           await tokenStorage.clear();
           await invalidationStore.clearInvalidated();
@@ -43,11 +73,22 @@ class AuthStateNotifier extends _$AuthStateNotifier {
   /// ログイン状態にする
   Future<void> login(String accessToken, String refreshToken) async {
     try {
-      await ref.read(authSessionLockProvider).runSessionTransition(() async {
-        await ref
-            .read(tokenStorageProvider)
-            .saveTokens(accessToken: accessToken, refreshToken: refreshToken);
-        await ref.read(customAuthInvalidationStoreProvider).clearInvalidated();
+      final sessionLock = ref.read(authSessionLockProvider);
+      final tokenStorage = ref.read(tokenStorageProvider);
+      final invalidationStore = ref.read(customAuthInvalidationStoreProvider);
+
+      await sessionLock.runSessionTransition(() async {
+        await tokenStorage.saveTokens(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+        );
+        final savedUserId = await tokenStorage.getUserId();
+        final savedEmail = JwtUtils.getEmail(accessToken);
+        await invalidationStore.clearIfAllowedForLogin(
+          userId: savedUserId,
+          email: savedEmail,
+          isDeletionInProgress: sessionLock.isDeletionInProgress,
+        );
       });
       state = const AsyncData(true);
     } catch (e, st) {
@@ -91,7 +132,25 @@ class AuthStateNotifier extends _$AuthStateNotifier {
   /// 削除APIが失敗した場合はログイン状態を維持し、UI側で再試行できるようにします。
   Future<void> deleteAccount() async {
     await future;
+    final sessionLock = ref.read(authSessionLockProvider);
+    final tokenStorage = ref.read(tokenStorageProvider);
+    final invalidationStore = ref.read(customAuthInvalidationStoreProvider);
+    final startEpoch = sessionLock.sessionEpoch;
+
     await ref.read(authRepositoryProvider).deleteAccount();
-    state = const AsyncData(false);
+
+    final shouldMarkSignedOut = await sessionLock.synchronized(() async {
+      if (sessionLock.sessionEpoch == startEpoch) {
+        return true;
+      }
+      final token = await tokenStorage.getAccessToken();
+      if (token == null || token.isEmpty) {
+        return true;
+      }
+      return await invalidationStore.isInvalidated();
+    });
+    if (shouldMarkSignedOut) {
+      state = const AsyncData(false);
+    }
   }
 }

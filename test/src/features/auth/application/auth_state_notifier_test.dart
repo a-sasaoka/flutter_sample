@@ -1,7 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:checks/checks.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_sample/src/core/network/api_client.dart';
+import 'package:flutter_sample/src/core/utils/jwt_utils.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
@@ -16,20 +20,36 @@ import 'package:talker_flutter/talker_flutter.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
+class MockApiClient extends Mock implements ApiClient {}
+
 class MockTalker extends Mock implements Talker {}
+
+String _buildJwt({String? sub, String? email}) {
+  final header = base64Url.encode(
+    utf8.encode(jsonEncode({'alg': 'none', 'typ': 'JWT'})),
+  );
+  final payload = base64Url.encode(
+    utf8.encode(jsonEncode(<String, Object?>{'sub': ?sub, 'email': ?email})),
+  );
+  return '$header.$payload.sig';
+}
 
 class FakeTokenStorage extends Mock implements TokenStorage {
   FakeTokenStorage({
     this.mockAccessToken,
     this.mockAccessTokenFuture,
+    this.currentUserId,
     this.shouldThrowOnSave = false,
     this.shouldThrowOnClear = false,
+    this.onSaveTokens,
   });
 
   String? mockAccessToken;
   final Future<String?>? mockAccessTokenFuture;
+  String? currentUserId;
   final bool shouldThrowOnSave;
   bool shouldThrowOnClear;
+  Future<void> Function(String accessToken, String refreshToken)? onSaveTokens;
 
   // 呼び出し確認用のフラグ
   bool isSaveTokensCalled = false;
@@ -41,6 +61,15 @@ class FakeTokenStorage extends Mock implements TokenStorage {
       : mockAccessToken;
 
   @override
+  Future<String?> getUserId() async {
+    if (currentUserId != null) {
+      return currentUserId;
+    }
+    final token = await getAccessToken();
+    return token != null ? JwtUtils.getUserId(token) : null;
+  }
+
+  @override
   Future<void> saveTokens({
     required String accessToken,
     required String refreshToken,
@@ -50,6 +79,7 @@ class FakeTokenStorage extends Mock implements TokenStorage {
       throw Exception('Failed to save tokens');
     }
     mockAccessToken = accessToken;
+    await onSaveTokens?.call(accessToken, refreshToken);
   }
 
   @override
@@ -58,6 +88,7 @@ class FakeTokenStorage extends Mock implements TokenStorage {
     if (shouldThrowOnClear) {
       throw Exception('Failed to clear tokens');
     }
+    currentUserId = null;
     mockAccessToken = null;
   }
 }
@@ -71,6 +102,7 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(StackTrace.current);
+    registerFallbackValue(Options());
   });
 
   setUp(() {
@@ -84,6 +116,7 @@ void main() {
 
   tearDown(() {
     if (tempDir.existsSync()) {
+      Process.runSync('chmod', ['-R', '755', tempDir.path]);
       tempDir.deleteSync(recursive: true);
     }
   });
@@ -177,6 +210,65 @@ void main() {
           any<Object>(),
           any<StackTrace?>(),
           'Failed to clear invalidated custom auth tokens on startup',
+        ),
+      ).called(1);
+    });
+
+    test('初期化: 無効化レコードが別アカウント向けで別ユーザーのトークンが存在する場合は '
+        '新トークンを維持し古い無効化レコードのみ削除して true を返すこと', () async {
+      final userBToken = _buildJwt(sub: 'user-b', email: 'b@example.com');
+      final fakeStorage = FakeTokenStorage(
+        mockAccessToken: userBToken,
+        currentUserId: 'user-b',
+      );
+      final store = CustomAuthInvalidationStore(
+        getDirectory: () async => tempDir,
+      );
+      await store.markInvalidated(
+        targetUserId: 'user-a',
+        targetEmail: 'a@example.com',
+      );
+      final container = createContainer(fakeStorage: fakeStorage);
+
+      final authState = await container.read(authStateProvider.future);
+
+      check(authState).equals(true);
+      check(fakeStorage.isClearCalled).equals(false);
+      check(fakeStorage.mockAccessToken).equals(userBToken);
+      check(await store.isInvalidated()).equals(false);
+    });
+
+    test('初期化: 別アカウント維持時に古い無効化レコード削除だけ失敗しても、 '
+        'エラーを記録してログイン状態(true)を維持すること', () async {
+      final userBToken = _buildJwt(sub: 'user-b', email: 'b@example.com');
+      final fakeStorage = FakeTokenStorage(
+        mockAccessToken: userBToken,
+        currentUserId: 'user-b',
+      );
+      final store = CustomAuthInvalidationStore(
+        getDirectory: () async => tempDir,
+      );
+      await store.markInvalidated(
+        targetUserId: 'user-a',
+        targetEmail: 'a@example.com',
+      );
+      final dbFile = File(
+        p.join(tempDir.path, CustomAuthInvalidationStore.databaseFileName),
+      );
+      Process.runSync('chmod', ['444', dbFile.path]);
+      Process.runSync('chmod', ['555', tempDir.path]);
+
+      final container = createContainer(fakeStorage: fakeStorage);
+      final authState = await container.read(authStateProvider.future);
+
+      check(authState).equals(true);
+      check(fakeStorage.isClearCalled).equals(false);
+      check(fakeStorage.mockAccessToken).equals(userBToken);
+      verify(
+        () => mockTalker.handle(
+          any<Object>(),
+          any<StackTrace?>(),
+          'Failed to clear obsolete custom auth invalidation flag on startup',
         ),
       ).called(1);
     });
@@ -464,6 +556,116 @@ void main() {
       await notifier.logout();
       check(await store.isInvalidated()).equals(false);
       check(container.read(authStateProvider).value).equals(false);
+    });
+
+    test('実AuthRepository連携: 削除待機中に同一アカウントで notifier.login が完了しても、 '
+        '完了時にトークン消去と state=false が確定し再起動後も復元されないこと', () async {
+      final tokenA1 = _buildJwt(sub: 'user-a', email: 'a@example.com');
+      final tokenA2 = _buildJwt(sub: 'user-a', email: 'a@example.com');
+      final fakeStorage = FakeTokenStorage(mockAccessToken: tokenA1);
+      final mockApi = MockApiClient();
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          authApiClientProvider.overrideWithValue(mockApi),
+          tokenStorageProvider.overrideWith((ref) => fakeStorage),
+          appSupportDirectoryReaderProvider.overrideWithValue(
+            () async => tempDir,
+          ),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(authStateProvider.future);
+      final notifier = container.read(authStateProvider.notifier);
+
+      final deleteFuture = notifier.deleteAccount();
+      await deleteStarted.future;
+
+      await notifier.login(tokenA2, 'refresh-a2');
+      check(container.read(authStateProvider).value).equals(true);
+
+      final store = container.read(customAuthInvalidationStoreProvider);
+      check(await store.isInvalidated()).equals(true);
+
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      await deleteFuture;
+
+      check(fakeStorage.mockAccessToken).isNull();
+      check(await store.isInvalidated()).equals(false);
+      check(container.read(authStateProvider).value).equals(false);
+
+      final restarted = createContainer(fakeStorage: fakeStorage);
+      check(await restarted.read(authStateProvider.future)).equals(false);
+    });
+
+    test('実AuthRepository連携: 削除待機中に別アカウントで notifier.login が完了した場合は、 '
+        '削除完了後も別アカウントのトークンと state=true を維持すること', () async {
+      final tokenA = _buildJwt(sub: 'user-a', email: 'a@example.com');
+      final tokenB = _buildJwt(sub: 'user-b', email: 'b@example.com');
+      final fakeStorage = FakeTokenStorage(mockAccessToken: tokenA);
+      final mockApi = MockApiClient();
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          authApiClientProvider.overrideWithValue(mockApi),
+          tokenStorageProvider.overrideWith((ref) => fakeStorage),
+          appSupportDirectoryReaderProvider.overrideWithValue(
+            () async => tempDir,
+          ),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(authStateProvider.future);
+      final notifier = container.read(authStateProvider.notifier);
+
+      final deleteFuture = notifier.deleteAccount();
+      await deleteStarted.future;
+
+      await notifier.login(tokenB, 'refresh-b');
+      final store = container.read(customAuthInvalidationStoreProvider);
+      check(await store.isInvalidated()).equals(false);
+
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      await deleteFuture;
+
+      check(fakeStorage.mockAccessToken).equals(tokenB);
+      check(container.read(authStateProvider).value).equals(true);
     });
   });
 }

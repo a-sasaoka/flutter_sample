@@ -56,12 +56,15 @@ void main() {
     });
 
     test('本番用 SQLite 接続に耐久 PRAGMA が設定され、markInvalidated 後に '
-        '再インスタンス化しても true を返すこと', () async {
+        '再インスタンス化しても true と識別子を返すこと', () async {
       final store = CustomAuthInvalidationStore(
         getDirectory: () async => supportDir,
       );
 
-      await store.markInvalidated();
+      await store.markInvalidated(
+        targetUserId: 'user-a',
+        targetEmail: ' User@Example.com ',
+      );
 
       final dbFile = File(
         p.join(supportDir.path, CustomAuthInvalidationStore.databaseFileName),
@@ -101,11 +104,164 @@ void main() {
         await executor.close();
       }
 
-      // 別インスタンスで再読み込みしても永続化状態が維持されていること
+      // 別インスタンスで再読み込みしても永続化状態と正規化済み識別子が維持されていること
       final restartedStore = CustomAuthInvalidationStore(
         getDirectory: () async => supportDir,
       );
-      check(await restartedStore.isInvalidated()).equals(true);
+      final state = await restartedStore.getInvalidationState();
+      check(state.isInvalidated).equals(true);
+      check(state.targetUserId).equals('user-a');
+      check(state.targetEmail).equals('user@example.com');
+    });
+
+    test('対象列が無い旧スキーマ DB が残っていても自動的に列を追加して読み書きできること', () async {
+      supportDir.createSync(recursive: true);
+      final dbFile = File(
+        p.join(supportDir.path, CustomAuthInvalidationStore.databaseFileName),
+      );
+      final legacyExecutor = NativeDatabase(
+        dbFile,
+        enableMigrations: false,
+        setup: (db) {
+          db
+            ..execute('''
+              CREATE TABLE custom_auth_invalidation (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                invalidated INTEGER NOT NULL
+              );
+            ''')
+            ..execute(
+              'INSERT INTO custom_auth_invalidation (id, invalidated) '
+              'VALUES (1, 1);',
+            );
+        },
+      );
+      try {
+        await legacyExecutor.ensureOpen(const _TestQueryExecutorUser());
+      } finally {
+        await legacyExecutor.close();
+      }
+
+      final store = CustomAuthInvalidationStore(
+        getDirectory: () async => supportDir,
+      );
+      final state = await store.getInvalidationState();
+      check(state.isInvalidated).equals(true);
+      check(state.targetUserId).isNull();
+      check(state.targetEmail).isNull();
+    });
+
+    test('matchesAccount: userId 優先比較・email フォールバック・未識別時既定値が正しいこと', () {
+      check(
+        CustomAuthInvalidationStore.matchesAccount(
+          targetUserId: 'user-a',
+          targetEmail: 'a@example.com',
+          candidateUserId: 'user-a',
+          candidateEmail: 'other@example.com',
+          defaultWhenUnidentifiable: false,
+        ),
+      ).equals(true);
+
+      // 同一メールアドレスでも userId が異なれば別アカウントとして扱うこと
+      check(
+        CustomAuthInvalidationStore.matchesAccount(
+          targetUserId: 'user-a',
+          targetEmail: 'a@example.com',
+          candidateUserId: 'user-b',
+          candidateEmail: 'a@example.com',
+          defaultWhenUnidentifiable: true,
+        ),
+      ).equals(false);
+
+      // userId が欠落する場合は空白・大文字小文字を正規化した email で照合すること
+      check(
+        CustomAuthInvalidationStore.matchesAccount(
+          targetUserId: null,
+          targetEmail: ' User@Example.com ',
+          candidateUserId: null,
+          candidateEmail: 'user@example.com',
+          defaultWhenUnidentifiable: false,
+        ),
+      ).equals(true);
+
+      check(
+        CustomAuthInvalidationStore.matchesAccount(
+          targetUserId: null,
+          targetEmail: ' ',
+          candidateUserId: null,
+          candidateEmail: null,
+          defaultWhenUnidentifiable: true,
+        ),
+      ).equals(true);
+      check(
+        CustomAuthInvalidationStore.matchesAccount(
+          targetUserId: null,
+          targetEmail: null,
+          candidateUserId: null,
+          candidateEmail: null,
+          defaultWhenUnidentifiable: false,
+        ),
+      ).equals(false);
+    });
+
+    test('clearIfAllowedForLogin: 同一アカウントまたは削除中未識別時は保持し、 '
+        '別アカウント時は解除すること', () async {
+      final store = CustomAuthInvalidationStore(
+        getDirectory: () async => supportDir,
+      );
+
+      // 未無効化時は即 true
+      check(
+        await store.clearIfAllowedForLogin(
+          userId: 'user-a',
+          email: 'a@example.com',
+          isDeletionInProgress: false,
+        ),
+      ).equals(true);
+
+      // 同一アカウントでは保持
+      await store.markInvalidated(
+        targetUserId: 'user-a',
+        targetEmail: 'a@example.com',
+      );
+      check(
+        await store.clearIfAllowedForLogin(
+          userId: 'user-a',
+          email: 'a@example.com',
+          isDeletionInProgress: true,
+        ),
+      ).equals(false);
+      check(await store.isInvalidated()).equals(true);
+
+      // 別アカウントなら解除
+      check(
+        await store.clearIfAllowedForLogin(
+          userId: 'user-b',
+          email: 'b@example.com',
+          isDeletionInProgress: true,
+        ),
+      ).equals(true);
+      check(await store.isInvalidated()).equals(false);
+
+      // 識別不能かつ削除進行中は安全側で保持、削除進行外なら解除
+      await store.markInvalidated();
+      check(
+        await store.clearIfAllowedForLogin(
+          userId: null,
+          email: null,
+          isDeletionInProgress: true,
+        ),
+      ).equals(false);
+      check(await store.isInvalidated()).equals(true);
+
+      check(
+        await store.clearIfAllowedForLogin(
+          userId: null,
+          email: null,
+          isDeletionInProgress: false,
+        ),
+      ).equals(true);
+      check(await store.isInvalidated()).equals(false);
     });
 
     test('clearInvalidated は無効化レコードを削除し、再インスタンス化後も false を返すこと', () async {

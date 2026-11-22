@@ -10,6 +10,13 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'custom_auth_invalidation_store.g.dart';
 
+/// SQLite に保存されたセッション無効化状態と削除対象アカウント識別子
+typedef CustomAuthInvalidationState = ({
+  bool isInvalidated,
+  String? targetUserId,
+  String? targetEmail,
+});
+
 class _StoreQueryExecutorUser implements QueryExecutorUser {
   const _StoreQueryExecutorUser();
 
@@ -76,32 +83,98 @@ class CustomAuthInvalidationStore {
           ..execute('''
             CREATE TABLE IF NOT EXISTS custom_auth_invalidation (
               id INTEGER PRIMARY KEY CHECK (id = 1),
-              invalidated INTEGER NOT NULL
+              invalidated INTEGER NOT NULL,
+              target_user_id TEXT,
+              target_email TEXT
             );
           ''');
+        final columns = database.select(
+          'PRAGMA table_info(custom_auth_invalidation);',
+        );
+        final columnNames = {for (final row in columns) row['name'] as String};
+        if (!columnNames.contains('target_user_id')) {
+          database.execute(
+            'ALTER TABLE custom_auth_invalidation '
+            'ADD COLUMN target_user_id TEXT;',
+          );
+        }
+        if (!columnNames.contains('target_email')) {
+          database.execute(
+            'ALTER TABLE custom_auth_invalidation '
+            'ADD COLUMN target_email TEXT;',
+          );
+        }
       },
     );
   }
 
+  /// 削除対象アカウントと候補アカウントが一致するかを判定する
+  ///
+  /// 双方に `userId` がある場合は `userId` 同士を優先比較し（別アカウントによる
+  /// 同一メールアドレスの再取得などを区別するため）、不足時は正規化済み `email` を
+  /// 比較します。いずれでも判定できない場合は [defaultWhenUnidentifiable] を返します。
+  static bool matchesAccount({
+    required String? targetUserId,
+    required String? targetEmail,
+    required String? candidateUserId,
+    required String? candidateEmail,
+    required bool defaultWhenUnidentifiable,
+  }) {
+    if (targetUserId != null && candidateUserId != null) {
+      return targetUserId == candidateUserId;
+    }
+    final normalizedTargetEmail = _normalizeEmail(targetEmail);
+    final normalizedCandidateEmail = _normalizeEmail(candidateEmail);
+    if (normalizedTargetEmail != null && normalizedCandidateEmail != null) {
+      return normalizedTargetEmail == normalizedCandidateEmail;
+    }
+    return defaultWhenUnidentifiable;
+  }
+
+  static String? _normalizeEmail(String? email) {
+    final trimmed = email?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return null;
+    }
+    return trimmed.toLowerCase();
+  }
+
   /// セッション無効化状態が SQLite に永続化されているかを返す
   Future<bool> isInvalidated() async {
+    final state = await getInvalidationState();
+    return state.isInvalidated;
+  }
+
+  /// SQLite に保存されているセッション無効化状態と対象アカウント識別子を返す
+  Future<CustomAuthInvalidationState> getInvalidationState() async {
     final dir = await _getDirectory();
     final dbFile = File(p.join(dir.path, databaseFileName));
     if (!dbFile.existsSync()) {
-      return false;
+      return (isInvalidated: false, targetUserId: null, targetEmail: null);
     }
 
     return await _runWithExecutor(dbFile, (executor) async {
       final rows = await executor.runSelect(
-        'SELECT invalidated FROM custom_auth_invalidation WHERE id = 1;',
+        'SELECT invalidated, target_user_id, target_email '
+        'FROM custom_auth_invalidation WHERE id = 1;',
         const [],
       );
-      return rows.isNotEmpty && rows.first['invalidated'] == 1;
+      if (rows.isEmpty || rows.first['invalidated'] != 1) {
+        return (isInvalidated: false, targetUserId: null, targetEmail: null);
+      }
+      return (
+        isInvalidated: true,
+        targetUserId: rows.first['target_user_id'] as String?,
+        targetEmail: rows.first['target_email'] as String?,
+      );
     });
   }
 
-  /// セッション無効化状態を SQLite トランザクションとしてディスクへ確定保存する
-  Future<void> markInvalidated() async {
+  /// セッション無効化状態を削除対象アカウント情報とともに SQLite へ確定保存する
+  Future<void> markInvalidated({
+    String? targetUserId,
+    String? targetEmail,
+  }) async {
     final dir = await _getDirectory();
     await dir.create(recursive: true);
     final dbFile = File(p.join(dir.path, databaseFileName));
@@ -109,10 +182,39 @@ class CustomAuthInvalidationStore {
     await _runWithExecutor(dbFile, (executor) async {
       await executor.runInsert(
         'INSERT OR REPLACE INTO custom_auth_invalidation '
-        '(id, invalidated) VALUES (1, 1);',
-        const [],
+        '(id, invalidated, target_user_id, target_email) VALUES (1, 1, ?, ?);',
+        [targetUserId, _normalizeEmail(targetEmail)],
       );
     });
+  }
+
+  /// ログイン完了時に、削除中・削除済みの同一アカウントでなければ無効化レコードを解除する
+  ///
+  /// 解除した（または元々無効化されていない）場合は `true`、同一アカウントまたは
+  /// 削除進行中に別アカウントと判別できず保持した場合は `false` を返します。
+  Future<bool> clearIfAllowedForLogin({
+    required String? userId,
+    required String? email,
+    required bool isDeletionInProgress,
+  }) async {
+    final state = await getInvalidationState();
+    if (!state.isInvalidated) {
+      return true;
+    }
+
+    final blockedBySameAccount = matchesAccount(
+      targetUserId: state.targetUserId,
+      targetEmail: state.targetEmail,
+      candidateUserId: userId,
+      candidateEmail: email,
+      defaultWhenUnidentifiable: isDeletionInProgress,
+    );
+    if (blockedBySameAccount) {
+      return false;
+    }
+
+    await clearInvalidated();
+    return true;
   }
 
   /// SQLite 上のセッション無効化レコードを削除して確定保存する

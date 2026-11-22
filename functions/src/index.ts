@@ -613,13 +613,25 @@ export const users = onRequest(async (req, res) => {
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const MAX_REQUESTS_PER_MINUTE = 30;
 
-type RateLimitStatus = "allowed" | "rate_limited" | "account_deleting";
+type RateLimitStatus = "allowed" | "rate_limited";
 
 /**
- * Checks account deletion state and rate limit for the UID using Firestore.
+ * Checks account deletion state for the UID in Firestore.
+ * Throws when deletion state cannot be read so callers fail closed.
  *
  * @param {string} uid User ID.
- * @return {Promise<RateLimitStatus>} Status of rate limit and deletion state.
+ * @return {Promise<boolean>} True when deletion marker exists.
+ */
+async function isAccountDeleting(uid: string): Promise<boolean> {
+  const deletionSnap = await getAccountDeletionRef(uid).get();
+  return deletionSnap.exists;
+}
+
+/**
+ * Checks and updates the per-UID rate limit counter using Firestore.
+ *
+ * @param {string} uid User ID.
+ * @return {Promise<RateLimitStatus>} Status of rate limit check.
  */
 async function checkRateLimit(uid: string): Promise<RateLimitStatus> {
   const now = Date.now();
@@ -627,16 +639,9 @@ async function checkRateLimit(uid: string): Promise<RateLimitStatus> {
     .firestore()
     .collection("rate_limits")
     .doc(`routes_${uid}`);
-  const deletionStateRef = getAccountDeletionRef(uid);
 
   try {
     return await admin.firestore().runTransaction(async (tx) => {
-      // レート制限文書を書き込む前に退会状態を確認し、障害時フェイルオープンと区別する
-      const deletionSnap = await tx.get(deletionStateRef);
-      if (deletionSnap.exists) {
-        return "account_deleting";
-      }
-
       const snap = await tx.get(docRef);
       if (!snap.exists) {
         tx.set(docRef, {
@@ -675,7 +680,8 @@ async function checkRateLimit(uid: string): Promise<RateLimitStatus> {
 }
 
 /**
- * Verifies deletion state and rate limit, writing an HTTP error on block.
+ * Verifies deletion state (fail-closed) and rate limit (fail-open),
+ * writing an HTTP error response when blocked or unavailable.
  *
  * @param {string} uid Authenticated user ID.
  * @param {object} res Express response object.
@@ -689,13 +695,26 @@ async function ensureProxyRequestAllowed(
     ) => { json: (body: Record<string, string>) => unknown };
   }
 ): Promise<boolean> {
-  const rateLimitStatus = await checkRateLimit(uid);
-  if (rateLimitStatus === "account_deleting") {
+  let deleting: boolean;
+  try {
+    deleting = await isAccountDeleting(uid);
+  } catch (error) {
+    logger.error(
+      "Failed to check account deletion state in Firestore: ",
+      error
+    );
+    res.status(500).json({error: "Internal Server Error"});
+    return false;
+  }
+
+  if (deleting) {
     res.status(409).json({
       error: "Conflict: Account deletion in progress",
     });
     return false;
   }
+
+  const rateLimitStatus = await checkRateLimit(uid);
   if (rateLimitStatus === "rate_limited") {
     res.status(429).json({
       error:
@@ -906,7 +925,7 @@ export const placesSearchProxy = onRequest(async (req, res) => {
       return;
     }
 
-    // 2. 退会状態およびユーザーごとのレート制限チェック (Cloud Firestore トランザクション)
+    // 2. 退会状態（フェイルクローズ）およびユーザーごとのレート制限チェック（フェイルオープン）
     if (!(await ensureProxyRequestAllowed(uid, res))) {
       return;
     }

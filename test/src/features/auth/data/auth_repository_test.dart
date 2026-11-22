@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:checks/checks.dart';
@@ -1074,6 +1075,222 @@ void main() {
       check(await fakeStorage.getUserId()).equals('user-new');
       check(await invalidationStore.isInvalidated()).equals(false);
       check(lock.sessionEpoch).equals(epochAfterNewLogin);
+    });
+
+    test('deleteAccount: API待機中に同一アカウントで再ログインが完了しても、無効化状態を維持し '
+        '削除完了時・途中再起動時の双方でログイン状態が復元されないこと', () async {
+      String buildJwt({String? sub, String? email}) {
+        final header = base64Url.encode(
+          utf8.encode(jsonEncode({'alg': 'none', 'typ': 'JWT'})),
+        );
+        final payloadMap = <String, Object?>{'sub': ?sub, 'email': ?email};
+        final payload = base64Url.encode(utf8.encode(jsonEncode(payloadMap)));
+        return '$header.$payload.sig';
+      }
+
+      final initialJwt = buildJwt(sub: 'user-a', email: 'a@example.com');
+      final reloginJwt = buildJwt(sub: 'user-a', email: 'a@example.com');
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-old',
+              currentUserId: 'user-a',
+            )
+            ..savedAccessToken = initialJwt
+            ..savedRefreshToken = 'refresh-old';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+      final lock = container.read(authSessionLockProvider);
+
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+      final mockLoginResponse = MockResponse();
+      when(() => mockLoginResponse.data).thenReturn({
+        'access_token': reloginJwt,
+        'refresh_token': 'refresh-relogin',
+      });
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockLoginResponse);
+
+      final deleteFuture = repo.deleteAccount();
+      await deleteStarted.future;
+
+      // 削除完了前に同一アカウントで再ログインしても、無効化レコードは解除されないこと
+      await repo.login('a@example.com', 'password123');
+      check(lock.sessionEpoch).equals(1);
+      check(await invalidationStore.isInvalidated()).equals(true);
+      check(await fakeStorage.getAccessToken()).equals(reloginJwt);
+
+      // 削除完了後に新しいトークンと無効化レコードが両方消去されること
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      await deleteFuture;
+
+      check(await fakeStorage.getAccessToken()).isNull();
+      check(await fakeStorage.getRefreshToken()).isNull();
+      check(await fakeStorage.getUserId()).isNull();
+      check(await invalidationStore.isInvalidated()).equals(false);
+      check(lock.sessionEpoch).equals(2);
+
+      // 再度、API待機中に同一アカウントで再ログイン直後にアプリが終了したケースでも
+      // 次回起動時に新トークンから誤復元されないこと
+      fakeStorage
+        ..savedAccessToken = initialJwt
+        ..savedRefreshToken = 'refresh-old'
+        ..currentUserId = 'user-a';
+      final crashDeleteStarted = Completer<void>();
+      final crashDeleteNeverCompletes = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        crashDeleteStarted.complete();
+        return crashDeleteNeverCompletes.future;
+      });
+
+      unawaited(repo.deleteAccount());
+      await crashDeleteStarted.future;
+      await repo.login('a@example.com', 'password123');
+      check(await invalidationStore.isInvalidated()).equals(true);
+
+      final restartedContainer = createContainer(fakeStorage);
+      check(
+        await restartedContainer.read(authStateProvider.future),
+      ).equals(false);
+      check(await fakeStorage.getAccessToken()).isNull();
+      check(await invalidationStore.isInvalidated()).equals(false);
+    });
+
+    test('deleteAccount: API待機中に同一アカウントで再ログイン後、削除完了時のトークン消去にも '
+        '失敗した場合は無効化状態を保持し再起動時に未ログインとなること', () async {
+      String buildJwt({String? sub, String? email}) {
+        final header = base64Url.encode(
+          utf8.encode(jsonEncode({'alg': 'none', 'typ': 'JWT'})),
+        );
+        final payload = base64Url.encode(
+          utf8.encode(jsonEncode({'sub': sub, 'email': email})),
+        );
+        return '$header.$payload.sig';
+      }
+
+      final clearError = Exception('clear failed');
+      final initialJwt = buildJwt(sub: 'user-a', email: 'a@example.com');
+      final reloginJwt = buildJwt(sub: 'user-a', email: 'a@example.com');
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-old',
+              currentUserId: 'user-a',
+              clearError: clearError,
+            )
+            ..savedAccessToken = initialJwt
+            ..savedRefreshToken = 'refresh-old';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+      final mockLoginResponse = MockResponse();
+      when(() => mockLoginResponse.data).thenReturn({
+        'access_token': reloginJwt,
+        'refresh_token': 'refresh-relogin',
+      });
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockLoginResponse);
+
+      final deleteFuture = repo.deleteAccount();
+      await deleteStarted.future;
+      await repo.login('a@example.com', 'password123');
+
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      await check(deleteFuture).completes();
+
+      check(await invalidationStore.isInvalidated()).equals(true);
+      check(await fakeStorage.getAccessToken()).equals(reloginJwt);
+
+      final restartedContainer = createContainer(fakeStorage);
+      check(
+        await restartedContainer.read(authStateProvider.future),
+      ).equals(false);
+    });
+
+    test('deleteAccount: API待機中にトークンが空（別操作でサインアウト済み）になっていた場合は '
+        '余計な世代更新を行わず正常終了すること', () async {
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-old',
+              currentUserId: 'user-old',
+            )
+            ..savedAccessToken = 'access-old'
+            ..savedRefreshToken = 'refresh-old';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+      final lock = container.read(authSessionLockProvider);
+
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+
+      final deleteFuture = repo.deleteAccount();
+      await deleteStarted.future;
+
+      await lock.runSessionTransition(() async {
+        await fakeStorage.clear();
+        await invalidationStore.clearInvalidated();
+      });
+      check(lock.sessionEpoch).equals(1);
+
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      await check(deleteFuture).completes();
+      check(lock.sessionEpoch).equals(1);
     });
 
     test('deleteAccount: サーバー削除成功後に tokenStorage.clear() が失敗しても、 '

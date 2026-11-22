@@ -86,5 +86,53 @@ void main() {
       check(result).equals('transitioned');
       check(lock.sessionEpoch).equals(1);
     });
+
+    test('beginDeletion / endDeletion: 削除進行中フラグをネスト安全に管理できること', () {
+      final lock = AuthSessionLock();
+      check(lock.isDeletionInProgress).equals(false);
+
+      // 未開始状態での endDeletion でも負数にならないこと
+      lock.endDeletion();
+      check(lock.isDeletionInProgress).equals(false);
+
+      lock.beginDeletion();
+      check(lock.isDeletionInProgress).equals(true);
+
+      lock
+        ..beginDeletion()
+        ..endDeletion();
+      check(lock.isDeletionInProgress).equals(true);
+
+      lock.endDeletion();
+      check(lock.isDeletionInProgress).equals(false);
+    });
+
+    test(
+      'runSessionTransitionIf: 条件が true のときのみ世代を進めて action を実行すること',
+      () async {
+        final lock = AuthSessionLock();
+        var actionCalls = 0;
+
+        final skipped = await lock.runSessionTransitionIf(
+          shouldTransition: () async => false,
+          action: () async {
+            actionCalls++;
+          },
+        );
+        check(skipped).equals(false);
+        check(actionCalls).equals(0);
+        check(lock.sessionEpoch).equals(0);
+
+        final executed = await lock.runSessionTransitionIf(
+          shouldTransition: () async => true,
+          action: () async {
+            actionCalls++;
+          },
+        );
+        check(executed).equals(true);
+        check(actionCalls).equals(1);
+        check(lock.sessionEpoch).equals(1);
+      },
+    );
   });
 }

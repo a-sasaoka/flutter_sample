@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -14,9 +15,23 @@ AuthSessionLock authSessionLock(Ref ref) {
 class AuthSessionLock {
   Future<void> _tail = Future<void>.value();
   int _sessionEpoch = 0;
+  int _activeDeletionCount = 0;
 
   /// 現在の認証セッション世代（ログイン・ログアウト時に更新される）
   int get sessionEpoch => _sessionEpoch;
+
+  /// 現在アカウント削除処理が進行中かどうか
+  bool get isDeletionInProgress => _activeDeletionCount > 0;
+
+  /// アカウント削除処理の開始を記録する
+  void beginDeletion() {
+    _activeDeletionCount++;
+  }
+
+  /// アカウント削除処理の終了を記録する
+  void endDeletion() {
+    _activeDeletionCount = math.max(0, _activeDeletionCount - 1);
+  }
 
   /// ロックを取得し、[action] の完了まで後続のセッション操作を待機させる
   Future<T> synchronized<T>(Future<T> Function() action) {
@@ -34,13 +49,13 @@ class AuthSessionLock {
     });
   }
 
-  /// 現在の世代が [expectedEpoch] と一致する場合のみセッション世代を進めて [action] を実行する
-  Future<bool> runSessionTransitionIfCurrent({
-    required int expectedEpoch,
+  /// 条件 [shouldTransition] を満たす場合のみセッション世代を進めて [action] を実行する
+  Future<bool> runSessionTransitionIf({
+    required Future<bool> Function() shouldTransition,
     required Future<void> Function() action,
   }) {
     return synchronized(() async {
-      if (_sessionEpoch != expectedEpoch) {
+      if (!await shouldTransition()) {
         return false;
       }
       _sessionEpoch++;
