@@ -66,8 +66,8 @@ void main() {
   late MockTalker mockTalker;
   late Directory tempDir;
 
-  File invalidationMarkerFile() =>
-      File(p.join(tempDir.path, CustomAuthInvalidationStore.markerFileName));
+  File invalidationDbFile() =>
+      File(p.join(tempDir.path, CustomAuthInvalidationStore.databaseFileName));
 
   setUpAll(() {
     registerFallbackValue(StackTrace.current);
@@ -151,7 +151,7 @@ void main() {
       check(fakeStorage.isClearCalled).equals(true);
       check(fakeStorage.mockAccessToken).isNull();
       check(await store.isInvalidated()).equals(false);
-      check(invalidationMarkerFile().existsSync()).equals(false);
+      check(invalidationDbFile().existsSync()).equals(true);
     });
 
     test('初期化: セッション無効化フラグが立っており再消去にも失敗した場合、 '
@@ -171,7 +171,7 @@ void main() {
       check(authState).equals(false);
       check(fakeStorage.isClearCalled).equals(true);
       check(await store.isInvalidated()).equals(true);
-      check(invalidationMarkerFile().existsSync()).equals(true);
+      check(invalidationDbFile().existsSync()).equals(true);
       verify(
         () => mockTalker.handle(
           any<Object>(),
@@ -454,17 +454,15 @@ void main() {
       final notifier = container.read(authStateProvider.notifier);
 
       await store.markInvalidated();
-      check(invalidationMarkerFile().existsSync()).equals(true);
+      check(invalidationDbFile().existsSync()).equals(true);
       await notifier.login('new_access', 'new_refresh');
       check(await store.isInvalidated()).equals(false);
-      check(invalidationMarkerFile().existsSync()).equals(false);
       check(container.read(authStateProvider).value).equals(true);
 
       await store.markInvalidated();
-      check(invalidationMarkerFile().existsSync()).equals(true);
+      check(invalidationDbFile().existsSync()).equals(true);
       await notifier.logout();
       check(await store.isInvalidated()).equals(false);
-      check(invalidationMarkerFile().existsSync()).equals(false);
       check(container.read(authStateProvider).value).equals(false);
     });
   });

@@ -1,7 +1,8 @@
-import 'dart:convert';
-import 'dart:ffi';
 import 'dart:io';
 
+import 'package:drift/backends.dart';
+import 'package:drift/drift.dart' show OpeningDetails;
+import 'package:drift/native.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -9,131 +10,20 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'custom_auth_invalidation_store.g.dart';
 
-typedef _MallocNative = Pointer<Uint8> Function(IntPtr size);
-typedef _MallocDart = Pointer<Uint8> Function(int size);
-typedef _FreeNative = Void Function(Pointer<Uint8> ptr);
-typedef _FreeDart = void Function(Pointer<Uint8> ptr);
-typedef _OpenNative = Int Function(Pointer<Uint8> path, Int oflag, VarArgs<()>);
-typedef _OpenDart = int Function(Pointer<Uint8> path, int oflag);
-typedef _FsyncNative = Int Function(Int fd);
-typedef _FsyncDart = int Function(int fd);
-typedef _FcntlNative = Int Function(Int fd, Int cmd, VarArgs<()>);
-typedef _FcntlDart = int Function(int fd, int cmd);
-typedef _CloseNative = Int Function(Int fd);
-typedef _CloseDart = int Function(int fd);
+/// SQLite の [QueryExecutor] を生成するファクトリ関数型
+typedef QueryExecutorFactory = QueryExecutor Function(File databaseFile);
 
-/// ディレクトリエントリの変更をディスクへ同期する関数型
-typedef DirectorySyncer = Future<void> Function(Directory directory);
+class _StoreQueryExecutorUser implements QueryExecutorUser {
+  const _StoreQueryExecutorUser();
 
-/// POSIX システムコール経由でディレクトリをディスクへ同期するバインディング
-@visibleForTesting
-class PosixDirectorySyncBindings {
-  /// 指定したシステムコール関数を用いて [PosixDirectorySyncBindings] を生成する
-  const PosixDirectorySyncBindings({
-    required this.allocateBytes,
-    required this.freeBytes,
-    required this.openPath,
-    required this.fsyncFd,
-    required this.fcntlFd,
-    required this.closeFd,
-    required this.isApplePlatform,
-  });
+  @override
+  int get schemaVersion => 1;
 
-  /// 実行環境の libc からネイティブバインディングを生成する
-  factory PosixDirectorySyncBindings.native() {
-    final libc = _openLibc();
-    return PosixDirectorySyncBindings(
-      allocateBytes: libc.lookupFunction<_MallocNative, _MallocDart>('malloc'),
-      freeBytes: libc.lookupFunction<_FreeNative, _FreeDart>('free'),
-      openPath: libc.lookupFunction<_OpenNative, _OpenDart>('open'),
-      fsyncFd: libc.lookupFunction<_FsyncNative, _FsyncDart>('fsync'),
-      fcntlFd: libc.lookupFunction<_FcntlNative, _FcntlDart>('fcntl'),
-      closeFd: libc.lookupFunction<_CloseNative, _CloseDart>('close'),
-      isApplePlatform: () => Platform.isIOS || Platform.isMacOS,
-    );
-  }
-
-  /// 一時バッファ確保関数 (`malloc`)
-  final Pointer<Uint8> Function(int size) allocateBytes;
-
-  /// 一時バッファ解放関数 (`free`)
-  final void Function(Pointer<Uint8> ptr) freeBytes;
-
-  /// パスをファイル記述子として開く関数 (`open`)
-  final int Function(Pointer<Uint8> path, int oflag) openPath;
-
-  /// ファイル記述子をディスクへ同期する関数 (`fsync`)
-  final int Function(int fd) fsyncFd;
-
-  /// macOS / iOS 向け制御システムコール関数 (`fcntl`)
-  final int Function(int fd, int cmd) fcntlFd;
-
-  /// ファイル記述子を閉じる関数 (`close`)
-  final int Function(int fd) closeFd;
-
-  /// Apple プラットフォーム（iOS / macOS）かを返す判定関数
-  final bool Function() isApplePlatform;
-
-  static DynamicLibrary _openLibc() {
-    if (Platform.isAndroid) {
-      return DynamicLibrary.open('libc.so'); // coverage:ignore-line
-    }
-    return DynamicLibrary.process();
-  }
-
-  /// 対象ディレクトリのディレクトリエントリをディスクへ永続化する
-  ///
-  /// iOS / macOS では `F_FULLFSYNC` を実行し、Android / Linux では `fsync` を
-  /// 実行します。失敗時は [FileSystemException] を送出します。
-  Future<void> syncDirectory(Directory directory) async {
-    final encodedPath = utf8.encode(directory.path);
-    final pathPtr = allocateBytes(encodedPath.length + 1);
-    if (pathPtr == nullptr) {
-      throw FileSystemException(
-        'Failed to allocate memory for directory sync',
-        directory.path,
-      );
-    }
-
-    var fd = -1;
-    try {
-      pathPtr.asTypedList(encodedPath.length + 1)
-        ..setAll(0, encodedPath)
-        ..[encodedPath.length] = 0;
-
-      const oRdonly = 0;
-      fd = openPath(pathPtr, oRdonly);
-      if (fd < 0) {
-        throw FileSystemException(
-          'Failed to open directory for disk sync',
-          directory.path,
-        );
-      }
-
-      if (isApplePlatform()) {
-        const fFullfsync = 51;
-        if (fcntlFd(fd, fFullfsync) != 0) {
-          throw FileSystemException(
-            'Failed to fully synchronize directory entries to disk',
-            directory.path,
-          );
-        }
-        return;
-      }
-
-      if (fsyncFd(fd) != 0) {
-        throw FileSystemException(
-          'Failed to synchronize directory entries to disk',
-          directory.path,
-        );
-      }
-    } finally {
-      if (fd >= 0) {
-        closeFd(fd);
-      }
-      freeBytes(pathPtr);
-    }
-  }
+  @override
+  Future<void> beforeOpen(
+    QueryExecutor executor,
+    OpeningDetails details,
+  ) async {}
 }
 
 // coverage:ignore-start
@@ -147,80 +37,116 @@ Future<Directory> Function() appSupportDirectoryReader(Ref ref) {
 }
 // coverage:ignore-end
 
-/// 親ディレクトリをディスクへ同期する関数を提供するプロバイダ
-@Riverpod(keepAlive: true)
-DirectorySyncer directorySyncer(Ref ref) {
-  return PosixDirectorySyncBindings.native().syncDirectory;
-}
-
 /// [CustomAuthInvalidationStore] のプロバイダ
 @Riverpod(keepAlive: true)
 CustomAuthInvalidationStore customAuthInvalidationStore(Ref ref) {
   return CustomAuthInvalidationStore(
     getDirectory: ref.watch(appSupportDirectoryReaderProvider),
-    syncDirectory: ref.watch(directorySyncerProvider),
   );
 }
 
-/// カスタム認証の退会に伴うセッション無効化状態をディスク上に永続化するストア
+/// カスタム認証の退会に伴うセッション無効化状態を専用 SQLite DB へ永続化するストア
 ///
-/// 一時ファイルへのフラッシュ書き込み（`flush: true`）・アトミックリネームに加え、
-/// 親ディレクトリの同期（Android は `fsync`、iOS は `F_FULLFSYNC`）まで実行することで
-/// 完了時点でのディスク永続化を保証します。
+/// メモ用 `AppDatabase` とは独立した SQLite ファイルに
+/// `PRAGMA journal_mode = DELETE`・`PRAGMA synchronous = EXTRA`・
+/// `PRAGMA fullfsync = ON` を設定して保存することで、Android の親ディレクトリ
+/// `fsync` および iOS の `F_FULLFSYNC` を含む SQLite のトランザクション永続化
+/// 保証（ACID）を利用して完了時点でのディスク永続化を確保します。
 class CustomAuthInvalidationStore {
   /// [CustomAuthInvalidationStore] を生成する
   CustomAuthInvalidationStore({
     required Future<Directory> Function() getDirectory,
-    DirectorySyncer? syncDirectory,
+    @visibleForTesting QueryExecutorFactory? createExecutor,
   }) : _getDirectory = getDirectory,
-       _syncDirectory =
-           syncDirectory ?? PosixDirectorySyncBindings.native().syncDirectory;
+       _createExecutor = createExecutor ?? createDurableDatabase;
 
   final Future<Directory> Function() _getDirectory;
-  final DirectorySyncer _syncDirectory;
+  final QueryExecutorFactory _createExecutor;
 
-  /// 永続化されたセッション無効化マーカーファイル名
+  /// 永続化に使用する専用 SQLite データベースファイル名
   @visibleForTesting
-  static const markerFileName = 'custom_auth_session_invalidated.flag';
+  static const databaseFileName = 'custom_auth_invalidation.sqlite';
 
-  /// アトミック書き込み用の一時ファイル名
+  /// 最大耐久設定を有効にした専用 SQLite エグゼキュータを生成する
   @visibleForTesting
-  static const tempFileName = 'custom_auth_session_invalidated.flag.tmp';
-
-  /// セッション無効化状態がディスクに永続化されているかを返す
-  Future<bool> isInvalidated() async {
-    final dir = await _getDirectory();
-    final markerFile = File(p.join(dir.path, markerFileName));
-    return markerFile.existsSync();
+  static QueryExecutor createDurableDatabase(File databaseFile) {
+    return NativeDatabase(
+      databaseFile,
+      enableMigrations: false,
+      setup: (database) {
+        database
+          ..execute('PRAGMA busy_timeout = 5000;')
+          ..execute('PRAGMA journal_mode = DELETE;')
+          ..execute('PRAGMA synchronous = EXTRA;')
+          ..execute('PRAGMA fullfsync = ON;')
+          ..execute('''
+            CREATE TABLE IF NOT EXISTS custom_auth_invalidation (
+              id INTEGER PRIMARY KEY CHECK (id = 1),
+              invalidated INTEGER NOT NULL
+            );
+          ''');
+      },
+    );
   }
 
-  /// セッション無効化状態をディスクへフラッシュ書き込みし、親ディレクトリを含めて確定する
+  /// セッション無効化状態が SQLite に永続化されているかを返す
+  Future<bool> isInvalidated() async {
+    final dir = await _getDirectory();
+    final dbFile = File(p.join(dir.path, databaseFileName));
+    if (!dbFile.existsSync()) {
+      return false;
+    }
+
+    return await _runWithExecutor(dbFile, (executor) async {
+      final rows = await executor.runSelect(
+        'SELECT invalidated FROM custom_auth_invalidation WHERE id = 1;',
+        const [],
+      );
+      return rows.isNotEmpty && rows.first['invalidated'] == 1;
+    });
+  }
+
+  /// セッション無効化状態を SQLite トランザクションとしてディスクへ確定保存する
   Future<void> markInvalidated() async {
     final dir = await _getDirectory();
     await dir.create(recursive: true);
-    final tempFile = File(p.join(dir.path, tempFileName));
-    final markerFile = File(p.join(dir.path, markerFileName));
-    await tempFile.writeAsString('invalidated', flush: true);
-    await tempFile.rename(markerFile.path);
-    await _syncDirectory(dir);
+    final dbFile = File(p.join(dir.path, databaseFileName));
+
+    await _runWithExecutor(dbFile, (executor) async {
+      await executor.runInsert(
+        'INSERT OR REPLACE INTO custom_auth_invalidation '
+        '(id, invalidated) VALUES (1, 1);',
+        const [],
+      );
+    });
   }
 
-  /// ディスク上のセッション無効化マーカーと残留一時ファイルを削除する
+  /// SQLite 上のセッション無効化レコードを削除して確定保存する
   Future<void> clearInvalidated() async {
     final dir = await _getDirectory();
-    var deleted = false;
-    final markerFile = File(p.join(dir.path, markerFileName));
-    if (markerFile.existsSync()) {
-      await markerFile.delete();
-      deleted = true;
+    final dbFile = File(p.join(dir.path, databaseFileName));
+    if (!dbFile.existsSync()) {
+      return;
     }
-    final tempFile = File(p.join(dir.path, tempFileName));
-    if (tempFile.existsSync()) {
-      await tempFile.delete();
-      deleted = true;
-    }
-    if (deleted) {
-      await _syncDirectory(dir);
+
+    await _runWithExecutor(dbFile, (executor) async {
+      await executor.runDelete(
+        'DELETE FROM custom_auth_invalidation WHERE id = 1;',
+        const [],
+      );
+    });
+  }
+
+  Future<T> _runWithExecutor<T>(
+    File dbFile,
+    Future<T> Function(QueryExecutor executor) action,
+  ) async {
+    final executor = _createExecutor(dbFile);
+    try {
+      await executor.ensureOpen(const _StoreQueryExecutorUser());
+      return await action(executor);
+    } finally {
+      await executor.close();
     }
   }
 }

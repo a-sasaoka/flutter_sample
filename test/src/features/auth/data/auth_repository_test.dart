@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart'; // Responseクラス用
+import 'package:drift/native.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/exceptions/reauth_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
@@ -94,12 +95,12 @@ void main() {
   late Directory tempDir;
   late CustomAuthInvalidationStore invalidationStore;
 
-  File invalidationMarkerFile() =>
-      File(p.join(tempDir.path, CustomAuthInvalidationStore.markerFileName));
+  File invalidationDbFile() =>
+      File(p.join(tempDir.path, CustomAuthInvalidationStore.databaseFileName));
 
   setUpAll(() {
     registerFallbackValue(const AppException.unknown());
-    registerFallbackValue(const FileSystemException());
+    registerFallbackValue(SqliteException(0, ''));
     registerFallbackValue(StackTrace.current);
     registerFallbackValue(Options());
   });
@@ -120,7 +121,7 @@ void main() {
 
   tearDown(() {
     if (tempDir.existsSync()) {
-      Process.runSync('chmod', ['755', tempDir.path]);
+      Process.runSync('chmod', ['-R', '755', tempDir.path]);
       tempDir.deleteSync(recursive: true);
     }
   });
@@ -1072,7 +1073,6 @@ void main() {
       check(await fakeStorage.getRefreshToken()).equals('refresh-new');
       check(await fakeStorage.getUserId()).equals('user-new');
       check(await invalidationStore.isInvalidated()).equals(false);
-      check(invalidationMarkerFile().existsSync()).equals(false);
       check(lock.sessionEpoch).equals(epochAfterNewLogin);
     });
 
@@ -1119,7 +1119,7 @@ void main() {
       ).called(1);
       check(container.read(authSessionLockProvider).sessionEpoch).equals(1);
       check(await invalidationStore.isInvalidated()).equals(true);
-      check(invalidationMarkerFile().existsSync()).equals(true);
+      check(invalidationDbFile().existsSync()).equals(true);
       check(await fakeStorage.getAccessToken()).equals('access-123');
 
       // 次回起動相当の新しい ProviderContainer でもログイン状態へ復元されないこと
@@ -1141,14 +1141,34 @@ void main() {
             )
             ..savedAccessToken = 'access-123'
             ..savedRefreshToken = 'refresh-123';
-      // 一時ファイルパスにディレクトリを配置して実際のディスク書き込みを失敗させる
+      // DB ファイルパスにディレクトリを配置して実際の SQLite 書き込みを失敗させる
       Directory(
-        p.join(tempDir.path, CustomAuthInvalidationStore.tempFileName),
+        p.join(tempDir.path, CustomAuthInvalidationStore.databaseFileName),
       ).createSync(recursive: true);
       final container = createContainer(fakeStorage);
       final repo = container.read(authRepositoryProvider);
 
-      await check(repo.deleteAccount()).throws<FileSystemException>();
+      await check(repo.deleteAccount()).throws<SqliteException>();
+
+      verifyNever(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      );
+      check(await fakeStorage.getAccessToken()).equals('access-123');
+    });
+
+    test('deleteAccount: 保存先ディレクトリが読み取り専用で SQLite 永続化を確定できない場合、 '
+        '削除要求を送らず例外を投げトークンが維持されること', () async {
+      final fakeStorage = FakeTokenStorage(initialRefreshToken: 'refresh-123')
+        ..savedAccessToken = 'access-123'
+        ..savedRefreshToken = 'refresh-123';
+      Process.runSync('chmod', ['555', tempDir.path]);
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      await check(repo.deleteAccount()).throws<SqliteException>();
 
       verifyNever(
         () => mockApi.delete<void>(
@@ -1158,40 +1178,6 @@ void main() {
       );
       check(await fakeStorage.getAccessToken()).equals('access-123');
       check(await invalidationStore.isInvalidated()).equals(false);
-      check(invalidationMarkerFile().existsSync()).equals(false);
-    });
-
-    test('deleteAccount: マーカーリネーム後の親ディレクトリ同期に失敗した場合、 '
-        '削除要求を送らず例外を投げトークンが維持されること', () async {
-      final fakeStorage = FakeTokenStorage(initialRefreshToken: 'refresh-123')
-        ..savedAccessToken = 'access-123'
-        ..savedRefreshToken = 'refresh-123';
-      final container = ProviderContainer(
-        overrides: [
-          authApiClientProvider.overrideWithValue(mockApi),
-          tokenStorageProvider.overrideWith((ref) => fakeStorage),
-          appSupportDirectoryReaderProvider.overrideWithValue(
-            () async => tempDir,
-          ),
-          directorySyncerProvider.overrideWithValue(
-            (dir) async =>
-                throw FileSystemException('dir sync failed', dir.path),
-          ),
-          loggerProvider.overrideWithValue(mockTalker),
-        ],
-      );
-      addTearDown(container.dispose);
-      final repo = container.read(authRepositoryProvider);
-
-      await check(repo.deleteAccount()).throws<FileSystemException>();
-
-      verifyNever(
-        () => mockApi.delete<void>(
-          '/auth/account',
-          options: any<Options?>(named: 'options'),
-        ),
-      );
-      check(await fakeStorage.getAccessToken()).equals('access-123');
     });
 
     test('deleteAccount: 削除処理中（API応答待ち）にアプリが終了しても、 '
@@ -1219,7 +1205,7 @@ void main() {
       await deleteStarted.future;
 
       check(await invalidationStore.isInvalidated()).equals(true);
-      check(invalidationMarkerFile().existsSync()).equals(true);
+      check(invalidationDbFile().existsSync()).equals(true);
       check(await fakeStorage.getAccessToken()).equals('access-123');
 
       // 削除完了前にプロセス終了し、次回起動した想定で別コンテナを生成
@@ -1231,7 +1217,6 @@ void main() {
       check(restoredAuthState).equals(false);
       check(await fakeStorage.getAccessToken()).isNull();
       check(await invalidationStore.isInvalidated()).equals(false);
-      check(invalidationMarkerFile().existsSync()).equals(false);
     });
 
     test('deleteAccount: 削除結果不明のAPI失敗時は同一セッションで再試行でき、 '
@@ -1263,14 +1248,13 @@ void main() {
       await check(repo.deleteAccount()).throws<TimeoutException>();
       check(await fakeStorage.getAccessToken()).equals('access-123');
       check(await invalidationStore.isInvalidated()).equals(true);
-      check(invalidationMarkerFile().existsSync()).equals(true);
+      check(invalidationDbFile().existsSync()).equals(true);
 
       // そのまま再試行して成功した場合はトークンとフラグを両方クリアする
       await check(repo.deleteAccount()).completes();
       check(attempts).equals(2);
       check(await fakeStorage.getAccessToken()).isNull();
       check(await invalidationStore.isInvalidated()).equals(false);
-      check(invalidationMarkerFile().existsSync()).equals(false);
 
       // 再度、1回目失敗後に再試行せずアプリ再起動した場合は未ログインとなること
       attempts = 0;
@@ -1300,7 +1284,8 @@ void main() {
           options: any<Options?>(named: 'options'),
         ),
       ).thenAnswer((_) async {
-        // 削除要求前に書かれたマーカーを削除できない状態にする
+        // 削除要求前に書かれた DB を更新できない状態にする
+        Process.runSync('chmod', ['444', invalidationDbFile().path]);
         Process.runSync('chmod', ['555', tempDir.path]);
         return Response<void>(
           requestOptions: RequestOptions(path: '/auth/account'),
@@ -1311,10 +1296,9 @@ void main() {
       await check(repo.deleteAccount()).completes();
 
       check(fakeStorage.savedAccessToken).isNull();
-      check(invalidationMarkerFile().existsSync()).equals(true);
       verify(
         () => mockTalker.handle(
-          any<FileSystemException>(),
+          any<SqliteException>(),
           any<StackTrace?>(),
           'Failed to clear invalidated custom auth session flag',
         ),
@@ -1322,6 +1306,7 @@ void main() {
 
       // 書き込み権限復帰後の別ログインではセッション無効化フラグを確実に解除すること
       Process.runSync('chmod', ['755', tempDir.path]);
+      Process.runSync('chmod', ['644', invalidationDbFile().path]);
       check(await invalidationStore.isInvalidated()).equals(true);
       final mockLoginResponse = MockResponse();
       when(() => mockLoginResponse.data).thenReturn({
@@ -1337,7 +1322,6 @@ void main() {
 
       await repo.login('user@example.com', 'password123');
       check(await invalidationStore.isInvalidated()).equals(false);
-      check(invalidationMarkerFile().existsSync()).equals(false);
     });
   });
 }
