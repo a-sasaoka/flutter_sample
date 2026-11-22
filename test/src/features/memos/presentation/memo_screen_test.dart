@@ -1026,6 +1026,7 @@ void main() {
         when(
           () => mockRemoteService.fetchMemos(
             expectedUserId: any(named: 'expectedUserId'),
+            cancelToken: any(named: 'cancelToken'),
           ),
         ).thenAnswer((_) async => []);
         final deleteRemoteCompleter = Completer<void>();
@@ -1286,6 +1287,7 @@ void main() {
       when(
         () => mockRemoteService.fetchMemos(
           expectedUserId: any(named: 'expectedUserId'),
+          cancelToken: any(named: 'cancelToken'),
         ),
       ).thenAnswer((_) async => []);
       final deleteRemoteCompleter = Completer<void>();

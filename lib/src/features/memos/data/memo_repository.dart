@@ -24,6 +24,7 @@ part 'memo_repository.g.dart';
 class MemoSyncQueue {
   final Map<(String, String), Future<void>> _queues = {};
   final Map<(String, String), int> _latestTokens = {};
+  final Map<String, Set<CancelToken>> _activeFetchCancelTokens = {};
   var _tokenCounter = 0;
 
   /// 指定メモに対する新しい変更トークンを発行・記録する
@@ -39,6 +40,36 @@ class MemoSyncQueue {
   /// 指定ユーザーに紐づく保留中の変更トークンをすべて破棄する
   void clearUserTokens(String userId) {
     _latestTokens.removeWhere((key, _) => key.$1 == userId);
+  }
+
+  /// 指定ユーザーの進行中リモート取得キャンセル用トークンを登録する
+  void registerFetchCancelToken(String userId, CancelToken token) {
+    (_activeFetchCancelTokens[userId] ??= <CancelToken>{}).add(token);
+  }
+
+  /// 指定ユーザーの進行中リモート取得キャンセル用トークンを解除する
+  void unregisterFetchCancelToken(String userId, CancelToken token) {
+    final tokens = _activeFetchCancelTokens[userId];
+    if (tokens == null) {
+      return;
+    }
+    tokens.remove(token);
+    if (tokens.isEmpty) {
+      _activeFetchCancelTokens.remove(userId);
+    }
+  }
+
+  /// 指定ユーザーの進行中リモート取得リクエストをすべて中止する
+  void cancelUserFetches(String userId) {
+    final tokens = _activeFetchCancelTokens.remove(userId);
+    if (tokens == null) {
+      return;
+    }
+    for (final token in tokens) {
+      if (!token.isCancelled) {
+        token.cancel('Account deletion in progress');
+      }
+    }
   }
 
   /// 同一メモの同期処理を先行タスクの完了後に直列実行する
@@ -184,10 +215,13 @@ class MemoRepository {
     }
   }
 
+  bool _isCancelError(Exception e) =>
+      e is DioException &&
+      (e.type == DioExceptionType.cancel ||
+          e.error == const AppException.cancel());
+
   void _handleUploadError(Exception e, StackTrace st, String errorLog) {
-    if (e is DioException &&
-        (e.type == DioExceptionType.cancel ||
-            e.error == const AppException.cancel())) {
+    if (_isCancelError(e)) {
       _talker.debug('$errorLog (cancelled due to auth switch)');
       return;
     }
@@ -488,6 +522,10 @@ class MemoRepository {
     );
   }
 
+  bool _canApplyRemoteSync(String userId, int expectedGeneration) =>
+      _currentUserId() == userId &&
+      _dao.deletionGenerationForUser(userId) == expectedGeneration;
+
   /// リモートサーバーからメモを取得し、ローカルデータベースとマージする処理
   ///
   /// [syncUnsent] が false の場合、未送信メモの送信はスキップします。
@@ -495,14 +533,36 @@ class MemoRepository {
     String userId, {
     bool syncUnsent = true,
   }) async {
+    final deletionGeneration = _dao.deletionGenerationForUser(userId);
+    if (_currentUserId() != userId) {
+      return;
+    }
+
     // 未送信のメモがあればサーバーに送る
     if (_isOnline && syncUnsent) {
       await syncUnsentMemos(userId);
+      if (!_canApplyRemoteSync(userId, deletionGeneration)) {
+        return;
+      }
     }
 
+    final cancelToken = CancelToken();
+    _syncQueue.registerFetchCancelToken(userId, cancelToken);
     try {
       final fetchedBeforeSeq = _dao.currentMutationSeq;
-      final remoteData = await _remote.fetchMemos(expectedUserId: userId);
+      final remoteData = await _remote.fetchMemos(
+        expectedUserId: userId,
+        cancelToken: cancelToken,
+      );
+
+      if (cancelToken.isCancelled ||
+          !_canApplyRemoteSync(userId, deletionGeneration)) {
+        _talker.debug(
+          'Skipped merging remote memos due to auth change or account '
+          'deletion.',
+        );
+        return;
+      }
 
       // サーバーから取得したデータを効率的にマージする
       if (remoteData.isNotEmpty) {
@@ -510,20 +570,32 @@ class MemoRepository {
           userId,
           remoteData,
           fetchedBeforeSeq: fetchedBeforeSeq,
+          expectedDeletionGeneration: deletionGeneration,
         );
       }
       _talker.debug('Merged remote memos into local database.');
     } on Exception catch (e, st) {
+      if (cancelToken.isCancelled && _isCancelError(e)) {
+        _talker.debug(
+          'Remote memo fetch cancelled during account deletion for user: '
+          '$userId',
+        );
+        return;
+      }
       _talker.handle(e, st, 'Failed to fetch data from the server');
+    } finally {
+      _syncQueue.unregisterFetchCancelToken(userId, cancelToken);
     }
   }
 
   /// 指定したユーザーのすべてのローカルメモ（論理削除済み含む）を物理削除する
   ///
   /// アカウント退会時のクリーンアップ専用です。
-  /// 対象ユーザーの未完了同期トークンも無効化し、退会後の誤った同期反映を防ぎます。
+  /// 対象ユーザーの進行中リモート取得・未完了同期トークンも中止・無効化し、退会後の誤った同期反映を防ぎます。
   Future<int> deleteAllMemosByUser(String userId) async {
-    _syncQueue.clearUserTokens(userId);
+    _syncQueue
+      ..clearUserTokens(userId)
+      ..cancelUserFetches(userId);
     final deletedCount = await _dao.deleteAllMemosByUser(userId);
     _talker.info(
       'Physically deleted $deletedCount local memos for user: $userId',

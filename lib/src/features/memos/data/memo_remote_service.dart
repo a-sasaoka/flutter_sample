@@ -49,11 +49,13 @@ class MemoRemoteService {
   /// サーバーからメモのデータを取得する
   Future<List<Map<String, dynamic>>> fetchMemos({
     String? expectedUserId,
+    CancelToken? cancelToken,
   }) async {
     // サーバーの /memos エンドポイントからデータを取得します
     final response = await _api.get<List<dynamic>>(
       '/memos',
       options: _buildPinnedAuthOptions(expectedUserId),
+      cancelToken: cancelToken,
     );
     final data = response.data;
     if (data == null) {

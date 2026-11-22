@@ -1710,6 +1710,84 @@ void main() {
 
         check(deletedCount).equals(0);
       });
+
+      test('【正常系】deleteAllMemosByUser で対象ユーザーの削除世代のみ増加し、 '
+          '取得開始時の古い世代を渡した mergeRemoteMemos はローカル空でも再挿入しないこと', () async {
+        final now = DateTime(2026, 11, 22, 10);
+        await dao.insertMemo(
+          MemosCompanion.insert(
+            id: 'other-memo',
+            userId: otherUserId,
+            title: '他ユーザーメモ',
+            content: '内容',
+            createdAt: now,
+            updatedAt: now,
+            sortOrder: const Value(0),
+          ),
+        );
+
+        final genBeforeDelete = dao.deletionGenerationForUser(testUserId);
+        final otherGenBeforeDelete = dao.deletionGenerationForUser(otherUserId);
+        check(genBeforeDelete).equals(0);
+        check(otherGenBeforeDelete).equals(0);
+
+        await dao.deleteAllMemosByUser(testUserId);
+
+        // 対象ユーザーの削除世代のみ +1 され、他ユーザーの世代は変わらないこと
+        check(dao.deletionGenerationForUser(testUserId)).equals(1);
+        check(dao.deletionGenerationForUser(otherUserId)).equals(0);
+
+        // ローカルが空の状態でも、削除前に取得開始した世代 (0) では再挿入されないこと
+        await dao.mergeRemoteMemos(testUserId, [
+          {
+            'id': 'stale-remote-1',
+            'title': '古い取得結果',
+            'content': '再挿入されてはいけない本文',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+        ], expectedDeletionGeneration: genBeforeDelete);
+
+        check(
+          await (database.select(
+            database.memos,
+          )..where((t) => t.userId.equals(testUserId))).get(),
+        ).isEmpty();
+
+        // 別ユーザーの取得は削除世代が一致しているため通常通りマージされること
+        await dao.mergeRemoteMemos(otherUserId, [
+          {
+            'id': 'other-new-1',
+            'title': '他ユーザー新規',
+            'content': '本文',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+        ], expectedDeletionGeneration: otherGenBeforeDelete);
+        final otherMemos = await dao.getAllMemos(otherUserId);
+        check(otherMemos.length).equals(2);
+
+        // 新しい世代 (1) を渡したマージは通常通り許可されること
+        await dao.mergeRemoteMemos(
+          testUserId,
+          [
+            {
+              'id': 'fresh-remote-1',
+              'title': '新しい取得結果',
+              'content': '新しい本文',
+              'createdAt': now,
+              'updatedAt': now,
+              'isDeleted': false,
+            },
+          ],
+          expectedDeletionGeneration: dao.deletionGenerationForUser(testUserId),
+        );
+        final freshMemos = await dao.getAllMemos(testUserId);
+        check(freshMemos.length).equals(1);
+        check(freshMemos.single.id).equals('fresh-remote-1');
+      });
     });
   });
 }

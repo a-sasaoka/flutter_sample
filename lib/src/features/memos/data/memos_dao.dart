@@ -24,9 +24,14 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
 
   var _mutationSeq = 0;
   final Map<(String, String), int> _memoMutationSeqs = {};
+  final Map<String, int> _userDeletionGenerations = {};
 
   /// ローカルDB書き込みごとに単調増加する現在の変更シーケンスを返す
   int get currentMutationSeq => _mutationSeq;
+
+  /// 指定ユーザーの削除世代を返す（[deleteAllMemosByUser] 実行ごとに単調増加する）
+  int deletionGenerationForUser(String userId) =>
+      _userDeletionGenerations[userId] ?? 0;
 
   void _markMemoMutated(String userId, String id) {
     _memoMutationSeqs[(userId, id)] = ++_mutationSeq;
@@ -204,8 +209,15 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
     String userId,
     List<Map<String, dynamic>> remoteData, {
     int? fetchedBeforeSeq,
+    int? expectedDeletionGeneration,
   }) async {
     await transaction(() async {
+      if (expectedDeletionGeneration != null &&
+          deletionGenerationForUser(userId) != expectedDeletionGeneration) {
+        // 取得開始後に一括削除が実行されていたら、ローカル行の有無を問わずリモート結果を破棄する
+        return;
+      }
+
       // 型・日付検証を通過したメモをIDごとに統合し、重複IDは updatedAt が最新の版のみ残す
       final latestRemoteMemosById = <String, _ValidatedRemoteMemo>{};
       for (final remoteMemo in remoteData) {
@@ -462,13 +474,16 @@ class MemosDao extends DatabaseAccessor<AppDatabase> with _$MemosDaoMixin {
   /// 指定したユーザーのすべてのメモ（論理削除済み含む）を物理削除する
   ///
   /// アカウント退会時の完全データ消去用。他ユーザーのメモには影響しません。
-  Future<int> deleteAllMemosByUser(String userId) async {
-    final deletedCount = await (delete(
-      memos,
-    )..where((t) => t.userId.equals(userId))).go();
-    // 削除済みユーザーの変更シーケンスを掃除し、マージ保護用シーケンスを進める
-    _mutationSeq++;
-    _memoMutationSeqs.removeWhere((key, _) => key.$1 == userId);
-    return deletedCount;
+  Future<int> deleteAllMemosByUser(String userId) {
+    return transaction(() async {
+      final deletedCount = await (delete(
+        memos,
+      )..where((t) => t.userId.equals(userId))).go();
+      // 削除済みユーザーの変更シーケンスを掃除し、削除世代とマージ保護シーケンスを進める
+      _mutationSeq++;
+      _memoMutationSeqs.removeWhere((key, _) => key.$1 == userId);
+      _userDeletionGenerations[userId] = deletionGenerationForUser(userId) + 1;
+      return deletedCount;
+    });
   }
 }

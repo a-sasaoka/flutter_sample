@@ -85,7 +85,7 @@ memos/
 - **テーブル定義とマイグレーション**: [memo_table.dart](../lib/src/features/memos/data/memo_table.dart) に `userId` カラム（NOT NULL）を追加（v3）、さらに `category` カラム（Nullable TextColumn）を追加（v4）、並び順永続化用の `sortOrder` カラム（integer、デフォルト 0）を追加（v5）、同秒内更新比較・保護用の `updatedAtMicros` カラム（Nullable IntColumn）を追加（v6）。[app_database.dart](../lib/src/app/database/app_database.dart) のスキーマバージョンを段階的に安全にアップデートしています。
 - **DAO & Repository のユーザー制限**: [memos_dao.dart](../lib/src/features/memos/data/memos_dao.dart) および [memo_repository.dart](../lib/src/features/memos/data/memo_repository.dart) のすべてのクエリ（一覧取得・カテゴリ絞り込み・作成・更新・削除・並び順更新・未同期メモ抽出）に `userId` を必須指定とし、他ユーザーのメモを一切参照・変更できない構造を担保。
 - **Notifier の認証連動**: [memo_notifier.dart](../lib/src/features/memos/application/memo_notifier.dart) は [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の `currentUserIdProvider` をリアクティブに監視。未ログイン時は即座に空リスト（`[]`）を返却し、ログイン（またはアカウント切り替え）時に現在ログインしているユーザーのメモのみを即時提供します。
-- **退会時の一括物理削除 (Issue #324)**: [memos_dao.dart](../lib/src/features/memos/data/memos_dao.dart) の `deleteAllMemosByUser(String userId)` および [memo_repository.dart](../lib/src/features/memos/data/memo_repository.dart) の `MemoSyncQueue.clearUserTokens(String userId)` / `deleteAllMemosByUser(String userId)` により、退会対象ユーザーのメモ（論理削除済みを含む）のみを他ユーザーデータへ影響を与えずに物理削除し、未完了の同期トークンや変更シーケンスも安全に無効化します。
+- **退会時の一括物理削除 (Issue #324)**: [memos_dao.dart](../lib/src/features/memos/data/memos_dao.dart) の `deleteAllMemosByUser(String userId)` および [memo_repository.dart](../lib/src/features/memos/data/memo_repository.dart) の `MemoSyncQueue`（`clearUserTokens` / `cancelUserFetches`）・`deleteAllMemosByUser(String userId)` により、退会対象ユーザーのメモ（論理削除済みを含む）のみを他ユーザーデータへ影響を与えずに物理削除します。さらにユーザー単位の削除世代と `CancelToken` による進行中 `/memos` 取得の中止・応答破棄を行い、削除前に開始した取得結果の遅延マージによる再挿入を防ぎます。
 
 ### 8. AIチャット機能（Function Calling）との連携
 
@@ -110,8 +110,8 @@ AIチャット画面からの自然言語指示に基づき、AIエージェン�
 
 - **Unit Test**:
   - `AppDatabase`: スキーマバージョン 3, 4, 5, および 6 への安全なマイグレーション検証（`app_database_test.dart`）。
-  - `MemosDao`: カテゴリ・未同期絞り込み、新規追加時の順序シフト（`shiftSortOrders`）、一括並び替え（`updateSortOrders`）、削除復元（`restoreMemo`）、特定ユーザーの全メモ物理削除（`deleteAllMemosByUser`）の正確性検証（`memos_dao_test.dart`）。
-  - `MemoRepository`: オフライン保存、エラー時のリトライフラグ、リモートデータとのマージロジック、新規メモ先頭採番、並び替え一括保存、Undo復元、未完了同期トークンの無効化（`MemoSyncQueue.clearUserTokens`）・退会時一括物理削除、および複数ユーザー間での完全データ分離の検証（`memo_repository_test.dart`）。
+  - `MemosDao`: カテゴリ・未同期絞り込み、新規追加時の順序シフト（`shiftSortOrders`）、一括並び替え（`updateSortOrders`）、削除復元（`restoreMemo`）、特定ユーザーの全メモ物理削除（`deleteAllMemosByUser`）・削除世代による古いリモートマージ拒否の正確性検証（`memos_dao_test.dart`）。
+  - `MemoRepository`: オフライン保存、エラー時のリトライフラグ、リモートデータとのマージロジック、新規メモ先頭採番、並び替え一括保存、Undo復元、未完了同期トークン無効化・進行中取得のキャンセル・削除世代／認証再確認による遅延応答破棄・退会時一括物理削除、および複数ユーザー間での完全データ分離の検証（`memo_repository_test.dart`）。
   - `MemoFilterNotifier`: 検索クエリ、カテゴリ選択、未同期フラグ、カスタム順を含むソート順の更新・リセットおよびアクティブフィルタ判定の検証（`memo_filter_notifier_test.dart`）。
   - `MemoNotifier`: 追加・削除・同期命令後の状態更新、未ログイン時の空配列返却、ログイン時のユーザー別メモ読み込み、Optimistic UI 並び替えとロールバック、Undo復元の検証（`memo_notifier_test.dart`）。
 - **Widget Test**:
