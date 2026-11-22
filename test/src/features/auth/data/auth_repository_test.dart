@@ -1032,10 +1032,19 @@ void main() {
 
     test('deleteAccount: API待機中に別ユーザーのログインが完了した場合、 '
         '世代不一致のため新しいセッションのトークンを消去しないこと', () async {
-      final fakeStorage = FakeTokenStorage(initialRefreshToken: 'refresh-old')
-        ..savedAccessToken = 'access-old'
-        ..savedRefreshToken = 'refresh-old'
-        ..currentUserId = 'user-old';
+      late FakeTokenStorage fakeStorage;
+      fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-old',
+              currentUserId: 'user-old',
+              onSaveTokens: (accessToken, _) async {
+                if (accessToken == 'access-new') {
+                  fakeStorage.currentUserId = 'user-new';
+                }
+              },
+            )
+            ..savedAccessToken = 'access-old'
+            ..savedRefreshToken = 'refresh-old';
       final container = createContainer(fakeStorage);
       final repo = container.read(authRepositoryProvider);
       final lock = container.read(authSessionLockProvider);
@@ -1047,18 +1056,23 @@ void main() {
           options: any<Options?>(named: 'options'),
         ),
       ).thenAnswer((_) => deleteCompleter.future);
+      final mockLoginResponse = MockResponse();
+      when(() => mockLoginResponse.data).thenReturn({
+        'access_token': 'access-new',
+        'refresh_token': 'refresh-new',
+      });
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockLoginResponse);
 
       final deleteFuture = repo.deleteAccount();
       await Future<void>.delayed(Duration.zero);
 
       // 削除 API 待機中に別ユーザーの新規ログインが完了してセッション世代が進む
-      await lock.runSessionTransition(() async {
-        fakeStorage.currentUserId = 'user-new';
-        await fakeStorage.saveTokens(
-          accessToken: 'access-new',
-          refreshToken: 'refresh-new',
-        );
-      });
+      await repo.login('new@example.com', 'password123');
       final epochAfterNewLogin = lock.sessionEpoch;
       check(epochAfterNewLogin).equals(1);
 
@@ -1081,7 +1095,7 @@ void main() {
     });
 
     test('deleteAccount: サーバー削除成功後に tokenStorage.clear() が失敗しても、 '
-        'talker.handle へ記録して無効化フラグを永続化し、次回起動時は未ログインとなること', () async {
+        'talker.handle へ記録して無効化フラグを保持し、次回起動時は未ログインとなること', () async {
       final clearException = Exception('secure storage error');
       final fakeStorage =
           FakeTokenStorage(
@@ -1135,16 +1149,137 @@ void main() {
       check(restoredAuthState).equals(false);
     });
 
-    test('deleteAccount: 無効化フラグの永続化や解除が失敗しても記録のみで削除処理を続行し、 '
-        '再ログイン時はフラグを解除すること', () async {
+    test('deleteAccount: 削除要求前の無効化フラグ保存とトークン消去が両方失敗する場合、 '
+        '削除要求を送らず例外を投げトークンが維持されること', () async {
       final prefsSetError = Exception('prefs write failed');
+      final clearException = Exception('secure storage error');
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-123',
+              clearError: clearException,
+            )
+            ..savedAccessToken = 'access-123'
+            ..savedRefreshToken = 'refresh-123';
+      fakePrefs.setBoolError = prefsSetError;
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      await check(repo.deleteAccount()).throws<Exception>();
+
+      verifyNever(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      );
+      check(await fakeStorage.getAccessToken()).equals('access-123');
+      check(
+        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
+      ).isNull();
+    });
+
+    test('deleteAccount: 削除処理中（API応答待ち）にアプリが終了しても、 '
+        '次回起動時はログイン状態へ復元されず残留トークンが消去されること', () async {
+      final fakeStorage = FakeTokenStorage(initialRefreshToken: 'refresh-123')
+        ..savedAccessToken = 'access-123'
+        ..savedRefreshToken = 'refresh-123'
+        ..currentUserId = 'user-123';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      final deleteStarted = Completer<void>();
+      final deleteNeverCompletes = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteNeverCompletes.future;
+      });
+
+      unawaited(repo.deleteAccount());
+      await deleteStarted.future;
+
+      check(
+        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
+      ).equals(true);
+      check(await fakeStorage.getAccessToken()).equals('access-123');
+
+      // 削除完了前にプロセス終了し、次回起動した想定で別コンテナを生成
+      final restartedContainer = createContainer(fakeStorage);
+      final restoredAuthState = await restartedContainer.read(
+        authStateProvider.future,
+      );
+
+      check(restoredAuthState).equals(false);
+      check(await fakeStorage.getAccessToken()).isNull();
+      check(
+        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
+      ).isNull();
+    });
+
+    test('deleteAccount: 削除結果不明のAPI失敗時は同一セッションで再試行でき、 '
+        '再試行せず再起動した場合は誤復元しないこと', () async {
+      final fakeStorage = FakeTokenStorage(initialRefreshToken: 'refresh-123')
+        ..savedAccessToken = 'access-123'
+        ..savedRefreshToken = 'refresh-123';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      var attempts = 0;
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) async {
+        attempts++;
+        if (attempts == 1) {
+          throw const AppException.timeout();
+        }
+        return Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        );
+      });
+
+      // 1回目はタイムアウト（結果不明）: トークンは残り同一セッションで再試行可能
+      await check(repo.deleteAccount()).throws<TimeoutException>();
+      check(await fakeStorage.getAccessToken()).equals('access-123');
+      check(
+        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
+      ).equals(true);
+
+      // そのまま再試行して成功した場合はトークンとフラグを両方クリアする
+      await check(repo.deleteAccount()).completes();
+      check(attempts).equals(2);
+      check(await fakeStorage.getAccessToken()).isNull();
+      check(
+        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
+      ).isNull();
+
+      // 再度、1回目失敗後に再試行せずアプリ再起動した場合は未ログインとなること
+      attempts = 0;
+      fakeStorage
+        ..savedAccessToken = 'access-retry'
+        ..savedRefreshToken = 'refresh-retry';
+      await check(repo.deleteAccount()).throws<TimeoutException>();
+      final restartedContainer = createContainer(fakeStorage);
+      check(
+        await restartedContainer.read(authStateProvider.future),
+      ).equals(false);
+      check(await fakeStorage.getAccessToken()).isNull();
+    });
+
+    test('deleteAccount: サーバー削除後に無効化フラグの解除だけ失敗しても記録のみで完了し、 '
+        '再ログイン時はフラグを解除すること', () async {
       final prefsRemoveError = Exception('prefs remove failed');
       final fakeStorage = FakeTokenStorage(initialRefreshToken: 'refresh-123')
         ..savedAccessToken = 'access-123'
         ..savedRefreshToken = 'refresh-123';
-      fakePrefs
-        ..setBoolError = prefsSetError
-        ..removeError = prefsRemoveError;
+      fakePrefs.removeError = prefsRemoveError;
       final container = createContainer(fakeStorage);
       final repo = container.read(authRepositoryProvider);
 
@@ -1165,13 +1300,6 @@ void main() {
       check(fakeStorage.savedAccessToken).isNull();
       verify(
         () => mockTalker.handle(
-          prefsSetError,
-          any<StackTrace?>(),
-          'Failed to persist invalidated custom auth session flag',
-        ),
-      ).called(1);
-      verify(
-        () => mockTalker.handle(
           prefsRemoveError,
           any<StackTrace?>(),
           'Failed to clear invalidated custom auth session flag',
@@ -1180,7 +1308,6 @@ void main() {
 
       // 別のログインではセッション無効化フラグを確実に解除すること
       fakePrefs
-        ..setBoolError = null
         ..removeError = null
         ..boolValues[SharedPrefKeys.customAuthSessionInvalidated] = true;
       final mockLoginResponse = MockResponse();

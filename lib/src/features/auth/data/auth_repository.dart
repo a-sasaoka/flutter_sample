@@ -162,14 +162,17 @@ class AuthRepository {
 
   /// アカウント削除APIを呼び出し、成功後にローカルのトークンを破棄する（カスタム認証用）
   ///
-  /// サーバー側の削除が成功した後は、端末側のトークン消去に失敗しても
-  /// Crashlytics へ記録して処理を続行し、未ログイン遷移およびローカル削除を妨げません。
+  /// サーバーへ削除要求を送る前にセッション無効化フラグを永続化し、保存に失敗した場合は
+  /// 削除要求を送信しません。サーバー側の削除が成功した後は、端末側のトークン消去に
+  /// 失敗しても Crashlytics へ記録して処理を続行し、未ログイン遷移およびローカル削除を妨げません。
   Future<void> deleteAccount() async {
     final startState = await _sessionLock.synchronized(() async {
       final token = await tokenStorage.getAccessToken();
       if (token == null || token.isEmpty) {
         return null;
       }
+      // サーバー削除要求前に無効化フラグを永続化し、失敗時は削除要求を送らない
+      await _prefs.setBool(SharedPrefKeys.customAuthSessionInvalidated, true);
       return (accessToken: token, sessionEpoch: _sessionLock.sessionEpoch);
     });
     if (startState == null) {
@@ -187,22 +190,8 @@ class AuthRepository {
       await _sessionLock.runSessionTransitionIfCurrent(
         expectedEpoch: startState.sessionEpoch,
         action: () async {
-          // clear() 失敗時や中断時でも次回起動時に復元されないよう先に無効化状態を記録する
-          await _runInvalidationFlagBestEffort(
-            action: () => _prefs.setBool(
-              SharedPrefKeys.customAuthSessionInvalidated,
-              true,
-            ),
-            errorMessage:
-                'Failed to persist invalidated custom auth session flag',
-          );
           await tokenStorage.clear();
-          await _runInvalidationFlagBestEffort(
-            action: () =>
-                _prefs.remove(SharedPrefKeys.customAuthSessionInvalidated),
-            errorMessage:
-                'Failed to clear invalidated custom auth session flag',
-          );
+          await _clearInvalidationFlagBestEffort();
         },
       );
     } on Object catch (e, st) {
@@ -216,14 +205,15 @@ class AuthRepository {
     }
   }
 
-  Future<void> _runInvalidationFlagBestEffort({
-    required Future<void> Function() action,
-    required String errorMessage,
-  }) async {
+  Future<void> _clearInvalidationFlagBestEffort() async {
     try {
-      await action();
+      await _prefs.remove(SharedPrefKeys.customAuthSessionInvalidated);
     } on Object catch (e, st) {
-      talker.handle(e, st, errorMessage);
+      talker.handle(
+        e,
+        st,
+        'Failed to clear invalidated custom auth session flag',
+      );
     }
   }
 }
