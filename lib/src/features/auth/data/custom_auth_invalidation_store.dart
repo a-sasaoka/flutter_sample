@@ -10,6 +10,12 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'custom_auth_invalidation_store.g.dart';
 
+/// SQLite に保存された個別の削除対象アカウント識別子
+typedef CustomAuthInvalidationEntry = ({
+  String? targetUserId,
+  String? targetEmail,
+});
+
 /// SQLite に保存されたセッション無効化状態と削除対象アカウント識別子
 typedef CustomAuthInvalidationState = ({
   bool isInvalidated,
@@ -81,28 +87,52 @@ class CustomAuthInvalidationStore {
           ..execute('PRAGMA synchronous = EXTRA;')
           ..execute('PRAGMA fullfsync = ON;')
           ..execute('''
-            CREATE TABLE IF NOT EXISTS custom_auth_invalidation (
-              id INTEGER PRIMARY KEY CHECK (id = 1),
-              invalidated INTEGER NOT NULL,
+            CREATE TABLE IF NOT EXISTS custom_auth_invalidation_entries (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
               target_user_id TEXT,
               target_email TEXT
             );
+          ''')
+          ..execute('''
+            CREATE TABLE IF NOT EXISTS custom_auth_pending_login (
+              id INTEGER PRIMARY KEY CHECK (id = 1),
+              pending INTEGER NOT NULL
+            );
           ''');
-        final columns = database.select(
-          'PRAGMA table_info(custom_auth_invalidation);',
+        // 旧 1 行テーブルが存在する場合はデータを新テーブルへ移行して破棄する
+        final legacyTables = database.select(
+          "SELECT name FROM sqlite_master WHERE type = 'table' "
+          "AND name = 'custom_auth_invalidation';",
         );
-        final columnNames = {for (final row in columns) row['name'] as String};
-        if (!columnNames.contains('target_user_id')) {
-          database.execute(
-            'ALTER TABLE custom_auth_invalidation '
-            'ADD COLUMN target_user_id TEXT;',
+        if (legacyTables.isNotEmpty) {
+          final columns = database.select(
+            'PRAGMA table_info(custom_auth_invalidation);',
           );
-        }
-        if (!columnNames.contains('target_email')) {
-          database.execute(
-            'ALTER TABLE custom_auth_invalidation '
-            'ADD COLUMN target_email TEXT;',
+          final columnNames = {
+            for (final row in columns) row['name'] as String,
+          };
+          final hasIdentifierColumns =
+              columnNames.contains('target_user_id') &&
+              columnNames.contains('target_email');
+          final legacyRows = database.select(
+            hasIdentifierColumns
+                ? 'SELECT invalidated, target_user_id, target_email '
+                      'FROM custom_auth_invalidation WHERE id = 1;'
+                : 'SELECT invalidated, NULL AS target_user_id, '
+                      'NULL AS target_email '
+                      'FROM custom_auth_invalidation WHERE id = 1;',
           );
+          if (legacyRows.isNotEmpty && legacyRows.first['invalidated'] == 1) {
+            database.execute(
+              'INSERT INTO custom_auth_invalidation_entries '
+              '(target_user_id, target_email) VALUES (?, ?);',
+              [
+                legacyRows.first['target_user_id'] as String?,
+                _normalizeEmail(legacyRows.first['target_email'] as String?),
+              ],
+            );
+          }
+          database.execute('DROP TABLE custom_auth_invalidation;');
         }
       },
     );
@@ -141,36 +171,61 @@ class CustomAuthInvalidationStore {
 
   /// セッション無効化状態が SQLite に永続化されているかを返す
   Future<bool> isInvalidated() async {
-    final state = await getInvalidationState();
-    return state.isInvalidated;
+    final entries = await getInvalidationEntries();
+    return entries.isNotEmpty;
   }
 
-  /// SQLite に保存されているセッション無効化状態と対象アカウント識別子を返す
-  Future<CustomAuthInvalidationState> getInvalidationState() async {
+  /// SQLite に保存されているすべての削除対象アカウント識別子を返す
+  Future<List<CustomAuthInvalidationEntry>> getInvalidationEntries() async {
     final dir = await _getDirectory();
     final dbFile = File(p.join(dir.path, databaseFileName));
     if (!dbFile.existsSync()) {
-      return (isInvalidated: false, targetUserId: null, targetEmail: null);
+      return const [];
     }
 
     return await _runWithExecutor(dbFile, (executor) async {
       final rows = await executor.runSelect(
-        'SELECT invalidated, target_user_id, target_email '
-        'FROM custom_auth_invalidation WHERE id = 1;',
+        'SELECT target_user_id, target_email '
+        'FROM custom_auth_invalidation_entries ORDER BY id ASC;',
         const [],
       );
-      if (rows.isEmpty || rows.first['invalidated'] != 1) {
-        return (isInvalidated: false, targetUserId: null, targetEmail: null);
-      }
-      return (
-        isInvalidated: true,
-        targetUserId: rows.first['target_user_id'] as String?,
-        targetEmail: rows.first['target_email'] as String?,
-      );
+      return [
+        for (final row in rows)
+          (
+            targetUserId: row['target_user_id'] as String?,
+            targetEmail: row['target_email'] as String?,
+          ),
+      ];
     });
   }
 
-  /// セッション無効化状態を削除対象アカウント情報とともに SQLite へ確定保存する
+  /// SQLite に保存されている最新のセッション無効化状態と対象アカウント識別子を返す
+  Future<CustomAuthInvalidationState> getInvalidationState() async {
+    final entries = await getInvalidationEntries();
+    if (entries.isEmpty) {
+      return (isInvalidated: false, targetUserId: null, targetEmail: null);
+    }
+    final latest = entries.last;
+    return (
+      isInvalidated: true,
+      targetUserId: latest.targetUserId,
+      targetEmail: latest.targetEmail,
+    );
+  }
+
+  static bool _matchesExactIdentifier({
+    required Object? rowUserId,
+    required Object? rowEmail,
+    required String? targetUserId,
+    required String? normalizedEmail,
+  }) {
+    return (rowUserId as String?) == targetUserId &&
+        (rowEmail as String?) == normalizedEmail;
+  }
+
+  /// セッション無効化状態を削除対象アカウント情報とともに SQLite へ追加永続化する
+  ///
+  /// 既存の他アカウントの進行中レコードは上書きせずに保持します。
   Future<void> markInvalidated({
     String? targetUserId,
     String? targetEmail,
@@ -178,12 +233,29 @@ class CustomAuthInvalidationStore {
     final dir = await _getDirectory();
     await dir.create(recursive: true);
     final dbFile = File(p.join(dir.path, databaseFileName));
+    final normalizedEmail = _normalizeEmail(targetEmail);
 
     await _runWithExecutor(dbFile, (executor) async {
+      final existingRows = await executor.runSelect(
+        'SELECT target_user_id, target_email '
+        'FROM custom_auth_invalidation_entries;',
+        const [],
+      );
+      final alreadyExists = existingRows.any(
+        (row) => _matchesExactIdentifier(
+          rowUserId: row['target_user_id'],
+          rowEmail: row['target_email'],
+          targetUserId: targetUserId,
+          normalizedEmail: normalizedEmail,
+        ),
+      );
+      if (alreadyExists) {
+        return;
+      }
       await executor.runInsert(
-        'INSERT OR REPLACE INTO custom_auth_invalidation '
-        '(id, invalidated, target_user_id, target_email) VALUES (1, 1, ?, ?);',
-        [targetUserId, _normalizeEmail(targetEmail)],
+        'INSERT INTO custom_auth_invalidation_entries '
+        '(target_user_id, target_email) VALUES (?, ?);',
+        [targetUserId, normalizedEmail],
       );
     });
   }
@@ -197,8 +269,8 @@ class CustomAuthInvalidationStore {
     required String? email,
     required bool isDeletionInProgress,
   }) async {
-    final state = await getInvalidationState();
-    if (!state.isInvalidated) {
+    final entries = await getInvalidationEntries();
+    if (entries.isEmpty) {
       return true;
     }
 
@@ -207,12 +279,14 @@ class CustomAuthInvalidationStore {
       return false;
     }
 
-    final blockedBySameAccount = matchesAccount(
-      targetUserId: state.targetUserId,
-      targetEmail: state.targetEmail,
-      candidateUserId: userId,
-      candidateEmail: email,
-      defaultWhenUnidentifiable: false,
+    final blockedBySameAccount = entries.any(
+      (entry) => matchesAccount(
+        targetUserId: entry.targetUserId,
+        targetEmail: entry.targetEmail,
+        candidateUserId: userId,
+        candidateEmail: email,
+        defaultWhenUnidentifiable: false,
+      ),
     );
     if (blockedBySameAccount) {
       return false;
@@ -222,24 +296,42 @@ class CustomAuthInvalidationStore {
     return true;
   }
 
-  /// 保存済みの無効化レコードが指定アカウント（[targetUserId] / [targetEmail]）の
-  /// ものと一致する場合のみ解除する
+  /// 保存済みの無効化レコードのうち指定アカウント（[targetUserId] / [targetEmail]）に
+  /// 一致するもののみを削除し、他アカウントのレコードは保持する
   Future<void> clearInvalidatedIfMatches({
     required String? targetUserId,
     required String? targetEmail,
   }) async {
-    final state = await getInvalidationState();
-    if (!state.isInvalidated) {
+    final dir = await _getDirectory();
+    final dbFile = File(p.join(dir.path, databaseFileName));
+    if (!dbFile.existsSync()) {
       return;
     }
-    if (state.targetUserId != targetUserId ||
-        state.targetEmail != _normalizeEmail(targetEmail)) {
-      return;
-    }
-    await clearInvalidated();
+    final normalizedEmail = _normalizeEmail(targetEmail);
+
+    await _runWithExecutor(dbFile, (executor) async {
+      final rows = await executor.runSelect(
+        'SELECT id, target_user_id, target_email '
+        'FROM custom_auth_invalidation_entries;',
+        const [],
+      );
+      for (final row in rows) {
+        if (_matchesExactIdentifier(
+          rowUserId: row['target_user_id'],
+          rowEmail: row['target_email'],
+          targetUserId: targetUserId,
+          normalizedEmail: normalizedEmail,
+        )) {
+          await executor.runDelete(
+            'DELETE FROM custom_auth_invalidation_entries WHERE id = ?;',
+            [row['id']],
+          );
+        }
+      }
+    });
   }
 
-  /// SQLite 上のセッション無効化レコードを削除して確定保存する
+  /// SQLite 上のすべてのセッション無効化レコードを削除して確定保存する
   Future<void> clearInvalidated() async {
     final dir = await _getDirectory();
     final dbFile = File(p.join(dir.path, databaseFileName));
@@ -249,7 +341,55 @@ class CustomAuthInvalidationStore {
 
     await _runWithExecutor(dbFile, (executor) async {
       await executor.runDelete(
-        'DELETE FROM custom_auth_invalidation WHERE id = 1;',
+        'DELETE FROM custom_auth_invalidation_entries;',
+        const [],
+      );
+    });
+  }
+
+  /// ログイン資格情報の保存が未確定のまま中断された状態が永続化されているかを返す
+  Future<bool> isLoginPending() async {
+    final dir = await _getDirectory();
+    final dbFile = File(p.join(dir.path, databaseFileName));
+    if (!dbFile.existsSync()) {
+      return false;
+    }
+
+    return await _runWithExecutor(dbFile, (executor) async {
+      final rows = await executor.runSelect(
+        'SELECT pending FROM custom_auth_pending_login WHERE id = 1;',
+        const [],
+      );
+      return rows.isNotEmpty && rows.first['pending'] == 1;
+    });
+  }
+
+  /// ログイン資格情報の保存開始（未確定状態）を SQLite へ確定保存する
+  Future<void> markLoginPending() async {
+    final dir = await _getDirectory();
+    await dir.create(recursive: true);
+    final dbFile = File(p.join(dir.path, databaseFileName));
+
+    await _runWithExecutor(dbFile, (executor) async {
+      await executor.runInsert(
+        'INSERT OR REPLACE INTO custom_auth_pending_login (id, pending) '
+        'VALUES (1, 1);',
+        const [],
+      );
+    });
+  }
+
+  /// ログイン資格情報の保存確定またはロールバック消去完了後に未確定状態を解除する
+  Future<void> clearLoginPending() async {
+    final dir = await _getDirectory();
+    final dbFile = File(p.join(dir.path, databaseFileName));
+    if (!dbFile.existsSync()) {
+      return;
+    }
+
+    await _runWithExecutor(dbFile, (executor) async {
+      await executor.runDelete(
+        'DELETE FROM custom_auth_pending_login WHERE id = 1;',
         const [],
       );
     });

@@ -353,5 +353,140 @@ void main() {
       await store.clearInvalidated();
       check(await store.isInvalidated()).equals(false);
     });
+
+    test('markLoginPending / isLoginPending / clearLoginPending: '
+        '初期ファイルを作成せず管理でき、退会用無効化レコードと相互干渉しないこと', () async {
+      final store = CustomAuthInvalidationStore(
+        getDirectory: () async => supportDir,
+      );
+
+      check(await store.isLoginPending()).equals(false);
+      await store.clearLoginPending();
+      final dbFile = File(
+        p.join(supportDir.path, CustomAuthInvalidationStore.databaseFileName),
+      );
+      check(dbFile.existsSync()).equals(false);
+
+      // 退会用無効化レコードが存在する状態で pending login を記録・解除しても競合しないこと
+      await store.markInvalidated(
+        targetUserId: 'user-a',
+        targetEmail: 'a@example.com',
+      );
+      await store.markLoginPending();
+      check(await store.isLoginPending()).equals(true);
+      check(await store.isInvalidated()).equals(true);
+
+      final restartedStore = CustomAuthInvalidationStore(
+        getDirectory: () async => supportDir,
+      );
+      check(await restartedStore.isLoginPending()).equals(true);
+      final invalidationState = await restartedStore.getInvalidationState();
+      check(invalidationState.isInvalidated).equals(true);
+      check(invalidationState.targetUserId).equals('user-a');
+
+      await store.clearLoginPending();
+      check(await store.isLoginPending()).equals(false);
+      check(await store.isInvalidated()).equals(true);
+
+      await store.clearInvalidated();
+      check(await store.isInvalidated()).equals(false);
+    });
+
+    test(
+      'markInvalidated / getInvalidationEntries / clearInvalidatedIfMatches: '
+      '複数アカウントのレコードを独立して保持し一致アカウントのみ削除できること',
+      () async {
+        final store = CustomAuthInvalidationStore(
+          getDirectory: () async => supportDir,
+        );
+
+        // markInvalidated 未実施時はファイルを作らず空・no-op
+        check(await store.getInvalidationEntries()).isEmpty();
+        await store.clearInvalidatedIfMatches(
+          targetUserId: 'user-a',
+          targetEmail: 'a@example.com',
+        );
+        final dbFile = File(
+          p.join(supportDir.path, CustomAuthInvalidationStore.databaseFileName),
+        );
+        check(dbFile.existsSync()).equals(false);
+
+        await store.markInvalidated(
+          targetUserId: 'user-a',
+          targetEmail: 'a@example.com',
+        );
+        // 同一アカウントの重複呼び出しは増やさないこと
+        await store.markInvalidated(
+          targetUserId: 'user-a',
+          targetEmail: ' A@EXAMPLE.COM ',
+        );
+        await store.markInvalidated(
+          targetUserId: 'user-b',
+          targetEmail: 'b@example.com',
+        );
+
+        final entries = await store.getInvalidationEntries();
+        check(entries).length.equals(2);
+        check(
+          entries[0],
+        ).equals((targetUserId: 'user-a', targetEmail: 'a@example.com'));
+        check(
+          entries[1],
+        ).equals((targetUserId: 'user-b', targetEmail: 'b@example.com'));
+
+        // A 完了時に A の行だけ解除され B の行は保持されること
+        await store.clearInvalidatedIfMatches(
+          targetUserId: 'user-a',
+          targetEmail: 'a@example.com',
+        );
+        final afterClearA = await store.getInvalidationEntries();
+        check(afterClearA).length.equals(1);
+        check(afterClearA.single.targetUserId).equals('user-b');
+        check(
+          (await store.getInvalidationState()).targetUserId,
+        ).equals('user-b');
+      },
+    );
+
+    test('識別子列ありの旧 1 行テーブルが残っていた場合も新テーブルへ自動移行すること', () async {
+      supportDir.createSync(recursive: true);
+      final dbFile = File(
+        p.join(supportDir.path, CustomAuthInvalidationStore.databaseFileName),
+      );
+      final legacyExecutor = NativeDatabase(
+        dbFile,
+        enableMigrations: false,
+        setup: (db) {
+          db
+            ..execute('''
+              CREATE TABLE custom_auth_invalidation (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                invalidated INTEGER NOT NULL,
+                target_user_id TEXT,
+                target_email TEXT
+              );
+            ''')
+            ..execute(
+              'INSERT INTO custom_auth_invalidation '
+              '(id, invalidated, target_user_id, target_email) '
+              "VALUES (1, 1, 'legacy-uid', ' Legacy@Example.com ');",
+            );
+        },
+      );
+      try {
+        await legacyExecutor.ensureOpen(const _TestQueryExecutorUser());
+      } finally {
+        await legacyExecutor.close();
+      }
+
+      final store = CustomAuthInvalidationStore(
+        getDirectory: () async => supportDir,
+      );
+      final entries = await store.getInvalidationEntries();
+      check(entries).length.equals(1);
+      check(
+        entries.single,
+      ).equals((targetUserId: 'legacy-uid', targetEmail: 'legacy@example.com'));
+    });
   });
 }

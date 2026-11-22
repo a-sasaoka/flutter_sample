@@ -19,23 +19,43 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     final talker = ref.watch(loggerProvider);
 
     return await sessionLock.synchronized(() async {
-      final invalidationState = await invalidationStore.getInvalidationState();
-      if (invalidationState.isInvalidated) {
+      if (await invalidationStore.isLoginPending()) {
+        // ログイン保存およびロールバック消去が途中で失敗した場合、部分保存された
+        // トークンが残っている可能性があるため、再消去して未確定ログインを防ぐ
+        try {
+          await tokenStorage.clear();
+          sessionLock.recordSignedOutSession();
+          await invalidationStore.clearLoginPending();
+        } on Object catch (e, st) {
+          // 再消去またはフラグ解除に失敗しても、次回起動時に備えてフラグは維持し未ログインにする
+          talker.handle(
+            e,
+            st,
+            'Failed to clear unconfirmed login tokens on startup',
+          );
+          return false;
+        }
+      }
+
+      final invalidationEntries = await invalidationStore
+          .getInvalidationEntries();
+      if (invalidationEntries.isNotEmpty) {
         final token = await tokenStorage.getAccessToken();
         if (token != null && token.isNotEmpty) {
           final currentUserId = await tokenStorage.getUserId();
           final currentEmail = JwtUtils.getEmail(token);
-          final isDifferentAccount =
-              !CustomAuthInvalidationStore.matchesAccount(
-                targetUserId: invalidationState.targetUserId,
-                targetEmail: invalidationState.targetEmail,
-                candidateUserId: currentUserId,
-                candidateEmail: currentEmail,
-                defaultWhenUnidentifiable: true,
-              );
-          if (isDifferentAccount) {
-            // 別アカウントの新規セッションが既に保存済みなら、そのトークンは維持して
-            // 古いアカウントの無効化レコードのみ片付ける
+          final isInvalidatedAccount = invalidationEntries.any(
+            (entry) => CustomAuthInvalidationStore.matchesAccount(
+              targetUserId: entry.targetUserId,
+              targetEmail: entry.targetEmail,
+              candidateUserId: currentUserId,
+              candidateEmail: currentEmail,
+              defaultWhenUnidentifiable: true,
+            ),
+          );
+          if (!isInvalidatedAccount) {
+            // どの無効化レコードにも該当しない別アカウントの新規セッションなら、
+            // そのトークンは維持して古い無効化レコードのみ片付ける
             try {
               await invalidationStore.clearInvalidated();
             } on Object catch (e, st) {
@@ -46,6 +66,10 @@ class AuthStateNotifier extends _$AuthStateNotifier {
                 'on startup',
               );
             }
+            sessionLock.recordAuthenticatedSession(
+              userId: currentUserId,
+              email: currentEmail,
+            );
             return true;
           }
         }
@@ -53,6 +77,7 @@ class AuthStateNotifier extends _$AuthStateNotifier {
         // 退会時のトークン消去失敗や削除完了前の終了で残留したセッションを復元せず、再消去を試みる
         try {
           await tokenStorage.clear();
+          sessionLock.recordSignedOutSession();
           await invalidationStore.clearInvalidated();
         } on Object catch (e, st) {
           // 再消去に失敗しても次回起動時にログイン復元されないよう無効化フラグは維持する
@@ -66,7 +91,15 @@ class AuthStateNotifier extends _$AuthStateNotifier {
       }
 
       final token = await tokenStorage.getAccessToken();
-      return token != null; // トークンがあればログイン状態
+      if (token != null) {
+        sessionLock.recordAuthenticatedSession(
+          userId: JwtUtils.getUserId(token),
+          email: JwtUtils.getEmail(token),
+        );
+        return true; // トークンがあればログイン状態
+      }
+      sessionLock.recordSignedOutSession();
+      return false;
     });
   }
 
@@ -122,9 +155,15 @@ class AuthStateNotifier extends _$AuthStateNotifier {
   /// ログアウト状態にする
   Future<void> logout() async {
     try {
-      await ref.read(authSessionLockProvider).runSessionTransition(() async {
+      final sessionLock = ref.read(authSessionLockProvider);
+      await sessionLock.runSessionTransition(() async {
         await ref.read(tokenStorageProvider).clear();
-        await ref.read(customAuthInvalidationStoreProvider).clearInvalidated();
+        sessionLock.recordSignedOutSession();
+        if (!sessionLock.isDeletionInProgress) {
+          await ref
+              .read(customAuthInvalidationStoreProvider)
+              .clearInvalidated();
+        }
       });
       state = const AsyncData(false);
     } catch (e, st) {

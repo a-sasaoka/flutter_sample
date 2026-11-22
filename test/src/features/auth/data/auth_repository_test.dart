@@ -52,7 +52,9 @@ class FakeTokenStorage extends Mock implements TokenStorage {
   String? currentUserId;
   String? currentRefreshToken;
   Future<void> Function(String accessToken, String refreshToken)? onSaveTokens;
-  final Exception? clearError;
+  Exception? clearError;
+  Exception? getAccessTokenError;
+  Exception? getUserIdError;
   int getUserIdCalls = 0;
 
   // 保存された値を検証するためのプロパティ
@@ -62,11 +64,19 @@ class FakeTokenStorage extends Mock implements TokenStorage {
   @override
   Future<String?> getUserId() async {
     getUserIdCalls++;
+    if (getUserIdError != null) {
+      throw getUserIdError!;
+    }
     return currentUserId;
   }
 
   @override
-  Future<String?> getAccessToken() async => savedAccessToken;
+  Future<String?> getAccessToken() async {
+    if (getAccessTokenError != null) {
+      throw getAccessTokenError!;
+    }
+    return savedAccessToken;
+  }
 
   @override
   Future<String?> getRefreshToken() async => currentRefreshToken;
@@ -379,7 +389,7 @@ void main() {
     });
 
     test('login: 部分保存失敗時のロールバック消去にも失敗した場合は '
-        'talker.handle に記録しつつ元の保存失敗例外を再スローすること', () async {
+        'talker.handle に記録しつつ元の保存失敗例外を再スローし、再起動時も復元しないこと', () async {
       final partialSaveError = Exception('partial write failed');
       final clearError = Exception('rollback clear failed');
       final fakeStorage = FakeTokenStorage(
@@ -412,6 +422,96 @@ void main() {
           'Failed to clear partial login tokens after saveTokens error',
         ),
       ).called(1);
+      check(fakeStorage.savedAccessToken).isNotNull();
+      check(await invalidationStore.isLoginPending()).equals(true);
+
+      // 消去失敗によりトークンが残存したまま再起動しても未ログイン(false)と判定されること
+      final restartedContainer = createContainer(fakeStorage);
+      check(
+        await restartedContainer.read(authStateProvider.future),
+      ).equals(false);
+      check(await invalidationStore.isLoginPending()).equals(true);
+
+      // ストレージ回復後の次回起動で残留トークンと未確定フラグが消去されること
+      fakeStorage.clearError = null;
+      final recoveredContainer = createContainer(fakeStorage);
+      check(
+        await recoveredContainer.read(authStateProvider.future),
+      ).equals(false);
+      check(fakeStorage.savedAccessToken).isNull();
+      check(await invalidationStore.isLoginPending()).equals(false);
+    });
+
+    test('login: 退会進行中に別アカウントのログインが部分保存失敗＋消去失敗しても、 '
+        '退会側の無効化レコードを上書き・消失させないこと', () async {
+      final tokenA = buildJwt(sub: 'user-a', email: 'a@example.com');
+      final tokenB = buildJwt(sub: 'user-b', email: 'b@example.com');
+      final partialSaveError = Exception('partial write failed');
+      final clearError = Exception('rollback clear failed');
+      final fakeStorage = FakeTokenStorage(initialRefreshToken: 'refresh-a')
+        ..savedAccessToken = tokenA
+        ..savedRefreshToken = 'refresh-a'
+        ..currentUserId = 'user-a';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+      final mockLoginResponse = MockResponse();
+      when(
+        () => mockLoginResponse.data,
+      ).thenReturn({'access_token': tokenB, 'refresh_token': 'refresh-b'});
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockLoginResponse);
+
+      final deleteFuture = repo.deleteAccount();
+      await deleteStarted.future;
+
+      fakeStorage
+        ..clearError = clearError
+        ..onSaveTokens = (_, _) async => throw partialSaveError;
+      await check(
+        repo.login('b@example.com', 'password123'),
+      ).throws<Exception>((it) => it.equals(partialSaveError));
+
+      // 退会側の無効化レコード(user-a)と未確定ログインフラグが独立して両方維持されること
+      final invalidationState = await invalidationStore.getInvalidationState();
+      check(invalidationState.isInvalidated).equals(true);
+      check(invalidationState.targetUserId).equals('user-a');
+      check(await invalidationStore.isLoginPending()).equals(true);
+
+      // ストレージ回復状態でそのまま再起動した場合も安全に両方消去され false になること
+      fakeStorage
+        ..clearError = null
+        ..onSaveTokens = null;
+      final restartedContainer = createContainer(fakeStorage);
+      check(
+        await restartedContainer.read(authStateProvider.future),
+      ).equals(false);
+      check(fakeStorage.savedAccessToken).isNull();
+      check(await invalidationStore.isLoginPending()).equals(false);
+      check(await invalidationStore.isInvalidated()).equals(false);
+
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      await deleteFuture;
     });
 
     group('refreshToken', () {
@@ -1828,6 +1928,323 @@ void main() {
       ).thenAnswer((_) async => mockLoginResponse);
 
       await repo.login('user@example.com', 'password123');
+      check(await invalidationStore.isInvalidated()).equals(false);
+    });
+
+    test('deleteAccount: API待機中に同一アカウントで再ログインした後、削除成功後の '
+        'getAccessToken() が失敗しても対象セッションを終了しトークンと無効化レコードを消去すること', () async {
+      final initialJwt = buildJwt(
+        sub: 'user-a',
+        email: 'a@example.com',
+        jti: 'initial',
+      );
+      final reloginJwt = buildJwt(
+        sub: 'user-a',
+        email: 'a@example.com',
+        jti: 'relogin',
+      );
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-old',
+              currentUserId: 'user-a',
+            )
+            ..savedAccessToken = initialJwt
+            ..savedRefreshToken = 'refresh-old';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+      final mockLoginResponse = MockResponse();
+      when(() => mockLoginResponse.data).thenReturn({
+        'access_token': reloginJwt,
+        'refresh_token': 'refresh-relogin',
+      });
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockLoginResponse);
+
+      final deleteFuture = repo.deleteAccount();
+      await deleteStarted.future;
+
+      await repo.login('a@example.com', 'password123');
+      final readError = Exception('token read failed');
+      fakeStorage.getAccessTokenError = readError;
+
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      check(await deleteFuture).equals(true);
+
+      check(fakeStorage.savedAccessToken).isNull();
+      check(fakeStorage.savedRefreshToken).isNull();
+      check(fakeStorage.currentUserId).isNull();
+      check(await invalidationStore.isInvalidated()).equals(false);
+      verify(
+        () => mockTalker.handle(
+          readError,
+          any<StackTrace?>(),
+          'Failed to read current token while resolving account deletion '
+          'outcome',
+        ),
+      ).called(1);
+    });
+
+    test('deleteAccount: API待機中に同一アカウントで再ログインした後、削除成功後の '
+        'getUserId() が失敗しても対象セッションを終了しトークンと無効化レコードを消去すること', () async {
+      final initialJwt = buildJwt(
+        sub: 'user-a',
+        email: 'a@example.com',
+        jti: 'initial',
+      );
+      final reloginJwt = buildJwt(
+        sub: 'user-a',
+        email: 'a@example.com',
+        jti: 'relogin',
+      );
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-old',
+              currentUserId: 'user-a',
+            )
+            ..savedAccessToken = initialJwt
+            ..savedRefreshToken = 'refresh-old';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+      final mockLoginResponse = MockResponse();
+      when(() => mockLoginResponse.data).thenReturn({
+        'access_token': reloginJwt,
+        'refresh_token': 'refresh-relogin',
+      });
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockLoginResponse);
+
+      final deleteFuture = repo.deleteAccount();
+      await deleteStarted.future;
+
+      await repo.login('a@example.com', 'password123');
+      final readError = Exception('userId read failed');
+      fakeStorage.getUserIdError = readError;
+
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      check(await deleteFuture).equals(true);
+
+      check(fakeStorage.savedAccessToken).isNull();
+      check(fakeStorage.savedRefreshToken).isNull();
+      check(await invalidationStore.isInvalidated()).equals(false);
+      verify(
+        () => mockTalker.handle(
+          readError,
+          any<StackTrace?>(),
+          'Failed to read current token while resolving account deletion '
+          'outcome',
+        ),
+      ).called(1);
+    });
+
+    test('deleteAccount: API待機中に別アカウントへ切り替わった後、削除成功後の '
+        'getAccessToken() や getUserId() が失敗しても別アカウントのトークンを保持すること', () async {
+      final oldJwt = buildJwt(sub: 'user-a', email: 'a@example.com');
+      final newJwt = buildJwt(sub: 'user-b', email: 'b@example.com');
+
+      for (final isUserIdFailure in [false, true]) {
+        late FakeTokenStorage fakeStorage;
+        fakeStorage =
+            FakeTokenStorage(
+                initialRefreshToken: 'refresh-old',
+                currentUserId: 'user-a',
+                onSaveTokens: (accessToken, _) async {
+                  if (accessToken == newJwt) {
+                    fakeStorage.currentUserId = 'user-b';
+                  }
+                },
+              )
+              ..savedAccessToken = oldJwt
+              ..savedRefreshToken = 'refresh-old';
+        final container = createContainer(fakeStorage);
+        final repo = container.read(authRepositoryProvider);
+
+        final deleteStarted = Completer<void>();
+        final deleteCompleter = Completer<Response<void>>();
+        when(
+          () => mockApi.delete<void>(
+            '/auth/account',
+            options: any<Options?>(named: 'options'),
+          ),
+        ).thenAnswer((_) {
+          deleteStarted.complete();
+          return deleteCompleter.future;
+        });
+        final mockLoginResponse = MockResponse();
+        when(
+          () => mockLoginResponse.data,
+        ).thenReturn({'access_token': newJwt, 'refresh_token': 'refresh-new'});
+        when(
+          () => mockApi.post<Map<String, dynamic>>(
+            '/auth/login',
+            data: any<dynamic>(named: 'data'),
+          ),
+        ).thenAnswer((_) async => mockLoginResponse);
+
+        final deleteFuture = repo.deleteAccount();
+        await deleteStarted.future;
+
+        await repo.login('b@example.com', 'password123');
+        final readError = Exception(
+          isUserIdFailure ? 'userId read failed' : 'token read failed',
+        );
+        if (isUserIdFailure) {
+          fakeStorage.getUserIdError = readError;
+        } else {
+          fakeStorage.getAccessTokenError = readError;
+        }
+
+        deleteCompleter.complete(
+          Response<void>(
+            requestOptions: RequestOptions(path: '/auth/account'),
+            statusCode: 200,
+          ),
+        );
+        check(await deleteFuture).equals(false);
+
+        check(fakeStorage.savedAccessToken).equals(newJwt);
+        check(fakeStorage.savedRefreshToken).equals('refresh-new');
+        check(await invalidationStore.isInvalidated()).equals(false);
+        verify(
+          () => mockTalker.handle(
+            readError,
+            any<StackTrace?>(),
+            'Failed to read current token while resolving account deletion '
+            'outcome',
+          ),
+        ).called(1);
+      }
+    });
+
+    test('deleteAccount: 退会待機中にログアウトして同一アカウントで再ログインし、 '
+        '完了時のトークン消去に失敗しても無効化レコードが残り再起動時に復元されないこと', () async {
+      final initialJwt = buildJwt(
+        sub: 'user-a',
+        email: 'a@example.com',
+        jti: 'initial',
+      );
+      final reloginJwt = buildJwt(
+        sub: 'user-a',
+        email: 'a@example.com',
+        jti: 'relogin',
+      );
+      final clearError = Exception('clear failed after logout and relogin');
+      late FakeTokenStorage fakeStorage;
+      fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-old',
+              currentUserId: 'user-a',
+              onSaveTokens: (accessToken, _) async {
+                if (accessToken == reloginJwt) {
+                  fakeStorage.currentUserId = 'user-a';
+                }
+              },
+            )
+            ..savedAccessToken = initialJwt
+            ..savedRefreshToken = 'refresh-old';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+      final mockLoginResponse = MockResponse();
+      when(() => mockLoginResponse.data).thenReturn({
+        'access_token': reloginJwt,
+        'refresh_token': 'refresh-relogin',
+      });
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockLoginResponse);
+
+      await container.read(authStateProvider.future);
+      final notifier = container.read(authStateProvider.notifier);
+
+      final deleteFuture = notifier.deleteAccount();
+      await deleteStarted.future;
+
+      // 退会進行中にログアウトしても、進行中の無効化レコードが削除されないこと
+      await notifier.logout();
+      check(container.read(authStateProvider).value).equals(false);
+      final entriesAfterLogout = await invalidationStore
+          .getInvalidationEntries();
+      check(entriesAfterLogout).length.equals(1);
+      check(entriesAfterLogout.single.targetUserId).equals('user-a');
+
+      // そのまま同じアカウントで再ログインしても無効化レコードは保持されること
+      check(await repo.login('a@example.com', 'password123')).equals(true);
+      check(await invalidationStore.isInvalidated()).equals(true);
+
+      // 削除完了時にトークン消去が失敗してもレコードが残るため、再起動時は未ログインになること
+      fakeStorage.clearError = clearError;
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      check(await deleteFuture).equals(true);
+      check(fakeStorage.savedAccessToken).equals(reloginJwt);
+      check(await invalidationStore.isInvalidated()).equals(true);
+
+      fakeStorage.clearError = null;
+      final restartedContainer = createContainer(fakeStorage);
+      check(
+        await restartedContainer.read(authStateProvider.future),
+      ).equals(false);
+      check(fakeStorage.savedAccessToken).isNull();
       check(await invalidationStore.isInvalidated()).equals(false);
     });
   });

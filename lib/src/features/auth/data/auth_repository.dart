@@ -121,21 +121,42 @@ class AuthRepository {
       email: candidateEmail,
       isDeletionInProgress: sessionLock.isDeletionInProgress,
     );
+    // 保存および消去ロールバックの双方が失敗しても次回起動時に復元しないよう未確定状態を記録する
+    await invalidationStore.markLoginPending();
     try {
       await tokenStorage.saveTokens(
         accessToken: accessToken,
         refreshToken: refreshToken,
       );
+      await invalidationStore.clearLoginPending();
+      sessionLock.recordAuthenticatedSession(
+        userId: candidateUserId,
+        email: candidateEmail,
+      );
     } on Object {
+      var isCleared = false;
       // 途中まで書き込まれた新しい資格情報が残らないようロールバックを試みる
       try {
         await tokenStorage.clear();
+        sessionLock.recordSignedOutSession();
+        isCleared = true;
       } on Object catch (clearError, clearSt) {
         talker.handle(
           clearError,
           clearSt,
           'Failed to clear partial login tokens after saveTokens error',
         );
+      }
+      if (isCleared) {
+        try {
+          await invalidationStore.clearLoginPending();
+        } on Object catch (pendingError, pendingSt) {
+          talker.handle(
+            pendingError,
+            pendingSt,
+            'Failed to clear pending login flag after token rollback',
+          );
+        }
       }
       rethrow;
     }
@@ -177,6 +198,10 @@ class AuthRepository {
       await tokenStorage.saveTokens(
         accessToken: access,
         refreshToken: startState.refreshToken,
+      );
+      _sessionLock.recordAuthenticatedSession(
+        userId: JwtUtils.getUserId(access) ?? expectedUserId,
+        email: JwtUtils.getEmail(access),
       );
       return true;
     });
@@ -239,7 +264,9 @@ class AuthRepository {
         targetUserId: startUserId,
         targetEmail: startEmail,
       );
-      _sessionLock.beginDeletion();
+      _sessionLock
+        ..recordAuthenticatedSession(userId: startUserId, email: startEmail)
+        ..beginDeletion();
       return (
         accessToken: token,
         sessionEpoch: _sessionLock.sessionEpoch,
@@ -274,6 +301,7 @@ class AuthRepository {
           },
           action: () async {
             await tokenStorage.clear();
+            _sessionLock.recordSignedOutSession();
             await _clearInvalidationFlagBestEffort(startState);
           },
         );
@@ -300,18 +328,67 @@ class AuthRepository {
     if (_sessionLock.sessionEpoch == startState.sessionEpoch) {
       return (shouldClearTokens: true, shouldTerminateSession: true);
     }
-    final currentToken = await tokenStorage.getAccessToken();
-    if (currentToken == null || currentToken.isEmpty) {
-      // 既に別操作でサインアウト済みの場合は余計なトークン消去や世代更新をせず終了扱いとする
-      return (shouldClearTokens: false, shouldTerminateSession: true);
+    try {
+      final currentToken = await tokenStorage.getAccessToken();
+      if (currentToken == null || currentToken.isEmpty) {
+        // 既に別操作でサインアウト済みの場合は余計なトークン消去や世代更新をせず終了扱いとする
+        return (shouldClearTokens: false, shouldTerminateSession: true);
+      }
+      final currentUserId = await tokenStorage.getUserId();
+      final currentEmail = JwtUtils.getEmail(currentToken);
+      return _matchTargetAccountOutcome(
+        startState: startState,
+        candidateUserId: currentUserId,
+        candidateEmail: currentEmail,
+      );
+    } on Object catch (e, st) {
+      // 読み取り失敗時は世代変更前の別アカウント切替と同一アカウント再ログインを区別するため、
+      // ロック内に保持している最新セッション識別情報へフォールバックする
+      talker.handle(
+        e,
+        st,
+        'Failed to read current token while resolving account deletion outcome',
+      );
+      return _resolveDeletionOutcomeFromTrackedSession(startState);
     }
-    final currentUserId = await tokenStorage.getUserId();
-    final currentEmail = JwtUtils.getEmail(currentToken);
+  }
+
+  ({bool shouldClearTokens, bool shouldTerminateSession})
+  _resolveDeletionOutcomeFromTrackedSession(
+    ({String accessToken, int sessionEpoch, String? userId, String? email})
+    startState,
+  ) {
+    return switch (_sessionLock.currentSession) {
+      SignedOutTrackedAuthSession() => (
+        shouldClearTokens: false,
+        shouldTerminateSession: true,
+      ),
+      AuthenticatedTrackedAuthSession(:final userId, :final email) =>
+        _matchTargetAccountOutcome(
+          startState: startState,
+          candidateUserId: userId,
+          candidateEmail: email,
+        ),
+    };
+  }
+
+  ({bool shouldClearTokens, bool shouldTerminateSession})
+  _matchTargetAccountOutcome({
+    required ({
+      String accessToken,
+      int sessionEpoch,
+      String? userId,
+      String? email,
+    })
+    startState,
+    required String? candidateUserId,
+    required String? candidateEmail,
+  }) {
     final isTargetAccount = CustomAuthInvalidationStore.matchesAccount(
       targetUserId: startState.userId,
       targetEmail: startState.email,
-      candidateUserId: currentUserId,
-      candidateEmail: currentEmail,
+      candidateUserId: candidateUserId,
+      candidateEmail: candidateEmail,
       defaultWhenUnidentifiable: false,
     );
     return (

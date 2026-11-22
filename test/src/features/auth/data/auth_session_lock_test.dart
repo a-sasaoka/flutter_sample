@@ -145,5 +145,25 @@ void main() {
       check(lock.deletionEpoch).equals(1);
       check(lock.sessionEpoch).equals(0);
     });
+
+    test(
+      'currentSession / recordAuthenticatedSession / recordSignedOutSession: '
+      'セッション識別情報を記録・更新しサインアウト状態へ戻せること',
+      () {
+        final lock = AuthSessionLock();
+        check(lock.currentSession).isA<SignedOutTrackedAuthSession>();
+
+        lock.recordAuthenticatedSession(
+          userId: 'user-a',
+          email: 'a@example.com',
+        );
+        check(lock.currentSession).isA<AuthenticatedTrackedAuthSession>()
+          ..has((it) => it.userId, 'userId').equals('user-a')
+          ..has((it) => it.email, 'email').equals('a@example.com');
+
+        lock.recordSignedOutSession();
+        check(lock.currentSession).isA<SignedOutTrackedAuthSession>();
+      },
+    );
   });
 }

@@ -27,12 +27,14 @@ class MockTalker extends Mock implements Talker {}
 class MockCustomAuthInvalidationStore extends Mock
     implements CustomAuthInvalidationStore {}
 
-String _buildJwt({String? sub, String? email}) {
+String _buildJwt({String? sub, String? email, String? jti}) {
   final header = base64Url.encode(
     utf8.encode(jsonEncode({'alg': 'none', 'typ': 'JWT'})),
   );
   final payload = base64Url.encode(
-    utf8.encode(jsonEncode(<String, Object?>{'sub': ?sub, 'email': ?email})),
+    utf8.encode(
+      jsonEncode(<String, Object?>{'sub': ?sub, 'email': ?email, 'jti': ?jti}),
+    ),
   );
   return '$header.$payload.sig';
 }
@@ -52,6 +54,8 @@ class FakeTokenStorage extends Mock implements TokenStorage {
   String? currentUserId;
   final bool shouldThrowOnSave;
   bool shouldThrowOnClear;
+  Exception? getAccessTokenError;
+  Exception? getUserIdError;
   Future<void> Function(String accessToken, String refreshToken)? onSaveTokens;
 
   // 呼び出し確認用のフラグ
@@ -59,12 +63,20 @@ class FakeTokenStorage extends Mock implements TokenStorage {
   bool isClearCalled = false;
 
   @override
-  Future<String?> getAccessToken() async => mockAccessTokenFuture != null
-      ? await mockAccessTokenFuture!
-      : mockAccessToken;
+  Future<String?> getAccessToken() async {
+    if (getAccessTokenError != null) {
+      throw getAccessTokenError!;
+    }
+    return mockAccessTokenFuture != null
+        ? await mockAccessTokenFuture!
+        : mockAccessToken;
+  }
 
   @override
   Future<String?> getUserId() async {
+    if (getUserIdError != null) {
+      throw getUserIdError!;
+    }
     if (currentUserId != null) {
       return currentUserId;
     }
@@ -255,12 +267,9 @@ void main() {
       );
       final mockStore = MockCustomAuthInvalidationStore();
       final clearError = Exception('Failed to clear invalidation record');
-      when(mockStore.getInvalidationState).thenAnswer(
-        (_) async => (
-          isInvalidated: true,
-          targetUserId: 'user-a',
-          targetEmail: 'a@example.com',
-        ),
+      when(mockStore.isLoginPending).thenAnswer((_) async => false);
+      when(mockStore.getInvalidationEntries).thenAnswer(
+        (_) async => [(targetUserId: 'user-a', targetEmail: 'a@example.com')],
       );
       when(
         mockStore.clearInvalidated,
@@ -275,7 +284,7 @@ void main() {
       check(authState).equals(true);
       check(fakeStorage.isClearCalled).equals(false);
       check(fakeStorage.mockAccessToken).equals(userBToken);
-      verify(mockStore.getInvalidationState).called(1);
+      verify(mockStore.getInvalidationEntries).called(1);
       verify(mockStore.clearInvalidated).called(1);
       verify(
         () => mockTalker.handle(
@@ -337,6 +346,105 @@ void main() {
       check(fakeStorage.isClearCalled).equals(true);
       check(fakeStorage.mockAccessToken).isNull();
       check(container.read(authStateProvider).hasError).equals(true);
+      final store = container.read(customAuthInvalidationStoreProvider);
+      check(await store.isLoginPending()).equals(false);
+    });
+
+    test('login: 部分保存失敗時のロールバック消去にも失敗した場合は '
+        '未確定フラグを保持して再起動時もログイン復元せず回復後に再消去すること', () async {
+      final partialSaveError = Exception('partial save failed');
+      final fakeStorage = FakeTokenStorage(
+        shouldThrowOnClear: true,
+        onSaveTokens: (_, _) => throw partialSaveError,
+      );
+      final container = createContainer(fakeStorage: fakeStorage);
+      final notifier = container.read(authStateProvider.notifier);
+
+      await check(
+        notifier.login('partial-access', 'partial-refresh'),
+      ).throws<Exception>((it) => it.equals(partialSaveError));
+
+      check(fakeStorage.mockAccessToken).equals('partial-access');
+      final store = container.read(customAuthInvalidationStoreProvider);
+      check(await store.isLoginPending()).equals(true);
+
+      // ストレージ障害が継続した状態で再起動しても未ログインになりフラグは維持されること
+      final failedRestartContainer = createContainer(fakeStorage: fakeStorage);
+      check(
+        await failedRestartContainer.read(authStateProvider.future),
+      ).equals(false);
+      check(await store.isLoginPending()).equals(true);
+      verify(
+        () => mockTalker.handle(
+          any<Object>(),
+          any<StackTrace?>(),
+          'Failed to clear unconfirmed login tokens on startup',
+        ),
+      ).called(1);
+
+      // ストレージが回復した次回起動では残留トークンと未確定フラグが両方消去されること
+      fakeStorage.shouldThrowOnClear = false;
+      final recoveredContainer = createContainer(fakeStorage: fakeStorage);
+      check(
+        await recoveredContainer.read(authStateProvider.future),
+      ).equals(false);
+      check(fakeStorage.mockAccessToken).isNull();
+      check(await store.isLoginPending()).equals(false);
+    });
+
+    test('login: 保存後の未確定フラグ解除に失敗した場合はトークンをロールバック消去し '
+        '再起動時もログイン状態にしないこと', () async {
+      final clearPendingError = Exception('clear pending failed');
+      final mockStore = MockCustomAuthInvalidationStore();
+      var isPending = false;
+      when(
+        () => mockStore.clearIfAllowedForLogin(
+          userId: any(named: 'userId'),
+          email: any(named: 'email'),
+          isDeletionInProgress: any(named: 'isDeletionInProgress'),
+        ),
+      ).thenAnswer((_) async => true);
+      when(mockStore.markLoginPending).thenAnswer((_) async {
+        isPending = true;
+      });
+      var clearPendingCalls = 0;
+      when(mockStore.clearLoginPending).thenAnswer((_) async {
+        clearPendingCalls++;
+        throw clearPendingError;
+      });
+      when(mockStore.isLoginPending).thenAnswer((_) async => isPending);
+      when(mockStore.getInvalidationEntries).thenAnswer((_) async => const []);
+
+      final fakeStorage = FakeTokenStorage();
+      final container = createContainer(
+        fakeStorage: fakeStorage,
+        mockInvalidationStore: mockStore,
+      );
+      await container.read(authStateProvider.future);
+      final notifier = container.read(authStateProvider.notifier);
+
+      await check(
+        notifier.login('saved-access', 'saved-refresh'),
+      ).throws<Exception>((it) => it.equals(clearPendingError));
+
+      check(fakeStorage.isClearCalled).equals(true);
+      check(fakeStorage.mockAccessToken).isNull();
+      check(clearPendingCalls).equals(2);
+      verify(
+        () => mockTalker.handle(
+          clearPendingError,
+          any<StackTrace?>(),
+          'Failed to clear pending login flag after token rollback',
+        ),
+      ).called(1);
+
+      final restartedContainer = createContainer(
+        fakeStorage: fakeStorage,
+        mockInvalidationStore: mockStore,
+      );
+      check(
+        await restartedContainer.read(authStateProvider.future),
+      ).equals(false);
     });
 
     test('login: 無効化状態の確認・解除に失敗した場合は saveTokens を呼ばず資格情報を保存しないこと', () async {
@@ -833,6 +941,10 @@ void main() {
 
       final deleteFutureB = notifier.deleteAccount();
       await deleteStartedB.future;
+      final entriesWhileBothDeleting = await store.getInvalidationEntries();
+      check(entriesWhileBothDeleting).length.equals(2);
+      check(entriesWhileBothDeleting[0].targetUserId).equals('user-a');
+      check(entriesWhileBothDeleting[1].targetUserId).equals('user-b');
       check((await store.getInvalidationState()).targetUserId).equals('user-b');
 
       // A の退会後処理が先に完了しても B 所有の無効化レコード・トークン・認証状態は維持されること
@@ -845,6 +957,9 @@ void main() {
       check(await deleteFutureA).equals(false);
       check(fakeStorage.mockAccessToken).equals(tokenB);
       check(container.read(authStateProvider).value).equals(true);
+      final entriesAfterA = await store.getInvalidationEntries();
+      check(entriesAfterA).length.equals(1);
+      check(entriesAfterA.single.targetUserId).equals('user-b');
       check((await store.getInvalidationState()).targetUserId).equals('user-b');
 
       // B 自身の退会完了時のみ B のトークンとレコードをクリアし未ログインにすること
@@ -979,6 +1094,368 @@ void main() {
       check(fakeStorage.mockAccessToken).isNull();
       check(container.read(authStateProvider).value).equals(false);
       check(container.read(authStateProvider).hasError).equals(false);
+    });
+
+    test('実AuthRepository連携: 削除待機中に同一アカウントで再ログインした後、 '
+        '削除成功後のストレージ読み取りが失敗しても state=false と true 返却で完了すること', () async {
+      final tokenA1 = _buildJwt(
+        sub: 'user-a',
+        email: 'a@example.com',
+        jti: 'initial',
+      );
+      final tokenA2 = _buildJwt(
+        sub: 'user-a',
+        email: 'a@example.com',
+        jti: 'relogin',
+      );
+      check(tokenA2).not((it) => it.equals(tokenA1));
+
+      for (final isUserIdFailure in [false, true]) {
+        final fakeStorage = FakeTokenStorage(mockAccessToken: tokenA1);
+        final mockApi = MockApiClient();
+
+        final deleteStarted = Completer<void>();
+        final deleteCompleter = Completer<Response<void>>();
+        when(
+          () => mockApi.delete<void>(
+            '/auth/account',
+            options: any<Options?>(named: 'options'),
+          ),
+        ).thenAnswer((_) {
+          deleteStarted.complete();
+          return deleteCompleter.future;
+        });
+
+        final container = ProviderContainer(
+          overrides: [
+            authApiClientProvider.overrideWithValue(mockApi),
+            tokenStorageProvider.overrideWith((ref) => fakeStorage),
+            appSupportDirectoryReaderProvider.overrideWithValue(
+              () async => tempDir,
+            ),
+            loggerProvider.overrideWithValue(mockTalker),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container.read(authStateProvider.future);
+        final notifier = container.read(authStateProvider.notifier);
+
+        final deleteFuture = notifier.deleteAccount();
+        await deleteStarted.future;
+
+        await notifier.login(tokenA2, 'refresh-a2');
+        final readError = Exception(
+          isUserIdFailure ? 'userId read failed' : 'token read failed',
+        );
+        if (isUserIdFailure) {
+          fakeStorage.getUserIdError = readError;
+        } else {
+          fakeStorage.getAccessTokenError = readError;
+        }
+
+        deleteCompleter.complete(
+          Response<void>(
+            requestOptions: RequestOptions(path: '/auth/account'),
+            statusCode: 200,
+          ),
+        );
+
+        check(await deleteFuture).equals(true);
+        check(container.read(authStateProvider).value).equals(false);
+        check(fakeStorage.mockAccessToken).isNull();
+        check(fakeStorage.isClearCalled).equals(true);
+        final store = container.read(customAuthInvalidationStoreProvider);
+        check(await store.isInvalidated()).equals(false);
+        verify(
+          () => mockTalker.handle(
+            readError,
+            any<StackTrace?>(),
+            'Failed to read current token while resolving account deletion '
+            'outcome',
+          ),
+        ).called(1);
+      }
+    });
+
+    test('実AuthRepository連携: 削除待機中に別アカウントへ切り替わった後、 '
+        '削除成功後のストレージ読み取りが失敗しても別アカウントのトークンと state=true を維持すること', () async {
+      final tokenA = _buildJwt(sub: 'user-a', email: 'a@example.com');
+      final tokenB = _buildJwt(sub: 'user-b', email: 'b@example.com');
+
+      for (final isUserIdFailure in [false, true]) {
+        final fakeStorage = FakeTokenStorage(mockAccessToken: tokenA);
+        final mockApi = MockApiClient();
+
+        final deleteStarted = Completer<void>();
+        final deleteCompleter = Completer<Response<void>>();
+        when(
+          () => mockApi.delete<void>(
+            '/auth/account',
+            options: any<Options?>(named: 'options'),
+          ),
+        ).thenAnswer((_) {
+          deleteStarted.complete();
+          return deleteCompleter.future;
+        });
+
+        final container = ProviderContainer(
+          overrides: [
+            authApiClientProvider.overrideWithValue(mockApi),
+            tokenStorageProvider.overrideWith((ref) => fakeStorage),
+            appSupportDirectoryReaderProvider.overrideWithValue(
+              () async => tempDir,
+            ),
+            loggerProvider.overrideWithValue(mockTalker),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container.read(authStateProvider.future);
+        final notifier = container.read(authStateProvider.notifier);
+
+        final deleteFuture = notifier.deleteAccount();
+        await deleteStarted.future;
+
+        await notifier.login(tokenB, 'refresh-b');
+        final readError = Exception(
+          isUserIdFailure ? 'userId read failed' : 'token read failed',
+        );
+        if (isUserIdFailure) {
+          fakeStorage.getUserIdError = readError;
+        } else {
+          fakeStorage.getAccessTokenError = readError;
+        }
+
+        deleteCompleter.complete(
+          Response<void>(
+            requestOptions: RequestOptions(path: '/auth/account'),
+            statusCode: 200,
+          ),
+        );
+
+        check(await deleteFuture).equals(false);
+        check(container.read(authStateProvider).value).equals(true);
+        check(fakeStorage.mockAccessToken).equals(tokenB);
+        check(fakeStorage.isClearCalled).equals(false);
+        final store = container.read(customAuthInvalidationStoreProvider);
+        check(await store.isInvalidated()).equals(false);
+        verify(
+          () => mockTalker.handle(
+            readError,
+            any<StackTrace?>(),
+            'Failed to read current token while resolving account deletion '
+            'outcome',
+          ),
+        ).called(1);
+      }
+    });
+
+    test('実AuthRepository連携: 削除待機中にサインアウト済みとなった後、 '
+        '削除成功後のストレージ読み取りが失敗しても state=false と true 返却で完了すること', () async {
+      final tokenA = _buildJwt(sub: 'user-a', email: 'a@example.com');
+      final fakeStorage = FakeTokenStorage(mockAccessToken: tokenA);
+      final mockApi = MockApiClient();
+
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          authApiClientProvider.overrideWithValue(mockApi),
+          tokenStorageProvider.overrideWith((ref) => fakeStorage),
+          appSupportDirectoryReaderProvider.overrideWithValue(
+            () async => tempDir,
+          ),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(authStateProvider.future);
+      final notifier = container.read(authStateProvider.notifier);
+
+      final deleteFuture = notifier.deleteAccount();
+      await deleteStarted.future;
+
+      await notifier.logout();
+      check(container.read(authStateProvider).value).equals(false);
+
+      final readError = Exception('token read failed');
+      fakeStorage.getAccessTokenError = readError;
+
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+
+      check(await deleteFuture).equals(true);
+      check(container.read(authStateProvider).value).equals(false);
+      verify(
+        () => mockTalker.handle(
+          readError,
+          any<StackTrace?>(),
+          'Failed to read current token while resolving account deletion '
+          'outcome',
+        ),
+      ).called(1);
+    });
+
+    test('実AuthRepository連携: A と B が並行退会中に再起動した場合、 '
+        '先に登録された A のトークンでも復元されず、どちらでもない C のトークンは維持されること', () async {
+      final tokenA = _buildJwt(sub: 'user-a', email: 'a@example.com');
+      final tokenB = _buildJwt(sub: 'user-b', email: 'b@example.com');
+      final tokenC = _buildJwt(sub: 'user-c', email: 'c@example.com');
+
+      final fakeStorage = FakeTokenStorage(mockAccessToken: tokenA);
+      final mockApi = MockApiClient();
+      final deleteStartedA = Completer<void>();
+      final deleteNeverEndsA = Completer<Response<void>>();
+      final deleteStartedB = Completer<void>();
+      final deleteNeverEndsB = Completer<Response<void>>();
+      var calls = 0;
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        calls++;
+        if (calls == 1) {
+          deleteStartedA.complete();
+          return deleteNeverEndsA.future;
+        }
+        deleteStartedB.complete();
+        return deleteNeverEndsB.future;
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          authApiClientProvider.overrideWithValue(mockApi),
+          tokenStorageProvider.overrideWith((ref) => fakeStorage),
+          appSupportDirectoryReaderProvider.overrideWithValue(
+            () async => tempDir,
+          ),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(authStateProvider.future);
+      final notifier = container.read(authStateProvider.notifier);
+
+      unawaited(notifier.deleteAccount());
+      await deleteStartedA.future;
+
+      await notifier.login(tokenB, 'refresh-b');
+      unawaited(notifier.deleteAccount());
+      await deleteStartedB.future;
+
+      final store = container.read(customAuthInvalidationStoreProvider);
+      check(await store.getInvalidationEntries()).length.equals(2);
+
+      // 強制終了前に何らかの経路で A のトークンが残留して再起動しても A 復元を防ぐこと
+      fakeStorage.mockAccessToken = tokenA;
+      final restartedWithA = createContainer(fakeStorage: fakeStorage);
+      check(await restartedWithA.read(authStateProvider.future)).equals(false);
+      check(fakeStorage.mockAccessToken).isNull();
+      check(await store.isInvalidated()).equals(false);
+
+      // 一方 A・B 両方の無効化レコードがある状態で無関係な C のトークンなら維持すること
+      await store.markInvalidated(
+        targetUserId: 'user-a',
+        targetEmail: 'a@example.com',
+      );
+      await store.markInvalidated(
+        targetUserId: 'user-b',
+        targetEmail: 'b@example.com',
+      );
+      fakeStorage.mockAccessToken = tokenC;
+      final restartedWithC = createContainer(fakeStorage: fakeStorage);
+      check(await restartedWithC.read(authStateProvider.future)).equals(true);
+      check(fakeStorage.mockAccessToken).equals(tokenC);
+      check(await store.isInvalidated()).equals(false);
+    });
+
+    test('実AuthRepository連携: 退会進行中の logout() は無効化レコードを保持し、 '
+        '再ログイン後に削除完了時のトークン消去へ失敗しても再起動復元されないこと', () async {
+      final tokenA1 = _buildJwt(
+        sub: 'user-a',
+        email: 'a@example.com',
+        jti: 'initial',
+      );
+      final tokenA2 = _buildJwt(
+        sub: 'user-a',
+        email: 'a@example.com',
+        jti: 'relogin',
+      );
+      final fakeStorage = FakeTokenStorage(mockAccessToken: tokenA1);
+      final mockApi = MockApiClient();
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          authApiClientProvider.overrideWithValue(mockApi),
+          tokenStorageProvider.overrideWith((ref) => fakeStorage),
+          appSupportDirectoryReaderProvider.overrideWithValue(
+            () async => tempDir,
+          ),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(authStateProvider.future);
+      final notifier = container.read(authStateProvider.notifier);
+      final store = container.read(customAuthInvalidationStoreProvider);
+
+      final deleteFuture = notifier.deleteAccount();
+      await deleteStarted.future;
+
+      await notifier.logout();
+      check(container.read(authStateProvider).value).equals(false);
+      check(await store.isInvalidated()).equals(true);
+
+      await notifier.login(tokenA2, 'refresh-a2');
+      check(await store.isInvalidated()).equals(true);
+
+      fakeStorage.shouldThrowOnClear = true;
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      check(await deleteFuture).equals(true);
+      check(fakeStorage.mockAccessToken).equals(tokenA2);
+      check(await store.isInvalidated()).equals(true);
+
+      fakeStorage.shouldThrowOnClear = false;
+      final restarted = createContainer(fakeStorage: fakeStorage);
+      check(await restarted.read(authStateProvider.future)).equals(false);
+      check(fakeStorage.mockAccessToken).isNull();
+      check(await store.isInvalidated()).equals(false);
     });
   });
 }

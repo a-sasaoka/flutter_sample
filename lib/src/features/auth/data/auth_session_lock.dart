@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+part 'auth_session_lock.freezed.dart';
 part 'auth_session_lock.g.dart';
 
 /// 認証セッションの読み書きを直列化するロックを提供するプロバイダ
@@ -11,12 +13,29 @@ AuthSessionLock authSessionLock(Ref ref) {
   return AuthSessionLock();
 }
 
+/// セッションロック内で追跡する現在のセッション状態
+@freezed
+sealed class TrackedAuthSession with _$TrackedAuthSession {
+  /// 未ログイン（サインアウト済み）状態
+  const factory TrackedAuthSession.signedOut() = SignedOutTrackedAuthSession;
+
+  /// ログイン中アカウントの識別情報
+  const factory TrackedAuthSession.authenticated({
+    /// ユーザーID（`sub` または保存済み `customUserId`）
+    String? userId,
+
+    /// メールアドレス
+    String? email,
+  }) = AuthenticatedTrackedAuthSession;
+}
+
 /// トークンの確認・保存・削除を直列化して競合を防ぐ非同期ロック
 class AuthSessionLock {
   Future<void> _tail = Future<void>.value();
   int _sessionEpoch = 0;
   int _deletionEpoch = 0;
   int _activeDeletionCount = 0;
+  TrackedAuthSession _currentSession = const TrackedAuthSession.signedOut();
 
   /// 現在の認証セッション世代（ログイン・ログアウト時に更新される）
   int get sessionEpoch => _sessionEpoch;
@@ -26,6 +45,22 @@ class AuthSessionLock {
 
   /// 現在アカウント削除処理が進行中かどうか
   bool get isDeletionInProgress => _activeDeletionCount > 0;
+
+  /// セッションロック内で把握している現在のセッション状態
+  TrackedAuthSession get currentSession => _currentSession;
+
+  /// ログイン中アカウントの識別情報をロック内状態として記録する
+  void recordAuthenticatedSession({String? userId, String? email}) {
+    _currentSession = TrackedAuthSession.authenticated(
+      userId: userId,
+      email: email,
+    );
+  }
+
+  /// サインアウト済み（未ログイン）状態をロック内状態として記録する
+  void recordSignedOutSession() {
+    _currentSession = const TrackedAuthSession.signedOut();
+  }
 
   /// アカウント削除処理の開始を記録する
   void beginDeletion() {
