@@ -1,8 +1,7 @@
-import 'package:flutter_sample/src/app/constants/storage_keys.dart';
-import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_session_lock.dart';
+import 'package:flutter_sample/src/features/auth/data/custom_auth_invalidation_store.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -14,19 +13,17 @@ class AuthStateNotifier extends _$AuthStateNotifier {
   @override
   Future<bool> build() async {
     final tokenStorage = ref.watch(tokenStorageProvider);
-    final prefs = ref.watch(sharedPreferencesProvider);
+    final invalidationStore = ref.watch(customAuthInvalidationStoreProvider);
     final sessionLock = ref.watch(authSessionLockProvider);
     final talker = ref.watch(loggerProvider);
 
     return await sessionLock.synchronized(() async {
-      final isInvalidated =
-          await prefs.getBool(SharedPrefKeys.customAuthSessionInvalidated) ??
-          false;
+      final isInvalidated = await invalidationStore.isInvalidated();
       if (isInvalidated) {
         // 退会時のトークン消去失敗で残留したセッションを復元せず、再消去を試みる
         try {
           await tokenStorage.clear();
-          await prefs.remove(SharedPrefKeys.customAuthSessionInvalidated);
+          await invalidationStore.clearInvalidated();
         } on Object catch (e, st) {
           // 再消去に失敗しても次回起動時にログイン復元されないよう無効化フラグは維持する
           talker.handle(
@@ -50,9 +47,7 @@ class AuthStateNotifier extends _$AuthStateNotifier {
         await ref
             .read(tokenStorageProvider)
             .saveTokens(accessToken: accessToken, refreshToken: refreshToken);
-        await ref
-            .read(sharedPreferencesProvider)
-            .remove(SharedPrefKeys.customAuthSessionInvalidated);
+        await ref.read(customAuthInvalidationStoreProvider).clearInvalidated();
       });
       state = const AsyncData(true);
     } catch (e, st) {
@@ -82,9 +77,7 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     try {
       await ref.read(authSessionLockProvider).runSessionTransition(() async {
         await ref.read(tokenStorageProvider).clear();
-        await ref
-            .read(sharedPreferencesProvider)
-            .remove(SharedPrefKeys.customAuthSessionInvalidated);
+        await ref.read(customAuthInvalidationStoreProvider).clearInvalidated();
       });
       state = const AsyncData(false);
     } catch (e, st) {

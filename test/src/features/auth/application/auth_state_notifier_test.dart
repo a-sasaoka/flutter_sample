@@ -1,46 +1,22 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:checks/checks.dart';
-import 'package:flutter_sample/src/app/constants/storage_keys.dart';
-import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_session_lock.dart';
+import 'package:flutter_sample/src/features/auth/data/custom_auth_invalidation_store.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path/path.dart' as p;
 import 'package:talker_flutter/talker_flutter.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
 class MockTalker extends Mock implements Talker {}
-
-class FakeSharedPreferencesAsync extends Mock
-    implements SharedPreferencesAsync {
-  FakeSharedPreferencesAsync({bool initialInvalidated = false}) {
-    if (initialInvalidated) {
-      boolValues[SharedPrefKeys.customAuthSessionInvalidated] = true;
-    }
-  }
-
-  final Map<String, bool> boolValues = <String, bool>{};
-
-  @override
-  Future<bool?> getBool(String key) async => boolValues[key];
-
-  @override
-  Future<void> setBool(String key, bool value) async {
-    boolValues[key] = value;
-  }
-
-  @override
-  Future<void> remove(String key) async {
-    boolValues.remove(key);
-  }
-}
 
 class FakeTokenStorage extends Mock implements TokenStorage {
   FakeTokenStorage({
@@ -88,6 +64,10 @@ class FakeTokenStorage extends Mock implements TokenStorage {
 
 void main() {
   late MockTalker mockTalker;
+  late Directory tempDir;
+
+  File invalidationMarkerFile() =>
+      File(p.join(tempDir.path, CustomAuthInvalidationStore.markerFileName));
 
   setUpAll(() {
     registerFallbackValue(StackTrace.current);
@@ -95,25 +75,32 @@ void main() {
 
   setUp(() {
     mockTalker = MockTalker();
+    tempDir = Directory.systemTemp.createTempSync('auth_state_notifier_test_');
     when(
       () =>
           mockTalker.handle(any<Object>(), any<StackTrace?>(), any<dynamic>()),
     ).thenReturn(null);
   });
 
+  tearDown(() {
+    if (tempDir.existsSync()) {
+      tempDir.deleteSync(recursive: true);
+    }
+  });
+
   /// テストごとにクリーンな ProviderContainer を作成するヘルパー
   ProviderContainer createContainer({
     FakeTokenStorage? fakeStorage,
-    FakeSharedPreferencesAsync? fakePrefs,
     MockAuthRepository? mockAuthRepository,
   }) {
     final storage = fakeStorage ?? FakeTokenStorage();
-    final prefs = fakePrefs ?? FakeSharedPreferencesAsync();
     final container = ProviderContainer(
       overrides: [
         // tokenStorageProvider を Fake クラスに差し替える
         tokenStorageProvider.overrideWith((ref) => storage),
-        sharedPreferencesProvider.overrideWithValue(prefs),
+        appSupportDirectoryReaderProvider.overrideWithValue(
+          () async => tempDir,
+        ),
         loggerProvider.overrideWithValue(mockTalker),
         // authRepositoryProvider を Mock クラスに差し替える
         if (mockAuthRepository != null)
@@ -152,20 +139,19 @@ void main() {
     test('初期化: セッション無効化フラグが立っている場合、残留トークンがあっても未ログイン(false)となり '
         '再消去に成功すればフラグを解除すること', () async {
       final fakeStorage = FakeTokenStorage(mockAccessToken: 'stale_token');
-      final fakePrefs = FakeSharedPreferencesAsync(initialInvalidated: true);
-      final container = createContainer(
-        fakeStorage: fakeStorage,
-        fakePrefs: fakePrefs,
+      final store = CustomAuthInvalidationStore(
+        getDirectory: () async => tempDir,
       );
+      await store.markInvalidated();
+      final container = createContainer(fakeStorage: fakeStorage);
 
       final authState = await container.read(authStateProvider.future);
 
       check(authState).equals(false);
       check(fakeStorage.isClearCalled).equals(true);
       check(fakeStorage.mockAccessToken).isNull();
-      check(
-        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
-      ).isNull();
+      check(await store.isInvalidated()).equals(false);
+      check(invalidationMarkerFile().existsSync()).equals(false);
     });
 
     test('初期化: セッション無効化フラグが立っており再消去にも失敗した場合、 '
@@ -174,19 +160,18 @@ void main() {
         mockAccessToken: 'stale_token',
         shouldThrowOnClear: true,
       );
-      final fakePrefs = FakeSharedPreferencesAsync(initialInvalidated: true);
-      final container = createContainer(
-        fakeStorage: fakeStorage,
-        fakePrefs: fakePrefs,
+      final store = CustomAuthInvalidationStore(
+        getDirectory: () async => tempDir,
       );
+      await store.markInvalidated();
+      final container = createContainer(fakeStorage: fakeStorage);
 
       final authState = await container.read(authStateProvider.future);
 
       check(authState).equals(false);
       check(fakeStorage.isClearCalled).equals(true);
-      check(
-        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
-      ).equals(true);
+      check(await store.isInvalidated()).equals(true);
+      check(invalidationMarkerFile().existsSync()).equals(true);
       verify(
         () => mockTalker.handle(
           any<Object>(),
@@ -460,26 +445,26 @@ void main() {
 
     test('login / logout 実行時はセッション無効化フラグを解除すること', () async {
       final fakeStorage = FakeTokenStorage(mockAccessToken: 'stale_token');
-      final fakePrefs = FakeSharedPreferencesAsync(initialInvalidated: true);
-      final container = createContainer(
-        fakeStorage: fakeStorage,
-        fakePrefs: fakePrefs,
+      final store = CustomAuthInvalidationStore(
+        getDirectory: () async => tempDir,
       );
+      await store.markInvalidated();
+      final container = createContainer(fakeStorage: fakeStorage);
       await container.read(authStateProvider.future);
       final notifier = container.read(authStateProvider.notifier);
 
-      fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated] = true;
+      await store.markInvalidated();
+      check(invalidationMarkerFile().existsSync()).equals(true);
       await notifier.login('new_access', 'new_refresh');
-      check(
-        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
-      ).isNull();
+      check(await store.isInvalidated()).equals(false);
+      check(invalidationMarkerFile().existsSync()).equals(false);
       check(container.read(authStateProvider).value).equals(true);
 
-      fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated] = true;
+      await store.markInvalidated();
+      check(invalidationMarkerFile().existsSync()).equals(true);
       await notifier.logout();
-      check(
-        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
-      ).isNull();
+      check(await store.isInvalidated()).equals(false);
+      check(invalidationMarkerFile().existsSync()).equals(false);
       check(container.read(authStateProvider).value).equals(false);
     });
   });

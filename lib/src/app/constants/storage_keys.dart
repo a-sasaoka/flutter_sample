@@ -42,7 +42,4 @@ abstract final class SharedPrefKeys {
 
   /// 文字サイズ倍率設定 (small / normal / large)
   static const textScale = 'text_scale';
-
-  /// カスタム認証退会後のトークン消去失敗時にログイン復元を防ぐフラグ
-  static const customAuthSessionInvalidated = 'custom_auth_session_invalidated';
 }

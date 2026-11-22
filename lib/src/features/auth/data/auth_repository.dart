@@ -1,16 +1,14 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_sample/src/app/constants/storage_keys.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/exceptions/reauth_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
-import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
 import 'package:flutter_sample/src/core/utils/jwt_utils.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_session_lock.dart';
+import 'package:flutter_sample/src/features/auth/data/custom_auth_invalidation_store.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 part 'auth_repository.g.dart';
@@ -29,7 +27,7 @@ AuthRepository authRepository(Ref ref) {
     tokenStorage: ref.watch(tokenStorageProvider),
     talker: ref.watch(loggerProvider),
     sessionLock: ref.watch(authSessionLockProvider),
-    prefs: ref.watch(sharedPreferencesProvider),
+    invalidationStore: ref.watch(customAuthInvalidationStoreProvider),
   );
 }
 
@@ -40,9 +38,9 @@ class AuthRepository {
     required this.api,
     required this.tokenStorage,
     required this.talker,
-    required SharedPreferencesAsync prefs,
+    required CustomAuthInvalidationStore invalidationStore,
     AuthSessionLock? sessionLock,
-  }) : _prefs = prefs,
+  }) : _invalidationStore = invalidationStore,
        _sessionLock = sessionLock ?? AuthSessionLock();
 
   /// APIクライアント
@@ -54,7 +52,7 @@ class AuthRepository {
   /// ロガー
   final Talker talker;
 
-  final SharedPreferencesAsync _prefs;
+  final CustomAuthInvalidationStore _invalidationStore;
   final AuthSessionLock _sessionLock;
 
   /// ログインAPIを呼び出し、トークンを保存する
@@ -73,7 +71,7 @@ class AuthRepository {
           accessToken: access,
           refreshToken: refresh,
         );
-        await _prefs.remove(SharedPrefKeys.customAuthSessionInvalidated);
+        await _invalidationStore.clearInvalidated();
       });
     } else {
       talker.handle(
@@ -162,17 +160,18 @@ class AuthRepository {
 
   /// アカウント削除APIを呼び出し、成功後にローカルのトークンを破棄する（カスタム認証用）
   ///
-  /// サーバーへ削除要求を送る前にセッション無効化フラグを永続化し、保存に失敗した場合は
-  /// 削除要求を送信しません。サーバー側の削除が成功した後は、端末側のトークン消去に
-  /// 失敗しても Crashlytics へ記録して処理を続行し、未ログイン遷移およびローカル削除を妨げません。
+  /// サーバーへ削除要求を送る前にセッション無効化マーカーをディスクへフラッシュ永続化し、
+  /// 保存に失敗した場合は削除要求を送信しません。サーバー側の削除が成功した後は、
+  /// 端末側のトークン消去に失敗しても Crashlytics へ記録して処理を続行し、
+  /// 未ログイン遷移およびローカル削除を妨げません。
   Future<void> deleteAccount() async {
     final startState = await _sessionLock.synchronized(() async {
       final token = await tokenStorage.getAccessToken();
       if (token == null || token.isEmpty) {
         return null;
       }
-      // サーバー削除要求前に無効化フラグを永続化し、失敗時は削除要求を送らない
-      await _prefs.setBool(SharedPrefKeys.customAuthSessionInvalidated, true);
+      // サーバー削除要求前に無効化マーカーをディスク永続化し、失敗時は削除要求を送らない
+      await _invalidationStore.markInvalidated();
       return (accessToken: token, sessionEpoch: _sessionLock.sessionEpoch);
     });
     if (startState == null) {
@@ -207,7 +206,7 @@ class AuthRepository {
 
   Future<void> _clearInvalidationFlagBestEffort() async {
     try {
-      await _prefs.remove(SharedPrefKeys.customAuthSessionInvalidated);
+      await _invalidationStore.clearInvalidated();
     } on Object catch (e, st) {
       talker.handle(
         e,

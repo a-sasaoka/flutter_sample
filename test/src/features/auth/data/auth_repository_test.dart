@@ -1,22 +1,22 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart'; // Responseクラス用
-import 'package:flutter_sample/src/app/constants/storage_keys.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/exceptions/reauth_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
-import 'package:flutter_sample/src/core/storage/shared_preferences_provider.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_session_lock.dart';
+import 'package:flutter_sample/src/features/auth/data/custom_auth_invalidation_store.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path/path.dart' as p;
 import 'package:talker_flutter/talker_flutter.dart';
 
 // --- モックとFakeクラスの定義 ---
@@ -32,47 +32,6 @@ class MockResponse extends Mock implements Response<Map<String, dynamic>> {}
 
 // Talkerのモック
 class MockTalker extends Mock implements Talker {}
-
-class _FakePrefsState {
-  final Map<String, bool> boolValues = <String, bool>{};
-  Exception? setBoolError;
-  Exception? removeError;
-}
-
-// SharedPreferencesAsyncのFake
-class FakeSharedPreferencesAsync extends Mock
-    implements SharedPreferencesAsync {
-  final _FakePrefsState _state = _FakePrefsState();
-
-  Map<String, bool> get boolValues => _state.boolValues;
-
-  Exception? get setBoolError => _state.setBoolError;
-
-  set setBoolError(Exception? error) => _state.setBoolError = error;
-
-  Exception? get removeError => _state.removeError;
-
-  set removeError(Exception? error) => _state.removeError = error;
-
-  @override
-  Future<bool?> getBool(String key) async => _state.boolValues[key];
-
-  @override
-  Future<void> setBool(String key, bool value) async {
-    if (_state.setBoolError != null) {
-      throw _state.setBoolError!;
-    }
-    _state.boolValues[key] = value;
-  }
-
-  @override
-  Future<void> remove(String key) async {
-    if (_state.removeError != null) {
-      throw _state.removeError!;
-    }
-    _state.boolValues.remove(key);
-  }
-}
 
 // TokenStorageのモック
 class FakeTokenStorage extends Mock implements TokenStorage {
@@ -132,10 +91,15 @@ class FakeTokenStorage extends Mock implements TokenStorage {
 void main() {
   late MockApiClient mockApi;
   late MockTalker mockTalker;
-  late FakeSharedPreferencesAsync fakePrefs;
+  late Directory tempDir;
+  late CustomAuthInvalidationStore invalidationStore;
+
+  File invalidationMarkerFile() =>
+      File(p.join(tempDir.path, CustomAuthInvalidationStore.markerFileName));
 
   setUpAll(() {
     registerFallbackValue(const AppException.unknown());
+    registerFallbackValue(const FileSystemException());
     registerFallbackValue(StackTrace.current);
     registerFallbackValue(Options());
   });
@@ -143,12 +107,22 @@ void main() {
   setUp(() {
     mockApi = MockApiClient();
     mockTalker = MockTalker();
-    fakePrefs = FakeSharedPreferencesAsync();
+    tempDir = Directory.systemTemp.createTempSync('auth_repository_test_');
+    invalidationStore = CustomAuthInvalidationStore(
+      getDirectory: () async => tempDir,
+    );
     when(() => mockTalker.warning(any<dynamic>())).thenReturn(null);
     when(
       () =>
           mockTalker.handle(any<Object>(), any<StackTrace?>(), any<dynamic>()),
     ).thenReturn(null);
+  });
+
+  tearDown(() {
+    if (tempDir.existsSync()) {
+      Process.runSync('chmod', ['755', tempDir.path]);
+      tempDir.deleteSync(recursive: true);
+    }
   });
 
   /// 依存関係を注入した ProviderContainer を作成するヘルパー
@@ -158,7 +132,9 @@ void main() {
         authApiClientProvider.overrideWithValue(mockApi),
         // 💡 修正: tokenStorageProvider は Notifier ではないので (ref) => の形でオーバーライドする
         tokenStorageProvider.overrideWith((ref) => fakeStorage),
-        sharedPreferencesProvider.overrideWithValue(fakePrefs),
+        appSupportDirectoryReaderProvider.overrideWithValue(
+          () async => tempDir,
+        ),
         loggerProvider.overrideWithValue(mockTalker),
       ],
     );
@@ -749,7 +725,7 @@ void main() {
           api: mockApi,
           tokenStorage: fakeStorage,
           talker: mockTalker,
-          prefs: fakePrefs,
+          invalidationStore: invalidationStore,
         );
         final mockResponse = MockResponse();
         when(
@@ -1005,19 +981,22 @@ void main() {
       final container = createContainer(fakeStorage);
       final repo = container.read(authRepositoryProvider);
 
+      final deleteStarted = Completer<void>();
       final deleteCompleter = Completer<Response<void>>();
       when(
         () => mockApi.delete<void>(
           '/auth/account',
           options: any<Options?>(named: 'options'),
         ),
-      ).thenAnswer((_) => deleteCompleter.future);
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
 
-      final deleteFuture = expectLater(
+      final deleteFuture = check(
         repo.deleteAccount(),
-        throwsA(isA<ServerException>()),
-      );
-      await Future<void>.delayed(Duration.zero);
+      ).throws<ServerException>();
+      await deleteStarted.future;
 
       // 削除 API の応答待ち中はトークンが消去されていないこと
       check(await fakeStorage.getAccessToken()).equals('access-123');
@@ -1049,13 +1028,17 @@ void main() {
       final repo = container.read(authRepositoryProvider);
       final lock = container.read(authSessionLockProvider);
 
+      final deleteStarted = Completer<void>();
       final deleteCompleter = Completer<Response<void>>();
       when(
         () => mockApi.delete<void>(
           '/auth/account',
           options: any<Options?>(named: 'options'),
         ),
-      ).thenAnswer((_) => deleteCompleter.future);
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
       final mockLoginResponse = MockResponse();
       when(() => mockLoginResponse.data).thenReturn({
         'access_token': 'access-new',
@@ -1069,7 +1052,7 @@ void main() {
       ).thenAnswer((_) async => mockLoginResponse);
 
       final deleteFuture = repo.deleteAccount();
-      await Future<void>.delayed(Duration.zero);
+      await deleteStarted.future;
 
       // 削除 API 待機中に別ユーザーの新規ログインが完了してセッション世代が進む
       await repo.login('new@example.com', 'password123');
@@ -1088,9 +1071,8 @@ void main() {
       check(await fakeStorage.getAccessToken()).equals('access-new');
       check(await fakeStorage.getRefreshToken()).equals('refresh-new');
       check(await fakeStorage.getUserId()).equals('user-new');
-      check(
-        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
-      ).isNull();
+      check(await invalidationStore.isInvalidated()).equals(false);
+      check(invalidationMarkerFile().existsSync()).equals(false);
       check(lock.sessionEpoch).equals(epochAfterNewLogin);
     });
 
@@ -1136,9 +1118,8 @@ void main() {
         ),
       ).called(1);
       check(container.read(authSessionLockProvider).sessionEpoch).equals(1);
-      check(
-        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
-      ).equals(true);
+      check(await invalidationStore.isInvalidated()).equals(true);
+      check(invalidationMarkerFile().existsSync()).equals(true);
       check(await fakeStorage.getAccessToken()).equals('access-123');
 
       // 次回起動相当の新しい ProviderContainer でもログイン状態へ復元されないこと
@@ -1147,11 +1128,11 @@ void main() {
         authStateProvider.future,
       );
       check(restoredAuthState).equals(false);
+      check(await invalidationStore.isInvalidated()).equals(true);
     });
 
     test('deleteAccount: 削除要求前の無効化フラグ保存とトークン消去が両方失敗する場合、 '
         '削除要求を送らず例外を投げトークンが維持されること', () async {
-      final prefsSetError = Exception('prefs write failed');
       final clearException = Exception('secure storage error');
       final fakeStorage =
           FakeTokenStorage(
@@ -1160,11 +1141,14 @@ void main() {
             )
             ..savedAccessToken = 'access-123'
             ..savedRefreshToken = 'refresh-123';
-      fakePrefs.setBoolError = prefsSetError;
+      // 一時ファイルパスにディレクトリを配置して実際のディスク書き込みを失敗させる
+      Directory(
+        p.join(tempDir.path, CustomAuthInvalidationStore.tempFileName),
+      ).createSync(recursive: true);
       final container = createContainer(fakeStorage);
       final repo = container.read(authRepositoryProvider);
 
-      await check(repo.deleteAccount()).throws<Exception>();
+      await check(repo.deleteAccount()).throws<FileSystemException>();
 
       verifyNever(
         () => mockApi.delete<void>(
@@ -1173,9 +1157,8 @@ void main() {
         ),
       );
       check(await fakeStorage.getAccessToken()).equals('access-123');
-      check(
-        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
-      ).isNull();
+      check(await invalidationStore.isInvalidated()).equals(false);
+      check(invalidationMarkerFile().existsSync()).equals(false);
     });
 
     test('deleteAccount: 削除処理中（API応答待ち）にアプリが終了しても、 '
@@ -1202,9 +1185,8 @@ void main() {
       unawaited(repo.deleteAccount());
       await deleteStarted.future;
 
-      check(
-        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
-      ).equals(true);
+      check(await invalidationStore.isInvalidated()).equals(true);
+      check(invalidationMarkerFile().existsSync()).equals(true);
       check(await fakeStorage.getAccessToken()).equals('access-123');
 
       // 削除完了前にプロセス終了し、次回起動した想定で別コンテナを生成
@@ -1215,9 +1197,8 @@ void main() {
 
       check(restoredAuthState).equals(false);
       check(await fakeStorage.getAccessToken()).isNull();
-      check(
-        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
-      ).isNull();
+      check(await invalidationStore.isInvalidated()).equals(false);
+      check(invalidationMarkerFile().existsSync()).equals(false);
     });
 
     test('deleteAccount: 削除結果不明のAPI失敗時は同一セッションで再試行でき、 '
@@ -1248,17 +1229,15 @@ void main() {
       // 1回目はタイムアウト（結果不明）: トークンは残り同一セッションで再試行可能
       await check(repo.deleteAccount()).throws<TimeoutException>();
       check(await fakeStorage.getAccessToken()).equals('access-123');
-      check(
-        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
-      ).equals(true);
+      check(await invalidationStore.isInvalidated()).equals(true);
+      check(invalidationMarkerFile().existsSync()).equals(true);
 
       // そのまま再試行して成功した場合はトークンとフラグを両方クリアする
       await check(repo.deleteAccount()).completes();
       check(attempts).equals(2);
       check(await fakeStorage.getAccessToken()).isNull();
-      check(
-        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
-      ).isNull();
+      check(await invalidationStore.isInvalidated()).equals(false);
+      check(invalidationMarkerFile().existsSync()).equals(false);
 
       // 再度、1回目失敗後に再試行せずアプリ再起動した場合は未ログインとなること
       attempts = 0;
@@ -1271,15 +1250,14 @@ void main() {
         await restartedContainer.read(authStateProvider.future),
       ).equals(false);
       check(await fakeStorage.getAccessToken()).isNull();
+      check(await invalidationStore.isInvalidated()).equals(false);
     });
 
     test('deleteAccount: サーバー削除後に無効化フラグの解除だけ失敗しても記録のみで完了し、 '
         '再ログイン時はフラグを解除すること', () async {
-      final prefsRemoveError = Exception('prefs remove failed');
       final fakeStorage = FakeTokenStorage(initialRefreshToken: 'refresh-123')
         ..savedAccessToken = 'access-123'
         ..savedRefreshToken = 'refresh-123';
-      fakePrefs.removeError = prefsRemoveError;
       final container = createContainer(fakeStorage);
       final repo = container.read(authRepositoryProvider);
 
@@ -1288,28 +1266,30 @@ void main() {
           '/auth/account',
           options: any<Options?>(named: 'options'),
         ),
-      ).thenAnswer(
-        (_) async => Response<void>(
+      ).thenAnswer((_) async {
+        // 削除要求前に書かれたマーカーを削除できない状態にする
+        Process.runSync('chmod', ['555', tempDir.path]);
+        return Response<void>(
           requestOptions: RequestOptions(path: '/auth/account'),
           statusCode: 200,
-        ),
-      );
+        );
+      });
 
       await check(repo.deleteAccount()).completes();
 
       check(fakeStorage.savedAccessToken).isNull();
+      check(invalidationMarkerFile().existsSync()).equals(true);
       verify(
         () => mockTalker.handle(
-          prefsRemoveError,
+          any<FileSystemException>(),
           any<StackTrace?>(),
           'Failed to clear invalidated custom auth session flag',
         ),
       ).called(1);
 
-      // 別のログインではセッション無効化フラグを確実に解除すること
-      fakePrefs
-        ..removeError = null
-        ..boolValues[SharedPrefKeys.customAuthSessionInvalidated] = true;
+      // 書き込み権限復帰後の別ログインではセッション無効化フラグを確実に解除すること
+      Process.runSync('chmod', ['755', tempDir.path]);
+      check(await invalidationStore.isInvalidated()).equals(true);
       final mockLoginResponse = MockResponse();
       when(() => mockLoginResponse.data).thenReturn({
         'access_token': 'new-access',
@@ -1323,9 +1303,8 @@ void main() {
       ).thenAnswer((_) async => mockLoginResponse);
 
       await repo.login('user@example.com', 'password123');
-      check(
-        fakePrefs.boolValues[SharedPrefKeys.customAuthSessionInvalidated],
-      ).isNull();
+      check(await invalidationStore.isInvalidated()).equals(false);
+      check(invalidationMarkerFile().existsSync()).equals(false);
     });
   });
 }
