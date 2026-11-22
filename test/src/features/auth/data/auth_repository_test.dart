@@ -940,31 +940,93 @@ void main() {
           options: captureAny<Options?>(named: 'options'),
         ),
       ).captured;
-      final options = captured.single as Options?;
-      check(options?.headers?['Authorization']).equals('Bearer access-123');
+      if (captured case [Options(:final headers)]) {
+        check(headers?['Authorization']).equals('Bearer access-123');
+      } else {
+        fail('削除リクエストには Options が必要です: $captured');
+      }
       check(fakeStorage.savedAccessToken).isNull();
-      check(fakeStorage.savedRefreshToken).isNull();
+      check(await fakeStorage.getRefreshToken()).isNull();
       check(fakeStorage.currentUserId).isNull();
     });
 
-    test('deleteAccount: API失敗時は例外を再スローし、トークンは消去しないこと', () async {
+    test('deleteAccount: API非同期エラー時は待機中も失敗後も例外を再スローし、トークンを消去しないこと', () async {
       final fakeStorage = FakeTokenStorage(initialRefreshToken: 'refresh-123')
         ..savedAccessToken = 'access-123'
         ..savedRefreshToken = 'refresh-123';
       final container = createContainer(fakeStorage);
       final repo = container.read(authRepositoryProvider);
 
+      final deleteCompleter = Completer<Response<void>>();
       when(
         () => mockApi.delete<void>(
           '/auth/account',
           options: any<Options?>(named: 'options'),
         ),
-      ).thenThrow(const AppException.server(statusCode: 500));
+      ).thenAnswer((_) => deleteCompleter.future);
 
-      await check(repo.deleteAccount()).throws<ServerException>();
+      final deleteFuture = expectLater(
+        repo.deleteAccount(),
+        throwsA(isA<ServerException>()),
+      );
+      await Future<void>.delayed(Duration.zero);
 
-      check(fakeStorage.savedAccessToken).equals('access-123');
-      check(fakeStorage.savedRefreshToken).equals('refresh-123');
+      // 削除 API の応答待ち中はトークンが消去されていないこと
+      check(await fakeStorage.getAccessToken()).equals('access-123');
+      check(await fakeStorage.getRefreshToken()).equals('refresh-123');
+
+      deleteCompleter.completeError(const AppException.server(statusCode: 500));
+      await deleteFuture;
+
+      check(await fakeStorage.getAccessToken()).equals('access-123');
+      check(await fakeStorage.getRefreshToken()).equals('refresh-123');
+    });
+
+    test('deleteAccount: API待機中に別ユーザーのログインが完了した場合、 '
+        '世代不一致のため新しいセッションのトークンを消去しないこと', () async {
+      final fakeStorage = FakeTokenStorage(initialRefreshToken: 'refresh-old')
+        ..savedAccessToken = 'access-old'
+        ..savedRefreshToken = 'refresh-old'
+        ..currentUserId = 'user-old';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+      final lock = container.read(authSessionLockProvider);
+
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) => deleteCompleter.future);
+
+      final deleteFuture = repo.deleteAccount();
+      await Future<void>.delayed(Duration.zero);
+
+      // 削除 API 待機中に別ユーザーの新規ログインが完了してセッション世代が進む
+      await lock.runSessionTransition(() async {
+        fakeStorage.currentUserId = 'user-new';
+        await fakeStorage.saveTokens(
+          accessToken: 'access-new',
+          refreshToken: 'refresh-new',
+        );
+      });
+      final epochAfterNewLogin = lock.sessionEpoch;
+      check(epochAfterNewLogin).equals(1);
+
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      await deleteFuture;
+
+      // 新規ログインのトークン・ユーザーIDが維持され、余計な世代更新も起きないこと
+      check(await fakeStorage.getAccessToken()).equals('access-new');
+      check(await fakeStorage.getRefreshToken()).equals('refresh-new');
+      check(await fakeStorage.getUserId()).equals('user-new');
+      check(lock.sessionEpoch).equals(epochAfterNewLogin);
     });
 
     test('deleteAccount: サーバー削除成功後に tokenStorage.clear() が失敗しても、 '

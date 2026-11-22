@@ -53,16 +53,21 @@ class FirebaseAuthRepository {
   final GoogleSignIn _googleSignIn;
   final Talker _talker;
 
-  // Google認証初期化フラグ
-  bool _googleSignInInitialized = false;
+  // Google認証の初期化状態（インスタンス単位で共有し、リポジトリ再生成時の二重初期化を防ぐ）
+  static final Expando<Future<void>> _googleSignInInitFutures =
+      Expando<Future<void>>('googleSignInInit');
 
-  // Google認証を初期化
+  // Google認証をインスタンス単位で1回だけ初期化する
   Future<void> _ensureGoogleSignInInitialized() async {
-    if (_googleSignInInitialized) return;
-
-    await _googleSignIn.initialize();
-
-    _googleSignInInitialized = true;
+    final future = _googleSignInInitFutures[_googleSignIn] ??= _googleSignIn
+        .initialize();
+    try {
+      await future;
+    } on Object {
+      // 初期化に失敗した場合は次回呼び出しで再試行できるよう状態をクリアする
+      _googleSignInInitFutures[_googleSignIn] = null;
+      rethrow;
+    }
   }
 
   /// メールアドレスとパスワードでログインする
@@ -180,6 +185,7 @@ class FirebaseAuthRepository {
   /// サインアウトする
   Future<void> signOut() async {
     await _firebaseAuth.signOut();
+    await _ensureGoogleSignInInitialized();
     await _googleSignIn.signOut();
   }
 
@@ -245,7 +251,7 @@ class FirebaseAuthRepository {
     try {
       await user.reauthenticateWithCredential(credential);
     } on FirebaseAuthException catch (e) {
-      throw _mapReauthFirebaseException(e);
+      throw _mapReauthFirebaseException(e, method: ReauthMethod.password);
     }
   }
 
@@ -297,7 +303,7 @@ class FirebaseAuthRepository {
     try {
       await user.reauthenticateWithCredential(credential);
     } on FirebaseAuthException catch (e) {
-      throw _mapReauthFirebaseException(e);
+      throw _mapReauthFirebaseException(e, method: ReauthMethod.google);
     }
   }
 
@@ -322,6 +328,7 @@ class FirebaseAuthRepository {
     }
 
     try {
+      await _ensureGoogleSignInInitialized();
       await _googleSignIn.signOut();
     } on Object catch (e, st) {
       // Auth削除は既に完了しているため、Googleサインアウト失敗はCrashlyticsへ記録して続行する
@@ -333,12 +340,21 @@ class FirebaseAuthRepository {
     }
   }
 
-  Exception _mapReauthFirebaseException(FirebaseAuthException e) {
+  Exception _mapReauthFirebaseException(
+    FirebaseAuthException e, {
+    required ReauthMethod method,
+  }) {
     return switch (e.code) {
-      FirebaseAuthErrorCodes.wrongPassword ||
-      FirebaseAuthErrorCodes.invalidCredential => () {
+      FirebaseAuthErrorCodes.wrongPassword => () {
         _talker.warning('Firebase reauth failed: ${e.code}');
         return const ReauthWrongPasswordException();
+      }(),
+      FirebaseAuthErrorCodes.invalidCredential => () {
+        _talker.warning('Firebase reauth failed (${method.name}): ${e.code}');
+        return switch (method) {
+          ReauthMethod.password => const ReauthWrongPasswordException(),
+          ReauthMethod.google => const ReauthInvalidCredentialException(),
+        };
       }(),
       FirebaseAuthErrorCodes.userMismatch => () {
         _talker.warning('Firebase reauth failed: user-mismatch');

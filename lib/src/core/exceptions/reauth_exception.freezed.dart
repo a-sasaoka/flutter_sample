@@ -55,7 +55,7 @@ extension ReauthExceptionPatterns on ReauthException {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( ReauthRequiresRecentLoginException value)?  requiresRecentLogin,TResult Function( ReauthWrongPasswordException value)?  wrongPassword,TResult Function( ReauthUserMismatchException value)?  userMismatch,TResult Function( ReauthCancelledException value)?  cancelled,TResult Function( ReauthTooManyRequestsException value)?  tooManyRequests,TResult Function( ReauthMissingEmailException value)?  missingEmail,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( ReauthRequiresRecentLoginException value)?  requiresRecentLogin,TResult Function( ReauthWrongPasswordException value)?  wrongPassword,TResult Function( ReauthUserMismatchException value)?  userMismatch,TResult Function( ReauthCancelledException value)?  cancelled,TResult Function( ReauthTooManyRequestsException value)?  tooManyRequests,TResult Function( ReauthMissingEmailException value)?  missingEmail,TResult Function( ReauthInvalidCredentialException value)?  invalidCredential,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case ReauthRequiresRecentLoginException() when requiresRecentLogin != null:
@@ -64,7 +64,8 @@ return wrongPassword(_that);case ReauthUserMismatchException() when userMismatch
 return userMismatch(_that);case ReauthCancelledException() when cancelled != null:
 return cancelled(_that);case ReauthTooManyRequestsException() when tooManyRequests != null:
 return tooManyRequests(_that);case ReauthMissingEmailException() when missingEmail != null:
-return missingEmail(_that);case _:
+return missingEmail(_that);case ReauthInvalidCredentialException() when invalidCredential != null:
+return invalidCredential(_that);case _:
   return orElse();
 
 }
@@ -82,7 +83,7 @@ return missingEmail(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( ReauthRequiresRecentLoginException value)  requiresRecentLogin,required TResult Function( ReauthWrongPasswordException value)  wrongPassword,required TResult Function( ReauthUserMismatchException value)  userMismatch,required TResult Function( ReauthCancelledException value)  cancelled,required TResult Function( ReauthTooManyRequestsException value)  tooManyRequests,required TResult Function( ReauthMissingEmailException value)  missingEmail,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( ReauthRequiresRecentLoginException value)  requiresRecentLogin,required TResult Function( ReauthWrongPasswordException value)  wrongPassword,required TResult Function( ReauthUserMismatchException value)  userMismatch,required TResult Function( ReauthCancelledException value)  cancelled,required TResult Function( ReauthTooManyRequestsException value)  tooManyRequests,required TResult Function( ReauthMissingEmailException value)  missingEmail,required TResult Function( ReauthInvalidCredentialException value)  invalidCredential,}){
 final _that = this;
 switch (_that) {
 case ReauthRequiresRecentLoginException():
@@ -91,7 +92,8 @@ return wrongPassword(_that);case ReauthUserMismatchException():
 return userMismatch(_that);case ReauthCancelledException():
 return cancelled(_that);case ReauthTooManyRequestsException():
 return tooManyRequests(_that);case ReauthMissingEmailException():
-return missingEmail(_that);}
+return missingEmail(_that);case ReauthInvalidCredentialException():
+return invalidCredential(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -105,7 +107,7 @@ return missingEmail(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( ReauthRequiresRecentLoginException value)?  requiresRecentLogin,TResult? Function( ReauthWrongPasswordException value)?  wrongPassword,TResult? Function( ReauthUserMismatchException value)?  userMismatch,TResult? Function( ReauthCancelledException value)?  cancelled,TResult? Function( ReauthTooManyRequestsException value)?  tooManyRequests,TResult? Function( ReauthMissingEmailException value)?  missingEmail,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( ReauthRequiresRecentLoginException value)?  requiresRecentLogin,TResult? Function( ReauthWrongPasswordException value)?  wrongPassword,TResult? Function( ReauthUserMismatchException value)?  userMismatch,TResult? Function( ReauthCancelledException value)?  cancelled,TResult? Function( ReauthTooManyRequestsException value)?  tooManyRequests,TResult? Function( ReauthMissingEmailException value)?  missingEmail,TResult? Function( ReauthInvalidCredentialException value)?  invalidCredential,}){
 final _that = this;
 switch (_that) {
 case ReauthRequiresRecentLoginException() when requiresRecentLogin != null:
@@ -114,7 +116,8 @@ return wrongPassword(_that);case ReauthUserMismatchException() when userMismatch
 return userMismatch(_that);case ReauthCancelledException() when cancelled != null:
 return cancelled(_that);case ReauthTooManyRequestsException() when tooManyRequests != null:
 return tooManyRequests(_that);case ReauthMissingEmailException() when missingEmail != null:
-return missingEmail(_that);case _:
+return missingEmail(_that);case ReauthInvalidCredentialException() when invalidCredential != null:
+return invalidCredential(_that);case _:
   return null;
 
 }
@@ -131,7 +134,7 @@ return missingEmail(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  requiresRecentLogin,TResult Function()?  wrongPassword,TResult Function()?  userMismatch,TResult Function()?  cancelled,TResult Function()?  tooManyRequests,TResult Function()?  missingEmail,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  requiresRecentLogin,TResult Function()?  wrongPassword,TResult Function()?  userMismatch,TResult Function()?  cancelled,TResult Function()?  tooManyRequests,TResult Function()?  missingEmail,TResult Function()?  invalidCredential,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case ReauthRequiresRecentLoginException() when requiresRecentLogin != null:
 return requiresRecentLogin();case ReauthWrongPasswordException() when wrongPassword != null:
@@ -139,7 +142,8 @@ return wrongPassword();case ReauthUserMismatchException() when userMismatch != n
 return userMismatch();case ReauthCancelledException() when cancelled != null:
 return cancelled();case ReauthTooManyRequestsException() when tooManyRequests != null:
 return tooManyRequests();case ReauthMissingEmailException() when missingEmail != null:
-return missingEmail();case _:
+return missingEmail();case ReauthInvalidCredentialException() when invalidCredential != null:
+return invalidCredential();case _:
   return orElse();
 
 }
@@ -157,7 +161,7 @@ return missingEmail();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  requiresRecentLogin,required TResult Function()  wrongPassword,required TResult Function()  userMismatch,required TResult Function()  cancelled,required TResult Function()  tooManyRequests,required TResult Function()  missingEmail,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  requiresRecentLogin,required TResult Function()  wrongPassword,required TResult Function()  userMismatch,required TResult Function()  cancelled,required TResult Function()  tooManyRequests,required TResult Function()  missingEmail,required TResult Function()  invalidCredential,}) {final _that = this;
 switch (_that) {
 case ReauthRequiresRecentLoginException():
 return requiresRecentLogin();case ReauthWrongPasswordException():
@@ -165,7 +169,8 @@ return wrongPassword();case ReauthUserMismatchException():
 return userMismatch();case ReauthCancelledException():
 return cancelled();case ReauthTooManyRequestsException():
 return tooManyRequests();case ReauthMissingEmailException():
-return missingEmail();}
+return missingEmail();case ReauthInvalidCredentialException():
+return invalidCredential();}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -179,7 +184,7 @@ return missingEmail();}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  requiresRecentLogin,TResult? Function()?  wrongPassword,TResult? Function()?  userMismatch,TResult? Function()?  cancelled,TResult? Function()?  tooManyRequests,TResult? Function()?  missingEmail,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  requiresRecentLogin,TResult? Function()?  wrongPassword,TResult? Function()?  userMismatch,TResult? Function()?  cancelled,TResult? Function()?  tooManyRequests,TResult? Function()?  missingEmail,TResult? Function()?  invalidCredential,}) {final _that = this;
 switch (_that) {
 case ReauthRequiresRecentLoginException() when requiresRecentLogin != null:
 return requiresRecentLogin();case ReauthWrongPasswordException() when wrongPassword != null:
@@ -187,7 +192,8 @@ return wrongPassword();case ReauthUserMismatchException() when userMismatch != n
 return userMismatch();case ReauthCancelledException() when cancelled != null:
 return cancelled();case ReauthTooManyRequestsException() when tooManyRequests != null:
 return tooManyRequests();case ReauthMissingEmailException() when missingEmail != null:
-return missingEmail();case _:
+return missingEmail();case ReauthInvalidCredentialException() when invalidCredential != null:
+return invalidCredential();case _:
   return null;
 
 }
@@ -379,6 +385,38 @@ int get hashCode => runtimeType.hashCode;
 @override
 String toString() {
   return 'ReauthException.missingEmail()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class ReauthInvalidCredentialException implements ReauthException {
+  const ReauthInvalidCredentialException();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReauthInvalidCredentialException);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'ReauthException.invalidCredential()';
 }
 
 

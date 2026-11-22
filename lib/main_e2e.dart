@@ -114,11 +114,23 @@ class MockAuthRepository implements AuthRepository {
   @override
   Talker get talker => throw UnimplementedError('E2E mock auth has no Talker');
 
+  static String _buildDummyAccessToken() {
+    final header = base64Url.encode(
+      utf8.encode(jsonEncode({'alg': 'none', 'typ': 'JWT'})),
+    );
+    final payload = base64Url.encode(
+      utf8.encode(
+        jsonEncode({'sub': 'e2e_user_123', 'email': 'e2e@example.com'}),
+      ),
+    );
+    return '$header.$payload.e2e_signature';
+  }
+
   @override
   Future<void> login(String email, String password) async {
-    // どんなIDとパスワードでも、常にダミートークンを保存してログイン成功とする
+    // どんなIDとパスワードでも、sub / email クレームを含むダミーJWTを保存してログイン成功とする
     await tokenStorage.saveTokens(
-      accessToken: 'dummy_access_token',
+      accessToken: _buildDummyAccessToken(),
       refreshToken: 'dummy_refresh_token',
     );
   }

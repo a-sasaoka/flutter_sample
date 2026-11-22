@@ -293,17 +293,6 @@ class AuthService {
       rethrow;
     }
 
-    // 退会イベント記録（userId 破棄前に記録。送信失敗で退会自体は止めない）
-    try {
-      await _analyticsService.logEvent(event: AnalyticsEvent.accountDeleted);
-    } on Object catch (e, st) {
-      _talker.handle(
-        e,
-        st,
-        '[AuthService] Failed to log accountDeleted analytics event',
-      );
-    }
-
     // ③ Authアカウント削除
     // 認証解除直後に GoRouter が即座に /login へ遷移する競合を防ぐため、直前に通知フラグを立て、
     // 失敗時は即座に clear() する
@@ -338,6 +327,17 @@ class AuthService {
       label: 'users cache',
       action: () => _cacheManager.clear(UserRepository.cacheKey),
     );
+
+    // 退会完了イベント記録（Auth削除およびローカル削除完了後。送信失敗で退会自体は止めない）
+    try {
+      await _analyticsService.logEvent(event: AnalyticsEvent.accountDeleted);
+    } on Object catch (e, st) {
+      _talker.handle(
+        e,
+        st,
+        '[AuthService] Failed to log accountDeleted analytics event',
+      );
+    }
 
     _talker.info('[AuthService] deleteAccount completed');
   }

@@ -74,8 +74,7 @@ stateDiagram-v2
 
 ### 暗号化ストレージへの保存
 
-- PIN パスコードは OS の安全な領域（iOS Keychain / Android Keystore）に `FlutterSecureStorage` 経由で暗号化保存されます。
-- 生体認証の有効/無効フラグは `SharedPreferences` に保存されます。
+- PIN パスコードおよび生体認証の有効/無効フラグなどのアプリロック設定は、OS の安全な領域（iOS Keychain / Android Keystore）に `FlutterSecureStorage` 経由で暗号化保存されます。
 
 ### パスコード連続失敗制限（ブルートフォース保護）
 

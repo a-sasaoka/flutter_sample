@@ -57,9 +57,21 @@ void main() {
     when(() => mockL10n.validationNotOnlyWhitespace).thenReturn('空白のみ禁止');
     when(() => mockL10n.errorWrongPassword).thenReturn('パスワードが正しくありません。');
     when(() => mockL10n.errorUserMismatch).thenReturn('別アカウントが選択されました。');
+    when(
+      () => mockL10n.errorReauthInvalidCredential,
+    ).thenReturn('資格情報の確認に失敗しました。');
     when(() => mockL10n.cancel).thenReturn('キャンセル');
     when(() => mockL10n.close).thenReturn('閉じる');
   });
+
+  void setMobileView(WidgetTester tester) {
+    tester.view.physicalSize = const Size(1080, 1920);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+  }
 
   Widget buildLauncherApp({
     required Set<ReauthMethod> availableMethods,
@@ -98,6 +110,7 @@ void main() {
 
   group('ReauthenticateDialog', () {
     testWidgets('利用可能な認証方法が空の場合、案内を表示して閉じるで false を返すこと', (tester) async {
+      setMobileView(tester);
       bool? result;
       await tester.pumpWidget(
         buildLauncherApp(
@@ -123,6 +136,7 @@ void main() {
     testWidgets('パスワードのみ（メールあり）: バリデーション・表示切替・エラー再試行・成功時 true を検証できること', (
       tester,
     ) async {
+      setMobileView(tester);
       bool? result;
       var shouldFail = true;
       String? submittedPassword;
@@ -201,6 +215,7 @@ void main() {
     });
 
     testWidgets('パスワードのみ（メール未設定時）: メール入力欄が表示され、検証後に送信できること', (tester) async {
+      setMobileView(tester);
       bool? result;
       String? submittedEmail;
       String? submittedPassword;
@@ -242,6 +257,7 @@ void main() {
     testWidgets(
       'Googleのみ: 送信中ロック・userMismatch時エラー表示・成功時 true・キャンセルで false を返すこと',
       (tester) async {
+        setMobileView(tester);
         bool? result;
         Completer<void>? completer;
         var throwMismatch = true;
@@ -304,6 +320,7 @@ void main() {
     testWidgets('両方連携時: SegmentedButtonで方式切替時にエラーがクリアされ、各方式で送信できること', (
       tester,
     ) async {
+      setMobileView(tester);
       bool? result;
       var googleCalled = 0;
 

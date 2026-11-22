@@ -67,7 +67,7 @@ qr_scanner/
 - **重複排除と日時更新**: 既に保存されているQRコードと同じ値を読み取った場合、レコードを重複作成せず、既存レコードの `scannedAt`（スキャン日時）を最新に更新してリストの最上部に移動させます。
 - **リアルタイム監視**: DAOが提供する `watchAllHistories()` ストリームを `QrScannerHistoryController` が `ref.watch` することで、データの変更が即座にUIへリアクティブに反映されます。
 - **個別削除**: `Dismissible` により、スワイプ1つで特定の履歴をサッと削除できます。
-- **全件削除**: AppBarのゴミ箱アイコンから確認ダイアログを経て一括削除が可能です。また、アカウント完全退会時のローカルクリーンアップでも、[auth_service.dart](../lib/src/features/auth/application/auth_service.dart) から [qr_scan_histories_dao.dart](../lib/src/features/qr_scanner/data/qr_scan_histories_dao.dart) の `deleteAllHistories()` が自動的に呼び出され、端末内の QR スキャン履歴が完全に消去されます。
+- **全件削除**: AppBarのゴミ箱アイコンから確認ダイアログを経て一括削除が可能です。また、アカウント完全退会時のローカルクリーンアップでも、[auth_service.dart](../lib/src/features/auth/application/auth_service.dart) のベストエフォート削除（`_runLocalCleanupBestEffort`）から [qr_scan_histories_dao.dart](../lib/src/features/qr_scanner/data/qr_scan_histories_dao.dart) の `deleteAllHistories()` を呼び出して全履歴の削除を試行し、成功時は端末内履歴をすべて消去します（失敗時は例外を Crashlytics へ記録したうえで残りの退会処理を継続します）。
 
 ### 6. カメラ権限エラー & シミュレーター環境の親切なハンドリング
 

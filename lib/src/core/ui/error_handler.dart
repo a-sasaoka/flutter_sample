@@ -71,6 +71,7 @@ abstract final class ErrorHandler {
       ReauthCancelledException() => l10n.errorReauthCancelled,
       ReauthTooManyRequestsException() => l10n.errorTooManyRequests,
       ReauthMissingEmailException() => l10n.errorMissingEmail,
+      ReauthInvalidCredentialException() => l10n.errorReauthInvalidCredential,
     };
   }
 

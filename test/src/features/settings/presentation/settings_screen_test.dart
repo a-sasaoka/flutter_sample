@@ -665,6 +665,7 @@ void main() {
         }
 
         testWidgets('未認証時はアカウント削除ボタンが表示されないこと', (tester) async {
+          setMobileView(tester);
           await tester.pumpWidget(createTestWidget(isAuthed: false));
           await tester.pumpAndSettle();
 
@@ -675,6 +676,7 @@ void main() {
         });
 
         testWidgets('認証済み時はスクロール後にアカウント削除ボタンが表示されること', (tester) async {
+          setMobileView(tester);
           await tester.pumpWidget(createTestWidget());
           await tester.pumpAndSettle();
 
@@ -692,6 +694,7 @@ void main() {
         testWidgets('Step 1 ダイアログでキャンセルした場合、Step 2 や削除処理に進まないこと', (
           tester,
         ) async {
+          setMobileView(tester);
           await tester.pumpWidget(createTestWidget());
           await tester.pumpAndSettle();
 
@@ -711,6 +714,7 @@ void main() {
         testWidgets('Step 2 ダイアログでキャンセルした場合、事前チェックや削除処理に進まないこと', (
           tester,
         ) async {
+          setMobileView(tester);
           await tester.pumpWidget(createTestWidget());
           await tester.pumpAndSettle();
 
@@ -727,6 +731,7 @@ void main() {
         testWidgets('事前チェック（checkReauthRequirement）失敗時、エラーSnackBarを表示すること', (
           tester,
         ) async {
+          setMobileView(tester);
           when(
             () => mockAuthService.checkReauthRequirement(),
           ).thenThrow(const AppException.server(statusCode: 500));
@@ -747,6 +752,7 @@ void main() {
         testWidgets('直近ログインが新鮮な場合、再認証なしで処理中ダイアログ表示後に deleteAccount が完了すること', (
           tester,
         ) async {
+          setMobileView(tester);
           final deleteCompleter = Completer<void>();
           when(() => mockAuthService.checkReauthRequirement()).thenAnswer(
             (_) async => const AccountDeletionPrecheck(
@@ -785,6 +791,7 @@ void main() {
         testWidgets('事前再認証モーダルでキャンセルした場合、deleteAccount は呼ばれないこと', (
           tester,
         ) async {
+          setMobileView(tester);
           when(() => mockAuthService.checkReauthRequirement()).thenAnswer(
             (_) async => const AccountDeletionPrecheck(
               requiresReauthentication: true,
@@ -810,6 +817,7 @@ void main() {
         });
 
         testWidgets('事前再認証（パスワード）成功後に deleteAccount が実行されること', (tester) async {
+          setMobileView(tester);
           when(() => mockAuthService.checkReauthRequirement()).thenAnswer(
             (_) async => const AccountDeletionPrecheck(
               requiresReauthentication: true,
@@ -853,6 +861,7 @@ void main() {
         });
 
         testWidgets('事前再認証（Google）成功後に deleteAccount が実行されること', (tester) async {
+          setMobileView(tester);
           when(() => mockAuthService.checkReauthRequirement()).thenAnswer(
             (_) async => const AccountDeletionPrecheck(
               requiresReauthentication: true,
@@ -885,6 +894,7 @@ void main() {
         testWidgets(
           '事後 ReauthRequiresRecentLoginException 時に再認証モーダル経由で再試行し完了すること',
           (tester) async {
+            setMobileView(tester);
             var deleteAttempt = 0;
             when(() => mockAuthService.checkReauthRequirement()).thenAnswer(
               (_) async => const AccountDeletionPrecheck(
@@ -934,6 +944,7 @@ void main() {
         testWidgets(
           '再試行後も ReauthRequiresRecentLoginException が続く場合はエラーSnackBarを表示すること',
           (tester) async {
+            setMobileView(tester);
             when(() => mockAuthService.checkReauthRequirement()).thenAnswer(
               (_) async => const AccountDeletionPrecheck(
                 requiresReauthentication: false,
@@ -969,6 +980,7 @@ void main() {
         testWidgets(
           'deleteAccount が一般例外を投げた場合、処理中ダイアログを閉じてエラーSnackBarを表示すること',
           (tester) async {
+            setMobileView(tester);
             when(() => mockAuthService.checkReauthRequirement()).thenAnswer(
               (_) async => const AccountDeletionPrecheck(
                 requiresReauthentication: false,
@@ -1083,6 +1095,7 @@ void main() {
 
         testWidgets('実Dio+ProfileRepository連携: DELETE /users/me の 403 '
             '(requires-recent-login) で再認証後に再試行し退会完了すること', (tester) async {
+          setMobileView(tester);
           registerFallbackValue(AnalyticsEvent.accountDeleted);
 
           final mockFirebaseRepo = MockFirebaseAuthRepository();
@@ -1202,6 +1215,7 @@ void main() {
 
         testWidgets('実Dio+ProfileRepository連携: DELETE /users/me の通常の 403 は '
             '再認証モーダルを出さず権限エラーSnackBarを表示すること', (tester) async {
+          setMobileView(tester);
           final mockFirebaseRepo = MockFirebaseAuthRepository();
           final mockMemoRepo = MockMemoRepository();
 
@@ -1261,6 +1275,46 @@ void main() {
           check(find.text('本人確認（再認証）')).findsNothing();
           check(find.text('権限エラー')).findsOne();
           verifyNever(mockFirebaseRepo.deleteAccount);
+        });
+
+        testWidgets('アカウント削除実行中はボタンが無効化され、キャンセル後に再有効化されること', (tester) async {
+          setMobileView(tester);
+          await tester.pumpWidget(createTestWidget());
+          await tester.pumpAndSettle();
+
+          final deleteButton = find.byKey(const Key('delete_account_button'));
+          await tester.dragUntilVisible(
+            deleteButton,
+            find.byType(ListView),
+            const Offset(0, -300),
+          );
+
+          await tester.tap(deleteButton);
+          await tester.pumpAndSettle();
+
+          check(
+            find.byKey(const Key('account_deletion_step1_continue')),
+          ).findsOne();
+          check(tester.widget<OutlinedButton>(deleteButton).onPressed).isNull();
+
+          await tester.tap(
+            find.byKey(const Key('account_deletion_step1_cancel')),
+          );
+          await tester.pumpAndSettle();
+
+          check(
+            tester.widget<OutlinedButton>(deleteButton).onPressed,
+          ).isNotNull();
+
+          await tester.tap(deleteButton);
+          await tester.pumpAndSettle();
+          check(
+            find.byKey(const Key('account_deletion_step1_continue')),
+          ).findsOne();
+          await tester.tap(
+            find.byKey(const Key('account_deletion_step1_cancel')),
+          );
+          await tester.pumpAndSettle();
         });
       });
     });

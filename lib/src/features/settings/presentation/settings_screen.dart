@@ -373,8 +373,16 @@ class _LogoutButton extends ConsumerWidget {
 }
 
 /// アカウント削除（退会）ボタン
-class _DeleteAccountButton extends ConsumerWidget {
+class _DeleteAccountButton extends ConsumerStatefulWidget {
   const _DeleteAccountButton();
+
+  @override
+  ConsumerState<_DeleteAccountButton> createState() =>
+      _DeleteAccountButtonState();
+}
+
+class _DeleteAccountButtonState extends ConsumerState<_DeleteAccountButton> {
+  bool _isDeleting = false;
 
   Future<AccountDeletionPrecheck?> _loadPrecheck(
     BuildContext context,
@@ -405,82 +413,95 @@ class _DeleteAccountButton extends ConsumerWidget {
     );
   }
 
-  Future<void> _handleDeleteAccount(BuildContext context, WidgetRef ref) async {
-    final step1Confirmed = await AccountDeletionStep1Dialog.show(context);
-    if (!step1Confirmed || !context.mounted) return;
+  Future<void> _handleDeleteAccount() async {
+    if (_isDeleting) return;
+    setState(() {
+      _isDeleting = true;
+    });
 
-    final step2Confirmed = await AccountDeletionStep2Dialog.show(context);
-    if (!step2Confirmed || !context.mounted) return;
+    try {
+      final step1Confirmed = await AccountDeletionStep1Dialog.show(context);
+      if (!step1Confirmed || !mounted) return;
 
-    final authService = ref.read(authServiceProvider);
-    final precheck = await _loadPrecheck(context, authService);
-    if (precheck == null || !context.mounted) return;
+      final step2Confirmed = await AccountDeletionStep2Dialog.show(context);
+      if (!step2Confirmed || !mounted) return;
 
-    if (precheck.requiresReauthentication) {
-      final reauthenticated = await _confirmAndReauthenticate(
-        context,
-        authService,
-        precheck,
-      );
-      if (!reauthenticated || !context.mounted) return;
-    }
+      final authService = ref.read(authServiceProvider);
+      final precheck = await _loadPrecheck(context, authService);
+      if (precheck == null || !mounted) return;
 
-    const maxAttempts = 2;
-    for (var attempt = 0; attempt < maxAttempts; attempt++) {
-      if (!context.mounted) return;
-      final rootNavigator = Navigator.of(context, rootNavigator: true);
-      var isProcessingDialogOpen = true;
-
-      void closeProcessingDialog() {
-        if (isProcessingDialogOpen && rootNavigator.mounted) {
-          isProcessingDialogOpen = false;
-          rootNavigator.pop();
-        }
-      }
-
-      unawaited(
-        showDialog<void>(
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => const AccountDeletionProcessingDialogContent(),
-        ).whenComplete(() {
-          isProcessingDialogOpen = false;
-        }),
-      );
-
-      try {
-        await authService.deleteAccount();
-        return;
-      } on ReauthRequiresRecentLoginException catch (e) {
-        closeProcessingDialog();
-        if (attempt >= maxAttempts - 1 || !context.mounted) {
-          if (context.mounted) {
-            ErrorHandler.showSnackBar(context, e);
-          }
-          return;
-        }
-        final retryPrecheck = await _loadPrecheck(context, authService);
-        if (retryPrecheck == null || !context.mounted) return;
+      if (precheck.requiresReauthentication) {
         final reauthenticated = await _confirmAndReauthenticate(
           context,
           authService,
-          retryPrecheck,
+          precheck,
         );
-        if (!reauthenticated || !context.mounted) return;
-      } on Exception catch (e) {
-        closeProcessingDialog();
-        if (context.mounted) {
-          ErrorHandler.showSnackBar(context, e);
+        if (!reauthenticated || !mounted) return;
+      }
+
+      const maxAttempts = 2;
+      for (var attempt = 0; attempt < maxAttempts; attempt++) {
+        if (!mounted) return;
+        final rootNavigator = Navigator.of(context, rootNavigator: true);
+        var isProcessingDialogOpen = true;
+
+        void closeProcessingDialog() {
+          if (isProcessingDialogOpen && rootNavigator.mounted) {
+            isProcessingDialogOpen = false;
+            rootNavigator.pop();
+          }
         }
-        return;
-      } finally {
-        closeProcessingDialog();
+
+        unawaited(
+          showDialog<void>(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => const AccountDeletionProcessingDialogContent(),
+          ).whenComplete(() {
+            isProcessingDialogOpen = false;
+          }),
+        );
+
+        try {
+          await authService.deleteAccount();
+          return;
+        } on ReauthRequiresRecentLoginException catch (e) {
+          closeProcessingDialog();
+          if (attempt >= maxAttempts - 1 || !mounted) {
+            if (mounted) {
+              ErrorHandler.showSnackBar(context, e);
+            }
+            return;
+          }
+          final retryPrecheck = await _loadPrecheck(context, authService);
+          if (retryPrecheck == null || !mounted) return;
+          final reauthenticated = await _confirmAndReauthenticate(
+            context,
+            authService,
+            retryPrecheck,
+          );
+          if (!reauthenticated || !mounted) return;
+        } on Exception catch (e) {
+          closeProcessingDialog();
+          if (mounted) {
+            ErrorHandler.showSnackBar(context, e);
+          }
+          return;
+        } finally {
+          closeProcessingDialog();
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDeleting = false;
+        });
       }
     }
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = context.l10n;
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -492,7 +513,7 @@ class _DeleteAccountButton extends ConsumerWidget {
         foregroundColor: colorScheme.error,
         side: BorderSide(color: colorScheme.error.withValues(alpha: 0.6)),
       ),
-      onPressed: () => _handleDeleteAccount(context, ref),
+      onPressed: _isDeleting ? null : _handleDeleteAccount,
     );
   }
 }

@@ -168,6 +168,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorWrongPassword => 'The password is incorrect.';
 
   @override
+  String get errorReauthInvalidCredential =>
+      'Could not verify the re-authentication credentials. Please try again.';
+
+  @override
   String get errorTooManyRequests =>
       'Too many attempts. Please wait a while and try again.';
 

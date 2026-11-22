@@ -603,11 +603,11 @@ void main() {
         'fetch_profile',
         'storage',
         'server_db',
-        'analytics',
         'firebase_auth',
         'local_memos',
         'local_qr',
         'local_cache',
+        'analytics',
       ]);
       check(container.read(accountDeletionNoticeProvider)).isTrue();
     });
@@ -761,6 +761,12 @@ void main() {
       verifyNever(() => mockMemoRepo.deleteAllMemosByUser(any()));
       verifyNever(() => mockQrDao.deleteAllHistories());
       verifyNever(() => mockCacheManager.clear(any()));
+      verifyNever(
+        () => mockAnalyticsService.logEvent(
+          event: any(named: 'event'),
+          parameters: any(named: 'parameters'),
+        ),
+      );
       check(container.read(accountDeletionNoticeProvider)).isFalse();
     });
 
@@ -853,11 +859,11 @@ void main() {
         check(fakeAuthNotifier.isDeleteAccountCalled).isTrue();
         check(callOrder).deepEquals([
           'server_db',
-          'analytics',
           'custom_auth',
           'local_memos',
           'local_qr',
           'local_cache',
+          'analytics',
         ]);
         check(container.read(accountDeletionNoticeProvider)).isTrue();
       },

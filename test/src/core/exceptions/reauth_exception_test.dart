@@ -12,6 +12,7 @@ void main() {
         ReauthCancelledException(),
         ReauthTooManyRequestsException(),
         ReauthMissingEmailException(),
+        ReauthInvalidCredentialException(),
       ];
 
       for (final exception in exceptions) {
@@ -27,6 +28,7 @@ void main() {
       const cancelled = ReauthException.cancelled();
       const tooManyRequests = ReauthException.tooManyRequests();
       const missingEmail = ReauthException.missingEmail();
+      const invalidCredential = ReauthException.invalidCredential();
 
       check(requiresRecentLogin).isA<ReauthRequiresRecentLoginException>();
       check(wrongPassword).isA<ReauthWrongPasswordException>();
@@ -34,6 +36,7 @@ void main() {
       check(cancelled).isA<ReauthCancelledException>();
       check(tooManyRequests).isA<ReauthTooManyRequestsException>();
       check(missingEmail).isA<ReauthMissingEmailException>();
+      check(invalidCredential).isA<ReauthInvalidCredentialException>();
 
       for (final exception in const <ReauthException>[
         requiresRecentLogin,
@@ -42,6 +45,7 @@ void main() {
         cancelled,
         tooManyRequests,
         missingEmail,
+        invalidCredential,
       ]) {
         check(exception).isA<ReauthException>();
         check(exception).isA<Exception>();
@@ -68,7 +72,7 @@ void main() {
       ).not((it) => it.equals(const ReauthException.cancelled()));
     });
 
-    test('switch式で全6種類を網羅的にパターンマッチできること', () {
+    test('switch式で全7種類を網羅的にパターンマッチできること', () {
       String describe(ReauthException exception) {
         return switch (exception) {
           ReauthRequiresRecentLoginException() => 'requires_recent_login',
@@ -77,6 +81,7 @@ void main() {
           ReauthCancelledException() => 'cancelled',
           ReauthTooManyRequestsException() => 'too_many_requests',
           ReauthMissingEmailException() => 'missing_email',
+          ReauthInvalidCredentialException() => 'invalid_credential',
         };
       }
 
@@ -96,6 +101,9 @@ void main() {
       check(
         describe(const ReauthMissingEmailException()),
       ).equals('missing_email');
+      check(
+        describe(const ReauthInvalidCredentialException()),
+      ).equals('invalid_credential');
     });
   });
 }

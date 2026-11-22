@@ -159,7 +159,8 @@ void main() {
   });
 
   group('StorageService deleteAvatarByUrl Tests', () {
-    const avatarUrl = 'https://firebasestorage.googleapis.com/avatar_123.jpg';
+    const avatarUrl =
+        'https://firebasestorage.googleapis.com/v0/b/demo/o/avatar_123.jpg';
 
     test('deleteAvatarByUrl: 正常系 - URL指定でファイル削除が成功すること', () async {
       when(() => mockFileRef.delete()).thenAnswer((_) async {});
@@ -269,10 +270,10 @@ void main() {
       const validUrls = <String>[
         'gs://my-bucket/avatars/u1.jpg',
         'https://firebasestorage.googleapis.com/v0/b/demo/o/a.jpg',
+        'https://firebasestorage.googleapis.com/v0/b/demo-project.firebasestorage.app/o/avatars%2Fa.jpg',
         'https://storage.googleapis.com/demo-bucket/a.jpg',
-        'https://demo-project.firebasestorage.app/avatars/a.jpg',
+        'https://storage.cloud.google.com/demo-bucket/a.jpg',
         'http://localhost:9199/v0/b/demo/o/a.jpg',
-        'http://127.0.0.1:9199/download/storage/v1/b/demo/o/a.jpg',
         'http://10.0.2.2:9199/v0/b/demo/o/a.jpg',
       ];
 
@@ -281,7 +282,7 @@ void main() {
       }
     });
 
-    test('空文字・不正URI・ローカルパス・外部画像URL等は false を返すこと', () {
+    test('空文字・不正URI・SDK非対応URL・ローカルパス等は false を返すこと', () {
       const invalidUrls = <String>[
         '',
         '   ',
@@ -290,6 +291,9 @@ void main() {
         'ftp://firebasestorage.googleapis.com/a.jpg',
         'https://lh3.googleusercontent.com/a/photo',
         'https://evil-firebasestorage.googleapis.com/a.jpg',
+        'https://demo-project.firebasestorage.app/avatars/a.jpg',
+        'http://127.0.0.1:9199/download/storage/v1/b/demo/o/a.jpg',
+        'https://firebasestorage.googleapis.com/invalid/path.jpg',
         'http://localhost:3000/avatars/a.jpg',
       ];
 

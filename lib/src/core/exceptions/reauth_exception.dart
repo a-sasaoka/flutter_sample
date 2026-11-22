@@ -28,4 +28,8 @@ sealed class ReauthException with _$ReauthException implements Exception {
 
   /// パスワード再認証に必要なメールアドレスが現在のアカウントに設定されていない場合にスローされる例外
   const factory ReauthException.missingEmail() = ReauthMissingEmailException;
+
+  /// Google再認証時の資格情報が無効・期限切れとなった場合にスローされる例外
+  const factory ReauthException.invalidCredential() =
+      ReauthInvalidCredentialException;
 }

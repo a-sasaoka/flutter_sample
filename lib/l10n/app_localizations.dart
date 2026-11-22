@@ -392,6 +392,12 @@ abstract class AppLocalizations {
   /// **'The password is incorrect.'**
   String get errorWrongPassword;
 
+  /// No description provided for @errorReauthInvalidCredential.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not verify the re-authentication credentials. Please try again.'**
+  String get errorReauthInvalidCredential;
+
   /// No description provided for @errorTooManyRequests.
   ///
   /// In en, this message translates to:

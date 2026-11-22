@@ -85,13 +85,12 @@ class ReauthenticateDialogContent extends HookWidget {
       );
     }
 
-    final defaultMethod =
-        initialSelectedMethod != null &&
-            availableMethods.contains(initialSelectedMethod)
-        ? initialSelectedMethod!
-        : (availableMethods.contains(ReauthMethod.password)
-              ? ReauthMethod.password
-              : ReauthMethod.google);
+    final defaultMethod = switch (initialSelectedMethod) {
+      final method? when availableMethods.contains(method) => method,
+      _ when availableMethods.contains(ReauthMethod.password) =>
+        ReauthMethod.password,
+      _ => ReauthMethod.google,
+    };
 
     final selectedMethod = useState(defaultMethod);
     final isSubmitting = useState(false);
@@ -102,7 +101,10 @@ class ReauthenticateDialogContent extends HookWidget {
     final emailController = useTextEditingController();
     final passwordController = useTextEditingController();
 
-    final hasEmail = email != null && email!.isNotEmpty;
+    final configuredEmail = switch (email) {
+      final targetEmail? when targetEmail.isNotEmpty => targetEmail,
+      _ => null,
+    };
 
     Future<void> runReauth(Future<void> Function() action) async {
       errorMessage.value = null;
@@ -127,7 +129,7 @@ class ReauthenticateDialogContent extends HookWidget {
       if (!(formKey.currentState?.validate() ?? false)) {
         return;
       }
-      final resolvedEmail = hasEmail ? email : emailController.text.trim();
+      final resolvedEmail = configuredEmail ?? emailController.text.trim();
       await runReauth(
         () => onPasswordSubmit(passwordController.text, resolvedEmail),
       );
@@ -195,9 +197,9 @@ class ReauthenticateDialogContent extends HookWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (hasEmail) ...[
+                      if (configuredEmail case final targetEmail?) ...[
                         Text(
-                          l10n.reauthTargetEmailLabel(email!),
+                          l10n.reauthTargetEmailLabel(targetEmail),
                           style: theme.textTheme.bodySmall,
                         ),
                         const SizedBox(height: 12),

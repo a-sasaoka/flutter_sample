@@ -69,6 +69,7 @@ void main() {
       () => mockFirebaseAuth.userChanges(),
     ).thenAnswer((_) => const Stream.empty());
     when(() => mockFirebaseAuth.currentUser).thenReturn(null);
+    when(() => mockGoogleSignIn.initialize()).thenAnswer((_) async {});
 
     container = ProviderContainer(
       overrides: [
@@ -706,6 +707,17 @@ void main() {
           repo.reauthenticateWithGoogle(),
         ).throws<ReauthUserMismatchException>();
 
+        // Firebase側で invalid-credential ->
+        // ReauthInvalidCredentialException (wrongPasswordではない)
+        when(
+          () => mockUser.reauthenticateWithCredential(any<AuthCredential>()),
+        ).thenThrow(
+          FirebaseAuthException(code: FirebaseAuthErrorCodes.invalidCredential),
+        );
+        await check(
+          repo.reauthenticateWithGoogle(),
+        ).throws<ReauthInvalidCredentialException>();
+
         // 正常系
         when(
           () => mockUser.reauthenticateWithCredential(any<AuthCredential>()),
@@ -713,11 +725,11 @@ void main() {
         await check(repo.reauthenticateWithGoogle()).completes();
         verify(
           () => mockUser.reauthenticateWithCredential(any<AuthCredential>()),
-        ).called(2);
+        ).called(3);
       });
 
       test(
-        'deleteAccount: 正常・未ログイン・requires-recent-login・例外が正しく動作すること',
+        'deleteAccount: 正常・未ログイン・requires-recent-login・例外と順序が正しく動作すること',
         () async {
           final repo = container.read(firebaseAuthRepositoryProvider);
 
@@ -747,11 +759,34 @@ void main() {
           verify(mockUser.delete).called(1);
           verifyNever(mockGoogleSignIn.signOut);
 
-          // 正常削除 + Googleサインアウト成功
-          when(mockUser.delete).thenAnswer((_) async {});
+          // 正常削除: user.delete() 完了までは Google signOut() が呼ばれず、
+          // 完了後に初期化済みであることを保証した上で signOut() が呼ばれること
+          final deleteCompleter = Completer<void>();
+          when(mockUser.delete).thenAnswer((_) => deleteCompleter.future);
           when(mockGoogleSignIn.signOut).thenAnswer((_) async {});
-          await check(repo.deleteAccount()).completes();
+
+          final deleteFuture = repo.deleteAccount();
+          await Future<void>.delayed(Duration.zero);
+
           verify(mockUser.delete).called(1);
+          verifyNever(mockGoogleSignIn.signOut);
+
+          deleteCompleter.complete();
+          await check(deleteFuture).completes();
+          verifyInOrder([
+            mockGoogleSignIn.initialize,
+            mockGoogleSignIn.signOut,
+          ]);
+
+          // 別リポジトリインスタンスでも同一 GoogleSignIn なら initialize() を再実行しないこと
+          final secondRepo = FirebaseAuthRepository(
+            firebaseAuth: mockFirebaseAuth,
+            googleSignIn: mockGoogleSignIn,
+            talker: mockTalker,
+          );
+          when(mockUser.delete).thenAnswer((_) async {});
+          await check(secondRepo.deleteAccount()).completes();
+          verifyNever(mockGoogleSignIn.initialize);
           verify(mockGoogleSignIn.signOut).called(1);
 
           // ユーザー削除後にGoogleサインアウトのみ失敗 -> ログ記録しつつ完了
@@ -767,6 +802,31 @@ void main() {
           ).called(1);
         },
       );
+
+      test('GoogleSignIn 初期化に失敗した場合は次回呼び出しで再試行できること', () async {
+        final isolatedGoogleSignIn = MockGoogleSignIn();
+        var initCalls = 0;
+        when(isolatedGoogleSignIn.initialize).thenAnswer((_) async {
+          initCalls++;
+          if (initCalls == 1) {
+            throw Exception('init failed');
+          }
+        });
+        when(isolatedGoogleSignIn.signOut).thenAnswer((_) async {});
+        when(() => mockFirebaseAuth.signOut()).thenAnswer((_) async {});
+
+        final repo = FirebaseAuthRepository(
+          firebaseAuth: mockFirebaseAuth,
+          googleSignIn: isolatedGoogleSignIn,
+          talker: mockTalker,
+        );
+
+        await check(repo.signOut()).throws<Exception>();
+        await check(repo.signOut()).completes();
+
+        check(initCalls).equals(2);
+        verify(isolatedGoogleSignIn.signOut).called(1);
+      });
     });
   });
 }

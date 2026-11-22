@@ -155,20 +155,29 @@ class AuthRepository {
   /// サーバー側の削除が成功した後は、端末側のトークン消去に失敗しても
   /// Crashlytics へ記録して処理を続行し、未ログイン遷移およびローカル削除を妨げません。
   Future<void> deleteAccount() async {
-    final accessToken = await _sessionLock.synchronized(
-      tokenStorage.getAccessToken,
-    );
-    if (accessToken == null || accessToken.isEmpty) {
+    final startState = await _sessionLock.synchronized(() async {
+      final token = await tokenStorage.getAccessToken();
+      if (token == null || token.isEmpty) {
+        return null;
+      }
+      return (accessToken: token, sessionEpoch: _sessionLock.sessionEpoch);
+    });
+    if (startState == null) {
       throw const AppException.unauthenticated();
     }
 
     await api.delete<void>(
       '/auth/account',
-      options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
+      options: Options(
+        headers: {'Authorization': 'Bearer ${startState.accessToken}'},
+      ),
     );
 
     try {
-      await _sessionLock.runSessionTransition(tokenStorage.clear);
+      await _sessionLock.runSessionTransitionIfCurrent(
+        expectedEpoch: startState.sessionEpoch,
+        action: tokenStorage.clear,
+      );
     } on Object catch (e, st) {
       // サーバー側のアカウント削除は既に完了しているため、
       // ローカルトークン消去失敗は Crashlytics へ記録しつつサインアウト・ローカル削除を続行する

@@ -79,9 +79,18 @@ class StorageService {
     }
   }
 
-  /// 指定されたURLが Firebase Storage の削除対象URLかどうかを判定する
+  static final RegExp _firebaseStoragePathRegExp = RegExp(
+    r'^/v[A-Za-z0-9_]+/b/[A-Za-z0-9.\-_]+/o(?:/|$)',
+    caseSensitive: false,
+  );
+  static final RegExp _cloudStoragePathRegExp = RegExp(
+    r'^/[A-Za-z0-9.\-_]+/',
+    caseSensitive: false,
+  );
+
+  /// 指定されたURLが `firebase_storage` SDK の `refFromURL` で処理可能な削除対象URLか判定する
   ///
-  /// Googleログイン由来の外部プロフィール画像URLやローカルファイルパス等が
+  /// Googleログイン由来の外部プロフィール画像URLやローカルファイルパス、SDK非対応形式、空文字が
   /// 渡された場合に `refFromURL` で例外が発生するのを防ぐために使用します。
   static bool isFirebaseStorageUrl(String url) {
     final trimmed = url.trim();
@@ -105,20 +114,18 @@ class StorageService {
 
     final host = uri.host.toLowerCase();
 
-    // 本番 Firebase Storage / Google Cloud Storage URL
+    // 本番 Firebase Storage REST URL (/v0/b/<bucket>/o/...) または
+    // Firebase Storage Emulator (localhost / 10.0.2.2) の同パス形式
     if (host == 'firebasestorage.googleapis.com' ||
-        host == 'storage.googleapis.com' ||
-        host.endsWith('.firebasestorage.app')) {
-      return true;
+        host == 'localhost' ||
+        host == '10.0.2.2') {
+      return _firebaseStoragePathRegExp.hasMatch(uri.path);
     }
 
-    // Firebase Storage Emulator URL (localhost / 127.0.0.1 / 10.0.2.2)
-    final isLocalEmulatorHost =
-        host == 'localhost' || host == '127.0.0.1' || host == '10.0.2.2';
-    if (isLocalEmulatorHost &&
-        (uri.path.startsWith('/v0/b/') ||
-            uri.path.startsWith('/download/storage/v1/b/'))) {
-      return true;
+    // Google Cloud Storage URL (storage.googleapis.com / storage.cloud.google.com)
+    if (host == 'storage.googleapis.com' ||
+        host == 'storage.cloud.google.com') {
+      return _cloudStoragePathRegExp.hasMatch(uri.path);
     }
 
     return false;

@@ -55,6 +55,7 @@
   "errorRequiresRecentLogin": "Re-authentication is required to continue. Please verify your account and try again.",
   "errorUserMismatch": "The selected account does not match the currently signed-in account. Please try again with the same account.",
   "errorWrongPassword": "The password is incorrect.",
+  "errorReauthInvalidCredential": "Could not verify the re-authentication credentials. Please try again.",
   "errorTooManyRequests": "Too many attempts. Please wait a while and try again.",
   "errorReauthCancelled": "Re-authentication was cancelled.",
   "errorMissingEmail": "No email address is linked to this account. Please try another authentication method.",

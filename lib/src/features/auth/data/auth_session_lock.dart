@@ -33,4 +33,19 @@ class AuthSessionLock {
       return action();
     });
   }
+
+  /// 現在の世代が [expectedEpoch] と一致する場合のみセッション世代を進めて [action] を実行する
+  Future<bool> runSessionTransitionIfCurrent({
+    required int expectedEpoch,
+    required Future<void> Function() action,
+  }) {
+    return synchronized(() async {
+      if (_sessionEpoch != expectedEpoch) {
+        return false;
+      }
+      _sessionEpoch++;
+      await action();
+      return true;
+    });
+  }
 }

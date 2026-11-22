@@ -158,6 +158,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get errorWrongPassword => 'パスワードが正しくありません。';
 
   @override
+  String get errorReauthInvalidCredential =>
+      '再認証の資格情報を確認できませんでした。再度認証をお試しください。';
+
+  @override
   String get errorTooManyRequests => '試行回数が上限に達しました。しばらく時間をおいてから再度お試しください。';
 
   @override

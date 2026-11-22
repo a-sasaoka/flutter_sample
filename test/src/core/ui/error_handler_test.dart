@@ -58,6 +58,9 @@ void main() {
     when(() => mockL10n.errorUserMismatch).thenReturn('errorUserMismatch');
     when(() => mockL10n.errorWrongPassword).thenReturn('errorWrongPassword');
     when(
+      () => mockL10n.errorReauthInvalidCredential,
+    ).thenReturn('errorReauthInvalidCredential');
+    when(
       () => mockL10n.errorTooManyRequests,
     ).thenReturn('errorTooManyRequests');
     when(
@@ -291,6 +294,12 @@ void main() {
           check(
             ErrorHandler.message(context, const ReauthMissingEmailException()),
           ).equals('errorMissingEmail');
+          check(
+            ErrorHandler.message(
+              context,
+              const ReauthInvalidCredentialException(),
+            ),
+          ).equals('errorReauthInvalidCredential');
         },
       );
     });

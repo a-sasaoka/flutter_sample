@@ -53,6 +53,15 @@ void main() {
     when(() => mockL10n.cancel).thenReturn('キャンセル');
   });
 
+  void setMobileView(WidgetTester tester) {
+    tester.view.physicalSize = const Size(1080, 1920);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+  }
+
   Widget buildApp(Widget child) {
     return MaterialApp(
       localizationsDelegates: [
@@ -67,6 +76,7 @@ void main() {
 
   group('AccountDeletionStep1Dialog', () {
     testWidgets('キャンセル押下で false を返すこと', (tester) async {
+      setMobileView(tester);
       bool? result;
       await tester.pumpWidget(
         buildApp(
@@ -96,6 +106,7 @@ void main() {
     });
 
     testWidgets('続行ボタン押下で true を返し、外側タップ時は false を返すこと', (tester) async {
+      setMobileView(tester);
       bool? result;
       await tester.pumpWidget(
         buildApp(
@@ -131,6 +142,7 @@ void main() {
 
   group('AccountDeletionStep2Dialog', () {
     testWidgets('キャンセルで false、削除確定ボタンで true を返すこと', (tester) async {
+      setMobileView(tester);
       bool? result;
       await tester.pumpWidget(
         buildApp(
@@ -165,6 +177,7 @@ void main() {
 
   group('AccountDeletionProcessingDialogContent', () {
     testWidgets('ローディング表示と PopScope(canPop: false) が設定されていること', (tester) async {
+      setMobileView(tester);
       await tester.pumpWidget(
         buildApp(AccountDeletionProcessingDialogContent(key: UniqueKey())),
       );
