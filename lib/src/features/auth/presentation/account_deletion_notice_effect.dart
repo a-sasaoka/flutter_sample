@@ -13,15 +13,17 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 /// 予約（[AccountDeletionNoticeStatus.reserved]）状態であっても消費・表示しない。
 void useAccountDeletionNoticeEffect(BuildContext context, WidgetRef ref) {
   void scheduleShowCompletedSnackBar() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!context.mounted) return;
-      final shouldShow = ref
-          .read(accountDeletionNoticeProvider.notifier)
-          .consume();
-      if (shouldShow) {
-        context.showSuccessSnackBar(context.l10n.accountDeletionCompleted);
-      }
-    });
+    WidgetsBinding.instance
+      ..addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        final shouldShow = ref
+            .read(accountDeletionNoticeProvider.notifier)
+            .consume();
+        if (shouldShow) {
+          context.showSuccessSnackBar(context.l10n.accountDeletionCompleted);
+        }
+      })
+      ..ensureVisualUpdate();
   }
 
   // マウント時点で既に削除確定済みの場合に表示する

@@ -4,6 +4,8 @@ import 'dart:io';
 
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart'; // Responseクラス用
+import 'package:drift/backends.dart';
+import 'package:drift/drift.dart' show OpeningDetails;
 import 'package:drift/native.dart';
 import 'package:flutter_sample/src/app/constants/storage_keys.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
@@ -43,6 +45,53 @@ class MockFlutterSecureStorage extends Mock implements FlutterSecureStorage {}
 // CustomAuthInvalidationStoreのモック
 class MockCustomAuthInvalidationStore extends Mock
     implements CustomAuthInvalidationStore {}
+
+class _TestQueryExecutorUser implements QueryExecutorUser {
+  const _TestQueryExecutorUser();
+
+  @override
+  int get schemaVersion => 1;
+
+  @override
+  Future<void> beforeOpen(
+    QueryExecutor executor,
+    OpeningDetails details,
+  ) async {}
+}
+
+class _SpyCustomAuthInvalidationStore extends CustomAuthInvalidationStore {
+  _SpyCustomAuthInvalidationStore({required super.getDirectory});
+
+  final List<int> markedEntryIds = [];
+  final List<int?> clearedEntryIds = [];
+
+  @override
+  Future<int> markInvalidated({
+    String? targetUserId,
+    String? targetEmail,
+  }) async {
+    final id = await super.markInvalidated(
+      targetUserId: targetUserId,
+      targetEmail: targetEmail,
+    );
+    markedEntryIds.add(id);
+    return id;
+  }
+
+  @override
+  Future<void> clearInvalidatedIfMatches({
+    required String? targetUserId,
+    required String? targetEmail,
+    int? entryId,
+  }) async {
+    clearedEntryIds.add(entryId);
+    await super.clearInvalidatedIfMatches(
+      targetUserId: targetUserId,
+      targetEmail: targetEmail,
+      entryId: entryId,
+    );
+  }
+}
 
 // TokenStorageのモック
 class FakeTokenStorage extends Mock implements TokenStorage {
@@ -1185,8 +1234,13 @@ void main() {
             value: any(named: 'value'),
           ),
         ).thenAnswer((inv) async {
-          final key = inv.namedArguments[#key] as String;
-          final value = inv.namedArguments[#value] as String?;
+          final (:key, :value) = switch (inv.namedArguments) {
+            {#key: final String key, #value: final String? value} => (
+              key: key,
+              value: value,
+            ),
+            _ => fail('Unexpected write arguments: ${inv.namedArguments}'),
+          };
           if (key == SecureStorageKeys.refreshToken &&
               value == 'valid-refresh') {
             throw refreshWriteError;
@@ -1903,6 +1957,226 @@ void main() {
       );
       await check(deleteFuture).completes((it) => it.equals(true));
       check(lock.sessionEpoch).equals(1);
+    });
+
+    test('deleteAccount: API待機中に accessToken のみ消えて他キーが残っていた場合、 '
+        'clear() を再試行して全キーと無効化行を削除すること', () async {
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-old',
+              currentUserId: 'user-old',
+            )
+            ..savedAccessToken = 'access-old'
+            ..savedRefreshToken = 'refresh-old';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+      final lock = container.read(authSessionLockProvider);
+
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+
+      final deleteFuture = repo.deleteAccount();
+      await deleteStarted.future;
+
+      // 部分消去（accessToken のみ消去、refreshToken と customUserId は残留）を模擬
+      await lock.runSessionTransition(() async {
+        fakeStorage.savedAccessToken = null;
+      });
+
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+
+      await check(deleteFuture).completes((it) => it.equals(true));
+      check(await fakeStorage.getAccessToken()).isNull();
+      check(await fakeStorage.getRefreshToken()).isNull();
+      check(await fakeStorage.getUserId()).isNull();
+      check(await invalidationStore.isInvalidated()).equals(false);
+    });
+
+    test('deleteAccount: accessToken/refreshToken が空で customUserId のみ残存時も '
+        'clear() を再試行して消去すること', () async {
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-old',
+              currentUserId: 'user-old',
+            )
+            ..savedAccessToken = 'access-old'
+            ..savedRefreshToken = 'refresh-old';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+      final lock = container.read(authSessionLockProvider);
+
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+
+      final deleteFuture = repo.deleteAccount();
+      await deleteStarted.future;
+
+      await lock.runSessionTransition(() async {
+        fakeStorage
+          ..savedAccessToken = null
+          ..savedRefreshToken = null
+          ..currentRefreshToken = null;
+      });
+
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+
+      await check(deleteFuture).completes((it) => it.equals(true));
+      check(await fakeStorage.getUserId()).isNull();
+      check(await invalidationStore.isInvalidated()).equals(false);
+    });
+
+    test('deleteAccount: accessToken 欠落かつ他キー残留時に再試行した clear() も失敗した場合、 '
+        '無効化行を保持したまま true を返し再起動時に誤復元しないこと', () async {
+      final clearRetryError = Exception('retry clear failed');
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-old',
+              currentUserId: 'user-old',
+            )
+            ..savedAccessToken = 'access-old'
+            ..savedRefreshToken = 'refresh-old';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+      final lock = container.read(authSessionLockProvider);
+
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+
+      final deleteFuture = repo.deleteAccount();
+      await deleteStarted.future;
+
+      await lock.runSessionTransition(() async {
+        fakeStorage
+          ..savedAccessToken = null
+          ..clearError = clearRetryError;
+      });
+
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+
+      await check(deleteFuture).completes((it) => it.equals(true));
+      check(await fakeStorage.getRefreshToken()).equals('refresh-old');
+      check(await fakeStorage.getUserId()).equals('user-old');
+      check(await invalidationStore.isInvalidated()).equals(true);
+      verify(
+        () => mockTalker.handle(
+          clearRetryError,
+          any<StackTrace?>(),
+          'Failed to clear local tokens after account deletion',
+        ),
+      ).called(1);
+
+      // 次回起動時、ストレージが回復していれば残留キーと無効化行を両方消去すること
+      fakeStorage.clearError = null;
+      final restarted = createContainer(fakeStorage);
+      check(await restarted.read(authStateProvider.future)).equals(false);
+      check(await fakeStorage.getRefreshToken()).isNull();
+      check(await fakeStorage.getUserId()).isNull();
+      check(await invalidationStore.isInvalidated()).equals(false);
+    });
+
+    test('deleteAccount: 待機中にサインアウト済みとなりトークン読み取りも失敗した場合、 '
+        'clear() 再試行が失敗しても無効化行を保持して true を返すこと', () async {
+      final clearRetryError = Exception('clear failed on fallback');
+      final readError = Exception('access token read failed');
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-old',
+              currentUserId: 'user-old',
+            )
+            ..savedAccessToken = 'access-old'
+            ..savedRefreshToken = 'refresh-old';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+      final lock = container.read(authSessionLockProvider);
+
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+
+      final deleteFuture = repo.deleteAccount();
+      await deleteStarted.future;
+
+      await lock.runSessionTransition(() async {
+        lock.recordSignedOutSession();
+        fakeStorage
+          ..getAccessTokenError = readError
+          ..clearError = clearRetryError;
+      });
+
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+
+      await check(deleteFuture).completes((it) => it.equals(true));
+      check(await invalidationStore.isInvalidated()).equals(true);
+      verify(
+        () => mockTalker.handle(
+          readError,
+          any<StackTrace?>(),
+          'Failed to read current token while resolving account deletion '
+          'outcome',
+        ),
+      ).called(1);
+      verify(
+        () => mockTalker.handle(
+          clearRetryError,
+          any<StackTrace?>(),
+          'Failed to clear local tokens after account deletion',
+        ),
+      ).called(1);
     });
 
     test('deleteAccount: サーバー削除成功後に tokenStorage.clear() が失敗しても、 '
@@ -2838,12 +3112,46 @@ void main() {
             )
             ..savedAccessToken = jwtA
             ..savedRefreshToken = 'refresh-a';
-      final container = createContainer(fakeStorage);
+      final spyStore = _SpyCustomAuthInvalidationStore(
+        getDirectory: () async => tempDir,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          authApiClientProvider.overrideWithValue(mockApi),
+          tokenStorageProvider.overrideWith((ref) => fakeStorage),
+          customAuthInvalidationStoreProvider.overrideWithValue(spyStore),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container.dispose);
       final repo = container.read(authRepositoryProvider);
       final lock = container.read(authSessionLockProvider);
 
-      // 先行・別の退会要求が所有する無効化行（entry 1）が存在していても保持されるべき
-      await invalidationStore.markInvalidated(
+      Future<List<int>> readInvalidationRowIds() async {
+        final executor = NativeDatabase(
+          invalidationDbFile(),
+          enableMigrations: false,
+        );
+        await executor.ensureOpen(const _TestQueryExecutorUser());
+        try {
+          final rows = await executor.runSelect(
+            'SELECT id FROM custom_auth_invalidation_entries ORDER BY id ASC;',
+            const [],
+          );
+          return [
+            for (final row in rows)
+              switch (row['id']) {
+                final int id => id,
+                final other => fail('Unexpected row id: $other'),
+              },
+          ];
+        } finally {
+          await executor.close();
+        }
+      }
+
+      // 先行・別の退会要求が所有する無効化行が存在していても保持されるべき
+      final precedingEntryId = await spyStore.markInvalidated(
         targetUserId: 'user-a',
         targetEmail: 'a@example.com',
       );
@@ -2863,6 +3171,8 @@ void main() {
       ];
 
       for (final error in errors) {
+        final markCountBefore = spyStore.markedEntryIds.length;
+        spyStore.clearedEntryIds.clear();
         when(
           () => mockApi.delete<void>(
             '/auth/account',
@@ -2882,9 +3192,12 @@ void main() {
           ),
         ).equals(false);
         check(await fakeStorage.getAccessToken()).equals(jwtA);
-        // 先行していた entry 1 のみが残り、この要求の行は解除されていること
-        final entries = await invalidationStore.getInvalidationEntries();
-        check(entries.length).equals(1);
+        check(spyStore.markedEntryIds.length).equals(markCountBefore + 1);
+        final currentEntryId = spyStore.markedEntryIds.last;
+        check(currentEntryId).not((it) => it.equals(precedingEntryId));
+        check(spyStore.clearedEntryIds).deepEquals([currentEntryId]);
+        // 先行していた行 ID のみが残り、今回の行 ID は削除されていること
+        check(await readInvalidationRowIds()).deepEquals([precedingEntryId]);
       }
 
       // 削除成否不明の失敗群（408 や通信・解析・キャンセル・不明エラー）は無効化行を保持すること
@@ -2897,8 +3210,10 @@ void main() {
         const AppException.unknown(),
       ];
 
-      var expectedCount = 1;
+      final expectedRemainingIds = <int>[precedingEntryId];
       for (final error in uncertainErrors) {
+        final markCountBefore = spyStore.markedEntryIds.length;
+        spyStore.clearedEntryIds.clear();
         when(
           () => mockApi.delete<void>(
             '/auth/account',
@@ -2909,10 +3224,11 @@ void main() {
         await check(
           repo.deleteAccount(),
         ).throws<Exception>((it) => it.equals(error));
-        expectedCount++;
+        check(spyStore.markedEntryIds.length).equals(markCountBefore + 1);
+        expectedRemainingIds.add(spyStore.markedEntryIds.last);
+        check(spyStore.clearedEntryIds).isEmpty();
         check(lock.isDeletionInProgress).equals(false);
-        final entries = await invalidationStore.getInvalidationEntries();
-        check(entries.length).equals(expectedCount);
+        check(await readInvalidationRowIds()).deepEquals(expectedRemainingIds);
       }
     });
 

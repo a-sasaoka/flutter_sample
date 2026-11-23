@@ -448,9 +448,24 @@ class AuthRepository {
     try {
       final currentToken = await tokenStorage.getAccessToken();
       if (currentToken == null || currentToken.isEmpty) {
-        // 既に別操作でサインアウト済みの場合は余計なトークン消去や世代更新をせず終了扱いとする
+        final currentRefreshToken = await tokenStorage.getRefreshToken();
+        final currentUserId = await tokenStorage.getUserId();
+        final hasRemainingCredentials =
+            (currentRefreshToken != null && currentRefreshToken.isNotEmpty) ||
+            (currentUserId != null && currentUserId.isNotEmpty);
+        if (!hasRemainingCredentials) {
+          // 全キー（accessToken / refreshToken / customUserId）の消去完了を確認できた場合のみ、
+          // 余計なトークン消去や世代更新をせず終了扱いとする
+          return (
+            shouldClearTokens: false,
+            shouldTerminateSession: true,
+            shouldClearInvalidationFlag: true,
+          );
+        }
+        // 一部キーのみ残留している消去未完了状態では TokenStorage.clear() を再試行し、
+        // 再試行にも失敗した場合は無効化行を保持したまま未ログインへの遷移を続ける
         return (
-          shouldClearTokens: false,
+          shouldClearTokens: true,
           shouldTerminateSession: true,
           shouldClearInvalidationFlag: true,
         );
@@ -484,7 +499,9 @@ class AuthRepository {
   _resolveDeletionOutcomeFromTrackedSession(_DeletionStartState startState) {
     return switch (_sessionLock.currentSession) {
       SignedOutTrackedAuthSession() => (
-        shouldClearTokens: false,
+        // 読み取り失敗時は全キー消去を確認できないため TokenStorage.clear() を再試行し、
+        // 全キー消去に成功した場合のみ無効化行を解除する（失敗時は保持）
+        shouldClearTokens: true,
         shouldTerminateSession: true,
         shouldClearInvalidationFlag: true,
       ),

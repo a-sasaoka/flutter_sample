@@ -515,6 +515,7 @@ void main() {
         check(find.byType(SnackBar)).findsNothing();
 
         notifier.confirmCompleted();
+        check(tester.binding.hasScheduledFrame).isTrue();
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
 

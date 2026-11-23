@@ -305,9 +305,19 @@ void main() {
       check(FocusScope.of(context).focusedChild).isNull();
     });
 
+    void setMobileView(WidgetTester tester) {
+      tester.view.physicalSize = const Size(1080, 1920);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+    }
+
     testWidgets('退会通知が completed の場合、画面表示後に完了SnackBarが表示され状態が消費されること', (
       tester,
     ) async {
+      setMobileView(tester);
       final router = GoRouter(
         initialLocation: '/login',
         routes: [
@@ -350,6 +360,7 @@ void main() {
     testWidgets('退会通知が reserved のみの場合、完了SnackBarは表示されず clear されても表示されないこと', (
       tester,
     ) async {
+      setMobileView(tester);
       final router = GoRouter(
         initialLocation: '/login',
         routes: [
@@ -400,6 +411,7 @@ void main() {
     testWidgets(
       'reserved 状態で先に画面がマウントされた後、confirmCompleted で確定すると完了SnackBarが1回だけ表示されること',
       (tester) async {
+        setMobileView(tester);
         final router = GoRouter(
           initialLocation: '/login',
           routes: [
@@ -433,6 +445,7 @@ void main() {
         check(find.byType(SnackBar)).findsNothing();
 
         notifier.confirmCompleted();
+        check(tester.binding.hasScheduledFrame).isTrue();
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
 

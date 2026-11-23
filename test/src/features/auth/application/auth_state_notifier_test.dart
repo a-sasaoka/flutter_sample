@@ -50,6 +50,7 @@ class FakeTokenStorage extends Mock implements TokenStorage {
   });
 
   String? mockAccessToken;
+  String? mockRefreshToken;
   final Future<String?>? mockAccessTokenFuture;
   String? currentUserId;
   final bool shouldThrowOnSave;
@@ -71,6 +72,9 @@ class FakeTokenStorage extends Mock implements TokenStorage {
         ? await mockAccessTokenFuture!
         : mockAccessToken;
   }
+
+  @override
+  Future<String?> getRefreshToken() async => mockRefreshToken;
 
   @override
   Future<String?> getUserId() async {
@@ -95,6 +99,7 @@ class FakeTokenStorage extends Mock implements TokenStorage {
       throw Exception('Failed to save tokens');
     }
     mockAccessToken = accessToken;
+    mockRefreshToken = refreshToken;
     await onSaveTokens?.call(accessToken, refreshToken);
   }
 
@@ -106,6 +111,7 @@ class FakeTokenStorage extends Mock implements TokenStorage {
     }
     currentUserId = null;
     mockAccessToken = null;
+    mockRefreshToken = null;
   }
 }
 
