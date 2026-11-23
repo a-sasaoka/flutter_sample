@@ -698,8 +698,20 @@ async function checkRateLimit(uid: string): Promise<RateLimitStatus> {
       );
       return "deletion_check_failed";
     }
+    try {
+      const latestDeletionSnap = await deletionStateRef.get();
+      if (latestDeletionSnap.exists) {
+        return "account_deleting";
+      }
+    } catch (deletionCheckError) {
+      logger.error(
+        "Failed to recheck account deletion state in Firestore: ",
+        deletionCheckError
+      );
+      return "deletion_check_failed";
+    }
     logger.error("Rate limit check failed in Firestore: ", error);
-    // 障害時はユーザー操作をブロックしないようフェイルオープン
+    // 退会マーカー不在を再確認できた場合に限り、レート制限側の障害はフェイルオープン
     return "allowed";
   }
 }

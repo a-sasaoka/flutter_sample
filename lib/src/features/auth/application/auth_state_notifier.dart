@@ -138,10 +138,15 @@ class AuthStateNotifier extends _$AuthStateNotifier {
   ///
   /// 古いログイン応答が削除完了後などに届いて破棄された場合は `false` を返し、
   /// 現在の認証状態（未ログインまたは他セッション）を上書きしません。
+  /// 古い要求が例外で失敗した場合も、要求開始時のセッション世代・削除世代と
+  /// 一致しない限り `state` を `AsyncError` へ変更せず、元の例外のみを再スローします。
   Future<bool> loginWithCredentials({
     required String email,
     required String password,
   }) async {
+    final sessionLock = ref.read(authSessionLockProvider);
+    final startSessionEpoch = sessionLock.sessionEpoch;
+    final startDeletionEpoch = sessionLock.deletionEpoch;
     try {
       // 初期化（build）の完了を待機して、初期化結果による状態の上書きを防ぐ
       await future;
@@ -153,7 +158,10 @@ class AuthStateNotifier extends _$AuthStateNotifier {
       }
       return isLoggedIn;
     } catch (e, st) {
-      state = AsyncError(e, st);
+      if (sessionLock.sessionEpoch == startSessionEpoch &&
+          sessionLock.deletionEpoch == startDeletionEpoch) {
+        state = AsyncError(e, st);
+      }
       rethrow;
     }
   }
@@ -166,9 +174,21 @@ class AuthStateNotifier extends _$AuthStateNotifier {
         await ref.read(tokenStorageProvider).clear();
         sessionLock.recordSignedOutSession();
         if (!sessionLock.isDeletionInProgress) {
-          await ref
-              .read(customAuthInvalidationStoreProvider)
-              .clearInvalidated();
+          try {
+            await ref
+                .read(customAuthInvalidationStoreProvider)
+                .clearInvalidated();
+          } on Object catch (e, st) {
+            // トークン消去は既に完了しているため、無効化フラグ解除の失敗だけで
+            // ログアウト全体を失敗扱いにしない
+            ref
+                .read(loggerProvider)
+                .handle(
+                  e,
+                  st,
+                  'Failed to clear custom auth invalidation flag on logout',
+                );
+          }
         }
       });
       state = const AsyncData(false);

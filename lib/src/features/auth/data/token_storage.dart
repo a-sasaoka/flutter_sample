@@ -23,12 +23,29 @@ class TokenStorage {
 
   /// トークンを保存する
   ///
-  /// 途中で書き込みに失敗した場合は、この呼び出しで書き込んだキーを削除して
-  /// 中途半端な資格情報が残らないようにした上で例外を再スローします。
+  /// 途中で書き込みに失敗した場合は例外を再スローします。
+  /// [preserveExistingOnFailure] が `false` の場合（ログイン経路）は、この呼び出しで
+  /// 書き込んだキーを削除して中途半端な資格情報が残らないようにします。
+  /// `true` の場合（トークンリフレッシュ経路）は、書き込み前に保持していた
+  /// 有効な資格情報を復元して保持します。
   Future<void> saveTokens({
     required String accessToken,
     required String refreshToken,
+    bool preserveExistingOnFailure = false,
   }) async {
+    final previousValues = preserveExistingOnFailure
+        ? <String, String?>{
+            SecureStorageKeys.accessToken: await _secureStorage.read(
+              key: SecureStorageKeys.accessToken,
+            ),
+            SecureStorageKeys.refreshToken: await _secureStorage.read(
+              key: SecureStorageKeys.refreshToken,
+            ),
+            SecureStorageKeys.customUserId: await _secureStorage.read(
+              key: SecureStorageKeys.customUserId,
+            ),
+          }
+        : null;
     final writtenKeys = <String>[];
     try {
       await _secureStorage.write(
@@ -57,12 +74,23 @@ class TokenStorage {
     } on Object {
       for (final key in writtenKeys) {
         try {
-          await _secureStorage.delete(key: key);
+          await _rollbackKey(key, previousValue: previousValues?[key]);
         } on Object catch (_) {
-          // 元の書き込み例外を優先して伝播させるため、ロールバック時の削除失敗は無視する
+          // 元の書き込み例外を優先して伝播させるため、ロールバック時の復元/削除失敗は無視する
         }
       }
       rethrow;
+    }
+  }
+
+  Future<void> _rollbackKey(
+    String key, {
+    required String? previousValue,
+  }) async {
+    if (previousValue != null) {
+      await _secureStorage.write(key: key, value: previousValue);
+    } else {
+      await _secureStorage.delete(key: key);
     }
   }
 

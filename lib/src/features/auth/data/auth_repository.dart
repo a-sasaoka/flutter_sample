@@ -164,7 +164,8 @@ class AuthRepository {
     );
   }
 
-  /// 無効化状態の解除確認後にトークンを保存し、失敗時は部分保存された資格情報を消去する
+  /// 未確定ログイン状態を記録した上で無効化状態の確認・解除とトークン保存を行い、
+  /// 失敗時は部分保存された資格情報を消去する
   ///
   /// `AuthStateNotifier.login` と [login] の双方から同一の確定・ロールバック経路を
   /// 利用することで、失敗時に保存済みトークンが残らない挙動を揃えます。
@@ -179,14 +180,15 @@ class AuthRepository {
   }) async {
     final candidateUserId = JwtUtils.getUserId(accessToken);
     final candidateEmail = JwtUtils.getEmail(accessToken) ?? fallbackEmail;
-    // DB 確認・解除が失敗した場合に新しい資格情報を残さないため、保存前に実行する
+    // 無効化行を解除する前に未確定ログイン状態を記録し、記録失敗時は無効化行を残し、
+    // 解除失敗時や保存/消去ロールバック失敗時も次回起動時に残留トークンを復元しない
+    await invalidationStore.markLoginPending();
+    // マーカー記録後に無効化状態の確認・解除を実行する（解除失敗時もマーカーは残す）
     await invalidationStore.clearIfAllowedForLogin(
       userId: candidateUserId,
       email: candidateEmail,
       isDeletionInProgress: sessionLock.isDeletionInProgress,
     );
-    // 保存および消去ロールバックの双方が失敗しても次回起動時に復元しないよう未確定状態を記録する
-    await invalidationStore.markLoginPending();
     try {
       await tokenStorage.saveTokens(
         accessToken: accessToken,
@@ -263,6 +265,7 @@ class AuthRepository {
       await tokenStorage.saveTokens(
         accessToken: access,
         refreshToken: startState.refreshToken,
+        preserveExistingOnFailure: true,
       );
       final trackedEmail = switch (_sessionLock.currentSession) {
         AuthenticatedTrackedAuthSession(:final email) => email,
@@ -360,13 +363,19 @@ class AuthRepository {
       throw const AppException.unauthenticated();
     }
 
+    var didExplicitlyNotDelete = false;
     try {
-      await api.delete<void>(
-        '/auth/account',
-        options: Options(
-          headers: {'Authorization': 'Bearer ${startState.accessToken}'},
-        ),
-      );
+      try {
+        await api.delete<void>(
+          '/auth/account',
+          options: Options(
+            headers: {'Authorization': 'Bearer ${startState.accessToken}'},
+          ),
+        );
+      } on Object catch (e) {
+        didExplicitlyNotDelete = _isExplicitNonDeletionFailure(e);
+        rethrow;
+      }
 
       var shouldTerminateSession = false;
       try {
@@ -400,9 +409,24 @@ class AuthRepository {
       }
       return shouldTerminateSession;
     } finally {
-      _sessionLock
-        ..unregisterActiveDeletion(startState.invalidationEntryId)
-        ..endDeletion();
+      var hasFinishedLockCleanup = false;
+      if (didExplicitlyNotDelete) {
+        await _sessionLock.synchronized(() async {
+          await _clearInvalidationFlagBestEffort(
+            startState,
+            onlyOwnEntry: true,
+          );
+          _sessionLock
+            ..unregisterActiveDeletion(startState.invalidationEntryId)
+            ..endDeletion();
+          hasFinishedLockCleanup = true;
+        });
+      }
+      if (!hasFinishedLockCleanup) {
+        _sessionLock
+          ..unregisterActiveDeletion(startState.invalidationEntryId)
+          ..endDeletion();
+      }
     }
   }
 
@@ -507,17 +531,48 @@ class AuthRepository {
     };
   }
 
+  static bool _isExplicitNonDeletionFailure(Object error) {
+    final actual = error is DioException ? (error.error ?? error) : error;
+    if (actual is ReauthException) {
+      return true;
+    }
+    if (actual is AppException) {
+      return switch (actual) {
+        UnauthenticatedException() || UnauthorizedException() => true,
+        BadRequestException(:final statusCode) => statusCode != 408,
+        NetworkException() ||
+        ServerException() ||
+        TimeoutException() ||
+        DataParseException() ||
+        DatabaseException() ||
+        CancelException() ||
+        UnknownException() => false,
+      };
+    }
+    if (error is DioException && error.type == DioExceptionType.badResponse) {
+      final statusCode = error.response?.statusCode;
+      return statusCode != null &&
+          statusCode >= 400 &&
+          statusCode < 500 &&
+          statusCode != 408;
+    }
+    return false;
+  }
+
   Future<void> _clearInvalidationFlagBestEffort(
-    _DeletionStartState startState,
-  ) async {
+    _DeletionStartState startState, {
+    bool onlyOwnEntry = false,
+  }) async {
     try {
-      final hasOtherActiveForSameAccount = _sessionLock.hasOtherActiveDeletion(
-        entryId: startState.invalidationEntryId,
-        userId: startState.userId,
-        email: startState.email,
-      );
+      final shouldDeleteOnlyOwnEntry =
+          onlyOwnEntry ||
+          _sessionLock.hasOtherActiveDeletion(
+            entryId: startState.invalidationEntryId,
+            userId: startState.userId,
+            email: startState.email,
+          );
       await _invalidationStore.clearInvalidatedIfMatches(
-        entryId: hasOtherActiveForSameAccount
+        entryId: shouldDeleteOnlyOwnEntry
             ? startState.invalidationEntryId
             : null,
         targetUserId: startState.userId,

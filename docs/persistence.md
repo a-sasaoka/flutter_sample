@@ -136,7 +136,7 @@ APIのレスポンスなどを一時的に保存するクラスです。
 ### TokenStorage (`token_storage.dart`)
 
 アクセストークンやリフレッシュトークン、および独自認証のユーザー識別子（`customUserId`）を `FlutterSecureStorage` を用いてセキュアに暗号化保存します。  
-`saveTokens()` 時にアクセストークン（JWT）から `jwt_utils.dart` を用いて `sub` クレームを自動抽出し、暗号化キーストアに安全に保持します。
+`saveTokens()` 時にアクセストークン（JWT）から `jwt_utils.dart` を用いて `sub` クレームを自動抽出し、暗号化キーストアに安全に保持します。なお、`saveTokens()` の書き込み途中失敗時はログイン経路では書き込んだキーを削除し、リフレッシュ経路（`preserveExistingOnFailure: true`、[auth_repository.dart](../lib/src/features/auth/data/auth_repository.dart)）では書き込み前の既存の有効な資格情報を復元して保持します。
 DioのInterceptor（通信割り込み）と連携し、APIリクエスト時に自動でトークンをヘッダーに付与すると共に、`currentUserIdProvider` を通じて各機能へユーザーIDを提供します。
 
 ---

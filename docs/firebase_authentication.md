@@ -25,7 +25,7 @@ lib/src/features/auth/
  ├── data/
  │    └── firebase_auth_repository.dart            # Firebase APIの呼び出し（ログイン・登録・再認証・退会）
  └── application/
-      ├── account_deletion_notice_notifier.dart    # 退会完了後のログイン画面向けワンショット通知フラグ
+      ├── account_deletion_notice_notifier.dart    # 退会完了後のログイン画面向けワンショット通知状態管理
       └── firebase_auth_state_notifier.dart        # 現在のユーザー(AsyncValue<User?>)の状態管理
 ```
 

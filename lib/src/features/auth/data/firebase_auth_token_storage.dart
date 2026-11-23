@@ -30,6 +30,7 @@ class FirebaseAuthTokenStorage implements TokenStorage {
   Future<void> saveTokens({
     required String accessToken,
     required String refreshToken,
+    bool preserveExistingOnFailure = false,
   }) async {
     // Firebaseが自動保存するため、ここでは何もしません
   }

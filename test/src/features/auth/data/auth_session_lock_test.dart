@@ -221,6 +221,22 @@ void main() {
       ).equals(false);
     });
 
+    test('hasOtherActiveDeletion: 照合結果が不明な並行退会（別エントリが userId のみ・ '
+        '呼び出し側が email のみ）では true を返すこと', () {
+      final lock = AuthSessionLock()
+        ..registerActiveDeletion(entryId: 1, email: 'a@example.com')
+        ..registerActiveDeletion(entryId: 2, userId: 'user-only');
+
+      check(
+        lock.hasOtherActiveDeletion(entryId: 1, email: 'a@example.com'),
+      ).equals(true);
+
+      lock.unregisterActiveDeletion(2);
+      check(
+        lock.hasOtherActiveDeletion(entryId: 1, email: 'a@example.com'),
+      ).equals(false);
+    });
+
     test('trackedEmailForAccessToken: 現在のアクセストークンと一致する場合のみ '
         '保持メールを返し、不一致やサインアウト時は null を返すこと', () {
       final lock = AuthSessionLock();

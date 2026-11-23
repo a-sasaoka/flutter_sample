@@ -592,12 +592,15 @@ void main() {
       ).thenAnswer((_) async {
         callOrder.add('analytics');
       });
+      late ProviderContainer container;
+      AccountDeletionNoticeStatus? noticeDuringAuthDelete;
       when(() => mockAuthRepo.deleteAccount()).thenAnswer((_) async {
         callOrder.add('firebase_auth');
+        noticeDuringAuthDelete = container.read(accountDeletionNoticeProvider);
       });
       stubHappyLocalCleanups(callOrder: callOrder);
 
-      final container = createContainer(useFirebaseAuth: true);
+      container = createContainer(useFirebaseAuth: true);
       await container.read(authServiceProvider).deleteAccount();
 
       verify(
@@ -613,7 +616,12 @@ void main() {
         'local_cache',
         'analytics',
       ]);
-      check(container.read(accountDeletionNoticeProvider)).isTrue();
+      check(
+        noticeDuringAuthDelete,
+      ).equals(AccountDeletionNoticeStatus.reserved);
+      check(
+        container.read(accountDeletionNoticeProvider),
+      ).equals(AccountDeletionNoticeStatus.completed);
     });
 
     test(
@@ -644,7 +652,9 @@ void main() {
           ),
         );
         verify(() => mockAuthRepo.deleteAccount()).called(1);
-        check(container.read(accountDeletionNoticeProvider)).isTrue();
+        check(
+          container.read(accountDeletionNoticeProvider),
+        ).equals(AccountDeletionNoticeStatus.completed);
       },
     );
 
@@ -691,7 +701,9 @@ void main() {
         verifyNever(() => mockProfileRepo.deleteMyAccountData());
         verifyNever(() => mockAuthRepo.deleteAccount());
         verifyNever(() => mockMemoRepo.deleteAllMemosByUser(any()));
-        check(container.read(accountDeletionNoticeProvider)).isFalse();
+        check(
+          container.read(accountDeletionNoticeProvider),
+        ).equals(AccountDeletionNoticeStatus.none);
       },
     );
 
@@ -712,7 +724,9 @@ void main() {
 
       verifyNever(() => mockAuthRepo.deleteAccount());
       verifyNever(() => mockMemoRepo.deleteAllMemosByUser(any()));
-      check(container.read(accountDeletionNoticeProvider)).isFalse();
+      check(
+        container.read(accountDeletionNoticeProvider),
+      ).equals(AccountDeletionNoticeStatus.none);
     });
 
     test('Analytics記録が失敗しても退会フローは継続し完了すること', () async {
@@ -740,7 +754,9 @@ void main() {
       verify(
         () => mockMemoRepo.deleteAllMemosByUser('uid-analytics'),
       ).called(1);
-      check(container.read(accountDeletionNoticeProvider)).isTrue();
+      check(
+        container.read(accountDeletionNoticeProvider),
+      ).equals(AccountDeletionNoticeStatus.completed);
     });
 
     test('③ Firebase Auth削除で ReauthRequiresRecentLoginException が起きた場合、 '
@@ -753,11 +769,14 @@ void main() {
       when(
         () => mockProfileRepo.deleteMyAccountData(),
       ).thenAnswer((_) async {});
-      when(
-        () => mockAuthRepo.deleteAccount(),
-      ).thenThrow(const ReauthRequiresRecentLoginException());
+      late ProviderContainer container;
+      AccountDeletionNoticeStatus? noticeDuringAuthDelete;
+      when(() => mockAuthRepo.deleteAccount()).thenAnswer((_) async {
+        noticeDuringAuthDelete = container.read(accountDeletionNoticeProvider);
+        throw const ReauthRequiresRecentLoginException();
+      });
 
-      final container = createContainer(useFirebaseAuth: true);
+      container = createContainer(useFirebaseAuth: true);
       await check(
         container.read(authServiceProvider).deleteAccount(),
       ).throws<ReauthRequiresRecentLoginException>();
@@ -771,7 +790,12 @@ void main() {
           parameters: any(named: 'parameters'),
         ),
       );
-      check(container.read(accountDeletionNoticeProvider)).isFalse();
+      check(
+        noticeDuringAuthDelete,
+      ).equals(AccountDeletionNoticeStatus.reserved);
+      check(
+        container.read(accountDeletionNoticeProvider),
+      ).equals(AccountDeletionNoticeStatus.none);
     });
 
     test('③ Auth削除で予期せぬ例外が起きた場合、通知フラグをクリアし、④ ローカル削除を実行せず再スローすること', () async {
@@ -793,7 +817,9 @@ void main() {
       ).throws<Exception>();
 
       verifyNever(() => mockMemoRepo.deleteAllMemosByUser(any()));
-      check(container.read(accountDeletionNoticeProvider)).isFalse();
+      check(
+        container.read(accountDeletionNoticeProvider),
+      ).equals(AccountDeletionNoticeStatus.none);
     });
 
     test('④ ローカルクリーンアップの一部が失敗しても、残りのクリーンアップを実行して完了すること', () async {
@@ -822,15 +848,24 @@ void main() {
       ).completes();
 
       verify(() => mockCacheManager.clear(UserRepository.cacheKey)).called(1);
-      check(container.read(accountDeletionNoticeProvider)).isTrue();
+      check(
+        container.read(accountDeletionNoticeProvider),
+      ).equals(AccountDeletionNoticeStatus.completed);
     });
 
     test(
       'カスタム認証版正常系: Storageをスキップし、サーバーDB ➔ AuthStateNotifier削除 ➔ ローカル全削除が完了すること',
       () async {
         final callOrder = <String>[];
+        late ProviderContainer container;
+        AccountDeletionNoticeStatus? noticeDuringAuthDelete;
         final fakeAuthNotifier = FakeAuthStateNotifier()
-          ..onDeleteAccount = () => callOrder.add('custom_auth');
+          ..onDeleteAccount = () {
+            callOrder.add('custom_auth');
+            noticeDuringAuthDelete = container.read(
+              accountDeletionNoticeProvider,
+            );
+          };
 
         when(
           () => mockTokenStorage.getUserId(),
@@ -847,7 +882,7 @@ void main() {
         });
         stubHappyLocalCleanups(callOrder: callOrder);
 
-        final container = createContainer(
+        container = createContainer(
           useFirebaseAuth: false,
           fakeAuthNotifier: fakeAuthNotifier,
         );
@@ -869,7 +904,12 @@ void main() {
           'local_cache',
           'analytics',
         ]);
-        check(container.read(accountDeletionNoticeProvider)).isTrue();
+        check(
+          noticeDuringAuthDelete,
+        ).equals(AccountDeletionNoticeStatus.reserved);
+        check(
+          container.read(accountDeletionNoticeProvider),
+        ).equals(AccountDeletionNoticeStatus.completed);
       },
     );
 
@@ -894,7 +934,9 @@ void main() {
 
       check(fakeAuthNotifier.isDeleteAccountCalled).isTrue();
       check(container.read(authStateProvider).value).equals(true);
-      check(container.read(accountDeletionNoticeProvider)).isFalse();
+      check(
+        container.read(accountDeletionNoticeProvider),
+      ).equals(AccountDeletionNoticeStatus.none);
       verify(() => mockMemoRepo.deleteAllMemosByUser('custom-uid-1')).called(1);
       verify(
         () =>
@@ -963,7 +1005,9 @@ void main() {
       check(spyTalker.handleExceptions).isEmpty();
       verifyNever(() => mockAuthRepo.deleteAccount());
       verifyNever(() => mockMemoRepo.deleteAllMemosByUser(any()));
-      check(container.read(accountDeletionNoticeProvider)).isFalse();
+      check(
+        container.read(accountDeletionNoticeProvider),
+      ).equals(AccountDeletionNoticeStatus.none);
 
       // 再試行時は 2 回目の deleteMyAccountData が成功し、退会が完了すること
       await check(
@@ -973,7 +1017,9 @@ void main() {
       verify(
         () => mockMemoRepo.deleteAllMemosByUser('uid-server-reauth'),
       ).called(1);
-      check(container.read(accountDeletionNoticeProvider)).isTrue();
+      check(
+        container.read(accountDeletionNoticeProvider),
+      ).equals(AccountDeletionNoticeStatus.completed);
     });
   });
 }

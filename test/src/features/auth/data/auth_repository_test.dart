@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart'; // Responseクラス用
 import 'package:drift/native.dart';
+import 'package:flutter_sample/src/app/constants/storage_keys.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/exceptions/reauth_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
@@ -38,6 +39,10 @@ class MockTalker extends Mock implements Talker {}
 
 // FlutterSecureStorageのモック
 class MockFlutterSecureStorage extends Mock implements FlutterSecureStorage {}
+
+// CustomAuthInvalidationStoreのモック
+class MockCustomAuthInvalidationStore extends Mock
+    implements CustomAuthInvalidationStore {}
 
 // TokenStorageのモック
 class FakeTokenStorage extends Mock implements TokenStorage {
@@ -96,6 +101,7 @@ class FakeTokenStorage extends Mock implements TokenStorage {
   Future<void> saveTokens({
     required String accessToken,
     required String refreshToken,
+    bool preserveExistingOnFailure = false,
   }) async {
     savedAccessToken = accessToken;
     savedRefreshToken = refreshToken;
@@ -356,6 +362,129 @@ void main() {
       check(saveCalled).equals(false);
       check(fakeStorage.savedAccessToken).isNull();
       check(fakeStorage.savedRefreshToken).isNull();
+    });
+
+    test('login: markLoginPending 失敗時は clearIfAllowedForLogin と '
+        'saveTokens を実行しないこと', () async {
+      final callOrder = <String>[];
+      var saveCalled = false;
+      final fakeStorage = FakeTokenStorage(
+        onSaveTokens: (_, _) async {
+          saveCalled = true;
+        },
+      );
+      final mockStore = MockCustomAuthInvalidationStore();
+      final markError = Exception('markLoginPending failed');
+      when(mockStore.getInvalidationEntries).thenAnswer((_) async => const []);
+      when(mockStore.markLoginPending).thenAnswer((_) async {
+        callOrder.add('markLoginPending');
+        throw markError;
+      });
+      when(
+        () => mockStore.clearIfAllowedForLogin(
+          userId: any(named: 'userId'),
+          email: any(named: 'email'),
+          isDeletionInProgress: any(named: 'isDeletionInProgress'),
+        ),
+      ).thenAnswer((_) async {
+        callOrder.add('clearIfAllowedForLogin');
+        return true;
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          authApiClientProvider.overrideWithValue(mockApi),
+          tokenStorageProvider.overrideWith((ref) => fakeStorage),
+          customAuthInvalidationStoreProvider.overrideWithValue(mockStore),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final mockResponse = MockResponse();
+      when(() => mockResponse.data).thenReturn({
+        'access_token': buildJwt(sub: 'user-a', email: 'a@example.com'),
+        'refresh_token': 'refresh-a',
+      });
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockResponse);
+
+      await check(
+        container.read(authRepositoryProvider).login('a@example.com', 'pw'),
+      ).throws<Exception>((it) => it.equals(markError));
+
+      check(callOrder).deepEquals(['markLoginPending']);
+      check(saveCalled).equals(false);
+      verifyNever(
+        () => mockStore.clearIfAllowedForLogin(
+          userId: any(named: 'userId'),
+          email: any(named: 'email'),
+          isDeletionInProgress: any(named: 'isDeletionInProgress'),
+        ),
+      );
+    });
+
+    test('login: markLoginPending 成功後に clearIfAllowedForLogin が失敗しても、 '
+        'saveTokens へ進まず未確定マーカーを残すこと', () async {
+      final callOrder = <String>[];
+      var saveCalled = false;
+      final fakeStorage = FakeTokenStorage(
+        onSaveTokens: (_, _) async {
+          saveCalled = true;
+        },
+      );
+      final mockStore = MockCustomAuthInvalidationStore();
+      final clearAllowedError = Exception('clearIfAllowedForLogin failed');
+      when(mockStore.getInvalidationEntries).thenAnswer((_) async => const []);
+      when(mockStore.markLoginPending).thenAnswer((_) async {
+        callOrder.add('markLoginPending');
+      });
+      when(
+        () => mockStore.clearIfAllowedForLogin(
+          userId: any(named: 'userId'),
+          email: any(named: 'email'),
+          isDeletionInProgress: any(named: 'isDeletionInProgress'),
+        ),
+      ).thenAnswer((_) async {
+        callOrder.add('clearIfAllowedForLogin');
+        throw clearAllowedError;
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          authApiClientProvider.overrideWithValue(mockApi),
+          tokenStorageProvider.overrideWith((ref) => fakeStorage),
+          customAuthInvalidationStoreProvider.overrideWithValue(mockStore),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final mockResponse = MockResponse();
+      when(() => mockResponse.data).thenReturn({
+        'access_token': buildJwt(sub: 'user-a', email: 'a@example.com'),
+        'refresh_token': 'refresh-a',
+      });
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockResponse);
+
+      await check(
+        container.read(authRepositoryProvider).login('a@example.com', 'pw'),
+      ).throws<Exception>((it) => it.equals(clearAllowedError));
+
+      check(
+        callOrder,
+      ).deepEquals(['markLoginPending', 'clearIfAllowedForLogin']);
+      check(saveCalled).equals(false);
+      verifyNever(mockStore.clearLoginPending);
     });
 
     test('login: saveTokens が途中まで進んだ後に失敗した場合でも、ロールバックにより '
@@ -1030,6 +1159,99 @@ void main() {
 
         check(result).equals(true);
         check(fakeStorage.savedAccessToken).equals('refreshed_access');
+      });
+
+      test('refreshToken経由で saveTokens が途中失敗した場合は既存資格情報を復元し、 '
+          'login経路で途中失敗した場合は部分書込を削除すること', () async {
+        final store = <String, String>{
+          SecureStorageKeys.accessToken: buildJwt(sub: 'user-a'),
+          SecureStorageKeys.refreshToken: 'valid-refresh',
+          SecureStorageKeys.customUserId: 'user-a',
+        };
+        final mockSecureStorage = MockFlutterSecureStorage();
+        when(
+          () => mockSecureStorage.read(key: any(named: 'key')),
+        ).thenAnswer((inv) async => store[inv.namedArguments[#key] as String]);
+        when(() => mockSecureStorage.delete(key: any(named: 'key'))).thenAnswer(
+          (inv) async {
+            store.remove(inv.namedArguments[#key] as String);
+          },
+        );
+
+        final refreshWriteError = Exception('refresh write failed');
+        when(
+          () => mockSecureStorage.write(
+            key: any(named: 'key'),
+            value: any(named: 'value'),
+          ),
+        ).thenAnswer((inv) async {
+          final key = inv.namedArguments[#key] as String;
+          final value = inv.namedArguments[#value] as String?;
+          if (key == SecureStorageKeys.refreshToken &&
+              value == 'valid-refresh') {
+            throw refreshWriteError;
+          }
+          if (value == null) {
+            store.remove(key);
+          } else {
+            store[key] = value;
+          }
+        });
+
+        final realStorage = TokenStorage(secureStorage: mockSecureStorage);
+        final container = ProviderContainer(
+          overrides: [
+            authApiClientProvider.overrideWithValue(mockApi),
+            tokenStorageProvider.overrideWith((ref) => realStorage),
+            appSupportDirectoryReaderProvider.overrideWithValue(
+              () async => tempDir,
+            ),
+            loggerProvider.overrideWithValue(mockTalker),
+          ],
+        );
+        addTearDown(container.dispose);
+        final repo = container.read(authRepositoryProvider);
+
+        final newAccess = buildJwt(sub: 'user-a', email: 'new@example.com');
+        final refreshResponse = MockResponse();
+        when(
+          () => refreshResponse.data,
+        ).thenReturn({'access_token': newAccess});
+        when(
+          () => mockApi.post<Map<String, dynamic>>(
+            '/auth/refresh',
+            data: any<dynamic>(named: 'data'),
+          ),
+        ).thenAnswer((_) async => refreshResponse);
+
+        // ① refreshToken 経路の途中失敗では書き込み前の accessToken が復元され、
+        //    有効な refreshToken / customUserId も削除されず保持されること
+        final previousAccess = store[SecureStorageKeys.accessToken];
+        await check(
+          repo.refreshToken('user-a'),
+        ).throws<Exception>((it) => it.equals(refreshWriteError));
+        check(store[SecureStorageKeys.accessToken]).equals(previousAccess);
+        check(store[SecureStorageKeys.refreshToken]).equals('valid-refresh');
+        check(store[SecureStorageKeys.customUserId]).equals('user-a');
+
+        // ② login 経路の途中失敗では部分的に書き込まれた資格情報が削除されること
+        store.clear();
+        final loginResponse = MockResponse();
+        when(() => loginResponse.data).thenReturn({
+          'access_token': buildJwt(sub: 'user-b'),
+          'refresh_token': 'valid-refresh',
+        });
+        when(
+          () => mockApi.post<Map<String, dynamic>>(
+            '/auth/login',
+            data: any<dynamic>(named: 'data'),
+          ),
+        ).thenAnswer((_) async => loginResponse);
+
+        await check(
+          repo.login('b@example.com', 'password123'),
+        ).throws<Exception>((it) => it.equals(refreshWriteError));
+        check(store).isEmpty();
       });
     });
   });
@@ -2604,6 +2826,125 @@ void main() {
       check(fakeStorage.savedAccessToken).equals(opaqueLoginB);
       check(fakeStorage.savedRefreshToken).equals('refresh-b');
       check(await invalidationStore.isInvalidated()).equals(false);
+    });
+
+    test('deleteAccount: サーバーが削除未実行を明示した失敗時は自身の無効化行のみを解除し、 '
+        'ロック終了後に元の例外を再スローすること', () async {
+      final jwtA = buildJwt(sub: 'user-a', email: 'a@example.com');
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-a',
+              currentUserId: 'user-a',
+            )
+            ..savedAccessToken = jwtA
+            ..savedRefreshToken = 'refresh-a';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+      final lock = container.read(authSessionLockProvider);
+
+      // 先行・別の退会要求が所有する無効化行（entry 1）が存在していても保持されるべき
+      await invalidationStore.markInvalidated(
+        targetUserId: 'user-a',
+        targetEmail: 'a@example.com',
+      );
+
+      final errors = <Exception>[
+        const AppException.unauthenticated(),
+        const AppException.badRequest(statusCode: 400),
+        const ReauthException.requiresRecentLogin(),
+        DioException(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          response: Response<void>(
+            requestOptions: RequestOptions(path: '/auth/account'),
+            statusCode: 403,
+          ),
+          type: DioExceptionType.badResponse,
+        ),
+      ];
+
+      for (final error in errors) {
+        when(
+          () => mockApi.delete<void>(
+            '/auth/account',
+            options: any<Options?>(named: 'options'),
+          ),
+        ).thenAnswer((_) async => throw error);
+
+        await check(
+          repo.deleteAccount(),
+        ).throws<Object>((it) => it.equals(error));
+        check(lock.isDeletionInProgress).equals(false);
+        check(
+          lock.hasOtherActiveDeletion(
+            entryId: -1,
+            userId: 'user-a',
+            email: 'a@example.com',
+          ),
+        ).equals(false);
+        check(await fakeStorage.getAccessToken()).equals(jwtA);
+        // 先行していた entry 1 のみが残り、この要求の行は解除されていること
+        final entries = await invalidationStore.getInvalidationEntries();
+        check(entries.length).equals(1);
+      }
+
+      // 削除成否不明の失敗群（408 や通信・解析・キャンセル・不明エラー）は無効化行を保持すること
+      final uncertainErrors = <Exception>[
+        const AppException.badRequest(statusCode: 408),
+        const AppException.network(),
+        const AppException.dataParse(),
+        const AppException.database(),
+        const AppException.cancel(),
+        const AppException.unknown(),
+      ];
+
+      var expectedCount = 1;
+      for (final error in uncertainErrors) {
+        when(
+          () => mockApi.delete<void>(
+            '/auth/account',
+            options: any<Options?>(named: 'options'),
+          ),
+        ).thenAnswer((_) async => throw error);
+
+        await check(
+          repo.deleteAccount(),
+        ).throws<Exception>((it) => it.equals(error));
+        expectedCount++;
+        check(lock.isDeletionInProgress).equals(false);
+        final entries = await invalidationStore.getInvalidationEntries();
+        check(entries.length).equals(expectedCount);
+      }
+    });
+
+    test('deleteAccount: 単独退会で削除未実行の失敗後に再起動しても、無効化行が解除され '
+        '通常セッションを維持すること', () async {
+      final jwtA = buildJwt(sub: 'user-a', email: 'a@example.com');
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-a',
+              currentUserId: 'user-a',
+            )
+            ..savedAccessToken = jwtA
+            ..savedRefreshToken = 'refresh-a';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) async => throw const AppException.unauthorized());
+
+      await check(repo.deleteAccount()).throws<UnauthorizedException>();
+      check(await invalidationStore.isInvalidated()).equals(false);
+      check(await fakeStorage.getAccessToken()).equals(jwtA);
+
+      final restartedContainer = createContainer(fakeStorage);
+      check(
+        await restartedContainer.read(authStateProvider.future),
+      ).equals(true);
+      check(await fakeStorage.getAccessToken()).equals(jwtA);
     });
   });
 }

@@ -439,12 +439,12 @@ void main() {
 
         final entryIdA1 = await store.markInvalidated(
           targetUserId: 'user-a',
-          targetEmail: 'a@example.com',
+          targetEmail: 'a1@example.com',
         );
-        // 同一アカウントでも呼び出しごとに独立した行 ID が発行されること
+        // 同じ targetUserId でも呼び出しごとに独立した行 ID が発行されること
         final entryIdA2 = await store.markInvalidated(
           targetUserId: 'user-a',
-          targetEmail: ' A@EXAMPLE.COM ',
+          targetEmail: 'a2@example.com',
         );
         check(entryIdA2).not((it) => it.equals(entryIdA1));
         await store.markInvalidated(
@@ -456,10 +456,10 @@ void main() {
         check(entries).length.equals(3);
         check(
           entries[0],
-        ).equals((targetUserId: 'user-a', targetEmail: 'a@example.com'));
+        ).equals((targetUserId: 'user-a', targetEmail: 'a1@example.com'));
         check(
           entries[1],
-        ).equals((targetUserId: 'user-a', targetEmail: 'a@example.com'));
+        ).equals((targetUserId: 'user-a', targetEmail: 'a2@example.com'));
         check(
           entries[2],
         ).equals((targetUserId: 'user-b', targetEmail: 'b@example.com'));
@@ -468,17 +468,24 @@ void main() {
         await store.clearInvalidatedIfMatches(
           entryId: entryIdA1,
           targetUserId: 'user-a',
-          targetEmail: 'a@example.com',
+          targetEmail: 'a1@example.com',
         );
         final afterClearA1 = await store.getInvalidationEntries();
         check(afterClearA1).length.equals(2);
-        check(afterClearA1[0].targetUserId).equals('user-a');
-        check(afterClearA1[1].targetUserId).equals('user-b');
+        check(
+          afterClearA1[0],
+        ).equals((targetUserId: 'user-a', targetEmail: 'a2@example.com'));
+        check(
+          afterClearA1[1],
+        ).equals((targetUserId: 'user-b', targetEmail: 'b@example.com'));
+        check(
+          afterClearA1.any((entry) => entry.targetEmail == 'a1@example.com'),
+        ).equals(false);
 
-        // entryId 未指定で A 完了時は A の残り行が消え、B の行だけが残ること
+        // entryId 未指定で A2 完了時は A2 の行が消え、B の行だけが残ること
         await store.clearInvalidatedIfMatches(
           targetUserId: 'user-a',
-          targetEmail: 'a@example.com',
+          targetEmail: 'a2@example.com',
         );
         final afterClearA = await store.getInvalidationEntries();
         check(afterClearA).length.equals(1);
@@ -488,6 +495,36 @@ void main() {
         ).equals('user-b');
       },
     );
+
+    test('markInvalidated / clearInvalidatedIfMatches: '
+        'メールアドレスの空白除去と小文字化で正規化して保存・削除できること', () async {
+      final store = CustomAuthInvalidationStore(
+        getDirectory: () async => supportDir,
+      );
+
+      await store.markInvalidated(
+        targetUserId: 'user-a',
+        targetEmail: ' A@EXAMPLE.COM ',
+      );
+      await store.markInvalidated(
+        targetUserId: 'user-b',
+        targetEmail: 'b@example.com',
+      );
+
+      check(await store.getInvalidationEntries()).deepEquals([
+        (targetUserId: 'user-a', targetEmail: 'a@example.com'),
+        (targetUserId: 'user-b', targetEmail: 'b@example.com'),
+      ]);
+
+      await store.clearInvalidatedIfMatches(
+        targetUserId: 'user-a',
+        targetEmail: 'a@example.com',
+      );
+
+      check(
+        await store.getInvalidationEntries(),
+      ).deepEquals([(targetUserId: 'user-b', targetEmail: 'b@example.com')]);
+    });
 
     test('識別子列ありの旧 1 行テーブルが残っていた場合も新テーブルへ自動移行すること', () async {
       supportDir.createSync(recursive: true);

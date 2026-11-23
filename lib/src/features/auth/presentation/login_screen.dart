@@ -6,8 +6,8 @@ import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:flutter_sample/src/core/utils/form_validators.dart';
-import 'package:flutter_sample/src/features/auth/application/account_deletion_notice_notifier.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
+import 'package:flutter_sample/src/features/auth/presentation/account_deletion_notice_effect.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -30,20 +30,9 @@ class LoginScreen extends HookConsumerWidget {
 
     final l10n = context.l10n;
 
-    // 退会完了直後のリダイレクト時は、遷移完了後に完了SnackBarを表示する
+    // 退会完了直後のリダイレクト時は、遷移完了後に確定済みの完了SnackBarを表示する
     // （遷移前に表示すると SnackBarNavigationObserver によって消去されるため）
-    useEffect(() {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!context.mounted) return;
-        final shouldShow = ref
-            .read(accountDeletionNoticeProvider.notifier)
-            .consume();
-        if (shouldShow) {
-          context.showSuccessSnackBar(context.l10n.accountDeletionCompleted);
-        }
-      });
-      return null;
-    }, const []);
+    useAccountDeletionNoticeEffect(context, ref);
 
     Future<void> onLogin() async {
       // フォーム全体のバリデーションを実行

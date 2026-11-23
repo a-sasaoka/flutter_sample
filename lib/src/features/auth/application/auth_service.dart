@@ -294,9 +294,10 @@ class AuthService {
     }
 
     // ③ Authアカウント削除
-    // 認証解除直後に GoRouter が即座に /login へ遷移する競合を防ぐため、直前に通知フラグを立て、
-    // 失敗時は即座に clear() する
-    _accountDeletionNoticeNotifier.markCompleted();
+    // 認証解除直後に GoRouter が即座に /login へ遷移する競合を防ぐため、直前に通知を予約状態にし、
+    // Auth削除の成功（および対象セッション終了）が確定した時点で初めて完了状態へ遷移させる。
+    // 失敗時や別アカウント切り替え時は即座に clear() して完了通知が表示されないことを保証する。
+    _accountDeletionNoticeNotifier.reserve();
     var shouldTerminateSession = true;
     try {
       if (_useFirebaseAuth) {
@@ -313,7 +314,9 @@ class AuthService {
       rethrow;
     }
 
-    if (!shouldTerminateSession) {
+    if (shouldTerminateSession) {
+      _accountDeletionNoticeNotifier.confirmCompleted();
+    } else {
       // 削除待機中に別アカウントへ切り替わった場合は通知予約を取り消し、
       // 新セッションで使う共有データ（QR履歴・ユーザー一覧キャッシュ）は保持する
       _accountDeletionNoticeNotifier.clear();
