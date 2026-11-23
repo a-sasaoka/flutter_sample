@@ -194,6 +194,7 @@ class AuthRepository {
       );
       await invalidationStore.clearLoginPending();
       sessionLock.recordAuthenticatedSession(
+        accessToken: accessToken,
         userId: candidateUserId,
         email: candidateEmail,
       );
@@ -263,9 +264,14 @@ class AuthRepository {
         accessToken: access,
         refreshToken: startState.refreshToken,
       );
+      final trackedEmail = switch (_sessionLock.currentSession) {
+        AuthenticatedTrackedAuthSession(:final email) => email,
+        _ => null,
+      };
       _sessionLock.recordAuthenticatedSession(
+        accessToken: access,
         userId: JwtUtils.getUserId(access) ?? expectedUserId,
-        email: JwtUtils.getEmail(access),
+        email: JwtUtils.getEmail(access) ?? trackedEmail,
       );
       return true;
     });
@@ -321,7 +327,9 @@ class AuthRepository {
         return null;
       }
       final startUserId = await tokenStorage.getUserId();
-      final startEmail = JwtUtils.getEmail(token);
+      final startEmail =
+          JwtUtils.getEmail(token) ??
+          _sessionLock.trackedEmailForAccessToken(token);
       // サーバー削除要求前に削除対象アカウント情報つきで無効化状態を永続化し、
       // 保存に失敗した場合は削除要求を送らない
       final invalidationEntryId = await _invalidationStore.markInvalidated(
@@ -329,7 +337,11 @@ class AuthRepository {
         targetEmail: startEmail,
       );
       _sessionLock
-        ..recordAuthenticatedSession(userId: startUserId, email: startEmail)
+        ..recordAuthenticatedSession(
+          accessToken: token,
+          userId: startUserId,
+          email: startEmail,
+        )
         ..beginDeletion()
         ..registerActiveDeletion(
           entryId: invalidationEntryId,
@@ -420,7 +432,9 @@ class AuthRepository {
         );
       }
       final currentUserId = await tokenStorage.getUserId();
-      final currentEmail = JwtUtils.getEmail(currentToken);
+      final currentEmail =
+          JwtUtils.getEmail(currentToken) ??
+          _sessionLock.trackedEmailForAccessToken(currentToken);
       return _matchTargetAccountOutcome(
         startState: startState,
         candidateUserId: currentUserId,

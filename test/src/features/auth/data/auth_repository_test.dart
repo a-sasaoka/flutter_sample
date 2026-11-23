@@ -2477,5 +2477,133 @@ void main() {
       check(fakeStorage.savedAccessToken).isNull();
       check(await invalidationStore.isInvalidated()).equals(false);
     });
+
+    test('deleteAccount: 削除対象に email があり待機中の同一アカウント再ログインが '
+        'sub/email なしトークンを返しても入力メールを補完して同一判定(true)し消去すること', () async {
+      final tokenA = buildJwt(sub: 'user-a', email: 'a@example.com');
+      final opaqueReloginA = buildJwt(jti: 'opaque-relogin-a');
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-a',
+              currentUserId: 'user-a',
+            )
+            ..savedAccessToken = tokenA
+            ..savedRefreshToken = 'refresh-a';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+      final loginResponse = MockResponse();
+      when(() => loginResponse.data).thenReturn({
+        'access_token': opaqueReloginA,
+        'refresh_token': 'refresh-relogin-a',
+      });
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => loginResponse);
+
+      final deleteFuture = repo.deleteAccount();
+      await deleteStarted.future;
+
+      fakeStorage.currentUserId = null;
+      check(await repo.login('a@example.com', 'password123')).equals(true);
+      check(fakeStorage.savedAccessToken).equals(opaqueReloginA);
+      check(await invalidationStore.isInvalidated()).equals(true);
+
+      // さらにリフレッシュでクレームなし新トークンへ更新されても入力メールを引き継いで消去できること
+      final refreshResponse = MockResponse();
+      final opaqueRefreshedA = buildJwt(jti: 'opaque-refreshed-a');
+      when(
+        () => refreshResponse.data,
+      ).thenReturn({'access_token': opaqueRefreshedA});
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/refresh',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => refreshResponse);
+      check(await repo.refreshToken(null)).equals(true);
+
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      check(await deleteFuture).equals(true);
+      check(fakeStorage.savedAccessToken).isNull();
+      check(fakeStorage.savedRefreshToken).isNull();
+      check(await invalidationStore.isInvalidated()).equals(false);
+    });
+
+    test('deleteAccount: 削除待機中の別アカウントログインが sub/email なしトークンを返しても '
+        '入力メールで別アカウント判定(false)しトークン保護と古い無効化解除を行うこと', () async {
+      final tokenA = buildJwt(sub: 'user-a', email: 'a@example.com');
+      final opaqueLoginB = buildJwt(jti: 'opaque-login-b');
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-a',
+              currentUserId: 'user-a',
+            )
+            ..savedAccessToken = tokenA
+            ..savedRefreshToken = 'refresh-a';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+      final loginResponse = MockResponse();
+      when(() => loginResponse.data).thenReturn({
+        'access_token': opaqueLoginB,
+        'refresh_token': 'refresh-b',
+      });
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => loginResponse);
+
+      final deleteFuture = repo.deleteAccount();
+      await deleteStarted.future;
+
+      fakeStorage.currentUserId = null;
+      check(await repo.login('b@example.com', 'password123')).equals(true);
+      check(fakeStorage.savedAccessToken).equals(opaqueLoginB);
+      check(await invalidationStore.isInvalidated()).equals(true);
+
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      check(await deleteFuture).equals(false);
+      check(fakeStorage.savedAccessToken).equals(opaqueLoginB);
+      check(fakeStorage.savedRefreshToken).equals('refresh-b');
+      check(await invalidationStore.isInvalidated()).equals(false);
+    });
   });
 }

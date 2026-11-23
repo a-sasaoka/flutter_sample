@@ -1602,5 +1602,81 @@ void main() {
       check(fakeStorage.mockAccessToken).isNull();
       check(await store.isInvalidated()).equals(false);
     });
+
+    test('実AuthRepository連携: 削除対象に email があり待機中の loginWithCredentials が '
+        'sub/email なしトークンを返しても入力メールで同一アカウントと判定し未ログイン化すること', () async {
+      final tokenA = _buildJwt(sub: 'user-a', email: 'a@example.com');
+      final opaqueRelogin = _buildJwt(jti: 'opaque-relogin-a');
+      final fakeStorage = FakeTokenStorage(mockAccessToken: tokenA);
+      final mockApi = MockApiClient();
+
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer(
+        (_) async => Response<Map<String, dynamic>>(
+          requestOptions: RequestOptions(path: '/auth/login'),
+          statusCode: 200,
+          data: {
+            'access_token': opaqueRelogin,
+            'refresh_token': 'refresh-opaque-a',
+          },
+        ),
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          authApiClientProvider.overrideWithValue(mockApi),
+          tokenStorageProvider.overrideWith((ref) => fakeStorage),
+          appSupportDirectoryReaderProvider.overrideWithValue(
+            () async => tempDir,
+          ),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(authStateProvider.future);
+      final notifier = container.read(authStateProvider.notifier);
+      final store = container.read(customAuthInvalidationStoreProvider);
+
+      final deleteFuture = notifier.deleteAccount();
+      await deleteStarted.future;
+
+      // sub/email クレームの無いトークンが返っても、入力メール a@example.com で照合して再ログインを許可する
+      check(
+        await notifier.loginWithCredentials(
+          email: 'a@example.com',
+          password: 'password123',
+        ),
+      ).equals(true);
+      check(fakeStorage.mockAccessToken).equals(opaqueRelogin);
+      check(await store.isInvalidated()).equals(true);
+
+      // 削除完了時は保持された入力メールを補完して同一アカウント (true) と判定し消去すること
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      check(await deleteFuture).equals(true);
+      check(container.read(authStateProvider).value).equals(false);
+      check(fakeStorage.mockAccessToken).isNull();
+      check(await store.isInvalidated()).equals(false);
+    });
   });
 }

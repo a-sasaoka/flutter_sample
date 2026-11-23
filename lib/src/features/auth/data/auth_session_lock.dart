@@ -22,6 +22,9 @@ sealed class TrackedAuthSession with _$TrackedAuthSession {
 
   /// ログイン中アカウントの識別情報
   const factory TrackedAuthSession.authenticated({
+    /// 現在の識別情報に紐付くアクセストークン
+    String? accessToken,
+
     /// ユーザーID（`sub` または保存済み `customUserId`）
     String? userId,
 
@@ -53,11 +56,29 @@ class AuthSessionLock {
   TrackedAuthSession get currentSession => _currentSession;
 
   /// ログイン中アカウントの識別情報をロック内状態として記録する
-  void recordAuthenticatedSession({String? userId, String? email}) {
+  void recordAuthenticatedSession({
+    String? accessToken,
+    String? userId,
+    String? email,
+  }) {
     _currentSession = TrackedAuthSession.authenticated(
+      accessToken: accessToken,
       userId: userId,
       email: email,
     );
+  }
+
+  /// 保持中のアクセストークンが [accessToken] と一致する場合のみ、紐付いたメールアドレスを返す
+  String? trackedEmailForAccessToken(String accessToken) {
+    return switch (_currentSession) {
+      AuthenticatedTrackedAuthSession(
+        accessToken: final trackedToken,
+        email: final trackedEmail,
+      )
+          when trackedToken == accessToken =>
+        trackedEmail,
+      _ => null,
+    };
   }
 
   /// サインアウト済み（未ログイン）状態をロック内状態として記録する

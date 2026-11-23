@@ -220,5 +220,23 @@ void main() {
         ),
       ).equals(false);
     });
+
+    test('trackedEmailForAccessToken: 現在のアクセストークンと一致する場合のみ '
+        '保持メールを返し、不一致やサインアウト時は null を返すこと', () {
+      final lock = AuthSessionLock();
+      check(lock.trackedEmailForAccessToken('opaque-a')).isNull();
+
+      lock.recordAuthenticatedSession(
+        accessToken: 'opaque-a',
+        email: 'a@example.com',
+      );
+      check(
+        lock.trackedEmailForAccessToken('opaque-a'),
+      ).equals('a@example.com');
+      check(lock.trackedEmailForAccessToken('opaque-other')).isNull();
+
+      lock.recordSignedOutSession();
+      check(lock.trackedEmailForAccessToken('opaque-a')).isNull();
+    });
   });
 }

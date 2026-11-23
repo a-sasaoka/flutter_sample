@@ -119,11 +119,11 @@ return authenticated(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  signedOut,TResult Function( String? userId,  String? email)?  authenticated,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  signedOut,TResult Function( String? accessToken,  String? userId,  String? email)?  authenticated,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case SignedOutTrackedAuthSession() when signedOut != null:
 return signedOut();case AuthenticatedTrackedAuthSession() when authenticated != null:
-return authenticated(_that.userId,_that.email);case _:
+return authenticated(_that.accessToken,_that.userId,_that.email);case _:
   return orElse();
 
 }
@@ -141,11 +141,11 @@ return authenticated(_that.userId,_that.email);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  signedOut,required TResult Function( String? userId,  String? email)  authenticated,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  signedOut,required TResult Function( String? accessToken,  String? userId,  String? email)  authenticated,}) {final _that = this;
 switch (_that) {
 case SignedOutTrackedAuthSession():
 return signedOut();case AuthenticatedTrackedAuthSession():
-return authenticated(_that.userId,_that.email);}
+return authenticated(_that.accessToken,_that.userId,_that.email);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -159,11 +159,11 @@ return authenticated(_that.userId,_that.email);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  signedOut,TResult? Function( String? userId,  String? email)?  authenticated,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  signedOut,TResult? Function( String? accessToken,  String? userId,  String? email)?  authenticated,}) {final _that = this;
 switch (_that) {
 case SignedOutTrackedAuthSession() when signedOut != null:
 return signedOut();case AuthenticatedTrackedAuthSession() when authenticated != null:
-return authenticated(_that.userId,_that.email);case _:
+return authenticated(_that.accessToken,_that.userId,_that.email);case _:
   return null;
 
 }
@@ -207,9 +207,11 @@ String toString() {
 
 
 class AuthenticatedTrackedAuthSession implements TrackedAuthSession {
-  const AuthenticatedTrackedAuthSession({this.userId, this.email});
+  const AuthenticatedTrackedAuthSession({this.accessToken, this.userId, this.email});
   
 
+/// 現在の識別情報に紐付くアクセストークン
+ final  String? accessToken;
 /// ユーザーID（`sub` または保存済み `customUserId`）
  final  String? userId;
 /// メールアドレス
@@ -225,16 +227,16 @@ $AuthenticatedTrackedAuthSessionCopyWith<AuthenticatedTrackedAuthSession> get co
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthenticatedTrackedAuthSession&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.email, email) || other.email == email));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthenticatedTrackedAuthSession&&(identical(other.accessToken, accessToken) || other.accessToken == accessToken)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.email, email) || other.email == email));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,userId,email);
+int get hashCode => Object.hash(runtimeType,accessToken,userId,email);
 
 @override
 String toString() {
-  return 'TrackedAuthSession.authenticated(userId: $userId, email: $email)';
+  return 'TrackedAuthSession.authenticated(accessToken: $accessToken, userId: $userId, email: $email)';
 }
 
 
@@ -245,7 +247,7 @@ abstract mixin class $AuthenticatedTrackedAuthSessionCopyWith<$Res> implements $
   factory $AuthenticatedTrackedAuthSessionCopyWith(AuthenticatedTrackedAuthSession value, $Res Function(AuthenticatedTrackedAuthSession) _then) = _$AuthenticatedTrackedAuthSessionCopyWithImpl;
 @useResult
 $Res call({
- String? userId, String? email
+ String? accessToken, String? userId, String? email
 });
 
 
@@ -262,9 +264,10 @@ class _$AuthenticatedTrackedAuthSessionCopyWithImpl<$Res>
 
 /// Create a copy of TrackedAuthSession
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? userId = freezed,Object? email = freezed,}) {
+@pragma('vm:prefer-inline') $Res call({Object? accessToken = freezed,Object? userId = freezed,Object? email = freezed,}) {
   return _then(AuthenticatedTrackedAuthSession(
-userId: freezed == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+accessToken: freezed == accessToken ? _self.accessToken : accessToken // ignore: cast_nullable_to_non_nullable
+as String?,userId: freezed == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String?,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String?,
   ));

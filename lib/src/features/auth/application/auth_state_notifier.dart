@@ -67,6 +67,7 @@ class AuthStateNotifier extends _$AuthStateNotifier {
               );
             }
             sessionLock.recordAuthenticatedSession(
+              accessToken: token,
               userId: currentUserId,
               email: currentEmail,
             );
@@ -93,6 +94,7 @@ class AuthStateNotifier extends _$AuthStateNotifier {
       final token = await tokenStorage.getAccessToken();
       if (token != null) {
         sessionLock.recordAuthenticatedSession(
+          accessToken: token,
           userId: JwtUtils.getUserId(token),
           email: JwtUtils.getEmail(token),
         );
