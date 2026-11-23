@@ -151,7 +151,33 @@ void main() {
       check(state.targetEmail).isNull();
     });
 
-    test('matchesAccount: userId 優先比較・email フォールバック・未識別時既定値が正しいこと', () {
+    test('compareAccounts / matchesAccount: '
+        'userId 優先比較・email フォールバック・3値照合および未識別時既定値が正しいこと', () {
+      check(
+        CustomAuthInvalidationStore.compareAccounts(
+          targetUserId: 'user-a',
+          targetEmail: 'a@example.com',
+          candidateUserId: 'user-a',
+          candidateEmail: 'other@example.com',
+        ),
+      ).equals(AccountMatch.same);
+      check(
+        CustomAuthInvalidationStore.compareAccounts(
+          targetUserId: 'user-a',
+          targetEmail: 'a@example.com',
+          candidateUserId: 'user-b',
+          candidateEmail: 'a@example.com',
+        ),
+      ).equals(AccountMatch.different);
+      check(
+        CustomAuthInvalidationStore.compareAccounts(
+          targetUserId: 'user-a',
+          targetEmail: null,
+          candidateUserId: null,
+          candidateEmail: 'a@example.com',
+        ),
+      ).equals(AccountMatch.unknown);
+
       check(
         CustomAuthInvalidationStore.matchesAccount(
           targetUserId: 'user-a',
@@ -394,7 +420,7 @@ void main() {
 
     test(
       'markInvalidated / getInvalidationEntries / clearInvalidatedIfMatches: '
-      '複数アカウントのレコードを独立して保持し一致アカウントのみ削除できること',
+      '呼び出しごとに独立した行 ID を保持し指定行・一致アカウントのみ削除できること',
       () async {
         final store = CustomAuthInvalidationStore(
           getDirectory: () async => supportDir,
@@ -411,30 +437,45 @@ void main() {
         );
         check(dbFile.existsSync()).equals(false);
 
-        await store.markInvalidated(
+        final entryIdA1 = await store.markInvalidated(
           targetUserId: 'user-a',
           targetEmail: 'a@example.com',
         );
-        // 同一アカウントの重複呼び出しは増やさないこと
-        await store.markInvalidated(
+        // 同一アカウントでも呼び出しごとに独立した行 ID が発行されること
+        final entryIdA2 = await store.markInvalidated(
           targetUserId: 'user-a',
           targetEmail: ' A@EXAMPLE.COM ',
         );
+        check(entryIdA2).not((it) => it.equals(entryIdA1));
         await store.markInvalidated(
           targetUserId: 'user-b',
           targetEmail: 'b@example.com',
         );
 
         final entries = await store.getInvalidationEntries();
-        check(entries).length.equals(2);
+        check(entries).length.equals(3);
         check(
           entries[0],
         ).equals((targetUserId: 'user-a', targetEmail: 'a@example.com'));
         check(
           entries[1],
+        ).equals((targetUserId: 'user-a', targetEmail: 'a@example.com'));
+        check(
+          entries[2],
         ).equals((targetUserId: 'user-b', targetEmail: 'b@example.com'));
 
-        // A 完了時に A の行だけ解除され B の行は保持されること
+        // entryIdA1 のみ解除しても A の 2 件目 (entryIdA2) と B の行は保持されること
+        await store.clearInvalidatedIfMatches(
+          entryId: entryIdA1,
+          targetUserId: 'user-a',
+          targetEmail: 'a@example.com',
+        );
+        final afterClearA1 = await store.getInvalidationEntries();
+        check(afterClearA1).length.equals(2);
+        check(afterClearA1[0].targetUserId).equals('user-a');
+        check(afterClearA1[1].targetUserId).equals('user-b');
+
+        // entryId 未指定で A 完了時は A の残り行が消え、B の行だけが残ること
         await store.clearInvalidatedIfMatches(
           targetUserId: 'user-a',
           targetEmail: 'a@example.com',

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter_sample/src/features/auth/data/custom_auth_invalidation_store.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -35,6 +36,8 @@ class AuthSessionLock {
   int _sessionEpoch = 0;
   int _deletionEpoch = 0;
   int _activeDeletionCount = 0;
+  final List<({int entryId, String? userId, String? email})> _activeDeletions =
+      [];
   TrackedAuthSession _currentSession = const TrackedAuthSession.signedOut();
 
   /// 現在の認証セッション世代（ログイン・ログアウト時に更新される）
@@ -75,6 +78,40 @@ class AuthSessionLock {
   /// アカウント削除処理の終了を記録する
   void endDeletion() {
     _activeDeletionCount = math.max(0, _activeDeletionCount - 1);
+  }
+
+  /// 実行中のアカウント削除処理（[entryId]）と対象識別子をアクティブ一覧へ登録する
+  void registerActiveDeletion({
+    required int entryId,
+    String? userId,
+    String? email,
+  }) {
+    _activeDeletions.add((entryId: entryId, userId: userId, email: email));
+  }
+
+  /// 完了・終了したアカウント削除処理（[entryId]）をアクティブ一覧から解除する
+  void unregisterActiveDeletion(int entryId) {
+    _activeDeletions.removeWhere((entry) => entry.entryId == entryId);
+  }
+
+  /// 指定された [entryId] 以外に、同一または識別不能な別アカウント削除が進行中かを返す
+  bool hasOtherActiveDeletion({
+    required int entryId,
+    String? userId,
+    String? email,
+  }) {
+    return _activeDeletions.any((entry) {
+      if (entry.entryId == entryId) {
+        return false;
+      }
+      return CustomAuthInvalidationStore.compareAccounts(
+            targetUserId: entry.userId,
+            targetEmail: entry.email,
+            candidateUserId: userId,
+            candidateEmail: email,
+          ) !=
+          AccountMatch.different;
+    });
   }
 
   /// ロックを取得し、[action] の完了まで後続のセッション操作を待機させる

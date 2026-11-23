@@ -76,19 +76,17 @@ class AuthRepository {
       'access_token': final String access,
       'refresh_token': final String refresh,
     }) {
-      return await _sessionLock.runSessionTransitionIf(
-        shouldTransition: () async =>
+      return await tryCommitLoginCredentials(
+        tokenStorage: tokenStorage,
+        invalidationStore: _invalidationStore,
+        sessionLock: _sessionLock,
+        talker: talker,
+        accessToken: access,
+        refreshToken: refresh,
+        fallbackEmail: email,
+        additionalPrecondition: () =>
             _sessionLock.deletionEpoch == startState.deletionEpoch &&
             _sessionLock.sessionEpoch == startState.sessionEpoch,
-        action: () => commitValidatedLoginCredentials(
-          tokenStorage: tokenStorage,
-          invalidationStore: _invalidationStore,
-          sessionLock: _sessionLock,
-          talker: talker,
-          accessToken: access,
-          refreshToken: refresh,
-          fallbackEmail: email,
-        ),
       );
     } else {
       talker.handle(
@@ -98,6 +96,72 @@ class AuthRepository {
       );
       throw const AppException.dataParse();
     }
+  }
+
+  /// セッションロック内で事前条件および退会中の識別可否を確認した上で資格情報を確定する
+  ///
+  /// [additionalPrecondition] が `false` の場合や、退会処理進行中に削除対象と
+  /// 照合不能（[AccountMatch.unknown]）なログインを受け取った場合は、
+  /// セッション世代を進めずトークンも保存せずに `false` を返します。
+  static Future<bool> tryCommitLoginCredentials({
+    required TokenStorage tokenStorage,
+    required CustomAuthInvalidationStore invalidationStore,
+    required AuthSessionLock sessionLock,
+    required Talker talker,
+    required String accessToken,
+    required String refreshToken,
+    String? fallbackEmail,
+    bool Function()? additionalPrecondition,
+  }) async {
+    final candidateUserId = JwtUtils.getUserId(accessToken);
+    final candidateEmail = JwtUtils.getEmail(accessToken) ?? fallbackEmail;
+    return await sessionLock.runSessionTransitionIf(
+      shouldTransition: () async {
+        if (additionalPrecondition != null && !additionalPrecondition()) {
+          return false;
+        }
+        if (await _isBlockedUnidentifiableLogin(
+          invalidationStore: invalidationStore,
+          sessionLock: sessionLock,
+          candidateUserId: candidateUserId,
+          candidateEmail: candidateEmail,
+        )) {
+          return false;
+        }
+        return true;
+      },
+      action: () => commitValidatedLoginCredentials(
+        tokenStorage: tokenStorage,
+        invalidationStore: invalidationStore,
+        sessionLock: sessionLock,
+        talker: talker,
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        fallbackEmail: fallbackEmail,
+      ),
+    );
+  }
+
+  static Future<bool> _isBlockedUnidentifiableLogin({
+    required CustomAuthInvalidationStore invalidationStore,
+    required AuthSessionLock sessionLock,
+    required String? candidateUserId,
+    required String? candidateEmail,
+  }) async {
+    if (!sessionLock.isDeletionInProgress) {
+      return false;
+    }
+    final entries = await invalidationStore.getInvalidationEntries();
+    return entries.any(
+      (entry) =>
+          CustomAuthInvalidationStore.compareAccounts(
+            targetUserId: entry.targetUserId,
+            targetEmail: entry.targetEmail,
+            candidateUserId: candidateUserId,
+            candidateEmail: candidateEmail,
+          ) ==
+          AccountMatch.unknown,
+    );
   }
 
   /// 無効化状態の解除確認後にトークンを保存し、失敗時は部分保存された資格情報を消去する
@@ -260,16 +324,22 @@ class AuthRepository {
       final startEmail = JwtUtils.getEmail(token);
       // サーバー削除要求前に削除対象アカウント情報つきで無効化状態を永続化し、
       // 保存に失敗した場合は削除要求を送らない
-      await _invalidationStore.markInvalidated(
+      final invalidationEntryId = await _invalidationStore.markInvalidated(
         targetUserId: startUserId,
         targetEmail: startEmail,
       );
       _sessionLock
         ..recordAuthenticatedSession(userId: startUserId, email: startEmail)
-        ..beginDeletion();
+        ..beginDeletion()
+        ..registerActiveDeletion(
+          entryId: invalidationEntryId,
+          userId: startUserId,
+          email: startEmail,
+        );
       return (
         accessToken: token,
         sessionEpoch: _sessionLock.sessionEpoch,
+        invalidationEntryId: invalidationEntryId,
         userId: startUserId,
         email: startEmail,
       );
@@ -293,8 +363,10 @@ class AuthRepository {
             _sessionLock.markDeletionCompleted();
             final outcome = await _resolveDeletionSessionOutcome(startState);
             shouldTerminateSession = outcome.shouldTerminateSession;
-            if (!outcome.shouldClearTokens) {
-              // 別アカウントへ切り替わった場合も、この退会処理が所有していたレコードのみ後片付けする
+            if (!outcome.shouldClearTokens &&
+                outcome.shouldClearInvalidationFlag) {
+              // 別アカウント切替やサインアウト済みと確定できた場合のみ、
+              // この退会処理が所有していたレコードを後片付けする（照合不能時は保持）
               await _clearInvalidationFlagBestEffort(startState);
             }
             return outcome.shouldClearTokens;
@@ -316,23 +388,36 @@ class AuthRepository {
       }
       return shouldTerminateSession;
     } finally {
-      _sessionLock.endDeletion();
+      _sessionLock
+        ..unregisterActiveDeletion(startState.invalidationEntryId)
+        ..endDeletion();
     }
   }
 
-  Future<({bool shouldClearTokens, bool shouldTerminateSession})>
-  _resolveDeletionSessionOutcome(
-    ({String accessToken, int sessionEpoch, String? userId, String? email})
-    startState,
-  ) async {
+  Future<
+    ({
+      bool shouldClearTokens,
+      bool shouldTerminateSession,
+      bool shouldClearInvalidationFlag,
+    })
+  >
+  _resolveDeletionSessionOutcome(_DeletionStartState startState) async {
     if (_sessionLock.sessionEpoch == startState.sessionEpoch) {
-      return (shouldClearTokens: true, shouldTerminateSession: true);
+      return (
+        shouldClearTokens: true,
+        shouldTerminateSession: true,
+        shouldClearInvalidationFlag: true,
+      );
     }
     try {
       final currentToken = await tokenStorage.getAccessToken();
       if (currentToken == null || currentToken.isEmpty) {
         // 既に別操作でサインアウト済みの場合は余計なトークン消去や世代更新をせず終了扱いとする
-        return (shouldClearTokens: false, shouldTerminateSession: true);
+        return (
+          shouldClearTokens: false,
+          shouldTerminateSession: true,
+          shouldClearInvalidationFlag: true,
+        );
       }
       final currentUserId = await tokenStorage.getUserId();
       final currentEmail = JwtUtils.getEmail(currentToken);
@@ -353,15 +438,17 @@ class AuthRepository {
     }
   }
 
-  ({bool shouldClearTokens, bool shouldTerminateSession})
-  _resolveDeletionOutcomeFromTrackedSession(
-    ({String accessToken, int sessionEpoch, String? userId, String? email})
-    startState,
-  ) {
+  ({
+    bool shouldClearTokens,
+    bool shouldTerminateSession,
+    bool shouldClearInvalidationFlag,
+  })
+  _resolveDeletionOutcomeFromTrackedSession(_DeletionStartState startState) {
     return switch (_sessionLock.currentSession) {
       SignedOutTrackedAuthSession() => (
         shouldClearTokens: false,
         shouldTerminateSession: true,
+        shouldClearInvalidationFlag: true,
       ),
       AuthenticatedTrackedAuthSession(:final userId, :final email) =>
         _matchTargetAccountOutcome(
@@ -372,37 +459,53 @@ class AuthRepository {
     };
   }
 
-  ({bool shouldClearTokens, bool shouldTerminateSession})
+  ({
+    bool shouldClearTokens,
+    bool shouldTerminateSession,
+    bool shouldClearInvalidationFlag,
+  })
   _matchTargetAccountOutcome({
-    required ({
-      String accessToken,
-      int sessionEpoch,
-      String? userId,
-      String? email,
-    })
-    startState,
+    required _DeletionStartState startState,
     required String? candidateUserId,
     required String? candidateEmail,
   }) {
-    final isTargetAccount = CustomAuthInvalidationStore.matchesAccount(
+    return switch (CustomAuthInvalidationStore.compareAccounts(
       targetUserId: startState.userId,
       targetEmail: startState.email,
       candidateUserId: candidateUserId,
       candidateEmail: candidateEmail,
-      defaultWhenUnidentifiable: false,
-    );
-    return (
-      shouldClearTokens: isTargetAccount,
-      shouldTerminateSession: isTargetAccount,
-    );
+    )) {
+      AccountMatch.same => (
+        shouldClearTokens: true,
+        shouldTerminateSession: true,
+        shouldClearInvalidationFlag: true,
+      ),
+      AccountMatch.different => (
+        shouldClearTokens: false,
+        shouldTerminateSession: false,
+        shouldClearInvalidationFlag: true,
+      ),
+      AccountMatch.unknown => (
+        shouldClearTokens: false,
+        shouldTerminateSession: false,
+        shouldClearInvalidationFlag: false,
+      ),
+    };
   }
 
   Future<void> _clearInvalidationFlagBestEffort(
-    ({String accessToken, int sessionEpoch, String? userId, String? email})
-    startState,
+    _DeletionStartState startState,
   ) async {
     try {
+      final hasOtherActiveForSameAccount = _sessionLock.hasOtherActiveDeletion(
+        entryId: startState.invalidationEntryId,
+        userId: startState.userId,
+        email: startState.email,
+      );
       await _invalidationStore.clearInvalidatedIfMatches(
+        entryId: hasOtherActiveForSameAccount
+            ? startState.invalidationEntryId
+            : null,
         targetUserId: startState.userId,
         targetEmail: startState.email,
       );
@@ -415,3 +518,11 @@ class AuthRepository {
     }
   }
 }
+
+typedef _DeletionStartState = ({
+  String accessToken,
+  int sessionEpoch,
+  int invalidationEntryId,
+  String? userId,
+  String? email,
+});

@@ -10,6 +10,18 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'custom_auth_invalidation_store.g.dart';
 
+/// アカウント識別子の照合結果
+enum AccountMatch {
+  /// 同一アカウントと判定できた
+  same,
+
+  /// 異なるアカウントと判定できた
+  different,
+
+  /// 識別情報が不足しており同一・別のいずれも判定できなかった
+  unknown,
+}
+
 /// SQLite に保存された個別の削除対象アカウント識別子
 typedef CustomAuthInvalidationEntry = ({
   String? targetUserId,
@@ -138,11 +150,35 @@ class CustomAuthInvalidationStore {
     );
   }
 
-  /// 削除対象アカウントと候補アカウントが一致するかを判定する
+  /// 削除対象アカウントと候補アカウントを照合し、同一・別・判定不能の 3 値を返す
   ///
   /// 双方に `userId` がある場合は `userId` 同士を優先比較し（別アカウントによる
   /// 同一メールアドレスの再取得などを区別するため）、不足時は正規化済み `email` を
-  /// 比較します。いずれでも判定できない場合は [defaultWhenUnidentifiable] を返します。
+  /// 比較します。いずれでも判定できない場合は [AccountMatch.unknown] を返します。
+  static AccountMatch compareAccounts({
+    required String? targetUserId,
+    required String? targetEmail,
+    required String? candidateUserId,
+    required String? candidateEmail,
+  }) {
+    if (targetUserId != null && candidateUserId != null) {
+      return targetUserId == candidateUserId
+          ? AccountMatch.same
+          : AccountMatch.different;
+    }
+    final normalizedTargetEmail = _normalizeEmail(targetEmail);
+    final normalizedCandidateEmail = _normalizeEmail(candidateEmail);
+    if (normalizedTargetEmail != null && normalizedCandidateEmail != null) {
+      return normalizedTargetEmail == normalizedCandidateEmail
+          ? AccountMatch.same
+          : AccountMatch.different;
+    }
+    return AccountMatch.unknown;
+  }
+
+  /// 削除対象アカウントと候補アカウントが一致するかを判定する
+  ///
+  /// [compareAccounts] の結果に基づき、判定不能時は [defaultWhenUnidentifiable] を返します。
   static bool matchesAccount({
     required String? targetUserId,
     required String? targetEmail,
@@ -150,15 +186,16 @@ class CustomAuthInvalidationStore {
     required String? candidateEmail,
     required bool defaultWhenUnidentifiable,
   }) {
-    if (targetUserId != null && candidateUserId != null) {
-      return targetUserId == candidateUserId;
-    }
-    final normalizedTargetEmail = _normalizeEmail(targetEmail);
-    final normalizedCandidateEmail = _normalizeEmail(candidateEmail);
-    if (normalizedTargetEmail != null && normalizedCandidateEmail != null) {
-      return normalizedTargetEmail == normalizedCandidateEmail;
-    }
-    return defaultWhenUnidentifiable;
+    return switch (compareAccounts(
+      targetUserId: targetUserId,
+      targetEmail: targetEmail,
+      candidateUserId: candidateUserId,
+      candidateEmail: candidateEmail,
+    )) {
+      AccountMatch.same => true,
+      AccountMatch.different => false,
+      AccountMatch.unknown => defaultWhenUnidentifiable,
+    };
   }
 
   static String? _normalizeEmail(String? email) {
@@ -223,10 +260,11 @@ class CustomAuthInvalidationStore {
         (rowEmail as String?) == normalizedEmail;
   }
 
-  /// セッション無効化状態を削除対象アカウント情報とともに SQLite へ追加永続化する
+  /// セッション無効化状態を削除対象アカウント情報とともに SQLite へ追加永続化し、発行した行 ID を返す
   ///
-  /// 既存の他アカウントの進行中レコードは上書きせずに保持します。
-  Future<void> markInvalidated({
+  /// 同一アカウントの並行退会や他アカウントの進行中レコードを上書き・共有しないよう、
+  /// 呼び出しごとに独立したレコードを追加します。
+  Future<int> markInvalidated({
     String? targetUserId,
     String? targetEmail,
   }) async {
@@ -235,24 +273,8 @@ class CustomAuthInvalidationStore {
     final dbFile = File(p.join(dir.path, databaseFileName));
     final normalizedEmail = _normalizeEmail(targetEmail);
 
-    await _runWithExecutor(dbFile, (executor) async {
-      final existingRows = await executor.runSelect(
-        'SELECT target_user_id, target_email '
-        'FROM custom_auth_invalidation_entries;',
-        const [],
-      );
-      final alreadyExists = existingRows.any(
-        (row) => _matchesExactIdentifier(
-          rowUserId: row['target_user_id'],
-          rowEmail: row['target_email'],
-          targetUserId: targetUserId,
-          normalizedEmail: normalizedEmail,
-        ),
-      );
-      if (alreadyExists) {
-        return;
-      }
-      await executor.runInsert(
+    return await _runWithExecutor(dbFile, (executor) async {
+      return await executor.runInsert(
         'INSERT INTO custom_auth_invalidation_entries '
         '(target_user_id, target_email) VALUES (?, ?);',
         [targetUserId, normalizedEmail],
@@ -296,20 +318,31 @@ class CustomAuthInvalidationStore {
     return true;
   }
 
-  /// 保存済みの無効化レコードのうち指定アカウント（[targetUserId] / [targetEmail]）に
-  /// 一致するもののみを削除し、他アカウントのレコードは保持する
+  /// 保存済みの無効化レコードのうち指定対象のみを削除し、他処理・他アカウントのレコードは保持する
+  ///
+  /// [entryId] が指定された場合は該当の 1 行のみを削除し、`null` の場合は
+  /// 指定アカウント（[targetUserId] / [targetEmail]）に一致するすべての行を削除します。
   Future<void> clearInvalidatedIfMatches({
     required String? targetUserId,
     required String? targetEmail,
+    int? entryId,
   }) async {
     final dir = await _getDirectory();
     final dbFile = File(p.join(dir.path, databaseFileName));
     if (!dbFile.existsSync()) {
       return;
     }
-    final normalizedEmail = _normalizeEmail(targetEmail);
 
     await _runWithExecutor(dbFile, (executor) async {
+      if (entryId != null) {
+        await executor.runDelete(
+          'DELETE FROM custom_auth_invalidation_entries WHERE id = ?;',
+          [entryId],
+        );
+        return;
+      }
+
+      final normalizedEmail = _normalizeEmail(targetEmail);
       final rows = await executor.runSelect(
         'SELECT id, target_user_id, target_email '
         'FROM custom_auth_invalidation_entries;',

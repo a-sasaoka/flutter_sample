@@ -24,8 +24,9 @@ class FakeAuthStateNotifier extends AuthStateNotifier {
   Future<bool> build() async => false;
 
   @override
-  Future<void> login(String accessToken, String refreshToken) async {
+  Future<bool> login(String accessToken, String refreshToken) async {
     await onLogin(accessToken, refreshToken);
+    return loginResult;
   }
 
   @override

@@ -104,24 +104,28 @@ class AuthStateNotifier extends _$AuthStateNotifier {
   }
 
   /// ログイン状態にする
-  Future<void> login(String accessToken, String refreshToken) async {
+  ///
+  /// 退会処理進行中に削除対象と識別できない（照合不能な）再ログインだった場合は
+  /// 資格情報を確定せずに `false` を返し、状態も変更しません。
+  Future<bool> login(String accessToken, String refreshToken) async {
     try {
       final sessionLock = ref.read(authSessionLockProvider);
       final tokenStorage = ref.read(tokenStorageProvider);
       final invalidationStore = ref.read(customAuthInvalidationStoreProvider);
       final talker = ref.read(loggerProvider);
 
-      await sessionLock.runSessionTransition(
-        () => AuthRepository.commitValidatedLoginCredentials(
-          tokenStorage: tokenStorage,
-          invalidationStore: invalidationStore,
-          sessionLock: sessionLock,
-          talker: talker,
-          accessToken: accessToken,
-          refreshToken: refreshToken,
-        ),
+      final isCommitted = await AuthRepository.tryCommitLoginCredentials(
+        tokenStorage: tokenStorage,
+        invalidationStore: invalidationStore,
+        sessionLock: sessionLock,
+        talker: talker,
+        accessToken: accessToken,
+        refreshToken: refreshToken,
       );
-      state = const AsyncData(true);
+      if (isCommitted) {
+        state = const AsyncData(true);
+      }
+      return isCommitted;
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;

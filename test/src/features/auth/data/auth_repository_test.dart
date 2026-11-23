@@ -2247,5 +2247,235 @@ void main() {
       check(fakeStorage.savedAccessToken).isNull();
       check(await invalidationStore.isInvalidated()).equals(false);
     });
+
+    test('deleteAccount: 削除対象が sub のみ(email なし)のとき、待機中の識別不能な再ログインを確定させず '
+        '削除完了時にトークン消去と true 返却を行うこと', () async {
+      final subOnlyJwt = buildJwt(sub: 'user-a');
+      final unidentifiableJwt = buildJwt(jti: 'opaque-relogin');
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-old',
+              currentUserId: 'user-a',
+            )
+            ..savedAccessToken = subOnlyJwt
+            ..savedRefreshToken = 'refresh-old';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+      final lock = container.read(authSessionLockProvider);
+
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+      final mockLoginResponse = MockResponse();
+      when(() => mockLoginResponse.data).thenReturn({
+        'access_token': unidentifiableJwt,
+        'refresh_token': 'refresh-new',
+      });
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockLoginResponse);
+
+      final deleteFuture = repo.deleteAccount();
+      await deleteStarted.future;
+
+      // target に email が無く candidate にも sub が無いため照合不能 (AccountMatch.unknown)
+      check(await repo.login('a@example.com', 'password123')).equals(false);
+      check(fakeStorage.savedAccessToken).equals(subOnlyJwt);
+      check(lock.sessionEpoch).equals(0);
+      check(await invalidationStore.isInvalidated()).equals(true);
+
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      check(await deleteFuture).equals(true);
+      check(fakeStorage.savedAccessToken).isNull();
+      check(await invalidationStore.isInvalidated()).equals(false);
+    });
+
+    test('deleteAccount: 削除完了時に現在トークンの照合結果が unknown の場合は '
+        '別アカウント扱いせず無効化レコードを保持し再起動時に誤復元しないこと', () async {
+      final subOnlyJwt = buildJwt(sub: 'user-a');
+      final opaqueJwt = buildJwt(jti: 'unknown-token');
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-old',
+              currentUserId: 'user-a',
+            )
+            ..savedAccessToken = subOnlyJwt
+            ..savedRefreshToken = 'refresh-old';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+      final lock = container.read(authSessionLockProvider);
+
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+
+      final deleteFuture = repo.deleteAccount();
+      await deleteStarted.future;
+
+      // ロック遷移の直接呼び出し等でストレージが識別不能トークンに差し替わった場合を模擬
+      await lock.runSessionTransition(() async {
+        await fakeStorage.saveTokens(
+          accessToken: opaqueJwt,
+          refreshToken: 'refresh-opaque',
+        );
+        fakeStorage.currentUserId = null;
+        lock.recordAuthenticatedSession();
+      });
+
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      check(await deleteFuture).equals(false);
+
+      // AccountMatch.unknown のため無効化レコードを削除せず保持すること
+      check(await invalidationStore.isInvalidated()).equals(true);
+      check(fakeStorage.savedAccessToken).equals(opaqueJwt);
+
+      // 再起動時は識別不能レコードとみなして残留トークンを消去し false にすること
+      final restartedContainer = createContainer(fakeStorage);
+      check(
+        await restartedContainer.read(authStateProvider.future),
+      ).equals(false);
+      check(fakeStorage.savedAccessToken).isNull();
+      check(await invalidationStore.isInvalidated()).equals(false);
+    });
+
+    test('deleteAccount: 同一アカウントの退会を 2 件並行開始した場合、 '
+        '1 件目完了後も 2 件目の無効化レコードが残り、再ログインと 2 件目消去失敗時も再起動復元しないこと', () async {
+      final tokenA1 = buildJwt(
+        sub: 'user-a',
+        email: 'a@example.com',
+        jti: 'delete-1',
+      );
+      final tokenA2 = buildJwt(
+        sub: 'user-a',
+        email: 'a@example.com',
+        jti: 'delete-2',
+      );
+      final tokenA3 = buildJwt(
+        sub: 'user-a',
+        email: 'a@example.com',
+        jti: 'relogin',
+      );
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-a',
+              currentUserId: 'user-a',
+            )
+            ..savedAccessToken = tokenA1
+            ..savedRefreshToken = 'refresh-a';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+
+      final deleteStarted1 = Completer<void>();
+      final deleteCompleter1 = Completer<Response<void>>();
+      final deleteStarted2 = Completer<void>();
+      final deleteCompleter2 = Completer<Response<void>>();
+      var deleteCalls = 0;
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteCalls++;
+        if (deleteCalls == 1) {
+          deleteStarted1.complete();
+          return deleteCompleter1.future;
+        }
+        deleteStarted2.complete();
+        return deleteCompleter2.future;
+      });
+
+      final deleteFuture1 = repo.deleteAccount();
+      await deleteStarted1.future;
+
+      // 1 件目待機中に再ログインし、2 件目の退会も開始する
+      final loginResponse1 = MockResponse();
+      when(
+        () => loginResponse1.data,
+      ).thenReturn({'access_token': tokenA2, 'refresh_token': 'refresh-a2'});
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => loginResponse1);
+      check(await repo.login('a@example.com', 'password123')).equals(true);
+
+      final deleteFuture2 = repo.deleteAccount();
+      await deleteStarted2.future;
+      check(await invalidationStore.getInvalidationEntries()).length.equals(2);
+
+      // 1 件目完了しても 2 件目が進行中のため A の無効化レコードは残ること
+      deleteCompleter1.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      check(await deleteFuture1).equals(true);
+      check(await invalidationStore.getInvalidationEntries()).length.equals(1);
+
+      // 1 件目完了後に再び A が再ログインし、2 件目完了時のトークン消去に失敗してもレコードが残ること
+      final loginResponse2 = MockResponse();
+      when(
+        () => loginResponse2.data,
+      ).thenReturn({'access_token': tokenA3, 'refresh_token': 'refresh-a3'});
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => loginResponse2);
+      check(await repo.login('a@example.com', 'password123')).equals(true);
+
+      fakeStorage.clearError = Exception('clear error on second delete');
+      deleteCompleter2.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      check(await deleteFuture2).equals(true);
+      check(fakeStorage.savedAccessToken).equals(tokenA3);
+      check(await invalidationStore.isInvalidated()).equals(true);
+
+      // 再起動時に A が復元されないこと
+      fakeStorage.clearError = null;
+      final restartedContainer = createContainer(fakeStorage);
+      check(
+        await restartedContainer.read(authStateProvider.future),
+      ).equals(false);
+      check(fakeStorage.savedAccessToken).isNull();
+      check(await invalidationStore.isInvalidated()).equals(false);
+    });
   });
 }

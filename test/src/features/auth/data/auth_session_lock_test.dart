@@ -165,5 +165,60 @@ void main() {
         check(lock.currentSession).isA<SignedOutTrackedAuthSession>();
       },
     );
+
+    test('registerActiveDeletion / unregisterActiveDeletion / '
+        'hasOtherActiveDeletion: 同一・不明な他エントリのみを検知し別アカウントは除外すること', () {
+      final lock = AuthSessionLock()
+        ..registerActiveDeletion(
+          entryId: 1,
+          userId: 'user-a',
+          email: 'a@example.com',
+        );
+      check(
+        lock.hasOtherActiveDeletion(
+          entryId: 1,
+          userId: 'user-a',
+          email: 'a@example.com',
+        ),
+      ).equals(false);
+
+      // 別アカウント B が並行していても A にとっては別退会扱いしない
+      lock.registerActiveDeletion(
+        entryId: 2,
+        userId: 'user-b',
+        email: 'b@example.com',
+      );
+      check(
+        lock.hasOtherActiveDeletion(
+          entryId: 1,
+          userId: 'user-a',
+          email: 'a@example.com',
+        ),
+      ).equals(false);
+
+      // 同一アカウント A の 2 件目が入れば true になること
+      lock.registerActiveDeletion(
+        entryId: 3,
+        userId: 'user-a',
+        email: 'a@example.com',
+      );
+      check(
+        lock.hasOtherActiveDeletion(
+          entryId: 1,
+          userId: 'user-a',
+          email: 'a@example.com',
+        ),
+      ).equals(true);
+
+      // 3 を解除すれば再度 false に戻ること
+      lock.unregisterActiveDeletion(3);
+      check(
+        lock.hasOtherActiveDeletion(
+          entryId: 1,
+          userId: 'user-a',
+          email: 'a@example.com',
+        ),
+      ).equals(false);
+    });
   });
 }
