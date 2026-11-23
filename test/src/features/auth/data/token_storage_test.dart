@@ -30,7 +30,7 @@ void main() {
     const testRefreshToken = 'test_refresh_token';
 
     test('saveTokens: アクセストークンとリフレッシュトークンを正しいキーで保存し、 '
-        'subが無い場合は保存済み customUserId を削除すること', () async {
+        'sub・emailが無い場合は保存済み customUserId / customUserEmail を削除すること', () async {
       // Arrange
       when(
         () => mockStorage.write(
@@ -39,7 +39,7 @@ void main() {
         ),
       ).thenAnswer((_) async => {});
       when(
-        () => mockStorage.delete(key: SecureStorageKeys.customUserId),
+        () => mockStorage.delete(key: any(named: 'key')),
       ).thenAnswer((_) async {});
       final storage = container.read(tokenStorageProvider);
 
@@ -64,6 +64,9 @@ void main() {
       ).called(1);
       verify(
         () => mockStorage.delete(key: SecureStorageKeys.customUserId),
+      ).called(1);
+      verify(
+        () => mockStorage.delete(key: SecureStorageKeys.customUserEmail),
       ).called(1);
     });
 
@@ -101,7 +104,7 @@ void main() {
       ).called(1);
     });
 
-    test('clear: 両方のトークンおよび customUserId を削除すること', () async {
+    test('clear: 全4キー（トークン・customUserId・customUserEmail）を削除すること', () async {
       // Arrange
       when(
         () => mockStorage.delete(key: any(named: 'key')),
@@ -121,9 +124,12 @@ void main() {
       verify(
         () => mockStorage.delete(key: SecureStorageKeys.customUserId),
       ).called(1);
+      verify(
+        () => mockStorage.delete(key: SecureStorageKeys.customUserEmail),
+      ).called(1);
     });
 
-    test('clear: 途中で削除に失敗しても全3キーの削除を試行し、最初のエラーを再スローすること', () async {
+    test('clear: 途中で削除に失敗しても全4キーの削除を試行し、最初のエラーを再スローすること', () async {
       final firstError = Exception('access delete failed');
       final secondError = Exception('refresh delete failed');
       when(
@@ -134,6 +140,9 @@ void main() {
       ).thenThrow(secondError);
       when(
         () => mockStorage.delete(key: SecureStorageKeys.customUserId),
+      ).thenAnswer((_) async => {});
+      when(
+        () => mockStorage.delete(key: SecureStorageKeys.customUserEmail),
       ).thenAnswer((_) async => {});
       final storage = container.read(tokenStorageProvider);
 
@@ -153,6 +162,9 @@ void main() {
       verify(
         () => mockStorage.delete(key: SecureStorageKeys.customUserId),
       ).called(1);
+      verify(
+        () => mockStorage.delete(key: SecureStorageKeys.customUserEmail),
+      ).called(1);
     });
 
     test('トークンが保存されていない場合、get メソッドが null を返すこと', () async {
@@ -166,54 +178,66 @@ void main() {
       final access = await storage.getAccessToken();
       final refresh = await storage.getRefreshToken();
       final userId = await storage.getUserId();
+      final userEmail = await storage.getUserEmail();
 
       // Assert
       check(access).isNull();
       check(refresh).isNull();
       check(userId).isNull();
+      check(userEmail).isNull();
     });
 
-    test('saveTokens: JWTアクセストークンから customUserId を抽出して暗号化保存すること', () async {
-      // Arrange
-      // 有効なJWT: sub: user_abc123
-      const validJwt =
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'
-          'eyJzdWIiOiJ1c2VyX2FiYzEyMyJ9.'
-          'dummy_signature';
-      when(
-        () => mockStorage.write(
-          key: any(named: 'key'),
-          value: any(named: 'value'),
-        ),
-      ).thenAnswer((_) async => {});
-      final storage = container.read(tokenStorageProvider);
+    test(
+      'saveTokens: JWTアクセストークンおよび引数から customUserId と customUserEmail を保存すること',
+      () async {
+        // Arrange
+        // 有効なJWT: sub: user_abc123
+        const validJwt =
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'
+            'eyJzdWIiOiJ1c2VyX2FiYzEyMyJ9.'
+            'dummy_signature';
+        when(
+          () => mockStorage.write(
+            key: any(named: 'key'),
+            value: any(named: 'value'),
+          ),
+        ).thenAnswer((_) async => {});
+        final storage = container.read(tokenStorageProvider);
 
-      // Act
-      await storage.saveTokens(
-        accessToken: validJwt,
-        refreshToken: testRefreshToken,
-      );
+        // Act
+        await storage.saveTokens(
+          accessToken: validJwt,
+          refreshToken: testRefreshToken,
+          email: '  fallback@example.com  ',
+        );
 
-      // Assert
-      verify(
-        () => mockStorage.write(
-          key: SecureStorageKeys.accessToken,
-          value: validJwt,
-        ),
-      ).called(1);
-      verify(
-        () => mockStorage.write(
-          key: SecureStorageKeys.refreshToken,
-          value: testRefreshToken,
-        ),
-      ).called(1);
-      verify(
-        () => mockStorage.write(
-          key: SecureStorageKeys.customUserId,
-          value: 'user_abc123',
-        ),
-      ).called(1);
-    });
+        // Assert
+        verify(
+          () => mockStorage.write(
+            key: SecureStorageKeys.accessToken,
+            value: validJwt,
+          ),
+        ).called(1);
+        verify(
+          () => mockStorage.write(
+            key: SecureStorageKeys.refreshToken,
+            value: testRefreshToken,
+          ),
+        ).called(1);
+        verify(
+          () => mockStorage.write(
+            key: SecureStorageKeys.customUserId,
+            value: 'user_abc123',
+          ),
+        ).called(1);
+        verify(
+          () => mockStorage.write(
+            key: SecureStorageKeys.customUserEmail,
+            value: 'fallback@example.com',
+          ),
+        ).called(1);
+      },
+    );
 
     test('getUserId: 保存されている customUserId を取得できること', () async {
       // Arrange
@@ -242,6 +266,9 @@ void main() {
         () => mockStorage.read(key: SecureStorageKeys.customUserId),
       ).thenAnswer((_) async => null);
       when(
+        () => mockStorage.read(key: SecureStorageKeys.customUserEmail),
+      ).thenAnswer((_) async => null);
+      when(
         () => mockStorage.read(key: SecureStorageKeys.accessToken),
       ).thenAnswer((_) async => validJwt);
       when(
@@ -261,6 +288,43 @@ void main() {
         () => mockStorage.write(
           key: SecureStorageKeys.customUserId,
           value: 'recovered_user',
+        ),
+      ).called(1);
+    });
+
+    test('getUserEmail: 保存済みメールアドレスの取得およびJWTからの復元保存ができること', () async {
+      // 1. 保存済みの場合
+      when(
+        () => mockStorage.read(key: SecureStorageKeys.customUserEmail),
+      ).thenAnswer((_) async => '  stored@example.com ');
+      final storage = container.read(tokenStorageProvider);
+
+      check(await storage.getUserEmail()).equals('stored@example.com');
+      verifyNever(() => mockStorage.read(key: SecureStorageKeys.accessToken));
+
+      // 2. 未保存でも JWT に email クレームがあれば復元・保存すること
+      const jwtWithEmail =
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'
+          'eyJzdWIiOiJ1c2VyXzEyMyIsImVtYWlsIjoicmVjb3ZlcmVkQGV4YW1wbGUuY29tIn0.'
+          'dummy_signature';
+      when(
+        () => mockStorage.read(key: SecureStorageKeys.customUserEmail),
+      ).thenAnswer((_) async => null);
+      when(
+        () => mockStorage.read(key: SecureStorageKeys.accessToken),
+      ).thenAnswer((_) async => jwtWithEmail);
+      when(
+        () => mockStorage.write(
+          key: any(named: 'key'),
+          value: any(named: 'value'),
+        ),
+      ).thenAnswer((_) async => {});
+
+      check(await storage.getUserEmail()).equals('recovered@example.com');
+      verify(
+        () => mockStorage.write(
+          key: SecureStorageKeys.customUserEmail,
+          value: 'recovered@example.com',
         ),
       ).called(1);
     });
@@ -418,6 +482,9 @@ void main() {
       when(
         () => mockStorage.read(key: SecureStorageKeys.customUserId),
       ).thenAnswer((_) async => null);
+      when(
+        () => mockStorage.read(key: SecureStorageKeys.customUserEmail),
+      ).thenAnswer((_) async => null);
 
       when(
         () => mockStorage.write(
@@ -508,6 +575,64 @@ void main() {
         () => mockStorage.delete(key: SecureStorageKeys.refreshToken),
       );
     });
+
+    test(
+      'saveTokens(preserveExistingOnFailure: true): sub無しで customUserId 削除後に '
+      'customUserEmail 書込失敗した場合は削除した customUserId も含め全既存値を復元すること',
+      () async {
+        final store = <String, String>{
+          SecureStorageKeys.accessToken: 'old_access',
+          SecureStorageKeys.refreshToken: 'old_refresh',
+          SecureStorageKeys.customUserId: 'old_user',
+          SecureStorageKeys.customUserEmail: 'old@example.com',
+        };
+        final emailWriteError = Exception('email write failed');
+        when(
+          () => mockStorage.read(key: any(named: 'key')),
+        ).thenAnswer((inv) async => store[inv.namedArguments[#key] as String]);
+        when(() => mockStorage.delete(key: any(named: 'key'))).thenAnswer((
+          inv,
+        ) async {
+          store.remove(inv.namedArguments[#key] as String);
+        });
+        when(
+          () => mockStorage.write(
+            key: any(named: 'key'),
+            value: any(named: 'value'),
+          ),
+        ).thenAnswer((inv) async {
+          final key = inv.namedArguments[#key] as String;
+          final value = inv.namedArguments[#value] as String?;
+          if (key == SecureStorageKeys.customUserEmail &&
+              value == 'new@example.com') {
+            throw emailWriteError;
+          }
+          if (value == null) {
+            store.remove(key);
+          } else {
+            store[key] = value;
+          }
+        });
+
+        final storage = container.read(tokenStorageProvider);
+
+        await check(
+          storage.saveTokens(
+            accessToken: 'opaque_new_access',
+            refreshToken: 'new_refresh',
+            email: 'new@example.com',
+            preserveExistingOnFailure: true,
+          ),
+        ).throws<Exception>((it) => it.equals(emailWriteError));
+
+        check(store).deepEquals({
+          SecureStorageKeys.accessToken: 'old_access',
+          SecureStorageKeys.refreshToken: 'old_refresh',
+          SecureStorageKeys.customUserId: 'old_user',
+          SecureStorageKeys.customUserEmail: 'old@example.com',
+        });
+      },
+    );
   });
 
   group('TokenStorage ユニットテスト (Providerなし)', () {

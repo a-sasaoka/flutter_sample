@@ -98,6 +98,11 @@ class AuthRepository {
     }
   }
 
+  static String? _normalizeIdentity(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
   /// セッションロック内で事前条件および退会中の識別可否を確認した上で資格情報を確定する
   ///
   /// [additionalPrecondition] が `false` の場合や、退会処理進行中に削除対象と
@@ -113,8 +118,10 @@ class AuthRepository {
     String? fallbackEmail,
     bool Function()? additionalPrecondition,
   }) async {
-    final candidateUserId = JwtUtils.getUserId(accessToken);
-    final candidateEmail = JwtUtils.getEmail(accessToken) ?? fallbackEmail;
+    final candidateUserId = _normalizeIdentity(JwtUtils.getUserId(accessToken));
+    final candidateEmail =
+        _normalizeIdentity(JwtUtils.getEmail(accessToken)) ??
+        _normalizeIdentity(fallbackEmail);
     return await sessionLock.runSessionTransitionIf(
       shouldTransition: () async {
         if (additionalPrecondition != null && !additionalPrecondition()) {
@@ -178,8 +185,10 @@ class AuthRepository {
     required String refreshToken,
     String? fallbackEmail,
   }) async {
-    final candidateUserId = JwtUtils.getUserId(accessToken);
-    final candidateEmail = JwtUtils.getEmail(accessToken) ?? fallbackEmail;
+    final candidateUserId = _normalizeIdentity(JwtUtils.getUserId(accessToken));
+    final candidateEmail =
+        _normalizeIdentity(JwtUtils.getEmail(accessToken)) ??
+        _normalizeIdentity(fallbackEmail);
     // 無効化行を解除する前に未確定ログイン状態を記録し、記録失敗時は無効化行を残し、
     // 解除失敗時や保存/消去ロールバック失敗時も次回起動時に残留トークンを復元しない
     await invalidationStore.markLoginPending();
@@ -193,6 +202,8 @@ class AuthRepository {
       await tokenStorage.saveTokens(
         accessToken: accessToken,
         refreshToken: refreshToken,
+        userId: candidateUserId,
+        email: candidateEmail,
       );
       await invalidationStore.clearLoginPending();
       sessionLock.recordAuthenticatedSession(
@@ -262,31 +273,42 @@ class AuthRepository {
         return false;
       }
 
-      await tokenStorage.saveTokens(
-        accessToken: access,
-        refreshToken: startState.refreshToken,
-        preserveExistingOnFailure: true,
-      );
       final trackedEmail = switch (_sessionLock.currentSession) {
         AuthenticatedTrackedAuthSession(:final email) => email,
         _ => null,
       };
+      final resolvedUserId =
+          _normalizeIdentity(JwtUtils.getUserId(access)) ??
+          _normalizeIdentity(expectedUserId);
+      final resolvedEmail =
+          _normalizeIdentity(JwtUtils.getEmail(access)) ??
+          _normalizeIdentity(trackedEmail) ??
+          _normalizeIdentity(await tokenStorage.getUserEmail());
+      await tokenStorage.saveTokens(
+        accessToken: access,
+        refreshToken: startState.refreshToken,
+        userId: resolvedUserId,
+        email: resolvedEmail,
+        preserveExistingOnFailure: true,
+      );
       _sessionLock.recordAuthenticatedSession(
         accessToken: access,
-        userId: JwtUtils.getUserId(access) ?? expectedUserId,
-        email: JwtUtils.getEmail(access) ?? trackedEmail,
+        userId: resolvedUserId,
+        email: resolvedEmail,
       );
       return true;
     });
   }
 
-  /// 保存済みアクセストークンから現在のメールアドレスを取得する（未取得時は null）
+  /// 保存済みアクセストークン・識別情報から現在のメールアドレスを取得する（未取得時は null）
   Future<String?> getCurrentEmail() async {
     final token = await tokenStorage.getAccessToken();
-    if (token == null) {
+    if (token == null || token.isEmpty) {
       return null;
     }
-    return JwtUtils.getEmail(token);
+    return _normalizeIdentity(JwtUtils.getEmail(token)) ??
+        _normalizeIdentity(_sessionLock.trackedEmailForAccessToken(token)) ??
+        _normalizeIdentity(await tokenStorage.getUserEmail());
   }
 
   /// パスワード再認証APIを呼び出す（カスタム認証用）
@@ -329,10 +351,11 @@ class AuthRepository {
       if (token == null || token.isEmpty) {
         return null;
       }
-      final startUserId = await tokenStorage.getUserId();
+      final startUserId = _normalizeIdentity(await tokenStorage.getUserId());
       final startEmail =
-          JwtUtils.getEmail(token) ??
-          _sessionLock.trackedEmailForAccessToken(token);
+          _normalizeIdentity(JwtUtils.getEmail(token)) ??
+          _normalizeIdentity(_sessionLock.trackedEmailForAccessToken(token)) ??
+          _normalizeIdentity(await tokenStorage.getUserEmail());
       // サーバー削除要求前に削除対象アカウント情報つきで無効化状態を永続化し、
       // 保存に失敗した場合は削除要求を送らない
       final invalidationEntryId = await _invalidationStore.markInvalidated(
@@ -450,11 +473,14 @@ class AuthRepository {
       if (currentToken == null || currentToken.isEmpty) {
         final currentRefreshToken = await tokenStorage.getRefreshToken();
         final currentUserId = await tokenStorage.getUserId();
+        final currentUserEmail = await tokenStorage.getUserEmail();
         final hasRemainingCredentials =
+            currentToken != null ||
             (currentRefreshToken != null && currentRefreshToken.isNotEmpty) ||
-            (currentUserId != null && currentUserId.isNotEmpty);
+            (currentUserId != null && currentUserId.isNotEmpty) ||
+            (currentUserEmail != null && currentUserEmail.isNotEmpty);
         if (!hasRemainingCredentials) {
-          // 全キー（accessToken / refreshToken / customUserId）の消去完了を確認できた場合のみ、
+          // 全キー（accessToken / refreshToken / customUserId / customUserEmail）の消去完了を確認できた場合のみ、
           // 余計なトークン消去や世代更新をせず終了扱いとする
           return (
             shouldClearTokens: false,
@@ -470,10 +496,13 @@ class AuthRepository {
           shouldClearInvalidationFlag: true,
         );
       }
-      final currentUserId = await tokenStorage.getUserId();
+      final currentUserId = _normalizeIdentity(await tokenStorage.getUserId());
       final currentEmail =
-          JwtUtils.getEmail(currentToken) ??
-          _sessionLock.trackedEmailForAccessToken(currentToken);
+          _normalizeIdentity(JwtUtils.getEmail(currentToken)) ??
+          _normalizeIdentity(
+            _sessionLock.trackedEmailForAccessToken(currentToken),
+          ) ??
+          _normalizeIdentity(await tokenStorage.getUserEmail());
       return _matchTargetAccountOutcome(
         startState: startState,
         candidateUserId: currentUserId,

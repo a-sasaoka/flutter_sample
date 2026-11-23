@@ -98,17 +98,20 @@ class FakeTokenStorage extends Mock implements TokenStorage {
   FakeTokenStorage({
     this.initialRefreshToken,
     this.currentUserId,
+    this.currentUserEmail,
     this.onSaveTokens,
     this.clearError,
   }) : currentRefreshToken = initialRefreshToken;
 
   final String? initialRefreshToken;
   String? currentUserId;
+  String? currentUserEmail;
   String? currentRefreshToken;
   Future<void> Function(String accessToken, String refreshToken)? onSaveTokens;
   Exception? clearError;
   Exception? getAccessTokenError;
   Exception? getUserIdError;
+  Exception? getUserEmailError;
   int getUserIdCalls = 0;
 
   // 保存された値を検証するためのプロパティ
@@ -122,6 +125,14 @@ class FakeTokenStorage extends Mock implements TokenStorage {
       throw getUserIdError!;
     }
     return currentUserId;
+  }
+
+  @override
+  Future<String?> getUserEmail() async {
+    if (getUserEmailError != null) {
+      throw getUserEmailError!;
+    }
+    return currentUserEmail;
   }
 
   @override
@@ -141,6 +152,7 @@ class FakeTokenStorage extends Mock implements TokenStorage {
       throw clearError!;
     }
     currentUserId = null;
+    currentUserEmail = null;
     currentRefreshToken = null;
     savedAccessToken = null;
     savedRefreshToken = null;
@@ -150,11 +162,15 @@ class FakeTokenStorage extends Mock implements TokenStorage {
   Future<void> saveTokens({
     required String accessToken,
     required String refreshToken,
+    String? userId,
+    String? email,
     bool preserveExistingOnFailure = false,
   }) async {
     savedAccessToken = accessToken;
     savedRefreshToken = refreshToken;
     currentRefreshToken = refreshToken;
+    currentUserId = userId;
+    currentUserEmail = email;
     await onSaveTokens?.call(accessToken, refreshToken);
   }
 }
@@ -1369,8 +1385,20 @@ void main() {
       fakeStorage.savedAccessToken = jwtWithEmail;
       check(await repo.getCurrentEmail()).equals('test@example.com');
 
-      // email クレームなし
-      fakeStorage.savedAccessToken = jwtWithoutEmail;
+      // email クレームなし・保存済みメールあり
+      fakeStorage
+        ..savedAccessToken = jwtWithoutEmail
+        ..currentUserEmail = 'persisted@example.com';
+      check(await repo.getCurrentEmail()).equals('persisted@example.com');
+
+      // トークン未保存時は保存済みメールがあっても null
+      fakeStorage.savedAccessToken = null;
+      check(await repo.getCurrentEmail()).isNull();
+
+      // email クレームなし・保存済みメールなし
+      fakeStorage
+        ..savedAccessToken = jwtWithoutEmail
+        ..currentUserEmail = null;
       check(await repo.getCurrentEmail()).isNull();
     });
 
@@ -2050,6 +2078,105 @@ void main() {
 
       await check(deleteFuture).completes((it) => it.equals(true));
       check(await fakeStorage.getUserId()).isNull();
+      check(await invalidationStore.isInvalidated()).equals(false);
+    });
+
+    test('deleteAccount: accessToken/refreshToken/customUserId が空で '
+        'customUserEmail のみ残存時も clear() を再試行して消去すること', () async {
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-old',
+              currentUserId: 'user-old',
+              currentUserEmail: 'old@example.com',
+            )
+            ..savedAccessToken = 'access-old'
+            ..savedRefreshToken = 'refresh-old';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+      final lock = container.read(authSessionLockProvider);
+
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+
+      final deleteFuture = repo.deleteAccount();
+      await deleteStarted.future;
+
+      await lock.runSessionTransition(() async {
+        fakeStorage
+          ..savedAccessToken = null
+          ..savedRefreshToken = null
+          ..currentRefreshToken = null
+          ..currentUserId = null;
+      });
+
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+
+      await check(deleteFuture).completes((it) => it.equals(true));
+      check(await fakeStorage.getUserEmail()).isNull();
+      check(await invalidationStore.isInvalidated()).equals(false);
+    });
+
+    test('deleteAccount: refreshToken/customUserId/customUserEmail が null で '
+        'accessToken に空文字のみ残存時も clear() を再試行して消去すること', () async {
+      final fakeStorage =
+          FakeTokenStorage(
+              initialRefreshToken: 'refresh-old',
+              currentUserId: 'user-old',
+              currentUserEmail: 'old@example.com',
+            )
+            ..savedAccessToken = 'access-old'
+            ..savedRefreshToken = 'refresh-old';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+      final lock = container.read(authSessionLockProvider);
+
+      final deleteStarted = Completer<void>();
+      final deleteCompleter = Completer<Response<void>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted.complete();
+        return deleteCompleter.future;
+      });
+
+      final deleteFuture = repo.deleteAccount();
+      await deleteStarted.future;
+
+      await lock.runSessionTransition(() async {
+        fakeStorage
+          ..savedAccessToken = ''
+          ..savedRefreshToken = null
+          ..currentRefreshToken = null
+          ..currentUserId = null
+          ..currentUserEmail = null;
+      });
+
+      deleteCompleter.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+
+      await check(deleteFuture).completes((it) => it.equals(true));
+      check(fakeStorage.savedAccessToken).isNull();
       check(await invalidationStore.isInvalidated()).equals(false);
     });
 
@@ -3261,6 +3388,134 @@ void main() {
         await restartedContainer.read(authStateProvider.future),
       ).equals(true);
       check(await fakeStorage.getAccessToken()).equals(jwtA);
+    });
+
+    test('login / refreshToken / deleteAccount: クレーム無しトークンでも入力メールを '
+        '実TokenStorageへ永続化・引き継ぎし、再起動後にメール照合で削除実行できること', () async {
+      final store = <String, String>{};
+      final mockSecureStorage = MockFlutterSecureStorage();
+      when(
+        () => mockSecureStorage.read(key: any(named: 'key')),
+      ).thenAnswer((inv) async => store[inv.namedArguments[#key] as String]);
+      when(() => mockSecureStorage.delete(key: any(named: 'key'))).thenAnswer((
+        inv,
+      ) async {
+        store.remove(inv.namedArguments[#key] as String);
+      });
+      when(
+        () => mockSecureStorage.write(
+          key: any(named: 'key'),
+          value: any(named: 'value'),
+        ),
+      ).thenAnswer((inv) async {
+        final (:key, :value) = switch (inv.namedArguments) {
+          {#key: final String key, #value: final String? value} => (
+            key: key,
+            value: value,
+          ),
+          _ => fail('Unexpected write arguments: ${inv.namedArguments}'),
+        };
+        if (value == null) {
+          store.remove(key);
+        } else {
+          store[key] = value;
+        }
+      });
+
+      final realStorage = TokenStorage(secureStorage: mockSecureStorage);
+      final container = ProviderContainer(
+        overrides: [
+          authApiClientProvider.overrideWithValue(mockApi),
+          tokenStorageProvider.overrideWith((ref) => realStorage),
+          appSupportDirectoryReaderProvider.overrideWithValue(
+            () async => tempDir,
+          ),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container.dispose);
+      final repo = container.read(authRepositoryProvider);
+
+      final opaqueLogin = buildJwt(jti: 'opaque-login');
+      final opaqueRefresh = buildJwt(jti: 'opaque-refresh');
+      final loginResponse = MockResponse();
+      when(
+        () => loginResponse.data,
+      ).thenReturn({'access_token': opaqueLogin, 'refresh_token': 'refresh-1'});
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => loginResponse);
+
+      check(await repo.login('user@example.com', 'password123')).equals(true);
+      check(
+        store[SecureStorageKeys.customUserEmail],
+      ).equals('user@example.com');
+      check(await repo.getCurrentEmail()).equals('user@example.com');
+
+      // リフレッシュ後も入力メールが永続化ストレージに維持されること
+      final refreshResponse = MockResponse();
+      when(
+        () => refreshResponse.data,
+      ).thenReturn({'access_token': opaqueRefresh});
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/refresh',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => refreshResponse);
+      check(await repo.refreshToken(null)).equals(true);
+      check(
+        store[SecureStorageKeys.customUserEmail],
+      ).equals('user@example.com');
+
+      // 新しい Container（再起動相当、AuthSessionLock は新規）から deleteAccount を開始し、
+      // 無効化レコードへ targetEmail が記録されること
+      final restarted = ProviderContainer(
+        overrides: [
+          authApiClientProvider.overrideWithValue(mockApi),
+          tokenStorageProvider.overrideWith((ref) => realStorage),
+          appSupportDirectoryReaderProvider.overrideWithValue(
+            () async => tempDir,
+          ),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(restarted.dispose);
+      final restartedRepo = restarted.read(authRepositoryProvider);
+      check(await restartedRepo.getCurrentEmail()).equals('user@example.com');
+
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenThrow(const AppException.network());
+
+      await check(restartedRepo.deleteAccount()).throws<NetworkException>();
+      final entries = await invalidationStore.getInvalidationEntries();
+      check(entries).length.equals(1);
+      check(entries.single.targetUserId).isNull();
+      check(entries.single.targetEmail).equals('user@example.com');
+
+      // 不明障害後の再起動でも、永続化された customUserEmail により同一アカウントと判定し全消去すること
+      final recoveryContainer = ProviderContainer(
+        overrides: [
+          tokenStorageProvider.overrideWith((ref) => realStorage),
+          appSupportDirectoryReaderProvider.overrideWithValue(
+            () async => tempDir,
+          ),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(recoveryContainer.dispose);
+      check(
+        await recoveryContainer.read(authStateProvider.future),
+      ).equals(false);
+      check(store).isEmpty();
+      check(await invalidationStore.isInvalidated()).equals(false);
     });
   });
 }

@@ -66,11 +66,32 @@ void main() {
       verify(() => mockFirebaseAuth.currentUser).called(1);
     });
 
+    test('getUserEmail: ユーザーがログイン状態の時、ユーザーのemailを返すこと', () async {
+      when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+      when(() => mockUser.email).thenReturn('dummy@example.com');
+
+      final email = await tokenStorage.getUserEmail();
+
+      check(email).equals('dummy@example.com');
+      verify(() => mockFirebaseAuth.currentUser).called(1);
+    });
+
+    test('getUserEmail: ユーザーが未ログイン状態の時、nullを返すこと', () async {
+      when(() => mockFirebaseAuth.currentUser).thenReturn(null);
+
+      final email = await tokenStorage.getUserEmail();
+
+      check(email).isNull();
+      verify(() => mockFirebaseAuth.currentUser).called(1);
+    });
+
     test('saveTokens: 何も処理を行わないこと', () async {
       await check(
         tokenStorage.saveTokens(
           accessToken: 'dummy_access',
           refreshToken: 'dummy_refresh',
+          userId: 'dummy_uid',
+          email: 'dummy@example.com',
         ),
       ).completes();
     });

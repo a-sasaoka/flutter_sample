@@ -21,7 +21,7 @@ class TokenStorage {
 
   final FlutterSecureStorage _secureStorage;
 
-  /// トークンを保存する
+  /// トークンおよび識別情報を保存する
   ///
   /// 途中で書き込みに失敗した場合は例外を再スローします。
   /// [preserveExistingOnFailure] が `false` の場合（ログイン経路）は、この呼び出しで
@@ -31,6 +31,8 @@ class TokenStorage {
   Future<void> saveTokens({
     required String accessToken,
     required String refreshToken,
+    String? userId,
+    String? email,
     bool preserveExistingOnFailure = false,
   }) async {
     final previousValues = preserveExistingOnFailure
@@ -44,35 +46,48 @@ class TokenStorage {
             SecureStorageKeys.customUserId: await _secureStorage.read(
               key: SecureStorageKeys.customUserId,
             ),
+            SecureStorageKeys.customUserEmail: await _secureStorage.read(
+              key: SecureStorageKeys.customUserEmail,
+            ),
           }
         : null;
-    final writtenKeys = <String>[];
+    final modifiedKeys = <String>[];
     try {
       await _secureStorage.write(
         key: SecureStorageKeys.accessToken,
         value: accessToken,
       );
-      writtenKeys.add(SecureStorageKeys.accessToken);
+      modifiedKeys.add(SecureStorageKeys.accessToken);
 
       await _secureStorage.write(
         key: SecureStorageKeys.refreshToken,
         value: refreshToken,
       );
-      writtenKeys.add(SecureStorageKeys.refreshToken);
+      modifiedKeys.add(SecureStorageKeys.refreshToken);
 
-      // JWTからユーザーIDを抽出して暗号化保存（sub が無い場合は古い ID の残留を防ぐため削除する）
-      final userId = JwtUtils.getUserId(accessToken);
-      if (userId != null) {
-        await _secureStorage.write(
-          key: SecureStorageKeys.customUserId,
-          value: userId,
-        );
-        writtenKeys.add(SecureStorageKeys.customUserId);
-      } else {
-        await _secureStorage.delete(key: SecureStorageKeys.customUserId);
-      }
+      // ユーザーID（sub 優先、次点で指定値）を暗号化保存（未確定時は古い ID の残留を防ぐため削除）
+      final resolvedUserId =
+          _normalizeIdentity(JwtUtils.getUserId(accessToken)) ??
+          _normalizeIdentity(userId);
+      await _persistOptionalKey(
+        SecureStorageKeys.customUserId,
+        value: resolvedUserId,
+        previousValues: previousValues,
+        modifiedKeys: modifiedKeys,
+      );
+
+      // メールアドレス（email クレーム優先、次点で入力メール等）を暗号化保存（未確定時は古いメールを削除）
+      final resolvedEmail =
+          _normalizeIdentity(JwtUtils.getEmail(accessToken)) ??
+          _normalizeIdentity(email);
+      await _persistOptionalKey(
+        SecureStorageKeys.customUserEmail,
+        value: resolvedEmail,
+        previousValues: previousValues,
+        modifiedKeys: modifiedKeys,
+      );
     } on Object {
-      for (final key in writtenKeys) {
+      for (final key in modifiedKeys) {
         try {
           await _rollbackKey(key, previousValue: previousValues?[key]);
         } on Object catch (_) {
@@ -80,6 +95,23 @@ class TokenStorage {
         }
       }
       rethrow;
+    }
+  }
+
+  Future<void> _persistOptionalKey(
+    String key, {
+    required String? value,
+    required Map<String, String?>? previousValues,
+    required List<String> modifiedKeys,
+  }) async {
+    if (value != null) {
+      await _secureStorage.write(key: key, value: value);
+      modifiedKeys.add(key);
+    } else {
+      await _secureStorage.delete(key: key);
+      if (previousValues?[key] != null) {
+        modifiedKeys.add(key);
+      }
     }
   }
 
@@ -106,31 +138,49 @@ class TokenStorage {
 
   /// ログイン中ユーザーIDを取得する（未保存時はアクセストークンからの復元も試行）
   Future<String?> getUserId() async {
-    final storedUserId = await _secureStorage.read(
+    return await _getOrRecoverIdentity(
       key: SecureStorageKeys.customUserId,
+      extractFromToken: JwtUtils.getUserId,
     );
-    if (storedUserId != null) {
-      return storedUserId;
+  }
+
+  /// ログイン中メールアドレスを取得する（未保存時はアクセストークンからの復元も試行）
+  Future<String?> getUserEmail() async {
+    return await _getOrRecoverIdentity(
+      key: SecureStorageKeys.customUserEmail,
+      extractFromToken: JwtUtils.getEmail,
+    );
+  }
+
+  Future<String?> _getOrRecoverIdentity({
+    required String key,
+    required String? Function(String token) extractFromToken,
+  }) async {
+    final storedValue = _normalizeIdentity(await _secureStorage.read(key: key));
+    if (storedValue != null) {
+      return storedValue;
     }
 
     // 後方互換性：トークンから復元して保存
     final token = await getAccessToken();
     if (token != null) {
-      final userId = JwtUtils.getUserId(token);
-      if (userId != null) {
-        await _secureStorage.write(
-          key: SecureStorageKeys.customUserId,
-          value: userId,
-        );
-        return userId;
+      final recovered = _normalizeIdentity(extractFromToken(token));
+      if (recovered != null) {
+        await _secureStorage.write(key: key, value: recovered);
+        return recovered;
       }
     }
     return null;
   }
 
-  /// トークンおよびユーザーIDを削除する
+  static String? _normalizeIdentity(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
+  /// トークンおよびユーザー識別情報を削除する
   ///
-  /// 3件のうち途中で失敗しても残りのキーの削除を最後まで試行し、
+  /// 4件のうち途中で失敗しても残りのキーの削除を最後まで試行し、
   /// 一部トークンの残留を防いだ上で最初に発生したエラーを再スローします。
   Future<void> clear() async {
     Object? firstError;
@@ -140,6 +190,7 @@ class TokenStorage {
       SecureStorageKeys.accessToken,
       SecureStorageKeys.refreshToken,
       SecureStorageKeys.customUserId,
+      SecureStorageKeys.customUserEmail,
     ];
 
     for (final key in keys) {

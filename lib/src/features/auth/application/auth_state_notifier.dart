@@ -1,4 +1,3 @@
-import 'package:flutter_sample/src/core/utils/jwt_utils.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_session_lock.dart';
@@ -11,6 +10,11 @@ part 'auth_state_notifier.g.dart';
 /// ログイン状態を管理するStateNotifier
 @Riverpod(keepAlive: true)
 class AuthStateNotifier extends _$AuthStateNotifier {
+  static String? _normalizeIdentity(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
   @override
   Future<bool> build() async {
     final tokenStorage = ref.watch(tokenStorageProvider);
@@ -42,8 +46,12 @@ class AuthStateNotifier extends _$AuthStateNotifier {
       if (invalidationEntries.isNotEmpty) {
         final token = await tokenStorage.getAccessToken();
         if (token != null && token.isNotEmpty) {
-          final currentUserId = await tokenStorage.getUserId();
-          final currentEmail = JwtUtils.getEmail(token);
+          final currentUserId = _normalizeIdentity(
+            await tokenStorage.getUserId(),
+          );
+          final currentEmail = _normalizeIdentity(
+            await tokenStorage.getUserEmail(),
+          );
           final isInvalidatedAccount = invalidationEntries.any(
             (entry) => CustomAuthInvalidationStore.matchesAccount(
               targetUserId: entry.targetUserId,
@@ -92,11 +100,17 @@ class AuthStateNotifier extends _$AuthStateNotifier {
       }
 
       final token = await tokenStorage.getAccessToken();
-      if (token != null) {
+      if (token != null && token.isNotEmpty) {
+        final currentUserId = _normalizeIdentity(
+          await tokenStorage.getUserId(),
+        );
+        final currentEmail = _normalizeIdentity(
+          await tokenStorage.getUserEmail(),
+        );
         sessionLock.recordAuthenticatedSession(
           accessToken: token,
-          userId: JwtUtils.getUserId(token),
-          email: JwtUtils.getEmail(token),
+          userId: currentUserId,
+          email: currentEmail,
         );
         return true; // トークンがあればログイン状態
       }

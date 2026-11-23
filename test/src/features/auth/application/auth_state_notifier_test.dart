@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_sample/src/app/constants/storage_keys.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/utils/jwt_utils.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
@@ -12,6 +13,7 @@ import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_session_lock.dart';
 import 'package:flutter_sample/src/features/auth/data/custom_auth_invalidation_store.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
@@ -26,6 +28,8 @@ class MockTalker extends Mock implements Talker {}
 
 class MockCustomAuthInvalidationStore extends Mock
     implements CustomAuthInvalidationStore {}
+
+class MockFlutterSecureStorage extends Mock implements FlutterSecureStorage {}
 
 String _buildJwt({String? sub, String? email, String? jti}) {
   final header = base64Url.encode(
@@ -44,6 +48,7 @@ class FakeTokenStorage extends Mock implements TokenStorage {
     this.mockAccessToken,
     this.mockAccessTokenFuture,
     this.currentUserId,
+    this.currentUserEmail,
     this.shouldThrowOnSave = false,
     this.shouldThrowOnClear = false,
     this.onSaveTokens,
@@ -53,10 +58,12 @@ class FakeTokenStorage extends Mock implements TokenStorage {
   String? mockRefreshToken;
   final Future<String?>? mockAccessTokenFuture;
   String? currentUserId;
+  String? currentUserEmail;
   final bool shouldThrowOnSave;
   bool shouldThrowOnClear;
   Exception? getAccessTokenError;
   Exception? getUserIdError;
+  Exception? getUserEmailError;
   Future<void> Function(String accessToken, String refreshToken)? onSaveTokens;
 
   // 呼び出し確認用のフラグ
@@ -89,9 +96,23 @@ class FakeTokenStorage extends Mock implements TokenStorage {
   }
 
   @override
+  Future<String?> getUserEmail() async {
+    if (getUserEmailError != null) {
+      throw getUserEmailError!;
+    }
+    if (currentUserEmail != null && currentUserEmail!.trim().isNotEmpty) {
+      return currentUserEmail!.trim();
+    }
+    final token = await getAccessToken();
+    return token != null ? JwtUtils.getEmail(token) : null;
+  }
+
+  @override
   Future<void> saveTokens({
     required String accessToken,
     required String refreshToken,
+    String? userId,
+    String? email,
     bool preserveExistingOnFailure = false,
   }) async {
     isSaveTokensCalled = true;
@@ -100,6 +121,8 @@ class FakeTokenStorage extends Mock implements TokenStorage {
     }
     mockAccessToken = accessToken;
     mockRefreshToken = refreshToken;
+    currentUserId = JwtUtils.getUserId(accessToken) ?? userId;
+    currentUserEmail = JwtUtils.getEmail(accessToken) ?? email;
     await onSaveTokens?.call(accessToken, refreshToken);
   }
 
@@ -110,6 +133,7 @@ class FakeTokenStorage extends Mock implements TokenStorage {
       throw Exception('Failed to clear tokens');
     }
     currentUserId = null;
+    currentUserEmail = null;
     mockAccessToken = null;
     mockRefreshToken = null;
   }
@@ -300,6 +324,79 @@ void main() {
           'Failed to clear obsolete custom auth invalidation flag on startup',
         ),
       ).called(1);
+    });
+
+    test('初期化: 退会無効化レコードが存在し保存済み資格情報に識別情報が無い場合は '
+        '復元せず全キーを消去して false を返すこと', () async {
+      final storedValues = <String, String>{
+        SecureStorageKeys.accessToken: 'legacy-opaque-token',
+        SecureStorageKeys.refreshToken: 'legacy-refresh-token',
+      };
+      final mockSecureStorage = MockFlutterSecureStorage();
+      when(() => mockSecureStorage.read(key: any(named: 'key'))).thenAnswer(
+        (inv) async => storedValues[inv.namedArguments[#key] as String],
+      );
+      when(() => mockSecureStorage.delete(key: any(named: 'key'))).thenAnswer((
+        inv,
+      ) async {
+        storedValues.remove(inv.namedArguments[#key] as String);
+      });
+      final realStorage = TokenStorage(secureStorage: mockSecureStorage);
+      final store = CustomAuthInvalidationStore(
+        getDirectory: () async => tempDir,
+      );
+      await store.markInvalidated(
+        targetUserId: 'user-a',
+        targetEmail: 'a@example.com',
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          tokenStorageProvider.overrideWith((ref) => realStorage),
+          appSupportDirectoryReaderProvider.overrideWithValue(
+            () async => tempDir,
+          ),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      check(await container.read(authStateProvider.future)).equals(false);
+      check(storedValues).isEmpty();
+      check(await store.isInvalidated()).equals(false);
+    });
+
+    test('初期化: 無効化レコードが無い場合も保存済み customUserId と customUserEmail を '
+        'AuthSessionLock へ復元すること', () async {
+      final storedValues = <String, String>{
+        SecureStorageKeys.accessToken: 'opaque-token',
+        SecureStorageKeys.refreshToken: 'opaque-refresh',
+        SecureStorageKeys.customUserEmail: 'a@example.com',
+      };
+      final mockSecureStorage = MockFlutterSecureStorage();
+      when(() => mockSecureStorage.read(key: any(named: 'key'))).thenAnswer(
+        (inv) async => storedValues[inv.namedArguments[#key] as String],
+      );
+      final realStorage = TokenStorage(secureStorage: mockSecureStorage);
+
+      final container = ProviderContainer(
+        overrides: [
+          tokenStorageProvider.overrideWith((ref) => realStorage),
+          appSupportDirectoryReaderProvider.overrideWithValue(
+            () async => tempDir,
+          ),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      check(await container.read(authStateProvider.future)).equals(true);
+      check(container.read(authSessionLockProvider).currentSession).equals(
+        const TrackedAuthSession.authenticated(
+          accessToken: 'opaque-token',
+          email: 'a@example.com',
+        ),
+      );
     });
   });
 
@@ -1968,6 +2065,226 @@ void main() {
       check(container.read(authStateProvider).value).equals(false);
       check(fakeStorage.mockAccessToken).isNull();
       check(await store.isInvalidated()).equals(false);
+    });
+
+    test('実AuthRepository連携: 実TokenStorageでクレーム無しトークンと入力メールを永続化し、 '
+        '再起動後の AuthStateNotifier.build() で同一アカウント消去と別アカウント保護ができること', () async {
+      final storedValues = <String, String>{};
+      final mockSecureStorage = MockFlutterSecureStorage();
+      when(() => mockSecureStorage.read(key: any(named: 'key'))).thenAnswer(
+        (inv) async => storedValues[inv.namedArguments[#key] as String],
+      );
+      when(
+        () => mockSecureStorage.write(
+          key: any(named: 'key'),
+          value: any(named: 'value'),
+        ),
+      ).thenAnswer((inv) async {
+        final (:key, :value) = switch (inv.namedArguments) {
+          {#key: final String key, #value: final String? value} => (
+            key: key,
+            value: value,
+          ),
+          _ => fail('Unexpected write arguments: ${inv.namedArguments}'),
+        };
+        if (value == null) {
+          storedValues.remove(key);
+        } else {
+          storedValues[key] = value;
+        }
+      });
+      var shouldFailDelete = false;
+      when(() => mockSecureStorage.delete(key: any(named: 'key'))).thenAnswer((
+        inv,
+      ) async {
+        if (shouldFailDelete) {
+          throw Exception('clear failed on deletion completion');
+        }
+        storedValues.remove(inv.namedArguments[#key] as String);
+      });
+
+      final realStorage = TokenStorage(secureStorage: mockSecureStorage);
+      final tokenA = _buildJwt(sub: 'user-a', email: 'a@example.com');
+      final opaqueReloginA = _buildJwt(jti: 'opaque-relogin-a');
+      final opaqueLoginB = _buildJwt(jti: 'opaque-login-b');
+
+      // 1. 同一アカウント A が入力メール + クレーム無しトークンで再ログインし、
+      //    消去失敗したまま再起動しても保存済み customUserEmail で同一判定・消去されること
+      await realStorage.saveTokens(accessToken: tokenA, refreshToken: 'ref-a');
+      final mockApi1 = MockApiClient();
+      final deleteStarted1 = Completer<void>();
+      final deleteCompleter1 = Completer<Response<void>>();
+      when(
+        () => mockApi1.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted1.complete();
+        return deleteCompleter1.future;
+      });
+      when(
+        () => mockApi1.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer(
+        (_) async => Response<Map<String, dynamic>>(
+          requestOptions: RequestOptions(path: '/auth/login'),
+          statusCode: 200,
+          data: {'access_token': opaqueReloginA, 'refresh_token': 'ref-op-a'},
+        ),
+      );
+
+      final container1 = ProviderContainer(
+        overrides: [
+          authApiClientProvider.overrideWithValue(mockApi1),
+          tokenStorageProvider.overrideWith((ref) => realStorage),
+          appSupportDirectoryReaderProvider.overrideWithValue(
+            () async => tempDir,
+          ),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container1.dispose);
+      await container1.read(authStateProvider.future);
+      final notifier1 = container1.read(authStateProvider.notifier);
+
+      final deleteFuture1 = notifier1.deleteAccount();
+      await deleteStarted1.future;
+
+      check(
+        await notifier1.loginWithCredentials(
+          email: 'a@example.com',
+          password: 'password123',
+        ),
+      ).equals(true);
+      check(
+        storedValues[SecureStorageKeys.customUserEmail],
+      ).equals('a@example.com');
+      check(
+        storedValues.containsKey(SecureStorageKeys.customUserId),
+      ).equals(false);
+
+      shouldFailDelete = true;
+      deleteCompleter1.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      check(await deleteFuture1).equals(true);
+      check(storedValues[SecureStorageKeys.accessToken]).equals(opaqueReloginA);
+
+      shouldFailDelete = false;
+      final restartedSame = ProviderContainer(
+        overrides: [
+          tokenStorageProvider.overrideWith((ref) => realStorage),
+          appSupportDirectoryReaderProvider.overrideWithValue(
+            () async => tempDir,
+          ),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(restartedSame.dispose);
+      check(await restartedSame.read(authStateProvider.future)).equals(false);
+      check(storedValues).isEmpty();
+      check(
+        await restartedSame
+            .read(customAuthInvalidationStoreProvider)
+            .isInvalidated(),
+      ).equals(false);
+
+      // 2. 別アカウント B が入力メール + クレーム無しトークンでログインし、
+      //    無効化レコード残存状態で再起動しても B のセッションとメールを維持すること
+      await realStorage.saveTokens(accessToken: tokenA, refreshToken: 'ref-a');
+      final mockApi2 = MockApiClient();
+      final deleteStarted2 = Completer<void>();
+      final deleteCompleter2 = Completer<Response<void>>();
+      when(
+        () => mockApi2.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer((_) {
+        deleteStarted2.complete();
+        return deleteCompleter2.future;
+      });
+      when(
+        () => mockApi2.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer(
+        (_) async => Response<Map<String, dynamic>>(
+          requestOptions: RequestOptions(path: '/auth/login'),
+          statusCode: 200,
+          data: {'access_token': opaqueLoginB, 'refresh_token': 'ref-op-b'},
+        ),
+      );
+
+      final container2 = ProviderContainer(
+        overrides: [
+          authApiClientProvider.overrideWithValue(mockApi2),
+          tokenStorageProvider.overrideWith((ref) => realStorage),
+          appSupportDirectoryReaderProvider.overrideWithValue(
+            () async => tempDir,
+          ),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container2.dispose);
+      await container2.read(authStateProvider.future);
+      final notifier2 = container2.read(authStateProvider.notifier);
+
+      final deleteFuture2 = notifier2.deleteAccount();
+      await deleteStarted2.future;
+
+      check(
+        await notifier2.loginWithCredentials(
+          email: 'b@example.com',
+          password: 'password123',
+        ),
+      ).equals(true);
+
+      final restartedDifferent = ProviderContainer(
+        overrides: [
+          tokenStorageProvider.overrideWith((ref) => realStorage),
+          appSupportDirectoryReaderProvider.overrideWithValue(
+            () async => tempDir,
+          ),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(restartedDifferent.dispose);
+      check(
+        await restartedDifferent.read(authStateProvider.future),
+      ).equals(true);
+      check(storedValues[SecureStorageKeys.accessToken]).equals(opaqueLoginB);
+      check(
+        storedValues[SecureStorageKeys.customUserEmail],
+      ).equals('b@example.com');
+      check(
+        restartedDifferent.read(authSessionLockProvider).currentSession,
+      ).equals(
+        TrackedAuthSession.authenticated(
+          accessToken: opaqueLoginB,
+          email: 'b@example.com',
+        ),
+      );
+      check(
+        await restartedDifferent
+            .read(customAuthInvalidationStoreProvider)
+            .isInvalidated(),
+      ).equals(false);
+
+      deleteCompleter2.complete(
+        Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      await deleteFuture2;
     });
   });
 }
