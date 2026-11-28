@@ -86,6 +86,9 @@ class CustomAuthInvalidationStore {
   @visibleForTesting
   static const databaseFileName = 'custom_auth_invalidation.sqlite';
 
+  static const _pendingLoginTable = 'custom_auth_pending_login';
+  static const _pendingLogoutTable = 'custom_auth_pending_logout';
+
   /// 最大耐久設定を有効にした専用 SQLite エグゼキュータを生成する
   @visibleForTesting
   static QueryExecutor createDurableDatabase(File databaseFile) {
@@ -107,6 +110,12 @@ class CustomAuthInvalidationStore {
           ''')
           ..execute('''
             CREATE TABLE IF NOT EXISTS custom_auth_pending_login (
+              id INTEGER PRIMARY KEY CHECK (id = 1),
+              pending INTEGER NOT NULL
+            );
+          ''')
+          ..execute('''
+            CREATE TABLE IF NOT EXISTS custom_auth_pending_logout (
               id INTEGER PRIMARY KEY CHECK (id = 1),
               pending INTEGER NOT NULL
             );
@@ -381,7 +390,24 @@ class CustomAuthInvalidationStore {
   }
 
   /// ログイン資格情報の保存が未確定のまま中断された状態が永続化されているかを返す
-  Future<bool> isLoginPending() async {
+  Future<bool> isLoginPending() => _isPendingFlag(_pendingLoginTable);
+
+  /// ログイン資格情報の保存開始（未確定状態）を SQLite へ確定保存する
+  Future<void> markLoginPending() => _markPendingFlag(_pendingLoginTable);
+
+  /// ログイン資格情報の保存確定またはロールバック消去完了後に未確定状態を解除する
+  Future<void> clearLoginPending() => _clearPendingFlag(_pendingLoginTable);
+
+  /// ログアウトのトークン消去が未完了のまま中断された状態が永続化されているかを返す
+  Future<bool> isLogoutPending() => _isPendingFlag(_pendingLogoutTable);
+
+  /// ログアウト時のトークン消去開始（消去未完了状態）を SQLite へ確定保存する
+  Future<void> markLogoutPending() => _markPendingFlag(_pendingLogoutTable);
+
+  /// ログアウト時の全キー消去完了後に消去未完了状態を解除する
+  Future<void> clearLogoutPending() => _clearPendingFlag(_pendingLogoutTable);
+
+  Future<bool> _isPendingFlag(String tableName) async {
     final dir = await _getDirectory();
     final dbFile = File(p.join(dir.path, databaseFileName));
     if (!dbFile.existsSync()) {
@@ -390,30 +416,27 @@ class CustomAuthInvalidationStore {
 
     return await _runWithExecutor(dbFile, (executor) async {
       final rows = await executor.runSelect(
-        'SELECT pending FROM custom_auth_pending_login WHERE id = 1;',
+        'SELECT pending FROM $tableName WHERE id = 1;',
         const [],
       );
       return rows.isNotEmpty && rows.first['pending'] == 1;
     });
   }
 
-  /// ログイン資格情報の保存開始（未確定状態）を SQLite へ確定保存する
-  Future<void> markLoginPending() async {
+  Future<void> _markPendingFlag(String tableName) async {
     final dir = await _getDirectory();
     await dir.create(recursive: true);
     final dbFile = File(p.join(dir.path, databaseFileName));
 
     await _runWithExecutor(dbFile, (executor) async {
       await executor.runInsert(
-        'INSERT OR REPLACE INTO custom_auth_pending_login (id, pending) '
-        'VALUES (1, 1);',
+        'INSERT OR REPLACE INTO $tableName (id, pending) VALUES (1, 1);',
         const [],
       );
     });
   }
 
-  /// ログイン資格情報の保存確定またはロールバック消去完了後に未確定状態を解除する
-  Future<void> clearLoginPending() async {
+  Future<void> _clearPendingFlag(String tableName) async {
     final dir = await _getDirectory();
     final dbFile = File(p.join(dir.path, databaseFileName));
     if (!dbFile.existsSync()) {
@@ -422,7 +445,7 @@ class CustomAuthInvalidationStore {
 
     await _runWithExecutor(dbFile, (executor) async {
       await executor.runDelete(
-        'DELETE FROM custom_auth_pending_login WHERE id = 1;',
+        'DELETE FROM $tableName WHERE id = 1;',
         const [],
       );
     });

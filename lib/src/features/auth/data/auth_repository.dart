@@ -206,6 +206,7 @@ class AuthRepository {
         email: candidateEmail,
       );
       await invalidationStore.clearLoginPending();
+      await invalidationStore.clearLogoutPending();
       sessionLock.recordAuthenticatedSession(
         accessToken: accessToken,
         userId: candidateUserId,
@@ -228,6 +229,7 @@ class AuthRepository {
       if (isCleared) {
         try {
           await invalidationStore.clearLoginPending();
+          await invalidationStore.clearLogoutPending();
         } on Object catch (pendingError, pendingSt) {
           talker.handle(
             pendingError,
@@ -302,13 +304,15 @@ class AuthRepository {
 
   /// 保存済みアクセストークン・識別情報から現在のメールアドレスを取得する（未取得時は null）
   Future<String?> getCurrentEmail() async {
-    final token = await tokenStorage.getAccessToken();
-    if (token == null || token.isEmpty) {
-      return null;
-    }
-    return _normalizeIdentity(JwtUtils.getEmail(token)) ??
-        _normalizeIdentity(_sessionLock.trackedEmailForAccessToken(token)) ??
-        _normalizeIdentity(await tokenStorage.getUserEmail());
+    return await _sessionLock.synchronized(() async {
+      final token = await tokenStorage.getAccessToken();
+      if (token == null || token.isEmpty) {
+        return null;
+      }
+      return _normalizeIdentity(JwtUtils.getEmail(token)) ??
+          _normalizeIdentity(_sessionLock.trackedEmailForAccessToken(token)) ??
+          _normalizeIdentity(await tokenStorage.getUserEmail());
+    });
   }
 
   /// パスワード再認証APIを呼び出す（カスタム認証用）

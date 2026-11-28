@@ -418,6 +418,33 @@ void main() {
       check(await store.isInvalidated()).equals(false);
     });
 
+    test('markLogoutPending / isLogoutPending / clearLogoutPending: '
+        '初期ファイルを作成せず管理でき、再起動後も保持・解除できること', () async {
+      final store = CustomAuthInvalidationStore(
+        getDirectory: () async => supportDir,
+      );
+
+      check(await store.isLogoutPending()).equals(false);
+      await store.clearLogoutPending();
+      final dbFile = File(
+        p.join(supportDir.path, CustomAuthInvalidationStore.databaseFileName),
+      );
+      check(dbFile.existsSync()).equals(false);
+
+      await store.markLogoutPending();
+      check(dbFile.existsSync()).equals(true);
+      check(await store.isLogoutPending()).equals(true);
+      check(await store.isLoginPending()).equals(false);
+
+      final restartedStore = CustomAuthInvalidationStore(
+        getDirectory: () async => supportDir,
+      );
+      check(await restartedStore.isLogoutPending()).equals(true);
+
+      await restartedStore.clearLogoutPending();
+      check(await store.isLogoutPending()).equals(false);
+    });
+
     test(
       'markInvalidated / getInvalidationEntries / clearInvalidatedIfMatches: '
       '呼び出しごとに独立した行 ID を保持し指定行・一致アカウントのみ削除できること',

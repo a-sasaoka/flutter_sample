@@ -1,9 +1,11 @@
+import 'package:flutter_sample/src/core/utils/jwt_utils.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/data/auth_session_lock.dart';
 import 'package:flutter_sample/src/features/auth/data/custom_auth_invalidation_store.dart';
 import 'package:flutter_sample/src/features/auth/data/token_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 part 'auth_state_notifier.g.dart';
 
@@ -15,6 +17,186 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     return trimmed == null || trimmed.isEmpty ? null : trimmed;
   }
 
+  Future<bool> _clearPendingTokensOnStartup({
+    required Future<bool> Function() isPending,
+    required Future<void> Function() clearPending,
+    required TokenStorage tokenStorage,
+    required AuthSessionLock sessionLock,
+    required Talker talker,
+    required String failureLogMessage,
+  }) async {
+    if (!await isPending()) {
+      return true;
+    }
+    try {
+      await tokenStorage.clear();
+      sessionLock.recordSignedOutSession();
+      await clearPending();
+      return true;
+    } on Object catch (e, st) {
+      sessionLock.recordSignedOutSession();
+      // 再消去またはフラグ解除に失敗しても、次回起動時に備えてフラグは維持し未ログインにする
+      talker.handle(e, st, failureLogMessage);
+      return false;
+    }
+  }
+
+  static bool _matchesJwtDirectly(
+    CustomAuthInvalidationEntry entry, {
+    required String? jwtUserId,
+    required String? jwtEmail,
+  }) {
+    if (jwtUserId != null && entry.targetUserId == jwtUserId) {
+      return true;
+    }
+    if (entry.targetUserId == null && jwtEmail != null) {
+      return CustomAuthInvalidationStore.compareAccounts(
+            targetUserId: null,
+            targetEmail: entry.targetEmail,
+            candidateUserId: null,
+            candidateEmail: jwtEmail,
+          ) ==
+          AccountMatch.same;
+    }
+    return false;
+  }
+
+  Future<String?> _readUserEmailBestEffort(
+    TokenStorage tokenStorage,
+    Talker talker,
+  ) async {
+    try {
+      return _normalizeIdentity(await tokenStorage.getUserEmail());
+    } on Object catch (e, st) {
+      talker.handle(
+        e,
+        st,
+        'Failed to read user email while restoring session on startup',
+      );
+      return null;
+    }
+  }
+
+  Future<
+    ({bool shouldClear, bool isAuthenticated, String? userId, String? email})
+  >
+  _resolveStartupInvalidationOutcome({
+    required List<CustomAuthInvalidationEntry> invalidationEntries,
+    required String token,
+    required TokenStorage tokenStorage,
+    required Talker talker,
+  }) async {
+    final jwtUserId = _normalizeIdentity(JwtUtils.getUserId(token));
+    final jwtEmail = _normalizeIdentity(JwtUtils.getEmail(token));
+
+    // JWTクレームだけで削除対象と一致した場合は、保存メールの読み取り失敗で
+    // 退会済みセッション消去を妨げないようストレージ識別情報へアクセスせず消去へ進む
+    if (invalidationEntries.any(
+      (entry) =>
+          _matchesJwtDirectly(entry, jwtUserId: jwtUserId, jwtEmail: jwtEmail),
+    )) {
+      return (
+        shouldClear: true,
+        isAuthenticated: false,
+        userId: jwtUserId,
+        email: jwtEmail,
+      );
+    }
+
+    late final String? currentUserId;
+    if (jwtUserId != null) {
+      currentUserId = jwtUserId;
+    } else {
+      try {
+        currentUserId = _normalizeIdentity(await tokenStorage.getUserId());
+      } on Object catch (e, st) {
+        talker.handle(
+          e,
+          st,
+          'Failed to read user id during startup invalidation check',
+        );
+        return (
+          shouldClear: false,
+          isAuthenticated: false,
+          userId: null,
+          email: null,
+        );
+      }
+    }
+
+    if (invalidationEntries.any(
+      (entry) =>
+          CustomAuthInvalidationStore.compareAccounts(
+            targetUserId: entry.targetUserId,
+            targetEmail: entry.targetEmail,
+            candidateUserId: currentUserId,
+            candidateEmail: jwtEmail,
+          ) ==
+          AccountMatch.same,
+    )) {
+      return (
+        shouldClear: true,
+        isAuthenticated: false,
+        userId: currentUserId,
+        email: jwtEmail,
+      );
+    }
+
+    final needsEmailLookup =
+        jwtEmail == null &&
+        invalidationEntries.any(
+          (entry) =>
+              !(entry.targetUserId != null && currentUserId != null) &&
+              _normalizeIdentity(entry.targetEmail) != null,
+        );
+    late final String? currentEmail;
+    if (needsEmailLookup) {
+      try {
+        currentEmail = _normalizeIdentity(await tokenStorage.getUserEmail());
+      } on Object catch (e, st) {
+        talker.handle(
+          e,
+          st,
+          'Failed to read user email during startup invalidation check',
+        );
+        return (
+          shouldClear: false,
+          isAuthenticated: false,
+          userId: currentUserId,
+          email: null,
+        );
+      }
+    } else {
+      currentEmail = jwtEmail;
+    }
+
+    final isInvalidatedAccount = invalidationEntries.any(
+      (entry) => CustomAuthInvalidationStore.matchesAccount(
+        targetUserId: entry.targetUserId,
+        targetEmail: entry.targetEmail,
+        candidateUserId: currentUserId,
+        candidateEmail: currentEmail,
+        defaultWhenUnidentifiable: true,
+      ),
+    );
+    if (isInvalidatedAccount) {
+      return (
+        shouldClear: true,
+        isAuthenticated: false,
+        userId: currentUserId,
+        email: currentEmail,
+      );
+    }
+
+    return (
+      shouldClear: false,
+      isAuthenticated: true,
+      userId: currentUserId,
+      email:
+          currentEmail ?? await _readUserEmailBestEffort(tokenStorage, talker),
+    );
+  }
+
   @override
   Future<bool> build() async {
     final tokenStorage = ref.watch(tokenStorageProvider);
@@ -23,22 +205,28 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     final talker = ref.watch(loggerProvider);
 
     return await sessionLock.synchronized(() async {
-      if (await invalidationStore.isLoginPending()) {
-        // ログイン保存およびロールバック消去が途中で失敗した場合、部分保存された
-        // トークンが残っている可能性があるため、再消去して未確定ログインを防ぐ
-        try {
-          await tokenStorage.clear();
-          sessionLock.recordSignedOutSession();
-          await invalidationStore.clearLoginPending();
-        } on Object catch (e, st) {
-          // 再消去またはフラグ解除に失敗しても、次回起動時に備えてフラグは維持し未ログインにする
-          talker.handle(
-            e,
-            st,
+      // ログイン保存・ロールバック消去または通常ログアウトの消去が途中で失敗した場合は、
+      // 一部キー（例: customUserEmail）が残留している可能性があるため起動時に再消去する
+      if (!await _clearPendingTokensOnStartup(
+        isPending: invalidationStore.isLoginPending,
+        clearPending: invalidationStore.clearLoginPending,
+        tokenStorage: tokenStorage,
+        sessionLock: sessionLock,
+        talker: talker,
+        failureLogMessage:
             'Failed to clear unconfirmed login tokens on startup',
-          );
-          return false;
-        }
+      )) {
+        return false;
+      }
+      if (!await _clearPendingTokensOnStartup(
+        isPending: invalidationStore.isLogoutPending,
+        clearPending: invalidationStore.clearLogoutPending,
+        tokenStorage: tokenStorage,
+        sessionLock: sessionLock,
+        talker: talker,
+        failureLogMessage: 'Failed to clear pending logout tokens on startup',
+      )) {
+        return false;
       }
 
       final invalidationEntries = await invalidationStore
@@ -46,22 +234,13 @@ class AuthStateNotifier extends _$AuthStateNotifier {
       if (invalidationEntries.isNotEmpty) {
         final token = await tokenStorage.getAccessToken();
         if (token != null && token.isNotEmpty) {
-          final currentUserId = _normalizeIdentity(
-            await tokenStorage.getUserId(),
+          final outcome = await _resolveStartupInvalidationOutcome(
+            invalidationEntries: invalidationEntries,
+            token: token,
+            tokenStorage: tokenStorage,
+            talker: talker,
           );
-          final currentEmail = _normalizeIdentity(
-            await tokenStorage.getUserEmail(),
-          );
-          final isInvalidatedAccount = invalidationEntries.any(
-            (entry) => CustomAuthInvalidationStore.matchesAccount(
-              targetUserId: entry.targetUserId,
-              targetEmail: entry.targetEmail,
-              candidateUserId: currentUserId,
-              candidateEmail: currentEmail,
-              defaultWhenUnidentifiable: true,
-            ),
-          );
-          if (!isInvalidatedAccount) {
+          if (outcome.isAuthenticated) {
             // どの無効化レコードにも該当しない別アカウントの新規セッションなら、
             // そのトークンは維持して古い無効化レコードのみ片付ける
             try {
@@ -76,10 +255,15 @@ class AuthStateNotifier extends _$AuthStateNotifier {
             }
             sessionLock.recordAuthenticatedSession(
               accessToken: token,
-              userId: currentUserId,
-              email: currentEmail,
+              userId: outcome.userId,
+              email: outcome.email,
             );
             return true;
+          }
+          if (!outcome.shouldClear) {
+            // 識別情報の読み取り失敗等で照合できない場合は無効化行を保持したまま未ログインにする
+            sessionLock.recordSignedOutSession();
+            return false;
           }
         }
 
@@ -104,8 +288,9 @@ class AuthStateNotifier extends _$AuthStateNotifier {
         final currentUserId = _normalizeIdentity(
           await tokenStorage.getUserId(),
         );
-        final currentEmail = _normalizeIdentity(
-          await tokenStorage.getUserEmail(),
+        final currentEmail = await _readUserEmailBestEffort(
+          tokenStorage,
+          talker,
         );
         sessionLock.recordAuthenticatedSession(
           accessToken: token,
@@ -162,8 +347,10 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     final startSessionEpoch = sessionLock.sessionEpoch;
     final startDeletionEpoch = sessionLock.deletionEpoch;
     try {
-      // 初期化（build）の完了を待機して、初期化結果による状態の上書きを防ぐ
-      await future;
+      // 初期化（build）が進行中なら完了を待機し、エラー後（AsyncError）からはそのままログインを続行する
+      if (state.isLoading) {
+        await future;
+      }
       final isLoggedIn = await ref
           .read(authRepositoryProvider)
           .login(email, password);
@@ -184,24 +371,30 @@ class AuthStateNotifier extends _$AuthStateNotifier {
   Future<void> logout() async {
     try {
       final sessionLock = ref.read(authSessionLockProvider);
+      final tokenStorage = ref.read(tokenStorageProvider);
+      final invalidationStore = ref.read(customAuthInvalidationStoreProvider);
+      final talker = ref.read(loggerProvider);
       await sessionLock.runSessionTransition(() async {
-        await ref.read(tokenStorageProvider).clear();
+        await invalidationStore.markLogoutPending();
         sessionLock.recordSignedOutSession();
+        await tokenStorage.clear();
+        try {
+          await invalidationStore.clearLogoutPending();
+        } on Object catch (e, st) {
+          // 全4キーの消去自体は完了しているため、記録解除の失敗だけでログアウトを失敗扱いにしない
+          talker.handle(e, st, 'Failed to clear pending logout flag on logout');
+        }
         if (!sessionLock.isDeletionInProgress) {
           try {
-            await ref
-                .read(customAuthInvalidationStoreProvider)
-                .clearInvalidated();
+            await invalidationStore.clearInvalidated();
           } on Object catch (e, st) {
             // トークン消去は既に完了しているため、無効化フラグ解除の失敗だけで
             // ログアウト全体を失敗扱いにしない
-            ref
-                .read(loggerProvider)
-                .handle(
-                  e,
-                  st,
-                  'Failed to clear custom auth invalidation flag on logout',
-                );
+            talker.handle(
+              e,
+              st,
+              'Failed to clear custom auth invalidation flag on logout',
+            );
           }
         }
       });

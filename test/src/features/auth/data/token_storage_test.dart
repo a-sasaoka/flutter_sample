@@ -601,8 +601,13 @@ void main() {
             value: any(named: 'value'),
           ),
         ).thenAnswer((inv) async {
-          final key = inv.namedArguments[#key] as String;
-          final value = inv.namedArguments[#value] as String?;
+          final (:key, :value) = switch (inv.namedArguments) {
+            {#key: final String key, #value: final String? value} => (
+              key: key,
+              value: value,
+            ),
+            _ => fail('Unexpected write arguments: ${inv.namedArguments}'),
+          };
           if (key == SecureStorageKeys.customUserEmail &&
               value == 'new@example.com') {
             throw emailWriteError;

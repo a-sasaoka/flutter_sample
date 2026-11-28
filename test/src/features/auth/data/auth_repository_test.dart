@@ -129,8 +129,8 @@ class FakeTokenStorage extends Mock implements TokenStorage {
 
   @override
   Future<String?> getUserEmail() async {
-    if (getUserEmailError != null) {
-      throw getUserEmailError!;
+    if (getUserEmailError case final Exception error) {
+      throw error;
     }
     return currentUserEmail;
   }
@@ -1400,6 +1400,46 @@ void main() {
         ..savedAccessToken = jwtWithoutEmail
         ..currentUserEmail = null;
       check(await repo.getCurrentEmail()).isNull();
+    });
+
+    test('getCurrentEmail: _sessionLock で直列化され資格情報更新完了後に '
+        '既存優先順位で取得できること', () async {
+      final opaqueA = buildJwt(jti: 'opaque-a');
+      final opaqueB = buildJwt(jti: 'opaque-b');
+      final fakeStorage = FakeTokenStorage()
+        ..savedAccessToken = opaqueA
+        ..currentUserEmail = 'a@example.com';
+      final container = createContainer(fakeStorage);
+      final repo = container.read(authRepositoryProvider);
+      // trackedEmailForAccessToken が tokenStorage.getUserEmail より優先されること
+      final lock = container.read(authSessionLockProvider)
+        ..recordAuthenticatedSession(
+          accessToken: opaqueA,
+          email: 'tracked-a@example.com',
+        );
+      check(await repo.getCurrentEmail()).equals('tracked-a@example.com');
+
+      // ロック保持中の資格情報更新（A -> B）完了まで待機し、途中の古いメールを返さないこと
+      final transitionGate = Completer<void>();
+      var isEmailUpdated = false;
+      final transitionFuture = lock.runSessionTransition(() async {
+        fakeStorage.savedAccessToken = opaqueB;
+        await transitionGate.future;
+        fakeStorage.currentUserEmail = 'b@example.com';
+        lock.recordAuthenticatedSession(
+          accessToken: opaqueB,
+          email: 'b@example.com',
+        );
+        isEmailUpdated = true;
+      });
+
+      final emailFuture = repo.getCurrentEmail();
+      await Future<void>.delayed(Duration.zero);
+      check(isEmailUpdated).equals(false);
+
+      transitionGate.complete();
+      await transitionFuture;
+      check(await emailFuture).equals('b@example.com');
     });
 
     test('reauthenticate: 成功時に POST /auth/reauthenticate が呼ばれること', () async {
@@ -3515,6 +3555,66 @@ void main() {
         await recoveryContainer.read(authStateProvider.future),
       ).equals(false);
       check(store).isEmpty();
+      check(await invalidationStore.isInvalidated()).equals(false);
+    });
+
+    test('起動時照合: 無効化情報のメールが a@example.com でクレーム無しトークンに '
+        'b@example.com が保存されている場合、true を返し B の資格情報を保持すること', () async {
+      final store = <String, String>{};
+      final mockSecureStorage = MockFlutterSecureStorage();
+      when(
+        () => mockSecureStorage.read(key: any(named: 'key')),
+      ).thenAnswer((inv) async => store[inv.namedArguments[#key] as String]);
+      when(() => mockSecureStorage.delete(key: any(named: 'key'))).thenAnswer((
+        inv,
+      ) async {
+        store.remove(inv.namedArguments[#key] as String);
+      });
+      when(
+        () => mockSecureStorage.write(
+          key: any(named: 'key'),
+          value: any(named: 'value'),
+        ),
+      ).thenAnswer((inv) async {
+        final (:key, :value) = switch (inv.namedArguments) {
+          {#key: final String key, #value: final String? value} => (
+            key: key,
+            value: value,
+          ),
+          _ => fail('Unexpected write arguments: ${inv.namedArguments}'),
+        };
+        if (value == null) {
+          store.remove(key);
+        } else {
+          store[key] = value;
+        }
+      });
+
+      final realStorage = TokenStorage(secureStorage: mockSecureStorage);
+      final opaqueB = buildJwt(jti: 'opaque-b');
+      await invalidationStore.markInvalidated(targetEmail: 'a@example.com');
+      await realStorage.saveTokens(
+        accessToken: opaqueB,
+        refreshToken: 'refresh-b',
+        email: 'b@example.com',
+      );
+
+      final startupContainer = ProviderContainer(
+        overrides: [
+          tokenStorageProvider.overrideWith((ref) => realStorage),
+          appSupportDirectoryReaderProvider.overrideWithValue(
+            () async => tempDir,
+          ),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(startupContainer.dispose);
+
+      check(await startupContainer.read(authStateProvider.future)).equals(true);
+      check(store[SecureStorageKeys.accessToken]).equals(opaqueB);
+      check(store[SecureStorageKeys.refreshToken]).equals('refresh-b');
+      check(store[SecureStorageKeys.customUserEmail]).equals('b@example.com');
+      check(store.containsKey(SecureStorageKeys.customUserId)).equals(false);
       check(await invalidationStore.isInvalidated()).equals(false);
     });
   });
