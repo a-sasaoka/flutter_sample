@@ -254,21 +254,50 @@ class AuthRepository {
   ///
   /// 退会処理がサーバー応答待ちで進行中（[AuthSessionLock.isDeletionInProgress]）かつ
   /// 有効なアクセストークンが存在する再ログイン・別アカウント切替セッションは引き続き更新を許可します。
+  /// 非進行中に退会無効化行が残存している場合も、現在のユーザーID・メールアドレスと照合して
+  /// 別アカウントと確定した行は無視し、同一アカウントまたは照合不能な行のみ抑止します。
   Future<bool> _hasPendingSessionReset() async {
     if (await _invalidationStore.isLogoutPending() ||
         await _invalidationStore.isLoginPending()) {
       return true;
     }
-    if (await _invalidationStore.isInvalidated()) {
-      if (!_sessionLock.isDeletionInProgress) {
-        return true;
-      }
-      final accessToken = await tokenStorage.getAccessToken();
-      if (accessToken == null || accessToken.isEmpty) {
-        return true;
-      }
+    final entries = await _invalidationStore.getInvalidationEntries();
+    if (entries.isEmpty) {
+      return false;
     }
-    return false;
+    final accessToken = await tokenStorage.getAccessToken();
+    final hasAccessToken = accessToken != null && accessToken.isNotEmpty;
+    if (_sessionLock.isDeletionInProgress) {
+      return !hasAccessToken;
+    }
+    final candidateUserId =
+        _normalizeIdentity(
+          hasAccessToken ? JwtUtils.getUserId(accessToken) : null,
+        ) ??
+        _normalizeIdentity(await tokenStorage.getUserId());
+    final candidateEmail = await _resolveEmailForToken(accessToken);
+    return entries.any(
+      (entry) => CustomAuthInvalidationStore.matchesAccount(
+        targetUserId: entry.targetUserId,
+        targetEmail: entry.targetEmail,
+        candidateUserId: candidateUserId,
+        candidateEmail: candidateEmail,
+        defaultWhenUnidentifiable: true,
+      ),
+    );
+  }
+
+  Future<String?> _resolveEmailForToken(String? accessToken) async {
+    final hasToken = accessToken != null && accessToken.isNotEmpty;
+    return _normalizeIdentity(
+          hasToken ? JwtUtils.getEmail(accessToken) : null,
+        ) ??
+        _normalizeIdentity(
+          hasToken
+              ? _sessionLock.trackedEmailForAccessToken(accessToken)
+              : null,
+        ) ??
+        _normalizeIdentity(await tokenStorage.getUserEmail());
   }
 
   /// リフレッシュトークンAPIを呼び出し、開始時と同一セッションである場合のみ保存する
@@ -341,9 +370,7 @@ class AuthRepository {
       if (token == null || token.isEmpty) {
         return null;
       }
-      return _normalizeIdentity(JwtUtils.getEmail(token)) ??
-          _normalizeIdentity(_sessionLock.trackedEmailForAccessToken(token)) ??
-          _normalizeIdentity(await tokenStorage.getUserEmail());
+      return await _resolveEmailForToken(token);
     });
   }
 

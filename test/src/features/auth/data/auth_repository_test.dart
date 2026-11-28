@@ -113,6 +113,7 @@ class FakeTokenStorage extends Mock implements TokenStorage {
   Exception? getUserIdError;
   Exception? getUserEmailError;
   int getUserIdCalls = 0;
+  int saveTokensCalls = 0;
 
   // 保存された値を検証するためのプロパティ
   String? savedAccessToken;
@@ -166,6 +167,7 @@ class FakeTokenStorage extends Mock implements TokenStorage {
     String? email,
     bool preserveExistingOnFailure = false,
   }) async {
+    saveTokensCalls++;
     savedAccessToken = accessToken;
     savedRefreshToken = refreshToken;
     currentRefreshToken = refreshToken;
@@ -403,6 +405,7 @@ void main() {
       check(fakeStorage.savedRefreshToken).equals('fresh-refresh');
 
       // 呼び出し元が古い startSessionEpoch / startDeletionEpoch を渡した場合は保存せず false を返すこと
+      final saveCallsBeforeStaleRetry = fakeStorage.saveTokensCalls;
       check(
         await repo.login(
           'stale-caller@example.com',
@@ -411,6 +414,7 @@ void main() {
           startDeletionEpoch: 0,
         ),
       ).equals(false);
+      check(fakeStorage.saveTokensCalls).equals(saveCallsBeforeStaleRetry);
       check(fakeStorage.savedAccessToken).equals('fresh-access');
       check(fakeStorage.savedRefreshToken).equals('fresh-refresh');
     });
@@ -730,6 +734,10 @@ void main() {
     test('login: clearLogoutPending() を clearLoginPending() より先に実行し、 '
         '両方の完了後にログインを確定すること', () async {
       final callOrder = <String>[];
+      final clearLogoutStarted = Completer<void>();
+      final clearLogoutGate = Completer<void>();
+      final clearLoginStarted = Completer<void>();
+      final clearLoginGate = Completer<void>();
       final fakeStorage = FakeTokenStorage(
         onSaveTokens: (_, _) async {
           callOrder.add('saveTokens');
@@ -752,9 +760,13 @@ void main() {
       });
       when(mockStore.clearLogoutPending).thenAnswer((_) async {
         callOrder.add('clearLogoutPending');
+        clearLogoutStarted.complete();
+        await clearLogoutGate.future;
       });
       when(mockStore.clearLoginPending).thenAnswer((_) async {
         callOrder.add('clearLoginPending');
+        clearLoginStarted.complete();
+        await clearLoginGate.future;
       });
 
       final container = ProviderContainer(
@@ -779,11 +791,31 @@ void main() {
         ),
       ).thenAnswer((_) async => mockResponse);
 
-      check(
-        await container
-            .read(authRepositoryProvider)
-            .login('a@example.com', 'password123'),
-      ).equals(true);
+      var loginCompleted = false;
+      final loginFuture = container
+          .read(authRepositoryProvider)
+          .login('a@example.com', 'password123');
+      unawaited(loginFuture.then((_) => loginCompleted = true));
+
+      await clearLogoutStarted.future;
+      await Future<void>.delayed(Duration.zero);
+
+      // clearLogoutPending() の完了前は clearLoginPending() が開始せず、login() も完了しないこと
+      check(clearLoginStarted.isCompleted).equals(false);
+      check(loginCompleted).equals(false);
+      check(callOrder).deepEquals([
+        'markLoginPending',
+        'clearIfAllowedForLogin',
+        'saveTokens',
+        'clearLogoutPending',
+      ]);
+
+      clearLogoutGate.complete();
+      await clearLoginStarted.future;
+      await Future<void>.delayed(Duration.zero);
+
+      // clearLoginPending() の完了前は login() が成功を返さないこと
+      check(loginCompleted).equals(false);
       check(callOrder).deepEquals([
         'markLoginPending',
         'clearIfAllowedForLogin',
@@ -791,6 +823,10 @@ void main() {
         'clearLogoutPending',
         'clearLoginPending',
       ]);
+
+      clearLoginGate.complete();
+      check(await loginFuture).equals(true);
+      check(loginCompleted).equals(true);
     });
 
     test('login: clearLogoutPending() 失敗かつロールバック clear() 失敗時は '
@@ -1740,6 +1776,142 @@ void main() {
         refreshGate.complete({'access_token': 'refreshed_access_a'});
         check(await refreshFuture).equals(false);
         check(fakeStorage.savedAccessToken).equals(jwtA);
+      });
+
+      test(
+        '退会処理が非進行中に別アカウント確定済みの無効化行のみ残存している場合は '
+        '無視して refreshToken が成功すること (JWT・trackedEmail・保存済みメールフォールバック)',
+        () async {
+          final jwtB = buildJwt(sub: 'user-b', email: 'b@example.com');
+          final fakeStorage =
+              FakeTokenStorage(
+                  initialRefreshToken: 'refresh-b',
+                  currentUserId: 'user-b',
+                  currentUserEmail: 'b@example.com',
+                )
+                ..savedAccessToken = jwtB
+                ..savedRefreshToken = 'refresh-b';
+          final container = createContainer(fakeStorage);
+          final repo = container.read(authRepositoryProvider);
+
+          await invalidationStore.markInvalidated(
+            targetUserId: 'user-a',
+            targetEmail: 'a@example.com',
+          );
+
+          final refreshedJwtB = buildJwt(sub: 'user-b', email: 'b@example.com');
+          final mockResponse = MockResponse();
+          when(
+            () => mockResponse.data,
+          ).thenReturn({'access_token': refreshedJwtB});
+          when(
+            () => mockApi.post<Map<String, dynamic>>(
+              '/auth/refresh',
+              data: any<dynamic>(named: 'data'),
+            ),
+          ).thenAnswer((_) async => mockResponse);
+
+          // 1. JWT の sub / email が別アカウント(user-b / b@example.com)と確定する場合
+          check(await repo.refreshToken('user-b')).equals(true);
+          check(fakeStorage.savedAccessToken).equals(refreshedJwtB);
+
+          // 2. sub/email なしアクセストークンでもロック内 trackedEmail で別アカウントと確定する場合
+          final loginResponse = MockResponse();
+          when(() => loginResponse.data).thenReturn({
+            'access_token': 'opaque-access-b',
+            'refresh_token': 'refresh-b2',
+          });
+          when(
+            () => mockApi.post<Map<String, dynamic>>(
+              '/auth/login',
+              data: any<dynamic>(named: 'data'),
+            ),
+          ).thenAnswer((_) async => loginResponse);
+          check(await repo.login('b@example.com', 'password123')).equals(true);
+          // login() の clearIfAllowedForLogin 後に別アカウント行が再残存・未削除だったケースを再現
+          await invalidationStore.markInvalidated(
+            targetUserId: 'user-a',
+            targetEmail: 'a@example.com',
+          );
+          when(
+            () => mockResponse.data,
+          ).thenReturn({'access_token': 'refreshed-opaque-b'});
+          check(await repo.refreshToken(null)).equals(true);
+          check(fakeStorage.savedAccessToken).equals('refreshed-opaque-b');
+
+          // 3. sub/email なしトークンかつ trackedEmail 未保持でも TokenStorage 保存済みメールで確定する場合
+          fakeStorage
+            ..savedAccessToken = 'reloaded-opaque-b'
+            ..currentUserId = null
+            ..currentUserEmail = 'b@example.com';
+          when(
+            () => mockResponse.data,
+          ).thenReturn({'access_token': 'refreshed-reloaded-opaque-b'});
+          check(await repo.refreshToken(null)).equals(true);
+          check(
+            fakeStorage.savedAccessToken,
+          ).equals('refreshed-reloaded-opaque-b');
+        },
+      );
+
+      test('退会処理が非進行中に判定不能または現アカウント一致の無効化行が残存している場合は '
+          '別アカウント行が混在していても refreshToken を拒否すること', () async {
+        final jwtB = buildJwt(sub: 'user-b', email: 'b@example.com');
+        final fakeStorage =
+            FakeTokenStorage(
+                initialRefreshToken: 'refresh-b',
+                currentUserId: 'user-b',
+                currentUserEmail: 'b@example.com',
+              )
+              ..savedAccessToken = jwtB
+              ..savedRefreshToken = 'refresh-b';
+        final container = createContainer(fakeStorage);
+        final repo = container.read(authRepositoryProvider);
+
+        // 1. 識別不能 (targetUserId == null && targetEmail == null) な無効化行は拒否
+        final unknownEntryId = await invalidationStore.markInvalidated();
+        check(await repo.refreshToken('user-b')).equals(false);
+        await invalidationStore.clearInvalidatedIfMatches(
+          targetUserId: null,
+          targetEmail: null,
+          entryId: unknownEntryId,
+        );
+
+        // 2. 別アカウント行(user-a)と現アカウント一致行(user-b)が混在する場合は拒否
+        await invalidationStore.markInvalidated(
+          targetUserId: 'user-a',
+          targetEmail: 'a@example.com',
+        );
+        final bEntryId = await invalidationStore.markInvalidated(
+          targetUserId: 'user-b',
+          targetEmail: 'b@example.com',
+        );
+        check(await repo.refreshToken('user-b')).equals(false);
+        await invalidationStore.clearInvalidatedIfMatches(
+          targetUserId: 'user-b',
+          targetEmail: 'b@example.com',
+          entryId: bEntryId,
+        );
+
+        // 3. ID のみを持つ無効化行に対し現セッションがメールのみの場合は照合不能のため拒否
+        fakeStorage
+          ..savedAccessToken = 'opaque-only-email-b'
+          ..currentUserId = null
+          ..currentUserEmail = 'b@example.com';
+        await invalidationStore.clearInvalidatedIfMatches(
+          targetUserId: 'user-a',
+          targetEmail: 'a@example.com',
+        );
+        await invalidationStore.markInvalidated(targetUserId: 'user-a');
+        check(await repo.refreshToken(null)).equals(false);
+
+        check(fakeStorage.savedAccessToken).equals('opaque-only-email-b');
+        verifyNever(
+          () => mockApi.post<Map<String, dynamic>>(
+            '/auth/refresh',
+            data: any<dynamic>(named: 'data'),
+          ),
+        );
       });
     });
   });
