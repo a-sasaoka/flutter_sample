@@ -74,6 +74,16 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     }
   }
 
+  Future<String?> _readUserIdBestEffort(
+    TokenStorage tokenStorage,
+    Talker talker,
+  ) => _readIdentityBestEffort(
+    readIdentity: tokenStorage.getUserId,
+    talker: talker,
+    failureLogMessage:
+        'Failed to read user id while restoring session on startup',
+  );
+
   Future<String?> _readUserEmailBestEffort(
     TokenStorage tokenStorage,
     Talker talker,
@@ -134,12 +144,7 @@ class AuthStateNotifier extends _$AuthStateNotifier {
           email: jwtEmail,
         );
       }
-      final restoredUserId = await _readIdentityBestEffort(
-        readIdentity: tokenStorage.getUserId,
-        talker: talker,
-        failureLogMessage:
-            'Failed to read user id while restoring session on startup',
-      );
+      final restoredUserId = await _readUserIdBestEffort(tokenStorage, talker);
       return (
         shouldClear: false,
         isAuthenticated: true,
@@ -330,9 +335,7 @@ class AuthStateNotifier extends _$AuthStateNotifier {
 
       final token = await tokenStorage.getAccessToken();
       if (token != null && token.isNotEmpty) {
-        final currentUserId = _normalizeIdentity(
-          await tokenStorage.getUserId(),
-        );
+        final currentUserId = await _readUserIdBestEffort(tokenStorage, talker);
         final currentEmail = await _readUserEmailBestEffort(
           tokenStorage,
           talker,

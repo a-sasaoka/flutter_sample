@@ -495,6 +495,49 @@ void main() {
       ).called(1);
     });
 
+    test('初期化: 無効化レコード消去後の次回起動でも getUserId() 障害が継続している場合、 '
+        '同じストレージで2回起動しても復元を続けること', () async {
+      final tokenBEmailOnly = _buildJwt(email: 'b@example.com');
+      final readError = Exception('persistent userId read failed');
+      final fakeStorage = FakeTokenStorage(mockAccessToken: tokenBEmailOnly)
+        ..getUserIdError = readError;
+      final store = CustomAuthInvalidationStore(
+        getDirectory: () async => tempDir,
+      );
+      await store.markInvalidated(targetEmail: 'a@example.com');
+
+      // 1回目の起動（メールのみ無効化レコードを消去して復元）
+      final firstContainer = createContainer(fakeStorage: fakeStorage);
+      check(await firstContainer.read(authStateProvider.future)).equals(true);
+      check(await store.isInvalidated()).equals(false);
+      check(firstContainer.read(authSessionLockProvider).currentSession).equals(
+        TrackedAuthSession.authenticated(
+          accessToken: tokenBEmailOnly,
+          email: 'b@example.com',
+        ),
+      );
+
+      // 2回目の起動（無効化レコード無し経路でも getUserId() 障害を握りつぶさず記録して復元）
+      final secondContainer = createContainer(fakeStorage: fakeStorage);
+      check(await secondContainer.read(authStateProvider.future)).equals(true);
+      check(fakeStorage.isClearCalled).equals(false);
+      check(
+        secondContainer.read(authSessionLockProvider).currentSession,
+      ).equals(
+        TrackedAuthSession.authenticated(
+          accessToken: tokenBEmailOnly,
+          email: 'b@example.com',
+        ),
+      );
+      verify(
+        () => mockTalker.handle(
+          readError,
+          any<StackTrace?>(),
+          'Failed to read user id while restoring session on startup',
+        ),
+      ).called(2);
+    });
+
     test('初期化: 識別不能なメールなし無効化行と JWT のメールのみで照合する場合、 '
         'getUserId() を読まずに安全側で消去すること', () async {
       final tokenBEmailOnly = _buildJwt(email: 'b@example.com');
