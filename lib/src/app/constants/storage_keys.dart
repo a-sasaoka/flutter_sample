@@ -12,6 +12,9 @@ abstract final class SecureStorageKeys {
   /// 独自認証のログイン中ユーザーID
   static const customUserId = 'custom_user_id';
 
+  /// 独自認証のログイン中メールアドレス
+  static const customUserEmail = 'custom_user_email';
+
   /// アプリロック用パスコード
   static const appLockPasscode = 'app_lock_passcode';
 

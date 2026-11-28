@@ -144,6 +144,36 @@ void main() {
       },
     );
 
+    test('fetchMemos: cancelToken指定時はApiClient.getへそのまま渡されること', () async {
+      final cancelToken = CancelToken();
+      when(
+        () => mockApiClient.get<List<dynamic>>(
+          '/memos',
+          options: any(named: 'options'),
+          cancelToken: any(named: 'cancelToken'),
+        ),
+      ).thenAnswer(
+        (_) async => Response(
+          data: const <dynamic>[],
+          requestOptions: RequestOptions(path: '/memos'),
+        ),
+      );
+
+      final result = await service.fetchMemos(
+        expectedUserId: 'user-a',
+        cancelToken: cancelToken,
+      );
+
+      check(result).isEmpty();
+      verify(
+        () => mockApiClient.get<List<dynamic>>(
+          '/memos',
+          options: any(named: 'options'),
+          cancelToken: any(named: 'cancelToken', that: same(cancelToken)),
+        ),
+      ).called(1);
+    });
+
     test('uploadMemo: PUTが成功した場合、POSTは呼ばれないこと', () async {
       final now = DateTime(2026, 5, 2);
       final memoData = {

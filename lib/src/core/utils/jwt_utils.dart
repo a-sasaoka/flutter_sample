@@ -33,4 +33,13 @@ abstract final class JwtUtils {
     final sub = payload?['sub'];
     return sub is String ? sub : null;
   }
+
+  /// JWT トークンからメールアドレス（`email` クレーム）を取得します。
+  ///
+  /// ペイロード内に `email` が存在しない、空文字、または文字列型でない場合は null を返します。
+  static String? getEmail(String token) {
+    final payload = decodePayload(token);
+    final email = payload?['email'];
+    return email is String && email.isNotEmpty ? email : null;
+  }
 }

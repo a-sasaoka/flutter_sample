@@ -4,6 +4,7 @@ import 'package:flutter_sample/src/app/router/app_router.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/presentation/account_deletion_notice_effect.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// Firebase版ログイン画面
@@ -20,6 +21,10 @@ class FirebaseLoginScreen extends HookConsumerWidget {
 
     // ローディング状態と連打防止のためのフラグ
     final isLoading = useState(false);
+
+    // 退会完了直後のリダイレクト時は、遷移完了後に確定済みの完了SnackBarを表示する
+    // （遷移前に表示すると SnackBarNavigationObserver によって消去されるため）
+    useAccountDeletionNoticeEffect(context, ref);
 
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
+import 'package:flutter_sample/src/features/auth/application/account_deletion_notice_notifier.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
 import 'package:flutter_sample/src/features/auth/presentation/firebase_login_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -50,6 +51,7 @@ void main() {
     when(() => mockL10n.errorLoginFailed).thenReturn('ログインに失敗しました');
     when(() => mockL10n.errorUnknown).thenReturn('予期しないエラーが発生しました');
     when(() => mockL10n.close).thenReturn('閉じる');
+    when(() => mockL10n.accountDeletionCompleted).thenReturn('アカウントを削除しました');
   });
 
   /// テスト用のWidgetを構築するヘルパー
@@ -302,5 +304,157 @@ void main() {
 
       check(FocusScope.of(context).focusedChild).isNull();
     });
+
+    void setMobileView(WidgetTester tester) {
+      tester.view.physicalSize = const Size(1080, 1920);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+    }
+
+    testWidgets('退会通知が completed の場合、画面表示後に完了SnackBarが表示され状態が消費されること', (
+      tester,
+    ) async {
+      setMobileView(tester);
+      final router = GoRouter(
+        initialLocation: '/login',
+        routes: [
+          GoRoute(
+            path: '/login',
+            builder: (context, state) => FirebaseLoginScreen(),
+          ),
+        ],
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.read(accountDeletionNoticeProvider.notifier)
+        ..reserve()
+        ..confirmCompleted();
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: [MockLocalizationsDelegate(mockL10n)],
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      check(find.byType(SnackBar)).findsOne();
+      check(find.text('アカウントを削除しました')).findsOne();
+      check(
+        container.read(accountDeletionNoticeProvider),
+      ).equals(AccountDeletionNoticeStatus.none);
+    });
+
+    testWidgets('退会通知が reserved のみの場合、完了SnackBarは表示されず clear されても表示されないこと', (
+      tester,
+    ) async {
+      setMobileView(tester);
+      final router = GoRouter(
+        initialLocation: '/login',
+        routes: [
+          GoRoute(
+            path: '/login',
+            builder: (context, state) => FirebaseLoginScreen(),
+          ),
+        ],
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+        ],
+      );
+      addTearDown(container.dispose);
+      final notifier = container.read(accountDeletionNoticeProvider.notifier)
+        ..reserve();
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: [MockLocalizationsDelegate(mockL10n)],
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      check(find.byType(SnackBar)).findsNothing();
+      check(
+        container.read(accountDeletionNoticeProvider),
+      ).equals(AccountDeletionNoticeStatus.reserved);
+
+      // Auth削除失敗時に clear() されても完了SnackBarは表示されない
+      notifier.clear();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      check(find.byType(SnackBar)).findsNothing();
+      check(
+        container.read(accountDeletionNoticeProvider),
+      ).equals(AccountDeletionNoticeStatus.none);
+    });
+
+    testWidgets(
+      'reserved 状態で先に画面がマウントされた後、confirmCompleted で確定すると完了SnackBarが1回だけ表示されること',
+      (tester) async {
+        setMobileView(tester);
+        final router = GoRouter(
+          initialLocation: '/login',
+          routes: [
+            GoRoute(
+              path: '/login',
+              builder: (context, state) => FirebaseLoginScreen(),
+            ),
+          ],
+        );
+
+        final container = ProviderContainer(
+          overrides: [
+            firebaseAuthRepositoryProvider.overrideWithValue(mockAuthRepo),
+          ],
+        );
+        addTearDown(container.dispose);
+        final notifier = container.read(accountDeletionNoticeProvider.notifier)
+          ..reserve();
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(
+              routerConfig: router,
+              localizationsDelegates: [MockLocalizationsDelegate(mockL10n)],
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        check(find.byType(SnackBar)).findsNothing();
+
+        notifier.confirmCompleted();
+        check(tester.binding.hasScheduledFrame).isTrue();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        check(find.byType(SnackBar)).findsOne();
+        check(find.text('アカウントを削除しました')).findsOne();
+        check(
+          container.read(accountDeletionNoticeProvider),
+        ).equals(AccountDeletionNoticeStatus.none);
+      },
+    );
   });
 }

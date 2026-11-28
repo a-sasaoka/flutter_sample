@@ -86,5 +86,173 @@ void main() {
       check(result).equals('transitioned');
       check(lock.sessionEpoch).equals(1);
     });
+
+    test('beginDeletion / endDeletion: 削除進行中フラグをネスト安全に管理できること', () {
+      final lock = AuthSessionLock();
+      check(lock.isDeletionInProgress).equals(false);
+
+      // 未開始状態での endDeletion でも負数にならないこと
+      lock.endDeletion();
+      check(lock.isDeletionInProgress).equals(false);
+
+      lock.beginDeletion();
+      check(lock.isDeletionInProgress).equals(true);
+
+      lock
+        ..beginDeletion()
+        ..endDeletion();
+      check(lock.isDeletionInProgress).equals(true);
+
+      lock.endDeletion();
+      check(lock.isDeletionInProgress).equals(false);
+    });
+
+    test(
+      'runSessionTransitionIf: 条件が true のときのみ世代を進めて action を実行すること',
+      () async {
+        final lock = AuthSessionLock();
+        var actionCalls = 0;
+
+        final skipped = await lock.runSessionTransitionIf(
+          shouldTransition: () async => false,
+          action: () async {
+            actionCalls++;
+          },
+        );
+        check(skipped).equals(false);
+        check(actionCalls).equals(0);
+        check(lock.sessionEpoch).equals(0);
+
+        final executed = await lock.runSessionTransitionIf(
+          shouldTransition: () async => true,
+          action: () async {
+            actionCalls++;
+          },
+        );
+        check(executed).equals(true);
+        check(actionCalls).equals(1);
+        check(lock.sessionEpoch).equals(1);
+      },
+    );
+
+    test('deletionEpoch / markDeletionCompleted: 削除完了世代のみを独立して進められること', () {
+      final lock = AuthSessionLock();
+      check(lock.deletionEpoch).equals(0);
+      check(lock.sessionEpoch).equals(0);
+
+      lock.markDeletionCompleted();
+
+      check(lock.deletionEpoch).equals(1);
+      check(lock.sessionEpoch).equals(0);
+    });
+
+    test(
+      'currentSession / recordAuthenticatedSession / recordSignedOutSession: '
+      'セッション識別情報を記録・更新しサインアウト状態へ戻せること',
+      () {
+        final lock = AuthSessionLock();
+        check(lock.currentSession).isA<SignedOutTrackedAuthSession>();
+
+        lock.recordAuthenticatedSession(
+          userId: 'user-a',
+          email: 'a@example.com',
+        );
+        check(lock.currentSession).isA<AuthenticatedTrackedAuthSession>()
+          ..has((it) => it.userId, 'userId').equals('user-a')
+          ..has((it) => it.email, 'email').equals('a@example.com');
+
+        lock.recordSignedOutSession();
+        check(lock.currentSession).isA<SignedOutTrackedAuthSession>();
+      },
+    );
+
+    test('registerActiveDeletion / unregisterActiveDeletion / '
+        'hasOtherActiveDeletion: 同一・不明な他エントリのみを検知し別アカウントは除外すること', () {
+      final lock = AuthSessionLock()
+        ..registerActiveDeletion(
+          entryId: 1,
+          userId: 'user-a',
+          email: 'a@example.com',
+        );
+      check(
+        lock.hasOtherActiveDeletion(
+          entryId: 1,
+          userId: 'user-a',
+          email: 'a@example.com',
+        ),
+      ).equals(false);
+
+      // 別アカウント B が並行していても A にとっては別退会扱いしない
+      lock.registerActiveDeletion(
+        entryId: 2,
+        userId: 'user-b',
+        email: 'b@example.com',
+      );
+      check(
+        lock.hasOtherActiveDeletion(
+          entryId: 1,
+          userId: 'user-a',
+          email: 'a@example.com',
+        ),
+      ).equals(false);
+
+      // 同一アカウント A の 2 件目が入れば true になること
+      lock.registerActiveDeletion(
+        entryId: 3,
+        userId: 'user-a',
+        email: 'a@example.com',
+      );
+      check(
+        lock.hasOtherActiveDeletion(
+          entryId: 1,
+          userId: 'user-a',
+          email: 'a@example.com',
+        ),
+      ).equals(true);
+
+      // 3 を解除すれば再度 false に戻ること
+      lock.unregisterActiveDeletion(3);
+      check(
+        lock.hasOtherActiveDeletion(
+          entryId: 1,
+          userId: 'user-a',
+          email: 'a@example.com',
+        ),
+      ).equals(false);
+    });
+
+    test('hasOtherActiveDeletion: 照合結果が不明な並行退会（別エントリが userId のみ・ '
+        '呼び出し側が email のみ）では true を返すこと', () {
+      final lock = AuthSessionLock()
+        ..registerActiveDeletion(entryId: 1, email: 'a@example.com')
+        ..registerActiveDeletion(entryId: 2, userId: 'user-only');
+
+      check(
+        lock.hasOtherActiveDeletion(entryId: 1, email: 'a@example.com'),
+      ).equals(true);
+
+      lock.unregisterActiveDeletion(2);
+      check(
+        lock.hasOtherActiveDeletion(entryId: 1, email: 'a@example.com'),
+      ).equals(false);
+    });
+
+    test('trackedEmailForAccessToken: 現在のアクセストークンと一致する場合のみ '
+        '保持メールを返し、不一致やサインアウト時は null を返すこと', () {
+      final lock = AuthSessionLock();
+      check(lock.trackedEmailForAccessToken('opaque-a')).isNull();
+
+      lock.recordAuthenticatedSession(
+        accessToken: 'opaque-a',
+        email: 'a@example.com',
+      );
+      check(
+        lock.trackedEmailForAccessToken('opaque-a'),
+      ).equals('a@example.com');
+      check(lock.trackedEmailForAccessToken('opaque-other')).isNull();
+
+      lock.recordSignedOutSession();
+      check(lock.trackedEmailForAccessToken('opaque-a')).isNull();
+    });
   });
 }

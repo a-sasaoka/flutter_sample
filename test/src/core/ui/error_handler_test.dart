@@ -6,6 +6,7 @@ import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_sample/l10n/app_localizations.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/exceptions/firebase_auth_error_codes.dart';
+import 'package:flutter_sample/src/core/exceptions/reauth_exception.dart';
 import 'package:flutter_sample/src/core/ui/error_handler.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -51,6 +52,21 @@ void main() {
       () => mockL10n.errorEmailAlreadyInUse,
     ).thenReturn('errorEmailAlreadyInUse');
     when(() => mockL10n.errorWeakPassword).thenReturn('errorWeakPassword');
+    when(
+      () => mockL10n.errorRequiresRecentLogin,
+    ).thenReturn('errorRequiresRecentLogin');
+    when(() => mockL10n.errorUserMismatch).thenReturn('errorUserMismatch');
+    when(() => mockL10n.errorWrongPassword).thenReturn('errorWrongPassword');
+    when(
+      () => mockL10n.errorReauthInvalidCredential,
+    ).thenReturn('errorReauthInvalidCredential');
+    when(
+      () => mockL10n.errorTooManyRequests,
+    ).thenReturn('errorTooManyRequests');
+    when(
+      () => mockL10n.errorReauthCancelled,
+    ).thenReturn('errorReauthCancelled');
+    when(() => mockL10n.errorMissingEmail).thenReturn('errorMissingEmail');
     when(() => mockL10n.ok).thenReturn('ok');
     when(() => mockL10n.close).thenReturn('close');
   });
@@ -217,6 +233,28 @@ void main() {
               FirebaseAuthException(code: FirebaseAuthErrorCodes.weakPassword),
             ),
           ).equals('errorWeakPassword');
+          check(
+            ErrorHandler.message(
+              context,
+              FirebaseAuthException(
+                code: FirebaseAuthErrorCodes.requiresRecentLogin,
+              ),
+            ),
+          ).equals('errorRequiresRecentLogin');
+          check(
+            ErrorHandler.message(
+              context,
+              FirebaseAuthException(code: FirebaseAuthErrorCodes.userMismatch),
+            ),
+          ).equals('errorUserMismatch');
+          check(
+            ErrorHandler.message(
+              context,
+              FirebaseAuthException(
+                code: FirebaseAuthErrorCodes.tooManyRequests,
+              ),
+            ),
+          ).equals('errorTooManyRequests');
           // 未定義のコードは errorUnknown にフォールバックすること
           check(
             ErrorHandler.message(
@@ -224,6 +262,44 @@ void main() {
               FirebaseAuthException(code: 'some-unknown-code'),
             ),
           ).equals('errorUnknown');
+        },
+      );
+    });
+
+    testWidgets('4-2. ReauthException の各サブクラスが正しく変換されること', (tester) async {
+      await setupWidget(
+        tester,
+        onBuild: (context) {
+          check(
+            ErrorHandler.message(
+              context,
+              const ReauthRequiresRecentLoginException(),
+            ),
+          ).equals('errorRequiresRecentLogin');
+          check(
+            ErrorHandler.message(context, const ReauthWrongPasswordException()),
+          ).equals('errorWrongPassword');
+          check(
+            ErrorHandler.message(context, const ReauthUserMismatchException()),
+          ).equals('errorUserMismatch');
+          check(
+            ErrorHandler.message(context, const ReauthCancelledException()),
+          ).equals('errorReauthCancelled');
+          check(
+            ErrorHandler.message(
+              context,
+              const ReauthTooManyRequestsException(),
+            ),
+          ).equals('errorTooManyRequests');
+          check(
+            ErrorHandler.message(context, const ReauthMissingEmailException()),
+          ).equals('errorMissingEmail');
+          check(
+            ErrorHandler.message(
+              context,
+              const ReauthInvalidCredentialException(),
+            ),
+          ).equals('errorReauthInvalidCredential');
         },
       );
     });

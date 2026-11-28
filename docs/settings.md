@@ -2,7 +2,7 @@
 
 ## 概要
 
-設定画面では、アプリ全体のユーザー設定（テーマや言語）の管理、およびアカウント操作（ログアウト）を行うことができます。
+設定画面では、アプリ全体のユーザー設定（テーマや言語）の管理、およびアカウント操作（ログアウト・アカウント完全退会）を行うことができます。
 
 ---
 
@@ -50,10 +50,11 @@
 
 ### 6. アカウント操作
 
-利用している認証方式（Firebase Auth または 自前サーバー／トークン認証）を問わず、安全にログアウトを行うことができます。
+利用している認証方式（Firebase Auth または 自前サーバー／トークン認証）を問わず、安全にログアウトおよびアカウント完全退会を行うことができます。
 
 - **ログアウト**: `authServiceProvider.signOut()` を通じてセッションを終了し、アプリロック（パスコード・生体認証設定）のクリアを試行した上でログイン画面へ遷移します（※アプリロックの解除に失敗した場合でもセッションの切断と画面遷移は継続して行われ、エラー内容はログに記録されます）。
-- **一貫性**: 他の認証画面と共通の `errorContainer` 配色を使用したボタンデザインを採用しています。
+- **アカウント削除（退会）**: `_LogoutButton` の下（`if (isAuthed)` 内）に控えめなエラーカラー枠線ボタン（`_DeleteAccountButton`）を配置し、2 段階確認（Step 1 影響範囲・復元不可説明 ➔ Step 2 赤色ボタン最終確認）を行います。事前鮮度チェックによる再認証（または `requires-recent-login` 発生時の再認証モーダル表示：Password / Google / 両方切替対応、エラーバナー付きダイアログ内再試行可能）と、実行中の操作ブロック（`barrierDismissible: false` / `PopScope(canPop: false)`）を経て、完了後はログイン画面へ自動遷移して完了 SnackBar を表示します。実装詳細は [settings_screen.dart](../lib/src/features/settings/presentation/settings_screen.dart)・[account_deletion_dialogs.dart](../lib/src/features/settings/presentation/widgets/account_deletion_dialogs.dart)・[reauthenticate_dialog.dart](../lib/src/features/settings/presentation/widgets/reauthenticate_dialog.dart)・[auth_service.dart](../lib/src/features/auth/application/auth_service.dart)・[認証仕様](auth.md) を参照してください。
+- **一貫性**: 他の認証画面と共通の `errorContainer` / `error` 配色を使用したボタンデザインを採用しています。
 
 ---
 
@@ -68,7 +69,10 @@ lib/src/core/config/
 
 lib/src/features/settings/
  └── presentation/
-      └── settings_screen.dart # 設定画面のUI
+      ├── settings_screen.dart                  # 設定画面のUI
+      └── widgets/
+           ├── account_deletion_dialogs.dart    # 退会2段階確認・処理中ダイアログ群
+           └── reauthenticate_dialog.dart       # 本人確認（再認証）ダイアログ
 ```
 
 ---
@@ -91,6 +95,8 @@ lib/src/features/settings/
   - SegmentedButton によるテーマ・言語の切り替え。
   - スイッチによるダークモードの反転。
   - ログアウト処理の成功／失敗（SnackBar表示）のパス。
+  - アカウント削除（退会）ボタンの未認証時非表示・認証時表示、2段階確認ダイアログ、事前再認証／`requires-recent-login` 事後再認証フォールバック、エラー表示、各ダイアログの操作検証（[settings_screen_test.dart](../test/src/features/settings/presentation/settings_screen_test.dart), [account_deletion_dialogs_test.dart](../test/src/features/settings/presentation/widgets/account_deletion_dialogs_test.dart), [reauthenticate_dialog_test.dart](../test/src/features/settings/presentation/widgets/reauthenticate_dialog_test.dart)）。
   - ビューポートサイズ固定によるスクロール操作の安定性。
 - **Golden Test**:
-  - `SettingsScreen`: 設定画面のライトモード/ダークモードでの表示確認。
+  - `SettingsScreen`: 設定画面のライトモード/ダークモードでの表示確認（[settings_screen_golden_test.dart](../test/src/features/settings/presentation/settings_screen_golden_test.dart)）。
+  - `AccountDeletionDialogs` / `ReauthenticateDialog`: 退会確認 Step 1・Step 2・処理中ダイアログ、および再認証モーダル（パスワードのみ・エラーバナー・Google のみ・両方連携タブ）のライト/ダークモード表示確認（[account_deletion_dialogs_golden_test.dart](../test/src/features/settings/presentation/widgets/account_deletion_dialogs_golden_test.dart), [reauthenticate_dialog_golden_test.dart](../test/src/features/settings/presentation/widgets/reauthenticate_dialog_golden_test.dart)）。

@@ -52,6 +52,13 @@
   "errorUserDisabled": "This account has been disabled.",
   "errorEmailAlreadyInUse": "This email address is already in use.",
   "errorWeakPassword": "The password is too weak. Please make it more complex.",
+  "errorRequiresRecentLogin": "Re-authentication is required to continue. Please verify your account and try again.",
+  "errorUserMismatch": "The selected account does not match the currently signed-in account. Please try again with the same account.",
+  "errorWrongPassword": "The password is incorrect.",
+  "errorReauthInvalidCredential": "Could not verify the re-authentication credentials. Please try again.",
+  "errorTooManyRequests": "Too many attempts. Please wait a while and try again.",
+  "errorReauthCancelled": "Re-authentication was cancelled.",
+  "errorMissingEmail": "No email address is linked to this account. Please try another authentication method.",
 
   "@_HOME": {},
   "homeTitle": "Home",
@@ -640,6 +647,36 @@
   "uiEffectsSubmitButton": "Submit Data",
   "uiEffectsRetryButton": "Retry",
   "uiEffectsResetButton": "Reset Status",
-  "uiEffectsSubmitSuccess": "Data submission completed!"
+  "uiEffectsSubmitSuccess": "Data submission completed!",
+
+  "@_ACCOUNT_DELETION": {},
+  "accountDeletionButton": "Delete Account",
+  "accountDeletionStep1Title": "Delete Account",
+  "accountDeletionStep1Description": "Deleting your account will permanently remove the following data and cannot be undone.",
+  "accountDeletionItemAccount": "• Account and sign-in credentials",
+  "accountDeletionItemProfile": "• Profile details and avatar image",
+  "accountDeletionItemMemos": "• All cloud and local memos",
+  "accountDeletionItemHistory": "• QR scan history, cache, and app lock settings",
+  "accountDeletionStep1Continue": "Continue",
+  "accountDeletionStep2Title": "Final Confirmation",
+  "accountDeletionStep2Description": "Are you sure?\nThis action cannot be reversed and all associated data will be permanently deleted.",
+  "accountDeletionStep2Confirm": "Permanently Delete Account",
+  "accountDeletionProcessing": "Deleting account and data...",
+  "accountDeletionCompleted": "Your account has been deleted.",
+  "reauthDialogTitle": "Verify Your Identity",
+  "reauthDialogDescription": "For your security, please verify your identity before deleting your account.",
+  "reauthTargetEmailLabel": "Account: {email}",
+  "@reauthTargetEmailLabel": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "reauthPasswordTab": "Password",
+  "reauthGoogleTab": "Google",
+  "reauthPasswordSubmit": "Verify and Continue",
+  "reauthGoogleSubmit": "Re-authenticate with Google",
+  "reauthUnavailableProvider": "No supported re-authentication method was found. Please sign out, sign in again, and try again."
 }
 

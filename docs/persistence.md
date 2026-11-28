@@ -41,7 +41,7 @@ lib/src/core/database/
 
 `SharedPreferences` や `FlutterSecureStorage` で使用するキー文字列が各プロバイダやリポジトリに直書きされるのを防ぐため、`lib/src/app/constants/storage_keys.dart` に定数クラスとして定義・一元管理しています。
 
-- **`SecureStorageKeys`**: `access_token`, `refresh_token`, `custom_user_id`, `app_lock_passcode` 等の暗号化保存用キー
+- **`SecureStorageKeys`**: `access_token`, `refresh_token`, `custom_user_id`, `custom_user_email`, `app_lock_passcode` 等の暗号化保存用キー
 - **`SharedPrefKeys`**: `theme_mode`, `theme_scheme`, `text_scale`, `locale_key`, `onboarding_completed` 等の標準保存用キー
 
 ---
@@ -135,8 +135,8 @@ APIのレスポンスなどを一時的に保存するクラスです。
 
 ### TokenStorage (`token_storage.dart`)
 
-アクセストークンやリフレッシュトークン、および独自認証のユーザー識別子（`customUserId`）を `FlutterSecureStorage` を用いてセキュアに暗号化保存します。  
-`saveTokens()` 時にアクセストークン（JWT）から `jwt_utils.dart` を用いて `sub` クレームを自動抽出し、暗号化キーストアに安全に保持します。
+アクセストークンやリフレッシュトークン、および独自認証のユーザー識別情報（`customUserId` / `customUserEmail`）を `FlutterSecureStorage` を用いてセキュアに暗号化保存します。  
+`saveTokens()` 時にアクセストークン（JWT）から `jwt_utils.dart` を用いて `sub` / `email` クレーム（未設定時は呼び出し元から渡された識別情報）を抽出し、暗号化キーストアに安全に保持します。なお、`saveTokens()` の書き込み途中失敗時はログイン経路では書き込んだキーを削除し、リフレッシュ経路（`preserveExistingOnFailure: true`、[auth_repository.dart](../lib/src/features/auth/data/auth_repository.dart)）では書き込み前の既存の有効な資格情報を復元して保持します。
 DioのInterceptor（通信割り込み）と連携し、APIリクエスト時に自動でトークンをヘッダーに付与すると共に、`currentUserIdProvider` を通じて各機能へユーザーIDを提供します。
 
 ---

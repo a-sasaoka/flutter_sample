@@ -20,10 +20,13 @@
 
 ```plaintext
 lib/src/features/auth/
+ ├── domain/
+ │    └── account_deletion_precheck.dart           # 退会前の再認証要否・利用可能手段モデル
  ├── data/
- │    └── firebase_auth_repository.dart       # Firebase APIの呼び出し（ログイン・登録）
+ │    └── firebase_auth_repository.dart            # Firebase APIの呼び出し（ログイン・登録・再認証・退会）
  └── application/
-      └── firebase_auth_state_notifier.dart   # 現在のユーザー(AsyncValue<User?>)の状態管理
+      ├── account_deletion_notice_notifier.dart    # 退会完了後のログイン画面向けワンショット通知状態管理
+      └── firebase_auth_state_notifier.dart        # 現在のユーザー(AsyncValue<User?>)の状態管理
 ```
 
 ---
@@ -84,3 +87,14 @@ lib/src/features/auth/
 - **自動リフレッシュ**: IDトークンが期限切れになり、APIから `401 Unauthorized` が返ってきた場合は、 `getIdToken(true)` が実行されて強制的にトークンが更新され、自動的に元のAPIリクエストが再試行（リトライ）されます。
 
 詳細は [トークン認証対応（Bearer Token + 自動リフレッシュ）](auth.md) を参照してください。
+
+---
+
+## 🗑️ アカウント完全退会と再認証ハンドリング (Issue #324)
+
+App Store / Google Play 審査要件に対応したアカウント完全退会において、Firebase Auth 特有の再認証要件（`requires-recent-login`）を事前防御と事後フォールバックの両面で安全に制御しています。
+
+- **ログイン鮮度の事前チェック**: 退会実行前に [firebase_auth_repository.dart](../lib/src/features/auth/data/firebase_auth_repository.dart) の `needsRecentLogin`（`User.metadata.lastSignInTime` と `clockProvider` の比較で 5 分超または `null` の場合に再認証要求）および [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) の `checkReauthRequirement()` により、破壊的削除を始める前に再認証の要否を判定します。
+- **連携プロバイダに応じた UI 自動出し分け**: `getAvailableReauthMethods()` が `user.providerData` を検査して利用可能な再認証手段を `Set<ReauthMethod>`（未該当時は空集合 `{}`）として返却し、`checkReauthRequirement()` がその結果と `needsRecentLogin()` を組み合わせて [account_deletion_precheck.dart](../lib/src/features/auth/domain/account_deletion_precheck.dart)（事前確認モデル）を生成・返却します。
+- **パスワード / Google 再認証と誤ロック抑止**: `reauthenticateWithPassword()` および `reauthenticateWithGoogle()` を提供し、Google 再認証時は [auth_service.dart](../lib/src/features/auth/application/auth_service.dart) 経由で `lockSuppressionRunnerProvider`（[lock_suppression_handler.dart](../lib/src/core/services/lock_suppression_handler.dart)）を適用して OS 画面からの復帰時アプリ誤ロックを抑止します。パスワード誤り・Google資格情報不正・`user-mismatch`・キャンセル・レート制限は [firebase_auth_error_codes.dart](../lib/src/core/exceptions/firebase_auth_error_codes.dart) と [reauth_exception.dart](../lib/src/core/exceptions/reauth_exception.dart) で型安全に変換し、Crashlytics 送信対象外としてダイアログ内での再試行を可能にしています。
+- **事後フォールバックとセッション破棄**: 削除ステップ（`user.delete()`）で万一 `requires-recent-login` が発生した場合、その時点では端末内ローカルデータは未削除のまま維持されますが（Storage 画像とサーバー側データは先行して削除済みの場合があります）、再認証モーダル経由で再認証後に処理を再開・完了できます。Auth アカウント削除後は [firebase_auth_repository.dart](../lib/src/features/auth/data/firebase_auth_repository.dart) の `deleteAccount()` にて Google のサインアウトを試み、初期化または `signOut()` が失敗した場合でもエラーを記録（Talker / Crashlytics）しつつ退会処理を継続します。画面遷移後は [firebase_login_screen.dart](../lib/src/features/auth/presentation/firebase_login_screen.dart) にて完了 SnackBar を表示します。

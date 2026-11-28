@@ -159,7 +159,8 @@ void main() {
   });
 
   group('StorageService deleteAvatarByUrl Tests', () {
-    const avatarUrl = 'https://firebasestorage.googleapis.com/avatar_123.jpg';
+    const avatarUrl =
+        'https://firebasestorage.googleapis.com/v0/b/demo/o/avatar_123.jpg';
 
     test('deleteAvatarByUrl: 正常系 - URL指定でファイル削除が成功すること', () async {
       when(() => mockFileRef.delete()).thenAnswer((_) async {});
@@ -168,6 +169,20 @@ void main() {
 
       verify(() => mockStorage.refFromURL(avatarUrl)).called(1);
       verify(() => mockFileRef.delete()).called(1);
+    });
+
+    test('deleteAvatarByUrl: 正常系 - 前後に空白があるURLでもトリムして削除すること', () async {
+      when(() => mockFileRef.delete()).thenAnswer((_) async {});
+
+      await check(
+        service.deleteAvatarByUrl(avatarUrl: '  $avatarUrl \n'),
+      ).completes();
+
+      verify(() => mockStorage.refFromURL(avatarUrl)).called(1);
+      verify(() => mockFileRef.delete()).called(1);
+      verify(
+        () => mockTalker.debug('Deleting avatar image by URL: $avatarUrl'),
+      ).called(1);
     });
 
     test(
@@ -237,6 +252,134 @@ void main() {
         ).called(1);
       },
     );
+
+    test('deleteAvatarByUrl: 正常系 - '
+        'Firebase Storage以外のURLや空文字はrefFromURLを呼ばずスキップすること', () async {
+      const nonStorageUrls = <String>[
+        '',
+        '   ',
+        '/var/mobile/Containers/Data/avatar.jpg',
+        'https://lh3.googleusercontent.com/a/default-user',
+      ];
+
+      for (final url in nonStorageUrls) {
+        await check(service.deleteAvatarByUrl(avatarUrl: url)).completes();
+      }
+
+      verifyNever(() => mockStorage.refFromURL(any()));
+      verify(
+        () => mockTalker.debug(
+          'Skipped avatar deletion because URL is not Firebase Storage.',
+        ),
+      ).called(nonStorageUrls.length);
+      verifyNoMoreInteractions(mockTalker);
+    });
+
+    test('deleteAvatarByUrl: 正常系 - '
+        'Cloud Storage URL は a.jpg と avatars/localhost.jpg を '
+        'refFromURL に頼らずバケット・オブジェクトパスから解決して削除すること', () async {
+      when(() => mockStorage.bucket).thenReturn('demo-bucket');
+      when(() => mockStorage.ref('a.jpg')).thenReturn(mockFileRef);
+      when(
+        () => mockStorage.ref('avatars/localhost.jpg'),
+      ).thenReturn(mockFileRef);
+      when(() => mockFileRef.delete()).thenAnswer((_) async {});
+
+      await check(
+        service.deleteAvatarByUrl(
+          avatarUrl: 'https://storage.googleapis.com/demo-bucket/a.jpg',
+        ),
+      ).completes();
+      await check(
+        service.deleteAvatarByUrl(
+          avatarUrl:
+              'https://storage.googleapis.com/demo-bucket/avatars/localhost.jpg',
+        ),
+      ).completes();
+
+      verify(() => mockStorage.ref('a.jpg')).called(1);
+      verify(() => mockStorage.ref('avatars/localhost.jpg')).called(1);
+      verify(() => mockFileRef.delete()).called(2);
+      verifyNever(() => mockStorage.refFromURL(any()));
+    });
+
+    test('deleteAvatarByUrl: 正常系 - '
+        '別バケットの Cloud Storage URL も解析済みバケットから参照を構築して削除すること', () async {
+      final otherBucketStorage = MockFirebaseStorage();
+      when(() => mockStorage.bucket).thenReturn('default-bucket');
+      when(
+        () => otherBucketStorage.ref('avatars/localhost.jpg'),
+      ).thenReturn(mockFileRef);
+      when(() => mockFileRef.delete()).thenAnswer((_) async {});
+
+      String? requestedBucket;
+      final crossBucketService = StorageService(
+        storage: mockStorage,
+        talker: mockTalker,
+        uuid: mockUuid,
+        getCurrentDateTime: () => fixedDateTime,
+        storageForBucket: (_, bucket) {
+          requestedBucket = bucket;
+          return otherBucketStorage;
+        },
+      );
+
+      await check(
+        crossBucketService.deleteAvatarByUrl(
+          avatarUrl:
+              'https://storage.cloud.google.com/other-bucket/avatars/localhost.jpg',
+        ),
+      ).completes();
+
+      check(requestedBucket).equals('gs://other-bucket');
+      verify(() => otherBucketStorage.ref('avatars/localhost.jpg')).called(1);
+      verify(() => mockFileRef.delete()).called(1);
+      verifyNever(() => mockStorage.refFromURL(any()));
+    });
+  });
+
+  group('StorageService.isFirebaseStorageUrl Tests', () {
+    test('Firebase Storage / Cloud Storage / Emulator のURLは true を返すこと', () {
+      const validUrls = <String>[
+        'gs://my-bucket/avatars/u1.jpg',
+        'https://firebasestorage.googleapis.com/v0/b/demo/o/a.jpg',
+        'https://firebasestorage.googleapis.com/v0/b/demo-project.firebasestorage.app/o/avatars%2Fa.jpg',
+        'https://storage.googleapis.com/demo-bucket/a.jpg',
+        'https://storage.googleapis.com/demo-bucket/avatars/localhost.jpg',
+        'https://storage.cloud.google.com/demo-bucket/a.jpg',
+        'https://storage.cloud.google.com/demo-bucket/avatars/localhost.jpg',
+        'http://localhost:9199/v0/b/demo/o/a.jpg',
+        'http://10.0.2.2:9199/v0/b/demo/o/a.jpg',
+      ];
+
+      for (final url in validUrls) {
+        check(StorageService.isFirebaseStorageUrl(url)).isTrue();
+      }
+    });
+
+    test('空文字・不正URI・SDK非対応URL・ローカルパス等は false を返すこと', () {
+      const invalidUrls = <String>[
+        '',
+        '   ',
+        ':::invalid',
+        '/var/mobile/avatar.jpg',
+        'ftp://firebasestorage.googleapis.com/a.jpg',
+        'https://lh3.googleusercontent.com/a/photo',
+        'https://evil-firebasestorage.googleapis.com/a.jpg',
+        'https://demo-project.firebasestorage.app/avatars/a.jpg',
+        'https://storage.googleapis.com/demo-bucket/',
+        'https://storage.googleapis.com/demo-bucket///',
+        'https://storage.googleapis.com/demo-bucket/%ZZ',
+        'https://storage.googleapis.com/demo-bucket/%E0%A4',
+        'http://127.0.0.1:9199/download/storage/v1/b/demo/o/a.jpg',
+        'https://firebasestorage.googleapis.com/invalid/path.jpg',
+        'http://localhost:3000/avatars/a.jpg',
+      ];
+
+      for (final url in invalidUrls) {
+        check(StorageService.isFirebaseStorageUrl(url)).isFalse();
+      }
+    });
   });
 
   group('storageServiceProvider Tests', () {

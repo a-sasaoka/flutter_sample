@@ -307,6 +307,48 @@ module.exports = (req, res, next) => {
     });
   }
 
-  // 6. それ以外は json-server の通常処理を続行
+  // 6. POST /auth/reauthenticate モック（退会前の再認証検証）
+  if (
+    req.method === 'POST' &&
+    (req.path === '/auth/reauthenticate' || req.url === '/auth/reauthenticate')
+  ) {
+    console.log('🔐 [Mock Server] POST /auth/reauthenticate received');
+    const { password } = req.body || {};
+    if (
+      typeof password !== 'string' ||
+      password.trim().length === 0 ||
+      password === 'wrong-password'
+    ) {
+      return res.status(401).json({
+        code: 'wrong-password',
+        message: 'パスワードが正しくありません（モック）',
+      });
+    }
+    return res.status(200).json({ reauthenticated: true });
+  }
+
+  // 7. DELETE /auth/account モック（カスタム認証アカウント削除）
+  if (req.method === 'DELETE' && (req.path === '/auth/account' || req.url === '/auth/account')) {
+    console.log('🗑️ [Mock Server] DELETE /auth/account received');
+    const authHeader = req.headers.authorization || '';
+    if (!authHeader.startsWith('Bearer ') || authHeader.slice(7).trim().length === 0) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    return res.status(200).json({ message: 'Account deleted (mock)' });
+  }
+
+  // 8. DELETE /users/me モック（db.json の me オブジェクト破壊を防ぎつつ削除完了応答）
+  if (
+    req.method === 'DELETE' &&
+    (req.path === '/users/me' ||
+      req.url === '/users/me' ||
+      req.path === '/me' ||
+      req.url === '/me')
+  ) {
+    console.log('🗑️ [Mock Server] DELETE /users/me received');
+    return res.status(200).json({ message: 'Account data deleted (mock)' });
+  }
+
+  // 9. それ以外は json-server の通常処理を続行
   next();
 };

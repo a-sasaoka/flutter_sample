@@ -55,8 +55,8 @@ Flutterアプリを **`local` フレーバー** で起動してください。
 | カテゴリ | メソッド / パス | 動作概要 |
 | :--- | :--- | :--- |
 | **ユーザー管理** | `GET /users`<br>`POST /users`<br>`PATCH /users/:id`<br>`DELETE /users/:id` | ユーザー一覧取得、新規追加、編集、削除（`db.json` に永続化） |
-| **プロフィール** | `GET /users/me`<br>`PUT /users/me` | ログインユーザー本人のプロフィール取得・更新 |
-| **認証** | `POST /auth/login`<br>`POST /auth/refresh` | 有効なJWT形式（`sub` クレーム含む）のダミートークン発行、アクセストークン更新（`mock/middleware.js`） |
+| **プロフィール** | `GET /users/me`<br>`PUT /users/me`<br>`DELETE /users/me` | ログインユーザー本人のプロフィール取得・更新・退会時サーバーデータ削除モック（`db.json` 非破壊で `200 OK` 返却） |
+| **認証** | `POST /auth/login`<br>`POST /auth/refresh`<br>`POST /auth/reauthenticate`<br>`DELETE /auth/account` | 有効なJWT形式（`sub` クレーム含む）のダミートークン発行、アクセストークン更新、再認証・アカウント削除モック（[mock/middleware.js](../mock/middleware.js)） |
 | **メモ管理** | `GET /memos`<br>`POST /memos`<br>`PUT /memos/:id`<br>`DELETE /memos/:id` | メモ一覧取得、新規作成、編集、論理/物理削除（`db.json` に永続化） |
 | **ルート検索** | `POST /computeRoutesProxy` | 出発地・目的地の座標補間ポリライン自動生成、移動手段ごとの所要時間・距離計算 |
 | **場所検索** | `POST /placesSearchProxy` | 東京駅・東京タワーなど主要スポット検索、入力キーワードに応じた動的候補生成 |
@@ -80,6 +80,7 @@ Flutterアプリを **`local` フレーバー** で起動してください。
 
 - **ルート検索プロキシ (`/computeRoutesProxy`)**: アプリから指定された出発地と目的地の緯度経度から、Google Encoded Polyline を自動エンコードして返却します。
 - **場所検索プロキシ (`/placesSearchProxy`)**: 部分一致による主要スポット検索に加え、自由入力されたキーワードに応じたダミー候補を動的に返却します。
+- **再認証・退会モック (`/auth/reauthenticate`, `/auth/account`, `DELETE /users/me`)**: [mock/middleware.js](../mock/middleware.js) により、`POST /auth/reauthenticate` では `password` 未入力・空文字または `'wrong-password'` に対して `401` を返却し、`DELETE /auth/account` では `Authorization: Bearer` ヘッダーの有無を検証します。また `DELETE /users/me`（リライト後パス `/me` を含む）では `mock/db.json` のデータ構造を破壊せず Git 差分を発生させないまま `200 OK` を返却します。
 
 ---
 

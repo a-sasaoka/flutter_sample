@@ -3,8 +3,11 @@ import 'dart:async';
 import 'package:checks/checks.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
+import 'package:flutter_sample/src/core/exceptions/firebase_auth_error_codes.dart';
+import 'package:flutter_sample/src/core/exceptions/reauth_exception.dart';
 import 'package:flutter_sample/src/core/utils/logger_provider.dart';
 import 'package:flutter_sample/src/features/auth/data/firebase_auth_repository.dart';
+import 'package:flutter_sample/src/features/auth/domain/account_deletion_precheck.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -32,6 +35,10 @@ class MockAuthClient extends Mock implements GoogleSignInAuthorizationClient {}
 
 class MockAuthz extends Mock implements GoogleSignInClientAuthorization {}
 
+class MockUserMetadata extends Mock implements UserMetadata {}
+
+class MockUserInfo extends Mock implements UserInfo {}
+
 class FakeAuthCredential extends Fake implements AuthCredential {}
 
 void main() {
@@ -43,6 +50,7 @@ void main() {
   setUpAll(() {
     registerFallbackValue(FakeAuthCredential());
     registerFallbackValue(<String>[]);
+    registerFallbackValue(StackTrace.current);
   });
 
   setUp(() {
@@ -50,12 +58,18 @@ void main() {
     mockGoogleSignIn = MockGoogleSignIn();
     mockTalker = MockTalker();
 
+    when(() => mockTalker.info(any<dynamic>())).thenReturn(null);
     when(() => mockTalker.warning(any<dynamic>())).thenReturn(null);
+    when(
+      () =>
+          mockTalker.handle(any<Object>(), any<StackTrace?>(), any<dynamic>()),
+    ).thenReturn(null);
 
     when(
       () => mockFirebaseAuth.userChanges(),
     ).thenAnswer((_) => const Stream.empty());
     when(() => mockFirebaseAuth.currentUser).thenReturn(null);
+    when(() => mockGoogleSignIn.initialize()).thenAnswer((_) async {});
 
     container = ProviderContainer(
       overrides: [
@@ -452,6 +466,374 @@ void main() {
           photoUrl: '',
         );
         verify(() => mockUser.updatePhotoURL(null)).called(1);
+      });
+    });
+
+    group('Reauth & Account Deletion', () {
+      test('ユーザー情報ゲッターが currentUser の値を返すこと', () {
+        final repo = container.read(firebaseAuthRepositoryProvider);
+        check(repo.currentUserEmail).isNull();
+        check(repo.currentUserPhotoUrl).isNull();
+        check(repo.lastSignInTime).isNull();
+
+        final mockUser = MockUser();
+        final mockMetadata = MockUserMetadata();
+        final signedInAt = DateTime.utc(2026, 11, 22, 8);
+        when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+        when(() => mockUser.email).thenReturn('user@example.com');
+        when(() => mockUser.photoURL).thenReturn('https://example.com/a.jpg');
+        when(() => mockUser.metadata).thenReturn(mockMetadata);
+        when(() => mockMetadata.lastSignInTime).thenReturn(signedInAt);
+
+        check(repo.currentUserEmail).equals('user@example.com');
+        check(repo.currentUserPhotoUrl).equals('https://example.com/a.jpg');
+        check(repo.lastSignInTime).equals(signedInAt);
+      });
+
+      test('getAvailableReauthMethods: 未ログインおよび連携プロバイダごとに正しく返すこと', () {
+        final repo = container.read(firebaseAuthRepositoryProvider);
+
+        check(repo.getAvailableReauthMethods().isEmpty).isTrue();
+
+        final mockUser = MockUser();
+        final passwordInfo = MockUserInfo();
+        final googleInfo = MockUserInfo();
+        final otherInfo = MockUserInfo();
+        when(
+          () => passwordInfo.providerId,
+        ).thenReturn(EmailAuthProvider.PROVIDER_ID);
+        when(
+          () => googleInfo.providerId,
+        ).thenReturn(GoogleAuthProvider.PROVIDER_ID);
+        when(() => otherInfo.providerId).thenReturn('apple.com');
+
+        when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+        when(() => mockUser.providerData).thenReturn([passwordInfo, otherInfo]);
+        check(
+          repo.getAvailableReauthMethods(),
+        ).deepEquals({ReauthMethod.password});
+
+        when(() => mockUser.providerData).thenReturn([googleInfo]);
+        check(
+          repo.getAvailableReauthMethods(),
+        ).deepEquals({ReauthMethod.google});
+
+        when(
+          () => mockUser.providerData,
+        ).thenReturn([passwordInfo, googleInfo]);
+        check(
+          repo.getAvailableReauthMethods(),
+        ).deepEquals({ReauthMethod.password, ReauthMethod.google});
+      });
+
+      test('needsRecentLogin: 経過時間に応じて正しく判定されること', () {
+        final repo = container.read(firebaseAuthRepositoryProvider);
+        final now = DateTime.utc(2026, 11, 22, 9, 5);
+
+        // 未ログイン / lastSignInTime == null は true
+        check(repo.needsRecentLogin(now)).isTrue();
+
+        final mockUser = MockUser();
+        final mockMetadata = MockUserMetadata();
+        when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+        when(() => mockUser.metadata).thenReturn(mockMetadata);
+
+        // 4分前 -> false
+        when(
+          () => mockMetadata.lastSignInTime,
+        ).thenReturn(DateTime.utc(2026, 11, 22, 9, 1));
+        check(repo.needsRecentLogin(now)).isFalse();
+
+        // ちょうど5分前 -> false
+        when(
+          () => mockMetadata.lastSignInTime,
+        ).thenReturn(DateTime.utc(2026, 11, 22, 9));
+        check(repo.needsRecentLogin(now)).isFalse();
+
+        // 5分1秒前 -> true
+        when(
+          () => mockMetadata.lastSignInTime,
+        ).thenReturn(DateTime.utc(2026, 11, 22, 8, 59, 59));
+        check(repo.needsRecentLogin(now)).isTrue();
+      });
+
+      test('reauthenticateWithPassword: 正常系・各例外変換が正しく動作すること', () async {
+        final repo = container.read(firebaseAuthRepositoryProvider);
+
+        // 未ログイン
+        await check(
+          repo.reauthenticateWithPassword(password: 'pass'),
+        ).throws<UnauthenticatedException>();
+
+        final mockUser = MockUser();
+        when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+
+        // メール未設定
+        when(() => mockUser.email).thenReturn('');
+        await check(
+          repo.reauthenticateWithPassword(password: 'pass'),
+        ).throws<ReauthMissingEmailException>();
+
+        // 正常系
+        when(() => mockUser.email).thenReturn('test@example.com');
+        when(
+          () => mockUser.reauthenticateWithCredential(any<AuthCredential>()),
+        ).thenAnswer((_) async => MockUserCredential());
+        await check(
+          repo.reauthenticateWithPassword(password: 'password123'),
+        ).completes();
+        verify(
+          () => mockUser.reauthenticateWithCredential(any<AuthCredential>()),
+        ).called(1);
+
+        // 各FirebaseAuthExceptionのマッピング
+        final errorAssertions = <String, Future<void> Function()>{
+          FirebaseAuthErrorCodes.wrongPassword: () => check(
+            repo.reauthenticateWithPassword(password: 'password123'),
+          ).throws<ReauthWrongPasswordException>(),
+          FirebaseAuthErrorCodes.invalidCredential: () => check(
+            repo.reauthenticateWithPassword(password: 'password123'),
+          ).throws<ReauthWrongPasswordException>(),
+          FirebaseAuthErrorCodes.userMismatch: () => check(
+            repo.reauthenticateWithPassword(password: 'password123'),
+          ).throws<ReauthUserMismatchException>(),
+          FirebaseAuthErrorCodes.tooManyRequests: () => check(
+            repo.reauthenticateWithPassword(password: 'password123'),
+          ).throws<ReauthTooManyRequestsException>(),
+          FirebaseAuthErrorCodes.requiresRecentLogin: () => check(
+            repo.reauthenticateWithPassword(password: 'password123'),
+          ).throws<ReauthRequiresRecentLoginException>(),
+        };
+
+        for (final entry in errorAssertions.entries) {
+          when(
+            () => mockUser.reauthenticateWithCredential(any<AuthCredential>()),
+          ).thenThrow(FirebaseAuthException(code: entry.key));
+          await entry.value();
+        }
+
+        // 未マップのFirebaseAuthExceptionはそのまま再スロー
+        when(
+          () => mockUser.reauthenticateWithCredential(any<AuthCredential>()),
+        ).thenThrow(FirebaseAuthException(code: 'network-request-failed'));
+        await check(
+          repo.reauthenticateWithPassword(password: 'password123'),
+        ).throws<FirebaseAuthException>();
+      });
+
+      test('reauthenticateWithGoogle: '
+          '未ログイン・正常・キャンセル・mismatch・例外が正しく動作すること', () async {
+        final repo = container.read(firebaseAuthRepositoryProvider);
+
+        // 未ログイン
+        await check(
+          repo.reauthenticateWithGoogle(),
+        ).throws<UnauthenticatedException>();
+
+        final mockUser = MockUser();
+        when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+        when(() => mockGoogleSignIn.initialize()).thenAnswer((_) async {});
+
+        // canceled
+        when(() => mockGoogleSignIn.authenticate()).thenThrow(
+          const GoogleSignInException(code: GoogleSignInExceptionCode.canceled),
+        );
+        await check(
+          repo.reauthenticateWithGoogle(),
+        ).throws<ReauthCancelledException>();
+
+        // interrupted
+        when(() => mockGoogleSignIn.authenticate()).thenThrow(
+          const GoogleSignInException(
+            code: GoogleSignInExceptionCode.interrupted,
+          ),
+        );
+        await check(
+          repo.reauthenticateWithGoogle(),
+        ).throws<ReauthCancelledException>();
+
+        // userMismatch
+        when(() => mockGoogleSignIn.authenticate()).thenThrow(
+          const GoogleSignInException(
+            code: GoogleSignInExceptionCode.userMismatch,
+          ),
+        );
+        await check(
+          repo.reauthenticateWithGoogle(),
+        ).throws<ReauthUserMismatchException>();
+
+        // その他のGoogleSignInExceptionは再スロー
+        when(() => mockGoogleSignIn.authenticate()).thenThrow(
+          const GoogleSignInException(
+            code: GoogleSignInExceptionCode.unknownError,
+          ),
+        );
+        await check(
+          repo.reauthenticateWithGoogle(),
+        ).throws<GoogleSignInException>();
+
+        // 両トークンnull -> キャンセル扱い
+        final mockGoogleUser = MockGoogleSignInAccount();
+        final mockGoogleAuth = MockGoogleSignInAuthentication();
+        final mockAuthClient = MockAuthClient();
+        final mockAuthz = MockAuthz();
+        when(
+          () => mockGoogleSignIn.authenticate(),
+        ).thenAnswer((_) async => mockGoogleUser);
+        when(() => mockGoogleUser.authentication).thenReturn(mockGoogleAuth);
+        when(
+          () => mockGoogleUser.authorizationClient,
+        ).thenReturn(mockAuthClient);
+        when(() => mockGoogleAuth.idToken).thenReturn(null);
+        when(
+          () => mockAuthClient.authorizationForScopes(any<List<String>>()),
+        ).thenAnswer((_) async => null);
+        await check(
+          repo.reauthenticateWithGoogle(),
+        ).throws<ReauthCancelledException>();
+
+        // Firebase側で user-mismatch
+        when(() => mockGoogleAuth.idToken).thenReturn('id-token');
+        when(
+          () => mockAuthClient.authorizationForScopes(any<List<String>>()),
+        ).thenAnswer((_) async => mockAuthz);
+        when(() => mockAuthz.accessToken).thenReturn('access-token');
+        when(
+          () => mockUser.reauthenticateWithCredential(any<AuthCredential>()),
+        ).thenThrow(
+          FirebaseAuthException(code: FirebaseAuthErrorCodes.userMismatch),
+        );
+        await check(
+          repo.reauthenticateWithGoogle(),
+        ).throws<ReauthUserMismatchException>();
+
+        // Firebase側で invalid-credential ->
+        // ReauthInvalidCredentialException (wrongPasswordではない)
+        when(
+          () => mockUser.reauthenticateWithCredential(any<AuthCredential>()),
+        ).thenThrow(
+          FirebaseAuthException(code: FirebaseAuthErrorCodes.invalidCredential),
+        );
+        await check(
+          repo.reauthenticateWithGoogle(),
+        ).throws<ReauthInvalidCredentialException>();
+
+        // 正常系
+        when(
+          () => mockUser.reauthenticateWithCredential(any<AuthCredential>()),
+        ).thenAnswer((_) async => MockUserCredential());
+        await check(repo.reauthenticateWithGoogle()).completes();
+        verify(
+          () => mockUser.reauthenticateWithCredential(any<AuthCredential>()),
+        ).called(3);
+      });
+
+      test(
+        'deleteAccount: 正常・未ログイン・requires-recent-login・例外と順序が正しく動作すること',
+        () async {
+          final repo = container.read(firebaseAuthRepositoryProvider);
+
+          // 未ログイン
+          await check(repo.deleteAccount()).throws<UnauthenticatedException>();
+
+          final mockUser = MockUser();
+          when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+
+          // requires-recent-login -> ReauthRequiresRecentLoginException
+          when(mockUser.delete).thenThrow(
+            FirebaseAuthException(
+              code: FirebaseAuthErrorCodes.requiresRecentLogin,
+            ),
+          );
+          await check(
+            repo.deleteAccount(),
+          ).throws<ReauthRequiresRecentLoginException>();
+          verify(mockUser.delete).called(1);
+          verifyNever(mockGoogleSignIn.signOut);
+
+          // その他のFirebaseAuthException -> そのまま再スロー
+          when(
+            mockUser.delete,
+          ).thenThrow(FirebaseAuthException(code: 'network-request-failed'));
+          await check(repo.deleteAccount()).throws<FirebaseAuthException>();
+          verify(mockUser.delete).called(1);
+          verifyNever(mockGoogleSignIn.signOut);
+
+          // 正常削除: user.delete() 完了までは initialize()/signOut() が呼ばれず、
+          // initialize() の完了を待ってから signOut() が1回だけ呼ばれること
+          final deleteCompleter = Completer<void>();
+          final initializeCompleter = Completer<void>();
+          when(mockUser.delete).thenAnswer((_) => deleteCompleter.future);
+          when(
+            mockGoogleSignIn.initialize,
+          ).thenAnswer((_) => initializeCompleter.future);
+          when(mockGoogleSignIn.signOut).thenAnswer((_) async {});
+
+          final deleteFuture = repo.deleteAccount();
+          await Future<void>.delayed(Duration.zero);
+
+          verify(mockUser.delete).called(1);
+          verifyNever(mockGoogleSignIn.initialize);
+          verifyNever(mockGoogleSignIn.signOut);
+
+          deleteCompleter.complete();
+          await Future<void>.delayed(Duration.zero);
+
+          verify(mockGoogleSignIn.initialize).called(1);
+          verifyNever(mockGoogleSignIn.signOut);
+
+          initializeCompleter.complete();
+          await check(deleteFuture).completes();
+          verify(mockGoogleSignIn.signOut).called(1);
+
+          // 別リポジトリインスタンスでも同一 GoogleSignIn なら initialize() を再実行しないこと
+          final secondRepo = FirebaseAuthRepository(
+            firebaseAuth: mockFirebaseAuth,
+            googleSignIn: mockGoogleSignIn,
+            talker: mockTalker,
+          );
+          when(mockUser.delete).thenAnswer((_) async {});
+          await check(secondRepo.deleteAccount()).completes();
+          verifyNever(mockGoogleSignIn.initialize);
+          verify(mockGoogleSignIn.signOut).called(1);
+
+          // ユーザー削除後にGoogleサインアウトのみ失敗 -> ログ記録しつつ完了
+          final signOutError = Exception('Google sign out error');
+          when(mockGoogleSignIn.signOut).thenThrow(signOutError);
+          await check(repo.deleteAccount()).completes();
+          verify(
+            () => mockTalker.handle(
+              signOutError,
+              any<StackTrace?>(),
+              'Failed to sign out Google session after account deletion',
+            ),
+          ).called(1);
+        },
+      );
+
+      test('GoogleSignIn 初期化に失敗した場合は次回呼び出しで再試行できること', () async {
+        final isolatedGoogleSignIn = MockGoogleSignIn();
+        var initCalls = 0;
+        when(isolatedGoogleSignIn.initialize).thenAnswer((_) async {
+          initCalls++;
+          if (initCalls == 1) {
+            throw Exception('init failed');
+          }
+        });
+        when(isolatedGoogleSignIn.signOut).thenAnswer((_) async {});
+        when(() => mockFirebaseAuth.signOut()).thenAnswer((_) async {});
+
+        final repo = FirebaseAuthRepository(
+          firebaseAuth: mockFirebaseAuth,
+          googleSignIn: isolatedGoogleSignIn,
+          talker: mockTalker,
+        );
+
+        await check(repo.signOut()).throws<Exception>();
+        await check(repo.signOut()).completes();
+
+        check(initCalls).equals(2);
+        verify(isolatedGoogleSignIn.signOut).called(1);
       });
     });
   });

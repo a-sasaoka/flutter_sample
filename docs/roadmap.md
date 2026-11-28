@@ -7,6 +7,7 @@
 | カテゴリ | 拡張内容 |
 | --- | --- |
 | 🔒 セキュリティ | `local_auth` および `flutter_secure_storage` によるアプリロック（PINパスコード＋Face ID / Touch ID / 指紋認証 / 顔認証）の導入 (✅ 完了) |
+| 🚪 アカウント完全退会 | 2段階確認ダイアログ、ログイン鮮度チェック＆マルチプロバイダ再認証、4段階クラウド・ローカルデータ一括消去（Cloud Functions / モックサーバー両対応） (✅ 完了) |
 | 👤 プロフィール | アバター写真の設定・円形切り抜き（`image_cropper`）・Firebase Storage へのアップロードと端末内自動キャッシュ (`AppCachedImage.circle`) (✅ 完了) |
 | 🗺️ 位置情報・地図 | Google Maps (`google_maps_flutter`)、Geolocator、Geocoding、および Google Directions API による現在地表示・住所ランドマーク検索・2点間ルート検索・Polyline経路描画 (✅ 完了) |
 | 📷 カメラ・QRコード | `mobile_scanner` によるリアルタイムQRスキャン、アルバム画像からのQR解析、および Drift (SQLite) によるスキャン履歴保存・管理 (✅ 完了) |

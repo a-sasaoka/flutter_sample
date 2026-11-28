@@ -8,6 +8,7 @@ import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
 import 'package:flutter_sample/src/app/database/app_database.dart';
 import 'package:flutter_sample/src/core/database/database_provider.dart';
+import 'package:flutter_sample/src/core/exceptions/app_exception.dart';
 import 'package:flutter_sample/src/core/network/api_client.dart';
 import 'package:flutter_sample/src/core/network/dio_interceptor.dart';
 import 'package:flutter_sample/src/core/network/dio_provider.dart';
@@ -130,6 +131,7 @@ void main() {
       when(
         () => mockRemoteService.fetchMemos(
           expectedUserId: any(named: 'expectedUserId'),
+          cancelToken: any(named: 'cancelToken'),
         ),
       ).thenAnswer((_) async => []);
       when(
@@ -649,6 +651,7 @@ void main() {
       verify(
         () => mockRemoteService.fetchMemos(
           expectedUserId: any(named: 'expectedUserId'),
+          cancelToken: any(named: 'cancelToken'),
         ),
       ).called(1);
     });
@@ -659,6 +662,7 @@ void main() {
       when(
         () => mockRemoteService.fetchMemos(
           expectedUserId: any(named: 'expectedUserId'),
+          cancelToken: any(named: 'cancelToken'),
         ),
       ).thenAnswer(
         (_) async => [
@@ -703,6 +707,7 @@ void main() {
         when(
           () => mockRemoteService.fetchMemos(
             expectedUserId: any(named: 'expectedUserId'),
+            cancelToken: any(named: 'cancelToken'),
           ),
         ).thenAnswer(
           (_) async => [
@@ -746,6 +751,7 @@ void main() {
         when(
           () => mockRemoteService.fetchMemos(
             expectedUserId: any(named: 'expectedUserId'),
+            cancelToken: any(named: 'cancelToken'),
           ),
         ).thenAnswer(
           (_) async => [
@@ -774,6 +780,7 @@ void main() {
       when(
         () => mockRemoteService.fetchMemos(
           expectedUserId: any(named: 'expectedUserId'),
+          cancelToken: any(named: 'cancelToken'),
         ),
       ).thenThrow(fetchError);
 
@@ -828,6 +835,7 @@ void main() {
         verify(
           () => mockRemoteService.fetchMemos(
             expectedUserId: any(named: 'expectedUserId'),
+            cancelToken: any(named: 'cancelToken'),
           ),
         ).called(1);
       },
@@ -884,6 +892,7 @@ void main() {
       verifyNever(
         () => mockRemoteService.fetchMemos(
           expectedUserId: any(named: 'expectedUserId'),
+          cancelToken: any(named: 'cancelToken'),
         ),
       );
     });
@@ -988,6 +997,7 @@ void main() {
       when(
         () => mockRemoteService.fetchMemos(
           expectedUserId: any(named: 'expectedUserId'),
+          cancelToken: any(named: 'cancelToken'),
         ),
       ).thenAnswer(
         (_) async => [
@@ -1030,6 +1040,7 @@ void main() {
       when(
         () => mockRemoteService.fetchMemos(
           expectedUserId: any(named: 'expectedUserId'),
+          cancelToken: any(named: 'cancelToken'),
         ),
       ).thenAnswer(
         (_) async => [
@@ -1068,6 +1079,7 @@ void main() {
       when(
         () => mockRemoteService.fetchMemos(
           expectedUserId: any(named: 'expectedUserId'),
+          cancelToken: any(named: 'cancelToken'),
         ),
       ).thenAnswer(
         (_) async => [
@@ -1170,6 +1182,7 @@ void main() {
       when(
         () => mockRemoteService.fetchMemos(
           expectedUserId: any(named: 'expectedUserId'),
+          cancelToken: any(named: 'cancelToken'),
         ),
       ).thenAnswer(
         (_) async => [
@@ -2282,6 +2295,7 @@ void main() {
         when(
           () => mockRemoteService.fetchMemos(
             expectedUserId: any(named: 'expectedUserId'),
+            cancelToken: any(named: 'cancelToken'),
           ),
         ).thenAnswer(
           (_) async => [
@@ -2437,6 +2451,7 @@ void main() {
         when(
           () => mockRemoteService.fetchMemos(
             expectedUserId: any(named: 'expectedUserId'),
+            cancelToken: any(named: 'cancelToken'),
           ),
         ).thenAnswer(
           (_) async => [
@@ -2552,6 +2567,7 @@ void main() {
         when(
           () => mockRemoteService.fetchMemos(
             expectedUserId: any(named: 'expectedUserId'),
+            cancelToken: any(named: 'cancelToken'),
           ),
         ).thenAnswer(
           (_) async => [
@@ -2581,6 +2597,7 @@ void main() {
         when(
           () => mockRemoteService.fetchMemos(
             expectedUserId: any(named: 'expectedUserId'),
+            cancelToken: any(named: 'cancelToken'),
           ),
         ).thenAnswer(
           (_) async => [
@@ -2728,6 +2745,7 @@ void main() {
         when(
           () => mockRemoteService.fetchMemos(
             expectedUserId: any(named: 'expectedUserId'),
+            cancelToken: any(named: 'cancelToken'),
           ),
         ).thenAnswer((_) {
           fetchStarted.complete();
@@ -2766,6 +2784,7 @@ void main() {
         when(
           () => mockRemoteService.fetchMemos(
             expectedUserId: any(named: 'expectedUserId'),
+            cancelToken: any(named: 'cancelToken'),
           ),
         ).thenAnswer(
           (_) async => [
@@ -3322,6 +3341,346 @@ void main() {
         check(current.isSynced).isTrue();
         check(spyTalker.handleCalls.length).equals(1);
         check(spyTalker.handleCalls.single.exception).isA<StateError>();
+      });
+    });
+
+    group('deleteAllMemosByUser テスト', () {
+      test('対象ユーザーの全メモ（通常・論理削除済み）が物理削除され、他ユーザーのデータと同期トークンは残ること', () async {
+        final container = createContainer(isOnline: false);
+        addTearDown(container.dispose);
+        final repository = container.read(memoRepositoryProvider);
+        final syncQueue = container.read(memoSyncQueueProvider);
+
+        await database.memosDao.insertMemo(
+          MemosCompanion.insert(
+            id: 'user-active',
+            userId: testUserId,
+            title: '通常メモ',
+            content: '本文1',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+        await database.memosDao.insertMemo(
+          MemosCompanion.insert(
+            id: 'user-deleted',
+            userId: testUserId,
+            title: '論理削除済みメモ',
+            content: '本文2',
+            createdAt: now,
+            updatedAt: now,
+            isDeleted: const drift.Value(true),
+          ),
+        );
+        await database.memosDao.insertMemo(
+          MemosCompanion.insert(
+            id: 'other-user-memo',
+            userId: otherUserId,
+            title: '他ユーザーメモ',
+            content: '他ユーザー本文',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+        syncQueue
+          ..nextToken(testUserId, 'user-active')
+          ..nextToken(otherUserId, 'other-user-memo');
+
+        final deletedCount = await repository.deleteAllMemosByUser(testUserId);
+
+        check(deletedCount).equals(2);
+        check(syncQueue.currentToken(testUserId, 'user-active')).isNull();
+        check(
+          syncQueue.currentToken(otherUserId, 'other-user-memo'),
+        ).isNotNull();
+
+        final remainingRows = await database.select(database.memos).get();
+        check(remainingRows.length).equals(1);
+        check(remainingRows.single.id).equals('other-user-memo');
+        check(remainingRows.single.userId).equals(otherUserId);
+      });
+
+      test('MemoSyncQueue: 進行中取得の CancelToken は対象ユーザーのみキャンセルされ、 '
+          '個別解除で空きになったマップ要素も安全に整理されること', () {
+        final queue = MemoSyncQueue();
+        final userToken1 = CancelToken();
+        final userToken2 = CancelToken();
+        final otherToken = CancelToken();
+
+        // 1つだけ解除しても2つ目が残るため testUserId のエントリは維持される
+        queue
+          ..registerFetchCancelToken(testUserId, userToken1)
+          ..registerFetchCancelToken(testUserId, userToken2)
+          ..registerFetchCancelToken(otherUserId, otherToken)
+          ..unregisterFetchCancelToken(testUserId, userToken1);
+        check(userToken1.isCancelled).isFalse();
+        check(userToken2.isCancelled).isFalse();
+
+        // 既にキャンセル済みのトークンを含んでいても例外なく残りトークンをキャンセルできる
+        userToken1.cancel('already cancelled');
+        queue
+          ..registerFetchCancelToken(testUserId, userToken1)
+          ..cancelUserFetches(testUserId);
+
+        check(userToken2.isCancelled).isTrue();
+        check(otherToken.isCancelled).isFalse();
+
+        // キャンセル後に finally 相当の解除が呼ばれても安全に無視される
+        queue
+          ..unregisterFetchCancelToken(testUserId, userToken2)
+          ..unregisterFetchCancelToken(otherUserId, otherToken);
+        check(otherToken.isCancelled).isFalse();
+      });
+
+      test('deleteAllMemosByUser 実行前に開始した fetchMemos が遅れて応答しても '
+          'CancelToken 中止と削除世代検証により再挿入されないこと', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final subscription = container.listen(
+          memoRepositoryProvider,
+          (_, _) {},
+        );
+        addTearDown(subscription.close);
+        final repository = subscription.read();
+
+        final testFetchTokenCompleter = Completer<CancelToken>();
+        final otherFetchTokenCompleter = Completer<CancelToken>();
+        final testFetchGate = Completer<List<Map<String, dynamic>>>();
+        final otherFetchGate = Completer<List<Map<String, dynamic>>>();
+
+        when(
+          () => mockRemoteService.fetchMemos(
+            expectedUserId: any(named: 'expectedUserId'),
+            cancelToken: any(named: 'cancelToken'),
+          ),
+        ).thenAnswer((invocation) {
+          final uid = invocation.namedArguments[#expectedUserId] as String?;
+          final token = invocation.namedArguments[#cancelToken] as CancelToken?;
+          if (uid == testUserId) {
+            if (token != null && !testFetchTokenCompleter.isCompleted) {
+              testFetchTokenCompleter.complete(token);
+            }
+            return testFetchGate.future;
+          }
+          if (token != null && !otherFetchTokenCompleter.isCompleted) {
+            otherFetchTokenCompleter.complete(token);
+          }
+          return otherFetchGate.future;
+        });
+
+        await database.memosDao.insertMemo(
+          MemosCompanion.insert(
+            id: 'local-before-delete',
+            userId: testUserId,
+            title: '削除前ローカルメモ',
+            content: '本文',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+        // 1. testUserId で取得を開始し、リモート応答待ちのまま停止
+        final testFetchFuture = repository.fetchAndMergeRemoteMemos(testUserId);
+        final testCancelToken = await testFetchTokenCompleter.future;
+        check(testCancelToken.isCancelled).isFalse();
+
+        // 別ユーザーの取得も並行開始しておく
+        container.read(_testUserIdProvider.notifier).userId = otherUserId;
+        final otherFetchFuture = repository.fetchAndMergeRemoteMemos(
+          otherUserId,
+        );
+        final otherCancelToken = await otherFetchTokenCompleter.future;
+
+        // 2. 取得完了前に testUserId の退会（一括削除）を実行
+        container.read(_testUserIdProvider.notifier).userId = testUserId;
+        final deletedCount = await repository.deleteAllMemosByUser(testUserId);
+        check(deletedCount).equals(1);
+        check(testCancelToken.isCancelled).isTrue();
+        check(otherCancelToken.isCancelled).isFalse();
+
+        // 3. CancelToken 中止前に受信済みだった古い応答が遅れて返っても破棄されること
+        testFetchGate.complete([
+          {
+            'id': 'stale-remote-memo',
+            'title': '亡霊メモ',
+            'content': '退会後に残ってはいけない',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+        ]);
+        await testFetchFuture;
+
+        final testUserRows = await (database.select(
+          database.memos,
+        )..where((t) => t.userId.equals(testUserId))).get();
+        check(testUserRows).isEmpty();
+        check(spyTalker.handleCalls).isEmpty();
+
+        // 4. 別ユーザーの並行取得はキャンセルされず正常にマージされること
+        container.read(_testUserIdProvider.notifier).userId = otherUserId;
+        otherFetchGate.complete([
+          {
+            'id': 'other-valid-memo',
+            'title': '他ユーザー正常メモ',
+            'content': '内容',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+        ]);
+        await otherFetchFuture;
+
+        final otherUserMemos = await repository.getLocalMemos(otherUserId);
+        check(otherUserMemos.length).equals(1);
+        check(otherUserMemos.single.id).equals('other-valid-memo');
+      });
+
+      test('deleteAllMemosByUser により CancelToken が中止され '
+          'DioException(cancel) が投げられた場合、Crashlytics へ報告せず安全に終了すること', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final subscription = container.listen(
+          memoRepositoryProvider,
+          (_, _) {},
+        );
+        addTearDown(subscription.close);
+        final repository = subscription.read();
+
+        final fetchStarted = Completer<void>();
+        when(
+          () => mockRemoteService.fetchMemos(
+            expectedUserId: testUserId,
+            cancelToken: any(named: 'cancelToken'),
+          ),
+        ).thenAnswer((invocation) async {
+          final token = invocation.namedArguments[#cancelToken] as CancelToken;
+          fetchStarted.complete();
+          final cancelError = await token.whenCancel;
+          // DioInterceptor が cancel を AppException.cancel() へ変換する挙動も再現
+          throw DioException(
+            requestOptions: cancelError.requestOptions,
+            error: const AppException.cancel(),
+          );
+        });
+
+        final fetchFuture = repository.fetchAndMergeRemoteMemos(testUserId);
+        await fetchStarted.future;
+
+        await repository.deleteAllMemosByUser(testUserId);
+        await fetchFuture;
+
+        check(spyTalker.handleCalls).isEmpty();
+        check(
+          await (database.select(
+            database.memos,
+          )..where((t) => t.userId.equals(testUserId))).get(),
+        ).isEmpty();
+      });
+
+      test('fetchAndMergeRemoteMemos の開始前に認証ユーザー不一致、 '
+          'または syncUnsentMemos 中に削除・取得中にユーザー切替が起きた場合はマージしないこと', () async {
+        final container = createContainer();
+        addTearDown(container.dispose);
+        final subscription = container.listen(
+          memoRepositoryProvider,
+          (_, _) {},
+        );
+        addTearDown(subscription.close);
+        final repository = subscription.read();
+
+        // 1. 開始時点で未ログイン（null）なら fetchMemos を呼ばず終了
+        container.read(_testUserIdProvider.notifier).userId = null;
+        await repository.fetchAndMergeRemoteMemos(testUserId);
+        verifyNever(
+          () => mockRemoteService.fetchMemos(
+            expectedUserId: any(named: 'expectedUserId'),
+            cancelToken: any(named: 'cancelToken'),
+          ),
+        );
+
+        // 2. syncUnsentMemos 中に deleteAllMemosByUser が起きた場合は fetchMemos を開始しない
+        container.read(_testUserIdProvider.notifier).userId = testUserId;
+        await database.memosDao.insertMemo(
+          MemosCompanion.insert(
+            id: 'unsent-before-delete',
+            userId: testUserId,
+            title: '未送信メモ',
+            content: '本文',
+            createdAt: now,
+            updatedAt: now,
+            isSynced: const drift.Value(false),
+          ),
+        );
+        final uploadStarted = Completer<void>();
+        final uploadGate = Completer<UploadedMemoTimestamps?>();
+        when(
+          () => mockRemoteService.uploadMemo(
+            id: any(named: 'id'),
+            title: any(named: 'title'),
+            content: any(named: 'content'),
+            createdAt: any(named: 'createdAt'),
+            updatedAt: any(named: 'updatedAt'),
+            isDeleted: any(named: 'isDeleted'),
+            expectedUserId: testUserId,
+          ),
+        ).thenAnswer((_) {
+          uploadStarted.complete();
+          return uploadGate.future;
+        });
+
+        final fetchDuringSyncFuture = repository.fetchAndMergeRemoteMemos(
+          testUserId,
+        );
+        await uploadStarted.future;
+
+        await repository.deleteAllMemosByUser(testUserId);
+        uploadGate.complete();
+        await fetchDuringSyncFuture;
+
+        verifyNever(
+          () => mockRemoteService.fetchMemos(
+            expectedUserId: any(named: 'expectedUserId'),
+            cancelToken: any(named: 'cancelToken'),
+          ),
+        );
+
+        // 3. fetchMemos 応答待機中に別ユーザーへ切り替わった場合、応答が返ってもマージしないこと
+        final fetchStarted = Completer<void>();
+        final fetchGate = Completer<List<Map<String, dynamic>>>();
+        when(
+          () => mockRemoteService.fetchMemos(
+            expectedUserId: testUserId,
+            cancelToken: any(named: 'cancelToken'),
+          ),
+        ).thenAnswer((_) {
+          fetchStarted.complete();
+          return fetchGate.future;
+        });
+
+        final fetchWithSwitchFuture = repository.fetchAndMergeRemoteMemos(
+          testUserId,
+        );
+        await fetchStarted.future;
+        container.read(_testUserIdProvider.notifier).userId = otherUserId;
+        fetchGate.complete([
+          {
+            'id': 'switched-out-memo',
+            'title': '切替前の応答',
+            'content': '破棄されるべき本文',
+            'createdAt': now,
+            'updatedAt': now,
+            'isDeleted': false,
+          },
+        ]);
+        await fetchWithSwitchFuture;
+
+        check(
+          await (database.select(
+            database.memos,
+          )..where((t) => t.userId.equals(testUserId))).get(),
+        ).isEmpty();
       });
     });
   });

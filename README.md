@@ -45,7 +45,7 @@ Flutter開発のサンプルプロジェクトです。\
 - [AIチャット機能・アプリ操作エージェント (Firebase AI Logic)](docs/ai_chat.md)
 - [fl_chart によるグラフ表示デモ](docs/chart.md)
 - [オフラインメモ機能・タグ絞り込み検索・並び替え・スワイプ削除（Memos）](docs/memos.md)
-- [設定機能（Settings）](docs/settings.md)
+- [設定機能・アカウント完全退会（Settings）](docs/settings.md)
 - [オンボーディング機能 (Onboarding)](docs/onboarding.md)
 - [プロフィール登録・変更・アバター画像設定機能 (Profile)](docs/profile.md)
 - [アプリロック機能 (App Lock)](docs/app_lock.md)

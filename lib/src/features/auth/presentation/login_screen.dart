@@ -7,6 +7,7 @@ import 'package:flutter_sample/src/core/ui/l10n_extension.dart';
 import 'package:flutter_sample/src/core/ui/snackbar_extension.dart';
 import 'package:flutter_sample/src/core/utils/form_validators.dart';
 import 'package:flutter_sample/src/features/auth/application/auth_state_notifier.dart';
+import 'package:flutter_sample/src/features/auth/presentation/account_deletion_notice_effect.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -29,6 +30,10 @@ class LoginScreen extends HookConsumerWidget {
 
     final l10n = context.l10n;
 
+    // 退会完了直後のリダイレクト時は、遷移完了後に確定済みの完了SnackBarを表示する
+    // （遷移前に表示すると SnackBarNavigationObserver によって消去されるため）
+    useAccountDeletionNoticeEffect(context, ref);
+
     Future<void> onLogin() async {
       // フォーム全体のバリデーションを実行
       if (!(formKey.currentState?.validate() ?? false)) {
@@ -41,9 +46,14 @@ class LoginScreen extends HookConsumerWidget {
       isLoading.value = true;
       try {
         // 認証リポジトリ経由でログイン処理を実行
-        await ref
+        final loggedIn = await ref
             .read(authStateProvider.notifier)
             .loginWithCredentials(email: email, password: password);
+
+        if (!loggedIn) {
+          // 削除完了後などに古いログイン応答が破棄された場合は /login に留め、成功通知も送らない
+          return;
+        }
 
         if (context.mounted) {
           context.showSuccessSnackBar(l10n.loginSuccess);

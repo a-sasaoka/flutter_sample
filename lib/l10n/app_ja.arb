@@ -52,6 +52,13 @@
   "errorUserDisabled": "このアカウントは無効化されています。",
   "errorEmailAlreadyInUse": "このメールアドレスは既に登録されています。",
   "errorWeakPassword": "パスワードが弱すぎます。もう少し複雑にしてください。",
+  "errorRequiresRecentLogin": "操作を続けるには再認証が必要です。再度認証を行ってからもう一度お試しください。",
+  "errorUserMismatch": "現在ログイン中のアカウントと異なるアカウントが選択されました。ログイン中のアカウントで再度お試しください。",
+  "errorWrongPassword": "パスワードが正しくありません。",
+  "errorReauthInvalidCredential": "再認証の資格情報を確認できませんでした。再度認証をお試しください。",
+  "errorTooManyRequests": "試行回数が上限に達しました。しばらく時間をおいてから再度お試しください。",
+  "errorReauthCancelled": "再認証がキャンセルされました。",
+  "errorMissingEmail": "現在のアカウントにメールアドレスが設定されていません。別の認証方法をお試しください。",
 
   "@_HOME": {},
   "homeTitle": "ホーム",
@@ -640,6 +647,36 @@
   "uiEffectsSubmitButton": "データを送信する",
   "uiEffectsRetryButton": "再試行する",
   "uiEffectsResetButton": "状態をリセット",
-  "uiEffectsSubmitSuccess": "データの送信が完了しました！"
+  "uiEffectsSubmitSuccess": "データの送信が完了しました！",
+
+  "@_ACCOUNT_DELETION": {},
+  "accountDeletionButton": "アカウントを削除（退会）",
+  "accountDeletionStep1Title": "アカウント削除の確認",
+  "accountDeletionStep1Description": "アカウントを削除すると、以下のデータが完全に消去され、元に戻すことはできません。",
+  "accountDeletionItemAccount": "・アカウントおよびログイン情報",
+  "accountDeletionItemProfile": "・プロフィール情報およびアバター画像",
+  "accountDeletionItemMemos": "・クラウドおよび端末内のすべてのメモ",
+  "accountDeletionItemHistory": "・QRスキャン履歴・キャッシュ・アプリロック設定",
+  "accountDeletionStep1Continue": "退会手続きへ進む",
+  "accountDeletionStep2Title": "最終確認",
+  "accountDeletionStep2Description": "本当によろしいですか？\nこの操作は取り消せません。アカウントと関連する全データが完全に削除されます。",
+  "accountDeletionStep2Confirm": "アカウントを完全に削除する",
+  "accountDeletionProcessing": "アカウントとデータを削除しています...",
+  "accountDeletionCompleted": "アカウントを削除しました",
+  "reauthDialogTitle": "本人確認（再認証）",
+  "reauthDialogDescription": "安全のため、退会を完了する前にもう一度本人確認を行ってください。",
+  "reauthTargetEmailLabel": "対象アカウント: {email}",
+  "@reauthTargetEmailLabel": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "reauthPasswordTab": "パスワード",
+  "reauthGoogleTab": "Google",
+  "reauthPasswordSubmit": "パスワードで確認して続行",
+  "reauthGoogleSubmit": "Googleアカウントで再認証",
+  "reauthUnavailableProvider": "再認証に利用できる認証方法が見つかりませんでした。一度ログアウトして再度ログイン後にお試しください。"
 }
 

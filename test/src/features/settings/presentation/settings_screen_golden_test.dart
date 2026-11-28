@@ -55,6 +55,7 @@ void main() {
       when(() => mockL10n.settingsLegalSection).thenReturn('📜 法的情報');
       when(() => mockL10n.termsOfServiceTitle).thenReturn('利用規約');
       when(() => mockL10n.privacyPolicyTitle).thenReturn('プライバシーポリシー');
+      when(() => mockL10n.accountDeletionButton).thenReturn('アカウントを削除（退会）');
     });
 
     Widget buildSettingsForGolden({required ThemeMode themeMode}) {
@@ -144,7 +145,7 @@ void main() {
             name: 'Light Mode',
             child: SizedBox(
               width: 390,
-              height: 1400,
+              height: 1460,
               child: buildSettingsForGolden(themeMode: ThemeMode.light),
             ),
           ),
@@ -152,7 +153,7 @@ void main() {
             name: 'Dark Mode',
             child: SizedBox(
               width: 390,
-              height: 1400,
+              height: 1460,
               child: buildSettingsForGolden(themeMode: ThemeMode.dark),
             ),
           ),

@@ -35,15 +35,15 @@ lib/src/core/
   │   └── firebase_performance_dio_interceptor.dart     # 通信パフォーマンスの自動計測 (HttpMetric)
 ```
 
-| 項目                   | 内容                                                                                        |
-| ---------------------- | ------------------------------------------------------------------------------------------- |
-| 抽象化の徹底           | `ApiClient` をインターフェース化。通信ライブラリ(Dio)への直接依存を排除                     |
-| 認証の疎結合化         | `authInterceptorsProvider` を通じて、`features/auth` の `TokenInterceptor` を動的に注入     |
-| 二重更新防止           | 複数の401エラーが同時に発生しても、リフレッシュAPIの呼び出しを1回に集約                     |
-| 環境別設定             | `envConfigProvider` (JSON) より、環境に応じた `BASE_URL` やタイムアウトを適用               |
-| パフォーマンス自動計測 | Firebase Performance により全リクエストの通信時間・データサイズを自動計測                   |
-| エラーの一元化         | `AppException` に変換することで、UI層でのエラー分岐をシンプル化                             |
-| 自動リトライ＆べき等性 | `RetryInterceptor` による一時障害（瞬断・502/503/504等）の自動再送と `Idempotency-Key` 付与 |
+| 項目                   | 内容                                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------- |
+| 抽象化の徹底           | `ApiClient` をインターフェース化。通信ライブラリ(Dio)への直接依存を排除                            |
+| 認証の疎結合化         | `authInterceptorsProvider` を通じて、`features/auth` の `TokenInterceptor` を動的に注入            |
+| 二重更新防止           | 複数の401エラーが同時に発生しても、リフレッシュAPIの呼び出しを1回に集約                            |
+| 環境別設定             | `envConfigProvider` (JSON) より、環境に応じた `BASE_URL` やタイムアウトを適用                      |
+| パフォーマンス自動計測 | Firebase Performance により全リクエストの通信時間・データサイズを自動計測                          |
+| エラーの一元化         | `AppException` に変換しつつ元の `response` / `type` を保持し、UI・Repository層での分岐をシンプル化 |
+| 自動リトライ＆べき等性 | `RetryInterceptor` による一時障害（瞬断・502/503/504等）の自動再送と `Idempotency-Key` 付与        |
 
 ---
 
@@ -82,6 +82,7 @@ lib/src/core/ui/
 - **`ErrorHandler`**: `AppException` の種類に基づき、最適な多言語化メッセージを生成します。また、デバッグ効率向上のため、メッセージの末尾に **ステータスコード（例: (404)）を自動的に付与** します。
   - **例外メッセージの排除**: 例外発生源（RepositoryやService等）では、エラーメッセージをハードコードせず、型（`AppException` の各種 sealed クラス）のみを返します。具体的なユーザー向けメッセージは、`ErrorHandler` 内で ARB ファイルの定義に基づいて取得されます。これにより、ビジネスロジック内に特定の言語の文字列が混入することを防ぎ、保守性を高めています。
 - **UXへの配慮（SnackBarの抑制）**: ユーザー一覧画面など、バックグラウンドでの更新（Pull-to-Refresh 等）に失敗した場合でも、**「画面上に古いデータ（キャッシュ）が有効に表示されている」**場合は、あえてエラーのスナックバーを表示しないように制御しています。これにより、ユーザーへの過剰な通知を減らし、スムーズな利用体験を提供します。
+- **再認証・退会フロー制御用の例外分離 (`ReauthException`)**: システム障害・通信エラーを扱う [app_exception.dart](../lib/src/core/exceptions/app_exception.dart) とは別に、ユーザー操作や再認証誘導を扱う `@freezed` + `sealed class` 例外 [reauth_exception.dart](../lib/src/core/exceptions/reauth_exception.dart) および [firebase_auth_error_codes.dart](../lib/src/core/exceptions/firebase_auth_error_codes.dart)（`requires-recent-login` / `user-mismatch` / `too-many-requests`）を定義しています。[error_handler.dart](../lib/src/core/ui/error_handler.dart) で多言語メッセージへ変換しつつ、`talker.handle()`（Crashlytics 送信）対象から除外することで、想定内の再認証エラーが Non-fatal Error として誤送信されるのを防いでいます。
 - **`SnackBarExtension`**: アプリ全体の `Theme` (ColorScheme) に完全に連動します。エラー時は `errorContainer`、成功時は `primaryContainer` の色を自動で使用し、視覚的な一貫性を保ちます。また、`action` 引数により「設定を開く」などのカスタムボタンを柔軟に設定できます（未指定時は自動で閉じるボタンを表示）。
 
 ---

@@ -13,6 +13,9 @@ enum AnalyticsEvent {
   /// ログアウト
   logout('logout'),
 
+  /// アカウント退会（完全削除）完了
+  accountDeleted('account_deleted'),
+
   /// エラー発生
   errorOccurred('error_occurred');
 

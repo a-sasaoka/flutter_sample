@@ -38,7 +38,12 @@ InterceptorsWrapper dioInterceptor(Ref ref) {
       };
 
       return handler.reject(
-        DioException(requestOptions: e.requestOptions, error: exception),
+        DioException(
+          requestOptions: e.requestOptions,
+          response: e.response,
+          type: e.type,
+          error: exception,
+        ),
       );
     },
   );

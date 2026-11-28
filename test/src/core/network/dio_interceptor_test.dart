@@ -115,6 +115,39 @@ void main() {
       check(captured.error).isA<UnauthenticatedException>();
     });
 
+    test('onError: badResponse(403) が UnauthorizedException に変換されつつ '
+        'response と type を保持すること', () {
+      // Arrange
+      final interceptor = container.read(dioInterceptorProvider);
+      final handler = MockErrorInterceptorHandler();
+      final requestOptions = RequestOptions(path: '/users/me');
+      final response = Response<Map<String, dynamic>>(
+        requestOptions: requestOptions,
+        statusCode: 403,
+        data: const {'code': 'requires-recent-login'},
+      );
+      final dioException = DioException(
+        requestOptions: requestOptions,
+        type: DioExceptionType.badResponse,
+        response: response,
+      );
+
+      // Act
+      interceptor.onError(dioException, handler);
+
+      // Assert
+      final captured =
+          verify(() => handler.reject(captureAny())).captured.first
+              as DioException;
+      check(captured.error).isA<UnauthorizedException>();
+      check(captured.type).equals(DioExceptionType.badResponse);
+      check(captured.response).equals(response);
+      check(captured.response?.statusCode).equals(403);
+      check(captured.response?.data).isA<Map<String, dynamic>>().deepEquals(
+        const {'code': 'requires-recent-login'},
+      );
+    });
+
     test('onError: badResponse(500) が ServerException に変換されること', () {
       // Arrange
       final interceptor = container.read(dioInterceptorProvider);
