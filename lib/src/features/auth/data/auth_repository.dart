@@ -254,7 +254,8 @@ class AuthRepository {
   ///
   /// 退会処理がサーバー応答待ちで進行中（[AuthSessionLock.isDeletionInProgress]）かつ
   /// 有効なアクセストークンが存在する再ログイン・別アカウント切替セッションは引き続き更新を許可します。
-  /// 非進行中に退会無効化行が残存している場合も、現在のユーザーID・メールアドレスと照合して
+  /// 非進行中に退会無効化行が残存している場合は、無効化行と現在セッションの双方にユーザーIDが
+  /// ある行をメール解決前にIDで優先照合し、IDが不足する行がある場合に限りメールアドレスも照合して
   /// 別アカウントと確定した行は無視し、同一アカウントまたは照合不能な行のみ抑止します。
   Future<bool> _hasPendingSessionReset() async {
     if (await _invalidationStore.isLogoutPending() ||
@@ -275,8 +276,31 @@ class AuthRepository {
           hasAccessToken ? JwtUtils.getUserId(accessToken) : null,
         ) ??
         _normalizeIdentity(await tokenStorage.getUserId());
+    final entriesNeedingEmail = <CustomAuthInvalidationEntry>[];
+    for (final entry in entries) {
+      final idOnlyMatch = CustomAuthInvalidationStore.compareAccounts(
+        targetUserId: entry.targetUserId,
+        targetEmail: entry.targetEmail,
+        candidateUserId: candidateUserId,
+        candidateEmail: null,
+      );
+      switch (idOnlyMatch) {
+        case AccountMatch.same:
+          return true;
+        case AccountMatch.different:
+          continue;
+        case AccountMatch.unknown:
+          if (_normalizeIdentity(entry.targetEmail) == null) {
+            return true;
+          }
+          entriesNeedingEmail.add(entry);
+      }
+    }
+    if (entriesNeedingEmail.isEmpty) {
+      return false;
+    }
     final candidateEmail = await _resolveEmailForToken(accessToken);
-    return entries.any(
+    return entriesNeedingEmail.any(
       (entry) => CustomAuthInvalidationStore.matchesAccount(
         targetUserId: entry.targetUserId,
         targetEmail: entry.targetEmail,
@@ -336,16 +360,16 @@ class AuthRepository {
         return false;
       }
 
-      final trackedEmail = switch (_sessionLock.currentSession) {
-        AuthenticatedTrackedAuthSession(:final email) => email,
-        _ => null,
-      };
       final resolvedUserId =
           _normalizeIdentity(JwtUtils.getUserId(access)) ??
           _normalizeIdentity(expectedUserId);
       final resolvedEmail =
           _normalizeIdentity(JwtUtils.getEmail(access)) ??
-          _normalizeIdentity(trackedEmail) ??
+          _normalizeIdentity(switch (await tokenStorage.getAccessToken()) {
+            final currentAccessToken? when currentAccessToken.isNotEmpty =>
+              _sessionLock.trackedEmailForAccessToken(currentAccessToken),
+            _ => null,
+          }) ??
           _normalizeIdentity(await tokenStorage.getUserEmail());
       await tokenStorage.saveTokens(
         accessToken: access,

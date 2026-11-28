@@ -113,6 +113,7 @@ class FakeTokenStorage extends Mock implements TokenStorage {
   Exception? getUserIdError;
   Exception? getUserEmailError;
   int getUserIdCalls = 0;
+  int getUserEmailCalls = 0;
   int saveTokensCalls = 0;
 
   // 保存された値を検証するためのプロパティ
@@ -130,6 +131,7 @@ class FakeTokenStorage extends Mock implements TokenStorage {
 
   @override
   Future<String?> getUserEmail() async {
+    getUserEmailCalls++;
     if (getUserEmailError case final Exception error) {
       throw error;
     }
@@ -1828,6 +1830,8 @@ void main() {
             ),
           ).thenAnswer((_) async => loginResponse);
           check(await repo.login('b@example.com', 'password123')).equals(true);
+          // 追跡メールのみで判定されることを検証するため保存済みメールを消去する
+          fakeStorage.currentUserEmail = null;
           // login() の clearIfAllowedForLogin 後に別アカウント行が再残存・未削除だったケースを再現
           await invalidationStore.markInvalidated(
             targetUserId: 'user-a',
@@ -1839,7 +1843,14 @@ void main() {
           check(await repo.refreshToken(null)).equals(true);
           check(fakeStorage.savedAccessToken).equals('refreshed-opaque-b');
 
-          // 3. sub/email なしトークンかつ trackedEmail 未保持でも TokenStorage 保存済みメールで確定する場合
+          // 3. sub/email なしトークンかつ別トークンの追跡メールが削除対象でも、
+          //    一致しない追跡メールは無視し TokenStorage 保存済みメールで別アカウントと確定すること
+          container
+              .read(authSessionLockProvider)
+              .recordAuthenticatedSession(
+                accessToken: 'other-opaque-token',
+                email: 'a@example.com',
+              );
           fakeStorage
             ..savedAccessToken = 'reloaded-opaque-b'
             ..currentUserId = null
@@ -1851,6 +1862,7 @@ void main() {
           check(
             fakeStorage.savedAccessToken,
           ).equals('refreshed-reloaded-opaque-b');
+          check(fakeStorage.currentUserEmail).equals('b@example.com');
         },
       );
 
@@ -1912,6 +1924,132 @@ void main() {
             data: any<dynamic>(named: 'data'),
           ),
         );
+      });
+
+      test('無効化行と現在のJWTの双方にユーザーIDがある場合は '
+          'メールを解決せずIDで先に判定し、ID不足行がある場合のみメール照合を行うこと', () async {
+        final jwtBWithoutEmail = buildJwt(sub: 'user-b');
+        final fakeStorage =
+            FakeTokenStorage(
+                initialRefreshToken: 'refresh-b',
+                currentUserId: 'user-b',
+              )
+              ..savedAccessToken = jwtBWithoutEmail
+              ..savedRefreshToken = 'refresh-b'
+              ..getUserEmailError = Exception('should not resolve email');
+        final container = createContainer(fakeStorage);
+        final repo = container.read(authRepositoryProvider);
+
+        // 1. 双方にユーザーIDがある別アカウント行のみの場合はメール解決を行わずリフレッシュを許可
+        await invalidationStore.markInvalidated(
+          targetUserId: 'user-a',
+          targetEmail: 'a@example.com',
+        );
+        final refreshedJwtB = buildJwt(sub: 'user-b', email: 'b@example.com');
+        final mockResponse = MockResponse();
+        when(
+          () => mockResponse.data,
+        ).thenReturn({'access_token': refreshedJwtB});
+        when(
+          () => mockApi.post<Map<String, dynamic>>(
+            '/auth/refresh',
+            data: any<dynamic>(named: 'data'),
+          ),
+        ).thenAnswer((_) async => mockResponse);
+
+        check(await repo.refreshToken('user-b')).equals(true);
+        check(fakeStorage.savedAccessToken).equals(refreshedJwtB);
+        check(fakeStorage.getUserEmailCalls).equals(0);
+
+        // 2. 双方にユーザーIDがある同一アカウント行がある場合はメール解決を行わずリフレッシュを拒否
+        fakeStorage.savedAccessToken = jwtBWithoutEmail;
+        final bIdOnlyEntryId = await invalidationStore.markInvalidated(
+          targetUserId: 'user-b',
+          targetEmail: 'b@example.com',
+        );
+        check(await repo.refreshToken('user-b')).equals(false);
+        check(fakeStorage.getUserEmailCalls).equals(0);
+        await invalidationStore.clearInvalidatedIfMatches(
+          targetUserId: 'user-b',
+          targetEmail: 'b@example.com',
+          entryId: bIdOnlyEntryId,
+        );
+
+        // 3. ID が不足する行がある場合は _resolveEmailForToken 経由でメール照合を行い、
+        //    別メールなら許可し、同一メールなら拒否すること
+        fakeStorage
+          ..getUserEmailError = null
+          ..currentUserEmail = 'b@example.com';
+        final aEmailOnlyEntryId = await invalidationStore.markInvalidated(
+          targetEmail: 'a@example.com',
+        );
+        final emailCallsBefore = fakeStorage.getUserEmailCalls;
+        check(await repo.refreshToken('user-b')).equals(true);
+        check(fakeStorage.getUserEmailCalls).isGreaterThan(emailCallsBefore);
+
+        await invalidationStore.clearInvalidatedIfMatches(
+          targetUserId: null,
+          targetEmail: 'a@example.com',
+          entryId: aEmailOnlyEntryId,
+        );
+        fakeStorage.savedAccessToken = jwtBWithoutEmail;
+        await invalidationStore.markInvalidated(targetEmail: 'b@example.com');
+        check(await repo.refreshToken('user-b')).equals(false);
+      });
+
+      test('クレームのない refreshToken 更新時、保存済みアクセストークンが追跡トークンと一致する場合のみ '
+          '追跡メールを使用し、不一致時は保存済みメールへフォールバックすること', () async {
+        final fakeStorage =
+            FakeTokenStorage(
+                initialRefreshToken: 'refresh-b',
+                currentUserEmail: 'stored-b@example.com',
+              )
+              ..savedAccessToken = 'saved-opaque-b'
+              ..savedRefreshToken = 'refresh-b';
+        final container = createContainer(fakeStorage);
+        final repo = container.read(authRepositoryProvider);
+        final lock = container.read(authSessionLockProvider);
+
+        final mockResponse = MockResponse();
+        when(
+          () => mockApi.post<Map<String, dynamic>>(
+            '/auth/refresh',
+            data: any<dynamic>(named: 'data'),
+          ),
+        ).thenAnswer((_) async => mockResponse);
+
+        // 1. 保存済みアクセストークンと一致しない追跡セッション（新 access 値で記録されたものを含む）は無視し、
+        //    保存済みメール (stored-b@example.com) を使用すること
+        lock.recordAuthenticatedSession(
+          accessToken: 'new-opaque-b',
+          email: 'mismatched@example.com',
+        );
+        when(
+          () => mockResponse.data,
+        ).thenReturn({'access_token': 'new-opaque-b'});
+        check(await repo.refreshToken(null)).equals(true);
+        check(fakeStorage.currentUserEmail).equals('stored-b@example.com');
+        check(
+          lock.trackedEmailForAccessToken('new-opaque-b'),
+        ).equals('stored-b@example.com');
+
+        // 2. 置き換え対象の保存済みアクセストークンが追跡トークンと一致する場合は、
+        //    保存済みメールより追跡メール (tracked-b@example.com) を優先すること
+        fakeStorage
+          ..savedAccessToken = 'saved-opaque-b2'
+          ..currentUserEmail = 'stale-stored@example.com';
+        lock.recordAuthenticatedSession(
+          accessToken: 'saved-opaque-b2',
+          email: 'tracked-b@example.com',
+        );
+        when(
+          () => mockResponse.data,
+        ).thenReturn({'access_token': 'refreshed-opaque-b2'});
+        check(await repo.refreshToken(null)).equals(true);
+        check(fakeStorage.currentUserEmail).equals('tracked-b@example.com');
+        check(
+          lock.trackedEmailForAccessToken('refreshed-opaque-b2'),
+        ).equals('tracked-b@example.com');
       });
     });
   });
