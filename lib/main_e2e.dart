@@ -127,7 +127,12 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<bool> login(String email, String password) async {
+  Future<bool> login(
+    String email,
+    String password, {
+    int? startSessionEpoch,
+    int? startDeletionEpoch,
+  }) async {
     // どんなIDとパスワードでも、sub / email クレームを含むダミーJWTを保存してログイン成功とする
     await tokenStorage.saveTokens(
       accessToken: _buildDummyAccessToken(),

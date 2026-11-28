@@ -205,6 +205,13 @@ void main() {
     return container;
   }
 
+  /// MockFlutterSecureStorage の名前付き引数から key を型パターンで取り出すヘルパー
+  String extractStorageKey(String operation, Invocation inv) =>
+      switch (inv.namedArguments) {
+        {#key: final String key} => key,
+        _ => fail('Unexpected $operation arguments: ${inv.namedArguments}'),
+      };
+
   group('AuthStateNotifier (build)', () {
     test('初期化: トークンが存在する場合、state が true になること', () async {
       // Arrange: 有効なトークンを返す Fake を作成
@@ -444,6 +451,7 @@ void main() {
         '読まずに消去すること', () async {
       final tokenEmailOnly = _buildJwt(email: 'a@example.com');
       final fakeStorage = FakeTokenStorage(mockAccessToken: tokenEmailOnly)
+        ..getUserIdError = Exception('userId read should not block email match')
         ..getUserEmailError = Exception('email read failed');
       final store = CustomAuthInvalidationStore(
         getDirectory: () async => tempDir,
@@ -455,6 +463,108 @@ void main() {
       check(fakeStorage.isClearCalled).equals(true);
       check(fakeStorage.mockAccessToken).isNull();
       check(await store.isInvalidated()).equals(false);
+    });
+
+    test('初期化: 無効化行がすべてメールのみで JWT の email が別アカウントの場合は '
+        'getUserId() に失敗しても Talker に記録して復元を続けること', () async {
+      final tokenBEmailOnly = _buildJwt(email: 'b@example.com');
+      final readError = Exception('userId read failed during restore');
+      final fakeStorage = FakeTokenStorage(mockAccessToken: tokenBEmailOnly)
+        ..getUserIdError = readError;
+      final store = CustomAuthInvalidationStore(
+        getDirectory: () async => tempDir,
+      );
+      await store.markInvalidated(targetEmail: 'a@example.com');
+      final container = createContainer(fakeStorage: fakeStorage);
+
+      check(await container.read(authStateProvider.future)).equals(true);
+      check(fakeStorage.isClearCalled).equals(false);
+      check(await store.isInvalidated()).equals(false);
+      check(container.read(authSessionLockProvider).currentSession).equals(
+        TrackedAuthSession.authenticated(
+          accessToken: tokenBEmailOnly,
+          email: 'b@example.com',
+        ),
+      );
+      verify(
+        () => mockTalker.handle(
+          readError,
+          any<StackTrace?>(),
+          'Failed to read user id while restoring session on startup',
+        ),
+      ).called(1);
+    });
+
+    test('初期化: 識別不能なメールなし無効化行と JWT のメールのみで照合する場合、 '
+        'getUserId() を読まずに安全側で消去すること', () async {
+      final tokenBEmailOnly = _buildJwt(email: 'b@example.com');
+      final fakeStorage = FakeTokenStorage(mockAccessToken: tokenBEmailOnly)
+        ..getUserIdError = Exception('userId read should not block clear');
+      final store = CustomAuthInvalidationStore(
+        getDirectory: () async => tempDir,
+      );
+      await store.markInvalidated();
+      final container = createContainer(fakeStorage: fakeStorage);
+
+      check(await container.read(authStateProvider.future)).equals(false);
+      check(fakeStorage.isClearCalled).equals(true);
+      check(fakeStorage.mockAccessToken).isNull();
+      check(await store.isInvalidated()).equals(false);
+    });
+
+    test('初期化: 無効化行が ID を持つ場合は JWT の email が異なっても ID 優先で照合し '
+        'getUserId() 失敗時は復元せず無効化行を保持すること', () async {
+      final tokenBEmailOnly = _buildJwt(email: 'b@example.com');
+      final readError = Exception('userId read failed');
+      final fakeStorage = FakeTokenStorage(mockAccessToken: tokenBEmailOnly)
+        ..getUserIdError = readError;
+      final store = CustomAuthInvalidationStore(
+        getDirectory: () async => tempDir,
+      );
+      await store.markInvalidated(
+        targetUserId: 'user-a',
+        targetEmail: 'a@example.com',
+      );
+      final container = createContainer(fakeStorage: fakeStorage);
+
+      check(await container.read(authStateProvider.future)).equals(false);
+      check(fakeStorage.isClearCalled).equals(false);
+      check(await store.isInvalidated()).equals(true);
+      verify(
+        () => mockTalker.handle(
+          readError,
+          any<StackTrace?>(),
+          'Failed to read user id during startup invalidation check',
+        ),
+      ).called(1);
+    });
+
+    test('初期化: 無効化行が ID を持ち別ユーザーの customUserId がある場合は '
+        'JWT の email が同一でも ID 優先で別アカウントとして復元すること', () async {
+      final tokenReusedEmail = _buildJwt(email: 'a@example.com');
+      final fakeStorage = FakeTokenStorage(
+        mockAccessToken: tokenReusedEmail,
+        currentUserId: 'user-b',
+      );
+      final store = CustomAuthInvalidationStore(
+        getDirectory: () async => tempDir,
+      );
+      await store.markInvalidated(
+        targetUserId: 'user-a',
+        targetEmail: 'a@example.com',
+      );
+      final container = createContainer(fakeStorage: fakeStorage);
+
+      check(await container.read(authStateProvider.future)).equals(true);
+      check(fakeStorage.isClearCalled).equals(false);
+      check(await store.isInvalidated()).equals(false);
+      check(container.read(authSessionLockProvider).currentSession).equals(
+        TrackedAuthSession.authenticated(
+          accessToken: tokenReusedEmail,
+          userId: 'user-b',
+          email: 'a@example.com',
+        ),
+      );
     });
 
     test('初期化: 保存済み customUserId が無効化レコードと一致する場合は getUserEmail() が失敗しても '
@@ -870,7 +980,12 @@ void main() {
         final fakeStorage = FakeTokenStorage();
         final mockAuthRepository = MockAuthRepository();
         when(
-          () => mockAuthRepository.login(any(), any()),
+          () => mockAuthRepository.login(
+            any(),
+            any(),
+            startSessionEpoch: any(named: 'startSessionEpoch'),
+            startDeletionEpoch: any(named: 'startDeletionEpoch'),
+          ),
         ).thenAnswer((_) async => true);
         final container = createContainer(
           fakeStorage: fakeStorage,
@@ -889,7 +1004,12 @@ void main() {
 
         // Assert
         verify(
-          () => mockAuthRepository.login('test@example.com', 'password123'),
+          () => mockAuthRepository.login(
+            'test@example.com',
+            'password123',
+            startSessionEpoch: 0,
+            startDeletionEpoch: 0,
+          ),
         ).called(1);
         check(loggedIn).equals(true);
         check(container.read(authStateProvider).value).equals(true);
@@ -902,7 +1022,12 @@ void main() {
         final fakeStorage = FakeTokenStorage();
         final mockAuthRepository = MockAuthRepository();
         when(
-          () => mockAuthRepository.login(any(), any()),
+          () => mockAuthRepository.login(
+            any(),
+            any(),
+            startSessionEpoch: any(named: 'startSessionEpoch'),
+            startDeletionEpoch: any(named: 'startDeletionEpoch'),
+          ),
         ).thenAnswer((_) async => false);
         final container = createContainer(
           fakeStorage: fakeStorage,
@@ -931,7 +1056,12 @@ void main() {
         final fakeStorage = FakeTokenStorage();
         final mockAuthRepository = MockAuthRepository();
         when(
-          () => mockAuthRepository.login(any(), any()),
+          () => mockAuthRepository.login(
+            any(),
+            any(),
+            startSessionEpoch: any(named: 'startSessionEpoch'),
+            startDeletionEpoch: any(named: 'startDeletionEpoch'),
+          ),
         ).thenThrow(Exception('Login failed'));
         final container = createContainer(
           fakeStorage: fakeStorage,
@@ -952,7 +1082,12 @@ void main() {
 
         // Assert
         verify(
-          () => mockAuthRepository.login('test@example.com', 'password123'),
+          () => mockAuthRepository.login(
+            'test@example.com',
+            'password123',
+            startSessionEpoch: 0,
+            startDeletionEpoch: 0,
+          ),
         ).called(1);
         check(container.read(authStateProvider).hasError).equals(true);
       },
@@ -964,7 +1099,14 @@ void main() {
       final mockAuthRepository = MockAuthRepository();
       final loginStarted = Completer<void>();
       final loginCompleter = Completer<bool>();
-      when(() => mockAuthRepository.login(any(), any())).thenAnswer((_) {
+      when(
+        () => mockAuthRepository.login(
+          any(),
+          any(),
+          startSessionEpoch: any(named: 'startSessionEpoch'),
+          startDeletionEpoch: any(named: 'startDeletionEpoch'),
+        ),
+      ).thenAnswer((_) {
         loginStarted.complete();
         return loginCompleter.future;
       });
@@ -1001,7 +1143,14 @@ void main() {
       final mockAuthRepository = MockAuthRepository();
       final loginStarted = Completer<void>();
       final loginCompleter = Completer<bool>();
-      when(() => mockAuthRepository.login(any(), any())).thenAnswer((_) {
+      when(
+        () => mockAuthRepository.login(
+          any(),
+          any(),
+          startSessionEpoch: any(named: 'startSessionEpoch'),
+          startDeletionEpoch: any(named: 'startDeletionEpoch'),
+        ),
+      ).thenAnswer((_) {
         loginStarted.complete();
         return loginCompleter.future;
       });
@@ -1041,7 +1190,12 @@ void main() {
         );
         final mockAuthRepository = MockAuthRepository();
         when(
-          () => mockAuthRepository.login(any(), any()),
+          () => mockAuthRepository.login(
+            any(),
+            any(),
+            startSessionEpoch: any(named: 'startSessionEpoch'),
+            startDeletionEpoch: any(named: 'startDeletionEpoch'),
+          ),
         ).thenAnswer((_) async => true);
 
         final container = createContainer(
@@ -1057,7 +1211,14 @@ void main() {
         );
 
         // Assert: build() の完了待ちのため、この時点ではまだ login は呼ばれていないこと
-        verifyNever(() => mockAuthRepository.login(any(), any()));
+        verifyNever(
+          () => mockAuthRepository.login(
+            any(),
+            any(),
+            startSessionEpoch: any(named: 'startSessionEpoch'),
+            startDeletionEpoch: any(named: 'startDeletionEpoch'),
+          ),
+        );
 
         // 遅延していた初期化を完了させる（保存されたトークンはなし = false）
         tokenCompleter.complete(null);
@@ -1067,11 +1228,141 @@ void main() {
 
         // Assert: ログインAPIが呼ばれ、初期化結果で上書きされずに true になっていること
         verify(
-          () => mockAuthRepository.login('test@example.com', 'password123'),
+          () => mockAuthRepository.login(
+            'test@example.com',
+            'password123',
+            startSessionEpoch: 0,
+            startDeletionEpoch: 0,
+          ),
         ).called(1);
         check(container.read(authStateProvider).value).equals(true);
       },
     );
+
+    test('loginWithCredentials: build 待機中に logout で sessionEpoch が進んだ場合は '
+        '資格情報を保存せず false を返し、ログアウト後の世代で確定しないこと', () async {
+      final tokenCompleter = Completer<String?>();
+      final fakeStorage = FakeTokenStorage(
+        mockAccessTokenFuture: tokenCompleter.future,
+        mockAccessToken: 'old-access',
+      )..mockRefreshToken = 'old-refresh';
+      final mockApi = MockApiClient();
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer(
+        (_) async => Response<Map<String, dynamic>>(
+          requestOptions: RequestOptions(path: '/auth/login'),
+          statusCode: 200,
+          data: {
+            'access_token': _buildJwt(
+              sub: 'user-stale',
+              email: 's@example.com',
+            ),
+            'refresh_token': 'refresh-stale',
+          },
+        ),
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          authApiClientProvider.overrideWithValue(mockApi),
+          tokenStorageProvider.overrideWith((ref) => fakeStorage),
+          appSupportDirectoryReaderProvider.overrideWithValue(
+            () async => tempDir,
+          ),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(authStateProvider.notifier);
+      final staleLoginFuture = notifier.loginWithCredentials(
+        email: 's@example.com',
+        password: 'password123',
+      );
+      final logoutFuture = notifier.logout();
+
+      tokenCompleter.complete('old-access');
+      await logoutFuture;
+
+      check(await staleLoginFuture).equals(false);
+      check(fakeStorage.mockAccessToken).isNull();
+      check(fakeStorage.mockRefreshToken).isNull();
+      check(container.read(authStateProvider).value).equals(false);
+      check(container.read(authSessionLockProvider).sessionEpoch).equals(1);
+    });
+
+    test('loginWithCredentials: build 待機中に deleteAccount 完了で '
+        'deletionEpoch が進んだ場合は資格情報を保存せず false を返すこと', () async {
+      final tokenCompleter = Completer<String?>();
+      final fakeStorage = FakeTokenStorage(
+        mockAccessTokenFuture: tokenCompleter.future,
+        mockAccessToken: 'old-access',
+      )..mockRefreshToken = 'old-refresh';
+      final mockApi = MockApiClient();
+      final loginGate = Completer<Response<Map<String, dynamic>>>();
+      when(
+        () => mockApi.delete<void>(
+          '/auth/account',
+          options: any<Options?>(named: 'options'),
+        ),
+      ).thenAnswer(
+        (_) async => Response<void>(
+          requestOptions: RequestOptions(path: '/auth/account'),
+          statusCode: 200,
+        ),
+      );
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) => loginGate.future);
+
+      final container = ProviderContainer(
+        overrides: [
+          authApiClientProvider.overrideWithValue(mockApi),
+          tokenStorageProvider.overrideWith((ref) => fakeStorage),
+          appSupportDirectoryReaderProvider.overrideWithValue(
+            () async => tempDir,
+          ),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(authStateProvider.notifier);
+      final staleLoginFuture = notifier.loginWithCredentials(
+        email: 's@example.com',
+        password: 'password123',
+      );
+      final deleteFuture = notifier.deleteAccount();
+
+      tokenCompleter.complete('old-access');
+      check(await deleteFuture).equals(true);
+      loginGate.complete(
+        Response<Map<String, dynamic>>(
+          requestOptions: RequestOptions(path: '/auth/login'),
+          statusCode: 200,
+          data: {
+            'access_token': _buildJwt(
+              sub: 'user-stale',
+              email: 's@example.com',
+            ),
+            'refresh_token': 'refresh-stale',
+          },
+        ),
+      );
+
+      check(await staleLoginFuture).equals(false);
+      check(fakeStorage.mockAccessToken).isNull();
+      check(fakeStorage.mockRefreshToken).isNull();
+      check(container.read(authStateProvider).value).equals(false);
+      check(container.read(authSessionLockProvider).deletionEpoch).equals(1);
+    });
 
     test('logout: トークンを削除し、state を false に更新すること', () async {
       // Arrange
@@ -1193,9 +1484,9 @@ void main() {
         '消去未完了と signedOut を記録し、次回起動時に全4キー消去成功後のみ記録解除すること', () async {
       final storedValues = <String, String>{};
       final mockSecureStorage = MockFlutterSecureStorage();
-      when(() => mockSecureStorage.read(key: any(named: 'key'))).thenAnswer(
-        (inv) async => storedValues[inv.namedArguments[#key] as String],
-      );
+      when(
+        () => mockSecureStorage.read(key: any(named: 'key')),
+      ).thenAnswer((inv) async => storedValues[extractStorageKey('read', inv)]);
       when(
         () => mockSecureStorage.write(
           key: any(named: 'key'),
@@ -1219,7 +1510,7 @@ void main() {
       when(() => mockSecureStorage.delete(key: any(named: 'key'))).thenAnswer((
         inv,
       ) async {
-        final key = inv.namedArguments[#key] as String;
+        final key = extractStorageKey('delete', inv);
         if (key == SecureStorageKeys.customUserEmail && failEmailDelete) {
           throw Exception('customUserEmail delete failed');
         }
@@ -1355,9 +1646,9 @@ void main() {
         '消去未完了記録を解除し、再起動時に新セッションを維持すること', () async {
       final storedValues = <String, String>{};
       final mockSecureStorage = MockFlutterSecureStorage();
-      when(() => mockSecureStorage.read(key: any(named: 'key'))).thenAnswer(
-        (inv) async => storedValues[inv.namedArguments[#key] as String],
-      );
+      when(
+        () => mockSecureStorage.read(key: any(named: 'key')),
+      ).thenAnswer((inv) async => storedValues[extractStorageKey('read', inv)]);
       when(
         () => mockSecureStorage.write(
           key: any(named: 'key'),
@@ -1381,7 +1672,7 @@ void main() {
       when(() => mockSecureStorage.delete(key: any(named: 'key'))).thenAnswer((
         inv,
       ) async {
-        final key = inv.namedArguments[#key] as String;
+        final key = extractStorageKey('delete', inv);
         if (key == SecureStorageKeys.customUserEmail && failEmailDelete) {
           throw Exception('customUserEmail delete failed');
         }
@@ -1451,6 +1742,108 @@ void main() {
       check(
         storedValues[SecureStorageKeys.customUserEmail],
       ).equals('b@example.com');
+    });
+
+    test('logout: 通常経路では markLogoutPending を tokenStorage.clear() より先に実行し '
+        '完了後に clearLogoutPending を実行すること', () async {
+      final fakeStorage = FakeTokenStorage(mockAccessToken: 'old_token');
+      final mockStore = MockCustomAuthInvalidationStore();
+      final callOrder = <String>[];
+      when(mockStore.isLoginPending).thenAnswer((_) async => false);
+      when(mockStore.isLogoutPending).thenAnswer((_) async => false);
+      when(mockStore.getInvalidationEntries).thenAnswer((_) async => const []);
+      when(mockStore.markLogoutPending).thenAnswer((_) async {
+        check(fakeStorage.isClearCalled).equals(false);
+        callOrder.add('markLogoutPending');
+      });
+      when(mockStore.clearLogoutPending).thenAnswer((_) async {
+        check(fakeStorage.isClearCalled).equals(true);
+        callOrder.add('clearLogoutPending');
+      });
+      when(mockStore.clearInvalidated).thenAnswer((_) async {
+        callOrder.add('clearInvalidated');
+      });
+
+      final container = createContainer(
+        fakeStorage: fakeStorage,
+        mockInvalidationStore: mockStore,
+      );
+      final notifier = container.read(authStateProvider.notifier);
+      await container.read(authStateProvider.future);
+
+      await check(notifier.logout()).completes();
+      check(callOrder).deepEquals([
+        'markLogoutPending',
+        'clearLogoutPending',
+        'clearInvalidated',
+      ]);
+      check(container.read(authStateProvider).value).equals(false);
+    });
+
+    test('logout: markLogoutPending が失敗しても tokenStorage.clear() を試行し、 '
+        '全キー消去に成功した場合は未ログイン(false)へ遷移すること', () async {
+      final fakeStorage = FakeTokenStorage(mockAccessToken: 'old_token');
+      final mockStore = MockCustomAuthInvalidationStore();
+      final markError = Exception('markLogoutPending failed');
+      when(mockStore.isLoginPending).thenAnswer((_) async => false);
+      when(mockStore.isLogoutPending).thenAnswer((_) async => false);
+      when(mockStore.getInvalidationEntries).thenAnswer((_) async => const []);
+      when(mockStore.markLogoutPending).thenThrow(markError);
+      when(mockStore.clearInvalidated).thenAnswer((_) async {});
+
+      final container = createContainer(
+        fakeStorage: fakeStorage,
+        mockInvalidationStore: mockStore,
+      );
+      final notifier = container.read(authStateProvider.notifier);
+      await container.read(authStateProvider.future);
+
+      await check(notifier.logout()).completes();
+      check(fakeStorage.isClearCalled).equals(true);
+      check(fakeStorage.mockAccessToken).isNull();
+      check(container.read(authStateProvider).hasError).equals(false);
+      check(container.read(authStateProvider).value).equals(false);
+      verifyNever(mockStore.clearLogoutPending);
+      verify(
+        () => mockTalker.handle(
+          markError,
+          any<StackTrace?>(),
+          'Failed to record pending logout flag on logout',
+        ),
+      ).called(1);
+    });
+
+    test('logout: markLogoutPending と tokenStorage.clear() が両方失敗した場合は '
+        'ログアウトを成功扱いにせず例外送出と AsyncError にすること', () async {
+      final fakeStorage = FakeTokenStorage(
+        mockAccessToken: 'old_token',
+        shouldThrowOnClear: true,
+      );
+      final mockStore = MockCustomAuthInvalidationStore();
+      final markError = Exception('markLogoutPending failed');
+      when(mockStore.isLoginPending).thenAnswer((_) async => false);
+      when(mockStore.isLogoutPending).thenAnswer((_) async => false);
+      when(mockStore.getInvalidationEntries).thenAnswer((_) async => const []);
+      when(mockStore.markLogoutPending).thenThrow(markError);
+
+      final container = createContainer(
+        fakeStorage: fakeStorage,
+        mockInvalidationStore: mockStore,
+      );
+      final notifier = container.read(authStateProvider.notifier);
+      await container.read(authStateProvider.future);
+
+      await check(notifier.logout()).throws<Exception>();
+      check(fakeStorage.isClearCalled).equals(true);
+      check(container.read(authStateProvider).hasError).equals(true);
+      verifyNever(mockStore.clearLogoutPending);
+      verify(
+        () => mockTalker.handle(
+          markError,
+          any<StackTrace?>(),
+          'Failed to record pending logout flag on logout',
+        ),
+      ).called(1);
     });
   });
 

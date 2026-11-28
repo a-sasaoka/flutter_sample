@@ -57,15 +57,23 @@ class AuthRepository {
 
   /// ログインAPIを呼び出し、古い応答を破棄した上でトークンを保存する
   ///
-  /// 要求開始時と応答後のセッション世代・削除世代が一致する場合のみトークンを保存して `true` を返します。
+  /// 要求開始時（呼び出し元指定時を含む）と応答後のセッション世代・削除世代が
+  /// 一致する場合のみトークンを保存して `true` を返します。
   /// 待機中にアカウント削除完了や別セッション遷移が起きた場合は保存せずに応答を破棄し、`false` を返します。
-  Future<bool> login(String email, String password) async {
-    final startState = await _sessionLock.synchronized(
-      () async => (
-        sessionEpoch: _sessionLock.sessionEpoch,
-        deletionEpoch: _sessionLock.deletionEpoch,
-      ),
-    );
+  Future<bool> login(
+    String email,
+    String password, {
+    int? startSessionEpoch,
+    int? startDeletionEpoch,
+  }) async {
+    final startState = (startSessionEpoch != null && startDeletionEpoch != null)
+        ? (sessionEpoch: startSessionEpoch, deletionEpoch: startDeletionEpoch)
+        : await _sessionLock.synchronized(
+            () async => (
+              sessionEpoch: startSessionEpoch ?? _sessionLock.sessionEpoch,
+              deletionEpoch: startDeletionEpoch ?? _sessionLock.deletionEpoch,
+            ),
+          );
 
     final response = await api.post<Map<String, dynamic>>(
       '/auth/login',
@@ -205,8 +213,8 @@ class AuthRepository {
         userId: candidateUserId,
         email: candidateEmail,
       );
-      await invalidationStore.clearLoginPending();
       await invalidationStore.clearLogoutPending();
+      await invalidationStore.clearLoginPending();
       sessionLock.recordAuthenticatedSession(
         accessToken: accessToken,
         userId: candidateUserId,
@@ -228,8 +236,8 @@ class AuthRepository {
       }
       if (isCleared) {
         try {
-          await invalidationStore.clearLoginPending();
           await invalidationStore.clearLogoutPending();
+          await invalidationStore.clearLoginPending();
         } on Object catch (pendingError, pendingSt) {
           talker.handle(
             pendingError,
@@ -242,9 +250,32 @@ class AuthRepository {
     }
   }
 
+  /// ログアウト／ログイン未完了または退会無効化により資格情報の再保存を抑止すべきか判定する
+  ///
+  /// 退会処理がサーバー応答待ちで進行中（[AuthSessionLock.isDeletionInProgress]）かつ
+  /// 有効なアクセストークンが存在する再ログイン・別アカウント切替セッションは引き続き更新を許可します。
+  Future<bool> _hasPendingSessionReset() async {
+    if (await _invalidationStore.isLogoutPending() ||
+        await _invalidationStore.isLoginPending()) {
+      return true;
+    }
+    if (await _invalidationStore.isInvalidated()) {
+      if (!_sessionLock.isDeletionInProgress) {
+        return true;
+      }
+      final accessToken = await tokenStorage.getAccessToken();
+      if (accessToken == null || accessToken.isEmpty) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /// リフレッシュトークンAPIを呼び出し、開始時と同一セッションである場合のみ保存する
   Future<bool> refreshToken(String? expectedUserId) async {
     final startState = await _sessionLock.synchronized(() async {
+      if (await _hasPendingSessionReset()) return null;
+
       final currentUserId = await tokenStorage.getUserId();
       if (currentUserId != expectedUserId) return null;
 
@@ -267,6 +298,7 @@ class AuthRepository {
       // ID未取得(null)トークン同士の切替や同一ユーザーの再ログインも区別するため、
       // ロック内でセッション世代・ユーザーID・リフレッシュトークンをすべて照合する
       if (_sessionLock.sessionEpoch != startState.sessionEpoch) return false;
+      if (await _hasPendingSessionReset()) return false;
 
       final currentUserId = await tokenStorage.getUserId();
       final currentRefreshToken = await tokenStorage.getRefreshToken();

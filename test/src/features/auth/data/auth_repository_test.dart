@@ -242,6 +242,13 @@ void main() {
     return container;
   }
 
+  /// MockFlutterSecureStorage の名前付き引数から key を型パターンで取り出すヘルパー
+  String extractStorageKey(String operation, Invocation inv) =>
+      switch (inv.namedArguments) {
+        {#key: final String key} => key,
+        _ => fail('Unexpected $operation arguments: ${inv.namedArguments}'),
+      };
+
   group('AuthRepository', () {
     test('login: APIを呼び出し、取得したトークンをTokenStorageに保存すること', () async {
       // Arrange
@@ -392,6 +399,18 @@ void main() {
 
       // 削除完了後に新しく開始したログイン要求は通常どおり成功すること
       check(await repo.login('fresh@example.com', 'password123')).equals(true);
+      check(fakeStorage.savedAccessToken).equals('fresh-access');
+      check(fakeStorage.savedRefreshToken).equals('fresh-refresh');
+
+      // 呼び出し元が古い startSessionEpoch / startDeletionEpoch を渡した場合は保存せず false を返すこと
+      check(
+        await repo.login(
+          'stale-caller@example.com',
+          'password123',
+          startSessionEpoch: epochAfterDelete - 1,
+          startDeletionEpoch: 0,
+        ),
+      ).equals(false);
       check(fakeStorage.savedAccessToken).equals('fresh-access');
       check(fakeStorage.savedRefreshToken).equals('fresh-refresh');
     });
@@ -706,6 +725,215 @@ void main() {
         ),
       );
       await deleteFuture;
+    });
+
+    test('login: clearLogoutPending() を clearLoginPending() より先に実行し、 '
+        '両方の完了後にログインを確定すること', () async {
+      final callOrder = <String>[];
+      final fakeStorage = FakeTokenStorage(
+        onSaveTokens: (_, _) async {
+          callOrder.add('saveTokens');
+        },
+      );
+      final mockStore = MockCustomAuthInvalidationStore();
+      when(mockStore.getInvalidationEntries).thenAnswer((_) async => const []);
+      when(mockStore.markLoginPending).thenAnswer((_) async {
+        callOrder.add('markLoginPending');
+      });
+      when(
+        () => mockStore.clearIfAllowedForLogin(
+          userId: any(named: 'userId'),
+          email: any(named: 'email'),
+          isDeletionInProgress: any(named: 'isDeletionInProgress'),
+        ),
+      ).thenAnswer((_) async {
+        callOrder.add('clearIfAllowedForLogin');
+        return true;
+      });
+      when(mockStore.clearLogoutPending).thenAnswer((_) async {
+        callOrder.add('clearLogoutPending');
+      });
+      when(mockStore.clearLoginPending).thenAnswer((_) async {
+        callOrder.add('clearLoginPending');
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          authApiClientProvider.overrideWithValue(mockApi),
+          tokenStorageProvider.overrideWith((ref) => fakeStorage),
+          customAuthInvalidationStoreProvider.overrideWithValue(mockStore),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final mockResponse = MockResponse();
+      when(() => mockResponse.data).thenReturn({
+        'access_token': buildJwt(sub: 'user-a', email: 'a@example.com'),
+        'refresh_token': 'refresh-a',
+      });
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockResponse);
+
+      check(
+        await container
+            .read(authRepositoryProvider)
+            .login('a@example.com', 'password123'),
+      ).equals(true);
+      check(callOrder).deepEquals([
+        'markLoginPending',
+        'clearIfAllowedForLogin',
+        'saveTokens',
+        'clearLogoutPending',
+        'clearLoginPending',
+      ]);
+    });
+
+    test('login: clearLogoutPending() 失敗かつロールバック clear() 失敗時は '
+        'clearLoginPending() を呼ばず loginPending を保持して再起動復元を防ぐこと', () async {
+      final clearLogoutError = Exception('clearLogoutPending failed');
+      final clearTokensError = Exception('rollback clear failed');
+      final fakeStorage = FakeTokenStorage(clearError: clearTokensError);
+      final mockStore = MockCustomAuthInvalidationStore();
+      var isLoginPending = false;
+      when(mockStore.isLoginPending).thenAnswer((_) async => isLoginPending);
+      when(mockStore.isLogoutPending).thenAnswer((_) async => false);
+      when(mockStore.getInvalidationEntries).thenAnswer((_) async => const []);
+      when(mockStore.markLoginPending).thenAnswer((_) async {
+        isLoginPending = true;
+      });
+      when(
+        () => mockStore.clearIfAllowedForLogin(
+          userId: any(named: 'userId'),
+          email: any(named: 'email'),
+          isDeletionInProgress: any(named: 'isDeletionInProgress'),
+        ),
+      ).thenAnswer((_) async => true);
+      when(mockStore.clearLogoutPending).thenThrow(clearLogoutError);
+      when(mockStore.clearLoginPending).thenAnswer((_) async {
+        isLoginPending = false;
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          authApiClientProvider.overrideWithValue(mockApi),
+          tokenStorageProvider.overrideWith((ref) => fakeStorage),
+          customAuthInvalidationStoreProvider.overrideWithValue(mockStore),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final mockResponse = MockResponse();
+      when(() => mockResponse.data).thenReturn({
+        'access_token': buildJwt(sub: 'user-a', email: 'a@example.com'),
+        'refresh_token': 'refresh-a',
+      });
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockResponse);
+
+      await check(
+        container
+            .read(authRepositoryProvider)
+            .login('a@example.com', 'password123'),
+      ).throws<Exception>((it) => it.equals(clearLogoutError));
+
+      verifyNever(mockStore.clearLoginPending);
+      check(isLoginPending).equals(true);
+      check(fakeStorage.savedAccessToken).isNotNull();
+
+      final restarted = ProviderContainer(
+        overrides: [
+          tokenStorageProvider.overrideWith((ref) => fakeStorage),
+          customAuthInvalidationStoreProvider.overrideWithValue(mockStore),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(restarted.dispose);
+      check(await restarted.read(authStateProvider.future)).equals(false);
+      check(isLoginPending).equals(true);
+    });
+
+    test('login: clearLogoutPending() 失敗後にロールバックで全キーを消去できた場合は '
+        '消去後にのみ保留を解除すること', () async {
+      final clearLogoutError = Exception('transient clearLogoutPending failed');
+      final fakeStorage = FakeTokenStorage();
+      final mockStore = MockCustomAuthInvalidationStore();
+      final callOrder = <String>[];
+      var isLoginPending = false;
+      var clearLogoutCalls = 0;
+      when(mockStore.isLoginPending).thenAnswer((_) async => isLoginPending);
+      when(mockStore.isLogoutPending).thenAnswer((_) async => false);
+      when(mockStore.getInvalidationEntries).thenAnswer((_) async => const []);
+      when(mockStore.markLoginPending).thenAnswer((_) async {
+        isLoginPending = true;
+      });
+      when(
+        () => mockStore.clearIfAllowedForLogin(
+          userId: any(named: 'userId'),
+          email: any(named: 'email'),
+          isDeletionInProgress: any(named: 'isDeletionInProgress'),
+        ),
+      ).thenAnswer((_) async => true);
+      when(mockStore.clearLogoutPending).thenAnswer((_) async {
+        clearLogoutCalls++;
+        if (clearLogoutCalls == 1) {
+          check(fakeStorage.savedAccessToken).isNotNull();
+          callOrder.add('clearLogoutPending:initial');
+          throw clearLogoutError;
+        }
+        check(fakeStorage.savedAccessToken).isNull();
+        callOrder.add('clearLogoutPending:rollback');
+      });
+      when(mockStore.clearLoginPending).thenAnswer((_) async {
+        check(fakeStorage.savedAccessToken).isNull();
+        callOrder.add('clearLoginPending:rollback');
+        isLoginPending = false;
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          authApiClientProvider.overrideWithValue(mockApi),
+          tokenStorageProvider.overrideWith((ref) => fakeStorage),
+          customAuthInvalidationStoreProvider.overrideWithValue(mockStore),
+          loggerProvider.overrideWithValue(mockTalker),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final mockResponse = MockResponse();
+      when(() => mockResponse.data).thenReturn({
+        'access_token': buildJwt(sub: 'user-a', email: 'a@example.com'),
+        'refresh_token': 'refresh-a',
+      });
+      when(
+        () => mockApi.post<Map<String, dynamic>>(
+          '/auth/login',
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer((_) async => mockResponse);
+
+      await check(
+        container
+            .read(authRepositoryProvider)
+            .login('a@example.com', 'password123'),
+      ).throws<Exception>((it) => it.equals(clearLogoutError));
+
+      check(fakeStorage.savedAccessToken).isNull();
+      check(isLoginPending).equals(false);
+      check(callOrder).deepEquals([
+        'clearLogoutPending:initial',
+        'clearLogoutPending:rollback',
+        'clearLoginPending:rollback',
+      ]);
     });
 
     group('refreshToken', () {
@@ -1322,6 +1550,196 @@ void main() {
           repo.login('b@example.com', 'password123'),
         ).throws<Exception>((it) => it.equals(refreshWriteError));
         check(store).isEmpty();
+      });
+
+      test('logout保留中(isLogoutPending)の間は refreshToken がAPI呼び出し・再保存を抑止すること '
+          '(userId が null / 非null の双方)', () async {
+        final fakeStorage = FakeTokenStorage(initialRefreshToken: 'refresh-a')
+          ..savedRefreshToken = 'refresh-a';
+        final container = createContainer(fakeStorage);
+        final repo = container.read(authRepositoryProvider);
+
+        await invalidationStore.markLogoutPending();
+
+        // 1. accessToken / customUserId が消去済みで currentUserId == null の場合
+        check(await repo.refreshToken(null)).equals(false);
+
+        // 2. customUserId が残留している場合
+        fakeStorage.currentUserId = 'user-a';
+        check(await repo.refreshToken('user-a')).equals(false);
+
+        verifyNever(
+          () => mockApi.post<Map<String, dynamic>>(
+            any(),
+            data: any<dynamic>(named: 'data'),
+          ),
+        );
+        check(fakeStorage.savedAccessToken).isNull();
+      });
+
+      test(
+        'login保留中(isLoginPending)の間は refreshToken がAPI呼び出し・再保存を抑止すること',
+        () async {
+          final fakeStorage = FakeTokenStorage(initialRefreshToken: 'refresh-a')
+            ..savedRefreshToken = 'refresh-a';
+          final container = createContainer(fakeStorage);
+          final repo = container.read(authRepositoryProvider);
+
+          await invalidationStore.markLoginPending();
+
+          check(await repo.refreshToken(null)).equals(false);
+          verifyNever(
+            () => mockApi.post<Map<String, dynamic>>(
+              any(),
+              data: any<dynamic>(named: 'data'),
+            ),
+          );
+          check(fakeStorage.savedAccessToken).isNull();
+        },
+      );
+
+      test('退会完了後のトークン消去失敗で無効化レコードが残存している間は '
+          'refreshToken が資格情報を再保存しないこと', () async {
+        final jwtA = buildJwt(sub: 'user-a', email: 'a@example.com');
+        final fakeStorage =
+            FakeTokenStorage(
+                initialRefreshToken: 'refresh-a',
+                currentUserId: 'user-a',
+                clearError: Exception('clear failed'),
+              )
+              ..savedAccessToken = jwtA
+              ..savedRefreshToken = 'refresh-a';
+        final container = createContainer(fakeStorage);
+        final repo = container.read(authRepositoryProvider);
+
+        when(
+          () => mockApi.delete<void>(
+            '/auth/account',
+            options: any<Options?>(named: 'options'),
+          ),
+        ).thenAnswer(
+          (_) async => Response<void>(
+            requestOptions: RequestOptions(path: '/auth/account'),
+            statusCode: 200,
+          ),
+        );
+
+        check(await repo.deleteAccount()).equals(true);
+        check(await invalidationStore.isInvalidated()).equals(true);
+
+        // 1. 消去失敗後に全キー残留している場合
+        check(await repo.refreshToken('user-a')).equals(false);
+        check(fakeStorage.savedAccessToken).equals(jwtA);
+
+        // 2. accessToken / customUserId のみ消去済みで refreshToken が残留した場合
+        fakeStorage
+          ..savedAccessToken = null
+          ..currentUserId = null;
+        check(await repo.refreshToken(null)).equals(false);
+        check(fakeStorage.savedAccessToken).isNull();
+
+        verifyNever(
+          () => mockApi.post<Map<String, dynamic>>(
+            '/auth/refresh',
+            data: any<dynamic>(named: 'data'),
+          ),
+        );
+      });
+
+      test('退会処理中かつ accessToken 欠損時は refreshToken(null) を拒否すること', () async {
+        final jwtA = buildJwt(sub: 'user-a', email: 'a@example.com');
+        final fakeStorage =
+            FakeTokenStorage(
+                initialRefreshToken: 'refresh-a',
+                currentUserId: 'user-a',
+              )
+              ..savedAccessToken = jwtA
+              ..savedRefreshToken = 'refresh-a';
+        final container = createContainer(fakeStorage);
+        final repo = container.read(authRepositoryProvider);
+
+        final deleteStarted = Completer<void>();
+        final deleteCompleter = Completer<Response<void>>();
+        when(
+          () => mockApi.delete<void>(
+            '/auth/account',
+            options: any<Options?>(named: 'options'),
+          ),
+        ).thenAnswer((_) {
+          deleteStarted.complete();
+          return deleteCompleter.future;
+        });
+
+        final deleteFuture = repo.deleteAccount();
+        await deleteStarted.future;
+
+        await container.read(authSessionLockProvider).synchronized(() async {
+          fakeStorage
+            ..savedAccessToken = null
+            ..currentUserId = null;
+        });
+
+        check(await repo.refreshToken(null)).equals(false);
+        check(fakeStorage.savedAccessToken).isNull();
+        verifyNever(
+          () => mockApi.post<Map<String, dynamic>>(
+            '/auth/refresh',
+            data: any<dynamic>(named: 'data'),
+          ),
+        );
+
+        deleteCompleter.complete(
+          Response<void>(
+            requestOptions: RequestOptions(path: '/auth/account'),
+            statusCode: 200,
+          ),
+        );
+        await deleteFuture;
+      });
+
+      test('リフレッシュ通信中に成否不明の退会失敗が発生して無効化レコードが残った場合は '
+          '保存を抑止して false を返すこと', () async {
+        final jwtA = buildJwt(sub: 'user-a', email: 'a@example.com');
+        final fakeStorage =
+            FakeTokenStorage(
+                initialRefreshToken: 'refresh-a',
+                currentUserId: 'user-a',
+              )
+              ..savedAccessToken = jwtA
+              ..savedRefreshToken = 'refresh-a';
+        final container = createContainer(fakeStorage);
+        final repo = container.read(authRepositoryProvider);
+
+        final refreshStarted = Completer<void>();
+        final refreshGate = Completer<Map<String, dynamic>>();
+        when(
+          () => mockApi.post<Map<String, dynamic>>(
+            '/auth/refresh',
+            data: any<dynamic>(named: 'data'),
+          ),
+        ).thenAnswer((_) async {
+          refreshStarted.complete();
+          final response = MockResponse();
+          final data = await refreshGate.future;
+          when(() => response.data).thenReturn(data);
+          return response;
+        });
+        when(
+          () => mockApi.delete<void>(
+            '/auth/account',
+            options: any<Options?>(named: 'options'),
+          ),
+        ).thenThrow(const AppException.network());
+
+        final refreshFuture = repo.refreshToken('user-a');
+        await refreshStarted.future;
+
+        await check(repo.deleteAccount()).throws<NetworkException>();
+        check(await invalidationStore.isInvalidated()).equals(true);
+
+        refreshGate.complete({'access_token': 'refreshed_access_a'});
+        check(await refreshFuture).equals(false);
+        check(fakeStorage.savedAccessToken).equals(jwtA);
       });
     });
   });
@@ -3436,11 +3854,11 @@ void main() {
       final mockSecureStorage = MockFlutterSecureStorage();
       when(
         () => mockSecureStorage.read(key: any(named: 'key')),
-      ).thenAnswer((inv) async => store[inv.namedArguments[#key] as String]);
+      ).thenAnswer((inv) async => store[extractStorageKey('read', inv)]);
       when(() => mockSecureStorage.delete(key: any(named: 'key'))).thenAnswer((
         inv,
       ) async {
-        store.remove(inv.namedArguments[#key] as String);
+        store.remove(extractStorageKey('delete', inv));
       });
       when(
         () => mockSecureStorage.write(
@@ -3564,11 +3982,11 @@ void main() {
       final mockSecureStorage = MockFlutterSecureStorage();
       when(
         () => mockSecureStorage.read(key: any(named: 'key')),
-      ).thenAnswer((inv) async => store[inv.namedArguments[#key] as String]);
+      ).thenAnswer((inv) async => store[extractStorageKey('read', inv)]);
       when(() => mockSecureStorage.delete(key: any(named: 'key'))).thenAnswer((
         inv,
       ) async {
-        store.remove(inv.namedArguments[#key] as String);
+        store.remove(extractStorageKey('delete', inv));
       });
       when(
         () => mockSecureStorage.write(
